@@ -19,6 +19,7 @@ namespace RTUB.Application.Tests.Services;
 public class AdminNotificationSkipTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DbContextOptions<ApplicationDbContext> _dbOptions;
     private readonly EnrollmentService _enrollmentService;
     private readonly RehearsalAttendanceService _attendanceService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
@@ -29,11 +30,11 @@ public class AdminNotificationSkipTests : IDisposable
 
     public AdminNotificationSkipTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        _dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
+        _context = new ApplicationDbContext(_dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
@@ -42,14 +43,14 @@ public class AdminNotificationSkipTests : IDisposable
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(CreateContextFactory()),
             _mockRetirementStatusService.Object,
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
             _mockHttpContextAccessor.Object);
 
         _attendanceService = new RehearsalAttendanceService(
-            new RehearsalAttendanceRepository(_context),
+            new RehearsalAttendanceRepository(CreateContextFactory()),
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
@@ -227,5 +228,13 @@ public class AdminNotificationSkipTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+    }
+
+    private IDbContextFactory<ApplicationDbContext> CreateContextFactory()
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(_dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+        return mock.Object;
     }
 }

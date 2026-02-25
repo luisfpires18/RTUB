@@ -24,6 +24,7 @@ public class InventoryService : IInventoryService
     private readonly IOptionsSnapshot<MyTunoScalingConfiguration> _scalingOptions;
     private MyTunoScalingConfiguration _scalingConfig => _scalingOptions.Value;
     private GatheringConfig _gatheringConfig => _scalingConfig.Gathering;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _dbContext;
 
     // Per-user lock to prevent multi-tab energy exploits (race conditions on read-modify-write).
@@ -46,14 +47,15 @@ public class InventoryService : IInventoryService
         UserManager<ApplicationUser> userManager,
         ILogger<InventoryService> logger,
         IOptionsSnapshot<MyTunoScalingConfiguration> config,
-        ApplicationDbContext dbContext)
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _inventoryRepository = inventoryRepository;
         _characterRepository = characterRepository;
         _userManager = userManager;
         _logger = logger;
         _scalingOptions = config;
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
+        _dbContext = contextFactory.CreateDbContext();
     }
 
     /// <summary>
@@ -451,7 +453,7 @@ public class InventoryService : IInventoryService
         try
         {
             // Force a fresh read from DB inside the lock to pick up changes from other circuits
-            var character = await _characterRepository.GetByUserIdFreshAsync(userId);
+            var character = await _characterRepository.GetByUserIdAsync(userId);
             if (character == null)
             {
                 _logger.LogWarning("User {UserId} attempted to gather but has no character", userId);

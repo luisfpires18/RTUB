@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class LabelRepository : Repository<Label>, ILabelRepository
 {
-    public LabelRepository(ApplicationDbContext context) : base(context)
+    public LabelRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class UserBetRepository : Repository<UserBet>, IUserBetRepository
 {
-    public UserBetRepository(ApplicationDbContext context) : base(context)
+    public UserBetRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

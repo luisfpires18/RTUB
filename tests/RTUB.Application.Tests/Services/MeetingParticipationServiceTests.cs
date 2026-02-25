@@ -25,7 +25,7 @@ public class MeetingParticipationServiceTests : IClassFixture<DatabaseFixture>, 
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _service = new MeetingParticipationService(new MeetingParticipationRepository(_context));
+        _service = new MeetingParticipationService(new MeetingParticipationRepository(_fixture.CreateContextFactory()));
     }
 
     [Fact]

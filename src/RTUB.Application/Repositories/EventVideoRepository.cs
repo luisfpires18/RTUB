@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class EventVideoRepository : Repository<EventVideo>, IEventVideoRepository
 {
-    public EventVideoRepository(ApplicationDbContext context) : base(context)
+    public EventVideoRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

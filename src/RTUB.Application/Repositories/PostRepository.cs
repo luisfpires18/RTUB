@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class PostRepository : Repository<Post>, IPostRepository
 {
-    public PostRepository(ApplicationDbContext context) : base(context)
+    public PostRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class CommentImageRepository : Repository<CommentImage>, ICommentImageRepository
 {
-    public CommentImageRepository(ApplicationDbContext context) : base(context)
+    public CommentImageRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

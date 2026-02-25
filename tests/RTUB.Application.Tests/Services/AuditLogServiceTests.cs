@@ -31,7 +31,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _auditLogService = new AuditLogService(new AuditLogRepository(_context));
+        _auditLogService = new AuditLogService(new AuditLogRepository(_fixture.CreateContextFactory()));
     }
 
     [Fact]

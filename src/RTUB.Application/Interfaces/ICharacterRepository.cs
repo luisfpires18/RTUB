@@ -16,12 +16,6 @@ public interface ICharacterRepository : IRepository<Character>
     Task<Character?> GetByUserIdAsync(string userId);
 
     /// <summary>
-    /// Gets a character by user ID, forcing a DB reload if the entity is already tracked.
-    /// Use on page-load paths to pick up external changes (e.g., owner "Heal All").
-    /// </summary>
-    Task<Character?> GetByUserIdFreshAsync(string userId);
-
-    /// <summary>
     /// Gets all characters ordered by level descending, then by XP descending
     /// </summary>
     /// <returns>List of characters ordered by level</returns>

@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ActivityRepository : Repository<Activity>, IActivityRepository
 {
-    public ActivityRepository(ApplicationDbContext context) : base(context)
+    public ActivityRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

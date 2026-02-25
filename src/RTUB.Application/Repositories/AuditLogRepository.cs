@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
 {
-    public AuditLogRepository(ApplicationDbContext context) : base(context)
+    public AuditLogRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

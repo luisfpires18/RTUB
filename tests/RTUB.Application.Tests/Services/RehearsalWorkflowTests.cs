@@ -51,9 +51,9 @@ public class RehearsalWorkflowTests : IDisposable
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
-        _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
+        _rehearsalService = new RehearsalService(new RehearsalRepository(CreateContextFactory()), new RehearsalAttendanceRepository(CreateContextFactory()));
         _attendanceService = new RehearsalAttendanceService(
-            new RehearsalAttendanceRepository(_context),
+            new RehearsalAttendanceRepository(CreateContextFactory()),
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
@@ -269,5 +269,16 @@ public class RehearsalWorkflowTests : IDisposable
         _context.Database.EnsureDeleted();
         _context.Dispose();
         _serviceProvider.Dispose();
+    }
+
+    private IDbContextFactory<ApplicationDbContext> CreateContextFactory()
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() =>
+        {
+            var scope = _serviceProvider.CreateScope();
+            return scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        });
+        return mock.Object;
     }
 }

@@ -52,7 +52,7 @@ public class InventoryServiceTests : IDisposable
             userManagerMock.Object,
             _loggerMock.Object,
             config.Object,
-            _dbContext);
+            WrapInFactory(_dbContext));
     }
 
     public void Dispose()
@@ -553,5 +553,12 @@ public class InventoryServiceTests : IDisposable
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never);
+    }
+
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(ApplicationDbContext ctx)
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(ctx);
+        return mock.Object;
     }
 }

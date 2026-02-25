@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class PostMediaRepository : Repository<PostMedia>, IPostMediaRepository
 {
-    public PostMediaRepository(ApplicationDbContext context) : base(context)
+    public PostMediaRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

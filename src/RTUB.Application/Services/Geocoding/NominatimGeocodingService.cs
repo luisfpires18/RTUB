@@ -19,6 +19,7 @@ public class NominatimGeocodingService : IGeocodingService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<NominatimGeocodingService> _logger;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _dbContext;
     private readonly bool _disabledInTests;
     private const string NominatimBaseUrl = "https://nominatim.openstreetmap.org";
@@ -37,7 +38,7 @@ public class NominatimGeocodingService : IGeocodingService
     public NominatimGeocodingService(
         IHttpClientFactory httpClientFactory,
         ILogger<NominatimGeocodingService> logger,
-        ApplicationDbContext dbContext,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IConfiguration configuration)
     {
         _httpClient = httpClientFactory.CreateClient("Nominatim");
@@ -45,7 +46,8 @@ public class NominatimGeocodingService : IGeocodingService
         // Nominatim requires a User-Agent header
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "RTUB-MemberMap/1.0");
         _logger = logger;
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
+        _dbContext = contextFactory.CreateDbContext();
         _disabledInTests = configuration.GetValue("Geocoding:DisabledInTests", false);
     }
 

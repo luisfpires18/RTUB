@@ -89,7 +89,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
         }
 
         using var scope = _serviceScopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext();
         var pushNotificationService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
         var pushNotificationFactory = scope.ServiceProvider.GetRequiredService<IPushNotificationFactory>();
 

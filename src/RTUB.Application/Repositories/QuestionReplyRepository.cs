@@ -10,11 +10,13 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class QuestionReplyRepository : IQuestionReplyRepository
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
-    public QuestionReplyRepository(ApplicationDbContext context)
+    public QuestionReplyRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<IEnumerable<QuestionReply>> GetByQuestionIdAsync(int questionId)

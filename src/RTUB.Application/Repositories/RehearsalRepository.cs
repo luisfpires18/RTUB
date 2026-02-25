@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
 {
-    public RehearsalRepository(ApplicationDbContext context) : base(context)
+    public RehearsalRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

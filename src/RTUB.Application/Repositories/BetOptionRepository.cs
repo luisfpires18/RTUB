@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
 {
-    public BetOptionRepository(ApplicationDbContext context) : base(context)
+    public BetOptionRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

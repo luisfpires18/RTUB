@@ -24,6 +24,7 @@ public class SongService : ISongService
     private readonly ISongVideoRepository _songVideoRepository;
     private readonly ISongVideoStorageService _songVideoStorageService;
     private readonly IAlbumRepository _albumRepository;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<SongService>? _logger;
     private readonly IPushNotificationFactory _pushNotificationFactory;
@@ -36,7 +37,7 @@ public class SongService : ISongService
         ISongVideoRepository songVideoRepository,
         ISongVideoStorageService songVideoStorageService,
         IAlbumRepository albumRepository,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
@@ -47,7 +48,8 @@ public class SongService : ISongService
         _songVideoRepository = songVideoRepository;
         _songVideoStorageService = songVideoStorageService;
         _albumRepository = albumRepository;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
         _logger = logger;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;

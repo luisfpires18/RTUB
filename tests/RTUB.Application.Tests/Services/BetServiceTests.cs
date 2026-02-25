@@ -46,10 +46,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _betRepository = new BetRepository(_context);
-        _betOptionRepository = new BetOptionRepository(_context);
-        _userBetRepository = new UserBetRepository(_context);
-        _betCommentRepository = new BetCommentRepository(_context);
+        _betRepository = new BetRepository(_fixture.CreateContextFactory());
+        _betOptionRepository = new BetOptionRepository(_fixture.CreateContextFactory());
+        _userBetRepository = new UserBetRepository(_fixture.CreateContextFactory());
+        _betCommentRepository = new BetCommentRepository(_fixture.CreateContextFactory());
         _pushNotificationFactory = new Mock<IPushNotificationFactory>();
         _pushNotificationService = new Mock<IPushNotificationService>();
         _httpContextAccessor = new Mock<IHttpContextAccessor>();

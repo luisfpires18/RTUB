@@ -34,7 +34,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new InstrumentService(new InstrumentRepository(_context), _imageStorageServiceMock.Object);
+        _service = new InstrumentService(new InstrumentRepository(_fixture.CreateContextFactory()), _imageStorageServiceMock.Object);
     }
 
     [Fact]

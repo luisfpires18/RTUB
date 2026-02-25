@@ -27,7 +27,7 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _service = new UserRoleQueryService(_context);
+        _service = new UserRoleQueryService(_fixture.CreateContextFactory());
     }
 
     [Fact]

@@ -48,7 +48,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _attendanceService = new RehearsalAttendanceService(
-            new RehearsalAttendanceRepository(_context),
+            new RehearsalAttendanceRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,

@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSubscriptionRepository
 {
-    public PushSubscriptionRepository(ApplicationDbContext context) : base(context)
+    public PushSubscriptionRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

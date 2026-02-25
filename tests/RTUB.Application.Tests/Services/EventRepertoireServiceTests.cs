@@ -41,7 +41,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         _context = _fixture.CreateContext();
 
         _repertoireService = new EventRepertoireService(
-            new EventRepertoireRepository(_context));
+            new EventRepertoireRepository(_fixture.CreateContextFactory()));
 
         _mockImageStorageService = new Mock<IImageStorageService>();
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
@@ -56,27 +56,27 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _eventService = new EventService(
-            new EventRepository(_context),
+            new EventRepository(_fixture.CreateContextFactory()),
             _mockImageStorageService.Object,
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
-        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_fixture.CreateContextFactory()), _mockImageStorageService.Object);
 
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
         _songService = new SongService(
-            new SongRepository(_context),
+            new SongRepository(_fixture.CreateContextFactory()),
             mockSongVideoRepository.Object,
             mockSongVideoStorageService.Object,
-            new AlbumRepository(_context),
-            _context,
+            new AlbumRepository(_fixture.CreateContextFactory()),
+            _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,

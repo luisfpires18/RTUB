@@ -6,102 +6,75 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Repositories;
 
 /// <summary>
-/// Repository implementation for RehearsalAttendance entity
+/// Repository implementation for RehearsalAttendance entity.
+/// Uses IDbContextFactory — each operation gets a fresh short-lived context.
 /// </summary>
 public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IRehearsalAttendanceRepository
 {
-    public RehearsalAttendanceRepository(ApplicationDbContext context) : base(context)
+    public RehearsalAttendanceRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 
     public override async Task<RehearsalAttendance> AddAsync(RehearsalAttendance entity)
     {
-        ResetChangeTracker();
-        ClearUserNavigation(entity);
-        ClearRehearsalNavigation(entity);
-        NormalizeTrackedUsers();
-        NormalizeTrackedAttendance(entity);
+        using var context = CreateContext();
 
-        // Ensure the User is loaded into Local cache for audit log display name resolution
+        // Preload User and Rehearsal into context Local cache for audit log display name resolution
         if (!string.IsNullOrEmpty(entity.UserId))
-        {
-            var user = await _context.Users.FindAsync(entity.UserId);
-            if (user != null)
-            {
-                // User is now in Local cache and can be accessed by GetEntityDisplayName
-            }
-        }
-
-        // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
+            await context.Users.FindAsync(entity.UserId);
         if (entity.RehearsalId > 0)
-        {
-            var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
-            if (rehearsal != null)
-            {
-                // Rehearsal is now in Local cache
-            }
-        }
+            await context.Rehearsals.FindAsync(entity.RehearsalId);
 
-        return await base.AddAsync(entity);
+        // Clear navigation properties to avoid attaching stale related entities
+        entity.User = null!;
+        entity.Rehearsal = null!;
+
+        await context.RehearsalAttendances.AddAsync(entity);
+        await context.SaveChangesAsync();
+        return entity;
     }
 
     public override async Task UpdateAsync(RehearsalAttendance entity)
     {
-        ResetChangeTracker();
-        ClearUserNavigation(entity);
-        ClearRehearsalNavigation(entity);
-        NormalizeTrackedUsers();
-        NormalizeTrackedAttendance(entity);
+        using var context = CreateContext();
 
-        // Ensure the User is loaded into Local cache for audit log display name resolution
+        // Preload User and Rehearsal into context Local cache for audit log display name resolution
         if (!string.IsNullOrEmpty(entity.UserId))
-        {
-            var user = await _context.Users.FindAsync(entity.UserId);
-        }
-
-        // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
+            await context.Users.FindAsync(entity.UserId);
         if (entity.RehearsalId > 0)
-        {
-            var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
-        }
+            await context.Rehearsals.FindAsync(entity.RehearsalId);
 
-        await base.UpdateAsync(entity);
+        // Clear navigation properties to avoid attaching stale related entities
+        entity.User = null!;
+        entity.Rehearsal = null!;
+
+        context.RehearsalAttendances.Update(entity);
+        await context.SaveChangesAsync();
     }
 
     public override async Task DeleteAsync(int id)
     {
-        ResetChangeTracker();
+        using var context = CreateContext();
+        var entity = await context.RehearsalAttendances.FindAsync(id);
+        if (entity == null) return;
 
-        var entity = await _dbSet.FindAsync(id);
-        if (entity != null)
-        {
-            ClearUserNavigation(entity);
-            ClearRehearsalNavigation(entity);
-            NormalizeTrackedUsers();
-            NormalizeTrackedAttendance(entity);
+        // Preload User and Rehearsal into context Local cache for audit log display name resolution
+        if (!string.IsNullOrEmpty(entity.UserId))
+            await context.Users.FindAsync(entity.UserId);
+        if (entity.RehearsalId > 0)
+            await context.Rehearsals.FindAsync(entity.RehearsalId);
 
-            // Ensure the User is loaded into Local cache for audit log display name resolution
-            if (!string.IsNullOrEmpty(entity.UserId))
-            {
-                var user = await _context.Users.FindAsync(entity.UserId);
-            }
-
-            // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
-            if (entity.RehearsalId > 0)
-            {
-                var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
-            }
-        }
-
-        await base.DeleteAsync(id);
+        context.RehearsalAttendances.Remove(entity);
+        await context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.RehearsalAttendances
             .AsNoTracking()
             .Include(a => a.Rehearsal)
-            .Include(a => a.User) // Include User to avoid N+1 queries
+            .Include(a => a.User)
             .Where(a => a.RehearsalId == rehearsalId)
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync();
@@ -111,14 +84,13 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
     {
         var rehearsalIdsList = rehearsalIds.ToList();
         if (!rehearsalIdsList.Any())
-        {
             return Enumerable.Empty<RehearsalAttendance>();
-        }
 
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.RehearsalAttendances
             .AsNoTracking()
             .Include(a => a.Rehearsal)
-            .Include(a => a.User) // Include User to avoid N+1 queries
+            .Include(a => a.User)
             .Where(a => rehearsalIdsList.Contains(a.RehearsalId))
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync();
@@ -126,7 +98,8 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
 
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.RehearsalAttendances
             .AsNoTracking()
             .Include(a => a.Rehearsal)
             .Where(a => a.UserId == userId)
@@ -136,13 +109,16 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
 
     public async Task<RehearsalAttendance?> GetAttendanceByRehearsalAndUserAsync(int rehearsalId, string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.RehearsalAttendances
+            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.RehearsalId == rehearsalId && a.UserId == userId);
     }
 
     public async Task<(int TotalRehearsals, int Attended)> GetAttendanceStatsAsync(string userId)
     {
-        var attendances = await _dbSet
+        using var context = CreateContext();
+        var attendances = await context.RehearsalAttendances
             .AsNoTracking()
             .Where(a => a.UserId == userId)
             .ToListAsync();
@@ -155,100 +131,9 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
 
     public async Task DeleteByRehearsalIdAsync(int rehearsalId)
     {
-        var attendances = await _dbSet
+        using var context = CreateContext();
+        await context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsalId)
-            .ToListAsync();
-
-        if (attendances.Count > 0)
-        {
-            _dbSet.RemoveRange(attendances);
-            await _context.SaveChangesAsync();
-        }
-    }
-
-    private void NormalizeTrackedUsers()
-    {
-        var userEntries = _context.ChangeTracker
-            .Entries<ApplicationUser>()
-            .Where(e => !string.IsNullOrEmpty(e.Entity.Id))
-            .ToList();
-
-        foreach (var grouping in userEntries.GroupBy(e => e.Entity.Id))
-        {
-            var primaryEntry = grouping
-                .OrderBy(e => e.State == EntityState.Unchanged ? 0 : 1)
-                .ThenBy(e => e.State == EntityState.Modified ? 0 : 1)
-                .First();
-
-            foreach (var entry in grouping)
-            {
-                if (entry == primaryEntry)
-                {
-                    if (entry.State == EntityState.Added)
-                    {
-                        entry.State = EntityState.Unchanged;
-                    }
-                    continue;
-                }
-
-                entry.State = EntityState.Detached;
-            }
-        }
-    }
-
-    private void ResetChangeTracker()
-    {
-        _context.ChangeTracker.Clear();
-    }
-
-    private void ClearUserNavigation(RehearsalAttendance entity)
-    {
-        if (entity.User != null)
-        {
-            var userEntry = _context.Entry(entity.User);
-            if (userEntry.State != EntityState.Detached)
-            {
-                userEntry.State = EntityState.Detached;
-            }
-
-            entity.User = null;
-        }
-    }
-
-    private void ClearRehearsalNavigation(RehearsalAttendance entity)
-    {
-        if (entity.Rehearsal != null)
-        {
-            var rehearsalEntry = _context.Entry(entity.Rehearsal);
-            if (rehearsalEntry.State != EntityState.Detached)
-            {
-                rehearsalEntry.State = EntityState.Detached;
-            }
-
-            entity.Rehearsal = null;
-        }
-    }
-
-    private void NormalizeTrackedAttendance(RehearsalAttendance entity)
-    {
-        if (entity.Id == 0)
-        {
-            return;
-        }
-
-        var attendanceEntries = _context.ChangeTracker
-            .Entries<RehearsalAttendance>()
-            .Where(e => e.Entity.Id == entity.Id)
-            .ToList();
-
-        foreach (var entry in attendanceEntries)
-        {
-            if (entry.Entity == entity)
-            {
-                continue;
-            }
-
-            entry.State = EntityState.Detached;
-        }
+            .ExecuteDeleteAsync();
     }
 }

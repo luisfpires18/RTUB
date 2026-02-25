@@ -19,6 +19,7 @@ public class PowerService : IPowerService
 {
     private readonly ICharacterService _characterService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PowerService>? _logger;
     private readonly MyTunoScalingConfiguration _config;
@@ -29,14 +30,15 @@ public class PowerService : IPowerService
     public PowerService(
         ICharacterService characterService,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IOptions<MyTunoScalingConfiguration> config,
         IInventoryRepository inventoryRepository,
         ILogger<PowerService>? logger = null)
     {
         _characterService = characterService;
         _userManager = userManager;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
         _logger = logger;
         _config = config.Value;
         _inventoryRepository = inventoryRepository;

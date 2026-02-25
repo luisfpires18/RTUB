@@ -27,7 +27,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new RehearsalAttendanceRepository(_context);
+        _repository = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
     }
 
     [Fact]

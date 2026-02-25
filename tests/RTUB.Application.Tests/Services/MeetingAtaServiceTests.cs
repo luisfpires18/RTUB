@@ -46,8 +46,8 @@ public class MeetingAtaServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Setup IDbContextFactory mock to return our test context
         _mockContextFactory = new Mock<IDbContextFactory<ApplicationDbContext>>();
-        _mockContextFactory.Setup(f => f.CreateDbContextAsync(default))
-            .ReturnsAsync(_context);
+        _mockContextFactory.Setup(f => f.CreateDbContext())
+            .Returns(() => _fixture.CreateContext());
 
         _ataService = new MeetingAtaService(
             _ataRepository,

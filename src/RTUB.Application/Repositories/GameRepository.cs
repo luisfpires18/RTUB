@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class GameRepository : Repository<Game>, IGameRepository
 {
-    public GameRepository(ApplicationDbContext context) : base(context) { }
+    public GameRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<Game?> GetByKeyAsync(string key)
     {

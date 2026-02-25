@@ -17,6 +17,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     private readonly IMessagingService _messagingService;
     private readonly IConversationRepository _conversationRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<GroupConversationSyncService> _logger;
 
@@ -24,13 +25,14 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         IMessagingService messagingService,
         IConversationRepository conversationRepository,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext dbContext,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         ILogger<GroupConversationSyncService> logger)
     {
         _messagingService = messagingService;
         _conversationRepository = conversationRepository;
         _userManager = userManager;
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
+        _dbContext = contextFactory.CreateDbContext();
         _logger = logger;
     }
 
@@ -108,7 +110,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     private async Task SyncRoleBasedGroupAsync(string groupTitle, string targetRole)
     {
         // Get all users and filter by CurrentRole property
-        var allUsers = await _userManager.Users.ToListAsync();
+        var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
         List<string> participantIds;
 
@@ -134,7 +136,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     private async Task SyncCategoryBasedGroupAsync(string groupTitle, MemberCategory[] targetCategories, bool excludeTunoHonorario = false)
     {
         // Get all users
-        var allUsers = await _userManager.Users.ToListAsync();
+        var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
         var participantIds = allUsers
             .Where(u => u.Categories.Any(c => targetCategories.Contains(c)) &&
@@ -220,7 +222,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
     private async Task<List<string>> GetActiveUserIdsAsync()
     {
-        var allUsers = await _userManager.Users.ToListAsync();
+        var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
         return allUsers
             .Where(u => !u.IsRetired)
             .Select(u => u.Id)
@@ -229,7 +231,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
     private async Task<List<string>> GetAllUserIdsAsync()
     {
-        var allUsers = await _userManager.Users.ToListAsync();
+        var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
         return allUsers
             .Select(u => u.Id)
             .ToList();

@@ -30,8 +30,8 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        var cardRepo = new LogisticsCardRepository(_context);
-        var eventRepo = new EventRepository(_context);
+        var cardRepo = new LogisticsCardRepository(_fixture.CreateContextFactory());
+        var eventRepo = new EventRepository(_fixture.CreateContextFactory());
         var documentStorageService = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>().Object;
         var assignmentRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardAssignment>>().Object;
         var reminderRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardReminder>>().Object;
@@ -523,11 +523,11 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
             .ReturnsAsync(expectedPath);
 
         var service = new LogisticsCardService(
-            new LogisticsCardRepository(_context),
-            new EventRepository(_context),
+            new LogisticsCardRepository(_fixture.CreateContextFactory()),
+            new EventRepository(_fixture.CreateContextFactory()),
             mockDocumentStorage.Object,
-            new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardAssignment>(_fixture.CreateContextFactory()),
+            new Repository<LogisticsCardReminder>(_fixture.CreateContextFactory()));
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
         var boardName = "Test Board";
@@ -554,11 +554,11 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         // Arrange
         var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
         var service = new LogisticsCardService(
-            new LogisticsCardRepository(_context),
-            new EventRepository(_context),
+            new LogisticsCardRepository(_fixture.CreateContextFactory()),
+            new EventRepository(_fixture.CreateContextFactory()),
             mockDocumentStorage.Object,
-            new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardAssignment>(_fixture.CreateContextFactory()),
+            new Repository<LogisticsCardReminder>(_fixture.CreateContextFactory()));
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
         var boardName = "Test Board";
@@ -603,11 +603,11 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
             .ReturnsAsync(expectedPath);
 
         var service = new LogisticsCardService(
-            new LogisticsCardRepository(_context),
-            new EventRepository(_context),
+            new LogisticsCardRepository(_fixture.CreateContextFactory()),
+            new EventRepository(_fixture.CreateContextFactory()),
             mockDocumentStorage.Object,
-            new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardAssignment>(_fixture.CreateContextFactory()),
+            new Repository<LogisticsCardReminder>(_fixture.CreateContextFactory()));
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
         var boardName = "Test/Board..Name"; // Contains path traversal attempts

@@ -13,7 +13,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class MeetingRepository : Repository<Meeting>, IMeetingRepository
 {
-    public MeetingRepository(ApplicationDbContext context) : base(context)
+    public MeetingRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

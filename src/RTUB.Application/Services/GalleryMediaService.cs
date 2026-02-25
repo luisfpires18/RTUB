@@ -12,6 +12,7 @@ namespace RTUB.Application.Services;
 public class GalleryMediaService : IGalleryMediaService
 {
     private readonly IGalleryMediaRepository _repository;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
     /// <summary>
@@ -19,10 +20,11 @@ public class GalleryMediaService : IGalleryMediaService
     /// </summary>
     /// <param name="repository">Repository for gallery media operations</param>
     /// <param name="context">Database context for direct operations</param>
-    public GalleryMediaService(IGalleryMediaRepository repository, ApplicationDbContext context)
+    public GalleryMediaService(IGalleryMediaRepository repository, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _repository = repository;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
     }
 
     /// <summary>

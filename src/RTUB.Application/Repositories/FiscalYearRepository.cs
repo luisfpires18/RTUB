@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class FiscalYearRepository : Repository<FiscalYear>, IFiscalYearRepository
 {
-    public FiscalYearRepository(ApplicationDbContext context) : base(context)
+    public FiscalYearRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

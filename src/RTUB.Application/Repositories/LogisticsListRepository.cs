@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class LogisticsListRepository : Repository<LogisticsList>, ILogisticsListRepository
 {
-    public LogisticsListRepository(ApplicationDbContext context) : base(context)
+    public LogisticsListRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

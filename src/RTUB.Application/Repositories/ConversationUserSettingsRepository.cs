@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ConversationUserSettingsRepository : Repository<ConversationUserSettings>, IConversationUserSettingsRepository
 {
-    public ConversationUserSettingsRepository(ApplicationDbContext context) : base(context)
+    public ConversationUserSettingsRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

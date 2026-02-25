@@ -15,12 +15,14 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class MemberStatisticsService : IMemberStatisticsService
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly IOptions<XpSettings> _xpSettings;
 
-    public MemberStatisticsService(ApplicationDbContext context, IOptions<XpSettings> xpSettings)
+    public MemberStatisticsService(IDbContextFactory<ApplicationDbContext> contextFactory, IOptions<XpSettings> xpSettings)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _context = contextFactory.CreateDbContext();
         _xpSettings = xpSettings ?? throw new ArgumentNullException(nameof(xpSettings));
     }
 

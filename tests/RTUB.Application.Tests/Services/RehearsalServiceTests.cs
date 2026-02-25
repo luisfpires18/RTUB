@@ -31,7 +31,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
+        _rehearsalService = new RehearsalService(new RehearsalRepository(_fixture.CreateContextFactory()), new RehearsalAttendanceRepository(_fixture.CreateContextFactory()));
     }
 
     [Fact]

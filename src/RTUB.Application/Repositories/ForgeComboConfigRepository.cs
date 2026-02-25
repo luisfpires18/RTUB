@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ForgeComboConfigRepository : Repository<ForgeComboConfig>, IForgeComboConfigRepository
 {
-    public ForgeComboConfigRepository(ApplicationDbContext context) : base(context)
+    public ForgeComboConfigRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

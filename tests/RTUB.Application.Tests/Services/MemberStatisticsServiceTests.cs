@@ -49,7 +49,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
             }
         });
 
-        _service = new MemberStatisticsService(_context, xpSettings);
+        _service = new MemberStatisticsService(_fixture.CreateContextFactory(), xpSettings);
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task Constructor_WithNullXpSettings_ThrowsArgumentNullException()
     {
         // Act & Assert
-        var act = () => new MemberStatisticsService(_context, null!);
+        var act = () => new MemberStatisticsService(_fixture.CreateContextFactory(), null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("xpSettings");
     }
 

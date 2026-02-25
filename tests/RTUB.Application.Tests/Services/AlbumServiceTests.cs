@@ -33,7 +33,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_fixture.CreateContextFactory()), _mockImageStorageService.Object);
     }
 
     [Fact]

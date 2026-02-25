@@ -46,8 +46,8 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _meetingService = new MeetingService(
-            new MeetingRepository(_context),
-            _context,
+            new MeetingRepository(_fixture.CreateContextFactory()),
+            _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);

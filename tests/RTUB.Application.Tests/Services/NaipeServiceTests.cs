@@ -46,9 +46,9 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _naipeContentRepository = new NaipeContentRepository(_context);
-        _naipeCommentRepository = new NaipeCommentRepository(_context);
-        _naipeTypeConfigRepository = new NaipeTypeConfigRepository(_context);
+        _naipeContentRepository = new NaipeContentRepository(_fixture.CreateContextFactory());
+        _naipeCommentRepository = new NaipeCommentRepository(_fixture.CreateContextFactory());
+        _naipeTypeConfigRepository = new NaipeTypeConfigRepository(_fixture.CreateContextFactory());
 
         // Setup mocks
         _mockMediaStorageService = new Mock<INaipeMediaStorageService>();
@@ -74,7 +74,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
-            _context,
+            _fixture.CreateContextFactory(),
             auditContext,
             _mockHttpContextAccessor.Object,
             cache);

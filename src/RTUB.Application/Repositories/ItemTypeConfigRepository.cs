@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ItemTypeConfigRepository : Repository<ItemTypeConfig>, IItemTypeConfigRepository
 {
-    public ItemTypeConfigRepository(ApplicationDbContext context) : base(context)
+    public ItemTypeConfigRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

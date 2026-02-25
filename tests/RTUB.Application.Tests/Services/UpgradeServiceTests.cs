@@ -39,14 +39,14 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        var characterRepository = new CharacterRepository(_context);
+        var characterRepository = new CharacterRepository(_fixture.CreateContextFactory());
         var mockCharUserStore = new Mock<IUserStore<ApplicationUser>>();
         var mockCharUserManager = new Mock<UserManager<ApplicationUser>>(
             mockCharUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
         var mockCharConfig = Options.Create(new MyTunoScalingConfiguration());
         var mockCharLogger = new Mock<ILogger<CharacterService>>();
         _characterService = new CharacterService(
-            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object, _context,
+            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object, _fixture.CreateContextFactory(),
             Mock.Of<IWebHostEnvironment>());
 
         // Setup UserManager mock
@@ -72,7 +72,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _upgradeService = new UpgradeService(
             _characterService,
             _mockUserManager.Object,
-            _context,
+            _fixture.CreateContextFactory(),
             mockConfig.Object,
             new Mock<IInventoryRepository>().Object);
 

@@ -21,7 +21,7 @@ public class CharacterService : ICharacterService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IOptions<MyTunoScalingConfiguration> _myTunoConfig;
     private readonly ILogger<CharacterService> _logger;
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly IWebHostEnvironment _environment;
 
     public CharacterService(
@@ -29,14 +29,14 @@ public class CharacterService : ICharacterService
         UserManager<ApplicationUser> userManager,
         IOptions<MyTunoScalingConfiguration> myTunoConfig,
         ILogger<CharacterService> logger,
-        ApplicationDbContext dbContext,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IWebHostEnvironment environment)
     {
         _characterRepository = characterRepository;
         _userManager = userManager;
         _myTunoConfig = myTunoConfig;
         _logger = logger;
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
         _environment = environment;
     }
 
@@ -51,7 +51,7 @@ public class CharacterService : ICharacterService
 
         // Try to get existing character — use Fresh variant to pick up
         // external DB changes from another circuit.
-        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
+        var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character != null)
         {
             return character;
@@ -142,33 +142,34 @@ public class CharacterService : ICharacterService
     {
         try
         {
-            var character = await _dbContext.Characters
+            using var context = _contextFactory.CreateDbContext();
+            var character = await context.Characters
                 .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
             if (character == null)
                 return (false, "Personagem não encontrado.");
 
             // Delete all associated game entities for this user (bulk server-side deletes)
-            await _dbContext.ForgedWeapons
+            await context.ForgedWeapons
                 .Where(w => w.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            await _dbContext.InventoryItems
+            await context.InventoryItems
                 .Where(i => i.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            await _dbContext.StageProgresses
+            await context.StageProgresses
                 .Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            await _dbContext.BossModeProgresses
+            await context.BossModeProgresses
                 .Where(b => b.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            await _dbContext.SurviveModeProgresses
+            await context.SurviveModeProgresses
                 .Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
             // NOTE: GameScores are NOT deleted here — they belong to other games
             // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
 
-            _dbContext.Characters.Remove(character);
+            context.Characters.Remove(character);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Owner deleted character and all game data for user {UserId}", userId);
             return (true, "Personagem e dados de jogo eliminados com sucesso.");
@@ -185,27 +186,28 @@ public class CharacterService : ICharacterService
     {
         try
         {
+            using var context = _contextFactory.CreateDbContext();
             // Delete all game data across all users in dependency order (bulk server-side deletes)
-            await _dbContext.ForgedWeapons.ExecuteDeleteAsync(cancellationToken);
-            await _dbContext.InventoryItems.ExecuteDeleteAsync(cancellationToken);
-            await _dbContext.StageEnemies.ExecuteDeleteAsync(cancellationToken);
-            await _dbContext.StageProgresses.ExecuteDeleteAsync(cancellationToken);
-            await _dbContext.BossModeProgresses.ExecuteDeleteAsync(cancellationToken);
-            await _dbContext.SurviveModeProgresses.ExecuteDeleteAsync(cancellationToken);
+            await context.ForgedWeapons.ExecuteDeleteAsync(cancellationToken);
+            await context.InventoryItems.ExecuteDeleteAsync(cancellationToken);
+            await context.StageEnemies.ExecuteDeleteAsync(cancellationToken);
+            await context.StageProgresses.ExecuteDeleteAsync(cancellationToken);
+            await context.BossModeProgresses.ExecuteDeleteAsync(cancellationToken);
+            await context.SurviveModeProgresses.ExecuteDeleteAsync(cancellationToken);
 
             // NOTE: GameScores are NOT deleted here — they belong to other games
             // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
 
-            var count = await _dbContext.Characters.CountAsync(cancellationToken);
-            await _dbContext.Characters.ExecuteDeleteAsync(cancellationToken);
+            var count = await context.Characters.CountAsync(cancellationToken);
+            await context.Characters.ExecuteDeleteAsync(cancellationToken);
 
             // Reset FidelisBalance and FitabBalance to 0 for ALL users
-            await _dbContext.Users
+            await context.Users
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(x => x.FidelisBalance, 0m)
                     .SetProperty(x => x.FitabBalance, 5), cancellationToken);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             _logger.LogWarning("Owner reset ALL game data: {Count} characters, all related entities deleted, and all FidelisBalance/FitabBalance reset to 0", count);
             return (true, $"Todos os dados de jogo foram resetados. {count} personagens eliminados.");
@@ -263,5 +265,19 @@ public class CharacterService : ICharacterService
             _logger.LogWarning(ex, "Error searching for custom sprite for user {UserId}", userId);
             return null;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<(Dictionary<string, int> StageMap, Dictionary<string, int> BossMap)> GetStageAndBossProgressAsync(CancellationToken cancellationToken = default)
+    {
+        using var context = _contextFactory.CreateDbContext();
+        var stageTask = context.StageProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(s => s.UserId, s => s.HighestStage, cancellationToken);
+        var bossTask = context.BossModeProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(b => b.UserId, b => b.HighestBossStage, cancellationToken);
+        await Task.WhenAll(stageTask, bossTask);
+        return (stageTask.Result, bossTask.Result);
     }
 }

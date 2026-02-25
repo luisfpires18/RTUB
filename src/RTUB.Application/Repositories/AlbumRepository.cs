@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class AlbumRepository : Repository<Album>, IAlbumRepository
 {
-    public AlbumRepository(ApplicationDbContext context) : base(context)
+    public AlbumRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

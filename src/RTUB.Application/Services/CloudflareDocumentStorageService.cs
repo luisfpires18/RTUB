@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class CloudflareDocumentStorageService : BaseCloudflareStorageService<CloudflareDocumentStorageService>, IDocumentStorageService
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly int _urlExpirationMinutes;
@@ -29,12 +31,13 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         IConfiguration configuration,
         IHostEnvironment hostEnvironment,
         ILogger<CloudflareDocumentStorageService> logger,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         AuditContext auditContext,
         IOptions<StorageOptions>? storageOptions = null)
         : base(s3Client, configuration, hostEnvironment, logger)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _context = contextFactory.CreateDbContext();
         _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
         _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
     }

@@ -44,7 +44,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _service = new PostService(
-            new PostRepository(_context),
+            new PostRepository(_fixture.CreateContextFactory()),
             mockDiscussionRepository.Object,
             mockEnrollmentRepository.Object,
             mockPostMediaRepository.Object,

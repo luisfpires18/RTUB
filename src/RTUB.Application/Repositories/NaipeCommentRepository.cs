@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class NaipeCommentRepository : Repository<NaipeComment>, INaipeCommentRepository
 {
-    public NaipeCommentRepository(ApplicationDbContext context) : base(context)
+    public NaipeCommentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

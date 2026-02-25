@@ -233,7 +233,9 @@ public class Program
             .AddInterceptors(new SqliteConnectionInterceptor());
         }, ServiceLifetime.Scoped);
 
-        // Register ApplicationDbContext as scoped, resolving it from the factory
+        // Register ApplicationDbContext as scoped for Identity framework and other infrastructure
+        // that requires direct DbContext resolution. Application services and repositories
+        // use IDbContextFactory<ApplicationDbContext> to create short-lived contexts per operation.
         services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
         // ---------- Identity ----------

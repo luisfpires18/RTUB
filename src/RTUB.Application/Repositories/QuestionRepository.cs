@@ -11,11 +11,13 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class QuestionRepository : IQuestionRepository
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
-    public QuestionRepository(ApplicationDbContext context)
+    public QuestionRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)

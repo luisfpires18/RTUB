@@ -52,7 +52,7 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
 
         _service = new UserProfileService(
             _mockUserManager.Object,
-            _context,
+            _fixture.CreateContextFactory(),
             _mockImageStorageService.Object,
             _mockLeaderboardCommentRepository.Object,
             _mockCommentRepository.Object,

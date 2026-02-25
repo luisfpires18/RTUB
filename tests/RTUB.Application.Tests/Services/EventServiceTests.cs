@@ -39,8 +39,8 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _eventRepository = new EventRepository(_context);
-        _enrollmentRepository = new EnrollmentRepository(_context);
+        _eventRepository = new EventRepository(_fixture.CreateContextFactory());
+        _enrollmentRepository = new EnrollmentRepository(_fixture.CreateContextFactory());
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
 
@@ -62,7 +62,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
     }
 
     [Fact]
@@ -740,7 +740,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         var result = await videoService.GetVideosByEventIdAsync(eventEntity.Id);
@@ -779,7 +779,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         var result = await videoService.GetVideosByEventIdAsync(eventEntity.Id);
@@ -816,7 +816,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         var result = await videoService.GetVideoCountByEventIdAsync(eventEntity.Id);
@@ -856,7 +856,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         await videoService.UpdateVideoTitleAsync(1, "New Title", userId, false);
@@ -898,7 +898,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         await videoService.UpdateVideoTitleAsync(1, "New Title", adminId, true);
@@ -940,7 +940,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act & Assert
         var act = async () => await videoService.UpdateVideoTitleAsync(1, "New Title", otherUserId, false);
@@ -980,7 +980,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act
         await videoService.DeleteVideoAsync(1, userId, false);
@@ -1022,7 +1022,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
 
         // Act & Assert
         var act = async () => await videoService.DeleteVideoAsync(1, otherUserId, false);

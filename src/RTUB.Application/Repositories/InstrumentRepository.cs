@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class InstrumentRepository : Repository<Instrument>, IInstrumentRepository
 {
-    public InstrumentRepository(ApplicationDbContext context) : base(context)
+    public InstrumentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

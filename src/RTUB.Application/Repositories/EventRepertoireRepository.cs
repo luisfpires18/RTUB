@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepertoireRepository
 {
-    public EventRepertoireRepository(ApplicationDbContext context) : base(context)
+    public EventRepertoireRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

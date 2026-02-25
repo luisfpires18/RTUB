@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class DiscussionRepository : Repository<Discussion>, IDiscussionRepository
 {
-    public DiscussionRepository(ApplicationDbContext context) : base(context)
+    public DiscussionRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

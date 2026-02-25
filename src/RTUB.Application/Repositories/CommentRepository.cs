@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class CommentRepository : Repository<Comment>, ICommentRepository
 {
-    public CommentRepository(ApplicationDbContext context) : base(context)
+    public CommentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

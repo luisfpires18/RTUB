@@ -12,37 +12,28 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class UserProfileRepository : Repository<ApplicationUser>, IUserProfileRepository
 {
-    public UserProfileRepository(ApplicationDbContext context) : base(context)
+    public UserProfileRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 
     public override async Task UpdateAsync(ApplicationUser entity)
     {
-        var localUser = _context.Users.Local.FirstOrDefault(u => u.Id == entity.Id);
-        if (localUser != null && localUser != entity)
-        {
-            _context.Entry(localUser).State = EntityState.Detached;
-        }
-
-        var entry = _context.Entry(entity);
-        if (entry.State == EntityState.Detached)
-        {
-            _context.Users.Attach(entity);
-        }
-
-        entry.State = EntityState.Modified;
-        await SaveChangesAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        context.Users.Update(entity);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task<ApplicationUser?> GetByUsernameAsync(string username)
     {
         return await _context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.UserName == username);
     }
 
     public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
     {
         return await _context.Users
+            .AsNoTracking()
             .ToListAsync();
     }
 }

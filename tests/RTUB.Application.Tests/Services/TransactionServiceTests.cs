@@ -40,7 +40,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockActivityService = new Mock<IActivityService>();
         _service = new TransactionService(
-            new TransactionRepository(_context),
+            new TransactionRepository(_fixture.CreateContextFactory()),
             _mockReceiptStorageService.Object,
             _mockAuditLogService.Object,
             _mockActivityService.Object);
@@ -399,7 +399,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         await _context.SaveChangesAsync();
 
         // Verify transaction is accessible via repository (same context used by service)
-        var testRepo = new TransactionRepository(_context);
+        var testRepo = new TransactionRepository(_fixture.CreateContextFactory());
         var testTransaction = await testRepo.GetByIdAsync(transaction.Id);
         testTransaction.Should().NotBeNull("transaction should be accessible via repository");
         testTransaction!.ActivityId.Should().Be(activity.Id, "transaction should have correct ActivityId");

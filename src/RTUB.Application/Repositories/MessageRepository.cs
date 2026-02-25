@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class MessageRepository : Repository<Message>, IMessageRepository
 {
-    public MessageRepository(ApplicationDbContext context) : base(context)
+    public MessageRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

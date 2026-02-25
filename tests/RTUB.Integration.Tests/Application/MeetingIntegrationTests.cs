@@ -31,14 +31,16 @@ public class MeetingIntegrationTests : IDisposable
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
+        var factory = WrapInFactory(options);
+
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _meetingService = new MeetingService(
-            new MeetingRepository(_context),
-            _context,
+            new MeetingRepository(factory),
+            factory,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
@@ -703,5 +705,12 @@ public class MeetingIntegrationTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+    }
+
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(DbContextOptions<ApplicationDbContext> options)
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() => new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender()));
+        return mock.Object;
     }
 }

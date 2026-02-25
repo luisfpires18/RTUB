@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ProductReservationRepository : Repository<ProductReservation>, IProductReservationRepository
 {
-    public ProductReservationRepository(ApplicationDbContext context) : base(context)
+    public ProductReservationRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

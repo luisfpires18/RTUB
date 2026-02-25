@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class BetCommentRepository : Repository<BetComment>, IBetCommentRepository
 {
-    public BetCommentRepository(ApplicationDbContext context) : base(context)
+    public BetCommentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

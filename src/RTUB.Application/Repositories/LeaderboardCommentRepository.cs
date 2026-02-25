@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class LeaderboardCommentRepository : Repository<LeaderboardComment>, ILeaderboardCommentRepository
 {
-    public LeaderboardCommentRepository(ApplicationDbContext context) : base(context)
+    public LeaderboardCommentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

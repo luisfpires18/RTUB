@@ -46,7 +46,7 @@ public class CharacterServiceTests
             mockUserManager.Object,
             mockConfig,
             mockLogger.Object,
-            dbContext,
+            WrapInFactory(dbContext),
             Mock.Of<IWebHostEnvironment>());
     }
 
@@ -63,7 +63,7 @@ public class CharacterServiceTests
         existingCharacter.XP = 50;
 
         _mockCharacterRepository
-            .Setup(r => r.GetByUserIdFreshAsync(userId))
+            .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(existingCharacter);
 
         // Act
@@ -75,7 +75,7 @@ public class CharacterServiceTests
         result.Id.Should().Be(1);
         result.Level.Should().Be(5);
         result.XP.Should().Be(50);
-        _mockCharacterRepository.Verify(r => r.GetByUserIdFreshAsync(userId), Times.Once);
+        _mockCharacterRepository.Verify(r => r.GetByUserIdAsync(userId), Times.Once);
         _mockCharacterRepository.Verify(r => r.AddAsync(It.IsAny<Character>()), Times.Never);
     }
 
@@ -86,7 +86,7 @@ public class CharacterServiceTests
         var userId = "user-123";
 
         _mockCharacterRepository
-            .Setup(r => r.GetByUserIdFreshAsync(userId))
+            .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync((Character?)null);
 
         Character? addedCharacter = null;
@@ -110,7 +110,7 @@ public class CharacterServiceTests
         result.HP.Should().Be(MyTunoScaling.BaseHp);
         result.Power.Should().Be(MyTunoScaling.BasePower);
         result.Speed.Should().Be(MyTunoScaling.BaseSpeed);
-        _mockCharacterRepository.Verify(r => r.GetByUserIdFreshAsync(userId), Times.Once);
+        _mockCharacterRepository.Verify(r => r.GetByUserIdAsync(userId), Times.Once);
         _mockCharacterRepository.Verify(r => r.AddAsync(It.IsAny<Character>()), Times.Once);
     }
 
@@ -126,7 +126,7 @@ public class CharacterServiceTests
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*User ID*");
-        _mockCharacterRepository.Verify(r => r.GetByUserIdFreshAsync(It.IsAny<string>()), Times.Never);
+        _mockCharacterRepository.Verify(r => r.GetByUserIdAsync(It.IsAny<string>()), Times.Never);
     }
 
     #endregion
@@ -279,8 +279,8 @@ public class CharacterServiceTests
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -316,8 +316,8 @@ public class CharacterServiceTests
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -353,8 +353,8 @@ public class CharacterServiceTests
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -377,4 +377,11 @@ public class CharacterServiceTests
     }
 
     #endregion
+
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(ApplicationDbContext dbContext)
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(dbContext);
+        return mock.Object;
+    }
 }

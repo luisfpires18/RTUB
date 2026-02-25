@@ -187,52 +187,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // (EntityId is 0/null before save, gets assigned after)
         var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();
 
-        // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
-        // This prevents issues when entities with navigation properties to ApplicationUser are added
-        DetachDuplicateApplicationUsers();
-
-        // Explicitly trigger DetectChanges with error recovery BEFORE iterating entries.
-        // ChangeTracker.Entries<T>() implicitly calls DetectChanges, which can cause
-        // ApplicationUser tracking conflicts when navigation fixup introduces new instances.
-        // By calling DetectChanges explicitly, we can catch and recover from identity conflicts.
-        var savedAutoDetect = ChangeTracker.AutoDetectChangesEnabled;
-        try
-        {
-            // First attempt: trigger change detection (may discover navigation changes
-            // that introduce ApplicationUser entities conflicting with already-tracked ones)
-            try
-            {
-                ChangeTracker.DetectChanges();
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
-            {
-                // A tracking conflict was introduced during DetectChanges (e.g., duplicate
-                // ApplicationUser or other entity instances via navigation fixup).
-                // Clean up ALL tracked duplicates and retry.
-                ChangeTracker.AutoDetectChangesEnabled = false;
-                DetachDuplicateTrackedEntities();
-                ChangeTracker.AutoDetectChangesEnabled = true;
-                ChangeTracker.DetectChanges();
-            }
-
-            // Disable auto-detect for the rest of audit processing — DetectChanges already ran
-            ChangeTracker.AutoDetectChangesEnabled = false;
-
-            // Clean up any ApplicationUser duplicates introduced by DetectChanges
-            DetachDuplicateApplicationUsers();
-        }
-        catch
-        {
-            ChangeTracker.AutoDetectChangesEnabled = savedAutoDetect;
-            throw;
-        }
-
         // Track role changes (critical action)
         // Collect IDs during change tracking, then resolve names asynchronously after save
         var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
-
-        try
-        {
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -338,18 +295,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             }
         }
 
-        }
-        catch
-        {
-            ChangeTracker.AutoDetectChangesEnabled = savedAutoDetect;
-            throw;
-        }
-
-        // IMPORTANT: Keep AutoDetectChangesEnabled = false when calling base.SaveChangesAsync().
-        // We already ran DetectChanges() and cleaned up duplicates above. If auto-detect is
-        // re-enabled here, base.SaveChangesAsync() would call DetectChanges() again internally,
-        // which can re-introduce navigation fixup conflicts (e.g., ApplicationUser or Enrollment
-        // duplicates) AFTER our cleanup — causing "Unexpected entry.EntityState: Detached" errors.
         var result = await base.SaveChangesAsync(cancellationToken);
 
         // Update EntityId for Created audit logs now that IDs are assigned
@@ -426,9 +371,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 _isAuditingEnabled = true;
             }
         }
-
-        // Restore auto-detect changes now that all saves are complete
-        ChangeTracker.AutoDetectChangesEnabled = savedAutoDetect;
 
         return result;
     }
@@ -832,178 +774,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Detaches duplicate ApplicationUser entities to prevent tracking conflicts.
-    /// This is necessary when entities with navigation properties to ApplicationUser are added,
-    /// as EF Core may try to track the same ApplicationUser instance multiple times.
-    /// This method also updates navigation properties of Added/Modified entities to reference the kept instance.
-    /// </summary>
-    private void DetachDuplicateApplicationUsers()
-    {
-        // Disable auto-detect changes to prevent EF Core from triggering relationship fixup
-        // when we access/modify navigation properties. This prevents issues where unrelated
-        // entities (like Meeting) get their state changed during this operation.
-        var wasAutoDetectChangesEnabled = ChangeTracker.AutoDetectChangesEnabled;
-        try
-        {
-            ChangeTracker.AutoDetectChangesEnabled = false;
-
-            // Get all ApplicationUser entries that are currently being tracked
-            var trackedUsers = ChangeTracker.Entries<ApplicationUser>()
-                .Where(e => e.State != EntityState.Detached)
-                .ToList();
-
-            // Fix phantom "Added" users: if an ApplicationUser has an Id but is in Added state,
-            // AND there is already another tracked instance with the same key (in a non-Added state),
-            // it's a tracking artifact from navigation fixup. These cause UNIQUE constraint failures
-            // when SaveChangesAsync tries to INSERT them.
-            // NOTE: We only mark as Unchanged if a DUPLICATE exists, because IdentityUser always
-            // generates a GUID Id at construction — so a lone Added user with an Id is a legitimate insert.
-            var addedUsers = trackedUsers.Where(e => e.State == EntityState.Added && !string.IsNullOrEmpty(e.Entity.Id)).ToList();
-            foreach (var entry in addedUsers)
-            {
-                var hasDuplicate = trackedUsers.Any(e =>
-                    e != entry &&
-                    e.State != EntityState.Added &&
-                    e.State != EntityState.Detached &&
-                    e.Entity.Id == entry.Entity.Id);
-
-                if (hasDuplicate)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
-            }
-
-            // Build a canonical map: one ApplicationUser instance per key.
-            // Prefer Modified > Unchanged > Added states to keep the most meaningful version.
-            var canonicalUsers = new Dictionary<string, ApplicationUser>();
-            var entriesToDetach = new List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ApplicationUser>>();
-
-            var sortedUsers = trackedUsers
-                .OrderBy(e => e.State == EntityState.Modified ? 0 : e.State == EntityState.Unchanged ? 1 : 2)
-                .ToList();
-
-            foreach (var entry in sortedUsers)
-            {
-                var uid = entry.Entity.Id;
-                if (string.IsNullOrEmpty(uid)) continue;
-
-                if (!canonicalUsers.ContainsKey(uid))
-                {
-                    canonicalUsers[uid] = entry.Entity;
-                }
-                else
-                {
-                    entriesToDetach.Add(entry);
-                }
-            }
-
-            // Normalize ApplicationUser navigation references on Added/Modified entities
-            // to point to the canonical (kept) instance, preventing conflicts during save.
-            foreach (var entityEntry in ChangeTracker.Entries())
-            {
-                if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
-                {
-                    foreach (var navigation in entityEntry.Navigations)
-                    {
-                        if (navigation.CurrentValue is ApplicationUser navUser && !string.IsNullOrEmpty(navUser.Id))
-                        {
-                            if (canonicalUsers.TryGetValue(navUser.Id, out var canonical))
-                            {
-                                if (!ReferenceEquals(navUser, canonical))
-                                {
-                                    navigation.CurrentValue = canonical;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Detach all duplicate entries
-            foreach (var entry in entriesToDetach)
-            {
-                entry.State = EntityState.Detached;
-            }
-        }
-        finally
-        {
-            ChangeTracker.AutoDetectChangesEnabled = wasAutoDetectChangesEnabled;
-        }
-    }
-
-    /// <summary>
-    /// Detaches duplicate tracked entities of ANY type to prevent tracking conflicts.
-    /// This is a broader version of DetachDuplicateApplicationUsers that handles cases
-    /// where navigation fixup during DetectChanges introduces duplicate instances of
-    /// non-ApplicationUser entities (e.g., Enrollment, Event, etc.).
-    /// </summary>
-    private void DetachDuplicateTrackedEntities()
-    {
-        var wasAutoDetectChangesEnabled = ChangeTracker.AutoDetectChangesEnabled;
-        try
-        {
-            ChangeTracker.AutoDetectChangesEnabled = false;
-
-            // First, run the ApplicationUser-specific cleanup (handles phantom Added users + nav fixup)
-            DetachDuplicateApplicationUsers();
-
-            // Now handle duplicates of any other entity type.
-            // Group tracked entries by (CLR type, primary key) and detach duplicates.
-            var entriesToDetach = new List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry>();
-
-            var trackedEntries = ChangeTracker.Entries()
-                .Where(e => e.State != EntityState.Detached)
-                .ToList();
-
-            // Group by CLR type for efficiency
-            var entryGroups = trackedEntries.GroupBy(e => e.Entity.GetType());
-
-            foreach (var group in entryGroups)
-            {
-                // Skip ApplicationUser — already handled by the specialized method above
-                if (group.Key == typeof(ApplicationUser))
-                    continue;
-
-                var entityType = Model.FindEntityType(group.Key);
-                var primaryKey = entityType?.FindPrimaryKey();
-                if (primaryKey == null) continue;
-
-                var seen = new Dictionary<string, Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry>();
-
-                // Prefer Modified > Unchanged > Added to keep the most meaningful instance
-                var sorted = group
-                    .OrderBy(e => e.State == EntityState.Modified ? 0 : e.State == EntityState.Unchanged ? 1 : 2)
-                    .ToList();
-
-                foreach (var entry in sorted)
-                {
-                    var keyValues = primaryKey.Properties
-                        .Select(p => entry.Property(p.Name).CurrentValue?.ToString() ?? "null");
-                    var compositeKey = string.Join("|", keyValues);
-
-                    if (!seen.ContainsKey(compositeKey))
-                    {
-                        seen[compositeKey] = entry;
-                    }
-                    else
-                    {
-                        entriesToDetach.Add(entry);
-                    }
-                }
-            }
-
-            foreach (var entry in entriesToDetach)
-            {
-                entry.State = EntityState.Detached;
-            }
-        }
-        finally
-        {
-            ChangeTracker.AutoDetectChangesEnabled = wasAutoDetectChangesEnabled;
-        }
     }
 
     /// <summary>

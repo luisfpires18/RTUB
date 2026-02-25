@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class ReportRepository : Repository<Report>, IReportRepository
 {
-    public ReportRepository(ApplicationDbContext context) : base(context)
+    public ReportRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class SurviveModeProgressRepository : Repository<SurviveModeProgress>, ISurviveModeProgressRepository
 {
-    public SurviveModeProgressRepository(ApplicationDbContext context) : base(context) { }
+    public SurviveModeProgressRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<SurviveModeProgress?> GetByUserIdAsync(string userId)
     {

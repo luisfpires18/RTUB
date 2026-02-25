@@ -35,7 +35,8 @@ public class ImageStorageIntegrationTests : IDisposable
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
         _mockImageStorageService = new Mock<IImageStorageService>();
 
-        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        var factory = WrapInFactory(options);
+        _albumService = new AlbumService(new AlbumRepository(factory), _mockImageStorageService.Object);
 
         // Mock dependencies for EventService
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
@@ -48,18 +49,18 @@ public class ImageStorageIntegrationTests : IDisposable
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _eventService = new EventService(
-            new EventRepository(_context),
+            new EventRepository(factory),
             _mockImageStorageService.Object,
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(factory),
             mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            factory);
 
-        _slideshowService = new SlideshowService(new SlideshowRepository(_context), _mockImageStorageService.Object);
+        _slideshowService = new SlideshowService(new SlideshowRepository(factory), _mockImageStorageService.Object);
     }
 
     #region Album Image Tests
@@ -332,5 +333,12 @@ public class ImageStorageIntegrationTests : IDisposable
     public void Dispose()
     {
         _context.Dispose();
+    }
+
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(DbContextOptions<ApplicationDbContext> options)
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() => new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender()));
+        return mock.Object;
     }
 }

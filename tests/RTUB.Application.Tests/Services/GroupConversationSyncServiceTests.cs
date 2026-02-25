@@ -49,7 +49,7 @@ public class GroupConversationSyncServiceTests
             _mockMessagingService.Object,
             _mockConversationRepository.Object,
             mockUserManager.Object,
-            CreateInMemoryDbContext(),
+            CreateInMemoryDbContextFactory(),
             _mockLogger.Object);
 
         // Act & Assert
@@ -72,7 +72,7 @@ public class GroupConversationSyncServiceTests
             _mockMessagingService.Object,
             _mockConversationRepository.Object,
             mockUserManager.Object,
-            CreateInMemoryDbContext(),
+            CreateInMemoryDbContextFactory(),
             _mockLogger.Object);
 
         // Act
@@ -127,6 +127,14 @@ public class GroupConversationSyncServiceTests
         var httpContextAccessor = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
         var auditContext = new AuditContext();
         return new ApplicationDbContext(options, httpContextAccessor.Object, auditContext, new RTUB.Application.Services.AuditLogAppender());
+    }
+
+    private static IDbContextFactory<ApplicationDbContext> CreateInMemoryDbContextFactory()
+    {
+        var dbContext = CreateInMemoryDbContext();
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(dbContext);
+        return mock.Object;
     }
 
     // Helper classes for async query testing

@@ -27,7 +27,7 @@ public class ConversationUserSettingsRepositoryTests : IClassFixture<DatabaseFix
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new ConversationUserSettingsRepository(_context);
+        _repository = new ConversationUserSettingsRepository(_fixture.CreateContextFactory());
     }
 
     private static async Task CleanConversationData(ApplicationDbContext context)

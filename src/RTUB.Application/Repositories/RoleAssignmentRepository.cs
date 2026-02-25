@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class RoleAssignmentRepository : Repository<RoleAssignment>, IRoleAssignmentRepository
 {
-    public RoleAssignmentRepository(ApplicationDbContext context) : base(context)
+    public RoleAssignmentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

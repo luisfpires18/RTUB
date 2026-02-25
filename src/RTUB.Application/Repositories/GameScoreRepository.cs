@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class GameScoreRepository : Repository<GameScore>, IGameScoreRepository
 {
-    public GameScoreRepository(ApplicationDbContext context) : base(context) { }
+    public GameScoreRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<List<GameScore>> GetTopScoresAsync(string gameKey, int count = 10)
     {

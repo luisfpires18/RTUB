@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class SlideshowRepository : Repository<Slideshow>, ISlideshowRepository
 {
-    public SlideshowRepository(ApplicationDbContext context) : base(context)
+    public SlideshowRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

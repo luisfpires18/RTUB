@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class MemberInstrumentRepository : Repository<MemberInstrument>, IMemberInstrumentRepository
 {
-    public MemberInstrumentRepository(ApplicationDbContext context) : base(context)
+    public MemberInstrumentRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

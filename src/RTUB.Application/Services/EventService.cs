@@ -29,6 +29,7 @@ public class EventService : IEventService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
     public EventService(
@@ -41,7 +42,7 @@ public class EventService : IEventService
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
         IHttpContextAccessor httpContextAccessor,
-        ApplicationDbContext context)
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _eventRepository = eventRepository;
         _imageStorageService = imageStorageService;
@@ -52,7 +53,8 @@ public class EventService : IEventService
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<Event?> GetEventByIdAsync(int id, CancellationToken cancellationToken = default)

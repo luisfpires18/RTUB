@@ -7,7 +7,7 @@ namespace RTUB.Application.Repositories;
 
 public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRepository
 {
-    public GalleryMediaRepository(ApplicationDbContext context) : base(context)
+    public GalleryMediaRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

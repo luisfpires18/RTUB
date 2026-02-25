@@ -28,6 +28,7 @@ public class NaipeService : INaipeService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -44,7 +45,7 @@ public class NaipeService : INaipeService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         AuditContext auditContext,
         IHttpContextAccessor httpContextAccessor,
         IMemoryCache cache)
@@ -56,7 +57,8 @@ public class NaipeService : INaipeService
         _pushNotificationService = pushNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
         _auditContext = auditContext;
         _httpContextAccessor = httpContextAccessor;
         _cache = cache;

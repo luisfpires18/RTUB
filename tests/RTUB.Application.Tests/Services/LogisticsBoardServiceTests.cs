@@ -31,9 +31,9 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        var boardRepo = new LogisticsBoardRepository(_context);
-        var listRepo = new LogisticsListRepository(_context);
-        var cardRepo = new LogisticsCardRepository(_context);
+        var boardRepo = new LogisticsBoardRepository(_fixture.CreateContextFactory());
+        var listRepo = new LogisticsListRepository(_fixture.CreateContextFactory());
+        var cardRepo = new LogisticsCardRepository(_fixture.CreateContextFactory());
         _service = new LogisticsBoardService(boardRepo, listRepo, cardRepo);
     }
 

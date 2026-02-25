@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class TrophyRepository : Repository<Trophy>, ITrophyRepository
 {
-    public TrophyRepository(ApplicationDbContext context) : base(context)
+    public TrophyRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

@@ -2,17 +2,14 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Core.Helpers
-@using RTUB.Application.Data
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @attribute [Authorize]
 @inherits CrudTablePageBase<Character>
 @inject ICharacterService CharacterService
-@inject ApplicationDbContext DbContext
 @inject ILogger<AllCharacters> Logger
 @inject RTUB.Web.Services.AdminRefreshService AdminRefreshService
 
@@ -365,16 +362,12 @@
         try
         {
             var charsTask = CharacterService.GetAllCharactersOrderedByLevelAsync();
-            var stageTask = DbContext.StageProgresses
-                .AsNoTracking()
-                .ToDictionaryAsync(s => s.UserId, s => s.HighestStage);
-            var bossTask = DbContext.BossModeProgresses
-                .AsNoTracking()
-                .ToDictionaryAsync(b => b.UserId, b => b.HighestBossStage);
-            await Task.WhenAll(charsTask, stageTask, bossTask);
+            var progressTask = CharacterService.GetStageAndBossProgressAsync();
+            await Task.WhenAll(charsTask, progressTask);
             AllItems = charsTask.Result;
-            stageMap = stageTask.Result;
-            bossMap = bossTask.Result;
+            var (stageResult, bossResult) = progressTask.Result;
+            stageMap = stageResult;
+            bossMap = bossResult;
 
             // Default sort: Level desc → Rating desc
             AllItems = AllItems

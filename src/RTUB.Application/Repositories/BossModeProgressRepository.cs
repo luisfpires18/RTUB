@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class BossModeProgressRepository : Repository<BossModeProgress>, IBossModeProgressRepository
 {
-    public BossModeProgressRepository(ApplicationDbContext context) : base(context) { }
+    public BossModeProgressRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<BossModeProgress?> GetByUserIdAsync(string userId)
     {

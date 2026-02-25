@@ -40,6 +40,17 @@ public class DatabaseFixture : IDisposable
     }
 
     /// <summary>
+    /// Creates a mock IDbContextFactory that returns new contexts from CreateContext().
+    /// Use this to construct repositories and services that require IDbContextFactory.
+    /// </summary>
+    public IDbContextFactory<ApplicationDbContext> CreateContextFactory()
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() => CreateContext());
+        return mock.Object;
+    }
+
+    /// <summary>
     /// Cleans the database between tests to ensure isolation
     /// Much faster than creating a new database
     /// Note: Does not clean Users table to allow shared test users

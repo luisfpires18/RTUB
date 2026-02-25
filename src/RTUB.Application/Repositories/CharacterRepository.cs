@@ -10,31 +10,12 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class CharacterRepository : Repository<Character>, ICharacterRepository
 {
-    public CharacterRepository(ApplicationDbContext context) : base(context) { }
+    public CharacterRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<Character?> GetByUserIdAsync(string userId)
     {
         return await _context.Characters
-            .Include(c => c.User)
-            .FirstOrDefaultAsync(c => c.UserId == userId);
-    }
-
-    /// <summary>
-    /// Gets a character by user ID, forcing a DB reload if the entity is already tracked.
-    /// Use on page-load paths to pick up external changes from another circuit.
-    /// </summary>
-    public async Task<Character?> GetByUserIdFreshAsync(string userId)
-    {
-        var tracked = _context.Characters.Local.FirstOrDefault(c => c.UserId == userId);
-        if (tracked != null)
-        {
-            await _context.Entry(tracked).ReloadAsync();
-            if (tracked.User == null)
-                await _context.Entry(tracked).Reference(c => c.User).LoadAsync();
-            return tracked;
-        }
-
-        return await _context.Characters
+            .AsNoTracking()
             .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.UserId == userId);
     }

@@ -62,8 +62,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(_config);
-        var attendanceRepo = new RehearsalAttendanceRepository(_context);
-        var enrollmentRepo = new EnrollmentRepository(_context);
+        var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
+        var enrollmentRepo = new EnrollmentRepository(_fixture.CreateContextFactory());
         _service = new RankingService(
             attendanceRepo,
             enrollmentRepo,
@@ -845,8 +845,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(_config);
-        var attendanceRepo = new RehearsalAttendanceRepository(_context);
-        var enrollmentRepo = new EnrollmentRepository(_context);
+        var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
+        var enrollmentRepo = new EnrollmentRepository(_fixture.CreateContextFactory());
         var serviceWithNotifications = new RankingService(
             attendanceRepo,
             enrollmentRepo,
@@ -904,8 +904,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(emptyConfig);
-        var attendanceRepo = new RehearsalAttendanceRepository(_context);
-        var enrollmentRepo = new EnrollmentRepository(_context);
+        var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
+        var enrollmentRepo = new EnrollmentRepository(_fixture.CreateContextFactory());
         var serviceWithEmptyConfig = new RankingService(
             attendanceRepo,
             enrollmentRepo,
@@ -939,8 +939,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(nullConfig);
-        var attendanceRepo = new RehearsalAttendanceRepository(_context);
-        var enrollmentRepo = new EnrollmentRepository(_context);
+        var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
+        var enrollmentRepo = new EnrollmentRepository(_fixture.CreateContextFactory());
         var serviceWithNullConfig = new RankingService(
             attendanceRepo,
             enrollmentRepo,

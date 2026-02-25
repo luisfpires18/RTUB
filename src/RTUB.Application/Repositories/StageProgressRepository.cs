@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class StageProgressRepository : Repository<StageProgress>, IStageProgressRepository
 {
-    public StageProgressRepository(ApplicationDbContext context) : base(context) { }
+    public StageProgressRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<StageProgress?> GetByUserIdAsync(string userId)
     {

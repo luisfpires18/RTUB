@@ -1,262 +1,147 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Repositories;
 
 /// <summary>
-/// Base repository implementation providing common data access operations
-/// Implements Repository pattern with generic CRUD operations
+/// Base repository implementation providing common data access operations.
+/// Uses IDbContextFactory to create short-lived DbContext instances per operation,
+/// eliminating EF Core tracking conflicts in Blazor Server circuits.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>
 public class Repository<T> : IRepository<T> where T : class
 {
+    protected readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+
+    /// <summary>
+    /// Backward-compatible context for derived repositories that access _context directly.
+    /// Prefer using CreateContext() for isolated operations to avoid tracking conflicts.
+    /// </summary>
     protected readonly ApplicationDbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public Repository(ApplicationDbContext context)
+    public Repository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
-        _dbSet = context.Set<T>();
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
+        _dbSet = _context.Set<T>();
     }
+
+    /// <summary>Creates a fresh short-lived DbContext. Caller must dispose.</summary>
+    protected ApplicationDbContext CreateContext() => _contextFactory.CreateDbContext();
 
     public virtual async Task<T?> GetByIdAsync(int id)
     {
-        return await _dbSet.FindAsync(id).ConfigureAwait(false);
+        using var context = CreateContext();
+        return await context.Set<T>().FindAsync(id).ConfigureAwait(false);
     }
 
     public virtual async Task<IEnumerable<T>> GetAllAsync()
     {
-        return await _dbSet.AsNoTracking().ToListAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        return await context.Set<T>().AsNoTracking().ToListAsync().ConfigureAwait(false);
     }
 
     public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.AsNoTracking().Where(predicate).ToListAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        return await context.Set<T>().AsNoTracking().Where(predicate).ToListAsync().ConfigureAwait(false);
     }
 
     public virtual async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(predicate).ConfigureAwait(false);
+        using var context = CreateContext();
+        return await context.Set<T>().AsNoTracking().FirstOrDefaultAsync(predicate).ConfigureAwait(false);
     }
 
     public virtual async Task<T> AddAsync(T entity)
     {
-        await _dbSet.AddAsync(entity).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        await context.Set<T>().AddAsync(entity).ConfigureAwait(false);
+        await context.SaveChangesAsync().ConfigureAwait(false);
         return entity;
     }
 
     public virtual async Task AddRangeAsync(IEnumerable<T> entities)
     {
-        await _dbSet.AddRangeAsync(entities).ConfigureAwait(false);
-        await SaveChangesAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        await context.Set<T>().AddRangeAsync(entities).ConfigureAwait(false);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public virtual async Task UpdateAsync(T entity)
     {
-        // In Blazor Server, the DbContext is long-lived (scoped per circuit).
-        // Check if this exact entity instance is already tracked — if so, just mark modified.
-        // If a *different* instance with the same PK is tracked, copy values onto it
-        // instead of detaching (which can leave Detached entries in the change tracker
-        // that cause "Unexpected entry.EntityState: Detached" in EF Core's CommandBatchPreparer).
-        var entry = _context.Entry(entity);
-
-        if (entry.State == EntityState.Detached)
-        {
-            // Entity is not tracked — find if a different instance with the same PK is
-            var entityType = _context.Model.FindEntityType(typeof(T));
-            var primaryKey = entityType?.FindPrimaryKey();
-
-            if (primaryKey != null)
-            {
-                var keyValues = primaryKey.Properties
-                    .Select(p => p.PropertyInfo?.GetValue(entity))
-                    .ToArray();
-
-                var trackedEntry = _context.ChangeTracker
-                    .Entries<T>()
-                    .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
-
-                if (trackedEntry != null)
-                {
-                    // Copy property values from the incoming entity onto the tracked one
-                    trackedEntry.CurrentValues.SetValues(entity);
-                    trackedEntry.State = EntityState.Modified;
-                }
-                else
-                {
-                    // No tracked entity — attach and mark modified
-                    _dbSet.Attach(entity);
-                    _context.Entry(entity).State = EntityState.Modified;
-                }
-            }
-            else
-            {
-                _dbSet.Attach(entity);
-                entry.State = EntityState.Modified;
-            }
-        }
-        else
-        {
-            // Already tracked (same instance) — just mark modified
-            entry.State = EntityState.Modified;
-        }
-
-        await SaveChangesAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        context.Set<T>().Update(entity);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public virtual async Task DeleteAsync(int id)
     {
-        var entity = await _dbSet.FindAsync(id).ConfigureAwait(false);
+        using var context = CreateContext();
+        var entity = await context.Set<T>().FindAsync(id).ConfigureAwait(false);
         if (entity != null)
         {
-            _dbSet.Remove(entity);
-            await SaveChangesAsync().ConfigureAwait(false);
+            context.Set<T>().Remove(entity);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 
     public virtual async Task DeleteAsync(T entity)
     {
-        // Check if entity is already tracked
-        var entry = _context.Entry(entity);
-        if (entry.State == EntityState.Detached)
-        {
-            // Try to find a tracked entity with the same key
-            var entityType = _context.Model.FindEntityType(typeof(T));
-            var primaryKey = entityType?.FindPrimaryKey();
-            if (primaryKey != null)
-            {
-                var keyValues = primaryKey.Properties
-                    .Select(p => p.PropertyInfo?.GetValue(entity))
-                    .ToArray();
-
-                var trackedEntity = _dbSet.Find(keyValues);
-                if (trackedEntity != null)
-                {
-                    // Delete the tracked entity instead
-                    _dbSet.Remove(trackedEntity);
-                }
-                else
-                {
-                    // No tracked entity found, attach and delete the provided entity
-                    _dbSet.Attach(entity);
-                    _dbSet.Remove(entity);
-                }
-            }
-            else
-            {
-                _dbSet.Attach(entity);
-                _dbSet.Remove(entity);
-            }
-        }
-        else
-        {
-            _dbSet.Remove(entity);
-        }
-
-        await SaveChangesAsync().ConfigureAwait(false);
+        using var context = CreateContext();
+        context.Set<T>().Remove(entity);
+        await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null)
     {
+        using var context = CreateContext();
+        var dbSet = context.Set<T>();
         return predicate == null
-            ? await _dbSet.CountAsync().ConfigureAwait(false)
-            : await _dbSet.CountAsync(predicate).ConfigureAwait(false);
+            ? await dbSet.CountAsync().ConfigureAwait(false)
+            : await dbSet.CountAsync(predicate).ConfigureAwait(false);
     }
 
     public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.AnyAsync(predicate).ConfigureAwait(false);
+        using var context = CreateContext();
+        return await context.Set<T>().AnyAsync(predicate).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Gets a queryable for complex queries (read-only, no-tracking)
-    /// Allows services to build custom queries while still using repository
-    /// Can be combined with QueryableExtensions (Paginate, WhereIf, etc.)
-    /// Note: This returns a no-tracking query for read-only operations.
-    /// If you need change tracking, use GetByIdAsync or explicitly attach entities.
+    /// Gets a queryable for complex queries (read-only, no-tracking).
+    /// IMPORTANT: The returned IQueryable must be materialized (ToList, First, etc.)
+    /// before the caller disposes the context. Prefer using this within a
+    /// using var context = CreateContext() block in derived repositories.
     /// </summary>
     /// <returns>IQueryable for the entity type (no-tracking)</returns>
     public virtual IQueryable<T> Query()
     {
-        return _dbSet.AsNoTracking().AsQueryable();
+        // NOTE: This creates a context that won't be disposed automatically.
+        // Derived repos should prefer CreateContext() + context.Set<T>().AsNoTracking() directly.
+        var context = CreateContext();
+        return context.Set<T>().AsNoTracking().AsQueryable();
     }
 
     public virtual async Task<int> SaveChangesAsync()
     {
-        return await _context.SaveChangesAsync().ConfigureAwait(false);
+        // With factory pattern, each operation creates its own context and saves within that scope.
+        // This method is kept for interface compatibility but should not be called directly.
+        // Individual operations handle their own SaveChanges.
+        return 0;
     }
 
     /// <summary>
-    /// Reloads an entity from the database, refreshing all property values
-    /// and resetting the change tracker entry to Unchanged.
+    /// Reloads an entity from the database, refreshing all property values.
+    /// With the factory pattern, prefer re-querying with a fresh context instead.
     /// </summary>
     public virtual async Task ReloadAsync(T entity)
     {
-        await _context.Entry(entity).ReloadAsync().ConfigureAwait(false);
-    }
-
-    private void DetachLocalDuplicate(T entity)
-    {
-        var entityType = _context.Model.FindEntityType(typeof(T));
-        var primaryKey = entityType?.FindPrimaryKey();
-        if (primaryKey == null)
-        {
-            return;
-        }
-
-        var keyValues = primaryKey.Properties
-            .Select(p => p.PropertyInfo?.GetValue(entity))
-            .ToArray();
-
-        // Disable auto detect changes to prevent tracking navigation properties
-        var wasAutoDetectChangesEnabled = _context.ChangeTracker.AutoDetectChangesEnabled;
-        try
-        {
-            _context.ChangeTracker.AutoDetectChangesEnabled = false;
-
-            var trackedEntry = _context.ChangeTracker
-                .Entries<T>()
-                .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
-
-            if (trackedEntry != null && !ReferenceEquals(trackedEntry.Entity, entity))
-            {
-                trackedEntry.State = EntityState.Detached;
-            }
-        }
-        finally
-        {
-            _context.ChangeTracker.AutoDetectChangesEnabled = wasAutoDetectChangesEnabled;
-        }
-    }
-
-    private static bool KeysMatch(IKey key, T trackedEntity, object?[] keyValues)
-    {
-        for (int i = 0; i < key.Properties.Count; i++)
-        {
-            var property = key.Properties[i];
-            var trackedValue = property.PropertyInfo?.GetValue(trackedEntity);
-            var incomingValue = keyValues[i];
-
-            if (trackedValue == null && incomingValue == null)
-            {
-                continue;
-            }
-
-            if (trackedValue == null || incomingValue == null)
-            {
-                return false;
-            }
-
-            if (!trackedValue.Equals(incomingValue))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        using var context = CreateContext();
+        context.Set<T>().Attach(entity);
+        await context.Entry(entity).ReloadAsync().ConfigureAwait(false);
     }
 }

@@ -70,4 +70,10 @@ public interface ICharacterService
     /// and the character doesn't already have one set.
     /// </summary>
     Task AutoAssignCustomSpriteAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets stage progress and boss mode progress dictionaries for all users.
+    /// Used by the All Characters overview page.
+    /// </summary>
+    Task<(Dictionary<string, int> StageMap, Dictionary<string, int> BossMap)> GetStageAndBossProgressAsync(CancellationToken cancellationToken = default);
 }

@@ -28,7 +28,7 @@ public class RepositoryExtensionsTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new Application.Repositories.EventRepository(_context);
+        _repository = new Application.Repositories.EventRepository(_fixture.CreateContextFactory());
     }
 
     [Fact]

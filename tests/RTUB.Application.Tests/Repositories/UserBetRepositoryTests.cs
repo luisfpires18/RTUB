@@ -27,7 +27,7 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new UserBetRepository(_context);
+        _repository = new UserBetRepository(_fixture.CreateContextFactory());
     }
 
     private ApplicationUser CreateTestUser(string userId, string email = "test@test.com")

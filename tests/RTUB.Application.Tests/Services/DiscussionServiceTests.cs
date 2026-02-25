@@ -31,7 +31,7 @@ public class DiscussionServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new DiscussionService(new DiscussionRepository(_context));
+        _service = new DiscussionService(new DiscussionRepository(_fixture.CreateContextFactory()));
     }
 
     [Fact]

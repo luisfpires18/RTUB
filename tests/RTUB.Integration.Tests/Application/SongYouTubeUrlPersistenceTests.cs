@@ -29,6 +29,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
+        var factory = WrapInFactory(options);
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
 
@@ -41,18 +42,18 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _songService = new SongService(
-            new SongRepository(_context),
+            new SongRepository(factory),
             mockSongVideoRepository.Object,
             mockSongVideoStorageService.Object,
-            new AlbumRepository(_context),
-            _context,
+            new AlbumRepository(factory),
+            factory,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object);
 
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(factory), _mockImageStorageService.Object);
     }
 
     [Fact]
@@ -254,5 +255,12 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
     public void Dispose()
     {
         _context?.Dispose();
+    }
+
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(DbContextOptions<ApplicationDbContext> options)
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() => new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender()));
+        return mock.Object;
     }
 }

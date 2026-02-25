@@ -34,9 +34,9 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _userProfileRepository = new UserProfileRepository(_context);
-        _attendanceRepository = new RehearsalAttendanceRepository(_context);
-        _enrollmentRepository = new EnrollmentRepository(_context);
+        _userProfileRepository = new UserProfileRepository(_fixture.CreateContextFactory());
+        _attendanceRepository = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
+        _enrollmentRepository = new EnrollmentRepository(_fixture.CreateContextFactory());
 
         _retirementStatusService = new RetirementStatusService(
             _attendanceRepository,

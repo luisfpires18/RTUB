@@ -12,6 +12,7 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class DatabaseViewerService : IDatabaseViewerService
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
     /// <summary>
@@ -20,9 +21,10 @@ public class DatabaseViewerService : IDatabaseViewerService
     /// </summary>
     private static readonly Regex SafeTableNamePattern = new(@"^\w+$", RegexOptions.Compiled);
 
-    public DatabaseViewerService(ApplicationDbContext context)
+    public DatabaseViewerService(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<List<string>> GetTableNamesAsync(CancellationToken cancellationToken = default)

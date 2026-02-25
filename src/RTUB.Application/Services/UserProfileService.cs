@@ -18,6 +18,7 @@ namespace RTUB.Application.Services;
 public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly IImageStorageService _imageStorageService;
     private readonly ILeaderboardCommentRepository _leaderboardCommentRepository;
@@ -29,7 +30,7 @@ public class UserProfileService : IUserProfileService
 
     public UserProfileService(
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IImageStorageService imageStorageService,
         ILeaderboardCommentRepository leaderboardCommentRepository,
         ICommentRepository commentRepository,
@@ -39,7 +40,8 @@ public class UserProfileService : IUserProfileService
         ILogger<UserProfileService> logger)
     {
         _userManager = userManager;
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _context = contextFactory.CreateDbContext();
         _imageStorageService = imageStorageService;
         _leaderboardCommentRepository = leaderboardCommentRepository;
         _commentRepository = commentRepository;

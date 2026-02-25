@@ -46,13 +46,13 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
 
-        _eventRepository = new EventRepository(_context);
+        _eventRepository = new EventRepository(_fixture.CreateContextFactory());
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
 
@@ -64,14 +64,14 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _eventService = new EventService(
             _eventRepository,
             _mockImageStorageService.Object,
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
-            _context);
+            _fixture.CreateContextFactory());
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -539,7 +539,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -643,7 +643,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -724,7 +724,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockRetirementStatusService = new Mock<IRetirementStatusService>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -807,7 +807,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -842,7 +842,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -874,7 +874,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -905,7 +905,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -936,7 +936,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -974,7 +974,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
-            new EnrollmentRepository(_context),
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

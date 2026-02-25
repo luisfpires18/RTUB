@@ -18,6 +18,7 @@ namespace RTUB.Application.Services;
 public class MeetingService : IMeetingService
 {
     private readonly IMeetingRepository _meetingRepository;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
@@ -25,13 +26,14 @@ public class MeetingService : IMeetingService
 
     public MeetingService(
         IMeetingRepository meetingRepository,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor)
     {
         _meetingRepository = meetingRepository;
-        _context = context;
+        _contextFactory = contextFactory;
+        _context = contextFactory.CreateDbContext();
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;

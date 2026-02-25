@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class SongVideoRepository : Repository<SongVideo>, ISongVideoRepository
 {
-    public SongVideoRepository(ApplicationDbContext context) : base(context)
+    public SongVideoRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

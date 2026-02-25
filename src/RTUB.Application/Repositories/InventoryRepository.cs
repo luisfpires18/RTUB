@@ -12,7 +12,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class InventoryRepository : Repository<InventoryItem>, IInventoryRepository
 {
-    public InventoryRepository(ApplicationDbContext context) : base(context) { }
+    public InventoryRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     /// <summary>
     /// Gets an inventory item by user ID and item type

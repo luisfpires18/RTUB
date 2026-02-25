@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class MemberDebtRepository : Repository<MemberDebt>, IMemberDebtRepository
 {
-    public MemberDebtRepository(ApplicationDbContext context) : base(context)
+    public MemberDebtRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

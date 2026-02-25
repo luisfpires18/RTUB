@@ -12,16 +12,18 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class CachedGeocodingService : IGeocodingService
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _dbContext;
     private readonly IGeocodingQueue _geocodingQueue;
     private readonly ILogger<CachedGeocodingService> _logger;
 
     public CachedGeocodingService(
-        ApplicationDbContext dbContext,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IGeocodingQueue geocodingQueue,
         ILogger<CachedGeocodingService> logger)
     {
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
+        _dbContext = contextFactory.CreateDbContext();
         _geocodingQueue = geocodingQueue;
         _logger = logger;
     }

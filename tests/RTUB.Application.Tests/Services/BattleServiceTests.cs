@@ -23,6 +23,7 @@ namespace RTUB.Application.Tests.Services;
 public class BattleServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DbContextOptions<ApplicationDbContext> _dbOptions;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly ICharacterRepository _characterRepository;
     private readonly Mock<ICombatEngine> _combatEngineMock;
@@ -33,12 +34,12 @@ public class BattleServiceTests : IDisposable
 
     public BattleServiceTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        _dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new ApplicationDbContext(
-            options,
+            _dbOptions,
             Mock.Of<IHttpContextAccessor>(),
             new AuditContext(),
             new AuditLogAppender());
@@ -47,7 +48,7 @@ public class BattleServiceTests : IDisposable
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _characterRepository = new CharacterRepository(_context);
+        _characterRepository = new CharacterRepository(CreateContextFactory());
         _combatEngineMock = new Mock<ICombatEngine>();
         _inventoryRepositoryMock = new Mock<IInventoryRepository>();
         _loggerMock = new Mock<ILogger<BattleService>>();
@@ -69,7 +70,7 @@ public class BattleServiceTests : IDisposable
             _myTunoScalingConfigMock.Object,
             Mock.Of<IAuditLogService>(),
             Mock.Of<IStageProgressRepository>(),
-            _context);
+            CreateContextFactory());
     }
 
     [Fact]
@@ -568,5 +569,13 @@ public class BattleServiceTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+    }
+
+    private IDbContextFactory<ApplicationDbContext> CreateContextFactory()
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(_dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+        return mock.Object;
     }
 }

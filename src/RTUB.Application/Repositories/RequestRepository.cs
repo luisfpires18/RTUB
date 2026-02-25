@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class RequestRepository : Repository<Request>, IRequestRepository
 {
-    public RequestRepository(ApplicationDbContext context) : base(context)
+    public RequestRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

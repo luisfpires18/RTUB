@@ -26,7 +26,7 @@ public class ConversationRepositoryTests : IClassFixture<DatabaseFixture>, IDisp
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new ConversationRepository(_context);
+        _repository = new ConversationRepository(_fixture.CreateContextFactory());
     }
 
     private ApplicationUser CreateTestUser(string userId, string email = "test@test.com")

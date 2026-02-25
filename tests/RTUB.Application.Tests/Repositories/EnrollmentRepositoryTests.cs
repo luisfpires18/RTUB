@@ -27,7 +27,7 @@ public class EnrollmentRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        _repository = new EnrollmentRepository(_context);
+        _repository = new EnrollmentRepository(_fixture.CreateContextFactory());
     }
 
     [Fact]

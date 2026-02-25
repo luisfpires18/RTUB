@@ -11,7 +11,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeTypeConfigRepository
 {
-    public NaipeTypeConfigRepository(ApplicationDbContext context) : base(context)
+    public NaipeTypeConfigRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 

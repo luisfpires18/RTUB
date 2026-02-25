@@ -86,7 +86,7 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
         }
 
         using var scope = _serviceScopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var pushNotificationService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
         var pushNotificationFactory = scope.ServiceProvider.GetRequiredService<IPushNotificationFactory>();

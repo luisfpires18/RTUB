@@ -22,6 +22,7 @@ namespace RTUB.Application.Tests.Services;
 public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DbContextOptions<ApplicationDbContext> _dbOptions;
     private readonly RehearsalAttendanceService _attendanceService;
     private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
@@ -31,11 +32,11 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 
     public RehearsalAttendanceAdminWorkflowTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        _dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
+        _context = new ApplicationDbContext(_dbOptions, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
@@ -44,7 +45,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _attendanceService = new RehearsalAttendanceService(
-            new RehearsalAttendanceRepository(_context),
+            new RehearsalAttendanceRepository(CreateContextFactory()),
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
@@ -389,5 +390,13 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+    }
+
+    private IDbContextFactory<ApplicationDbContext> CreateContextFactory()
+    {
+        var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        mock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(_dbOptions, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+        return mock.Object;
     }
 }

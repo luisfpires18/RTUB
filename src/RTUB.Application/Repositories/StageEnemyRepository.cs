@@ -17,7 +17,7 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
     private static List<StageEnemy>? _allEnemiesCache;
     private static readonly SemaphoreSlim _cacheLock = new(1, 1);
 
-    public StageEnemyRepository(ApplicationDbContext context) : base(context) { }
+    public StageEnemyRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory) { }
 
     /// <summary>
     /// Loads the full StageEnemies table into memory on first call.

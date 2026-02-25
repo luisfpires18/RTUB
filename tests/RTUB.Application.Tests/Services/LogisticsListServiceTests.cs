@@ -30,8 +30,8 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        var listRepo = new LogisticsListRepository(_context);
-        var cardRepo = new LogisticsCardRepository(_context);
+        var listRepo = new LogisticsListRepository(_fixture.CreateContextFactory());
+        var cardRepo = new LogisticsCardRepository(_fixture.CreateContextFactory());
         _service = new LogisticsListService(listRepo, cardRepo);
     }
 

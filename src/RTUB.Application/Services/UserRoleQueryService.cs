@@ -12,11 +12,13 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class UserRoleQueryService : IUserRoleQueryService
 {
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _context;
 
-    public UserRoleQueryService(ApplicationDbContext context)
+    public UserRoleQueryService(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _context = contextFactory.CreateDbContext();
     }
 
     /// <summary>

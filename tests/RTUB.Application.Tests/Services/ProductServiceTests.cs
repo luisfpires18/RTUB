@@ -33,7 +33,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new ProductService(new ProductRepository(_context), _imageStorageServiceMock.Object);
+        _service = new ProductService(new ProductRepository(_fixture.CreateContextFactory()), _imageStorageServiceMock.Object);
     }
 
     [Fact]

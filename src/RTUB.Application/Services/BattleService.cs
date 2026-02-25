@@ -31,6 +31,7 @@ public class BattleService : IBattleService
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
     private readonly IAuditLogService _auditLogService;
     private readonly IStageProgressRepository _stageProgressRepository;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ApplicationDbContext _dbContext;
 
     public BattleService(
@@ -42,7 +43,7 @@ public class BattleService : IBattleService
         IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
         IAuditLogService auditLogService,
         IStageProgressRepository stageProgressRepository,
-        ApplicationDbContext dbContext)
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _characterRepository = characterRepository;
         _combatEngine = combatEngine;
@@ -52,7 +53,8 @@ public class BattleService : IBattleService
         _myTunoScalingConfig = myTunoScalingConfig.Value;
         _auditLogService = auditLogService;
         _stageProgressRepository = stageProgressRepository;
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
+        _dbContext = contextFactory.CreateDbContext();
     }
 
     /// <summary>

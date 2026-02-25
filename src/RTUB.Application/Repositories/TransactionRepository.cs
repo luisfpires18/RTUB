@@ -10,7 +10,7 @@ namespace RTUB.Application.Repositories;
 /// </summary>
 public class TransactionRepository : Repository<Transaction>, ITransactionRepository
 {
-    public TransactionRepository(ApplicationDbContext context) : base(context)
+    public TransactionRepository(IDbContextFactory<ApplicationDbContext> contextFactory) : base(contextFactory)
     {
     }
 
