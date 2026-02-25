@@ -348,3 +348,38 @@ if (displayModeQuery?.addEventListener) {
 window.isMobileDevice = function() {
     return window.pwaHelper.isMobilePwaOrBrowser();
 };
+
+// App Badge API — sets/clears the numeric badge on the PWA/TWA app icon
+// Supports Android (Chrome/TWA), iOS 16.4+ (home screen PWA), and desktop Chrome/Edge
+window.appBadge = {
+    /**
+     * Sets the app badge to the given count.
+     * Pass 0 to clear the badge.
+     * @param {number} count - The number to display on the badge
+     */
+    set: async function(count) {
+        if ('setAppBadge' in navigator) {
+            try {
+                if (count > 0) {
+                    await navigator.setAppBadge(count);
+                } else {
+                    await navigator.clearAppBadge();
+                }
+            } catch (e) {
+                // Silently fail on unsupported platforms or permission issues
+            }
+        }
+    },
+    /**
+     * Clears the app badge entirely.
+     */
+    clear: async function() {
+        if ('clearAppBadge' in navigator) {
+            try {
+                await navigator.clearAppBadge();
+            } catch (e) {
+                // Silently fail
+            }
+        }
+    }
+};

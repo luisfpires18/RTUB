@@ -93,6 +93,7 @@
             try
             {
                 unreadCount = await MessagingService.GetUnreadCountAsync(currentUserId);
+                await UpdateAppBadge();
             }
             catch
             {
@@ -172,6 +173,29 @@
                 await OnCountChanged.InvokeAsync();
             }
         });
+    }
+
+    /// <summary>
+    /// Updates the PWA/TWA app icon badge with the current unread count.
+    /// Uses the Badging API (supported on Android Chrome/TWA, iOS 16.4+ PWA, desktop Chrome/Edge).
+    /// </summary>
+    private async Task UpdateAppBadge()
+    {
+        try
+        {
+            if (unreadCount > 0)
+            {
+                await JSRuntime.InvokeVoidAsync("appBadge.set", unreadCount);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("appBadge.clear");
+            }
+        }
+        catch
+        {
+            // Ignore JS interop errors (e.g., circuit disposed, prerendering)
+        }
     }
 
     public async ValueTask DisposeAsync()

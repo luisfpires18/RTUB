@@ -233,6 +233,10 @@ self.addEventListener('push', (event) => {
     const baseTag = notificationData.tag || 'rtub-notification';
     const uniqueTag = baseTag + '-' + Date.now();
 
+    // Detect iOS to avoid setting vibrate (causes silent failures on iOS 16.4-17.x)
+    const isIOS = /iPad|iPhone|iPod/.test(self.navigator?.userAgent || '') ||
+        (/Macintosh/.test(self.navigator?.userAgent || '') && 'ontouchend' in self);
+
     // Build notification options - platform-compatible
     const notificationOptions = {
         body: notificationData.body,
@@ -247,10 +251,14 @@ self.addEventListener('push', (event) => {
         },
         requireInteraction: false,
         renotify: true,
+        silent: false,           // Explicitly not silent — ensures Android shows popup/sound
         timestamp: Date.now()
-        // NOTE: vibrate intentionally omitted — unsupported on iOS Safari
-        // and causes silent failures on some iOS 16.4-17.x versions
     };
+
+    // Add vibrate for Android only — iOS Safari fails silently if vibrate is present
+    if (!isIOS) {
+        notificationOptions.vibrate = [200, 100, 200];
+    }
 
     // Show notification FIRST (critical for iOS — SW gets killed quickly)
     // Then notify open clients as a secondary action
@@ -268,6 +276,14 @@ self.addEventListener('push', (event) => {
                 tag: baseTag
             });
         });
+    }).then(() => {
+        // Update app badge count with number of active notifications
+        if ('setAppBadge' in self.navigator) {
+            return self.registration.getNotifications().then((notifications) => {
+                const count = notifications.length;
+                return self.navigator.setAppBadge(count).catch(() => {});
+            }).catch(() => {});
+        }
     }).catch((error) => {
         console.error('[Service Worker] Error showing notification:', error);
         // Last resort: try a minimal notification
@@ -286,6 +302,17 @@ self.addEventListener('notificationclick', (event) => {
     console.log('[Service Worker] Notification clicked');
     
     event.notification.close();
+
+    // Update app badge: decrement or clear based on remaining notifications
+    if ('setAppBadge' in self.navigator) {
+        self.registration.getNotifications().then((notifications) => {
+            if (notifications.length === 0) {
+                self.navigator.clearAppBadge().catch(() => {});
+            } else {
+                self.navigator.setAppBadge(notifications.length).catch(() => {});
+            }
+        }).catch(() => {});
+    }
 
     // Get the URL and tag from notification data
     const notificationPayload = event.notification.data || {};
