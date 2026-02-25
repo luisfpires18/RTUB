@@ -118,7 +118,9 @@ window.messageScroller = {
         // Use double requestAnimationFrame to ensure DOM is fully painted
         window.requestAnimationFrame(() => {
             window.requestAnimationFrame(() => {
-                element.scrollTop = element.scrollHeight;
+                // Use scrollTo with behavior:'instant' to bypass any inherited
+                // scroll-behavior:smooth CSS that would animate (and risk interruption)
+                element.scrollTo({ top: element.scrollHeight, behavior: 'instant' });
             });
         });
     },
@@ -132,8 +134,9 @@ window.messageScroller = {
     scrollToBottomIfNearEnd: function (element, threshold) {
         if (!element) return;
         
-        // Default threshold to 100px if not provided
-        var pixelThreshold = threshold || 100;
+        // Default threshold: 150px on desktop, 300px on mobile (where message bubbles are taller)
+        var defaultThreshold = window.innerWidth <= this._MOBILE_BREAKPOINT ? 300 : 150;
+        var pixelThreshold = threshold || defaultThreshold;
         
         // Check if user is near the bottom (within threshold)
         var isNearBottom = (element.scrollHeight - (element.scrollTop + element.clientHeight)) <= pixelThreshold;
@@ -141,7 +144,7 @@ window.messageScroller = {
         if (isNearBottom) {
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
-                    element.scrollTop = element.scrollHeight;
+                    element.scrollTo({ top: element.scrollHeight, behavior: 'instant' });
                 });
             });
         }
@@ -160,7 +163,7 @@ window.messageScroller = {
         const doScroll = () => {
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
-                    element.scrollTop = element.scrollHeight;
+                    element.scrollTo({ top: element.scrollHeight, behavior: 'instant' });
                 });
             });
         };
@@ -168,13 +171,18 @@ window.messageScroller = {
         // Initial scroll after the requested delay
         setTimeout(doScroll, delayMs);
         
-        // On mobile, add extra scroll attempts to handle late layout changes
-        // (e.g., navigating from a push notification where the viewport/layout
-        // may not be fully settled when the first scroll fires)
+        // Multiple retry attempts on ALL platforms to handle:
+        // - Blazor Server diffs arriving over SignalR (DOM update may lag behind OnAfterRenderAsync)
+        // - Late layout shifts from images, fonts, or dynamic content
+        // - Mobile keyboard animations and viewport resizing
+        // Staggered intervals: immediate -> 300ms -> 600ms -> 1000ms
+        setTimeout(doScroll, 300);
+        setTimeout(doScroll, 600);
+        
+        // Extra attempts on mobile for keyboard/viewport settling
         if (window.innerWidth <= this._MOBILE_BREAKPOINT) {
-            setTimeout(doScroll, 500);
-            setTimeout(doScroll, 800);
-            setTimeout(doScroll, 1200);
+            setTimeout(doScroll, 1000);
+            setTimeout(doScroll, 1500);
         }
     },
     
@@ -235,7 +243,7 @@ window.messageScroller = {
         const scrollToBottom = () => {
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
-                    containerElement.scrollTop = containerElement.scrollHeight;
+                    containerElement.scrollTo({ top: containerElement.scrollHeight, behavior: 'instant' });
                 });
             });
         };

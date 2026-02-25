@@ -394,6 +394,11 @@
     scrollbar-gutter: stable both-edges;
     /* Ensure scroll works on all platforms */
     -webkit-overflow-scrolling: touch;
+    /* Override inherited scroll-behavior: smooth from body/bootstrap.
+       Smooth scroll causes programmatic scrollTop assignments to animate,
+       which can be interrupted by re-renders, keyboard animations, or resizes,
+       resulting in incomplete scrolls. Programmatic scrolls must be instant. */
+    scroll-behavior: auto;
 }
 
 /* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */

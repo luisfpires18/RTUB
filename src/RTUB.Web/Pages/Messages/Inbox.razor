@@ -380,15 +380,12 @@
                                 <div class="rtub-messages__composer">
                                     <textarea @ref="messageInput" class="rtub-messages__composer-input messaging-input"
                                            placeholder="Escreva uma mensagem..."
-                                           value="@newMessageText"
-                                           @oninput="HandleTextInput"
-                                           @onkeypress="HandleKeyPress"
-                                           @onblur="HandleInputBlur"
                                            rows="1"
+                                           maxlength="2000"
                                            disabled="@isSending"></textarea>
                                     <button class="rtub-messages__composer-send"
                                             @onclick="SendMessage"
-                                            disabled="@(string.IsNullOrWhiteSpace(newMessageText) || isSending)">
+                                            disabled="@isSending">
                                         @if (isSending)
                                         {
                                             <span class="spinner-border spinner-border-sm" role="status"></span>
@@ -712,6 +709,7 @@
     private bool shouldScrollToBottom;
     private bool shouldScrollIfNearEnd; // For received messages - only scroll if user is near bottom
     private bool isInputFocusHandlerSetup = false;
+    private DotNetObjectReference<Inbox>? _composerDotNetRef;
 
     // Group members modal
     private enum ModalType { GroupMembers, NewMessage, NewGroup }
@@ -753,17 +751,17 @@
             await ClearAllMessageNotificationsAsync();
         }
         
-        if (shouldScrollToBottom)
+        if (shouldScrollToBottom && !isLoadingMessages)
         {
             shouldScrollToBottom = false;
             await ScrollToLatestMessageAsync();
         }
-        else if (shouldScrollIfNearEnd)
+        else if (shouldScrollIfNearEnd && !isLoadingMessages)
         {
             // For received messages, only scroll if user is near the bottom
             // This prevents jarring scrolls when user is reading history
             shouldScrollIfNearEnd = false;
-            await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomIfNearEnd", messageThreadBody, 100);
+            await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomIfNearEnd", messageThreadBody);
         }
         
         // Setup input focus handler for mobile keyboard scrolling (only once)
@@ -775,6 +773,11 @@
         {
             isInputFocusHandlerSetup = true;
             await JSRuntime.InvokeVoidAsync("messageScroller.setupInputFocusScroll", messageInput, messageThreadBody);
+            
+            // Initialize JS-managed composer (handles Enter key, typing indicators)
+            // This eliminates per-keystroke SignalR round-trips that cause input lag
+            _composerDotNetRef ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("messageComposer.init", messageInput, _composerDotNetRef);
         }
     }
 
@@ -870,14 +873,48 @@
         return Task.CompletedTask;
     }
 
+    // ── JS-invokable callbacks for messageComposer.js ──────────────────
 
-
-    private async Task HandleKeyPress(KeyboardEventArgs e)
+    /// <summary>
+    /// Called from JavaScript when user presses Enter (without Shift) in the textarea.
+    /// </summary>
+    [JSInvokable("JsSendMessage")]
+    public async Task JsSendMessage()
     {
-        if (e.Key == "Enter" && !e.ShiftKey)
-        {
-            await SendMessage();
-        }
+        await SendMessage();
+    }
+
+    /// <summary>
+    /// Called from JavaScript when the user starts typing (first keystroke after idle).
+    /// </summary>
+    [JSInvokable("JsTypingStarted")]
+    public async Task JsTypingStarted()
+    {
+        if (selectedConversation == null) return;
+        isTyping = true;
+        var groupName = $"conversation-{selectedConversation.Id}";
+        await HubContext.Clients.Group(groupName).TypingStarted(selectedConversation.Id, currentUserId);
+        await NotificationService.NotifyTypingStartedAsync(selectedConversation.Id, currentUserId);
+    }
+
+    /// <summary>
+    /// Called from JavaScript when the user stops typing (3 s idle timeout or blur).
+    /// </summary>
+    [JSInvokable("JsTypingStopped")]
+    public async Task JsTypingStopped()
+    {
+        await StopTyping();
+    }
+
+    private async Task StopTyping()
+    {
+        if (selectedConversation == null || !isTyping)
+            return;
+
+        isTyping = false;
+        var groupName = $"conversation-{selectedConversation.Id}";
+        await HubContext.Clients.Group(groupName).TypingStopped(selectedConversation.Id, currentUserId);
+        await NotificationService.NotifyTypingStoppedAsync(selectedConversation.Id, currentUserId);
     }
 
     private async Task ToggleReadStatus()
@@ -1205,8 +1242,9 @@
 
     private async Task ScrollToLatestMessageAsync()
     {
-        // Use delayed scroll to ensure Blazor has fully painted the message list before scrolling
-        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomDelayed", messageThreadBody, 300);
+        // Use delayed scroll to ensure Blazor has fully painted the message list before scrolling.
+        // Initial delay is short (50ms) since scrollToBottomDelayed retries at 300ms and 600ms.
+        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomDelayed", messageThreadBody, 50);
     }
 
     /// <summary>
@@ -1252,7 +1290,6 @@
     // ========== SignalR Integration ==========
     
     private Dictionary<string, string> typingUsers = new();
-    private System.Threading.Timer? typingTimer;
     private bool isTyping = false;
     private int? currentConversationId;
 
@@ -1525,71 +1562,15 @@
         return $"Lida por {string.Join(", ", readByNames)}";
     }
 
-    private async Task HandleTextInput(ChangeEventArgs e)
-    {
-        newMessageText = e.Value?.ToString() ?? string.Empty;
-        
-        if (selectedConversation == null || string.IsNullOrWhiteSpace(newMessageText))
-        {
-            await StopTyping();
-            return;
-        }
-        
-        await StartTyping();
-    }
-
-    private async Task StartTyping()
-    {
-        if (selectedConversation == null || isTyping)
-        {
-            return;
-        }
-        
-        // Send typing started event only if not already typing
-        if (!isTyping)
-        {
-            isTyping = true;
-            var groupName = $"conversation-{selectedConversation.Id}";
-            await HubContext.Clients.Group(groupName).TypingStarted(selectedConversation.Id, currentUserId);
-            await NotificationService.NotifyTypingStartedAsync(selectedConversation.Id, currentUserId);
-        }
-        
-        // Reset the typing timer (stop typing after 3 seconds of inactivity)
-        // This gets reset on every keystroke, so typing indicator stays as long as user types
-        typingTimer?.Dispose();
-        typingTimer = new System.Threading.Timer(async _ =>
-        {
-            await StopTyping();
-        }, null, TimeSpan.FromSeconds(3), Timeout.InfiniteTimeSpan);
-    }
-
-    private async Task StopTyping()
-    {
-        if (selectedConversation == null || !isTyping)
-        {
-            return;
-        }
-        
-        isTyping = false;
-        typingTimer?.Dispose();
-        // Send typing stopped event through hub context
-        var groupName = $"conversation-{selectedConversation.Id}";
-        await HubContext.Clients.Group(groupName).TypingStopped(selectedConversation.Id, currentUserId);
-        await NotificationService.NotifyTypingStoppedAsync(selectedConversation.Id, currentUserId);
-    }
-
-    private async Task HandleInputBlur()
-    {
-        await StopTyping();
-    }
-
     private async Task SelectConversation(int conversationId)
     {
-        // Clear typing state when switching conversations
-        typingUsers.Clear();
-        isTyping = false;
-        typingTimer?.Dispose();
+        // Stop typing indicator for the current conversation before switching
+        await StopTyping();
         
+        // Reset JS composer state (clears textarea text and typing flags without .NET callback)
+        try { await JSRuntime.InvokeVoidAsync("messageComposer.reset"); } catch { }
+        
+        typingUsers.Clear();
         isLoadingMessages = true;
         isInputFocusHandlerSetup = false;
         
@@ -1637,23 +1618,46 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(newMessageText) || selectedConversation == null || isSending)
+        if (selectedConversation == null || isSending)
             return;
+
+        // Set sending state immediately so the UI shows feedback
+        isSending = true;
+        StateHasChanged();
+
+        // Read text + clear textarea in a single JS interop call
+        string messageText;
+        try
+        {
+            messageText = await JSRuntime.InvokeAsync<string>("messageComposer.getTextAndClear");
+        }
+        catch
+        {
+            isSending = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(messageText))
+        {
+            isSending = false;
+            StateHasChanged();
+            return;
+        }
+
+        var trimmedText = messageText.Trim();
 
         // Store conversation reference to prevent race conditions
         var conversation = selectedConversation;
         if (conversation == null)
         {
-            Logger.LogWarning("selectedConversation became null after initial check for user {UserId}", currentUserId);
+            isSending = false;
             return;
         }
         
         var conversationId = conversation.Id;
 
-        // Stop typing indicator
-        await StopTyping();
-
-        isSending = true;
+        // Fire-and-forget typing stop — don't block the send on hub round-trips
+        _ = StopTyping();
         
         try
         {
@@ -1661,14 +1665,14 @@
             
             if (conversation.IsGroup)
             {
-                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, conversationId, newMessageText.Trim());
+                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, conversationId, trimmedText);
             }
             else
             {
                 var messageDto = new SendMessageDto
                 {
                     ReceiverId = conversation.OtherParticipantId!,
-                    Body = newMessageText.Trim()
+                    Body = trimmedText
                 };
                 sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
             }
@@ -1679,7 +1683,6 @@
                 messages.Add(sentMessage);
             }
             
-            newMessageText = string.Empty;
             shouldScrollToBottom = true;
 
             // Update conversation in list - defensive check to prevent NullReferenceException
@@ -1744,6 +1747,7 @@
         finally
         {
             isSending = false;
+            StateHasChanged();
         }
     }
 
@@ -1758,9 +1762,13 @@
         NotificationService.OnTypingStarted -= HandleTypingStarted;
         NotificationService.OnTypingStopped -= HandleTypingStopped;
         
-        typingTimer?.Dispose();
         _conversationsLock?.Dispose();
         _disposalCancellationTokenSource?.Dispose();
+        
+        // Dispose JS-managed composer
+        try { await JSRuntime.InvokeVoidAsync("messageComposer.dispose"); }
+        catch { /* JS runtime may already be disconnected */ }
+        _composerDotNetRef?.Dispose();
         
         // Ensure body scroll is unlocked when component is disposed
         // This handles edge cases where modals might be open during navigation
