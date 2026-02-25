@@ -33,7 +33,8 @@
 else
 {
     <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <!-- Desktop-only action buttons (hidden on mobile where MobileBottomNav is used) -->
+        <div class="d-none d-xl-flex flex-row align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-outline-light btn-sm" @onclick="GoBack" aria-label="Voltar">
                     <i class="bi bi-arrow-left"></i>
@@ -115,6 +116,9 @@ else
         </div>
     }
 }
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Fixed Audio Player -->
 @if (!string.IsNullOrEmpty(currentAudioUrl))
@@ -626,6 +630,9 @@ else
     private bool isAdminOrOwner = false;
     private bool isModerator = false;
     
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+    
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
     private int? selectedVideoId = null; // Changed from index to ID for better tracking
@@ -684,6 +691,8 @@ else
         canEditSongs = isAdminOrOwner || isModerator;
         canDeleteSongs = isAdminOrOwner;
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        BuildMobileNavItems();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -743,6 +752,34 @@ else
     private void GoBack()
     {
         NavigationManager.NavigateTo("/music");
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+
+        if (canEditSongs)
+        {
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            GoBack();
+        }
+        else if (key == "action-add")
+        {
+            OpenCreateSongModal();
+            await Task.CompletedTask;
+        }
     }
 
     private async Task OpenEditModal(Song song)
