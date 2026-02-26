@@ -119,16 +119,21 @@ public class CharacterService : ICharacterService
             if (freshUser == null)
                 return (false, "Utilizador não encontrado.", 0);
 
-            if (freshUser.LastDailyRewardClaim != null &&
-                freshUser.LastDailyRewardClaim.Value.Date >= DateTime.UtcNow.Date)
+            // Check daily reward claim on character (MyTuno-specific state)
+            var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId);
+            if (character == null)
+                return (false, "Personagem não encontrada.", 0);
+
+            if (character.LastDailyRewardClaim != null &&
+                character.LastDailyRewardClaim.Value.Date >= DateTime.UtcNow.Date)
             {
                 return (false, "Já recebeste o Daily Reward hoje!", 0);
             }
 
             var reward = GetDailyRewardAmount(characterLevel, freshUser.FidelisBalance);
             freshUser.FidelisBalance += reward;
-            freshUser.LastDailyRewardClaim = DateTime.UtcNow;
             freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+            character.LastDailyRewardClaim = DateTime.UtcNow;
             await ctx.SaveChangesAsync();
 
             return (true, $"Daily Reward: +{reward:F2} Fidelis!", reward);
@@ -204,15 +209,15 @@ public class CharacterService : ICharacterService
             var count = await context.Characters.CountAsync(cancellationToken);
             await context.Characters.ExecuteDeleteAsync(cancellationToken);
 
-            // Reset FidelisBalance and FitabBalance to 0 for ALL users
+            // Reset FidelisBalance for ALL users (Fidelis is cross-cutting, stays on user)
+            // FITAB was already deleted as part of InventoryItems above
             await context.Users
                 .ExecuteUpdateAsync(u => u
-                    .SetProperty(x => x.FidelisBalance, 0m)
-                    .SetProperty(x => x.FitabBalance, 5), cancellationToken);
+                    .SetProperty(x => x.FidelisBalance, 0m), cancellationToken);
 
             await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogWarning("Owner reset ALL game data: {Count} characters, all related entities deleted, and all FidelisBalance/FitabBalance reset to 0", count);
+            _logger.LogWarning("Owner reset ALL game data: {Count} characters, all related entities deleted, and all FidelisBalance reset to 0", count);
             return (true, $"Todos os dados de jogo foram resetados. {count} personagens eliminados.");
         }
         catch (Exception ex)

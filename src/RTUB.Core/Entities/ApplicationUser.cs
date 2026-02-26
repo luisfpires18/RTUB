@@ -52,12 +52,6 @@ public class ApplicationUser : IdentityUser
     // Betting system - Fidelis currency balance (default 10 for new users)
     public decimal FidelisBalance { get; set; } = 10m;
 
-    // FITAB currency - rare drop used to enter Boss Mode (default 0)
-    public int FitabBalance { get; set; } = 0;
-
-    // Daily reward tracking
-    public DateTime? LastDailyRewardClaim { get; set; }
-
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 

@@ -877,13 +877,13 @@ public class StageService : IStageService
             await _characterRepository.UpdateAsync(character);
         }
 
-        // Apply Fidelis and FITAB
+        // Apply Fidelis
         // UserManager.FindByIdAsync returns the tracked entity from the long-lived
         // Blazor DbContext — its ConcurrencyStamp is stale if anything else modified
         // the user. Use a fresh DbContext so each attempt gets the current DB row.
-        if (fidelis > 0 || fitab > 0)
+        if (fidelis > 0)
         {
-            var fidelisAmount = fidelis > 0 ? fidelis * (decimal)character.FidelisEarnedMultiplier : 0;
+            var fidelisAmount = fidelis > 0 ? fidelis : 0;
             const int userMaxRetries = 3;
             for (int userAttempt = 0; userAttempt <= userMaxRetries; userAttempt++)
             {
@@ -894,7 +894,6 @@ public class StageService : IStageService
                     if (user == null) break;
 
                     if (fidelisAmount > 0) user.FidelisBalance += fidelisAmount;
-                    if (fitab > 0) user.FitabBalance += fitab;
                     user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
                     await ctx.SaveChangesAsync(cancellationToken);
@@ -916,6 +915,12 @@ public class StageService : IStageService
                         userMaxRetries, character.UserId);
                 }
             }
+        }
+
+        // Add FITAB drops to inventory
+        if (fitab > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fitab, fitab, cancellationToken);
         }
 
         // Batch all inventory drops into a single DB round-trip

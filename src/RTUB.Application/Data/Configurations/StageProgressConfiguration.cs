@@ -36,9 +36,6 @@ public class StageProgressConfiguration : IEntityTypeConfiguration<StageProgress
         builder.Property(sp => sp.TotalStagesCleared)
             .IsRequired();
 
-        builder.Property(sp => sp.TotalMiniBossesDefeated)
-            .IsRequired();
-
         builder.Property(sp => sp.TotalBossesDefeated)
             .IsRequired();
 

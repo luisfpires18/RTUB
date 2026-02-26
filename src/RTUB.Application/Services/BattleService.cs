@@ -200,7 +200,6 @@ public class BattleService : IBattleService
                 playerCharacter.ArenaLosses++;
                 break;
             case BattleOutcome.Draw:
-                playerCharacter.ArenaDraws++;
                 break;
         }
 
@@ -336,17 +335,11 @@ public class BattleService : IBattleService
         if (drops.Count > 0)
             await _inventoryRepository.AddItemsAsync(userId, drops, cancellationToken);
 
-        // Roll for FITAB drop — use a fresh context to avoid stale entity issues
+        // Roll for FITAB drop — add to inventory
         var fitabRoll = Random.Shared.NextDouble();
         if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
         {
-            using var ctx = _contextFactory.CreateDbContext();
-            var user = await ctx.Users.FindAsync(new object[] { userId }, cancellationToken);
-            if (user != null)
-            {
-                user.FitabBalance++;
-                await ctx.SaveChangesAsync(cancellationToken);
-            }
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Fitab, 1, cancellationToken);
         }
     }
     

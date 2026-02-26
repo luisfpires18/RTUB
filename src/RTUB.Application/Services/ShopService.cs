@@ -1,8 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
@@ -15,16 +12,13 @@ public class ShopService : IShopService
     private const int FitabPerLeitao = 25;
 
     private readonly IInventoryRepository _inventoryRepository;
-    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly ILogger<ShopService> _logger;
 
     public ShopService(
         IInventoryRepository inventoryRepository,
-        IDbContextFactory<ApplicationDbContext> contextFactory,
         ILogger<ShopService> logger)
     {
         _inventoryRepository = inventoryRepository;
-        _contextFactory = contextFactory;
         _logger = logger;
     }
 
@@ -35,31 +29,24 @@ public class ShopService : IShopService
         if (string.IsNullOrWhiteSpace(userId))
             return (false, "Utilizador inválido.", 0);
 
-        // Use a fresh context for atomic FITAB deduction + Leitão addition
-        await using var ctx = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        // Check FITAB balance from inventory
+        var fitabItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Fitab, cancellationToken);
+        var currentFitab = fitabItem?.Quantity ?? 0;
 
-        var user = await ctx.Users.FindAsync([userId], cancellationToken);
-        if (user == null)
-            return (false, "Utilizador não encontrado.", 0);
+        if (currentFitab < FitabPerLeitao)
+            return (false, $"FITAB insuficiente. Precisas de {FitabPerLeitao} FITAB (tens {currentFitab}).", currentFitab);
 
-        if (user.FitabBalance < FitabPerLeitao)
-            return (false, $"FITAB insuficiente. Precisas de {FitabPerLeitao} FITAB (tens {user.FitabBalance}).", user.FitabBalance);
+        // Consume FITAB and add Leitão via inventory (atomic per-item)
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Fitab, FitabPerLeitao, cancellationToken);
+        if (!consumed)
+            return (false, "Erro ao consumir FITAB.", currentFitab);
 
-        user.FitabBalance -= FitabPerLeitao;
+        await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Leitao, 1, cancellationToken);
 
-        // Add 1 Leitão to inventory on the same context (atomic with FITAB deduction)
-        var leitaoItem = await ctx.InventoryItems
-            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == InventoryItemType.Leitao, cancellationToken);
-        if (leitaoItem != null)
-            leitaoItem.AddQuantity(1);
-        else
-            await ctx.InventoryItems.AddAsync(InventoryItem.Create(userId, InventoryItemType.Leitao, 1), cancellationToken);
-
-        await ctx.SaveChangesAsync(cancellationToken);
-
+        var newFitab = currentFitab - FitabPerLeitao;
         _logger.LogInformation("User {UserId} exchanged {Fitab} FITAB for 1 Leitão. New FITAB balance: {Balance}",
-            userId, FitabPerLeitao, user.FitabBalance);
+            userId, FitabPerLeitao, newFitab);
 
-        return (true, "Trocaste 25 FITAB por 1 Leitão! 🐷", user.FitabBalance);
+        return (true, "Trocaste 25 FITAB por 1 Leitão! 🐷", newFitab);
     }
 }

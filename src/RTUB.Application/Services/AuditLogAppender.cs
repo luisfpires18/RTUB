@@ -190,9 +190,7 @@ public class AuditLogAppender : IAuditLogAppender
             "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
             "LastLoginDate", // Exclude login tracking - already logged separately
-            "FidelisBalance", // High-frequency balance updates - not business-critical
-            "FitabBalance", // High-frequency balance updates - not business-critical
-            "LastDailyRewardClaim" // Daily reward tracking - not business-critical
+            "FidelisBalance" // High-frequency balance updates - not business-critical
         };
 
         // Critical fields that should mark the action as critical (even if not logged)

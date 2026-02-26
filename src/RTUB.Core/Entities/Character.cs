@@ -13,6 +13,9 @@ public class Character : BaseEntity
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    // Daily reward tracking (MyTuno-specific, moved from ApplicationUser)
+    public DateTime? LastDailyRewardClaim { get; set; }
+
     // Progression
     public int Level { get; set; } = MyTunoScaling.BaseLevel;
     public int XP { get; set; } = MyTunoScaling.BaseXp;
@@ -111,11 +114,6 @@ public class Character : BaseEntity
     public int ArenaLosses { get; set; } = 0;
 
     /// <summary>
-    /// Total number of arena draws
-    /// </summary>
-    public int ArenaDraws { get; set; } = 0;
-
-    /// <summary>
     /// Arena rating (min 0). Won by winning arena battles, lost by losing.
     /// </summary>
     public int ArenaRating { get; set; } = 0;
@@ -172,9 +170,6 @@ public class Character : BaseEntity
 
     /// <summary>Number of shot buff bonus upgrades purchased</summary>
     public int ShotBuffUpgrades { get; set; }
-
-    /// <summary>Number of fidelis earned bonus upgrades purchased</summary>
-    public int FidelisEarnedUpgrades { get; set; }
 
     /// <summary>Number of cast speed (gathering time reduction) upgrades purchased</summary>
     public int CastSpeedUpgrades { get; set; }
@@ -456,12 +451,6 @@ public class Character : BaseEntity
     public double DoubleGatheringChance => Math.Min(
         MyTunoScaling.MaxDoubleGatheringChance,
         DoubleGatheringUpgrades * MyTunoScaling.DoubleGatheringChancePerUpgrade);
-
-    /// <summary>
-    /// Fidelis earned bonus multiplier (always 1.0 — improvement removed).
-    /// </summary>
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double FidelisEarnedMultiplier => 1.0;
 
     // ── Consumable upgrade computed properties ──
 
@@ -1039,14 +1028,6 @@ public class Character : BaseEntity
     public double EffectiveCastTime => Math.Max(
         MyTunoScaling.MinCastTime,
         MyTunoScaling.BaseCastTime - CastSpeedUpgrades * MyTunoScaling.CastTimeReductionPerUpgrade);
-
-    /// <summary>
-    /// Upgrades fidelis earned bonus
-    /// </summary>
-    public void UpgradeFidelisEarned()
-    {
-        FidelisEarnedUpgrades++;
-    }
 
     // ── Powers upgrade methods ──
 

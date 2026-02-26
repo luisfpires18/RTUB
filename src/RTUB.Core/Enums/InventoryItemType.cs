@@ -41,6 +41,11 @@ public enum InventoryItemType
     Leitao = 17,
 
     /// <summary>
+    /// FITAB — rare drop currency used to enter Boss Mode (1 per run)
+    /// </summary>
+    Fitab = 18,
+
+    /// <summary>
     /// Cerveja - gathered resource, used for crafting (costs 1 energy)
     /// </summary>
     Cerveja = 3,

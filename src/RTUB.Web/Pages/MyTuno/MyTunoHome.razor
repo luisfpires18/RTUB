@@ -96,7 +96,7 @@
                     </div>
                     <div class="fidelis-bar__info">
                         <span class="fidelis-bar__label" style="color: #e040fb;">FITAB</span>
-                        <span class="fidelis-bar__value">@currentUser.FitabBalance</span>
+                        <span class="fidelis-bar__value">@fitabQuantity</span>
                     </div>
                     <div class="fidelis-bar__icon ms-3" style="color: #f8bbd0;">
                         <span>🐷</span>
@@ -1233,7 +1233,7 @@
                                     <div class="enhance-row__title">Leitão</div>
                                     <div class="enhance-row__desc">Troca 25 FITAB por 1 Leitão</div>
                                     <div class="enhance-row__stat">
-                                        FITAB: <span class="@(currentUser != null && currentUser.FitabBalance >= 25 ? "text-success" : "text-danger")">@(currentUser?.FitabBalance ?? 0)</span> / 25
+                                        FITAB: <span class="@(fitabQuantity >= 25 ? "text-success" : "text-danger")">@fitabQuantity</span> / 25
                                         &nbsp;|&nbsp; 🐷 @leitaoQuantity
                                     </div>
                                 </div>
@@ -1241,7 +1241,7 @@
                                     <button class="btn enhance-row__btn"
                                             style="background: linear-gradient(180deg, #e67e22, #d35400, #b8450a); border-color: rgba(230, 126, 34, 0.4);"
                                             @onclick="BuyLeitaoWithFitab"
-                                            disabled="@(buyingLeitao || currentUser == null || currentUser.FitabBalance < 25)">
+                                            disabled="@(buyingLeitao || fitabQuantity < 25)">
                                         @if (buyingLeitao)
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
@@ -1857,7 +1857,7 @@
 
                     <div class="bm-modal__info-card bm-modal__info-card--fitab">
                         <i class="bi bi-lightning-fill"></i>
-                        <span>Custa <strong>1 FITAB</strong> para entrar. Tens <strong>@(currentUser?.FitabBalance ?? 0) FITAB</strong>.</span>
+                        <span>Custa <strong>1 FITAB</strong> para entrar. Tens <strong>@fitabQuantity FITAB</strong>.</span>
                     </div>
 
                     <div class="bm-modal__info-card bm-modal__info-card--level">
@@ -1877,7 +1877,7 @@
                             <span>Precisas de atingir Level 100 para aceder ao Boss Mode.</span>
                         </div>
                     }
-                    else if ((currentUser?.FitabBalance ?? 0) < 1)
+                    else if (fitabQuantity < 1)
                     {
                         <div class="bm-modal__warning">
                             <i class="bi bi-exclamation-triangle-fill"></i>
@@ -1890,7 +1890,7 @@
                 <button class="bm-modal__btn bm-modal__btn--close" @onclick="CloseBossModeModal">
                     <i class="bi bi-x-lg me-1"></i>Fechar
                 </button>
-                <button class="bm-modal__btn bm-modal__btn--enter" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 100)">
+                <button class="bm-modal__btn bm-modal__btn--enter" @onclick="StartBossMode" disabled="@(fitabQuantity < 1 || (character?.Level ?? 0) < 100)">
                     <i class="bi bi-lightning-fill me-1"></i>Entrar (1 FITAB)
                 </button>
             </FooterContent>
@@ -2047,6 +2047,7 @@
     private int shotQuantity = 0;
     private int penaltyQuantity = 0;
     private int leitaoQuantity = 0;
+    private int fitabQuantity = 0;
     private bool usingFino = false;
     private bool usingCaneca = false;
     private bool usingCigarro = false;
@@ -2166,16 +2167,16 @@
     private decimal DailyRewardPerLevel => MyTunoConfig.Value.DailyReward.PerLevelFidelis;
 
     private bool CanClaimDailyReward =>
-        currentUser != null &&
-        (currentUser.LastDailyRewardClaim == null ||
-         currentUser.LastDailyRewardClaim.Value.Date < DateTime.UtcNow.Date);
+        character != null &&
+        (character.LastDailyRewardClaim == null ||
+         character.LastDailyRewardClaim.Value.Date < DateTime.UtcNow.Date);
 
     private string DailyRewardTimeRemaining
     {
         get
         {
-            if (currentUser?.LastDailyRewardClaim == null) return "";
-            var nextClaim = currentUser.LastDailyRewardClaim.Value.Date.AddDays(1);
+            if (character?.LastDailyRewardClaim == null) return "";
+            var nextClaim = character.LastDailyRewardClaim.Value.Date.AddDays(1);
             var remaining = nextClaim - DateTime.UtcNow;
             if (remaining.TotalSeconds <= 0) return "";
             return $"{(int)remaining.TotalHours}h {remaining.Minutes}m";
@@ -2205,13 +2206,14 @@
 
             if (success)
             {
-                // Reload from fresh context — UserManager returns stale tracked entity
+                // Reload user (Fidelis balance updated) and character (LastDailyRewardClaim updated)
                 await RefreshCurrentUserAsync();
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             }
             else if (message == "Já recebeste o Daily Reward hoje!")
             {
                 // Sync claim timestamp from server
-                await RefreshCurrentUserAsync();
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             }
         }
         catch (Exception ex)
@@ -2295,6 +2297,7 @@
                         shotQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Shot);
                         penaltyQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Penalty);
                         leitaoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Leitao);
+                        fitabQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Fitab);
 
                         // Extract instrument parts and equipment from the same summary
                         instrumentParts = inventorySummary
@@ -2436,6 +2439,7 @@
                     // Refresh Leitão balance
                     var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                     leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                    fitabQuantity = inv.GetValueOrDefault(InventoryItemType.Fitab);
                 }
 
                 // Refresh energy bar and regen timer to reflect upgrades
@@ -2491,6 +2495,7 @@
                     // Refresh Leitão balance
                     var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                     leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                    fitabQuantity = inv.GetValueOrDefault(InventoryItemType.Fitab);
                 }
 
                 toastMessage = $"Upgrade de consumível comprado com sucesso!";
@@ -2529,9 +2534,10 @@
             var (success, message, newFitab) = await ShopService.ExchangeFitabForLeitaoAsync(currentUser.Id);
             if (success)
             {
-                currentUser.FitabBalance = newFitab;
+                fitabQuantity = newFitab;
                 var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                 leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                fitabQuantity = inv.GetValueOrDefault(InventoryItemType.Fitab);
                 toastMessage = message;
                 toastIsError = false;
             }
@@ -3543,6 +3549,7 @@
                 // Refresh drink quantities and Leitão (consumed during upgrade)
                 var wpnInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                 leitaoQuantity = wpnInv.GetValueOrDefault(InventoryItemType.Leitao);
+                fitabQuantity = wpnInv.GetValueOrDefault(InventoryItemType.Fitab);
                 foreach (var res in activeResources)
                 {
                     if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))

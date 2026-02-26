@@ -121,34 +121,32 @@ public class BossModeService : IBossModeService
         if (character == null || character.Level < 100)
             throw new InvalidOperationException("Level 100 required to enter Boss Mode.");
 
-        if (user.FitabBalance < 1)
+        // Check FITAB balance from inventory
+        var fitabItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Fitab, cancellationToken);
+        if ((fitabItem?.Quantity ?? 0) < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
 
-        // Deduct 1 FITAB and start the run atomically on a single context
-        // to prevent FITAB loss if the progress update fails.
+        // Deduct 1 FITAB from inventory and start the run
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Fitab, 1, cancellationToken);
+        if (!consumed)
+            throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
+
+        // Start the run on a fresh context for atomic save
         await using (var ctx = _contextFactory.CreateDbContext())
         {
-            var freshUser = await ctx.Users.FindAsync(new object[] { user.Id }, cancellationToken);
-            if (freshUser == null || freshUser.FitabBalance < 1)
-                throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
-            freshUser.FitabBalance -= 1;
-            user.FitabBalance = freshUser.FitabBalance;
-
-            // Load progress from the same context for atomic save
             var freshProgress = await ctx.Set<BossModeProgress>().FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
             if (freshProgress != null)
             {
                 freshProgress.StartRun();
                 await ctx.SaveChangesAsync(cancellationToken);
-                // Copy back the updated values to existingProgress for the return value
                 existingProgress.CurrentBossStage = freshProgress.CurrentBossStage;
                 existingProgress.TotalRunsAttempted = freshProgress.TotalRunsAttempted;
             }
         }
 
         _logger.LogInformation(
-            "User {UserName} started Boss Mode run #{Run}. FITAB balance: {Balance}",
-            user.UserName, existingProgress.TotalRunsAttempted, user.FitabBalance);
+            "User {UserName} started Boss Mode run #{Run}.",
+            user.UserName, existingProgress.TotalRunsAttempted);
 
         return existingProgress;
     }
@@ -304,7 +302,7 @@ public class BossModeService : IBossModeService
         // the user. Use a fresh DbContext so each attempt gets the current DB row.
         if (fidelis > 0)
         {
-            var fidelisAmount = fidelis * (decimal)character.FidelisEarnedMultiplier;
+            var fidelisAmount = fidelis;
             const int maxUserRetries = 3;
             for (int attempt = 0; attempt <= maxUserRetries; attempt++)
             {

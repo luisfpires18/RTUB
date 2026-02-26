@@ -11,11 +11,6 @@ public class CharacterSpecialAttack
     public int SpecialAttackId { get; set; }
 
     /// <summary>
-    /// Spell level (higher = more damage multiplier or lower cooldown — future feature)
-    /// </summary>
-    public int Level { get; set; } = 1;
-
-    /// <summary>
     /// Sort order in the spell bar (player can reorder)
     /// </summary>
     public int SlotIndex { get; set; }

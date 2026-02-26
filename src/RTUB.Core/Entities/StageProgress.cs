@@ -55,17 +55,6 @@ public class StageProgress : BaseEntity
     /// </summary>
     public int TotalBossesDefeated { get; set; } = 0;
 
-    /// <summary>
-    /// Purchased equipment enhancement bonus level (from Fidelis upgrades).
-    /// Total enhancement = floor(HighestStage / 100) + EquipmentBonusLevel.
-    /// </summary>
-    public int EquipmentBonusLevel { get; set; } = 0;
-
-    /// <summary>
-    /// Legacy DB column - kept for compatibility. No longer tracked since miniBoss was removed.
-    /// </summary>
-    public int TotalMiniBossesDefeated { get; set; } = 0;
-
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
 
@@ -89,8 +78,7 @@ public class StageProgress : BaseEntity
             CurrentRegion = RegionType.Forest,
             EndlessModeUnlocked = false,
             TotalStagesCleared = 0,
-            TotalBossesDefeated = 0,
-            EquipmentBonusLevel = 0
+            TotalBossesDefeated = 0
         };
     }
 

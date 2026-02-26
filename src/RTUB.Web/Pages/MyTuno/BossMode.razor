@@ -1446,7 +1446,7 @@
             await RefreshCurrentUserAsync();
             var stageProgress = await stageProgressTask;
             consumableHighestStage = stageProgress?.HighestStage ?? 1;
-            fitabBalance = currentUser?.FitabBalance ?? 0;
+            fitabBalance = inventorySummary.GetValueOrDefault(InventoryItemType.Fitab);
         }
         catch (Exception ex)
         {

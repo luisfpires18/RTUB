@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260226192233_DropDeadMyTunoFields")]
+    partial class DropDeadMyTunoFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -328,6 +331,9 @@ namespace RTUB.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("FitabBalance")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("TEXT");
 
@@ -336,6 +342,9 @@ namespace RTUB.Migrations
 
                     b.Property<bool>("IsRetired")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastDailyRewardClaim")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LastLoginDate")
                         .HasColumnType("TEXT");
@@ -887,9 +896,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("LastBattleId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LastDailyRewardClaim")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LastEnergyRegenAt")

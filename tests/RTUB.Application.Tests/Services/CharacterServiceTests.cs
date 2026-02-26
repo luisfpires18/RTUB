@@ -266,15 +266,17 @@ public class CharacterServiceTests
     {
         // Arrange
         var userId = "user-123";
-        var testUser = new ApplicationUser { Id = userId, FidelisBalance = 100m, LastDailyRewardClaim = null, Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "tester", UserName = "testuser" };
+        var testUser = new ApplicationUser { Id = userId, FidelisBalance = 100m, Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "tester", UserName = "testuser" };
+        var testCharacter = Character.Create(userId); // LastDailyRewardClaim defaults to null
 
         var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
 
-        // Seed user in the InMemory DB
+        // Seed user + character in the InMemory DB
         using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
         {
             seedCtx.Users.Add(testUser);
+            seedCtx.Characters.Add(testCharacter);
             await seedCtx.SaveChangesAsync();
         }
 
@@ -305,8 +307,9 @@ public class CharacterServiceTests
         using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
         var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
         dbUser!.FidelisBalance.Should().Be(650m); // 100 + 550
-        dbUser.LastDailyRewardClaim.Should().NotBeNull();
-        dbUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
+        var dbCharacter = await verifyCtx.Characters.FirstOrDefaultAsync(c => c.UserId == userId);
+        dbCharacter!.LastDailyRewardClaim.Should().NotBeNull();
+        dbCharacter.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
     }
 
     [Fact]
@@ -318,13 +321,14 @@ public class CharacterServiceTests
         {
             Id = userId,
             FidelisBalance = 100m,
-            LastDailyRewardClaim = DateTime.UtcNow, // Already claimed today
             Email = "test@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "tester",
             UserName = "testuser"
         };
+        var testCharacter = Character.Create(userId);
+        testCharacter.LastDailyRewardClaim = DateTime.UtcNow; // Already claimed today
 
         var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
@@ -332,6 +336,7 @@ public class CharacterServiceTests
         using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
         {
             seedCtx.Users.Add(testUser);
+            seedCtx.Characters.Add(testCharacter);
             await seedCtx.SaveChangesAsync();
         }
 
@@ -373,13 +378,14 @@ public class CharacterServiceTests
         {
             Id = userId,
             FidelisBalance = 500m,
-            LastDailyRewardClaim = DateTime.UtcNow.AddDays(-1),
             Email = "test@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "tester",
             UserName = "testuser"
         };
+        var testCharacter = Character.Create(userId);
+        testCharacter.LastDailyRewardClaim = DateTime.UtcNow.AddDays(-1);
 
         var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
@@ -387,6 +393,7 @@ public class CharacterServiceTests
         using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
         {
             seedCtx.Users.Add(testUser);
+            seedCtx.Characters.Add(testCharacter);
             await seedCtx.SaveChangesAsync();
         }
 
