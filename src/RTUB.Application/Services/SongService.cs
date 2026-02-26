@@ -25,7 +25,6 @@ public class SongService : ISongService
     private readonly ISongVideoStorageService _songVideoStorageService;
     private readonly IAlbumRepository _albumRepository;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<SongService>? _logger;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
@@ -49,7 +48,6 @@ public class SongService : ISongService
         _songVideoStorageService = songVideoStorageService;
         _albumRepository = albumRepository;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
         _logger = logger;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
@@ -339,7 +337,8 @@ public class SongService : ISongService
 
     public async Task<int> GetPlayCountBySongIdAsync(int songId)
     {
-        return await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        return await ctx.SongPlayCounts
             .Where(pc => pc.SongId == songId)
             .CountAsync();
     }
@@ -348,7 +347,8 @@ public class SongService : ISongService
     {
         var songIdsList = songIds.ToList();
 
-        var playCounts = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var playCounts = await ctx.SongPlayCounts
             .Where(pc => songIdsList.Contains(pc.SongId))
             .GroupBy(pc => pc.SongId)
             .Select(g => new { SongId = g.Key, Count = g.Count() })
@@ -359,13 +359,14 @@ public class SongService : ISongService
 
     public async Task<IEnumerable<(Song Song, int PlayCount)>> GetTopSongsAsync(int count = 10)
     {
-        var topSongs = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var topSongs = await ctx.SongPlayCounts
             .GroupBy(pc => pc.SongId)
             .Select(g => new { SongId = g.Key, PlayCount = g.Count() })
             .OrderByDescending(x => x.PlayCount)
             .Take(count)
             .Join(
-                _context.Songs.Include(s => s.Album),
+                ctx.Songs.Include(s => s.Album),
                 pc => pc.SongId,
                 s => s.Id,
                 (pc, s) => new { Song = s, pc.PlayCount }
@@ -377,9 +378,10 @@ public class SongService : ISongService
 
     public async Task<IEnumerable<(Album Album, int PlayCount)>> GetTopAlbumsAsync(int count = 10)
     {
-        var topAlbums = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var topAlbums = await ctx.SongPlayCounts
             .Join(
-                _context.Songs,
+                ctx.Songs,
                 pc => pc.SongId,
                 s => s.Id,
                 (pc, s) => new { s.AlbumId, pc.Id }
@@ -389,7 +391,7 @@ public class SongService : ISongService
             .OrderByDescending(x => x.PlayCount)
             .Take(count)
             .Join(
-                _context.Albums,
+                ctx.Albums,
                 pc => pc.AlbumId,
                 a => a.Id,
                 (pc, a) => new { Album = a, pc.PlayCount }
@@ -401,7 +403,8 @@ public class SongService : ISongService
 
     public async Task<IEnumerable<(UserPlayInfo User, Song Song, Album Album, int PlayCount)>> GetDetailedPlayStatsAsync()
     {
-        var stats = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var stats = await ctx.SongPlayCounts
             .Where(pc => pc.UserId != null)
             .GroupBy(pc => new { pc.UserId, pc.SongId })
             .Select(g => new
@@ -411,7 +414,7 @@ public class SongService : ISongService
                 PlayCount = g.Count()
             })
             .Join(
-                _context.Users,
+                ctx.Users,
                 pc => pc.UserId,
                 u => u.Id,
                 (pc, u) => new
@@ -429,7 +432,7 @@ public class SongService : ISongService
                 }
             )
             .Join(
-                _context.Songs.Include(s => s.Album),
+                ctx.Songs.Include(s => s.Album),
                 pc => pc.SongId,
                 s => s.Id,
                 (pc, s) => new { pc.User, Song = s, Album = s.Album, pc.PlayCount }
@@ -443,11 +446,12 @@ public class SongService : ISongService
 
     public async Task<IEnumerable<(Song Song, int PlayCount)>> GetAllSongsWithPlayCountAsync()
     {
-        var songStats = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var songStats = await ctx.SongPlayCounts
             .GroupBy(pc => pc.SongId)
             .Select(g => new { SongId = g.Key, PlayCount = g.Count() })
             .Join(
-                _context.Songs.Include(s => s.Album),
+                ctx.Songs.Include(s => s.Album),
                 pc => pc.SongId,
                 s => s.Id,
                 (pc, s) => new { Song = s, pc.PlayCount }
@@ -460,11 +464,12 @@ public class SongService : ISongService
 
     public async Task<IEnumerable<(Album Album, int PlayCount)>> GetAllAlbumsWithPlayCountAsync()
     {
-        var albumStats = await _context.SongPlayCounts
+        var ctx = _contextFactory.CreateDbContext();
+        var albumStats = await ctx.SongPlayCounts
             .GroupBy(pc => pc.Song!.AlbumId)
             .Select(g => new { AlbumId = g.Key, PlayCount = g.Count() })
             .Join(
-                _context.Albums,
+                ctx.Albums,
                 pc => pc.AlbumId,
                 a => a.Id,
                 (pc, a) => new { Album = a, pc.PlayCount }

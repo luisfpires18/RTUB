@@ -16,13 +16,11 @@ namespace RTUB.Application.Services;
 public class MemberStatisticsService : IMemberStatisticsService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly IOptions<XpSettings> _xpSettings;
 
     public MemberStatisticsService(IDbContextFactory<ApplicationDbContext> contextFactory, IOptions<XpSettings> xpSettings)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
-        _context = contextFactory.CreateDbContext();
         _xpSettings = xpSettings ?? throw new ArgumentNullException(nameof(xpSettings));
     }
 
@@ -32,11 +30,10 @@ public class MemberStatisticsService : IMemberStatisticsService
     /// </summary>
     public async Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime beforeDate)
     {
-        // Optimized query: Use Join instead of Include for better performance
-        // Only fetch the data we need (Date and UserId) without loading entire Rehearsal entities
+        var ctx = _contextFactory.CreateDbContext();
         var attendanceCounts = await (
-            from attendance in _context.RehearsalAttendances
-            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            from attendance in ctx.RehearsalAttendances
+            join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
             where attendance.Attended && rehearsal.Date < beforeDate
             group attendance by attendance.UserId into g
             select new { UserId = g.Key, Count = g.Count() }
@@ -56,9 +53,10 @@ public class MemberStatisticsService : IMemberStatisticsService
         var endDateOnly = endDate.Date;
         var nowDate = DateTime.UtcNow.Date;
 
+        var ctx = _contextFactory.CreateDbContext();
         var attendanceCounts = await (
-            from attendance in _context.RehearsalAttendances
-            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            from attendance in ctx.RehearsalAttendances
+            join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
             where attendance.Attended && rehearsal.Date >= startDateOnly && rehearsal.Date <= endDateOnly && rehearsal.Date < nowDate
             group attendance by attendance.UserId into g
             select new { UserId = g.Key, Count = g.Count() }
@@ -73,13 +71,12 @@ public class MemberStatisticsService : IMemberStatisticsService
     /// </summary>
     public async Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime beforeDate)
     {
-        // Optimized query: Use Join instead of Include for better performance
-        // EF Core will optimize this to avoid loading full Event entities
         var beforeDateOnly = beforeDate.Date;
 
+        var ctx = _contextFactory.CreateDbContext();
         var enrollmentsWithTypes = await (
-            from enrollment in _context.Enrollments
-            join evt in _context.Events on enrollment.EventId equals evt.Id
+            from enrollment in ctx.Enrollments
+            join evt in ctx.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.WillAttend && eventEndDate < beforeDateOnly
             select new UserEnrollmentWithEventType
@@ -103,9 +100,10 @@ public class MemberStatisticsService : IMemberStatisticsService
         var endDateOnly = endDate.Date;
         var nowDate = DateTime.UtcNow.Date;
 
+        var ctx = _contextFactory.CreateDbContext();
         var enrollmentsWithTypes = await (
-            from enrollment in _context.Enrollments
-            join evt in _context.Events on enrollment.EventId equals evt.Id
+            from enrollment in ctx.Enrollments
+            join evt in ctx.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.WillAttend && eventEndDate >= startDateOnly && eventEndDate <= endDateOnly && eventEndDate < nowDate
             select new UserEnrollmentWithEventType
@@ -128,18 +126,19 @@ public class MemberStatisticsService : IMemberStatisticsService
         var beforeDateOnly = beforeDate.Date;
         var xpConfig = _xpSettings.Value;
 
+        var ctx = _contextFactory.CreateDbContext();
         // Get rehearsal count
         var rehearsalCount = await (
-            from attendance in _context.RehearsalAttendances
-            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            from attendance in ctx.RehearsalAttendances
+            join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
             where attendance.UserId == userId && attendance.Attended && rehearsal.Date < beforeDateOnly
             select attendance
         ).CountAsync();
 
         // Get events by type
         var eventsByType = await (
-            from enrollment in _context.Enrollments
-            join evt in _context.Events on enrollment.EventId equals evt.Id
+            from enrollment in ctx.Enrollments
+            join evt in ctx.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.UserId == userId && enrollment.WillAttend && eventEndDate < beforeDateOnly
             group evt by evt.Type into g
@@ -187,11 +186,12 @@ public class MemberStatisticsService : IMemberStatisticsService
         var xpConfig = _xpSettings.Value;
         var activities = new List<AttendedActivityDto>();
 
+        var ctx = _contextFactory.CreateDbContext();
         // Get attended rehearsals
         // Must match filters in MemberStatusService.HasActivityInPeriodAsync for consistency
         var rehearsals = await (
-            from attendance in _context.RehearsalAttendances
-            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            from attendance in ctx.RehearsalAttendances
+            join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
             where attendance.UserId == userId
                 && attendance.Attended  // Only approved/confirmed attendance
                 && !rehearsal.IsCanceled  // Exclude canceled rehearsals
@@ -211,8 +211,8 @@ public class MemberStatisticsService : IMemberStatisticsService
         // Get attended events with event type information
         // Must match filters in MemberStatusService.HasActivityInPeriodAsync for consistency
         var eventData = await (
-            from enrollment in _context.Enrollments
-            join evt in _context.Events on enrollment.EventId equals evt.Id
+            from enrollment in ctx.Enrollments
+            join evt in ctx.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.UserId == userId
                 && enrollment.WillAttend  // Only enrolled attendees

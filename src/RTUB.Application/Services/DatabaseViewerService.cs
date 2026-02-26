@@ -13,7 +13,6 @@ namespace RTUB.Application.Services;
 public class DatabaseViewerService : IDatabaseViewerService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
 
     /// <summary>
     /// Validates that a table name contains only safe characters to prevent SQL injection.
@@ -24,13 +23,13 @@ public class DatabaseViewerService : IDatabaseViewerService
     public DatabaseViewerService(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<List<string>> GetTableNamesAsync(CancellationToken cancellationToken = default)
     {
+        var ctx = _contextFactory.CreateDbContext();
         return await Task.FromResult(
-            _context.Model.GetEntityTypes()
+            ctx.Model.GetEntityTypes()
                 .Select(e => e.GetTableName() ?? e.ClrType.Name)
                 .Where(name => !string.IsNullOrEmpty(name))
                 .Distinct()
@@ -45,7 +44,8 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var entityType = _context.Model.GetEntityTypes()
+        var ctx = _contextFactory.CreateDbContext();
+        var entityType = ctx.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 
         if (entityType == null)
@@ -67,18 +67,19 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var entityType = _context.Model.GetEntityTypes()
+        var ctx2 = _contextFactory.CreateDbContext();
+        var entityType2 = ctx2.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 
-        if (entityType == null)
+        if (entityType2 == null)
         {
             throw new ArgumentException($"Table '{tableName}' not found.", nameof(tableName));
         }
 
-        var tableNameEscaped = entityType.GetTableName() ?? tableName;
+        var tableNameEscaped = entityType2.GetTableName() ?? tableName;
         var countQuery = $"SELECT COUNT(*) FROM \"{tableNameEscaped}\"";
 
-        using var command = _context.Database.GetDbConnection().CreateCommand();
+        using var command = ctx2.Database.GetDbConnection().CreateCommand();
         command.CommandText = countQuery;
 
         if (command.Connection?.State != ConnectionState.Open)
@@ -94,7 +95,8 @@ public class DatabaseViewerService : IDatabaseViewerService
     {
         var results = new List<Dictionary<string, object?>>();
 
-        using var command = _context.Database.GetDbConnection().CreateCommand();
+        var ctx = _contextFactory.CreateDbContext();
+        using var command = ctx.Database.GetDbConnection().CreateCommand();
         command.CommandText = query;
 
         if (command.Connection?.State != ConnectionState.Open)
@@ -127,7 +129,8 @@ public class DatabaseViewerService : IDatabaseViewerService
 
     public async Task<int> ExecuteModifyQueryAsync(string query, CancellationToken cancellationToken = default)
     {
-        return await _context.Database.ExecuteSqlRawAsync(query, cancellationToken);
+        var ctx = _contextFactory.CreateDbContext();
+        return await ctx.Database.ExecuteSqlRawAsync(query, cancellationToken);
     }
 
     public async Task<List<Dictionary<string, object?>>> GetTableDataAsync(string tableName, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -137,7 +140,8 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var entityType = _context.Model.GetEntityTypes()
+        var ctx = _contextFactory.CreateDbContext();
+        var entityType = ctx.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 
         if (entityType == null)

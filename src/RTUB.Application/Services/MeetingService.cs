@@ -19,7 +19,6 @@ public class MeetingService : IMeetingService
 {
     private readonly IMeetingRepository _meetingRepository;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -33,7 +32,6 @@ public class MeetingService : IMeetingService
     {
         _meetingRepository = meetingRepository;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
@@ -41,12 +39,13 @@ public class MeetingService : IMeetingService
 
     public async Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId)
     {
-        var query = _context.Meetings
+        var ctx = _contextFactory.CreateDbContext();
+        var query = ctx.Meetings
             .AsNoTracking()
             .AsQueryable();
 
         // Apply visibility filtering for Veterano meetings
-        query = await ApplyVeteranoFilterAsync(query, userId);
+        query = await ApplyVeteranoFilterAsync(ctx, query, userId);
 
         // Apply search filter using WhereIf extension
         query = query.WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
@@ -68,7 +67,8 @@ public class MeetingService : IMeetingService
 
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
     {
-        var meeting = await _context.Meetings
+        var ctx = _contextFactory.CreateDbContext();
+        var meeting = await ctx.Meetings
             .AsNoTracking()
             .Include(m => m.Organizer)
             .Include(m => m.TunoRepresentative)
@@ -83,7 +83,7 @@ public class MeetingService : IMeetingService
         // Check if user has permission to view this meeting
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
-            user = await _context.Users
+            user = await ctx.Users
                 .AsNoTracking()
                 .Where(u => u.Id == userId)
                 .FirstOrDefaultAsync();
@@ -107,7 +107,7 @@ public class MeetingService : IMeetingService
             // Reuse cached user if already loaded
             if (user == null)
             {
-                user = await _context.Users
+                user = await ctx.Users
                     .AsNoTracking()
                     .Where(u => u.Id == userId)
                     .FirstOrDefaultAsync();
@@ -175,12 +175,13 @@ public class MeetingService : IMeetingService
 
     public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
     {
-        var query = _context.Meetings
+        var ctx = _contextFactory.CreateDbContext();
+        var query = ctx.Meetings
             .AsNoTracking()
             .AsQueryable();
 
         // Apply visibility filtering for Veterano meetings
-        query = await ApplyVeteranoFilterAsync(query, userId);
+        query = await ApplyVeteranoFilterAsync(ctx, query, userId);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -197,10 +198,10 @@ public class MeetingService : IMeetingService
     /// Applies Veterano visibility filtering to the query
     /// Filters out CV meetings if user is not Veterano or Tunossauro
     /// </summary>
-    private async Task<IQueryable<Meeting>> ApplyVeteranoFilterAsync(IQueryable<Meeting> query, string userId)
+    private async Task<IQueryable<Meeting>> ApplyVeteranoFilterAsync(ApplicationDbContext ctx, IQueryable<Meeting> query, string userId)
     {
         // Use FirstOrDefaultAsync to ensure we get a fully materialized user object
-        var user = await _context.Users
+        var user = await ctx.Users
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
 
@@ -245,9 +246,10 @@ public class MeetingService : IMeetingService
         // Special case: ConselhoVeteranos uses client-side filtering
         if (meetingType == MeetingType.ConselhoVeteranos)
         {
+            var ctx = _contextFactory.CreateDbContext();
             // Load from DB asynchronously with AsNoTracking to prevent accumulating tracked entities
             // which can cause issues during subsequent SaveChangesAsync calls
-            var users = await _context.Users.AsNoTracking().ToListAsync();
+            var users = await ctx.Users.AsNoTracking().ToListAsync();
 
             // Now filter in memory (CurrentRole and Positions can be unmapped)
             return users
@@ -260,7 +262,8 @@ public class MeetingService : IMeetingService
         }
 
         // All other meeting types can stay as EF queries
-        IQueryable<ApplicationUser> query = _context.Users;
+        var ctx2 = _contextFactory.CreateDbContext();
+        IQueryable<ApplicationUser> query = ctx2.Users;
 
         switch (meetingType)
         {

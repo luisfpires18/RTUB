@@ -141,8 +141,15 @@ public class BetService : IBetService
     /// <param name="winningOptionId">Winning option ID</param>
     public async Task ResolveBetAsync(int betId, int winningOptionId)
     {
-        // Load bet with all details
-        var bet = await _betRepository.GetBetWithDetailsAsync(betId);
+        // Atomic transaction: bet resolution, user bet results, and user balance payouts
+        // all commit together, preventing state where bet is resolved but users aren't paid.
+        using var ctx = _contextFactory.CreateDbContext();
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync();
+
+        // Load bet with options
+        var bet = await ctx.Set<Bet>()
+            .Include(b => b.Options)
+            .FirstOrDefaultAsync(b => b.Id == betId);
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), betId);
 
@@ -153,22 +160,17 @@ public class BetService : IBetService
 
         // Mark bet as resolved
         bet.Resolve(winningOptionId);
-        await _betRepository.UpdateAsync(bet);
 
-        // Process all user bets
-        var userBets = await _userBetRepository.GetByBetIdAsync(betId);
-
-        // Collect all unique user IDs for batch loading
-        var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
-
-        // Batch load all users at once to avoid N+1 queries
-        // Note: Users are loaded with tracking (default) because we need to modify them.
-        // This is safe because UserBetRepository.GetByBetIdAsync() no longer includes
-        // the User navigation property, so there are no tracking conflicts.
-        var users = await _userManager.Users
-            .Where(u => userIds.Contains(u.Id))
+        // Load all user bets for this bet
+        var userBets = await ctx.Set<UserBet>()
+            .Where(ub => ub.BetId == betId)
             .ToListAsync();
 
+        // Batch load all affected users
+        var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
+        var users = await ctx.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
         var userDict = users.ToDictionary(u => u.Id);
 
         // Process all user bets and update balances
@@ -179,7 +181,7 @@ public class BetService : IBetService
                 // User won - calculate winnings
                 userBet.MarkAsWon(winningOption.Odds);
 
-                // Update user balance using batch-loaded user
+                // Update user balance
                 if (userDict.TryGetValue(userBet.UserId, out var user))
                 {
                     user.FidelisBalance += userBet.FidelisWinnings;
@@ -190,26 +192,17 @@ public class BetService : IBetService
                 // User lost
                 userBet.MarkAsLost();
             }
-
-            // Update user bet in repository
-            await _userBetRepository.UpdateAsync(userBet);
         }
 
-        // Batch update all users at once using fresh DbContext
-        // to avoid stale ConcurrencyStamp from the long-lived Blazor context.
-        using (var ctx = _contextFactory.CreateDbContext())
+        // Update ConcurrencyStamp for all affected users
+        foreach (var user in userDict.Values)
         {
-            foreach (var userId in userDict.Keys)
-            {
-                var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                if (freshUser != null && userDict.TryGetValue(userId, out var trackedUser))
-                {
-                    freshUser.FidelisBalance = trackedUser.FidelisBalance;
-                    freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
-                }
-            }
-            await ctx.SaveChangesAsync();
+            user.ConcurrencyStamp = Guid.NewGuid().ToString();
         }
+
+        // Single atomic save: bet state, all user bets, and all user balances
+        await ctx.SaveChangesAsync();
+        if (transaction != null) await transaction.CommitAsync();
 
         await SendResolvedBetNotificationsAsync(bet, userBets, winningOptionId);
     }
@@ -364,53 +357,49 @@ public class BetService : IBetService
     /// <param name="reason">Cancellation reason</param>
     public async Task CancelBetAsync(int betId, string reason)
     {
-        var bet = await _betRepository.GetByIdOrThrowAsync(betId);
+        // Atomic transaction: bet cancellation and all user refunds commit together,
+        // preventing state where bet is cancelled but users aren't refunded.
+        using var ctx = _contextFactory.CreateDbContext();
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync();
+
+        var bet = await ctx.Set<Bet>().FirstOrDefaultAsync(b => b.Id == betId);
+        if (bet == null)
+            throw new EntityNotFoundException(nameof(Bet), betId);
 
         // Cancel the bet
         bet.Cancel(reason);
-        await _betRepository.UpdateAsync(bet);
 
-        // Refund all user bets
-        var userBets = await _userBetRepository.GetByBetIdAsync(betId);
-
-        // Collect all unique user IDs for batch loading
-        var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
-
-        // Batch load all users at once to avoid N+1 queries
-        // Note: Users are loaded with tracking (default) because we need to modify them.
-        // This is safe because UserBetRepository.GetByBetIdAsync() no longer includes
-        // the User navigation property, so there are no tracking conflicts.
-        var users = await _userManager.Users
-            .Where(u => userIds.Contains(u.Id))
+        // Load all user bets for refund
+        var userBets = await ctx.Set<UserBet>()
+            .Where(ub => ub.BetId == betId)
             .ToListAsync();
 
+        // Batch load all affected users
+        var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
+        var users = await ctx.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
         var userDict = users.ToDictionary(u => u.Id);
 
         // Process refunds
         foreach (var userBet in userBets)
         {
-            // Refund the amount to user using batch-loaded user
+            // Refund the amount to user
             if (userDict.TryGetValue(userBet.UserId, out var user))
             {
                 user.FidelisBalance += userBet.FidelisAmount;
             }
         }
 
-        // Batch update all users at once using fresh DbContext
-        // to avoid stale ConcurrencyStamp from the long-lived Blazor context.
-        using (var ctx = _contextFactory.CreateDbContext())
+        // Update ConcurrencyStamp for all affected users
+        foreach (var user in userDict.Values)
         {
-            foreach (var userId in userDict.Keys)
-            {
-                var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                if (freshUser != null && userDict.TryGetValue(userId, out var trackedUser))
-                {
-                    freshUser.FidelisBalance = trackedUser.FidelisBalance;
-                    freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
-                }
-            }
-            await ctx.SaveChangesAsync();
+            user.ConcurrencyStamp = Guid.NewGuid().ToString();
         }
+
+        // Single atomic save: bet cancellation and all user refunds
+        await ctx.SaveChangesAsync();
+        if (transaction != null) await transaction.CommitAsync();
     }
 
     /// <summary>

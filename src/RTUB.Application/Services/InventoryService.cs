@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -882,15 +883,6 @@ public class InventoryService : IInventoryService
         if (drinkItem == null || drinkItem.Quantity < forgeCost)
             return (false, null, $"Precisas de {forgeCost}x {drinkResource?.Name ?? drink.ToString()} (tens {drinkItem?.Quantity ?? 0})");
 
-        // Consume both materials
-        var consumedInstr = await _inventoryRepository.ConsumeItemAsync(userId, instrumentPart, 1, cancellationToken);
-        if (!consumedInstr)
-            return (false, null, "Erro ao consumir instrumento");
-
-        var consumedDrink = await _inventoryRepository.ConsumeItemAsync(userId, drink, forgeCost, cancellationToken);
-        if (!consumedDrink)
-            return (false, null, "Erro ao consumir bebida");
-
         // Calculate weapon stats from config, scaled by drink tier
         var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
         var forging = _scalingConfig.StageMode.Forging;
@@ -942,9 +934,26 @@ public class InventoryService : IInventoryService
             bonusDefense: (int)Math.Round(weaponStats.Defense * totalMult),
             bonusCriticalChance: bonusCrit);
 
+        // Atomic transaction: consume both materials + create weapon in a single commit.
+        // Prevents material loss if drink consume or weapon insert fails after instrument is consumed.
         var ctx = _contextFactory.CreateDbContext();
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync(cancellationToken);
+        var instrRows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE InventoryItems SET Quantity = Quantity - 1 WHERE UserId = {userId} AND Type = {(int)instrumentPart} AND Quantity >= 1",
+            cancellationToken);
+        if (instrRows == 0)
+            return (false, null, "Erro ao consumir instrumento");
+
+        // Atomically consume drink
+        var drinkRows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE InventoryItems SET Quantity = Quantity - {forgeCost} WHERE UserId = {userId} AND Type = {(int)drink} AND Quantity >= {forgeCost}",
+            cancellationToken);
+        if (drinkRows == 0)
+            return (false, null, "Erro ao consumir bebida");
+
         ctx.ForgedWeapons.Add(weapon);
         await ctx.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
 
         return (true, weapon, $"Arma forjada: {weaponName}!");
     }
@@ -1243,14 +1252,6 @@ public class InventoryService : IInventoryService
                 return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
         }
 
-        // Consume all drinks
-        foreach (var (drinkType, drinkQty) in drinkRequirements)
-        {
-            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
-            if (!consumed)
-                return (false, "Erro ao consumir bebida");
-        }
-
         // Check Leitão cost (mid-game currency from Boss Mode)
         var piggies = _scalingConfig.BossMode.Piggies;
         var leitaoCost = PiggiesCostConfig.CalculateCost(
@@ -1262,9 +1263,29 @@ public class InventoryService : IInventoryService
             var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
             if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
                 return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+        }
 
-            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
-            if (!leitaoConsumed)
+        // Atomic transaction: consume all drinks + optional Leitão + deduct Fidelis + upgrade weapon
+        // in a single commit. Prevents material loss if any step fails mid-way.
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync(cancellationToken);
+
+        // Consume all drinks via raw SQL on the same context (atomic with WHERE guard)
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var rows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE InventoryItems SET Quantity = Quantity - {drinkQty} WHERE UserId = {userId} AND Type = {(int)drinkType} AND Quantity >= {drinkQty}",
+                cancellationToken);
+            if (rows == 0)
+                return (false, "Erro ao consumir bebida");
+        }
+
+        // Consume Leitão if required
+        if (leitaoCost > 0)
+        {
+            var leitaoRows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE InventoryItems SET Quantity = Quantity - {leitaoCost} WHERE UserId = {userId} AND Type = {(int)InventoryItemType.Leitao} AND Quantity >= {leitaoCost}",
+                cancellationToken);
+            if (leitaoRows == 0)
                 return (false, "Erro ao consumir Leitões");
         }
 
@@ -1300,6 +1321,7 @@ public class InventoryService : IInventoryService
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
 
         return (true, $"Arma melhorada para +{weapon.Level}!");
     }
@@ -1359,14 +1381,6 @@ public class InventoryService : IInventoryService
                 return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
         }
 
-        // Consume all drinks
-        foreach (var (drinkType, drinkQty) in drinkRequirements)
-        {
-            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
-            if (!consumed)
-                return (false, "Erro ao consumir bebida");
-        }
-
         // Check Leitão cost (mid-game currency from Boss Mode)
         var piggies = _scalingConfig.BossMode.Piggies;
         var leitaoCost = PiggiesCostConfig.CalculateCost(
@@ -1378,9 +1392,29 @@ public class InventoryService : IInventoryService
             var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
             if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
                 return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+        }
 
-            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
-            if (!leitaoConsumed)
+        // Atomic transaction: consume all drinks + optional Leitão + deduct Fidelis + upgrade slot
+        // in a single commit. Prevents material loss if any step fails mid-way.
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync(cancellationToken);
+
+        // Consume all drinks via raw SQL on the same context (atomic with WHERE guard)
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var rows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE InventoryItems SET Quantity = Quantity - {drinkQty} WHERE UserId = {userId} AND Type = {(int)drinkType} AND Quantity >= {drinkQty}",
+                cancellationToken);
+            if (rows == 0)
+                return (false, "Erro ao consumir bebida");
+        }
+
+        // Consume Leitão if required
+        if (leitaoCost > 0)
+        {
+            var leitaoRows = await ctx.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE InventoryItems SET Quantity = Quantity - {leitaoCost} WHERE UserId = {userId} AND Type = {(int)InventoryItemType.Leitao} AND Quantity >= {leitaoCost}",
+                cancellationToken);
+            if (leitaoRows == 0)
                 return (false, "Erro ao consumir Leitões");
         }
 
@@ -1391,6 +1425,7 @@ public class InventoryService : IInventoryService
         await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
 
         await ctx.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
 
         var newLevel = currentSlotLevel + 1;
         var slotName = slot.ToString().ToUpperInvariant();

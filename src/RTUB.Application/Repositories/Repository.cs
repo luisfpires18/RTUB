@@ -17,23 +17,16 @@ public class Repository<T> : IRepository<T> where T : class
     protected readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     /// <summary>
-    /// Backward-compatible context for derived repositories that access _context directly.
-    /// This context lives for the repository's DI scope — prefer CreateContext() for isolated operations.
-    /// TODO: Remove once all derived repos are migrated to CreateContext().
+    /// Provides a fresh <see cref="DbSet{T}"/> backed by a new short-lived DbContext.
+    /// Derived repositories use this for read-only queries (always with AsNoTracking).
+    /// Each access creates a new context; the context is released when the query completes
+    /// and the DbSet goes out of scope (no explicit Dispose needed for read-only usage).
     /// </summary>
-    protected readonly ApplicationDbContext _context;
-
-    /// <summary>
-    /// Backward-compatible DbSet for derived repositories.
-    /// TODO: Remove once all derived repos are migrated to CreateContext().
-    /// </summary>
-    protected readonly DbSet<T> _dbSet;
+    protected DbSet<T> _dbSet => _contextFactory.CreateDbContext().Set<T>();
 
     public Repository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
-        _dbSet = _context.Set<T>();
     }
 
     /// <summary>Creates a fresh short-lived DbContext. Caller must dispose.</summary>

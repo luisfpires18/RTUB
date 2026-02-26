@@ -2549,6 +2549,16 @@ else
         {
             await EnrollmentService.DeleteEnrollmentAsync(removingEnrollment.Id);
             await LoadEnrollments();
+
+            // Refresh enrollment list modal data if open
+            if (selectedEvent != null && modals.IsOpen(ModalType.EnrollmentList))
+            {
+                eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(selectedEvent.Id)).ToList();
+                enrollmentSearchTerm = string.Empty;
+                FilterEnrollments();
+                await CalculateInstrumentCountsAsync();
+                FilterAvailableMembersForEnrollment();
+            }
         }
 
         CloseRemoveEnrollmentModal();
@@ -2954,7 +2964,7 @@ else
     private void OpenDeleteEnrollmentModal(Enrollment enrollment)
     {
         deletingEnrollment = enrollment;
-        modals.Open(ModalType.DeleteEnrollment);
+        modals.Toggle(ModalType.DeleteEnrollment, true);
     }
     
     private void CloseDeleteEnrollmentModal()
@@ -2977,6 +2987,8 @@ else
                 eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(selectedEvent.Id)).ToList();
                 enrollmentSearchTerm = string.Empty;
                 FilterEnrollments();
+                await CalculateInstrumentCountsAsync();
+                FilterAvailableMembersForEnrollment();
             }
             
             // Also reload general enrollments to update counts
