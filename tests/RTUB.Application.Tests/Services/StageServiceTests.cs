@@ -108,7 +108,8 @@ public class StageServiceTests : IDisposable
             _userManagerMock.Object,
             _loggerMock.Object,
             _myTunoScalingConfigMock.Object,
-            _biomeServiceMock.Object);
+            _biomeServiceMock.Object,
+            CreateContextFactory());
     }
 
     /// <summary>
@@ -452,8 +453,10 @@ public class StageServiceTests : IDisposable
         finalCharacter!.XP.Should().Be(initialXP + 10);
         finalCharacter.CurrentHP.Should().BeNull("ApplyRunRewardsAsync always restores full HP (null)");
 
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 10m)), Times.Once);
+        // Verify Fidelis was persisted to DB (bypasses UserManager, uses fresh DbContext)
+        using var verifyCtx = new ApplicationDbContext(_dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
+        var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == "user1");
+        dbUser!.FidelisBalance.Should().Be(initialFidelis + 10m);
     }
 
     [Fact]

@@ -14,7 +14,9 @@ public class BossModeProgressRepository : Repository<BossModeProgress>, IBossMod
 
     public async Task<BossModeProgress?> GetByUserIdAsync(string userId)
     {
-        return await _context.BossModeProgresses
+        using var context = CreateContext();
+        return await context.BossModeProgresses
+            .AsNoTracking()
             .Include(bp => bp.User)
             .FirstOrDefaultAsync(bp => bp.UserId == userId);
     }

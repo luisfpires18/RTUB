@@ -71,7 +71,9 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
 
     public async Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<EventRepertoire>()
+            .AsNoTracking()
             .Include(er => er.Song)
                 .ThenInclude(s => s!.Album)
             .Where(er => er.EventId == eventId);
@@ -89,22 +91,29 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
 
     public async Task<bool> SongExistsInRepertoireAsync(int eventId, int songId, DateTime date)
     {
+        using var context = CreateContext();
         var dateOnly = date.Date;
-        return await _dbSet
+        return await context.Set<EventRepertoire>()
+            .AsNoTracking()
             .AnyAsync(er => er.EventId == eventId && er.SongId == songId && er.RepertoireDate.Date == dateOnly);
     }
 
     public async Task<EventRepertoire?> GetRepertoireItemWithDetailsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<EventRepertoire>()
+            .AsNoTracking()
             .Include(er => er.Song)
+                .ThenInclude(s => s!.Album)
             .Include(er => er.Event)
             .FirstOrDefaultAsync(er => er.Id == id);
     }
 
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<EventRepertoire>()
+            .AsNoTracking()
             .Where(er => er.EventId == eventId)
             .Select(er => er.RepertoireDate.Date)
             .Distinct()
@@ -114,12 +123,13 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
 
     public async Task RemoveRepertoireDayAsync(int eventId, DateTime date)
     {
+        using var context = CreateContext();
         var dateOnly = date.Date;
-        var itemsToRemove = await _dbSet
+        var itemsToRemove = await context.Set<EventRepertoire>()
             .Where(er => er.EventId == eventId && er.RepertoireDate.Date == dateOnly)
             .ToListAsync();
 
-        _dbSet.RemoveRange(itemsToRemove);
-        await _context.SaveChangesAsync();
+        context.Set<EventRepertoire>().RemoveRange(itemsToRemove);
+        await context.SaveChangesAsync();
     }
 }

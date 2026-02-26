@@ -61,7 +61,8 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task<IEnumerable<string>> GetAuthorizedUserIdsAsync(int albumId)
     {
-        return await _context.AlbumAccesses
+        using var context = CreateContext();
+        return await context.AlbumAccesses
             .AsNoTracking()
             .Where(aa => aa.AlbumId == albumId)
             .Select(aa => aa.UserId)
@@ -70,57 +71,50 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task AddAlbumAccessAsync(int albumId, string userId, bool saveChanges = true)
     {
-        var existingAccess = await _context.AlbumAccesses
-            .FirstOrDefaultAsync(aa => aa.AlbumId == albumId && aa.UserId == userId);
+        using var context = CreateContext();
+        var existingAccess = await context.AlbumAccesses
+            .AsNoTracking()
+            .AnyAsync(aa => aa.AlbumId == albumId && aa.UserId == userId);
 
-        if (existingAccess == null)
+        if (!existingAccess)
         {
             var albumAccess = AlbumAccess.Create(albumId, userId);
-            await _context.AlbumAccesses.AddAsync(albumAccess);
-
-            if (saveChanges)
-            {
-                await _context.SaveChangesAsync();
-            }
+            await context.AlbumAccesses.AddAsync(albumAccess);
+            await context.SaveChangesAsync();
         }
     }
 
     public async Task RemoveAlbumAccessAsync(int albumId, string userId, bool saveChanges = true)
     {
-        var albumAccess = await _context.AlbumAccesses
+        using var context = CreateContext();
+        var albumAccess = await context.AlbumAccesses
             .FirstOrDefaultAsync(aa => aa.AlbumId == albumId && aa.UserId == userId);
 
         if (albumAccess != null)
         {
-            _context.AlbumAccesses.Remove(albumAccess);
-
-            if (saveChanges)
-            {
-                await _context.SaveChangesAsync();
-            }
+            context.AlbumAccesses.Remove(albumAccess);
+            await context.SaveChangesAsync();
         }
     }
 
     public async Task RemoveAllAlbumAccessAsync(int albumId, bool saveChanges = true)
     {
-        var accessEntries = await _context.AlbumAccesses
+        using var context = CreateContext();
+        var accessEntries = await context.AlbumAccesses
             .Where(aa => aa.AlbumId == albumId)
             .ToListAsync();
 
         if (accessEntries.Count > 0)
         {
-            _context.AlbumAccesses.RemoveRange(accessEntries);
-
-            if (saveChanges)
-            {
-                await _context.SaveChangesAsync();
-            }
+            context.AlbumAccesses.RemoveRange(accessEntries);
+            await context.SaveChangesAsync();
         }
     }
 
     public async Task<bool> HasAccessAsync(int albumId, string userId)
     {
-        var album = await _dbSet
+        using var context = CreateContext();
+        var album = await context.Set<Album>()
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == albumId);
 
@@ -132,7 +126,7 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
             return true;
 
         // Check if user is in access list
-        return await _context.AlbumAccesses
+        return await context.AlbumAccesses
             .AsNoTracking()
             .AnyAsync(aa => aa.AlbumId == albumId && aa.UserId == userId);
     }

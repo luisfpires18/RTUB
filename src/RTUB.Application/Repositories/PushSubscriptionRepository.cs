@@ -35,13 +35,14 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
 
     public async Task DeleteByEndpointAsync(string endpoint)
     {
-        var subscription = await _dbSet
+        using var context = CreateContext();
+        var subscription = await context.Set<PushSubscription>()
             .FirstOrDefaultAsync(s => s.Endpoint == endpoint);
 
         if (subscription != null)
         {
-            _dbSet.Remove(subscription);
-            await SaveChangesAsync();
+            context.Set<PushSubscription>().Remove(subscription);
+            await context.SaveChangesAsync();
         }
     }
 

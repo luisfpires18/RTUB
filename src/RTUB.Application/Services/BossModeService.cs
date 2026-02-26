@@ -294,12 +294,39 @@ public class BossModeService : IBossModeService
             (instrumentParts == null || instrumentParts.Count == 0))
             return;
 
-        var user = await _userManager.FindByIdAsync(character.UserId);
-        if (user != null && fidelis > 0)
+        // UserManager.FindByIdAsync returns the tracked entity from the long-lived
+        // Blazor DbContext — its ConcurrencyStamp is stale if anything else modified
+        // the user. Use a fresh DbContext so each attempt gets the current DB row.
+        if (fidelis > 0)
         {
-            // Apply Fidelis earned multiplier from Improvements upgrade
-            user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
-            await _userManager.UpdateAsync(user);
+            var fidelisAmount = fidelis * (decimal)character.FidelisEarnedMultiplier;
+            const int maxUserRetries = 3;
+            for (int attempt = 0; attempt <= maxUserRetries; attempt++)
+            {
+                try
+                {
+                    using var ctx = _contextFactory.CreateDbContext();
+                    var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == character.UserId);
+                    if (user == null) break;
+
+                    user.FidelisBalance += fidelisAmount;
+                    user.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                    await ctx.SaveChangesAsync();
+                    break;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    if (attempt < maxUserRetries)
+                    {
+                        _logger.LogWarning(ex, "ApplyBossRunRewardsAsync: User update concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxUserRetries);
+                        await Task.Delay(50 * (attempt + 1));
+                        continue;
+                    }
+
+                    _logger.LogError(ex, "ApplyBossRunRewardsAsync: User update failed after {Max} retries", maxUserRetries);
+                }
+            }
         }
 
         // Batch all inventory drops into a single DB round-trip
@@ -339,8 +366,8 @@ public class BossModeService : IBossModeService
             : string.Empty;
 
         _logger.LogInformation(
-            "Applied boss run rewards for {UserName} {FloorRange}: {Loot}",
-            user?.UserName ?? "unknown", floorRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
+            "Applied boss run rewards for UserId:{UserId} {FloorRange}: {Loot}",
+            character.UserId, floorRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
     }
 
     /// <inheritdoc />
@@ -545,14 +572,33 @@ public class BossModeService : IBossModeService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
-
-        // Only advance if the run is still active (CurrentBossStage > 0).
-        // This is the deferred advancement from UpdateProgressAfterBattle.
-        if (progress.CurrentBossStage > 0)
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
-            progress.AdvanceBossStage();
-            await _bossModeProgressRepository.UpdateAsync(progress);
+            try
+            {
+                var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+                // Only advance if the run is still active (CurrentBossStage > 0).
+                // This is the deferred advancement from UpdateProgressAfterBattle.
+                if (progress.CurrentBossStage > 0)
+                {
+                    progress.AdvanceBossStage();
+                    await _bossModeProgressRepository.UpdateAsync(progress);
+                }
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "ConfirmBossVictoryAsync: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+                _logger.LogError(ex, "ConfirmBossVictoryAsync: Failed after {Max} retries", maxRetries);
+                throw;
+            }
         }
     }
 
@@ -562,19 +608,39 @@ public class BossModeService : IBossModeService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                // Re-fetch on every attempt to get the latest DB state
+                var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
 
-        // Always save the boss's remaining HP from the interactive session.
-        // The pre-computed engine may have already ended the run (CurrentBossStage=0)
-        // and saved a different boss HP — overwrite it with the interactive value.
-        if (bossRemainingHP > 0)
-            progress.SaveBossHP(bossRemainingHP, bossMaxHP);
+                // Always save the boss's remaining HP from the interactive session.
+                // The pre-computed engine may have already ended the run (CurrentBossStage=0)
+                // and saved a different boss HP — overwrite it with the interactive value.
+                if (bossRemainingHP > 0)
+                    progress.SaveBossHP(bossRemainingHP, bossMaxHP);
 
-        // End the run if still active (pre-computed WIN case where EndRun was deferred).
-        if (progress.CurrentBossStage > 0)
-            progress.EndRun();
+                // End the run if still active (pre-computed WIN case where EndRun was deferred).
+                if (progress.CurrentBossStage > 0)
+                    progress.EndRun();
 
-        await _bossModeProgressRepository.UpdateAsync(progress);
+                await _bossModeProgressRepository.UpdateAsync(progress);
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "RecordInteractiveDefeatAsync: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+                _logger.LogError(ex, "RecordInteractiveDefeatAsync: Failed after {Max} retries", maxRetries);
+                throw;
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -583,15 +649,34 @@ public class BossModeService : IBossModeService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
-
-        // EndRun() set CurrentBossStage = 0 but preserved DailyBossStage.
-        // Restore the stage the player was fighting, then advance past it.
-        if (progress.CurrentBossStage <= 0 && progress.DailyBossStage > 0)
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
-            progress.CurrentBossStage = progress.DailyBossStage;
-            progress.AdvanceBossStage();
-            await _bossModeProgressRepository.UpdateAsync(progress);
+            try
+            {
+                var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+                // EndRun() set CurrentBossStage = 0 but preserved DailyBossStage.
+                // Restore the stage the player was fighting, then advance past it.
+                if (progress.CurrentBossStage <= 0 && progress.DailyBossStage > 0)
+                {
+                    progress.CurrentBossStage = progress.DailyBossStage;
+                    progress.AdvanceBossStage();
+                    await _bossModeProgressRepository.UpdateAsync(progress);
+                }
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "CorrectInteractiveWinAsync: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+                _logger.LogError(ex, "CorrectInteractiveWinAsync: Failed after {Max} retries", maxRetries);
+                throw;
+            }
         }
     }
 
@@ -601,64 +686,22 @@ public class BossModeService : IBossModeService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
-
-        if (bossRemainingHP > 0)
-            progress.SaveBossHP(bossRemainingHP, bossMaxHP);
-        else
-        {
-            // Boss was killed — clear remaining HP
-            progress.DailyBossRemainingHP = null;
-            progress.DailyBossMaxHP = 0;
-        }
-
-        await _bossModeProgressRepository.UpdateAsync(progress);
-    }
-
-    private async Task UpdateProgressAfterBattle(
-        Character character, BossModeProgress progress, CombatResult combatResult, long bossMaxHP)
-    {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                // Update character HP (in buffed scale if buff was active)
-                if (combatResult.AttackerFinalHP > 0)
-                    character.CurrentHP = combatResult.AttackerFinalHP;
+                var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+                if (bossRemainingHP > 0)
+                    progress.SaveBossHP(bossRemainingHP, bossMaxHP);
                 else
-                    character.CurrentHP = null;
-
-
-                // In boss mode, buffs are run-scoped (1 charge per entire run),
-                // NOT per-boss. Expiry happens when the run ends via
-                // ApplyBossRunRewardsAsync, not here.
-
-                // Update boss progress (only on first attempt — retries already applied these)
-                if (attempt == 0)
                 {
-                    if (combatResult.Outcome == BattleOutcome.AttackerWon)
-                    {
-                        // Don't advance stage here — defer to ConfirmBossVictoryAsync
-                        // which is called from OnBattleFinished after the interactive
-                        // session confirms the win. This prevents DailyBossStage from
-                        // advancing prematurely if the player disconnects mid-animation.
-                    }
-                    else
-                    {
-                        // Save the boss's remaining HP so the next run picks up where this left off
-                        if (combatResult.DefenderFinalHP > 0)
-                        {
-                            progress.SaveBossHP(combatResult.DefenderFinalHP, bossMaxHP);
-                        }
-                        progress.EndRun();
-                    }
+                    // Boss was killed — clear remaining HP
+                    progress.DailyBossRemainingHP = null;
+                    progress.DailyBossMaxHP = 0;
                 }
 
-                // Save both entities in one SaveChangesAsync call.
-                // UpdateAsync marks progress as Modified and calls SaveChangesAsync.
-                // EF Core change detection will also pick up the character.CurrentHP change
-                // and save both in a single database round-trip.
                 await _bossModeProgressRepository.UpdateAsync(progress);
                 return;
             }
@@ -666,24 +709,92 @@ public class BossModeService : IBossModeService
             {
                 if (attempt < maxRetries)
                 {
-                    _logger.LogWarning(ex, "UpdateProgressAfterBattle: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
-                    await Task.Delay(50 * (attempt + 1));
-
-                    // Reload game entities for retry
-                    try
-                    {
-                        await _characterRepository.ReloadAsync(character);
-                        await _bossModeProgressRepository.ReloadAsync(progress);
-                    }
-                    catch (Exception reloadEx)
-                    {
-                        _logger.LogWarning(reloadEx, "Failed to reload entities for retry");
-                    }
-
+                    _logger.LogWarning(ex, "SaveBossRemainingHPAsync: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1), cancellationToken);
                     continue;
                 }
+                _logger.LogError(ex, "SaveBossRemainingHPAsync: Failed after {Max} retries", maxRetries);
+                throw;
+            }
+        }
+    }
 
-                _logger.LogError(ex, "UpdateProgressAfterBattle: Failed after {Max} retries", maxRetries);
+    private async Task UpdateProgressAfterBattle(
+        Character character, BossModeProgress progress, CombatResult combatResult, long bossMaxHP)
+    {
+        // Apply in-memory mutations once, then persist with retry.
+        // Character HP
+        if (combatResult.AttackerFinalHP > 0)
+            character.CurrentHP = combatResult.AttackerFinalHP;
+        else
+            character.CurrentHP = null;
+
+        // Boss progress mutations (defeat path only)
+        if (combatResult.Outcome != BattleOutcome.AttackerWon)
+        {
+            if (combatResult.DefenderFinalHP > 0)
+                progress.SaveBossHP(combatResult.DefenderFinalHP, bossMaxHP);
+            progress.EndRun();
+        }
+        // Win path: don't advance stage here — deferred to ConfirmBossVictoryAsync.
+
+        // Save character first (separate entity, separate context)
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await _characterRepository.UpdateAsync(character);
+                break;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "UpdateProgressAfterBattle(character): Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1));
+                    // Re-fetch character and re-apply HP
+                    character = (await _characterRepository.GetByIdAsync(character.Id))!;
+                    if (combatResult.AttackerFinalHP > 0)
+                        character.CurrentHP = combatResult.AttackerFinalHP;
+                    else
+                        character.CurrentHP = null;
+                    continue;
+                }
+                _logger.LogError(ex, "UpdateProgressAfterBattle(character): Failed after {Max} retries", maxRetries);
+            }
+        }
+
+        // Save boss progress
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await _bossModeProgressRepository.UpdateAsync(progress);
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "UpdateProgressAfterBattle(progress): Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
+                    await Task.Delay(50 * (attempt + 1));
+                    // Re-fetch progress and re-apply mutations
+                    var freshProgress = await _bossModeProgressRepository.GetByUserIdAsync(character.UserId);
+                    if (freshProgress != null)
+                    {
+                        progress = freshProgress;
+                        if (combatResult.Outcome != BattleOutcome.AttackerWon)
+                        {
+                            if (combatResult.DefenderFinalHP > 0)
+                                progress.SaveBossHP(combatResult.DefenderFinalHP, bossMaxHP);
+                            if (progress.CurrentBossStage > 0)
+                                progress.EndRun();
+                        }
+                    }
+                    continue;
+                }
+                _logger.LogError(ex, "UpdateProgressAfterBattle(progress): Failed after {Max} retries", maxRetries);
             }
         }
     }

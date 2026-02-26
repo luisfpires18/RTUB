@@ -14,13 +14,17 @@ public class GameRepository : Repository<Game>, IGameRepository
 
     public async Task<Game?> GetByKeyAsync(string key)
     {
-        return await _context.Games
+        using var context = CreateContext();
+        return await context.Games
+            .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Key == key);
     }
 
     public async Task<List<Game>> GetActiveGamesAsync()
     {
-        return await _context.Games
+        using var context = CreateContext();
+        return await context.Games
+            .AsNoTracking()
             .Where(g => g.IsActive)
             .OrderBy(g => g.Title)
             .ToListAsync();

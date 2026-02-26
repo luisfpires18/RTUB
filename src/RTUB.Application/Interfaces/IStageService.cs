@@ -27,12 +27,18 @@ public interface IStageService
     Task<StageProgress?> GetStageProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Executes a battle on the current stage
+    /// Executes a battle on the current stage.
+    /// When <paramref name="callerProgress"/> and <paramref name="callerCharacter"/> are provided,
+    /// the method modifies them in-place instead of re-fetching from the database.
+    /// This is critical for "0 writes per battle" runs where stage advancement
+    /// is accumulated in memory until the run ends.
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
     /// <param name="pendingRareDrops">Rare set pieces already dropped in the current run (deferred, not yet in DB) to prevent duplicates</param>
+    /// <param name="callerProgress">The caller's in-memory StageProgress (used during runs to avoid re-fetching stale DB state)</param>
+    /// <param name="callerCharacter">The caller's in-memory Character (used during runs to avoid re-fetching stale DB state)</param>
     /// <returns>The stage battle result</returns>
-    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, CancellationToken cancellationToken = default);
+    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, StageProgress? callerProgress = null, Character? callerCharacter = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the player to their last checkpoint after defeat

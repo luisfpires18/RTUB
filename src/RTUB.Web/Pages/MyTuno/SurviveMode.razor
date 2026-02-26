@@ -14,6 +14,7 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @inject ISurviveModeService SurviveModeService
 @inject ICharacterService CharacterService
@@ -23,6 +24,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<SurviveMode> Logger
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject IAuditLogService AuditLogService
 @inject IStageService StageService
 @implements IAsyncDisposable
@@ -185,6 +187,20 @@
 
     private Character? character;
     private ApplicationUser? currentUser;
+
+    /// <summary>
+    /// Reloads the current user from a fresh DbContext.
+    /// UserManager.FindByIdAsync returns stale tracked entities from the scoped DI context.
+    /// </summary>
+    private async Task RefreshCurrentUserAsync()
+    {
+        if (currentUser == null) return;
+        await using var ctx = DbContextFactory.CreateDbContext();
+        var fresh = await ctx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+        if (fresh != null)
+            currentUser = fresh;
+    }
+
     private SurviveModeProgress? surviveProgress;
     private DotNetObjectReference<SurviveMode>? objRef;
 
@@ -231,6 +247,9 @@
                 loading = false;
                 return;
             }
+
+            // Refresh from fresh context — scoped DI context has stale data
+            await RefreshCurrentUserAsync();
 
             var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             var progressTask = SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
@@ -430,7 +449,7 @@
 
             // Refresh data
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser!.Id);
-            currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            await RefreshCurrentUserAsync();
             surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser!.Id);
 
             showGame = false;
@@ -473,7 +492,7 @@
             if (currentUser != null)
             {
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
                 surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser!.Id);
             }
 

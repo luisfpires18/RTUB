@@ -733,12 +733,15 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, 0, "Erro ao descartar item");
 
-        // Credit Fidelis to user
-        var user = await _userManager.FindByIdAsync(userId);
+        // Credit Fidelis to user — use fresh DbContext to avoid stale ConcurrencyStamp
+        // from the long-lived Blazor DbContext tracked entity.
+        using var ctx = _contextFactory.CreateDbContext();
+        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user != null)
         {
             user.FidelisBalance += fidelisValue;
-            await _userManager.UpdateAsync(user);
+            user.ConcurrencyStamp = Guid.NewGuid().ToString();
+            await ctx.SaveChangesAsync(cancellationToken);
         }
 
         var displayName = isEquipment

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -25,6 +26,7 @@ public class BetService : IBetService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<BetService> _logger;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     /// <summary>
     /// Initializes a new instance of the BetService
@@ -43,7 +45,8 @@ public class BetService : IBetService
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor,
         ILogger<BetService> logger,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _betRepository = betRepository;
         _betOptionRepository = betOptionRepository;
@@ -54,6 +57,7 @@ public class BetService : IBetService
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
         _userManager = userManager;
+        _contextFactory = contextFactory;
     }
 
     /// <summary>
@@ -191,10 +195,20 @@ public class BetService : IBetService
             await _userBetRepository.UpdateAsync(userBet);
         }
 
-        // Batch update all users at once
-        foreach (var user in userDict.Values)
+        // Batch update all users at once using fresh DbContext
+        // to avoid stale ConcurrencyStamp from the long-lived Blazor context.
+        using (var ctx = _contextFactory.CreateDbContext())
         {
-            await _userManager.UpdateAsync(user);
+            foreach (var userId in userDict.Keys)
+            {
+                var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (freshUser != null && userDict.TryGetValue(userId, out var trackedUser))
+                {
+                    freshUser.FidelisBalance = trackedUser.FidelisBalance;
+                    freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+                }
+            }
+            await ctx.SaveChangesAsync();
         }
 
         await SendResolvedBetNotificationsAsync(bet, userBets, winningOptionId);
@@ -244,9 +258,20 @@ public class BetService : IBetService
         if (user.FidelisBalance < fidelisAmount)
             throw new InvalidOperationException("Saldo de Fidelis insuficiente");
 
-        // Deduct amount from user balance
-        user.FidelisBalance -= fidelisAmount;
-        await _userManager.UpdateAsync(user);
+    // Deduct amount from user balance using fresh DbContext
+        using (var ctx = _contextFactory.CreateDbContext())
+        {
+            var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (freshUser == null)
+                throw new EntityNotFoundException(nameof(ApplicationUser), userId);
+
+            if (freshUser.FidelisBalance < fidelisAmount)
+                throw new InvalidOperationException("Saldo de Fidelis insuficiente");
+
+            freshUser.FidelisBalance -= fidelisAmount;
+            freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+            await ctx.SaveChangesAsync();
+        }
 
         // Create user bet
         var userBet = UserBet.Create(userId, betId, optionId, fidelisAmount);
@@ -369,10 +394,20 @@ public class BetService : IBetService
             }
         }
 
-        // Batch update all users at once
-        foreach (var user in userDict.Values)
+        // Batch update all users at once using fresh DbContext
+        // to avoid stale ConcurrencyStamp from the long-lived Blazor context.
+        using (var ctx = _contextFactory.CreateDbContext())
         {
-            await _userManager.UpdateAsync(user);
+            foreach (var userId in userDict.Keys)
+            {
+                var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (freshUser != null && userDict.TryGetValue(userId, out var trackedUser))
+                {
+                    freshUser.FidelisBalance = trackedUser.FidelisBalance;
+                    freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+                }
+            }
+            await ctx.SaveChangesAsync();
         }
     }
 

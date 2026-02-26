@@ -14,7 +14,9 @@ public class SurviveModeProgressRepository : Repository<SurviveModeProgress>, IS
 
     public async Task<SurviveModeProgress?> GetByUserIdAsync(string userId)
     {
-        return await _context.SurviveModeProgresses
+        using var context = CreateContext();
+        return await context.SurviveModeProgresses
+            .AsNoTracking()
             .Include(sp => sp.User)
             .FirstOrDefaultAsync(sp => sp.UserId == userId);
     }

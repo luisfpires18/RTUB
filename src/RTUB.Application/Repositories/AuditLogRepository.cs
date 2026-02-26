@@ -52,21 +52,17 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
 
     public async Task DeleteAllAsync()
     {
-        // Fetch all audit logs and remove them in bulk
-        // Note: Using RemoveRange instead of ExecuteDeleteAsync for compatibility
-        // with in-memory database provider used in tests
-        var allLogs = await _dbSet.ToListAsync();
-        _dbSet.RemoveRange(allLogs);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        var allLogs = await context.Set<AuditLog>().ToListAsync();
+        context.Set<AuditLog>().RemoveRange(allLogs);
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteByUserAsync(string userName)
     {
-        // Fetch all audit logs for the specified user and remove them in bulk
-        // Note: Using RemoveRange instead of ExecuteDeleteAsync for compatibility
-        // with in-memory database provider used in tests
-        var userLogs = await _dbSet.Where(a => a.UserName == userName).ToListAsync();
-        _dbSet.RemoveRange(userLogs);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        var userLogs = await context.Set<AuditLog>().Where(a => a.UserName == userName).ToListAsync();
+        context.Set<AuditLog>().RemoveRange(userLogs);
+        await context.SaveChangesAsync();
     }
 }

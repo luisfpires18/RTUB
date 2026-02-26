@@ -25,6 +25,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Arena> Logger
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject IInventoryService InventoryService
 @inject ICombatActionService CombatActionService
 @implements IAsyncDisposable
@@ -332,6 +333,20 @@
 
     private Character? character;
     private ApplicationUser? currentUser;
+
+    /// <summary>
+    /// Reloads the current user from a fresh DbContext.
+    /// UserManager.FindByIdAsync returns stale tracked entities from the scoped DI context.
+    /// </summary>
+    private async Task RefreshCurrentUserAsync()
+    {
+        if (currentUser == null) return;
+        await using var ctx = DbContextFactory.CreateDbContext();
+        var fresh = await ctx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+        if (fresh != null)
+            currentUser = fresh;
+    }
+
     private List<Character>? allOpponentCharacters;
     private List<Character>? opponentCharacters;
     private BattleResult? currentBattle;
@@ -407,6 +422,8 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
+                    // Refresh from fresh context — scoped DI context has stale data
+                    await RefreshCurrentUserAsync();
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
@@ -616,7 +633,7 @@
 
             // Reload character to show updated stats
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-            currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            await RefreshCurrentUserAsync();
             await LoadOpponentsAsync();
         }
         catch (Exception ex)
@@ -741,7 +758,7 @@
                     if (currentUser != null)
                     {
                         character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                        currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                        await RefreshCurrentUserAsync();
                     }
                 }
             }

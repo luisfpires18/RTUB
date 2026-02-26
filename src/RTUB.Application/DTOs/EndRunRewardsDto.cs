@@ -55,4 +55,21 @@ public class EndRunRewardsDto
 
     /// <summary>Number of Leitão dropped</summary>
     public int Leitao { get; init; }
+
+    // ── Stage progress state (advanced in-memory during the run) ─────────
+
+    /// <summary>Highest stage reached (in-memory value from stageProgress.HighestStage)</summary>
+    public int HighestStage { get; init; }
+
+    /// <summary>Last checkpoint reached (in-memory value from stageProgress.LastCheckpoint)</summary>
+    public int LastCheckpoint { get; init; }
+
+    /// <summary>Total stages cleared (in-memory value from stageProgress.TotalStagesCleared)</summary>
+    public int TotalStagesCleared { get; init; }
+
+    /// <summary>Total bosses defeated (in-memory value from stageProgress.TotalBossesDefeated)</summary>
+    public int TotalBossesDefeated { get; init; }
+
+    /// <summary>Whether endless mode was unlocked during this run</summary>
+    public bool EndlessModeUnlocked { get; init; }
 }

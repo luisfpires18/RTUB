@@ -85,7 +85,8 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
     public async Task MarkConversationAsReadAsync(int conversationId, string userId)
     {
-        var unreadMessages = await _dbSet
+        using var context = CreateContext();
+        var unreadMessages = await context.Set<Message>()
             .Where(m => m.ConversationId == conversationId &&
                         m.SenderId != userId &&
                         !m.ReadBy.Contains(userId))
@@ -98,7 +99,7 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
         if (unreadMessages.Any())
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 

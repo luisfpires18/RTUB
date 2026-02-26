@@ -44,14 +44,17 @@ public class SongRepository : Repository<Song>, ISongRepository
 
     public async Task<Song?> GetSongForUpdateAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Song>()
             .Include(s => s.YouTubeUrls)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task DeleteYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)
     {
-        _context.Set<SongYouTubeUrl>().Remove(youtubeUrl);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        context.Set<SongYouTubeUrl>().Attach(youtubeUrl);
+        context.Set<SongYouTubeUrl>().Remove(youtubeUrl);
+        await context.SaveChangesAsync();
     }
 }

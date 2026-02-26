@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Threading;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
@@ -30,6 +32,7 @@ public class StageService : IStageService
     private readonly IOptionsSnapshot<MyTunoScalingConfiguration> _myTunoScalingOptions;
     private MyTunoScalingConfiguration _myTunoScalingConfig => _myTunoScalingOptions.Value;
     private readonly IStageBiomeService _biomeService;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     public StageService(
         IStageProgressRepository stageProgressRepository,
@@ -40,7 +43,8 @@ public class StageService : IStageService
         UserManager<ApplicationUser> userManager,
         ILogger<StageService> logger,
         IOptionsSnapshot<MyTunoScalingConfiguration> myTunoScalingConfig,
-        IStageBiomeService biomeService)
+        IStageBiomeService biomeService,
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _stageProgressRepository = stageProgressRepository;
         _stageEnemyRepository = stageEnemyRepository;
@@ -51,6 +55,7 @@ public class StageService : IStageService
         _logger = logger;
         _myTunoScalingOptions = myTunoScalingConfig;
         _biomeService = biomeService;
+        _contextFactory = contextFactory;
     }
 
     /// <summary>
@@ -85,15 +90,18 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Executes a battle on the current stage
+    /// Executes a battle on the current stage.
+    /// When callerProgress/callerCharacter are provided, modifies them in-place
+    /// (no DB fetch). This is essential for multi-battle runs where stage
+    /// advancement is accumulated in memory until run-end.
     /// </summary>
-    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, CancellationToken cancellationToken = default)
+    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, StageProgress? callerProgress = null, Character? callerCharacter = null, CancellationToken cancellationToken = default)
     {
-        var character = await _characterRepository.GetByIdAsync(characterId);
+        var character = callerCharacter ?? await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(Character), characterId);
 
-        var stageProgress = await GetOrCreateStageProgressAsync(character.UserId, cancellationToken);
+        var stageProgress = callerProgress ?? await GetOrCreateStageProgressAsync(character.UserId, cancellationToken);
         
         // Check if shot buff is active - in stage mode, buff lasts until death
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
@@ -782,6 +790,21 @@ public class StageService : IStageService
                 if (stageProgress == null)
                     throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
 
+                // Apply in-memory stage advancement that happened during the run.
+                // With factory-per-operation DbContexts, the re-fetched entity has stale
+                // DB values — the in-memory AdvanceStage() calls are lost unless we
+                // propagate them here from the DTO.
+                if (rewards.HighestStage > stageProgress.HighestStage)
+                    stageProgress.HighestStage = rewards.HighestStage;
+                if (rewards.LastCheckpoint > stageProgress.LastCheckpoint)
+                    stageProgress.LastCheckpoint = rewards.LastCheckpoint;
+                if (rewards.TotalStagesCleared > stageProgress.TotalStagesCleared)
+                    stageProgress.TotalStagesCleared = rewards.TotalStagesCleared;
+                if (rewards.TotalBossesDefeated > stageProgress.TotalBossesDefeated)
+                    stageProgress.TotalBossesDefeated = rewards.TotalBossesDefeated;
+                if (rewards.EndlessModeUnlocked && !stageProgress.EndlessModeUnlocked)
+                    stageProgress.EndlessModeUnlocked = true;
+
                 stageProgress.ReturnToCheckpoint();
                 await _stageProgressRepository.UpdateAsync(stageProgress);
 
@@ -855,38 +878,43 @@ public class StageService : IStageService
         }
 
         // Apply Fidelis and FITAB
-        // UserManager.UpdateAsync uses Identity's ConcurrencyStamp — if another operation
-        // modified the user since we loaded it, the stamp won't match and the update fails.
-        // Retry with a fresh fetch to get the current ConcurrencyStamp.
+        // UserManager.FindByIdAsync returns the tracked entity from the long-lived
+        // Blazor DbContext — its ConcurrencyStamp is stale if anything else modified
+        // the user. Use a fresh DbContext so each attempt gets the current DB row.
         if (fidelis > 0 || fitab > 0)
         {
+            var fidelisAmount = fidelis > 0 ? fidelis * (decimal)character.FidelisEarnedMultiplier : 0;
             const int userMaxRetries = 3;
             for (int userAttempt = 0; userAttempt <= userMaxRetries; userAttempt++)
             {
-                var user = await _userManager.FindByIdAsync(character.UserId);
-                if (user == null) break;
-
-                if (fidelis > 0) user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
-                if (fitab > 0) user.FitabBalance += fitab;
-
-                var result = await _userManager.UpdateAsync(user);
-                if (result.Succeeded) break;
-
-                // Check if it's a concurrency error (Identity wraps it in IdentityResult)
-                if (userAttempt < userMaxRetries)
+                try
                 {
-                    _logger.LogWarning(
-                        "ApplyRunRewardsCoreAsync: UserManager.UpdateAsync failed for user {UserId} (attempt {Attempt}/{MaxRetries}): {Errors}",
-                        character.UserId, userAttempt + 1, userMaxRetries,
-                        string.Join(", ", result.Errors.Select(e => e.Description)));
-                    await Task.Delay(50 * (userAttempt + 1), cancellationToken);
-                    continue;
-                }
+                    using var ctx = _contextFactory.CreateDbContext();
+                    var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == character.UserId, cancellationToken);
+                    if (user == null) break;
 
-                _logger.LogError(
-                    "ApplyRunRewardsCoreAsync: UserManager.UpdateAsync failed after {MaxRetries} retries for user {UserId}: {Errors}",
-                    userMaxRetries, character.UserId,
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
+                    if (fidelisAmount > 0) user.FidelisBalance += fidelisAmount;
+                    if (fitab > 0) user.FitabBalance += fitab;
+                    user.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                    await ctx.SaveChangesAsync(cancellationToken);
+                    break;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    if (userAttempt < userMaxRetries)
+                    {
+                        _logger.LogWarning(ex,
+                            "ApplyRunRewardsCoreAsync: User update concurrency conflict for user {UserId} (attempt {Attempt}/{MaxRetries})",
+                            character.UserId, userAttempt + 1, userMaxRetries);
+                        await Task.Delay(50 * (userAttempt + 1), cancellationToken);
+                        continue;
+                    }
+
+                    _logger.LogError(ex,
+                        "ApplyRunRewardsCoreAsync: User update failed after {MaxRetries} retries for user {UserId}",
+                        userMaxRetries, character.UserId);
+                }
             }
         }
 

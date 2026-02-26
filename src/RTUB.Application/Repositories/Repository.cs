@@ -74,7 +74,11 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task UpdateAsync(T entity)
     {
         using var context = CreateContext();
-        context.Set<T>().Update(entity);
+        // Use Entry().State instead of DbSet.Update() to avoid traversing the entity graph.
+        // Update() marks ALL navigation properties (e.g., User) as Modified, causing
+        // unwanted UPDATE statements on related tables (e.g., AspNetUsers) and
+        // DbUpdateConcurrencyException from stale ConcurrencyStamps.
+        context.Entry(entity).State = EntityState.Modified;
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -92,7 +96,8 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task DeleteAsync(T entity)
     {
         using var context = CreateContext();
-        context.Set<T>().Remove(entity);
+        // Use Entry().State instead of Remove() to avoid traversing navigation properties.
+        context.Entry(entity).State = EntityState.Deleted;
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 

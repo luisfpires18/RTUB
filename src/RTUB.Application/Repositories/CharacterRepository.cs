@@ -14,7 +14,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
     public async Task<Character?> GetByUserIdAsync(string userId)
     {
-        return await _context.Characters
+        using var context = CreateContext();
+        return await context.Characters
             .AsNoTracking()
             .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.UserId == userId);
@@ -22,7 +23,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
     public async Task<List<Character>> GetAllOrderedByLevelAsync()
     {
-        return await _context.Characters
+        using var context = CreateContext();
+        return await context.Characters
             .AsNoTracking()
             .Include(c => c.User)
             .OrderByDescending(c => c.Level)
@@ -34,7 +36,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
     {
         // Return all characters except the current player — no category filter so
         // every registered character is a valid arena opponent.
-        return await _context.Characters
+        using var context = CreateContext();
+        return await context.Characters
             .AsNoTracking()
             .Include(c => c.User)
             .Where(c => c.Id != excludeCharacterId)

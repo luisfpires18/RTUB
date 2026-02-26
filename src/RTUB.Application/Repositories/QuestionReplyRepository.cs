@@ -11,17 +11,18 @@ namespace RTUB.Application.Repositories;
 public class QuestionReplyRepository : IQuestionReplyRepository
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
 
     public QuestionReplyRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
     }
+
+    private ApplicationDbContext CreateContext() => _contextFactory.CreateDbContext();
 
     public async Task<IEnumerable<QuestionReply>> GetByQuestionIdAsync(int questionId)
     {
-        return await _context.QuestionReplies
+        using var context = CreateContext();
+        return await context.QuestionReplies
             .AsNoTracking()
             .Include(r => r.Author)
             .Where(r => r.QuestionId == questionId && !r.IsDeleted)
@@ -31,7 +32,9 @@ public class QuestionReplyRepository : IQuestionReplyRepository
 
     public async Task<QuestionReply?> GetByIdAsync(int id)
     {
-        return await _context.QuestionReplies
+        using var context = CreateContext();
+        return await context.QuestionReplies
+            .AsNoTracking()
             .Include(r => r.Author)
             .Include(r => r.Question)
             .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
@@ -39,24 +42,28 @@ public class QuestionReplyRepository : IQuestionReplyRepository
 
     public async Task<QuestionReply> AddAsync(QuestionReply reply)
     {
-        _context.QuestionReplies.Add(reply);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        context.QuestionReplies.Add(reply);
+        await context.SaveChangesAsync();
         return reply;
     }
 
     public async Task UpdateAsync(QuestionReply reply)
     {
-        _context.QuestionReplies.Update(reply);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        // Use Entry().State to avoid traversing navigation properties (Author, Question)
+        context.Entry(reply).State = EntityState.Modified;
+        await context.SaveChangesAsync();
     }
 
     public async Task SoftDeleteAsync(int id)
     {
-        var reply = await _context.QuestionReplies.FindAsync(id);
+        using var context = CreateContext();
+        var reply = await context.QuestionReplies.FindAsync(id);
         if (reply != null)
         {
             reply.SoftDelete();
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 }

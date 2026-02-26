@@ -18,6 +18,7 @@
 @using System.Text.Json
 @using Microsoft.Extensions.Options
 @using RTUB.Application.Configuration
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @inject IBossModeService BossModeService
 @inject ICharacterService CharacterService
@@ -27,6 +28,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<BossMode> Logger
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject IAuditLogService AuditLogService
 @inject IInventoryService InventoryService
 @inject IStageService StageService
@@ -461,6 +463,20 @@
 @code {
     private Character? character;
     private ApplicationUser? currentUser;
+
+    /// <summary>
+    /// Reloads the current user from a fresh DbContext.
+    /// UserManager.FindByIdAsync returns stale tracked entities from the scoped DI context.
+    /// </summary>
+    private async Task RefreshCurrentUserAsync()
+    {
+        if (currentUser == null) return;
+        await using var ctx = DbContextFactory.CreateDbContext();
+        var fresh = await ctx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+        if (fresh != null)
+            currentUser = fresh;
+    }
+
     private BossModeProgress? bossModeProgress;
     private BossModeBattleResult? currentBattle;
     private bool loading = true;
@@ -608,6 +624,8 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
+                    // Refresh from fresh context — scoped DI context has stale data
+                    await RefreshCurrentUserAsync();
                     var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     var progressTask = BossModeService.GetOrCreateBossModeProgressAsync(currentUser.Id);
                     await Task.WhenAll(characterTask, progressTask);
@@ -1325,6 +1343,7 @@
             {
                 bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
             }
 
             showBattleAnimation = false;
@@ -1364,12 +1383,10 @@
             penaltyQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Penalty);
 
             var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
-            var userTask = UserManager.FindByIdAsync(currentUser.Id);
-            await Task.WhenAll(stageProgressTask, userTask);
-            var stageProgress = stageProgressTask.Result;
+            await RefreshCurrentUserAsync();
+            var stageProgress = await stageProgressTask;
             consumableHighestStage = stageProgress?.HighestStage ?? 1;
-            var freshUser = userTask.Result;
-            fitabBalance = freshUser?.FitabBalance ?? 0;
+            fitabBalance = currentUser?.FitabBalance ?? 0;
         }
         catch (Exception ex)
         {

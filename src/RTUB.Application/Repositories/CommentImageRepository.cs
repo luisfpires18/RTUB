@@ -26,11 +26,12 @@ public class CommentImageRepository : Repository<CommentImage>, ICommentImageRep
 
     public async Task DeleteByCommentIdAsync(int commentId)
     {
-        var images = await _dbSet
+        using var context = CreateContext();
+        var images = await context.Set<CommentImage>()
             .Where(ci => ci.CommentId == commentId)
             .ToListAsync();
 
-        _dbSet.RemoveRange(images);
-        await _context.SaveChangesAsync();
+        context.Set<CommentImage>().RemoveRange(images);
+        await context.SaveChangesAsync();
     }
 }

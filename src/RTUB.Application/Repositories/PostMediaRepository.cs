@@ -26,11 +26,12 @@ public class PostMediaRepository : Repository<PostMedia>, IPostMediaRepository
 
     public async Task DeleteByPostIdAsync(int postId)
     {
-        var mediaItems = await _dbSet
+        using var context = CreateContext();
+        var mediaItems = await context.Set<PostMedia>()
             .Where(pm => pm.PostId == postId)
             .ToListAsync();
 
-        _dbSet.RemoveRange(mediaItems);
-        await _context.SaveChangesAsync();
+        context.Set<PostMedia>().RemoveRange(mediaItems);
+        await context.SaveChangesAsync();
     }
 }

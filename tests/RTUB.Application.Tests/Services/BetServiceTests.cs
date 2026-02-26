@@ -75,7 +75,8 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _pushNotificationService.Object,
             _httpContextAccessor.Object,
             _logger.Object,
-            _mockUserManager.Object);
+            _mockUserManager.Object,
+            _fixture.CreateContextFactory());
 
         // Create test users (only if they don't exist for shared database)
         var userId1 = "bet-test-user-1";
@@ -161,9 +162,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.BetOptionId.Should().Be(option.Id);
         result.FidelisAmount.Should().Be(betAmount);
 
-        // Verify balance was deducted
-        _testUser1.FidelisBalance.Should().Be(initialBalance - betAmount);
-        _mockUserManager.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => u.FidelisBalance == initialBalance - betAmount)), Times.Once);
+        // Verify balance was deducted in DB
+        using var verifyCtx = _fixture.CreateContext();
+        var dbUser = await verifyCtx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser1.Id);
+        dbUser!.FidelisBalance.Should().Be(initialBalance - betAmount);
     }
 
     [Fact]
@@ -192,7 +194,6 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Verify balance was NOT deducted
         _testUser1.FidelisBalance.Should().Be(1000m);
-        _mockUserManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
     }
 
     [Fact]
@@ -289,12 +290,13 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _betService.ResolveBetAsync(bet.Id, option1.Id); // option1 wins
 
-        // Assert
-        var updatedUser1 = await _context.Users.FindAsync(_testUser1.Id);
-        var updatedUser2 = await _context.Users.FindAsync(_testUser2.Id);
-        var updatedBet = await _context.Bets.FindAsync(bet.Id);
-        var updatedUserBet1 = await _context.UserBets.FindAsync(userBet1.Id);
-        var updatedUserBet2 = await _context.UserBets.FindAsync(userBet2.Id);
+        // Assert — use a fresh context to verify DB state (service writes via its own contexts)
+        using var verifyCtx2 = _fixture.CreateContext();
+        var updatedUser1 = await verifyCtx2.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser1.Id);
+        var updatedUser2 = await verifyCtx2.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser2.Id);
+        var updatedBet = await verifyCtx2.Bets.AsNoTracking().FirstOrDefaultAsync(b => b.Id == bet.Id);
+        var updatedUserBet1 = await verifyCtx2.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet1.Id);
+        var updatedUserBet2 = await verifyCtx2.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet2.Id);
 
         updatedBet.Should().NotBeNull();
         updatedBet!.IsResolved().Should().BeTrue();
@@ -343,9 +345,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _betService.ResolveBetAsync(bet.Id, option1.Id);
 
-        // Assert
-        var updatedUserBet1 = await _context.UserBets.FindAsync(userBet1.Id);
-        var updatedUserBet2 = await _context.UserBets.FindAsync(userBet2.Id);
+        // Assert — use fresh context for verification
+        using var vCtxWon = _fixture.CreateContext();
+        var updatedUserBet1 = await vCtxWon.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet1.Id);
+        var updatedUserBet2 = await vCtxWon.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet2.Id);
 
         updatedUserBet1.Should().NotBeNull();
         updatedUserBet1!.IsWon.Should().BeTrue();
@@ -384,9 +387,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act - option2 wins, so userBet1 loses
         await _betService.ResolveBetAsync(bet.Id, option2.Id);
 
-        // Assert
-        var updatedUserBet1 = await _context.UserBets.FindAsync(userBet1.Id);
-        var updatedUserBet2 = await _context.UserBets.FindAsync(userBet2.Id);
+        // Assert — use fresh context for verification
+        using var vCtx2 = _fixture.CreateContext();
+        var updatedUserBet1 = await vCtx2.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet1.Id);
+        var updatedUserBet2 = await vCtx2.UserBets.AsNoTracking().FirstOrDefaultAsync(ub => ub.Id == userBet2.Id);
 
         updatedUserBet1.Should().NotBeNull();
         updatedUserBet1!.IsWon.Should().BeFalse();
@@ -458,13 +462,13 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _betService.ResolveBetAsync(bet.Id, option1.Id);
 
-        // Assert - Verify all users were updated (batch update)
-        _mockUserManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Exactly(users.Count));
+        // Assert - Verify all users were updated in DB
+        using var verifyCtx = _fixture.CreateContext();
 
         // Verify balances were updated correctly
         foreach (var user in users)
         {
-            var updatedUser = await _context.Users.FindAsync(user.Id);
+            var updatedUser = await verifyCtx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == user.Id);
             updatedUser.Should().NotBeNull();
             // Users who bet on option1 (even indices) won, others lost
             var userBet = userBets.First(ub => ub.UserId == user.Id);
@@ -670,13 +674,14 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _betService.CancelBetAsync(bet.Id, "Test cancellation");
 
-        // Assert
-        var updatedBet = await _context.Bets.FindAsync(bet.Id);
+        // Assert — use fresh context for verification
+        using var vCtxCancel = _fixture.CreateContext();
+        var updatedBet = await vCtxCancel.Bets.AsNoTracking().FirstOrDefaultAsync(b => b.Id == bet.Id);
         updatedBet.Should().NotBeNull();
         updatedBet!.IsCancelled.Should().BeTrue();
 
-        var updatedUser1 = await _context.Users.FindAsync(_testUser1.Id);
-        var updatedUser2 = await _context.Users.FindAsync(_testUser2.Id);
+        var updatedUser1 = await vCtxCancel.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser1.Id);
+        var updatedUser2 = await vCtxCancel.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser2.Id);
 
         // Balances should be refunded
         updatedUser1!.FidelisBalance.Should().Be(initialBalance1);

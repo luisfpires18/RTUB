@@ -14,7 +14,8 @@ public class GameScoreRepository : Repository<GameScore>, IGameScoreRepository
 
     public async Task<List<GameScore>> GetTopScoresAsync(string gameKey, int count = 10)
     {
-        return await _context.GameScores
+        using var context = CreateContext();
+        return await context.GameScores
             .AsNoTracking()
             .Include(s => s.User)
             .Where(s => s.GameKey == gameKey)
@@ -27,7 +28,8 @@ public class GameScoreRepository : Repository<GameScore>, IGameScoreRepository
 
     public async Task<GameScore?> GetUserBestScoreAsync(string userId, string gameKey)
     {
-        return await _context.GameScores
+        using var context = CreateContext();
+        return await context.GameScores
             .AsNoTracking()
             .Include(s => s.User)
             .Where(s => s.UserId == userId && s.GameKey == gameKey)
@@ -38,7 +40,9 @@ public class GameScoreRepository : Repository<GameScore>, IGameScoreRepository
 
     public async Task<GameScore?> GetUserScoreAsync(string userId, string gameKey)
     {
-        return await _context.GameScores
+        using var context = CreateContext();
+        return await context.GameScores
+            .AsNoTracking()
             .Include(s => s.User)
             .Where(s => s.UserId == userId && s.GameKey == gameKey)
             .FirstOrDefaultAsync();

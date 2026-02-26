@@ -15,6 +15,7 @@
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
@@ -32,6 +33,7 @@
 @inject IItemTypeConfigService ItemTypeConfigService
 @inject Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.MyTunoScalingConfiguration> ScalingConfig
 @inject IConfiguration Configuration
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -342,6 +344,21 @@
 @code {
     private Character? character;
     private ApplicationUser? currentUser;
+
+    /// <summary>
+    /// Reloads the current user from a fresh DbContext.
+    /// UserManager uses the scoped DI context which returns stale tracked entities
+    /// after services write via IDbContextFactory.
+    /// </summary>
+    private async Task RefreshCurrentUserAsync()
+    {
+        if (currentUser == null) return;
+        await using var ctx = DbContextFactory.CreateDbContext();
+        var fresh = await ctx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+        if (fresh != null)
+            currentUser = fresh;
+    }
+
     private StageProgress? stageProgress;
     private StageBattleResult? currentBattle;
     private bool loading = true;
@@ -508,6 +525,8 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
+                    // Refresh from fresh context — scoped DI context has stale data
+                    await RefreshCurrentUserAsync();
                     // Load character and stage progress in parallel (independent queries)
                     var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
@@ -648,8 +667,11 @@
             var preBattleCanhaoBuff = character.CanhaoBuffExpiresAt;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
+            // Pass in-memory stageProgress + character so the service modifies them
+            // directly instead of re-fetching stale DB copies each battle.
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id,
-                totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
+                totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
+                stageProgress, character);
 
             // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
@@ -1221,14 +1243,20 @@
                         StartStage = defeatStartStage ?? currentStageNumber,
                         EndStage = currentStageNumber,
                         RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
-                        Leitao = totalLeitaoDropped
+                        Leitao = totalLeitaoDropped,
+                        HighestStage = stageProgress?.HighestStage ?? 1,
+                        LastCheckpoint = stageProgress?.LastCheckpoint ?? 1,
+                        TotalStagesCleared = stageProgress?.TotalStagesCleared ?? 0,
+                        TotalBossesDefeated = stageProgress?.TotalBossesDefeated ?? 0,
+                        EndlessModeUnlocked = stageProgress?.EndlessModeUnlocked ?? false
                     };
                     stageProgress = await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
                     currentStageNumber = stageProgress.CurrentStage;
                     checkpointStage = stageProgress.LastCheckpoint;
 
-                    // Reload character to get fresh HP
+                    // Reload character and user to get fresh HP and Fidelis balance
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    await RefreshCurrentUserAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1508,12 +1536,18 @@
                             StartStage = runStartingStage ?? currentStageNumber,
                             EndStage = currentStageNumber,
                             RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
-                            Leitao = totalLeitaoDropped
+                            Leitao = totalLeitaoDropped,
+                            HighestStage = stageProgress?.HighestStage ?? 1,
+                            LastCheckpoint = stageProgress?.LastCheckpoint ?? 1,
+                            TotalStagesCleared = stageProgress?.TotalStagesCleared ?? 0,
+                            TotalBossesDefeated = stageProgress?.TotalBossesDefeated ?? 0,
+                            EndlessModeUnlocked = stageProgress?.EndlessModeUnlocked ?? false
                         };
                         stageProgress = await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
                         currentStageNumber = stageProgress.CurrentStage;
                         checkpointStage = stageProgress.LastCheckpoint;
                         character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                        await RefreshCurrentUserAsync();
                     }
                     catch (Exception ex)
                     {
@@ -1643,7 +1677,12 @@
                     StartStage = defeatStartStage ?? runStartingStage ?? currentStageNumber,
                     EndStage = currentStageNumber,
                     RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
-                    Leitao = totalLeitaoDropped
+                    Leitao = totalLeitaoDropped,
+                    HighestStage = stageProgress?.HighestStage ?? 1,
+                    LastCheckpoint = stageProgress?.LastCheckpoint ?? 1,
+                    TotalStagesCleared = stageProgress?.TotalStagesCleared ?? 0,
+                    TotalBossesDefeated = stageProgress?.TotalBossesDefeated ?? 0,
+                    EndlessModeUnlocked = stageProgress?.EndlessModeUnlocked ?? false
                 };
                 await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
             }

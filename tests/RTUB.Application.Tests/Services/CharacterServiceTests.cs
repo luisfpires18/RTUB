@@ -46,7 +46,7 @@ public class CharacterServiceTests
             mockUserManager.Object,
             mockConfig,
             mockLogger.Object,
-            WrapInFactory(dbContext),
+            WrapInFactory(options),
             Mock.Of<IWebHostEnvironment>());
     }
 
@@ -266,21 +266,32 @@ public class CharacterServiceTests
     {
         // Arrange
         var userId = "user-123";
-        var testUser = new ApplicationUser { Id = userId, FidelisBalance = 100m, LastDailyRewardClaim = null };
+        var testUser = new ApplicationUser { Id = userId, FidelisBalance = 100m, LastDailyRewardClaim = null, Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "tester", UserName = "testuser" };
+
+        var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
+
+        // Seed user in the InMemory DB
+        using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
+        {
+            seedCtx.Users.Add(testUser);
+            await seedCtx.SaveChangesAsync();
+        }
 
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
-        mockUserManager.Setup(m => m.UpdateAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         var service = new CharacterService(
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
+            factoryMock.Object,
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -289,9 +300,13 @@ public class CharacterServiceTests
         // Assert
         success.Should().BeTrue();
         reward.Should().Be(550m); // 500 + (10 * 5) + (100 * 0.0 = 0)
-        testUser.FidelisBalance.Should().Be(650m); // 100 + 550
-        testUser.LastDailyRewardClaim.Should().NotBeNull();
-        testUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
+
+        // Verify balance persisted to DB
+        using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
+        var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        dbUser!.FidelisBalance.Should().Be(650m); // 100 + 550
+        dbUser.LastDailyRewardClaim.Should().NotBeNull();
+        dbUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
     }
 
     [Fact]
@@ -303,21 +318,37 @@ public class CharacterServiceTests
         {
             Id = userId,
             FidelisBalance = 100m,
-            LastDailyRewardClaim = DateTime.UtcNow // Already claimed today
+            LastDailyRewardClaim = DateTime.UtcNow, // Already claimed today
+            Email = "test@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "tester",
+            UserName = "testuser"
         };
+
+        var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
+
+        using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
+        {
+            seedCtx.Users.Add(testUser);
+            await seedCtx.SaveChangesAsync();
+        }
 
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
+
+        var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         var service = new CharacterService(
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
+            factoryMock.Object,
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -326,8 +357,11 @@ public class CharacterServiceTests
         // Assert
         success.Should().BeFalse();
         reward.Should().Be(0);
-        testUser.FidelisBalance.Should().Be(100m, "balance should not change on failed claim");
-        mockUserManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+
+        // Verify balance unchanged in DB
+        using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
+        var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        dbUser!.FidelisBalance.Should().Be(100m, "balance should not change on failed claim");
     }
 
     [Fact]
@@ -339,22 +373,37 @@ public class CharacterServiceTests
         {
             Id = userId,
             FidelisBalance = 500m,
-            LastDailyRewardClaim = DateTime.UtcNow.AddDays(-1)
+            LastDailyRewardClaim = DateTime.UtcNow.AddDays(-1),
+            Email = "test@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "tester",
+            UserName = "testuser"
         };
+
+        var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options;
+
+        using (var seedCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()))
+        {
+            seedCtx.Users.Add(testUser);
+            await seedCtx.SaveChangesAsync();
+        }
 
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
-        mockUserManager.Setup(m => m.UpdateAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         var service = new CharacterService(
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
-            WrapInFactory(new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender())),
+            factoryMock.Object,
             Mock.Of<IWebHostEnvironment>());
 
         // Act
@@ -363,7 +412,10 @@ public class CharacterServiceTests
         // Assert
         success.Should().BeTrue();
         reward.Should().Be(505m); // 500 + (1 * 5) + (500 * 0.0 = 0)
-        testUser.FidelisBalance.Should().Be(1005m); // 500 + 505
+
+        using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
+        var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        dbUser!.FidelisBalance.Should().Be(1005m); // 500 + 505
     }
 
     [Theory]
@@ -378,10 +430,11 @@ public class CharacterServiceTests
 
     #endregion
 
-    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(ApplicationDbContext dbContext)
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(DbContextOptions<ApplicationDbContext> options)
     {
         var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
-        mock.Setup(f => f.CreateDbContext()).Returns(dbContext);
+        mock.Setup(f => f.CreateDbContext()).Returns(() =>
+            new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
         return mock.Object;
     }
 }

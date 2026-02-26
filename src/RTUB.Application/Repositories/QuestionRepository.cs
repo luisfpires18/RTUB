@@ -12,17 +12,18 @@ namespace RTUB.Application.Repositories;
 public class QuestionRepository : IQuestionRepository
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
 
     public QuestionRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
     }
+
+    private ApplicationDbContext CreateContext() => _contextFactory.CreateDbContext();
 
     public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        var query = BuildBaseQuery(searchTerm, isClosedFilter, assignedMemberIdFilter, includeReplies: true);
+        using var context = CreateContext();
+        var query = BuildBaseQuery(context, searchTerm, isClosedFilter, assignedMemberIdFilter, includeReplies: true);
 
         // For non-closed questions, order by latest reply or creation date
         // Note: Fetch to client-side first to avoid expensive SQL subquery
@@ -40,7 +41,8 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        var query = BuildBaseQueryWithReplies(searchTerm, isClosedFilter, assignedMemberIdFilter);
+        using var context = CreateContext();
+        var query = BuildBaseQueryWithReplies(context, searchTerm, isClosedFilter, assignedMemberIdFilter);
 
         // For non-closed questions, order by latest reply or creation date
         // Note: Fetch to client-side first to avoid expensive SQL subquery
@@ -56,9 +58,9 @@ public class QuestionRepository : IQuestionRepository
             .ToListAsync();
     }
 
-    private IQueryable<Question> BuildBaseQuery(string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter, bool includeReplies)
+    private static IQueryable<Question> BuildBaseQuery(ApplicationDbContext context, string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter, bool includeReplies)
     {
-        IQueryable<Question> query = _context.Questions
+        IQueryable<Question> query = context.Questions
             .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember);
@@ -73,9 +75,9 @@ public class QuestionRepository : IQuestionRepository
         return ApplyFilters(query, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    private IQueryable<Question> BuildBaseQueryWithReplies(string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter)
+    private static IQueryable<Question> BuildBaseQueryWithReplies(ApplicationDbContext context, string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter)
     {
-        var query = _context.Questions
+        var query = context.Questions
             .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
@@ -86,7 +88,7 @@ public class QuestionRepository : IQuestionRepository
         return ApplyFilters(query, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    private IQueryable<Question> ApplyFilters(IQueryable<Question> query, string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter)
+    private static IQueryable<Question> ApplyFilters(IQueryable<Question> query, string? searchTerm, bool? isClosedFilter, string? assignedMemberIdFilter)
     {
         // Apply status filter
         if (isClosedFilter.HasValue)
@@ -122,7 +124,7 @@ public class QuestionRepository : IQuestionRepository
         return query;
     }
 
-    private async Task<List<Question>> ApplyClientSideSortingAndPagination(IQueryable<Question> query, int page, int pageSize)
+    private static async Task<List<Question>> ApplyClientSideSortingAndPagination(IQueryable<Question> query, int page, int pageSize)
     {
         // Note: This approach loads all matching records to avoid complex SQL.
         // For very large datasets (>1000 records), consider database-level sorting with computed columns.
@@ -136,7 +138,8 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<int> GetCountAsync(string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        var query = _context.Questions
+        using var context = CreateContext();
+        var query = context.Questions
             .AsNoTracking()
             .Where(q => !q.IsDeleted);
 
@@ -176,7 +179,9 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<Question?> GetByIdWithRepliesAsync(int id)
     {
-        return await _context.Questions
+        using var context = CreateContext();
+        return await context.Questions
+            .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
             .Include(q => q.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
@@ -186,7 +191,9 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<Question?> GetByIdAsync(int id)
     {
-        return await _context.Questions
+        using var context = CreateContext();
+        return await context.Questions
+            .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
             .FirstOrDefaultAsync(q => q.Id == id && !q.IsDeleted);
@@ -194,7 +201,8 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<IEnumerable<Question>> GetByAssignedMemberIdAsync(string memberId)
     {
-        return await _context.Questions
+        using var context = CreateContext();
+        return await context.Questions
             .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
@@ -205,7 +213,8 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<IEnumerable<Question>> GetByAuthorIdAsync(string authorId)
     {
-        return await _context.Questions
+        using var context = CreateContext();
+        return await context.Questions
             .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
@@ -216,7 +225,8 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<IEnumerable<Question>> GetUnansweredQuestionsForNotificationAsync()
     {
-        return await _context.Questions
+        using var context = CreateContext();
+        return await context.Questions
             .AsNoTracking()
             .Include(q => q.Author)
             .Include(q => q.AssignedMember)
@@ -228,43 +238,29 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task<Question> AddAsync(Question question)
     {
-        _context.Questions.Add(question);
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        context.Questions.Add(question);
+        await context.SaveChangesAsync();
         return question;
     }
 
     public async Task UpdateAsync(Question question)
     {
-        var entry = _context.Entry(question);
-        if (entry.State == EntityState.Detached)
-        {
-            _context.ChangeTracker.TrackGraph(question, node =>
-            {
-                if (node.Entry.Entity is Question)
-                {
-                    node.Entry.State = EntityState.Modified;
-                }
-                else
-                {
-                    node.Entry.State = EntityState.Detached;
-                }
-            });
-        }
-        else
-        {
-            entry.State = EntityState.Modified;
-        }
-
-        await _context.SaveChangesAsync();
+        using var context = CreateContext();
+        // Use Entry().State to only update the Question entity, ignoring navigation
+        // properties (Author, AssignedMember, Replies) to avoid tracking conflicts.
+        context.Entry(question).State = EntityState.Modified;
+        await context.SaveChangesAsync();
     }
 
     public async Task SoftDeleteAsync(int id)
     {
-        var question = await _context.Questions.FindAsync(id);
+        using var context = CreateContext();
+        var question = await context.Questions.FindAsync(id);
         if (question != null)
         {
             question.SoftDelete();
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 }

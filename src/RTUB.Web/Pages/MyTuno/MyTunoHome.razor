@@ -13,8 +13,10 @@
 @using RTUB.Core.Helpers
 @using Microsoft.Extensions.Options
 @using RTUB.Pages.MyTuno.Components
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
 @inject IImprovementService ImprovementService
@@ -2144,6 +2146,21 @@
     private bool toastIsError = false;
     private bool claimingDailyReward = false;
 
+    /// <summary>
+    /// Reloads the current user from a fresh DbContext.
+    /// UserManager.FindByIdAsync returns the stale tracked entity from the scoped
+    /// DI context — mutations applied by services via IDbContextFactory are invisible.
+    /// This helper creates a short-lived context to get the actual DB values.
+    /// </summary>
+    private async Task RefreshCurrentUserAsync()
+    {
+        if (currentUser == null) return;
+        await using var ctx = DbContextFactory.CreateDbContext();
+        var fresh = await ctx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+        if (fresh != null)
+            currentUser = fresh;
+    }
+
     // Daily reward from config
     private decimal DailyRewardBase => MyTunoConfig.Value.DailyReward.BaseFidelis;
     private decimal DailyRewardPerLevel => MyTunoConfig.Value.DailyReward.PerLevelFidelis;
@@ -2188,19 +2205,13 @@
 
             if (success)
             {
-                // Service already updated the tracked entity (same scoped DbContext),
-                // so FidelisBalance and LastDailyRewardClaim are already correct.
-                // No local update needed — just refresh from the tracked entity to be safe.
-                var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
-                if (freshUser != null)
-                    currentUser = freshUser;
+                // Reload from fresh context — UserManager returns stale tracked entity
+                await RefreshCurrentUserAsync();
             }
             else if (message == "Já recebeste o Daily Reward hoje!")
             {
                 // Sync claim timestamp from server
-                var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
-                if (freshUser != null)
-                    currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
+                await RefreshCurrentUserAsync();
             }
         }
         catch (Exception ex)
@@ -2239,6 +2250,8 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
+                    // Refresh from fresh context — scoped DI context has stale data
+                    await RefreshCurrentUserAsync();
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
@@ -2368,8 +2381,8 @@
 
             if (result.Success)
             {
-                // Reload user and character to get updated values
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                // Reload from fresh context — UserManager returns stale tracked entity
+                await RefreshCurrentUserAsync();
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
@@ -2415,7 +2428,8 @@
 
             if (result.Success)
             {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                // Reload from fresh context — UserManager returns stale tracked entity
+                await RefreshCurrentUserAsync();
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
@@ -2469,7 +2483,8 @@
 
             if (result.Success)
             {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                // Reload from fresh context — UserManager returns stale tracked entity
+                await RefreshCurrentUserAsync();
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
@@ -3036,7 +3051,7 @@
                     instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
                     equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
                     rareSetInventory = await InventoryService.GetRareSetItemsAsync(currentUser.Id);
-                    currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                    await RefreshCurrentUserAsync();
                     toastMessage = message;
                     toastIsError = false;
                 }
@@ -3521,7 +3536,7 @@
             var (success, message) = await InventoryService.UpgradeWeaponAsync(currentUser.Id, pendingWeapon.Id);
             if (success)
             {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                 pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
@@ -3567,7 +3582,7 @@
             var (success, message) = await InventoryService.UpgradeEquipmentSlotAsync(currentUser.Id, slot);
             if (success)
             {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
                 // Refresh drink quantities and Leitão (consumed during upgrade)
@@ -3610,7 +3625,7 @@
             if (success)
             {
                 // Refresh user balance, character, and weapons list
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser!.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                 showWeaponActionModal = false;
@@ -3659,7 +3674,7 @@
                 StateHasChanged();
 
                 // Refresh from DB for correctness
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
                 equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
@@ -3839,7 +3854,7 @@
             // Reload user from DB to pick up reset FidelisBalance
             if (currentUser != null)
             {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                await RefreshCurrentUserAsync();
             }
             await InvokeAsync(StateHasChanged);
         }

@@ -112,8 +112,10 @@ public class CharacterService : ICharacterService
 
         try
         {
-            // Re-check from DB to prevent double-claim
-            var freshUser = await _userManager.FindByIdAsync(userId);
+            // Use fresh DbContext to avoid stale ConcurrencyStamp
+            // from the long-lived Blazor DbContext tracked entity.
+            using var ctx = _contextFactory.CreateDbContext();
+            var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (freshUser == null)
                 return (false, "Utilizador não encontrado.", 0);
 
@@ -126,7 +128,8 @@ public class CharacterService : ICharacterService
             var reward = GetDailyRewardAmount(characterLevel, freshUser.FidelisBalance);
             freshUser.FidelisBalance += reward;
             freshUser.LastDailyRewardClaim = DateTime.UtcNow;
-            await _userManager.UpdateAsync(freshUser);
+            freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+            await ctx.SaveChangesAsync();
 
             return (true, $"Daily Reward: +{reward:F2} Fidelis!", reward);
         }

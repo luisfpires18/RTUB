@@ -19,20 +19,23 @@ public class UserProfileRepository : Repository<ApplicationUser>, IUserProfileRe
     public override async Task UpdateAsync(ApplicationUser entity)
     {
         using var context = CreateContext();
-        context.Users.Update(entity);
+        // Use Entry().State instead of Update() to avoid traversing nav props
+        context.Entry(entity).State = EntityState.Modified;
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task<ApplicationUser?> GetByUsernameAsync(string username)
     {
-        return await _context.Users
+        using var context = CreateContext();
+        return await context.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.UserName == username);
     }
 
     public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
     {
-        return await _context.Users
+        using var context = CreateContext();
+        return await context.Users
             .AsNoTracking()
             .ToListAsync();
     }
