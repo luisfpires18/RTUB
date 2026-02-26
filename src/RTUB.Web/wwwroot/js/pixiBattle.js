@@ -1981,10 +1981,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ────────────────────── Cleanup ────────────────────────────────── */
     destroy() {
-      var _a;
+      var _a, _b, _c;
       this._destroyed = true;
       this.battleFinished = true;
       this.isPlaying = false;
+      stopMusic(this.musicState);
+      this.musicState = null;
       if (this._onContextLost && ((_a = this.app) == null ? void 0 : _a.canvas)) {
         this.app.canvas.removeEventListener("webglcontextlost", this._onContextLost);
       }
@@ -2011,9 +2013,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         }
         try {
+          if (this.app.renderer) {
+            try {
+              (_c = (_b = this.app.renderer).destroy) == null ? void 0 : _c.call(_b);
+            } catch {
+            }
+            this.app.renderer = null;
+          }
           this.app.destroy(false);
-        } catch (e) {
-          console.warn("Error destroying PixiJS app:", e);
+        } catch {
         }
         this.app = null;
         this.stage = null;
@@ -2074,14 +2082,26 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     stopMusic(musicState);
     musicState = null;
   }
+  function applyBattleSpeed(battleData) {
+    if (!activeScene) return;
+    const d = battleData;
+    const speed = d.BattleSpeed ?? d.battleSpeed ?? 1;
+    if (speed !== 1) {
+      const allowedSpeeds = [1, 5];
+      const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+      activeScene._battleSpeed = validSpeed;
+    }
+  }
   window.myTunoGame = {
     startBattle: (hostId, battleData) => {
       destroyBattle();
       activeScene = createGame(hostId, battleData, "live");
+      applyBattleSpeed(battleData);
     },
     startReplay: (hostId, battleData) => {
       destroyBattle();
       activeScene = createGame(hostId, battleData, "replay");
+      applyBattleSpeed(battleData);
     },
     setReplayPlaying: (isPlaying) => {
       activeScene == null ? void 0 : activeScene.setReplayPlaying(isPlaying);

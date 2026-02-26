@@ -88,6 +88,59 @@
                             }
                         </h5>
                     </div>
+
+                    @* ── Compact rewards strip (matching Stage mode top bar) ── *@
+                    @if (bossesCleared > 0)
+                    {
+                        <div class="battle-rewards-strip">
+                            <span class="reward-tag reward-tag--fidelis">
+                                <i class="bi bi-coin"></i> @Fmt(totalFidelisEarned) Fidelis
+                            </span>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink" style="color: #ff9800;">
+                                    <i class="bi bi-piggy-bank"></i> @totalLeitaoDropped Leitão
+                                </span>
+                            }
+                            @if (totalFinosDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalFinosDropped) Fino
+                                </span>
+                            }
+                            @if (totalCanecasDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalCanecasDropped) Caneca
+                                </span>
+                            }
+                            @if (totalCigarrosDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cloud"></i> @Fmt(totalCigarrosDropped) Cigarro
+                                </span>
+                            }
+                            @if (totalCanhaosDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-bullseye"></i> @Fmt(totalCanhaosDropped) Canhão
+                                </span>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup"></i> @totalShotsDropped Shot
+                                </span>
+                            }
+                            @if (totalPenaltiesDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-lightning-charge-fill"></i> @totalPenaltiesDropped Penalty
+                                </span>
+                            }
+                        </div>
+                    }
+
                     <div class="battle-controls">
                         <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
                         <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
@@ -986,13 +1039,20 @@
             return Task.FromResult("{}");
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(new { spells = cooldowns }, _spellJsonOptions));
+    }
 
-        var result = new Dictionary<string, object>
-        {
-            ["spells"] = cooldowns,
-            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
-        };
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    /// <summary>
+    /// Called by JS to tick consumable cooldowns using real elapsed time (not battle-speed-scaled).
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnTickConsumableCooldowns(double realElapsedSeconds)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var cooldowns = CombatActionService.TickConsumableCooldowns(_combatSession, realElapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
     }
 
     /// <summary>

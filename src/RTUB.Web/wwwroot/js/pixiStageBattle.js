@@ -2942,7 +2942,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Destroy ──────────────────────────────────────── */
     destroy() {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e;
       this._destroyed = true;
       this.battleFinished = true;
       this.isPlaying = false;
@@ -2988,9 +2988,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       } catch {
       }
       try {
+        if (this.app.renderer) {
+          try {
+            (_e = (_d = this.app.renderer).destroy) == null ? void 0 : _e.call(_d);
+          } catch {
+          }
+          this.app.renderer = null;
+        }
         this.app.destroy(false);
-      } catch (e) {
-        console.warn("PixiJS app.destroy error (safe to ignore):", e.message);
+      } catch {
       }
       this.app = null;
       this.stage = null;

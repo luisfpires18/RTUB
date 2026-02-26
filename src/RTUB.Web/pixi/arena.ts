@@ -75,14 +75,27 @@ function destroyBattle(): void {
   musicState = null;
 }
 
+function applyBattleSpeed(battleData: ArenaBattleData): void {
+  if (!activeScene) return;
+  const d = battleData as Record<string, unknown>;
+  const speed = (d.BattleSpeed ?? d.battleSpeed ?? 1) as number;
+  if (speed !== 1) {
+    const allowedSpeeds = [1, 5];
+    const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+    (activeScene as unknown as { _battleSpeed: number })._battleSpeed = validSpeed;
+  }
+}
+
 window.myTunoGame = {
   startBattle: (hostId: string, battleData: ArenaBattleData) => {
     destroyBattle();
     activeScene = createGame(hostId, battleData, 'live');
+    applyBattleSpeed(battleData);
   },
   startReplay: (hostId: string, battleData: ArenaBattleData) => {
     destroyBattle();
     activeScene = createGame(hostId, battleData, 'replay');
+    applyBattleSpeed(battleData);
   },
   setReplayPlaying: (isPlaying: boolean) => {
     activeScene?.setReplayPlaying(isPlaying);

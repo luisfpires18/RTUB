@@ -522,3 +522,41 @@
     font-size: 1.5rem;
   }
 }
+
+/* ── Compact rewards strip (matching Stage mode style) ── */
+
+.battle-rewards-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.reward-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.reward-tag i {
+    font-size: 0.6rem;
+}
+
+.reward-tag--fidelis {
+    background: rgba(124, 77, 255, 0.35);
+    border: 1px solid rgba(124, 77, 255, 0.5);
+}
+
+.reward-tag--drink {
+    background: rgba(245, 166, 35, 0.35);
+    border: 1px solid rgba(245, 166, 35, 0.5);
+}

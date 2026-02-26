@@ -1578,6 +1578,10 @@ export class ArenaBattleScene implements VfxOwner {
     this.battleFinished = true;
     this.isPlaying = false;
 
+    // Stop background music owned by this scene
+    stopMusic(this.musicState);
+    this.musicState = null;
+
     // Remove event listeners
     if (this._onContextLost && this.app?.canvas) {
       this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);
@@ -1616,9 +1620,17 @@ export class ArenaBattleScene implements VfxOwner {
       }
 
       try {
+        // Detach renderer before destroy to prevent GPU buffer null-ref
+        // errors when the WebGL context is already lost (e.g. end-early / navigation).
+        if ((this.app as unknown as Record<string, unknown>).renderer) {
+          try {
+            (this.app.renderer as { destroy?: () => void }).destroy?.();
+          } catch { /* context already lost — safe */ }
+          (this.app as unknown as Record<string, unknown>).renderer = null!;
+        }
         this.app.destroy(false);
-      } catch (e) {
-        console.warn('Error destroying PixiJS app:', e);
+      } catch {
+        // Swallow — app is being torn down regardless
       }
       this.app = null;
       this.stage = null;
