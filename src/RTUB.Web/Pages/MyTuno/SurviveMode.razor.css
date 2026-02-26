@@ -35,6 +35,7 @@
     height: 100% !important;
 }
 
+/* ─── Top Bar (mirrors Stage) ─── */
 .battle-top-bar {
     position: absolute;
     top: 0;
@@ -42,10 +43,187 @@
     right: 0;
     z-index: 10;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent);
+    gap: 6px;
+    padding: 6px 10px;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+    min-height: 44px;
+    flex-wrap: nowrap;
+}
+
+.battle-back-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.battle-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.battle-floor-indicator {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 36px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.floor-num {
+    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.floor-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 1px;
+}
+
+.battle-rewards-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.reward-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.reward-tag i {
+    font-size: 0.6rem;
+}
+
+.reward-tag--level {
+    background: rgba(67, 160, 71, 0.35);
+    border: 1px solid rgba(67, 160, 71, 0.5);
+}
+
+.reward-tag--kills {
+    background: rgba(0, 188, 212, 0.35);
+    border: 1px solid rgba(0, 188, 212, 0.5);
+}
+
+.reward-tag--coins {
+    background: rgba(255, 193, 7, 0.35);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.battle-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.battle-ctrl-btn {
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0 4px;
+}
+
+.battle-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.battle-ctrl-btn--audio {
+    color: rgba(255, 193, 7, 0.8);
+}
+
+.battle-ctrl-btn--stop {
+    color: rgba(255, 68, 68, 0.8);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.battle-ctrl-btn--stop:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+}
+
+/* ─── Buff Indicators (below top bar) ─── */
+.battle-buffs-strip {
+    position: absolute;
+    top: 50px;
+    top: calc(50px + env(safe-area-inset-top, 0px));
+    left: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+}
+
+.buff-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+.buff-tag--dodge {
+    background: rgba(0, 188, 212, 0.4);
+    border: 1px solid rgba(0, 188, 212, 0.6);
+}
+
+.buff-tag--aoe {
+    background: rgba(239, 83, 80, 0.4);
+    border: 1px solid rgba(239, 83, 80, 0.6);
+}
+
+.buff-tag--penalty {
+    background: rgba(13, 202, 240, 0.4);
+    border: 1px solid rgba(13, 202, 240, 0.6);
 }
 
 /* Re-use biome card styles from stage modal */
@@ -225,15 +403,6 @@
 }
 
 @media (max-width: 576px) {
-    .battle-card .card-header h5 {
-        font-size: 0.9rem;
-    }
-
-    .btn-group-sm .btn {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
     .defeat-panel {
         max-width: 300px;
         padding: 2.5rem 1rem 1rem;

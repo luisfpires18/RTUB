@@ -67,70 +67,71 @@
         {
             <div class="battle-screen">
                 <div id="surviveGameContainer" class="battle-canvas"></div>
+
+                @* ── TOP BAR: Back + Level (center) + Stats + Controls ── *@
                 <div class="battle-top-bar">
-                    <div class="d-flex align-items-center gap-2">
-                        <h5 class="mb-0 text-white">
-                            <i class="bi bi-bullseye text-danger me-2"></i>
-                            Level @currentLevel — @currentBiomeName
-                        </h5>
-                    </div>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
-                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
-                            <i class="bi bi-stop-fill me-1"></i>Acabar
-                        </button>
-                    </div>
-                </div>
-            </div>
+                    <button class="battle-back-btn" @onclick="GoBack" title="Voltar">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
 
-            @* ─── Active Buff Indicators ─── *@
-            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
-            {
-                <div class="d-flex gap-2 mb-3 flex-wrap">
-                    @if (character.CigarroShieldHitsRemaining > 0)
-                    {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-wind me-1"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge @character.CigarroShieldHitsRemaining runs
-                        </span>
-                    }
-                    @if (character.HasCanhaoBuff)
-                    {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>AOE @character.CanhaoBuffRemainingFormatted
-                        </span>
-                    }
-                    @if (character.HasPenaltyBuff)
-                    {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal @((character.EffectivePenaltyLifesteal * 100).ToString("F1"))% HP @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
-                        </span>
-                    }
-                </div>
-            }
-
-            @* ─── Run Stats (no rewards in survive mode) ─── *@
-            @if (levelsCompleted > 0)
-            {
-                <div class="card mb-3">
-                    <div class="card-header bg-dark text-white">
-                        <i class="bi bi-graph-up me-2"></i>Progresso (Nível @levelsCompleted completados)
+                    <div class="battle-floor-indicator">
+                        <span class="floor-label">LEVEL</span>
+                        <span class="floor-num">@currentLevel</span>
                     </div>
-                    <div class="card-body">
-                        <div class="d-flex gap-3 flex-wrap">
+
+                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0)
+                    {
+                        <div class="battle-rewards-strip">
+                            @if (levelsCompleted > 0)
+                            {
+                                <span class="reward-tag reward-tag--level">
+                                    <i class="bi bi-check-circle-fill"></i> @Fmt(levelsCompleted) Levels
+                                </span>
+                            }
                             @if (totalEnemiesKilled > 0)
                             {
-                                <span class="badge bg-secondary"><i class="bi bi-crosshair me-1"></i>@totalEnemiesKilled Inimigos</span>
+                                <span class="reward-tag reward-tag--kills">
+                                    <i class="bi bi-crosshair"></i> @Fmt(totalEnemiesKilled)
+                                </span>
                             }
                             @if (totalCoinsCollected > 0)
                             {
-                                <span class="badge bg-warning text-dark">🪙 @totalCoinsCollected Moedas</span>
+                                <span class="reward-tag reward-tag--coins">
+                                    <i class="bi bi-coin"></i> @Fmt(totalCoinsCollected)
+                                </span>
                             }
                         </div>
+                    }
+
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--stop" @onclick="EndRunEarly" title="Acabar">
+                            <i class="bi bi-stop-fill"></i>
+                        </button>
                     </div>
                 </div>
-            }
+
+                @* ── Active Buff Indicators (below top bar) ── *@
+                @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
+                {
+                    <div class="battle-buffs-strip">
+                        @if (character.CigarroShieldHitsRemaining > 0)
+                        {
+                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge</span>
+                        }
+                        @if (character.HasCanhaoBuff)
+                        {
+                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>AOE</span>
+                        }
+                        @if (character.HasPenaltyBuff)
+                        {
+                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>Lifesteal</span>
+                        }
+                    </div>
+                }
+            </div>
         }
 
         @* ─── End Summary (mirrors Stage defeat-overlay) ─── *@
@@ -169,9 +170,14 @@
                     {
                         <p class="defeat-no-rewards">Nenhum nível completado.</p>
                     }
-                    <button class="defeat-btn" @onclick="DefeatGoBack">
-                        IR MY TUNO
-                    </button>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="defeat-btn" @onclick="RetryRun">
+                            <i class="bi bi-arrow-clockwise me-1"></i>RECOMEÇAR
+                        </button>
+                        <button class="defeat-btn" @onclick="DefeatGoBack">
+                            IR MY TUNO
+                        </button>
+                    </div>
                 </div>
             </div>
         }
@@ -516,6 +522,26 @@
             try { await JSRuntime.InvokeVoidAsync("surviveModeGame.setAudioEnabled", audioEnabled); }
             catch { }
         }
+    }
+
+    private async Task RetryRun()
+    {
+        showDefeatSummary = false;
+        ResetRunTotals();
+        StateHasChanged();
+
+        // Destroy any lingering JS scene
+        try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
+        catch { /* scene may already be gone */ }
+
+        // Reload character and restart
+        if (character != null && currentUser != null)
+        {
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            await RefreshCurrentUserAsync();
+        }
+
+        await AutoStartRun();
     }
 
     private void DefeatGoBack()
