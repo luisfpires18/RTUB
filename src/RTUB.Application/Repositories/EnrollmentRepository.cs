@@ -44,11 +44,10 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
         if (entity.EventId > 0)
             await context.Events.FindAsync(entity.EventId);
 
-        // Clear navigation properties to avoid attaching stale related entities
-        entity.User = null!;
-        entity.Event = null!;
-
-        context.Enrollments.Update(entity);
+        var tracked = await context.Enrollments.FindAsync(entity.Id)
+            ?? throw new InvalidOperationException(
+                $"Enrollment with Id {entity.Id} not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
         await context.SaveChangesAsync();
     }
 

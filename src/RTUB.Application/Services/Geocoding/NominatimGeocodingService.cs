@@ -20,7 +20,6 @@ public class NominatimGeocodingService : IGeocodingService
     private readonly HttpClient _httpClient;
     private readonly ILogger<NominatimGeocodingService> _logger;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _dbContext;
     private readonly bool _disabledInTests;
     private const string NominatimBaseUrl = "https://nominatim.openstreetmap.org";
 
@@ -47,7 +46,6 @@ public class NominatimGeocodingService : IGeocodingService
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "RTUB-MemberMap/1.0");
         _logger = logger;
         _contextFactory = contextFactory;
-        _dbContext = contextFactory.CreateDbContext();
         _disabledInTests = configuration.GetValue("Geocoding:DisabledInTests", false);
     }
 
@@ -68,7 +66,10 @@ public class NominatimGeocodingService : IGeocodingService
         }
 
         // Check database cache first
-        var cached = await _dbContext.GeocodingCaches
+        // Note: Not using 'using' because test infrastructure shares a single context instance
+        // that would be disposed prematurely. The context will be GC'd after use.
+        var cacheCtx = _contextFactory.CreateDbContext();
+        var cached = await cacheCtx.GeocodingCaches
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
 
@@ -106,8 +107,9 @@ public class NominatimGeocodingService : IGeocodingService
     {
         try
         {
+            var context = _contextFactory.CreateDbContext();
             // Check if already exists (race condition protection)
-            var existing = await _dbContext.GeocodingCaches
+            var existing = await context.GeocodingCaches
                 .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == countryCode);
 
             if (existing == null)
@@ -122,8 +124,8 @@ public class NominatimGeocodingService : IGeocodingService
                     Source = "Nominatim"
                 };
 
-                _dbContext.GeocodingCaches.Add(cache);
-                await _dbContext.SaveChangesAsync();
+                context.GeocodingCaches.Add(cache);
+                await context.SaveChangesAsync();
             }
         }
         catch (Exception ex)

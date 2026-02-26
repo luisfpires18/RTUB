@@ -21,7 +21,6 @@ namespace RTUB.Application.Services;
 public class CloudflareDocumentStorageService : BaseCloudflareStorageService<CloudflareDocumentStorageService>, IDocumentStorageService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly int _urlExpirationMinutes;
     private const int S3_MAX_DELETE_BATCH_SIZE = 1000; // S3 allows max 1000 objects per delete batch
@@ -37,7 +36,6 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         : base(s3Client, configuration, hostEnvironment, logger)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
-        _context = contextFactory.CreateDbContext();
         _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
         _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
     }
@@ -329,7 +327,8 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
     {
         try
         {
-            _context.AuditLogs.Add(new AuditLog
+            using var auditCtx = _contextFactory.CreateDbContext();
+            auditCtx.AuditLogs.Add(new AuditLog
             {
                 EntityType = entityType,
                 EntityId = null,
@@ -341,7 +340,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
                 EntityDisplayName = entityDisplayName,
                 IsCriticalAction = isCritical
             });
-            await _context.SaveChangesAsync();
+            await auditCtx.SaveChangesAsync();
         }
         catch (Exception ex)
         {

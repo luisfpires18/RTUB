@@ -13,12 +13,10 @@ namespace RTUB.Application.Services;
 public class UserRoleQueryService : IUserRoleQueryService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
 
     public UserRoleQueryService(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
-        _context = contextFactory.CreateDbContext();
     }
 
     /// <summary>
@@ -39,9 +37,10 @@ public class UserRoleQueryService : IUserRoleQueryService
         //     .Join(DbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
         //     .ToListAsync();
 
-        var userRoles = await _context.UserRoles
+        var ctx = _contextFactory.CreateDbContext();
+        var userRoles = await ctx.UserRoles
             .Where(ur => userIds.Contains(ur.UserId))
-            .Join(_context.Roles,
+            .Join(ctx.Roles,
                   ur => ur.RoleId,
                   r => r.Id,
                   (ur, r) => new UserRoleDto

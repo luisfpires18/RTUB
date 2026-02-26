@@ -19,7 +19,6 @@ public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly IImageStorageService _imageStorageService;
     private readonly ILeaderboardCommentRepository _leaderboardCommentRepository;
     private readonly ICommentRepository _commentRepository;
@@ -41,7 +40,6 @@ public class UserProfileService : IUserProfileService
     {
         _userManager = userManager;
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
-        _context = contextFactory.CreateDbContext();
         _imageStorageService = imageStorageService;
         _leaderboardCommentRepository = leaderboardCommentRepository;
         _commentRepository = commentRepository;
@@ -225,59 +223,61 @@ public class UserProfileService : IUserProfileService
             // (prevents FK violations in cascade chains)
             // ===================================================================
 
+            var ctx = _contextFactory.CreateDbContext();
+
             // Delete GalleryMediaPersonTags for media uploaded by this user (before GalleryMedia)
-            var uploadedMediaIds = await _context.GalleryMedia
+            var uploadedMediaIds = await ctx.GalleryMedia
                 .Where(gm => gm.UploaderId == userId)
                 .Select(gm => gm.Id)
                 .ToListAsync();
             if (uploadedMediaIds.Count > 0)
             {
-                await _context.GalleryMediaPersonTags
+                await ctx.GalleryMediaPersonTags
                     .Where(t => uploadedMediaIds.Contains(t.GalleryMediaId))
                     .ExecuteDeleteAsync();
             }
 
             // Delete NaipeComments and NaipePlayCounts for NaipeContents created by this user
-            var userNaipeContentIds = await _context.NaipeContents
+            var userNaipeContentIds = await ctx.NaipeContents
                 .Where(nc => nc.CreatedByUserId == userId)
                 .Select(nc => nc.Id)
                 .ToListAsync();
             if (userNaipeContentIds.Count > 0)
             {
-                await _context.NaipeComments
+                await ctx.NaipeComments
                     .Where(nc => userNaipeContentIds.Contains(nc.NaipeContentId))
                     .ExecuteDeleteAsync();
-                await _context.NaipePlayCounts
+                await ctx.NaipePlayCounts
                     .Where(pc => userNaipeContentIds.Contains(pc.NaipeContentId))
                     .ExecuteDeleteAsync();
             }
 
             // Delete QuestionReplies for Questions authored by or assigned to this user
-            var userQuestionIds = await _context.Questions
+            var userQuestionIds = await ctx.Questions
                 .Where(q => q.AuthorId == userId || q.AssignedMemberId == userId)
                 .Select(q => q.Id)
                 .ToListAsync();
             if (userQuestionIds.Count > 0)
             {
-                await _context.QuestionReplies
+                await ctx.QuestionReplies
                     .Where(qr => userQuestionIds.Contains(qr.QuestionId))
                     .ExecuteDeleteAsync();
             }
 
             // Delete MeetingAta child entities for atas where PresidentUserId = userId
-            var userPresidedAtaIds = await _context.MeetingAtas
+            var userPresidedAtaIds = await ctx.MeetingAtas
                 .Where(ma => ma.PresidentUserId == userId)
                 .Select(ma => ma.Id)
                 .ToListAsync();
             if (userPresidedAtaIds.Count > 0)
             {
-                await _context.MeetingAtaAgendaPoints
+                await ctx.MeetingAtaAgendaPoints
                     .Where(ap => userPresidedAtaIds.Contains(ap.MeetingAtaId))
                     .ExecuteDeleteAsync();
-                await _context.MeetingAtaAttachments
+                await ctx.MeetingAtaAttachments
                     .Where(a => userPresidedAtaIds.Contains(a.MeetingAtaId))
                     .ExecuteDeleteAsync();
-                await _context.MeetingAtaConfirmations
+                await ctx.MeetingAtaConfirmations
                     .Where(c => userPresidedAtaIds.Contains(c.MeetingAtaId))
                     .ExecuteDeleteAsync();
             }
@@ -321,55 +321,55 @@ public class UserProfileService : IUserProfileService
                 await _postRepository.DeleteAsync(post);
 
             // BetComments by AuthorId
-            await _context.BetComments
+            await ctx.BetComments
                 .Where(bc => bc.AuthorId == userId)
                 .ExecuteDeleteAsync();
 
             // BetOptions - set nullable MemberAId/MemberBId to null
-            await _context.BetOptions
+            await ctx.BetOptions
                 .Where(bo => bo.MemberAId == userId)
                 .ExecuteUpdateAsync(s => s.SetProperty(bo => bo.MemberAId, (string?)null));
-            await _context.BetOptions
+            await ctx.BetOptions
                 .Where(bo => bo.MemberBId == userId)
                 .ExecuteUpdateAsync(s => s.SetProperty(bo => bo.MemberBId, (string?)null));
 
             // EventVideos by CreatedByUserId
-            await _context.EventVideos
+            await ctx.EventVideos
                 .Where(ev => ev.CreatedByUserId == userId)
                 .ExecuteDeleteAsync();
 
             // GalleryMediaPersonTags where UserId = this user (tags of this user in other media)
-            await _context.GalleryMediaPersonTags
+            await ctx.GalleryMediaPersonTags
                 .Where(t => t.UserId == userId)
                 .ExecuteDeleteAsync();
 
             // GalleryMedia by UploaderId (person tags already deleted in Phase 1)
-            await _context.GalleryMedia
+            await ctx.GalleryMedia
                 .Where(gm => gm.UploaderId == userId)
                 .ExecuteDeleteAsync();
 
             // NaipeComments by AuthorId (comments this user made on any content)
-            await _context.NaipeComments
+            await ctx.NaipeComments
                 .Where(nc => nc.AuthorId == userId)
                 .ExecuteDeleteAsync();
 
             // NaipeContents by CreatedByUserId (children deleted in Phase 1)
-            await _context.NaipeContents
+            await ctx.NaipeContents
                 .Where(nc => nc.CreatedByUserId == userId)
                 .ExecuteDeleteAsync();
 
             // QuestionReplies by AuthorId
-            await _context.QuestionReplies
+            await ctx.QuestionReplies
                 .Where(qr => qr.AuthorId == userId)
                 .ExecuteDeleteAsync();
 
             // Questions by AuthorId or AssignedMemberId (children deleted in Phase 1)
-            await _context.Questions
+            await ctx.Questions
                 .Where(q => q.AuthorId == userId || q.AssignedMemberId == userId)
                 .ExecuteDeleteAsync();
 
             // SongVideos by CreatedByUserId
-            await _context.SongVideos
+            await ctx.SongVideos
                 .Where(sv => sv.CreatedByUserId == userId)
                 .ExecuteDeleteAsync();
 
@@ -399,15 +399,15 @@ public class UserProfileService : IUserProfileService
                 await _meetingRequestRepository.DeleteAsync(meetingRequest);
 
             // MeetingAtas - delete where PresidentUserId = userId (required field, children deleted in Phase 1)
-            await _context.MeetingAtas
+            await ctx.MeetingAtas
                 .Where(ma => ma.PresidentUserId == userId)
                 .ExecuteDeleteAsync();
 
             // MeetingAtas - set nullable secretary fields to null
-            await _context.MeetingAtas
+            await ctx.MeetingAtas
                 .Where(ma => ma.FirstSecretaryUserId == userId)
                 .ExecuteUpdateAsync(s => s.SetProperty(ma => ma.FirstSecretaryUserId, (string?)null));
-            await _context.MeetingAtas
+            await ctx.MeetingAtas
                 .Where(ma => ma.SecondSecretaryUserId == userId)
                 .ExecuteUpdateAsync(s => s.SetProperty(ma => ma.SecondSecretaryUserId, (string?)null));
 
@@ -417,7 +417,7 @@ public class UserProfileService : IUserProfileService
             // ===================================================================
 
             // LogisticsCards - set AssignedToUserId to null
-            await _context.LogisticsCards
+            await ctx.LogisticsCards
                 .Where(lc => lc.AssignedToUserId == userId)
                 .ExecuteUpdateAsync(s => s.SetProperty(lc => lc.AssignedToUserId, (string?)null));
 
@@ -452,7 +452,8 @@ public class UserProfileService : IUserProfileService
         if (string.IsNullOrWhiteSpace(userId))
             return Enumerable.Empty<MemberCategory>();
 
-        var user = await _context.Users
+        var ctx = _contextFactory.CreateDbContext();
+        var user = await ctx.Users
             .AsNoTracking()
             .Where(u => u.Id == userId)
             .Select(u => u.Categories)

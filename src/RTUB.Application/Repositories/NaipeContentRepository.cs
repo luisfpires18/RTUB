@@ -54,7 +54,8 @@ public class NaipeContentRepository : Repository<NaipeContent>, INaipeContentRep
 
     public async Task<int> GetPlayCountAsync(int contentId)
     {
-        return await _context.NaipePlayCounts
+        using var context = CreateContext();
+        return await context.NaipePlayCounts
             .Where(pc => pc.NaipeContentId == contentId)
             .CountAsync();
     }

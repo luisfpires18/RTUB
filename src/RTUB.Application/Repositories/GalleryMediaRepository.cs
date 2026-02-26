@@ -13,7 +13,8 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
 
     public async Task<IEnumerable<GalleryMedia>> GetAllWithDetailsAsync(int? year = null, string? personId = null, bool? isAuthenticated = null)
     {
-        var query = _context.GalleryMedia
+        using var context = CreateContext();
+        var query = context.GalleryMedia
             .Include(m => m.Uploader)
             .Include(m => m.PeopleInMedia)
                 .ThenInclude(p => p.User)
@@ -46,7 +47,8 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
 
     public async Task<GalleryMedia?> GetByIdWithDetailsAsync(int id)
     {
-        return await _context.GalleryMedia
+        using var context = CreateContext();
+        return await context.GalleryMedia
             .Include(m => m.Uploader)
             .Include(m => m.PeopleInMedia)
                 .ThenInclude(p => p.User)
@@ -56,7 +58,8 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
 
     public async Task<IEnumerable<int>> GetAvailableYearsAsync(bool? isAuthenticated = null)
     {
-        var query = _context.GalleryMedia.AsQueryable();
+        using var context = CreateContext();
+        var query = context.GalleryMedia.AsQueryable();
 
         // Filter by privacy: if user is not authenticated, only show public media
         if (isAuthenticated.HasValue && !isAuthenticated.Value)
@@ -80,7 +83,8 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
         bool? isAuthenticated = null,
         string? titleSearch = null)
     {
-        var query = _context.GalleryMedia
+        using var context = CreateContext();
+        var query = context.GalleryMedia
             .Include(m => m.Uploader)
             .Include(m => m.PeopleInMedia)
                 .ThenInclude(p => p.User)

@@ -112,16 +112,10 @@ public class AlbumService : IAlbumService
         // Create the album as exclusive
         var album = await CreateAlbumAsync(title, year, description, imageUrl, isPrivate: false, isExclusive: true);
 
-        // Add authorized users to the access list (batch without saving each time)
+        // Add authorized users to the access list
         foreach (var userId in validUserIds)
         {
-            await _albumRepository.AddAlbumAccessAsync(album.Id, userId, saveChanges: false);
-        }
-
-        // Save all access entries in a single transaction
-        if (validUserIds.Count > 0)
-        {
-            await _albumRepository.SaveChangesAsync();
+            await _albumRepository.AddAlbumAccessAsync(album.Id, userId);
         }
 
         return album;
@@ -161,20 +155,17 @@ public class AlbumService : IAlbumService
         // Get current authorized users
         var currentUserIds = (await _albumRepository.GetAuthorizedUserIdsAsync(albumId)).ToHashSet();
 
-        // Remove users that are no longer authorized (batch without saving each time)
+        // Remove users that are no longer authorized
         foreach (var userId in currentUserIds.Where(id => !validUserIds.Contains(id)))
         {
-            await _albumRepository.RemoveAlbumAccessAsync(albumId, userId, saveChanges: false);
+            await _albumRepository.RemoveAlbumAccessAsync(albumId, userId);
         }
 
-        // Add new authorized users (batch without saving each time)
+        // Add new authorized users
         foreach (var userId in validUserIds.Where(id => !currentUserIds.Contains(id)))
         {
-            await _albumRepository.AddAlbumAccessAsync(albumId, userId, saveChanges: false);
+            await _albumRepository.AddAlbumAccessAsync(albumId, userId);
         }
-
-        // Save all changes in a single transaction
-        await _albumRepository.SaveChangesAsync();
     }
 
     /// <summary>

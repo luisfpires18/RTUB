@@ -124,22 +124,27 @@ public class BossModeService : IBossModeService
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
 
-        // Deduct 1 FITAB using a short-lived context to avoid change tracker pollution.
-        // In Blazor Server, the scoped DbContext is long-lived (per circuit). Using a separate
-        // context for user balance updates prevents stale ConcurrencyStamp issues.
-        await using (var fitabContext = _contextFactory.CreateDbContext())
+        // Deduct 1 FITAB and start the run atomically on a single context
+        // to prevent FITAB loss if the progress update fails.
+        await using (var ctx = _contextFactory.CreateDbContext())
         {
-            var freshUser = await fitabContext.Users.FindAsync(new object[] { user.Id }, cancellationToken);
+            var freshUser = await ctx.Users.FindAsync(new object[] { user.Id }, cancellationToken);
             if (freshUser == null || freshUser.FitabBalance < 1)
                 throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
             freshUser.FitabBalance -= 1;
-            await fitabContext.SaveChangesAsync(cancellationToken);
             user.FitabBalance = freshUser.FitabBalance;
-        }
 
-        // Start new run
-        existingProgress.StartRun();
-        await _bossModeProgressRepository.UpdateAsync(existingProgress);
+            // Load progress from the same context for atomic save
+            var freshProgress = await ctx.Set<BossModeProgress>().FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+            if (freshProgress != null)
+            {
+                freshProgress.StartRun();
+                await ctx.SaveChangesAsync(cancellationToken);
+                // Copy back the updated values to existingProgress for the return value
+                existingProgress.CurrentBossStage = freshProgress.CurrentBossStage;
+                existingProgress.TotalRunsAttempted = freshProgress.TotalRunsAttempted;
+            }
+        }
 
         _logger.LogInformation(
             "User {UserName} started Boss Mode run #{Run}. FITAB balance: {Balance}",

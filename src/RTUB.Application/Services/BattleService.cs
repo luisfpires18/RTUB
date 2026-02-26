@@ -32,7 +32,6 @@ public class BattleService : IBattleService
     private readonly IAuditLogService _auditLogService;
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _dbContext;
 
     public BattleService(
         ICharacterRepository characterRepository,
@@ -54,7 +53,6 @@ public class BattleService : IBattleService
         _auditLogService = auditLogService;
         _stageProgressRepository = stageProgressRepository;
         _contextFactory = contextFactory;
-        _dbContext = contextFactory.CreateDbContext();
     }
 
     /// <summary>
@@ -228,16 +226,13 @@ public class BattleService : IBattleService
 
         // Arena battles no longer award XP or Fidelis — only rating
         // (kept for drop logic below)
-        var user = await _dbContext.Users.FindAsync(new object[] { playerCharacter.UserId }, cancellationToken);
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
         // Roll for consumable drops and FITAB if player won
-        // (drops are saved by AddItemsAsync — acceptable extra round-trip since
-        // it does upsert logic; we already batched user + character into one save)
         if (result.Outcome == BattleOutcome.AttackerWon)
         {
-            await TryDropConsumablesAsync(playerCharacter.UserId, user, cancellationToken);
+            await TryDropConsumablesAsync(playerCharacter.UserId, cancellationToken);
         }
 
         return true;
@@ -309,7 +304,7 @@ public class BattleService : IBattleService
     /// Rolls for consumable drops (Fino, Caneca, Cigarro, Canhão) and adds to player's inventory if successful.
     /// Accepts an already-loaded user entity to batch FITAB changes without an extra round-trip.
     /// </summary>
-    private async Task TryDropConsumablesAsync(string userId, ApplicationUser? user, CancellationToken cancellationToken = default)
+    private async Task TryDropConsumablesAsync(string userId, CancellationToken cancellationToken = default)
     {
         var rewards = _myTunoScalingConfig.BattleRewards;
 
@@ -341,12 +336,17 @@ public class BattleService : IBattleService
         if (drops.Count > 0)
             await _inventoryRepository.AddItemsAsync(userId, drops, cancellationToken);
 
-        // Roll for FITAB drop — use the already-tracked user entity to avoid extra load + save
+        // Roll for FITAB drop — use a fresh context to avoid stale entity issues
         var fitabRoll = Random.Shared.NextDouble();
-        if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle && user != null)
+        if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
         {
-            user.FitabBalance++;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            using var ctx = _contextFactory.CreateDbContext();
+            var user = await ctx.Users.FindAsync(new object[] { userId }, cancellationToken);
+            if (user != null)
+            {
+                user.FitabBalance++;
+                await ctx.SaveChangesAsync(cancellationToken);
+            }
         }
     }
     

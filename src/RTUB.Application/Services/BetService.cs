@@ -258,7 +258,7 @@ public class BetService : IBetService
         if (user.FidelisBalance < fidelisAmount)
             throw new InvalidOperationException("Saldo de Fidelis insuficiente");
 
-    // Deduct amount from user balance using fresh DbContext
+    // Deduct amount and create bet atomically on a single context
         using (var ctx = _contextFactory.CreateDbContext())
         {
             var freshUser = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -270,12 +270,14 @@ public class BetService : IBetService
 
             freshUser.FidelisBalance -= fidelisAmount;
             freshUser.ConcurrencyStamp = Guid.NewGuid().ToString();
-            await ctx.SaveChangesAsync();
-        }
 
-        // Create user bet
-        var userBet = UserBet.Create(userId, betId, optionId, fidelisAmount);
-        return await _userBetRepository.AddAsync(userBet);
+            // Create user bet on the same context (atomic with Fidelis deduction)
+            var userBet = UserBet.Create(userId, betId, optionId, fidelisAmount);
+            ctx.Add(userBet);
+
+            await ctx.SaveChangesAsync();
+            return userBet;
+        }
     }
 
     private async Task SendResolvedBetNotificationsAsync(Bet bet, IEnumerable<UserBet> userBets, int winningOptionId)

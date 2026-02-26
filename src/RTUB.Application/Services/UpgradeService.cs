@@ -20,7 +20,6 @@ public class UpgradeService : IUpgradeService
     private readonly ICharacterService _characterService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<UpgradeService>? _logger;
     private readonly MyTunoScalingConfiguration _config;
     private readonly IInventoryRepository _inventoryRepository;
@@ -39,7 +38,6 @@ public class UpgradeService : IUpgradeService
         _characterService = characterService;
         _userManager = userManager;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
         _logger = logger;
         _config = config.Value;
         _inventoryRepository = inventoryRepository;
@@ -111,7 +109,11 @@ public class UpgradeService : IUpgradeService
             throw new ArgumentException("User ID is required", nameof(userId));
 
         // Check if database supports transactions (in-memory doesn't)
-        var supportsTransactions = _context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory";
+        bool supportsTransactions;
+        using (var providerCtx = _contextFactory.CreateDbContext())
+        {
+            supportsTransactions = providerCtx.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory";
+        }
 
         if (!supportsTransactions)
         {
@@ -402,7 +404,6 @@ public class UpgradeService : IUpgradeService
 
             await _userManager.UpdateAsync(user);
             await _characterService.UpdateCharacterAsync(character, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
 
             var newUpgradeCount = statType switch
             {

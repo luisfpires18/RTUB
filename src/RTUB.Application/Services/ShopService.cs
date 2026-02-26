@@ -35,7 +35,7 @@ public class ShopService : IShopService
         if (string.IsNullOrWhiteSpace(userId))
             return (false, "Utilizador inválido.", 0);
 
-        // Use a fresh context to avoid stale ConcurrencyStamp issues (same pattern as BossModeService)
+        // Use a fresh context for atomic FITAB deduction + Leitão addition
         await using var ctx = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
         var user = await ctx.Users.FindAsync([userId], cancellationToken);
@@ -46,10 +46,16 @@ public class ShopService : IShopService
             return (false, $"FITAB insuficiente. Precisas de {FitabPerLeitao} FITAB (tens {user.FitabBalance}).", user.FitabBalance);
 
         user.FitabBalance -= FitabPerLeitao;
-        await ctx.SaveChangesAsync(cancellationToken);
 
-        // Add 1 Leitão to inventory
-        await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Leitao, 1, cancellationToken);
+        // Add 1 Leitão to inventory on the same context (atomic with FITAB deduction)
+        var leitaoItem = await ctx.InventoryItems
+            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == InventoryItemType.Leitao, cancellationToken);
+        if (leitaoItem != null)
+            leitaoItem.AddQuantity(1);
+        else
+            await ctx.InventoryItems.AddAsync(InventoryItem.Create(userId, InventoryItemType.Leitao, 1), cancellationToken);
+
+        await ctx.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("User {UserId} exchanged {Fitab} FITAB for 1 Leitão. New FITAB balance: {Balance}",
             userId, FitabPerLeitao, user.FitabBalance);

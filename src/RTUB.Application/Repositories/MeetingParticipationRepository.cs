@@ -44,11 +44,10 @@ public class MeetingParticipationRepository : Repository<MeetingParticipation>, 
         if (entity.MeetingId > 0)
             await context.Meetings.FindAsync(entity.MeetingId);
 
-        // Clear navigation properties to avoid attaching stale related entities
-        entity.User = null!;
-        entity.Meeting = null!;
-
-        context.MeetingParticipations.Update(entity);
+        var tracked = await context.MeetingParticipations.FindAsync(entity.Id)
+            ?? throw new InvalidOperationException(
+                $"MeetingParticipation with Id {entity.Id} not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
         await context.SaveChangesAsync();
     }
 

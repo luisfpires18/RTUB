@@ -29,7 +29,6 @@ public class NaipeService : INaipeService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IMemoryCache _cache;
@@ -58,7 +57,6 @@ public class NaipeService : INaipeService
         _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
         _auditContext = auditContext;
         _httpContextAccessor = httpContextAccessor;
         _cache = cache;
@@ -190,8 +188,11 @@ public class NaipeService : INaipeService
             PlayedAt = DateTime.UtcNow
         };
 
-        _context.NaipePlayCounts.Add(playCount);
-        await _context.SaveChangesAsync();
+        using (var context = _contextFactory.CreateDbContext())
+        {
+            context.NaipePlayCounts.Add(playCount);
+            await context.SaveChangesAsync();
+        }
 
         // Create audit log (only if user is authenticated to avoid spam)
         if (!string.IsNullOrEmpty(userId))
@@ -342,7 +343,8 @@ public class NaipeService : INaipeService
                 resolvedUserName ??= httpUser?.Identity?.Name ?? httpUser?.FindFirst(ClaimTypes.Name)?.Value;
             }
 
-            _context.AuditLogs.Add(new AuditLog
+            using var auditCtx = _contextFactory.CreateDbContext();
+            auditCtx.AuditLogs.Add(new AuditLog
             {
                 EntityType = "NaipeContent",
                 EntityId = entityId,
@@ -354,7 +356,7 @@ public class NaipeService : INaipeService
                 EntityDisplayName = entityDisplayName,
                 IsCriticalAction = isCritical
             });
-            await _context.SaveChangesAsync();
+            await auditCtx.SaveChangesAsync();
         }
         catch
         {

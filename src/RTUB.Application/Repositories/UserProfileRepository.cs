@@ -19,8 +19,10 @@ public class UserProfileRepository : Repository<ApplicationUser>, IUserProfileRe
     public override async Task UpdateAsync(ApplicationUser entity)
     {
         using var context = CreateContext();
-        // Use Entry().State instead of Update() to avoid traversing nav props
-        context.Entry(entity).State = EntityState.Modified;
+        var tracked = await context.Users.FindAsync(entity.Id)
+            ?? throw new InvalidOperationException(
+                $"ApplicationUser with Id '{entity.Id}' not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 

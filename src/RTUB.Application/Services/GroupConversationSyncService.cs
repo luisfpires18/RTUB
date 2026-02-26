@@ -18,7 +18,6 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     private readonly IConversationRepository _conversationRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<GroupConversationSyncService> _logger;
 
     public GroupConversationSyncService(
@@ -32,7 +31,6 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         _conversationRepository = conversationRepository;
         _userManager = userManager;
         _contextFactory = contextFactory;
-        _dbContext = contextFactory.CreateDbContext();
         _logger = logger;
     }
 
@@ -93,7 +91,8 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         var endYear = startYear + 1;
 
         // Get all users with positions in the current fiscal year
-        var roleAssignments = await _dbContext.RoleAssignments
+        var ctx = _contextFactory.CreateDbContext();
+        var roleAssignments = await ctx.RoleAssignments
             .Include(ra => ra.User)
             .Where(ra => ra.StartYear == startYear && ra.EndYear == endYear)
             .ToListAsync();

@@ -332,8 +332,9 @@ public class SongService : ISongService
             PlayedAt = DateTime.UtcNow
         };
 
-        _context.SongPlayCounts.Add(playCount);
-        await _context.SaveChangesAsync();
+        using var context = _contextFactory.CreateDbContext();
+        context.SongPlayCounts.Add(playCount);
+        await context.SaveChangesAsync();
     }
 
     public async Task<int> GetPlayCountBySongIdAsync(int songId)

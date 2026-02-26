@@ -67,7 +67,8 @@ public class BetRepository : Repository<Bet>, IBetRepository
     {
         // Use ExecuteDeleteAsync to bypass change tracker and delete directly
         // EF Core handles the SQL generation properly
-        await _dbSet
+        using var context = CreateContext();
+        await context.Set<Bet>()
             .Where(b => b.Id == id)
             .ExecuteDeleteAsync();
     }

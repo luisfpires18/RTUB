@@ -25,7 +25,6 @@ public class InventoryService : IInventoryService
     private MyTunoScalingConfiguration _scalingConfig => _scalingOptions.Value;
     private GatheringConfig _gatheringConfig => _scalingConfig.Gathering;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _dbContext;
 
     // Per-user lock to prevent multi-tab energy exploits (race conditions on read-modify-write).
     // Static so it is shared across all scoped InventoryService instances (one per Blazor circuit).
@@ -55,7 +54,6 @@ public class InventoryService : IInventoryService
         _logger = logger;
         _scalingOptions = config;
         _contextFactory = contextFactory;
-        _dbContext = contextFactory.CreateDbContext();
     }
 
     /// <summary>
@@ -709,8 +707,9 @@ public class InventoryService : IInventoryService
         var discardValues = _scalingConfig.StageMode.DiscardValues;
         var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
 
-        // Apply level scaling to discard value
-        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        // Apply level scaling to discard value — use fresh context per operation
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         var level = character?.Level ?? 1;
         var discardScale = 1.0 + level * _scalingConfig.StageMode.DiscardLevelScale;
 
@@ -733,9 +732,7 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, 0, "Erro ao descartar item");
 
-        // Credit Fidelis to user — use fresh DbContext to avoid stale ConcurrencyStamp
-        // from the long-lived Blazor DbContext tracked entity.
-        using var ctx = _contextFactory.CreateDbContext();
+        // Credit Fidelis to user
         var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user != null)
         {
@@ -757,7 +754,8 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, decimal TotalFidelis, int ItemsDiscarded, string Message)> DiscardAllItemsAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         var charLevel = character?.Level ?? 1;
         var discardValues = _scalingConfig.StageMode.DiscardValues;
         var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
@@ -791,7 +789,7 @@ public class InventoryService : IInventoryService
         int totalItems = 0;
 
         // 1. Discard all equipment / instrument items (skip currently equipped types)
-        var equipmentInventory = await _dbContext.InventoryItems
+        var equipmentInventory = await ctx.InventoryItems
             .Where(i => i.UserId == userId && i.Quantity > 0)
             .ToListAsync(cancellationToken);
 
@@ -818,14 +816,14 @@ public class InventoryService : IInventoryService
         }
 
         // 2. Discard all unequipped weapons
-        var unequippedWeapons = await _dbContext.ForgedWeapons
+        var unequippedWeapons = await ctx.ForgedWeapons
             .Where(w => w.UserId == userId && !w.IsEquipped)
             .ToListAsync(cancellationToken);
 
         foreach (var weapon in unequippedWeapons)
         {
             var weaponValue = GetWeaponDiscardValue(weapon, charLevel);
-            _dbContext.ForgedWeapons.Remove(weapon);
+            ctx.ForgedWeapons.Remove(weapon);
             totalFidelis += weaponValue;
             totalItems++;
         }
@@ -836,13 +834,13 @@ public class InventoryService : IInventoryService
         totalFidelis = Math.Round(totalFidelis, 2);
 
         // Credit Fidelis
-        var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        var user = await ctx.Users.FindAsync(new object[] { userId }, cancellationToken);
         if (user != null)
         {
             user.FidelisBalance += totalFidelis;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, totalFidelis, totalItems, $"{totalItems} itens descartados por {totalFidelis:F2} Fidelis!");
     }
@@ -944,15 +942,17 @@ public class InventoryService : IInventoryService
             bonusDefense: (int)Math.Round(weaponStats.Defense * totalMult),
             bonusCriticalChance: bonusCrit);
 
-        _dbContext.ForgedWeapons.Add(weapon);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        var ctx = _contextFactory.CreateDbContext();
+        ctx.ForgedWeapons.Add(weapon);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, weapon, $"Arma forjada: {weaponName}!");
     }
 
     public async Task<List<ForgedWeapon>> GetForgedWeaponsAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.ForgedWeapons
+        var ctx = _contextFactory.CreateDbContext();
+        return await ctx.ForgedWeapons
             .AsNoTracking()
             .Where(w => w.UserId == userId)
             .OrderByDescending(w => w.CreatedAt)
@@ -964,11 +964,12 @@ public class InventoryService : IInventoryService
         if (slot != 1 && slot != 2)
             return (false, "Slot inválido");
 
-        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+        var ctx = _contextFactory.CreateDbContext();
+        var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
         if (weapon == null)
             return (false, "Arma não encontrada");
 
-        var character = await _characterRepository.GetByUserIdAsync(userId);
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null)
             return (false, "Personagem não encontrado");
 
@@ -976,8 +977,8 @@ public class InventoryService : IInventoryService
         if (weapon.IsTwoHanded)
         {
             // Two-handed fills both slots: unequip whatever is in slot 1 and 2
-            await UnequipWeaponInternal(character, 1, cancellationToken);
-            await UnequipWeaponInternal(character, 2, cancellationToken);
+            await UnequipWeaponInternal(character, 1, ctx, cancellationToken);
+            await UnequipWeaponInternal(character, 2, ctx, cancellationToken);
             character.EquippedWeapon1 = weaponId;
             character.EquippedWeapon2 = weaponId; // same weapon in both slots
         }
@@ -988,23 +989,22 @@ public class InventoryService : IInventoryService
             var otherWeaponId = slot == 1 ? character.EquippedWeapon2 : character.EquippedWeapon1;
             if (otherWeaponId.HasValue)
             {
-                var otherWeapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == otherWeaponId.Value, cancellationToken);
+                var otherWeapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == otherWeaponId.Value, cancellationToken);
                 if (otherWeapon?.IsTwoHanded == true)
                 {
-                    await UnequipWeaponInternal(character, 1, cancellationToken);
-                    await UnequipWeaponInternal(character, 2, cancellationToken);
+                    await UnequipWeaponInternal(character, 1, ctx, cancellationToken);
+                    await UnequipWeaponInternal(character, 2, ctx, cancellationToken);
                 }
             }
 
-            await UnequipWeaponInternal(character, slot, cancellationToken);
+            await UnequipWeaponInternal(character, slot, ctx, cancellationToken);
             if (slot == 1) character.EquippedWeapon1 = weaponId;
             else character.EquippedWeapon2 = weaponId;
         }
 
         weapon.IsEquipped = true;
-        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
-        await _characterRepository.UpdateAsync(character);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, $"{weapon.Name} equipado!");
     }
@@ -1014,7 +1014,8 @@ public class InventoryService : IInventoryService
         if (slot != 1 && slot != 2)
             return (false, "Slot inválido");
 
-        var character = await _characterRepository.GetByUserIdAsync(userId);
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null)
             return (false, "Personagem não encontrado");
 
@@ -1022,7 +1023,7 @@ public class InventoryService : IInventoryService
         if (!weaponId.HasValue)
             return (false, "Nenhuma arma equipada neste slot");
 
-        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
+        var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
 
         // If two-handed, clear both slots
         if (weapon?.IsTwoHanded == true)
@@ -1038,19 +1039,18 @@ public class InventoryService : IInventoryService
 
         if (weapon != null) weapon.IsEquipped = false;
 
-        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
-        await _characterRepository.UpdateAsync(character);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, weapon != null ? $"{weapon.Name} desequipado!" : "Arma desequipada!");
     }
 
-    private async Task UnequipWeaponInternal(Character character, int slot, CancellationToken cancellationToken)
+    private async Task UnequipWeaponInternal(Character character, int slot, ApplicationDbContext ctx, CancellationToken cancellationToken)
     {
         var weaponId = slot == 1 ? character.EquippedWeapon1 : character.EquippedWeapon2;
         if (!weaponId.HasValue) return;
 
-        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
+        var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
         if (weapon != null) weapon.IsEquipped = false;
 
         if (slot == 1) character.EquippedWeapon1 = null;
@@ -1063,12 +1063,13 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task RecalculateEquipmentBonusesForUserAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var character = await _dbContext.Characters
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null) return;
 
-        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
+        await ctx.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1076,7 +1077,7 @@ public class InventoryService : IInventoryService
     /// Each character gets unique equipment quality per slot via deterministic seeding
     /// (characterId × 7919 + slotIndex × 31), giving variety across players without DB changes.
     /// </summary>
-    private async Task RecalculateEquipmentBonusesAsync(Character character, CancellationToken cancellationToken = default)
+    private async Task RecalculateEquipmentBonusesAsync(Character character, CancellationToken cancellationToken = default, ApplicationDbContext? ctx = null)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
@@ -1121,10 +1122,13 @@ public class InventoryService : IInventoryService
 
         if (equippedWeaponIds.Count > 0)
         {
-            var weapons = await _dbContext.ForgedWeapons
-                .AsNoTracking()
-                .Where(w => equippedWeaponIds.Contains(w.Id))
-                .ToListAsync(cancellationToken);
+            var weaponCtx = ctx ?? _contextFactory.CreateDbContext();
+            // When caller provides a context, use tracking to see in-memory changes (e.g. after upgrade);
+            // otherwise use AsNoTracking for standalone reads.
+            var weaponQuery = weaponCtx.ForgedWeapons.Where(w => equippedWeaponIds.Contains(w.Id));
+            var weapons = ctx != null
+                ? await weaponQuery.ToListAsync(cancellationToken)
+                : await weaponQuery.AsNoTracking().ToListAsync(cancellationToken);
 
             foreach (var w in weapons)
             {
@@ -1211,17 +1215,18 @@ public class InventoryService : IInventoryService
 
     public async Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
     {
-        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+        var ctx = _contextFactory.CreateDbContext();
+        var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
         if (weapon == null)
             return (false, "Arma não encontrada");
 
         var cost = GetWeaponUpgradeCost(weapon.Level);
 
-        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null)
             return (false, "Personagem não encontrado");
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
@@ -1291,10 +1296,10 @@ public class InventoryService : IInventoryService
         // Recalculate equipment bonuses if weapon is equipped
         if (weapon.IsEquipped)
         {
-            await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+            await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, $"Arma melhorada para +{weapon.Level}!");
     }
@@ -1304,7 +1309,8 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<int> GetSlotEnhancementLevelAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default)
     {
-        var character = await _dbContext.Characters
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
@@ -1327,7 +1333,8 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, string Message)> UpgradeEquipmentSlotAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default)
     {
-        var character = await _dbContext.Characters
+        var ctx = _contextFactory.CreateDbContext();
+        var character = await ctx.Characters
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null)
             return (false, "Personagem não encontrado");
@@ -1335,7 +1342,7 @@ public class InventoryService : IInventoryService
         var currentSlotLevel = character.GetSlotBonusLevel(slot);
         var cost = GetEquipmentUpgradeCost(currentSlotLevel);
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
@@ -1381,9 +1388,9 @@ public class InventoryService : IInventoryService
         character.SetSlotBonusLevel(slot, currentSlotLevel + 1);
 
         // Recalculate equipment bonuses with the new per-slot enhancement level
-        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         var newLevel = currentSlotLevel + 1;
         var slotName = slot.ToString().ToUpperInvariant();
@@ -1419,13 +1426,14 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, decimal FidelisGained, string Message)> DiscardWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
     {
-        var weapon = await _dbContext.ForgedWeapons
+        var ctx = _contextFactory.CreateDbContext();
+        var weapon = await ctx.ForgedWeapons
             .FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
 
         if (weapon == null)
             return (false, 0, "Arma não encontrada");
 
-        var character = await _dbContext.Characters
+        var character = await ctx.Characters
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
         // Unequip weapon if currently equipped
@@ -1444,10 +1452,10 @@ public class InventoryService : IInventoryService
         var weaponName = weapon.Name;
 
         // Remove weapon from database
-        _dbContext.ForgedWeapons.Remove(weapon);
+        ctx.ForgedWeapons.Remove(weapon);
 
         // Credit Fidelis to user
-        var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        var user = await ctx.Users.FindAsync(new object[] { userId }, cancellationToken);
         if (user != null)
         {
             user.FidelisBalance += fidelisValue;
@@ -1456,10 +1464,10 @@ public class InventoryService : IInventoryService
         // Recalculate equipment bonuses if weapon was equipped
         if (weapon.IsEquipped && character != null)
         {
-            await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+            await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, fidelisValue, $"{weaponName} descartada por {fidelisValue:F2} Fidelis!");
     }
@@ -1472,14 +1480,16 @@ public class InventoryService : IInventoryService
         if (slot == null)
             return (false, "Item inválido — não é uma peça de conjunto raro.");
 
+        var ctx = _contextFactory.CreateDbContext();
+
         // Check player has the item in inventory
-        var inventoryItem = await _dbContext.InventoryItems
+        var inventoryItem = await ctx.InventoryItems
             .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == rareItemType, cancellationToken);
         if (inventoryItem == null || inventoryItem.Quantity < 1)
             return (false, "Não tens esta peça rara no inventário.");
 
         // Check the character doesn't already have this slot applied
-        var character = await _dbContext.Characters
+        var character = await ctx.Characters
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         if (character == null)
             return (false, "Personagem não encontrado.");
@@ -1493,7 +1503,7 @@ public class InventoryService : IInventoryService
         // Apply the rare set upgrade
         character.ApplyRareSetSlot(slot.Value);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
 
         var slotName = EquipmentDropHelper.GetDisplayName(slot.Value);
         return (true, $"Peça rara {slotName} aplicada com sucesso!");

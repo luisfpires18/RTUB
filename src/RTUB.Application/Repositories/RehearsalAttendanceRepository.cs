@@ -44,11 +44,10 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
         if (entity.RehearsalId > 0)
             await context.Rehearsals.FindAsync(entity.RehearsalId);
 
-        // Clear navigation properties to avoid attaching stale related entities
-        entity.User = null!;
-        entity.Rehearsal = null!;
-
-        context.RehearsalAttendances.Update(entity);
+        var tracked = await context.RehearsalAttendances.FindAsync(entity.Id)
+            ?? throw new InvalidOperationException(
+                $"RehearsalAttendance with Id {entity.Id} not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
         await context.SaveChangesAsync();
     }
 

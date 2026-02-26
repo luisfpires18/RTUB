@@ -20,7 +20,6 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
     private readonly ICharacterService _characterService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<ConsumableUpgradeService>? _logger;
     private readonly MyTunoScalingConfiguration _config;
     private readonly IInventoryRepository _inventoryRepository;
@@ -38,7 +37,6 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
         _characterService = characterService;
         _userManager = userManager;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
         _logger = logger;
         _config = config.Value;
         _inventoryRepository = inventoryRepository;
@@ -84,7 +82,11 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        var supportsTransactions = _context.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory";
+        bool supportsTransactions;
+        using (var providerCtx = _contextFactory.CreateDbContext())
+        {
+            supportsTransactions = providerCtx.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory";
+        }
 
         if (!supportsTransactions)
             return await PurchaseWithoutTransactionAsync(userId, upgradeType, cancellationToken);
@@ -292,7 +294,6 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
 
             await _userManager.UpdateAsync(user);
             await _characterService.UpdateCharacterAsync(character, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
 
             return UpgradeResult.CreateSuccess(user.FidelisBalance, GetUpgradeCount(character, upgradeType));
         }

@@ -13,7 +13,6 @@ namespace RTUB.Application.Services;
 public class CachedGeocodingService : IGeocodingService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _dbContext;
     private readonly IGeocodingQueue _geocodingQueue;
     private readonly ILogger<CachedGeocodingService> _logger;
 
@@ -23,7 +22,6 @@ public class CachedGeocodingService : IGeocodingService
         ILogger<CachedGeocodingService> logger)
     {
         _contextFactory = contextFactory;
-        _dbContext = contextFactory.CreateDbContext();
         _geocodingQueue = geocodingQueue;
         _logger = logger;
     }
@@ -39,7 +37,8 @@ public class CachedGeocodingService : IGeocodingService
         var normalizedCountryCode = countryCode?.ToUpperInvariant() ?? "PT";
 
         // Check database cache only (no HTTP calls)
-        var cached = await _dbContext.GeocodingCaches
+        var ctx = _contextFactory.CreateDbContext();
+        var cached = await ctx.GeocodingCaches
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
 

@@ -30,7 +30,6 @@ public class EventService : IEventService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly ApplicationDbContext _context;
 
     public EventService(
         IEventRepository eventRepository,
@@ -54,7 +53,6 @@ public class EventService : IEventService
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor;
         _contextFactory = contextFactory;
-        _context = contextFactory.CreateDbContext();
     }
 
     public async Task<Event?> GetEventByIdAsync(int id, CancellationToken cancellationToken = default)

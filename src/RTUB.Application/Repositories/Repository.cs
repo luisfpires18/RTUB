@@ -8,7 +8,8 @@ namespace RTUB.Application.Repositories;
 /// <summary>
 /// Base repository implementation providing common data access operations.
 /// Uses IDbContextFactory to create short-lived DbContext instances per operation,
-/// eliminating EF Core tracking conflicts in Blazor Server circuits.
+/// following Microsoft's recommended "context per operation" pattern for Blazor Server.
+/// Each method creates a fresh DbContext, performs its work, and disposes it.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>
 public class Repository<T> : IRepository<T> where T : class
@@ -17,9 +18,15 @@ public class Repository<T> : IRepository<T> where T : class
 
     /// <summary>
     /// Backward-compatible context for derived repositories that access _context directly.
-    /// Prefer using CreateContext() for isolated operations to avoid tracking conflicts.
+    /// This context lives for the repository's DI scope — prefer CreateContext() for isolated operations.
+    /// TODO: Remove once all derived repos are migrated to CreateContext().
     /// </summary>
     protected readonly ApplicationDbContext _context;
+
+    /// <summary>
+    /// Backward-compatible DbSet for derived repositories.
+    /// TODO: Remove once all derived repos are migrated to CreateContext().
+    /// </summary>
     protected readonly DbSet<T> _dbSet;
 
     public Repository(IDbContextFactory<ApplicationDbContext> contextFactory)
@@ -31,6 +38,23 @@ public class Repository<T> : IRepository<T> where T : class
 
     /// <summary>Creates a fresh short-lived DbContext. Caller must dispose.</summary>
     protected ApplicationDbContext CreateContext() => _contextFactory.CreateDbContext();
+
+    /// <summary>
+    /// Gets the primary key values of an entity using EF Core model metadata.
+    /// Works for single-key (int, string) and composite-key entities.
+    /// </summary>
+    protected static object[] GetPrimaryKeyValues(ApplicationDbContext context, T entity)
+    {
+        var entityType = context.Model.FindEntityType(typeof(T))
+            ?? throw new InvalidOperationException($"Entity type {typeof(T).Name} is not registered in the DbContext model.");
+        var primaryKey = entityType.FindPrimaryKey()
+            ?? throw new InvalidOperationException($"Entity type {typeof(T).Name} has no primary key defined.");
+        return primaryKey.Properties
+            .Select(p => p.PropertyInfo?.GetValue(entity)
+                ?? p.FieldInfo?.GetValue(entity)
+                ?? throw new InvalidOperationException($"Could not read primary key property '{p.Name}' from entity {typeof(T).Name}."))
+            .ToArray();
+    }
 
     public virtual async Task<T?> GetByIdAsync(int id)
     {
@@ -71,14 +95,20 @@ public class Repository<T> : IRepository<T> where T : class
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Updates an existing entity using the fetch-then-SetValues pattern.
+    /// Creates a fresh context, loads the tracked entity by PK, copies scalar
+    /// property values from the detached entity, and saves. This ensures the
+    /// entity is always tracked by the same context that performs the save.
+    /// </summary>
     public virtual async Task UpdateAsync(T entity)
     {
         using var context = CreateContext();
-        // Use Entry().State instead of DbSet.Update() to avoid traversing the entity graph.
-        // Update() marks ALL navigation properties (e.g., User) as Modified, causing
-        // unwanted UPDATE statements on related tables (e.g., AspNetUsers) and
-        // DbUpdateConcurrencyException from stale ConcurrencyStamps.
-        context.Entry(entity).State = EntityState.Modified;
+        var keyValues = GetPrimaryKeyValues(context, entity);
+        var tracked = await context.Set<T>().FindAsync(keyValues).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Entity {typeof(T).Name} with key [{string.Join(", ", keyValues)}] not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -93,12 +123,20 @@ public class Repository<T> : IRepository<T> where T : class
         }
     }
 
+    /// <summary>
+    /// Deletes an entity by loading it fresh from the database using its primary key,
+    /// then removing the tracked instance. Safe for detached entities.
+    /// </summary>
     public virtual async Task DeleteAsync(T entity)
     {
         using var context = CreateContext();
-        // Use Entry().State instead of Remove() to avoid traversing navigation properties.
-        context.Entry(entity).State = EntityState.Deleted;
-        await context.SaveChangesAsync().ConfigureAwait(false);
+        var keyValues = GetPrimaryKeyValues(context, entity);
+        var tracked = await context.Set<T>().FindAsync(keyValues).ConfigureAwait(false);
+        if (tracked != null)
+        {
+            context.Set<T>().Remove(tracked);
+            await context.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null)
@@ -118,35 +156,51 @@ public class Repository<T> : IRepository<T> where T : class
 
     /// <summary>
     /// Gets a queryable for complex queries (read-only, no-tracking).
-    /// IMPORTANT: The returned IQueryable must be materialized (ToList, First, etc.)
-    /// before the caller disposes the context. Prefer using this within a
-    /// using var context = CreateContext() block in derived repositories.
+    /// WARNING: The returned IQueryable's underlying context is NOT disposed automatically.
+    /// Derived repos should prefer using CreateContext() + context.Set&lt;T&gt;().AsNoTracking() directly.
+    /// TODO: Remove this method once all callers are migrated to CreateContext().
     /// </summary>
-    /// <returns>IQueryable for the entity type (no-tracking)</returns>
     public virtual IQueryable<T> Query()
     {
-        // NOTE: This creates a context that won't be disposed automatically.
-        // Derived repos should prefer CreateContext() + context.Set<T>().AsNoTracking() directly.
         var context = CreateContext();
         return context.Set<T>().AsNoTracking().AsQueryable();
     }
 
-    public virtual async Task<int> SaveChangesAsync()
+    /// <summary>
+    /// This method is a no-op in the context-per-operation pattern.
+    /// Each CRUD method creates its own context and saves within that scope.
+    /// Callers should use UpdateAsync(entity) instead of modifying and calling SaveChangesAsync().
+    /// TODO: Remove from IRepository<T> once all callers are migrated.
+    /// </summary>
+    public virtual Task<int> SaveChangesAsync()
     {
-        // With factory pattern, each operation creates its own context and saves within that scope.
-        // This method is kept for interface compatibility but should not be called directly.
-        // Individual operations handle their own SaveChanges.
-        return 0;
+        return Task.FromResult(0);
     }
 
     /// <summary>
-    /// Reloads an entity from the database, refreshing all property values.
-    /// With the factory pattern, prefer re-querying with a fresh context instead.
+    /// Reloads an entity from the database by re-fetching it with a fresh context
+    /// and copying the current database values onto the provided entity instance.
     /// </summary>
     public virtual async Task ReloadAsync(T entity)
     {
         using var context = CreateContext();
-        context.Set<T>().Attach(entity);
-        await context.Entry(entity).ReloadAsync().ConfigureAwait(false);
+        var keyValues = GetPrimaryKeyValues(context, entity);
+        var fresh = await context.Set<T>().FindAsync(keyValues).ConfigureAwait(false);
+        if (fresh != null)
+        {
+            // Copy fresh DB values onto the caller's entity reference
+            context.Entry(fresh).CurrentValues.SetValues(entity);
+            // Now copy the DB values back to the passed-in entity
+            var freshValues = context.Entry(fresh).CurrentValues;
+            var entityType = context.Model.FindEntityType(typeof(T))!;
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.PropertyInfo != null)
+                {
+                    var dbValue = freshValues[property];
+                    property.PropertyInfo.SetValue(entity, dbValue);
+                }
+            }
+        }
     }
 }

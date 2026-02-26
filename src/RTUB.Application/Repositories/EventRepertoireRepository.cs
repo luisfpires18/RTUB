@@ -16,57 +16,50 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
 
     public override async Task<EventRepertoire> AddAsync(EventRepertoire entity)
     {
-        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        using var context = CreateContext();
+
+        // Preload Event and Song into context Local cache for audit log display name resolution
         if (entity.EventId > 0)
-        {
-            var evt = await _context.Events.FindAsync(entity.EventId);
-        }
-
-        // Ensure the Song is loaded into Local cache for audit log display name resolution
+            await context.Events.FindAsync(entity.EventId);
         if (entity.SongId > 0)
-        {
-            var song = await _context.Songs.FindAsync(entity.SongId);
-        }
+            await context.Songs.FindAsync(entity.SongId);
 
-        return await base.AddAsync(entity);
+        await context.Set<EventRepertoire>().AddAsync(entity);
+        await context.SaveChangesAsync();
+        return entity;
     }
 
     public override async Task UpdateAsync(EventRepertoire entity)
     {
-        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        using var context = CreateContext();
+
+        // Preload Event and Song into context Local cache for audit log display name resolution
         if (entity.EventId > 0)
-        {
-            var evt = await _context.Events.FindAsync(entity.EventId);
-        }
-
-        // Ensure the Song is loaded into Local cache for audit log display name resolution
+            await context.Events.FindAsync(entity.EventId);
         if (entity.SongId > 0)
-        {
-            var song = await _context.Songs.FindAsync(entity.SongId);
-        }
+            await context.Songs.FindAsync(entity.SongId);
 
-        await base.UpdateAsync(entity);
+        var tracked = await context.Set<EventRepertoire>().FindAsync(entity.Id)
+            ?? throw new InvalidOperationException(
+                $"EventRepertoire with Id {entity.Id} not found in the database.");
+        context.Entry(tracked).CurrentValues.SetValues(entity);
+        await context.SaveChangesAsync();
     }
 
     public override async Task DeleteAsync(int id)
     {
-        var entity = await _dbSet.FindAsync(id);
-        if (entity != null)
-        {
-            // Ensure the Event is loaded into Local cache for audit log display name resolution
-            if (entity.EventId > 0)
-            {
-                var evt = await _context.Events.FindAsync(entity.EventId);
-            }
+        using var context = CreateContext();
+        var entity = await context.Set<EventRepertoire>().FindAsync(id);
+        if (entity == null) return;
 
-            // Ensure the Song is loaded into Local cache for audit log display name resolution
-            if (entity.SongId > 0)
-            {
-                var song = await _context.Songs.FindAsync(entity.SongId);
-            }
-        }
+        // Preload Event and Song into context Local cache for audit log display name resolution
+        if (entity.EventId > 0)
+            await context.Events.FindAsync(entity.EventId);
+        if (entity.SongId > 0)
+            await context.Songs.FindAsync(entity.SongId);
 
-        await base.DeleteAsync(id);
+        context.Set<EventRepertoire>().Remove(entity);
+        await context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null)
