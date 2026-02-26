@@ -833,6 +833,7 @@ export class ArenaBattleScene implements VfxOwner {
       console.warn('OnPlayerAutoAttack error:', e);
     } finally {
       this._playerAttackPending = false;
+      this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
     }
   }
 
@@ -849,6 +850,7 @@ export class ArenaBattleScene implements VfxOwner {
       console.warn('OnEnemyAttack error:', e);
     } finally {
       this._enemyAttackPending = false;
+      this.speedBarTimers.defender = this.actionTime.defender * 1000;
     }
   }
 
@@ -1477,21 +1479,33 @@ export class ArenaBattleScene implements VfxOwner {
 
       // Attacker (player) speed bar
       if (this.currentHp.attacker > 0) {
-        this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
-        if (this.speedBarTimers.attacker <= 0 && !this._playerAttackPending) {
-          this._playerAttackPending = true;
+        if (this.currentHp.defender <= 0) {
+          // No target — hold bar at full
           this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
-          this.requestPlayerAutoAttack();
+        } else if (this._playerAttackPending) {
+          // Attack in flight — freeze bar at 0 until server responds
+        } else {
+          this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
+          if (this.speedBarTimers.attacker <= 0) {
+            this._playerAttackPending = true;
+            this.requestPlayerAutoAttack();
+          }
         }
       }
 
       // Defender (enemy) speed bar
       if (this.currentHp.defender > 0) {
-        this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
-        if (this.speedBarTimers.defender <= 0 && !this._enemyAttackPending) {
-          this._enemyAttackPending = true;
+        if (this.currentHp.attacker <= 0) {
+          // Player dead — hold bar at full
           this.speedBarTimers.defender = this.actionTime.defender * 1000;
-          this.requestEnemyAttack();
+        } else if (this._enemyAttackPending) {
+          // Attack in flight — freeze bar at 0
+        } else {
+          this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
+          if (this.speedBarTimers.defender <= 0) {
+            this._enemyAttackPending = true;
+            this.requestEnemyAttack();
+          }
         }
       }
 

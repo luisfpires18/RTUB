@@ -1341,6 +1341,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.warn("OnPlayerAutoAttack error:", e);
       } finally {
         this._playerAttackPending = false;
+        this.speedBarTimers.attacker = this.actionTime.attacker * 1e3;
       }
     }
     async requestEnemyAttack() {
@@ -1356,6 +1357,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.warn("OnEnemyAttack error:", e);
       } finally {
         this._enemyAttackPending = false;
+        this.speedBarTimers.defender = this.actionTime.defender * 1e3;
       }
     }
     async requestPlayerSpell(attackId) {
@@ -1906,19 +1908,27 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const simDelta = deltaMs * this.battleSpeed;
         this.currentSimTime += simDelta;
         if (this.currentHp.attacker > 0) {
-          this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
-          if (this.speedBarTimers.attacker <= 0 && !this._playerAttackPending) {
-            this._playerAttackPending = true;
+          if (this.currentHp.defender <= 0) {
             this.speedBarTimers.attacker = this.actionTime.attacker * 1e3;
-            this.requestPlayerAutoAttack();
+          } else if (this._playerAttackPending) ;
+          else {
+            this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
+            if (this.speedBarTimers.attacker <= 0) {
+              this._playerAttackPending = true;
+              this.requestPlayerAutoAttack();
+            }
           }
         }
         if (this.currentHp.defender > 0) {
-          this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
-          if (this.speedBarTimers.defender <= 0 && !this._enemyAttackPending) {
-            this._enemyAttackPending = true;
+          if (this.currentHp.attacker <= 0) {
             this.speedBarTimers.defender = this.actionTime.defender * 1e3;
-            this.requestEnemyAttack();
+          } else if (this._enemyAttackPending) ;
+          else {
+            this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
+            if (this.speedBarTimers.defender <= 0) {
+              this._enemyAttackPending = true;
+              this.requestEnemyAttack();
+            }
           }
         }
         this._cooldownTickAccum += simDelta;

@@ -684,6 +684,7 @@ export class StageBattleScene implements VfxOwner {
     this.playerSprite.x = playerX;
     this.playerSprite.y = playerY;
 
+    // Desktop: original viewport-relative sizing; Mobile: same
     const maxSpriteHeight = this.isMobile ? height * 0.25 : height * 0.45;
     const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
     // Custom sprites (boss_{username}) face left; flip to face right toward enemies
@@ -1029,10 +1030,18 @@ export class StageBattleScene implements VfxOwner {
       baseY = height - groundOffset;
     }
 
-    // Scale factor based on enemy count
+    // Detect enemy type
     const isBoss = this.enemyType?.toLowerCase() === 'boss';
-    let countScaleFactor = 1.0;
+    const isMiniboss = this.enemyType?.toLowerCase() === 'miniboss';
+
+    /* ═══ PASS 1: Create sprites to get REAL scaled dimensions ═══ */
+    const tempSprites: Sprite[] = [];
+    const scaledWidths: number[] = [];
+    const scaledHeights: number[] = [];
+
     if (isMobile) {
+      // ── Mobile: preserve original count-based scaling ──
+      let countScaleFactor = 1.0;
       if (this.enemyCount >= 9) countScaleFactor = 0.38;
       else if (this.enemyCount >= 8) countScaleFactor = 0.42;
       else if (this.enemyCount >= 7) countScaleFactor = 0.48;
@@ -1040,35 +1049,67 @@ export class StageBattleScene implements VfxOwner {
       else if (this.enemyCount >= 5) countScaleFactor = 0.60;
       else if (this.enemyCount >= 4) countScaleFactor = 0.75;
       else if (this.enemyCount >= 3) countScaleFactor = 0.85;
+      const bossBoost = isBoss ? 1.25 : 1.0;
+      const maxSpriteHeight = height * 0.28;
+
+      for (let i = 0; i < this.enemyCount; i++) {
+        const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
+        const spr = PIXI.Sprite.from(alias);
+        spr.anchor.set(0.5, 1);
+        const baseScale = Math.min(1, maxSpriteHeight / spr.height);
+        const finalScale = baseScale * countScaleFactor * bossBoost;
+        spr.scale.set(finalScale);
+        tempSprites.push(spr);
+        scaledWidths.push(spr.width);
+        scaledHeights.push(spr.height);
+      }
     } else {
-      if (this.enemyCount >= 9) countScaleFactor = 0.40;
-      else if (this.enemyCount >= 8) countScaleFactor = 0.42;
-      else if (this.enemyCount >= 7) countScaleFactor = 0.48;
-      else if (this.enemyCount >= 6) countScaleFactor = 0.55;
-      else if (this.enemyCount >= 5) countScaleFactor = 0.65;
-      else if (this.enemyCount >= 4) countScaleFactor = 0.85;
-      else if (this.enemyCount >= 3) countScaleFactor = 0.92;
-    }
-    const bossBoost = isBoss ? 1.25 : 1.0;
+      // ── Desktop: fixed pixel sizes, auto-shrink if formation won't fit ──
+      // Normal enemies: 180px target. Boss/miniboss: 360px target.
+      // If the formation has too many rows to fit vertically, shrink uniformly.
+      const baseSizeNormal = 180;
+      const baseSizeBig = 360;
+      const isBigEnemy = isBoss || isMiniboss;
 
-    /* ═══ PASS 1: Create sprites to get REAL scaled dimensions ═══ */
-    const tempSprites: PIXI.Sprite[] = [];
-    const scaledWidths: number[] = [];
-    const scaledHeights: number[] = [];
-    const mobileScale = isMobile ? 0.28 : 0.40;
-    const maxSpriteHeight = height * mobileScale;
+      // Predict how many rows we need to calculate vertical space
+      const maxCols = 5;
+      const hpBarReserve = 22;
+      const rowGapLayout = 30;
+      const topSafe = 120;
+      const bottomSafe = Math.min(150, height * 0.15 + 20);
+      const availableHeight = height - topSafe - bottomSafe;
 
-    for (let i = 0; i < this.enemyCount; i++) {
-      const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
-      const spr = PIXI.Sprite.from(alias);
-      spr.anchor.set(0.5, 1);
-      const baseScale = Math.min(1, maxSpriteHeight / spr.height);
-      const finalScale = baseScale * countScaleFactor * bossBoost;
-      spr.scale.set(finalScale);
+      // Count rows: aerial row + ground rows (first 5 = row1, overflow = row2)
+      const aerialCount = this.enemyPlacements?.filter(p => p === 1).length ?? 0;
+      const groundCount = this.enemyCount - aerialCount;
+      const groundRows = groundCount > maxCols ? 2 : (groundCount > 0 ? 1 : 0);
+      const aerialRows = aerialCount > 0 ? 1 : 0;
+      const totalRows = groundRows + aerialRows;
 
-      tempSprites.push(spr);
-      scaledWidths.push(spr.width);
-      scaledHeights.push(spr.height);
+      // Each row needs: spriteHeight + hpBarReserve + rowGap (except last row no gap)
+      // spriteHeight + hpBarReserve is the "cell", gap between cells is rowGap
+      // totalNeeded = totalRows * (spriteH + hpBarReserve) + (totalRows - 1) * rowGap
+      // Solve for max spriteH: spriteH = (available - (totalRows-1)*rowGap - totalRows*hpBarReserve) / totalRows
+      let maxFittedHeight = baseSizeNormal;
+      if (totalRows > 0) {
+        const fittedH = (availableHeight - (totalRows - 1) * rowGapLayout - totalRows * hpBarReserve) / totalRows;
+        maxFittedHeight = Math.max(60, fittedH); // floor at 60px minimum
+      }
+
+      const targetSize = isBigEnemy
+        ? Math.min(baseSizeBig, maxFittedHeight * 2)
+        : Math.min(baseSizeNormal, maxFittedHeight);
+
+      for (let i = 0; i < this.enemyCount; i++) {
+        const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
+        const spr = PIXI.Sprite.from(alias);
+        spr.anchor.set(0.5, 1);
+        const finalScale = Math.min(1, targetSize / spr.height);
+        spr.scale.set(finalScale);
+        tempSprites.push(spr);
+        scaledWidths.push(spr.width);
+        scaledHeights.push(spr.height);
+      }
     }
 
     /* ═══ PASS 2: Calculate positions using REAL widths ═══ */
@@ -1098,9 +1139,9 @@ export class StageBattleScene implements VfxOwner {
       this.stage.addChild(enemy);
       this.enemySprites.push(enemy);
 
-      // Per-enemy HP bar
+      // Per-enemy HP bar — scale width with sprite on desktop
       const hpBarY = pos.y - scaledHeights[i] - 5;
-      const hpBarWidth = isMobile ? 35 : 60;
+      const hpBarWidth = isMobile ? 35 : Math.max(60, scaledWidths[i] * 0.5);
       const hpBarHeight = isMobile ? 4 : 8;
 
       const barBg = new PIXI.Graphics();
@@ -1202,19 +1243,30 @@ export class StageBattleScene implements VfxOwner {
     }
 
     /* ══════════════════════════════════════════════════════════════════
-       DESKTOP: single row per group — lots of space, no wrapping.
+       DESKTOP: 3-band layout, 5 columns max.
+       Row 1 (bottom):  ground enemies (first 5)
+       Row 2 (middle):  overflow ground (only if > 5 terrestrial)
+       Row 3 (top):     aerial enemies
+       Sprites are fixed-size; the layout guarantees they never overlap.
        ══════════════════════════════════════════════════════════════════ */
     if (!isMobile) {
       const margin = 20;
+      const hpBarReserve = 22; // space above each sprite for HP + speed bars
+      const maxCols = 5;
+      const rowGap = 30;
 
-      const layoutSingleRow = (
+      /**
+       * Lay out a single row of indices centred around baseX.
+       * Returns the Y used (= footY).
+       */
+      const layoutRow = (
         indices: number[],
-        y: number,
+        footY: number,
         isAerial: boolean,
       ): void => {
         if (indices.length === 0) return;
         if (indices.length === 1) {
-          positions[indices[0]] = { x: baseX, y, isAerial };
+          positions[indices[0]] = { x: baseX, y: footY, isAerial };
           return;
         }
 
@@ -1224,28 +1276,21 @@ export class StageBattleScene implements VfxOwner {
           if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
         }
 
-        // Generous gap: 20px or 15% of cell width, whichever is larger
-        const gap = Math.max(20, cellW * 0.15);
-        let step = cellW + gap;
+        const colGap = Math.max(6, cellW * 0.05);
+        let step = cellW + colGap;
         let totalW = step * (indices.length - 1); // centre-to-centre span
 
-        // If formation is too wide, compress step (minimum = cellW → no overlap)
+        // Compress if too wide for screen
         const maxAvailW = width - 2 * margin - cellW;
-        if (totalW > maxAvailW) {
-          step = Math.max(cellW + 4, maxAvailW / (indices.length - 1));
+        if (totalW > maxAvailW && indices.length > 1) {
+          step = Math.max(cellW + 2, maxAvailW / (indices.length - 1));
           totalW = step * (indices.length - 1);
         }
 
-        // Anchor right at baseX: right edge of formation aligns near baseX
-        // then shift left by half so baseX is roughly the right-centre
-        let startX = baseX - totalW * 0.35;
+        // Centre around baseX, clamp to screen edges
+        let startX = baseX - totalW / 2;
         const halfCell = cellW / 2;
-
-        // Clamp: left edge on-screen
-        if (startX - halfCell < margin) {
-          startX = margin + halfCell;
-        }
-        // Clamp: right edge on-screen
+        if (startX - halfCell < margin) startX = margin + halfCell;
         if (startX + totalW + halfCell > width - margin) {
           startX = width - margin - halfCell - totalW;
           if (startX - halfCell < margin) startX = margin + halfCell;
@@ -1254,26 +1299,72 @@ export class StageBattleScene implements VfxOwner {
         for (let c = 0; c < indices.length; c++) {
           positions[indices[c]] = {
             x: startX + c * step,
-            y,
+            y: footY,
             isAerial,
           };
         }
       };
 
-      // Tallest ground sprite for aerial lift
+      // Split ground into bottom row (first 5) and overflow row (rest)
+      const groundRow1 = groundIdx.slice(0, maxCols);  // bottom row
+      const groundRow2 = groundIdx.slice(maxCols);       // middle row (only if > 5 terrestrial)
+
+      // Get tallest cell for height calculations
       let tallestGround = 0;
       for (const idx of groundIdx) {
         if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
       }
-      if (tallestGround === 0) {
-        for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
-        tallestGround = count > 0 ? tallestGround / count : 100;
+      if (tallestGround === 0) tallestGround = 100;
+
+      let tallestAerial = 0;
+      for (const idx of aerialIdx) {
+        if (scaledHeights[idx] > tallestAerial) tallestAerial = scaledHeights[idx];
       }
 
-      // Aerial: above ground sprites + their HP bars (25px) + gap
-      layoutSingleRow(aerialIdx, baseY - tallestGround - 50, true);
-      // Ground: feet on the ground line
-      layoutSingleRow(groundIdx, baseY, false);
+      const rowStep = tallestGround + hpBarReserve + rowGap;
+
+      // Calculate how many ground rows we actually use
+      const groundRowCount = groundRow2.length > 0 ? 2 : (groundRow1.length > 0 ? 1 : 0);
+      const hasAerial = aerialIdx.length > 0;
+
+      // Total vertical space needed (from ground line upward):
+      //   ground rows: groundRowCount * rowStep (includes sprite + bars + gap)
+      //   aerial row:  tallestAerial + hpBarReserve + rowGap above the last ground row
+      const topSafe = 120; // top bar + HP bars + padding
+      const bottomSafe = Math.min(150, _height * 0.15 + 20);
+      const aerialBand = hasAerial ? (tallestAerial + hpBarReserve + rowGap) : 0;
+      const totalNeeded = groundRowCount * rowStep + aerialBand;
+      const availableSpace = _height - topSafe - bottomSafe;
+
+      // If everything fits from baseY upward, keep baseY.
+      // Otherwise push ground line down so the topmost sprite just clears topSafe.
+      let groundLineY = baseY;
+      if (totalNeeded > availableSpace) {
+        groundLineY = _height - bottomSafe;
+      }
+      // Also ensure the topmost element clears topSafe
+      const topOfFormation = groundLineY - totalNeeded;
+      if (topOfFormation < topSafe) {
+        // Push ground line down by the deficit
+        groundLineY += (topSafe - topOfFormation);
+        // But don't push below screen bottom - bottomSafe
+        const maxGroundY = _height - bottomSafe;
+        if (groundLineY > maxGroundY) groundLineY = maxGroundY;
+      }
+
+      // Row 1 (bottom): ground enemies on ground line
+      layoutRow(groundRow1, groundLineY, false);
+
+      // Row 2 (middle): overflow ground, one rowStep above
+      const row2Y = groundLineY - rowStep;
+      layoutRow(groundRow2, row2Y, false);
+
+      // Row 3 (top): aerial enemies, one rowStep above highest ground row
+      if (hasAerial) {
+        const highestGroundRowY = groundRow2.length > 0 ? row2Y : groundLineY;
+        const aerialFootY = highestGroundRowY - rowStep;
+        layoutRow(aerialIdx, aerialFootY, true);
+      }
 
       return positions;
     }
@@ -1831,6 +1922,8 @@ export class StageBattleScene implements VfxOwner {
       console.warn('requestPlayerAutoAttack error:', (e as Error).message);
     } finally {
       this._playerAttackPending = false;
+      // Reset timer AFTER attack fires so the bar stays at 0 until the hit lands
+      this.playerSpeedBarTimer = this.playerActionTime * 1000;
     }
   }
 
@@ -1847,6 +1940,8 @@ export class StageBattleScene implements VfxOwner {
       console.warn('requestEnemyAttack error:', (e as Error).message);
     } finally {
       this._enemyAttackPending[enemyIndex] = false;
+      // Reset timer AFTER attack fires so the bar stays at 0 until the hit lands
+      this.enemySpeedBarTimers[enemyIndex] = this.enemyActionTimes[enemyIndex] * 1000;
     }
   }
 
@@ -2020,28 +2115,43 @@ export class StageBattleScene implements VfxOwner {
       const simDelta = delta * this.battleSpeed;
       this.currentSimTime += simDelta;
 
-      // Player speed bar (only tick if player is alive)
+      // Player speed bar (only tick if player is alive AND enemies exist)
       if (this.playerCurrentHp > 0) {
-        this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
-        this.updatePlayerSpeedBar();
-
-        if (this.playerSpeedBarTimer <= 0 && !this._playerAttackPending) {
-          this._playerAttackPending = true;
+        const anyEnemyAlive = this.enemyHPs.some(hp => hp && hp.current > 0);
+        if (!anyEnemyAlive) {
+          // No targets — hold bar at full until enemies appear
           this.playerSpeedBarTimer = this.playerActionTime * 1000;
-          this.requestPlayerAutoAttack();
+          this.updatePlayerSpeedBar();
+        } else if (this._playerAttackPending) {
+          // Attack in flight — freeze bar at 0 until server responds
+          this.updatePlayerSpeedBar();
+        } else {
+          this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+          this.updatePlayerSpeedBar();
+          if (this.playerSpeedBarTimer <= 0) {
+            this._playerAttackPending = true;
+            this.requestPlayerAutoAttack();
+          }
         }
       }
 
-      // Enemy speed bars (only tick if enemy is alive)
+      // Enemy speed bars (only tick if enemy is alive AND player is alive)
       for (let i = 0; i < this.enemyCount; i++) {
         if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
-          this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
-          this.updateEnemySpeedBar(i);
-
-          if (this.enemySpeedBarTimers[i] <= 0 && !this._enemyAttackPending[i]) {
-            this._enemyAttackPending[i] = true;
+          if (this.playerCurrentHp <= 0) {
+            // Player dead — hold bar at full
             this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
-            this.requestEnemyAttack(i);
+            this.updateEnemySpeedBar(i);
+          } else if (this._enemyAttackPending[i]) {
+            // Attack in flight — freeze bar at 0
+            this.updateEnemySpeedBar(i);
+          } else {
+            this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+            this.updateEnemySpeedBar(i);
+            if (this.enemySpeedBarTimers[i] <= 0) {
+              this._enemyAttackPending[i] = true;
+              this.requestEnemyAttack(i);
+            }
           }
         }
       }

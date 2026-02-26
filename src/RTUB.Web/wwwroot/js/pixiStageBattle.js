@@ -1474,7 +1474,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ────────────────────────── Create Enemies ─────────────────────── */
     createEnemies(width, height) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e, _f;
       if (!this.stage) return;
       this.enemySprites = [];
       this.enemyHpBars = [];
@@ -1492,8 +1492,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         baseY = height - groundOffset;
       }
       const isBoss = ((_a = this.enemyType) == null ? void 0 : _a.toLowerCase()) === "boss";
-      let countScaleFactor = 1;
+      const isMiniboss = ((_b = this.enemyType) == null ? void 0 : _b.toLowerCase()) === "miniboss";
+      const tempSprites = [];
+      const scaledWidths = [];
+      const scaledHeights = [];
       if (isMobile) {
+        let countScaleFactor = 1;
         if (this.enemyCount >= 9) countScaleFactor = 0.38;
         else if (this.enemyCount >= 8) countScaleFactor = 0.42;
         else if (this.enemyCount >= 7) countScaleFactor = 0.48;
@@ -1501,31 +1505,50 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         else if (this.enemyCount >= 5) countScaleFactor = 0.6;
         else if (this.enemyCount >= 4) countScaleFactor = 0.75;
         else if (this.enemyCount >= 3) countScaleFactor = 0.85;
+        const bossBoost = isBoss ? 1.25 : 1;
+        const maxSpriteHeight = height * 0.28;
+        for (let i = 0; i < this.enemyCount; i++) {
+          const alias = ((_c = this.enemySpriteAliases) == null ? void 0 : _c[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
+          const spr = PIXI.Sprite.from(alias);
+          spr.anchor.set(0.5, 1);
+          const baseScale = Math.min(1, maxSpriteHeight / spr.height);
+          const finalScale = baseScale * countScaleFactor * bossBoost;
+          spr.scale.set(finalScale);
+          tempSprites.push(spr);
+          scaledWidths.push(spr.width);
+          scaledHeights.push(spr.height);
+        }
       } else {
-        if (this.enemyCount >= 9) countScaleFactor = 0.4;
-        else if (this.enemyCount >= 8) countScaleFactor = 0.42;
-        else if (this.enemyCount >= 7) countScaleFactor = 0.48;
-        else if (this.enemyCount >= 6) countScaleFactor = 0.55;
-        else if (this.enemyCount >= 5) countScaleFactor = 0.65;
-        else if (this.enemyCount >= 4) countScaleFactor = 0.85;
-        else if (this.enemyCount >= 3) countScaleFactor = 0.92;
-      }
-      const bossBoost = isBoss ? 1.25 : 1;
-      const tempSprites = [];
-      const scaledWidths = [];
-      const scaledHeights = [];
-      const mobileScale = isMobile ? 0.28 : 0.4;
-      const maxSpriteHeight = height * mobileScale;
-      for (let i = 0; i < this.enemyCount; i++) {
-        const alias = ((_b = this.enemySpriteAliases) == null ? void 0 : _b[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
-        const spr = PIXI.Sprite.from(alias);
-        spr.anchor.set(0.5, 1);
-        const baseScale = Math.min(1, maxSpriteHeight / spr.height);
-        const finalScale = baseScale * countScaleFactor * bossBoost;
-        spr.scale.set(finalScale);
-        tempSprites.push(spr);
-        scaledWidths.push(spr.width);
-        scaledHeights.push(spr.height);
+        const baseSizeNormal = 180;
+        const baseSizeBig = 360;
+        const isBigEnemy = isBoss || isMiniboss;
+        const maxCols = 5;
+        const hpBarReserve = 22;
+        const rowGapLayout = 30;
+        const topSafe = 120;
+        const bottomSafe = Math.min(150, height * 0.15 + 20);
+        const availableHeight = height - topSafe - bottomSafe;
+        const aerialCount = ((_d = this.enemyPlacements) == null ? void 0 : _d.filter((p) => p === 1).length) ?? 0;
+        const groundCount = this.enemyCount - aerialCount;
+        const groundRows = groundCount > maxCols ? 2 : groundCount > 0 ? 1 : 0;
+        const aerialRows = aerialCount > 0 ? 1 : 0;
+        const totalRows = groundRows + aerialRows;
+        let maxFittedHeight = baseSizeNormal;
+        if (totalRows > 0) {
+          const fittedH = (availableHeight - (totalRows - 1) * rowGapLayout - totalRows * hpBarReserve) / totalRows;
+          maxFittedHeight = Math.max(60, fittedH);
+        }
+        const targetSize = isBigEnemy ? Math.min(baseSizeBig, maxFittedHeight * 2) : Math.min(baseSizeNormal, maxFittedHeight);
+        for (let i = 0; i < this.enemyCount; i++) {
+          const alias = ((_e = this.enemySpriteAliases) == null ? void 0 : _e[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
+          const spr = PIXI.Sprite.from(alias);
+          spr.anchor.set(0.5, 1);
+          const finalScale = Math.min(1, targetSize / spr.height);
+          spr.scale.set(finalScale);
+          tempSprites.push(spr);
+          scaledWidths.push(spr.width);
+          scaledHeights.push(spr.height);
+        }
       }
       const positions = this.calculateEnemyPositions(
         isMobile,
@@ -1542,7 +1565,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const pos = positions[i];
         if (!pos) continue;
         const enemy = tempSprites[i];
-        const isAerial = ((_c = this.enemyPlacements) == null ? void 0 : _c[i]) === 1;
+        const isAerial = ((_f = this.enemyPlacements) == null ? void 0 : _f[i]) === 1;
         enemy.x = pos.x;
         enemy.y = pos.y;
         this.enemyIdleOffsets.push({
@@ -1556,7 +1579,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.stage.addChild(enemy);
         this.enemySprites.push(enemy);
         const hpBarY = pos.y - scaledHeights[i] - 5;
-        const hpBarWidth = isMobile ? 35 : 60;
+        const hpBarWidth = isMobile ? 35 : Math.max(60, scaledWidths[i] * 0.5);
         const hpBarHeight = isMobile ? 4 : 8;
         const barBg = new PIXI.Graphics();
         barBg.rect(pos.x - hpBarWidth / 2, hpBarY - hpBarHeight / 2, hpBarWidth, hpBarHeight);
@@ -1641,29 +1664,30 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       if (!isMobile) {
         const margin2 = 20;
-        const layoutSingleRow = (indices, y, isAerial) => {
+        const hpBarReserve = 22;
+        const maxCols = 5;
+        const rowGap = 30;
+        const layoutRow = (indices, footY, isAerial) => {
           if (indices.length === 0) return;
           if (indices.length === 1) {
-            positions[indices[0]] = { x: baseX, y, isAerial };
+            positions[indices[0]] = { x: baseX, y: footY, isAerial };
             return;
           }
           let cellW = 0;
           for (const idx of indices) {
             if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
           }
-          const gap = Math.max(20, cellW * 0.15);
-          let step = cellW + gap;
+          const colGap = Math.max(6, cellW * 0.05);
+          let step = cellW + colGap;
           let totalW = step * (indices.length - 1);
           const maxAvailW = width - 2 * margin2 - cellW;
-          if (totalW > maxAvailW) {
-            step = Math.max(cellW + 4, maxAvailW / (indices.length - 1));
+          if (totalW > maxAvailW && indices.length > 1) {
+            step = Math.max(cellW + 2, maxAvailW / (indices.length - 1));
             totalW = step * (indices.length - 1);
           }
-          let startX = baseX - totalW * 0.35;
+          let startX = baseX - totalW / 2;
           const halfCell = cellW / 2;
-          if (startX - halfCell < margin2) {
-            startX = margin2 + halfCell;
-          }
+          if (startX - halfCell < margin2) startX = margin2 + halfCell;
           if (startX + totalW + halfCell > width - margin2) {
             startX = width - margin2 - halfCell - totalW;
             if (startX - halfCell < margin2) startX = margin2 + halfCell;
@@ -1671,21 +1695,48 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           for (let c = 0; c < indices.length; c++) {
             positions[indices[c]] = {
               x: startX + c * step,
-              y,
+              y: footY,
               isAerial
             };
           }
         };
+        const groundRow1 = groundIdx.slice(0, maxCols);
+        const groundRow2 = groundIdx.slice(maxCols);
         let tallestGround2 = 0;
         for (const idx of groundIdx) {
           if (scaledHeights[idx] > tallestGround2) tallestGround2 = scaledHeights[idx];
         }
-        if (tallestGround2 === 0) {
-          for (let i = 0; i < count; i++) tallestGround2 += scaledHeights[i];
-          tallestGround2 = count > 0 ? tallestGround2 / count : 100;
+        if (tallestGround2 === 0) tallestGround2 = 100;
+        let tallestAerial2 = 0;
+        for (const idx of aerialIdx) {
+          if (scaledHeights[idx] > tallestAerial2) tallestAerial2 = scaledHeights[idx];
         }
-        layoutSingleRow(aerialIdx, baseY - tallestGround2 - 50, true);
-        layoutSingleRow(groundIdx, baseY, false);
+        const rowStep = tallestGround2 + hpBarReserve + rowGap;
+        const groundRowCount = groundRow2.length > 0 ? 2 : groundRow1.length > 0 ? 1 : 0;
+        const hasAerial = aerialIdx.length > 0;
+        const topSafe = 120;
+        const bottomSafe = Math.min(150, _height * 0.15 + 20);
+        const aerialBand = hasAerial ? tallestAerial2 + hpBarReserve + rowGap : 0;
+        const totalNeeded = groundRowCount * rowStep + aerialBand;
+        const availableSpace = _height - topSafe - bottomSafe;
+        let groundLineY = baseY;
+        if (totalNeeded > availableSpace) {
+          groundLineY = _height - bottomSafe;
+        }
+        const topOfFormation = groundLineY - totalNeeded;
+        if (topOfFormation < topSafe) {
+          groundLineY += topSafe - topOfFormation;
+          const maxGroundY = _height - bottomSafe;
+          if (groundLineY > maxGroundY) groundLineY = maxGroundY;
+        }
+        layoutRow(groundRow1, groundLineY, false);
+        const row2Y = groundLineY - rowStep;
+        layoutRow(groundRow2, row2Y, false);
+        if (hasAerial) {
+          const highestGroundRowY = groundRow2.length > 0 ? row2Y : groundLineY;
+          const aerialFootY = highestGroundRowY - rowStep;
+          layoutRow(aerialIdx, aerialFootY, true);
+        }
         return positions;
       }
       const margin = 6;
@@ -2167,6 +2218,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.warn("requestPlayerAutoAttack error:", e.message);
       } finally {
         this._playerAttackPending = false;
+        this.playerSpeedBarTimer = this.playerActionTime * 1e3;
       }
     }
     async requestEnemyAttack(enemyIndex) {
@@ -2182,6 +2234,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.warn("requestEnemyAttack error:", e.message);
       } finally {
         this._enemyAttackPending[enemyIndex] = false;
+        this.enemySpeedBarTimers[enemyIndex] = this.enemyActionTimes[enemyIndex] * 1e3;
       }
     }
     async requestPlayerSpell(attackId, cooldownSeconds) {
@@ -2341,22 +2394,35 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const simDelta = delta * this.battleSpeed;
         this.currentSimTime += simDelta;
         if (this.playerCurrentHp > 0) {
-          this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
-          this.updatePlayerSpeedBar();
-          if (this.playerSpeedBarTimer <= 0 && !this._playerAttackPending) {
-            this._playerAttackPending = true;
+          const anyEnemyAlive = this.enemyHPs.some((hp) => hp && hp.current > 0);
+          if (!anyEnemyAlive) {
             this.playerSpeedBarTimer = this.playerActionTime * 1e3;
-            this.requestPlayerAutoAttack();
+            this.updatePlayerSpeedBar();
+          } else if (this._playerAttackPending) {
+            this.updatePlayerSpeedBar();
+          } else {
+            this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+            this.updatePlayerSpeedBar();
+            if (this.playerSpeedBarTimer <= 0) {
+              this._playerAttackPending = true;
+              this.requestPlayerAutoAttack();
+            }
           }
         }
         for (let i = 0; i < this.enemyCount; i++) {
           if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
-            this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
-            this.updateEnemySpeedBar(i);
-            if (this.enemySpeedBarTimers[i] <= 0 && !this._enemyAttackPending[i]) {
-              this._enemyAttackPending[i] = true;
+            if (this.playerCurrentHp <= 0) {
               this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1e3;
-              this.requestEnemyAttack(i);
+              this.updateEnemySpeedBar(i);
+            } else if (this._enemyAttackPending[i]) {
+              this.updateEnemySpeedBar(i);
+            } else {
+              this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+              this.updateEnemySpeedBar(i);
+              if (this.enemySpeedBarTimers[i] <= 0) {
+                this._enemyAttackPending[i] = true;
+                this.requestEnemyAttack(i);
+              }
             }
           }
         }

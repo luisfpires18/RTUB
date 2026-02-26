@@ -1472,8 +1472,16 @@
             character.ExpireShotBuff();
             needsSave = true;
         }
-        // Penalty uses pause/resume like Canhão — carry over remaining time to next run
-        // (already paused by ApplyBossRunRewardsAsync; don't expire it here)
+        if (character.CigarroShieldHitsRemaining > 0)
+        {
+            character.ExpireCigarroBuff();
+            needsSave = true;
+        }
+        if (character.HasPenaltyBuff)
+        {
+            character.PausePenaltyBuff();
+            needsSave = true;
+        }
         if (needsSave)
         {
             await CharacterService.UpdateCharacterAsync(character);
