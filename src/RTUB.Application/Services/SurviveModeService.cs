@@ -153,7 +153,9 @@ public class SurviveModeService : ISurviveModeService
         await _progressRepository.UpdateAsync(progress);
 
         var user = await _userManager.FindByIdAsync(character.UserId);
-        _logger.LogInformation("Survive Mode initiated by {UserName}", user?.UserName ?? character.UserId);
+        _logger.LogInformation(
+            "User {UserName} started Survive Mode run #{Run} on level {Level}",
+            user?.UserName ?? character.UserId, progress.TotalRunsAttempted, progress.CurrentLevel);
 
         return progress;
     }
@@ -288,8 +290,9 @@ public class SurviveModeService : ISurviveModeService
         await _progressRepository.UpdateAsync(progress);
 
         var completedUser = await _userManager.FindByIdAsync(character.UserId);
-        _logger.LogInformation("Survive Mode ended on level {Level} by {UserName} - rewards: {XP} XP, {Fidelis} Fidelis",
-            level, completedUser?.UserName ?? character.UserId, result.XPReward, result.FidelisReward);
+        _logger.LogInformation(
+            "User {UserName} completed Survive Mode level {Level} → advancing to level {NextLevel}. Rewards: {XP} XP, {Fidelis} Fidelis",
+            completedUser?.UserName ?? character.UserId, level, progress.CurrentLevel, result.XPReward, result.FidelisReward);
 
         return result;
     }
@@ -324,8 +327,9 @@ public class SurviveModeService : ISurviveModeService
         await _progressRepository.UpdateAsync(progress);
 
         var diedUser = await _userManager.FindByIdAsync(character.UserId);
-        _logger.LogInformation("Survive Mode ended on level {Level} by {UserName} - rewards: {XP} XP, {Fidelis} Fidelis",
-            level, diedUser?.UserName ?? character.UserId, result.XPReward, result.FidelisReward);
+        _logger.LogInformation(
+            "User {UserName} died in Survive Mode on level {Level} (started at level {StartLevel}). Rewards: {XP} XP, {Fidelis} Fidelis",
+            diedUser?.UserName ?? character.UserId, level, progress.RunStartLevel, result.XPReward, result.FidelisReward);
 
         return result;
     }

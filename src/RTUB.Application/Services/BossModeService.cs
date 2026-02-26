@@ -144,9 +144,11 @@ public class BossModeService : IBossModeService
             }
         }
 
+        // Fetch remaining FITAB balance for logging
+        var fitabAfter = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Fitab, cancellationToken);
         _logger.LogInformation(
-            "User {UserName} started Boss Mode run #{Run}.",
-            user.UserName, existingProgress.TotalRunsAttempted);
+            "User {UserName} started Boss Mode run #{Run} on boss #{BossFloor}. FITAB balance: {FitabBalance}",
+            user.UserName, existingProgress.TotalRunsAttempted, existingProgress.CurrentBossStage, fitabAfter?.Quantity ?? 0);
 
         return existingProgress;
     }
@@ -368,9 +370,10 @@ public class BossModeService : IBossModeService
             ? $"(Floor {startBossFloor} - Floor {endBossFloor})"
             : string.Empty;
 
+        var rewardUser = await _userManager.FindByIdAsync(character.UserId);
         _logger.LogInformation(
-            "Applied boss run rewards for UserId:{UserId} {FloorRange}: {Loot}",
-            character.UserId, floorRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
+            "Applied boss run rewards for {UserName} {FloorRange}: {Loot}",
+            rewardUser?.UserName ?? character.UserId, floorRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
     }
 
     /// <inheritdoc />
