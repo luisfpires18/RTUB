@@ -1,0 +1,26 @@
+/* Main content area */
+
+:root {
+  --sidebar-width: 220px;
+}
+
+.main {
+  margin-top: 3.25rem;
+  margin-left: 0;
+  padding: 1rem;
+  width: 100%;
+}
+
+/* Only add left offset when an explicit sidebar is present on wide screens */
+@media (min-width: 1200px) {
+  .main.with-sidebar {
+    margin-left: var(--sidebar-width);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .main {
+    padding: 0.75rem;
+  }
+}
+

@@ -93,10 +93,12 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
         {
             try
             {
-                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                // Use a fresh, isolated context so the entire transaction runs on ONE connection.
+                await using var ctx = _contextFactory.CreateDbContext();
+                await using var transaction = await ctx.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
-                    var user = await _userManager.FindByIdAsync(userId);
+                    var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
                     if (user == null)
                     {
                         await transaction.RollbackAsync();
@@ -104,7 +106,7 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
                     }
 
                     await _characterService.GetOrCreateCharacterAsync(userId, cancellationToken);
-                    var character = await _context.Characters
+                    var character = await ctx.Characters
                         .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
                     if (character == null)
@@ -138,15 +140,16 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
 
                     if (leitaoCost > 0)
                     {
-                        var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                        var leitaoItem = await ctx.Set<InventoryItem>()
+                            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == InventoryItemType.Leitao, cancellationToken);
+
                         if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
                         {
                             await transaction.RollbackAsync();
                             return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
                         }
 
-                        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
-                        if (!consumed)
+                        if (!leitaoItem.ConsumeQuantity(leitaoCost))
                         {
                             await transaction.RollbackAsync();
                             return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
@@ -154,11 +157,10 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
                     }
 
                     user.FidelisBalance -= cost;
+                    user.ConcurrencyStamp = Guid.NewGuid().ToString();
                     ApplyUpgrade(character, upgradeType);
 
-                    await _userManager.UpdateAsync(user);
-                    await _characterService.UpdateCharacterAsync(character, cancellationToken);
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await ctx.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
 
                     return UpgradeResult.CreateSuccess(user.FidelisBalance, GetUpgradeCount(character, upgradeType));

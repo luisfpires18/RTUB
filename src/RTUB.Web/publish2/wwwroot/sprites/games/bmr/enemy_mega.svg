@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 76">
+  <!-- Mega - Largest Fat Lady enemy (boss-like) -->
+  <!-- Body (massive) -->
+  <ellipse cx="32" cy="52" rx="28" ry="22" fill="#8b008b"/>
+  <ellipse cx="32" cy="52" rx="24" ry="18" fill="#9932cc"/>
+  
+  <!-- Dress pattern (lots of dots) -->
+  <circle cx="18" cy="46" r="4" fill="#4b0082" opacity="0.5"/>
+  <circle cx="46" cy="46" r="4" fill="#4b0082" opacity="0.5"/>
+  <circle cx="32" cy="56" r="4" fill="#4b0082" opacity="0.5"/>
+  <circle cx="20" cy="60" r="3" fill="#4b0082" opacity="0.5"/>
+  <circle cx="44" cy="60" r="3" fill="#4b0082" opacity="0.5"/>
+  <circle cx="32" cy="42" r="3" fill="#4b0082" opacity="0.5"/>
+  <circle cx="24" cy="50" r="2.5" fill="#4b0082" opacity="0.5"/>
+  <circle cx="40" cy="50" r="2.5" fill="#4b0082" opacity="0.5"/>
+  
+  <!-- Head -->
+  <circle cx="32" cy="20" r="16" fill="#f5deb3"/>
+  
+  <!-- Hair (massive, wild) -->
+  <ellipse cx="32" cy="6" rx="18" ry="9" fill="#2f1810"/>
+  <circle cx="16" cy="14" r="8" fill="#2f1810"/>
+  <circle cx="48" cy="14" r="8" fill="#2f1810"/>
+  <circle cx="24" cy="5" r="6" fill="#2f1810"/>
+  <circle cx="40" cy="5" r="6" fill="#2f1810"/>
+  <circle cx="32" cy="3" r="5" fill="#2f1810"/>
+  <circle cx="12" cy="20" r="4" fill="#2f1810"/>
+  <circle cx="52" cy="20" r="4" fill="#2f1810"/>
+  
+  <!-- Earrings -->
+  <circle cx="16" cy="24" r="2.2" fill="#ffd700"/>
+  <circle cx="48" cy="24" r="2.2" fill="#ffd700"/>
+  <circle cx="15.3" cy="23.3" r="0.6" fill="#fff" opacity="0.8"/>
+  <circle cx="47.3" cy="23.3" r="0.6" fill="#fff" opacity="0.8"/>
+
+  <!-- Eyes (with lashes) -->
+  <circle cx="24" cy="18" r="3.5" fill="white"/>
+  <circle cx="40" cy="18" r="3.5" fill="white"/>
+  <circle cx="25" cy="18" r="2" fill="#ff0000"/>
+  <circle cx="41" cy="18" r="2" fill="#ff0000"/>
+  <circle cx="25" cy="18" r="1" fill="#333"/>
+  <circle cx="41" cy="18" r="1" fill="#333"/>
+
+  <!-- Lashes -->
+  <line x1="21" y1="14" x2="19" y2="12" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="24" y1="13.5" x2="24" y2="11.5" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="27" y1="14" x2="29" y2="12" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="37" y1="14" x2="35" y2="12" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="40" y1="13.5" x2="40" y2="11.5" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="43" y1="14" x2="45" y2="12" stroke="#2f1810" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Arched eyebrows -->
+  <path d="M17 12 Q23 9 29 12" fill="none" stroke="#2f1810" stroke-width="4" stroke-linecap="round"/>
+  <path d="M47 12 Q41 9 35 12" fill="none" stroke="#2f1810" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <path d="M32,20 Q31,23 33,23" fill="none" stroke="#d2b48c" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Mouth (roaring, lipstick) -->
+  <ellipse cx="32" cy="30" rx="8.8" ry="5.8" fill="#c2185b"/>
+  <ellipse cx="32" cy="30.2" rx="7.4" ry="4.6" fill="#800000"/>
+  <rect x="26" y="26" width="12" height="4" fill="#fff"/>
+  
+  <!-- Blush (rage) -->
+  <ellipse cx="15" cy="22" rx="5" ry="3" fill="#ff6b6b" opacity="0.6"/>
+  <ellipse cx="49" cy="22" rx="5" ry="3" fill="#ff6b6b" opacity="0.6"/>
+  
+  <!-- Steam/anger marks -->
+  <path d="M8,8 Q6,4 10,2" fill="none" stroke="#ff4444" stroke-width="2"/>
+  <path d="M56,8 Q58,4 54,2" fill="none" stroke="#ff4444" stroke-width="2"/>
+  
+  <!-- Feet -->
+  <ellipse cx="18" cy="74" rx="9" ry="4" fill="#8b008b"/>
+  <ellipse cx="46" cy="74" rx="9" ry="4" fill="#8b008b"/>
+</svg>

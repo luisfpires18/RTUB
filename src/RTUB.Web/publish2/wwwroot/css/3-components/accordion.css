@@ -1,0 +1,63 @@
+/* Accordion styling for dark theme */
+
+/* Accordion styling for dark theme - Reports page */
+.accordion-button {
+    background-color: #1a1a1b;
+    color: #e2e2e2;
+    border-color: rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    color: #ffffff;
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    border-color: rgba(var(--bs-primary-rgb), 0.5);
+}
+
+.accordion-button:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
+}
+
+.accordion-button::after {
+    filter: brightness(0) invert(1);
+}
+
+.accordion-item {
+    background-color: #151516;
+    border-color: rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.accordion-body {
+    background-color: #151516;
+    color: #e2e2e2;
+}
+
+.member-list-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.text-white-opacity {
+    opacity: 0.9;
+}
+
+.slideshow-thumbnail {
+    max-width: 100px;
+    max-height: 60px;
+    object-fit: cover;
+}
+
+.slideshow-preview {
+    max-width: 200px;
+    max-height: 150px;
+    object-fit: cover;
+}
+
+.btn-primary-purple {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}

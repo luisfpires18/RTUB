@@ -1,0 +1,62 @@
+/* Fixed audio player positioning */
+
+/* Fixed audio player positioning adjustment */
+.fixed-audio-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #1a1a1b;
+  border-top: 2px solid var(--bs-primary);
+  padding: 0.75rem 1rem;
+  z-index: 1040;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.audio-player-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.audio-info {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--bs-body-color);
+  font-weight: 500;
+}
+
+.audio-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.audio-element {
+  flex: 1;
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .audio-player-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .audio-info {
+    width: 100%;
+  }
+  
+  .audio-title {
+    max-width: none;
+  }
+  
+  .audio-element {
+    width: 100%;
+    max-width: 100%;
+  }
+}

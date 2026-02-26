@@ -1,0 +1,620 @@
+/* AvatarCard Component Styles */
+/* Reuses hierarchy card visual without connectors */
+
+/* Grid Container */
+.avatar-card-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Responsive columns */
+/* Mobile: 1-2 columns */
+@media (max-width: 767px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+}
+
+/* Tablet: 3 columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Desktop: 4-6 columns (auto-fit based on available space) */
+@media (min-width: 1024px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+@media (min-width: 1400px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+}
+
+/* Avatar Card */
+.avatar-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    cursor: pointer;
+}
+
+.avatar-card:hover,
+.avatar-card:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+.avatar-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+/* Top-right action buttons */
+.avatar-card-edit-btn,
+.avatar-card-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Top-left action button - Set Nickname */
+.avatar-card-set-nickname-btn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: rgba(110, 86, 207, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+/* Adjust position when inactivity warning is present */
+.avatar-card-set-nickname-btn.has-warning-icon {
+    left: 2.75rem;
+}
+
+.avatar-card-set-nickname-btn:hover,
+.avatar-card-set-nickname-btn:focus {
+    background-color: rgb(90, 50, 163);
+    transform: scale(1.1);
+}
+
+.avatar-card-set-nickname-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Top-left expel/reactivate button */
+.avatar-card-expel-btn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+/* Adjust position when set nickname button is present */
+.avatar-card-expel-btn.has-nickname-btn {
+    left: 2.75rem;
+}
+
+.avatar-card-expel-btn:hover,
+.avatar-card-expel-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.avatar-card-expel-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Reactivate button variant (green) */
+.avatar-card-expel-btn-reactivate {
+    background-color: rgba(25, 135, 84, 0.95);
+}
+
+.avatar-card-expel-btn-reactivate:hover,
+.avatar-card-expel-btn-reactivate:focus {
+    background-color: rgb(20, 108, 67);
+}
+
+/* Top-left inactivity warning icon */
+.avatar-card-inactivity-warning {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: #333;
+    cursor: help;
+}
+
+.avatar-card-inactivity-warning i {
+    font-size: 1rem;
+}
+
+.avatar-card-edit-btn {
+    right: 3rem;
+    color: #333;
+}
+
+.avatar-card-delete-btn {
+    right: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.avatar-card-edit-btn:hover,
+.avatar-card-edit-btn:focus {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+.avatar-card-delete-btn:hover,
+.avatar-card-delete-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.avatar-card-edit-btn:focus,
+.avatar-card-delete-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Avatar Image */
+.avatar-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 120px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border-radius: 50%;
+}
+
+.avatar-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+/* Skeleton loader */
+.avatar-card-skeleton {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Card Content */
+.avatar-card-content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+}
+
+.avatar-card-login-status {
+    font-size: 0.75rem;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.avatar-card-login-status i {
+    font-size: 0.5rem;
+}
+
+.avatar-card-tuna-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.avatar-card-full-name {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.avatar-card-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-height: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.avatar-card-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Role badge specific styles */
+.avatar-card-role-badge {
+    background-color: var(--bs-primary);
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+    display: inline-block;
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Desktop hover behavior */
+@media (min-width: 481px) {
+    .avatar-card-role-badge:hover {
+        overflow: visible;
+        white-space: normal;
+        z-index: 10;
+        cursor: default;
+    }
+}
+
+/* Mobile: allow wrapping for long role names, disable hover */
+@media (max-width: 480px) {
+    .avatar-card-role-badge {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    /* Expanded state on mobile (tap-to-expand) */
+    .avatar-card-role-badge.expanded {
+        white-space: normal;
+        word-break: break-word;
+        overflow: visible;
+        text-overflow: clip;
+        z-index: 10;
+    }
+
+    /* Disable hover effects on mobile */
+    .avatar-card-role-badge:hover {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .avatar-card-role-badge.expanded:hover {
+        overflow: visible;
+        white-space: normal;
+    }
+}
+
+.avatar-card-instrument {
+    font-size: 0.85rem;
+    color: #e2e2e2;
+    text-align: center;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+/* View button */
+.avatar-card-actions {
+    padding: 0.75rem 1rem 1rem 1rem;
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+}
+
+.btn-purple {
+    background-color: var(--bs-primary);
+    color: white;
+    border: none;
+}
+
+.btn-purple:hover,
+.btn-purple:focus {
+    background-color: #5a32a3;
+    color: white;
+}
+
+/* Empty state */
+.avatar-card-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+/* Skeleton card for loading state */
+.avatar-card-skeleton-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    height: 100%;
+    min-height: 300px;
+}
+
+.avatar-card-skeleton-card .avatar-card-image-wrapper {
+    aspect-ratio: 1;
+}
+
+/* Accessibility */
+.avatar-card:focus-within .avatar-card-edit-btn,
+.avatar-card:focus-within .avatar-card-delete-btn {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .avatar-card-image-wrapper {
+        max-width: 100px;
+    }
+
+    .avatar-card-content {
+        padding: 0.75rem;
+    }
+
+    .avatar-card-tuna-name {
+        font-size: 1rem;
+    }
+
+    .avatar-card-full-name {
+        font-size: 0.85rem;
+    }
+
+    .avatar-card-login-status {
+        font-size: 0.7rem;
+    }
+
+    .avatar-card-login-status i {
+        font-size: 0.45rem;
+    }
+
+    .avatar-card-instrument {
+        font-size: 0.8rem;
+    }
+
+    .avatar-card-edit-btn,
+    .avatar-card-delete-btn,
+    .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
+    .avatar-card-inactivity-warning {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        touch-action: manipulation;
+    }
+
+    .avatar-card-edit-btn {
+        right: 2.75rem;
+    }
+    
+    .avatar-card-set-nickname-btn {
+        left: 0.375rem;
+        top: 0.375rem;
+    }
+    
+    .avatar-card-expel-btn {
+        left: 0.375rem;
+        top: 0.375rem;
+    }
+    
+    .avatar-card-set-nickname-btn.has-warning-icon {
+        left: 2.5rem;
+    }
+    
+    .avatar-card-expel-btn.has-nickname-btn {
+        left: 2.5rem;
+    }
+    
+    .avatar-card-inactivity-warning {
+        left: 0.375rem;
+        top: 0.375rem;
+    }
+    
+    /* Improve card touch interaction */
+    .avatar-card {
+        touch-action: manipulation;
+    }
+}
+
+/* Tablet adjustments (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .avatar-card-image-wrapper {
+        max-width: 110px;
+    }
+
+    .avatar-card-edit-btn,
+    .avatar-card-delete-btn,
+    .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
+    .avatar-card-inactivity-warning {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+/* Very small screens - extra compact mode */
+@media (max-width: 375px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .avatar-card-image-wrapper {
+        max-width: 80px;
+    }
+
+    .avatar-card-content {
+        padding: 0.625rem;
+    }
+
+    .avatar-card-tuna-name {
+        font-size: 0.9rem;
+    }
+
+    .avatar-card-full-name {
+        font-size: 0.75rem;
+    }
+
+    .avatar-card-edit-btn,
+    .avatar-card-delete-btn,
+    .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
+    .avatar-card-inactivity-warning {
+        width: 26px;
+        height: 26px;
+        font-size: 0.75rem;
+    }
+
+    .avatar-card-edit-btn {
+        right: 2.25rem;
+    }
+    
+    .avatar-card-expel-btn.has-nickname-btn {
+        left: 2rem;
+    }
+    
+    .avatar-card-set-nickname-btn.has-warning-icon {
+        left: 2rem;
+    }
+
+    .avatar-card-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.6rem;
+    }
+}
+
+/* Inactivity indicator (inline version) */
+.avatar-card-inactivity-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: #ffffff;
+    margin-top: 0.25rem;
+}
+
+.avatar-card-inactivity-indicator i {
+    font-size: 0.85rem;
+}
+
+/* Expelled card styling - grayscale */
+.avatar-card-expelled {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+.avatar-card-expelled:hover,
+.avatar-card-expelled:focus {
+    filter: grayscale(90%);
+    opacity: 0.85;
+}
+
+/* Action buttons row with multiple buttons */
+.avatar-card-actions {
+    padding: 0 1rem 1rem 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}

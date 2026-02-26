@@ -1,0 +1,17 @@
+{
+  "devDependencies": {
+    "bootstrap-icons": "^1.13.1",
+    "cropperjs": "^2.1.0",
+    "cross-env": "^10.1.0",
+    "pixi.js": "8.0.0",
+    "sharp": "^0.34.4",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
+  "scripts": {
+    "build:pixi:arena": "cross-env ENTRY=arena OUTNAME=pixiBattle vite build --config pixi/vite.config.ts",
+    "build:pixi:stage": "cross-env ENTRY=stageBattle OUTNAME=pixiStageBattle vite build --config pixi/vite.config.ts",
+    "build:pixi:survive": "cross-env ENTRY=surviveMode OUTNAME=pixiSurviveMode vite build --config pixi/vite.config.ts",
+    "build:pixi": "npm run build:pixi:arena && npm run build:pixi:stage && npm run build:pixi:survive"
+  }
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "relation": [ "delegate_permission/common.handle_all_urls" ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ipb.pt.rtub.app",
+      "sha256_cert_fingerprints": [ "13:EC:D9:17:B3:9B:EB:48:D3:C9:CD:2E:56:F1:16:12:A5:9F:8E:47:4E:6A:24:6D:E4:B9:56:8A:E3:0A:2F:FD" ]
+    }
+  }
+]

@@ -385,12 +385,16 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert
+        // Assert — stage advancement is in-memory only (no DB write per battle).
+        // The StageBattleResult confirms the win; actual DB state only changes
+        // when the run ends via EndRunAsync/ReturnToCheckpointAsync.
+        battle.Outcome.Should().Be(BattleOutcome.AttackerWon);
+        battle.StageNumber.Should().Be(1); // Fought on stage 1
+
+        // DB should still show stage 1 (no per-battle save)
         var progress = await _stageProgressRepository.GetByUserIdAsync("user1");
         progress.Should().NotBeNull();
-        progress!.CurrentStage.Should().Be(2); // Advanced from 1 to 2
-        progress.HighestStage.Should().Be(2);
-        progress.TotalStagesCleared.Should().Be(1);
+        progress!.CurrentStage.Should().Be(1, "stage advancement is deferred until run ends");
     }
 
     [Fact]
@@ -440,13 +444,13 @@ public class StageServiceTests : IDisposable
         // Verify user Fidelis was NOT updated yet (deferred rewards)
         _userManagerMock.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
 
-        // Act - now apply deferred rewards (restore HP to pre-run value of 3000)
+        // Act - now apply deferred rewards
         await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0, 0, 0, 0, restoreHp: 3000);
 
-        // Assert - rewards are now applied and HP is restored to pre-run value
+        // Assert - rewards are now applied and HP is restored to full (null = full HP)
         var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
         finalCharacter!.XP.Should().Be(initialXP + 10);
-        finalCharacter.CurrentHP.Should().Be(3000, "HP should be restored to the value before the stage run started");
+        finalCharacter.CurrentHP.Should().BeNull("ApplyRunRewardsAsync always restores full HP (null)");
 
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.FidelisBalance == initialFidelis + 10m)), Times.Once);
@@ -595,9 +599,10 @@ public class StageServiceTests : IDisposable
         // v5: tier-based flat XP = tier.XpReward(10) * enemyCount(1) = 10
         battle.XPReward.Should().Be(10);
 
-        // Verify boss defeat was recorded
+        // Boss defeat is tracked in-memory only during the run (no per-battle DB save).
+        // The DB value only changes when the run ends.
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
-        updatedProgress!.TotalBossesDefeated.Should().Be(1);
+        updatedProgress!.TotalBossesDefeated.Should().Be(0, "boss defeat counter is updated in-memory during run, saved at run end");
     }
 
     [Fact]
@@ -645,9 +650,10 @@ public class StageServiceTests : IDisposable
         battle.EnemyType.Should().Be(EnemyType.Boss);
         battle.StageNumber.Should().Be(20000);
 
-        // Verify endless mode was unlocked
+        // Endless mode unlock is in-memory during the run (no per-battle DB save).
+        // The DB value only changes when the run ends.
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
-        updatedProgress!.EndlessModeUnlocked.Should().BeTrue();
+        updatedProgress!.EndlessModeUnlocked.Should().BeFalse("endless mode unlock is saved at run end, not during battle");
     }
 
     [Fact]
@@ -683,9 +689,13 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert — HP should carry over from combat (continuous until defeat)
+        // Assert — HP carry-over is in-memory only during a run (no per-battle DB save).
+        // The StageBattleResult.PlayerFinalHP captures the in-memory HP from combat.
+        battle.PlayerFinalHP.Should().Be(75, "PlayerFinalHP should reflect combat result");
+
+        // DB character still has original HP (no save during run)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.CurrentHP.Should().Be(75, "HP should carry over from combat without healing between stages");
+        updatedCharacter!.CurrentHP.Should().NotBe(75, "HP is not written to DB during a run");
     }
 
     #endregion

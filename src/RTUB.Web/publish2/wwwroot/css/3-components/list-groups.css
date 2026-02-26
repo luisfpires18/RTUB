@@ -1,0 +1,327 @@
+/* Mobile-specific improvements for list groups */
+
+/* ========================================
+   Additional Mobile Enhancements
+   ======================================== */
+
+/* Mobile-specific improvements for list groups */
+@media (max-width: 768px) {
+  .list-group-item {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  /* Improve admin overlay button sizing on mobile */
+  .admin-overlay .btn-sm {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.375rem;
+  }
+
+  /* Better spacing for d-flex gap utilities on mobile */
+  .gap-2 {
+    gap: 0.375rem !important;
+  }
+
+  .gap-3 {
+    gap: 0.5rem !important;
+  }
+
+  .gap-4 {
+    gap: 0.75rem !important;
+  }
+
+  /* Improve row gutters on mobile */
+  .g-4 {
+    gap: 1rem !important;
+  }
+
+  /* Better modal footer spacing on mobile */
+  .modal-footer {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  /* Make sure icons in buttons are properly sized */
+  .btn i {
+    font-size: inherit;
+  }
+
+  /* Improve badge visibility on mobile */
+  .badge {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Better form validation message display */
+  .validation-message,
+  .text-danger {
+    font-size: 0.875rem;
+  }
+
+  /* Improve alert spacing on mobile */
+  .alert {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Better breadcrumb display on mobile */
+  .breadcrumb {
+    font-size: 0.875rem;
+    padding: 0.375rem 0;
+  }
+
+  /* Improve empty state display on mobile */
+  .empty-state-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .empty-state-icon {
+    font-size: 1.75rem;
+  }
+
+  /* Error display responsive styles */
+  .error-display-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .error-display-icon {
+    font-size: 1.75rem;
+  }
+
+  /* Better positioning badge display on mobile */
+  .badge-position {
+    font-size: 0.7em;
+    padding: 0.25em 0.5em;
+  }
+
+  /* Improve navbar category badge on mobile */
+  .navbar-category-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  /* Better handling of long text in cards */
+  .card-title,
+  .card-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Improve input group display on mobile */
+  .input-group {
+    flex-wrap: nowrap;
+  }
+
+  .input-group-text {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  /* Better display for portal feature cards */
+  .portal-feature-card {
+    padding: 1rem;
+  }
+
+  /* Improve family tree display on mobile */
+  .tree-level,
+  .children-container {
+    gap: 15px;
+  }
+
+  /* Better enrollment section display on mobile */
+  .enrollment-section {
+    padding: 0.625rem !important;
+  }
+
+  .enrollment-actions {
+    gap: 0.25rem !important;
+  }
+
+  /* Improve financial summary display on mobile */
+  .finance-summary {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  /* Better role history display on mobile */
+  .role-history-list {
+    max-height: 300px;
+  }
+
+  .role-history-item {
+    padding: 0.625rem;
+    font-size: 0.9rem;
+  }
+
+  /* Improve governing body card display on mobile */
+  .governing-body-card,
+  .portal-governing-body-card {
+    padding: 0.875rem;
+  }
+
+  /* Better member list scrollable on mobile */
+  .member-list-scrollable {
+    max-height: 300px;
+  }
+
+  /* Improve activity highlight on mobile */
+  .activity-highlight {
+    padding: 0.5rem;
+  }
+
+  /* Better lyric display on mobile */
+  .lyrics-display {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  /* Improve repertoire list display on mobile */
+  .repertoire-list {
+    gap: 0.75rem;
+  }
+
+  /* Better drag-and-drop on mobile */
+  .repertoire-card {
+    touch-action: manipulation;
+    /* Make cards more prominent for easier dragging */
+  }
+
+  .repertoire-card[draggable="true"] {
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .repertoire-card.dragging {
+    cursor: grabbing;
+  }
+
+  .drag-handle {
+    /* Larger touch target on mobile */
+    padding: 0.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    font-size: 1.5rem;
+  }
+
+  .repertoire-card-content {
+    padding: 0.875rem 1rem;
+    gap: 0.625rem;
+  }
+
+  /* Better spacing for icon sizes */
+  .music-icon-large,
+  .portal-icon-large {
+    font-size: 3rem;
+  }
+
+  .music-icon-medium {
+    font-size: 2.5rem;
+  }
+
+  /* Improve clickable row cursor on mobile */
+  .clickable-row {
+    min-height: 48px;
+  }
+
+  /* Better text preformatted display */
+  .text-preformatted,
+  .portal-text-preformatted-large {
+    font-size: 0.95rem;
+  }
+
+  /* Image cropper mobile optimizations */
+  .image-cropper-wrapper {
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  /* Make cropper buttons wrap and be more touch-friendly */
+  .image-cropper-wrapper + .mt-3 .btn-sm {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+  }
+
+  /* Better handling of overflow in cards */
+  .card {
+    overflow: hidden;
+  }
+
+  /* Improve position relative containers */
+  .position-relative {
+    overflow: hidden;
+  }
+
+  /* Better form check label display */
+  .form-check-label-white-clickable {
+    font-size: 0.95rem;
+  }
+
+  /* Improve hr divider visibility */
+  .hr-divider {
+    margin: 0.75rem 0;
+  }
+
+  /* Better member info display */
+  .member-info {
+    font-size: 0.9rem;
+  }
+
+  .member-name {
+    font-size: 0.9rem;
+  }
+
+  .member-nickname {
+    font-size: 0.8rem;
+  }
+
+  /* Better image loading and rendering on mobile */
+  img {
+    max-width: 100%;
+    height: auto;
+    /* Improve image rendering on mobile */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Lazy loading placeholder */
+  img[loading="lazy"] {
+    background: rgba(var(--bs-primary-rgb), 0.05);
+  }
+
+  /* Better SVG rendering on mobile */
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Improve form focus states on mobile */
+  .form-control:focus,
+  .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.3);
+  }
+
+  /* Better handling of long URLs/text */
+  .card-text,
+  .portal-card-text {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* Improve loading spinner on mobile */
+  .spinner-border {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  /* Better handling of nav pills/tabs on mobile */
+  .nav-pills .nav-link,
+  .nav-tabs .nav-link {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.875rem;
+  }
+}
+

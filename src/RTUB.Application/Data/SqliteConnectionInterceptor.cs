@@ -38,6 +38,7 @@ public class SqliteConnectionInterceptor : DbConnectionInterceptor
             using var command = connection.CreateCommand();
             command.CommandText = @"
                 PRAGMA journal_mode = WAL;
+                PRAGMA busy_timeout = 30000;
                 PRAGMA synchronous = NORMAL;
                 PRAGMA temp_store = MEMORY;
                 PRAGMA mmap_size = 268435456;

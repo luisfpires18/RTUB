@@ -324,7 +324,8 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Returns the player to their last checkpoint after defeat
+    /// Returns the player to their last checkpoint after defeat.
+    /// Uses fresh DbContext per retry to avoid stale entity tracking.
     /// </summary>
     public async Task<StageProgress> ReturnToCheckpointAsync(string userId, CancellationToken cancellationToken = default)
     {
@@ -333,16 +334,11 @@ public class StageService : IStageService
         {
             try
             {
+                // Fresh fetch on every attempt — GetByUserIdAsync now uses a short-lived
+                // context with AsNoTracking, so we always get current DB values.
                 var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
                 if (stageProgress == null)
                     throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
-
-                // Reload from database to ensure clean change tracker state.
-                // In Blazor Server, the long-lived DbContext may have stale tracked state
-                // from prior operations (e.g., ApplyRunRewardsAsync saving this entity as a
-                // side effect when SaveChangesAsync flushes all modified tracked entities).
-                // ReloadAsync refreshes original+current values and resets state to Unchanged.
-                await _stageProgressRepository.ReloadAsync(stageProgress);
 
                 stageProgress.ReturnToCheckpoint();
                 await _stageProgressRepository.UpdateAsync(stageProgress);
@@ -407,11 +403,15 @@ public class StageService : IStageService
                 character.PausePenaltyBuff();
                 await _characterRepository.UpdateAsync(character);
 
-                // Reload stageProgress from database to ensure clean change tracker state.
-                // The character save above may have flushed stageProgress as a side effect
-                // (SaveChangesAsync saves all tracked Modified entities), leaving the
-                // tracker with stale original values that cause concurrency exceptions.
-                await _stageProgressRepository.ReloadAsync(stageProgress);
+                // Re-fetch stageProgress with fresh values after character save.
+                // Both repos now use short-lived contexts so there's no cross-entity
+                // stale tracking; re-fetch ensures we have the latest DB state.
+                stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+                if (stageProgress == null)
+                {
+                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found after re-fetch", character.UserId);
+                    return false;
+                }
 
                 // Reset stage progress to the restore point
                 if (stageProgress.CurrentStage != restoreStage)
@@ -757,6 +757,56 @@ public class StageService : IStageService
         }
     }
 
+    /// <summary>
+    /// Atomically applies run rewards and returns to checkpoint in a single operation.
+    /// Each retry re-fetches all entities from DB via fresh short-lived contexts,
+    /// eliminating stale entity tracking that caused DbUpdateConcurrencyException.
+    /// </summary>
+    public async Task<StageProgress> EndRunAsync(int characterId, string userId, EndRunRewardsDto rewards, CancellationToken cancellationToken = default)
+    {
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                // Apply rewards (re-fetches character + user from DB on each attempt)
+                await ApplyRunRewardsCoreAsync(
+                    characterId, rewards.Xp, rewards.Fidelis, rewards.Finos, rewards.Canecas,
+                    rewards.Cigarros, rewards.Canhaos, rewards.Shots, rewards.Penalties,
+                    rewards.Fitab, rewards.RestoreHp, rewards.InstrumentParts,
+                    rewards.ExpirePenaltyBuff, rewards.StartStage, rewards.EndStage,
+                    rewards.RareSetPieces, rewards.Leitao, cancellationToken);
+
+                // Return to checkpoint (re-fetches stageProgress from DB)
+                var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
+                if (stageProgress == null)
+                    throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
+
+                stageProgress.ReturnToCheckpoint();
+                await _stageProgressRepository.UpdateAsync(stageProgress);
+
+                return stageProgress;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "EndRunAsync: Concurrency conflict for character {CharacterId}/user {UserId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        characterId, userId, attempt + 1, maxRetries);
+                    await Task.Delay(100 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+
+                _logger.LogError(ex, "EndRunAsync: Failed after {MaxRetries} retries for character {CharacterId}/user {UserId}", maxRetries, characterId, userId);
+                throw;
+            }
+        }
+
+        throw new InvalidOperationException("EndRunAsync exhausted retries");
+    }
+
     private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, List<InventoryItemType>? rareSetPieces, int leitao, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
@@ -805,13 +855,39 @@ public class StageService : IStageService
         }
 
         // Apply Fidelis and FITAB
-        var user = await _userManager.FindByIdAsync(character.UserId);
-        if (user != null && (fidelis > 0 || fitab > 0))
+        // UserManager.UpdateAsync uses Identity's ConcurrencyStamp — if another operation
+        // modified the user since we loaded it, the stamp won't match and the update fails.
+        // Retry with a fresh fetch to get the current ConcurrencyStamp.
+        if (fidelis > 0 || fitab > 0)
         {
-            // Apply Fidelis earned multiplier from Improvements upgrade
-            if (fidelis > 0) user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
-            if (fitab > 0) user.FitabBalance += fitab;
-            await _userManager.UpdateAsync(user);
+            const int userMaxRetries = 3;
+            for (int userAttempt = 0; userAttempt <= userMaxRetries; userAttempt++)
+            {
+                var user = await _userManager.FindByIdAsync(character.UserId);
+                if (user == null) break;
+
+                if (fidelis > 0) user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
+                if (fitab > 0) user.FitabBalance += fitab;
+
+                var result = await _userManager.UpdateAsync(user);
+                if (result.Succeeded) break;
+
+                // Check if it's a concurrency error (Identity wraps it in IdentityResult)
+                if (userAttempt < userMaxRetries)
+                {
+                    _logger.LogWarning(
+                        "ApplyRunRewardsCoreAsync: UserManager.UpdateAsync failed for user {UserId} (attempt {Attempt}/{MaxRetries}): {Errors}",
+                        character.UserId, userAttempt + 1, userMaxRetries,
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                    await Task.Delay(50 * (userAttempt + 1), cancellationToken);
+                    continue;
+                }
+
+                _logger.LogError(
+                    "ApplyRunRewardsCoreAsync: UserManager.UpdateAsync failed after {MaxRetries} retries for user {UserId}: {Errors}",
+                    userMaxRetries, character.UserId,
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
         }
 
         // Batch all inventory drops into a single DB round-trip
@@ -839,7 +915,9 @@ public class StageService : IStageService
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
-        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, leitao, instrumentParts, rareSetPieces, startStage, endStage);
+        // Resolve username for logging (character.User may not be loaded)
+        var logUser = await _userManager.FindByIdAsync(character.UserId);
+        LogRunRewards(logUser?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, leitao, instrumentParts, rareSetPieces, startStage, endStage);
     }
 
     private void LogRunRewards(

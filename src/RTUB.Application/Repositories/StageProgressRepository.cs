@@ -14,7 +14,9 @@ public class StageProgressRepository : Repository<StageProgress>, IStageProgress
 
     public async Task<StageProgress?> GetByUserIdAsync(string userId)
     {
-        return await _context.StageProgresses
+        using var context = CreateContext();
+        return await context.StageProgresses
+            .AsNoTracking()
             .Include(sp => sp.User)
             .FirstOrDefaultAsync(sp => sp.UserId == userId);
     }

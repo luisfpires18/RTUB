@@ -124,24 +124,27 @@ public class UpgradeService : IUpgradeService
         {
             try
             {
-                // Use database transaction for atomicity
-                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                // Use a fresh, isolated context so the entire transaction runs on ONE connection.
+                // Previous approach used _context for the transaction but _userManager/_characterService
+                // wrote through different connections, causing SQLite "table locked" deadlocks.
+                await using var ctx = _contextFactory.CreateDbContext();
+                await using var transaction = await ctx.Database.BeginTransactionAsync(cancellationToken);
 
                 try
                 {
-                    // Load user and character with tracking (within transaction)
-                    var user = await _userManager.FindByIdAsync(userId);
+                    // Load user and character WITH TRACKING on the same context as the transaction
+                    var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
                     if (user == null)
                     {
                         await transaction.RollbackAsync();
                         return UpgradeResult.CreateFailure("Utilizador não encontrado");
                     }
 
-                    // Get or create character (reload within transaction to ensure latest data)
-                    var character = await _characterService.GetOrCreateCharacterAsync(userId, cancellationToken);
+                    // Ensure character exists (may create on a separate context, which is fine — it's a one-time insert)
+                    await _characterService.GetOrCreateCharacterAsync(userId, cancellationToken);
 
-                    // Reload character from database within transaction to ensure we have latest upgrade counts
-                    character = await _context.Characters
+                    // Reload character from the transaction context to ensure we have latest upgrade counts
+                    var character = await ctx.Characters
                         .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
                     if (character == null)
@@ -197,23 +200,26 @@ public class UpgradeService : IUpgradeService
 
                     if (leitaoCost > 0)
                     {
-                        var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                        // Read and consume leitão on the SAME transaction context
+                        var leitaoItem = await ctx.Set<InventoryItem>()
+                            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == InventoryItemType.Leitao, cancellationToken);
+
                         if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
                         {
                             await transaction.RollbackAsync();
                             return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
                         }
 
-                        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
-                        if (!consumed)
+                        if (!leitaoItem.ConsumeQuantity(leitaoCost))
                         {
                             await transaction.RollbackAsync();
                             return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
                         }
                     }
 
-                    // Deduct Fidelis
+                    // Deduct Fidelis and update concurrency stamp (replaces _userManager.UpdateAsync)
                     user.FidelisBalance -= cost;
+                    user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
                     // Apply upgrade
                     switch (statType)
@@ -235,10 +241,8 @@ public class UpgradeService : IUpgradeService
                             break;
                     }
 
-                    // Save changes atomically
-                    await _userManager.UpdateAsync(user);
-                    await _characterService.UpdateCharacterAsync(character, cancellationToken);
-                    await _context.SaveChangesAsync(cancellationToken);
+                    // Single SaveChanges persists user + character + inventory atomically on ONE connection
+                    await ctx.SaveChangesAsync(cancellationToken);
 
                     // Commit transaction
                     await transaction.CommitAsync(cancellationToken);

@@ -1,0 +1,97 @@
+/*
+ * Global styles and resets
+ * Base styles for body, links, and touch interactions
+ */
+
+/* Better touch interactions for all devices */
+* {
+  -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.1);
+  /* Prevent text selection on double-tap for better touch experience */
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Override for interactive elements - allow selection prevention */
+button,
+.btn,
+.nav-link,
+.dropdown-item,
+.card-clickable,
+.music-card-clickable {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Smooth scrolling for better mobile experience */
+  scroll-behavior: smooth;
+  /* Improve tap highlighting on mobile */
+  -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
+}
+
+/* Keep headings with icons on a single line and aligned */
+h1,
+.h1,
+.page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px; /* Match touch target guidance */
+}
+
+h1 i,
+.h1 i,
+.page-title i {
+  line-height: 1;
+}
+
+a {
+  color: var(--bs-link-color);
+  text-decoration: none;
+}
+a:hover, a:focus {
+  color: var(--bs-link-hover-color);
+  text-decoration: underline;
+}
+
+
+/* Custom background color utility class */
+.bg-yellow {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+  color: #212529 !important;
+}
+
+/* ========================================
+   MOBILE UX - Scroll Lock & Input Fixes
+   ======================================== */
+
+/* 
+ * .no-scroll class - Prevents body scroll when modals are open on mobile
+ * Used by messaging modals to prevent background scroll
+ * IMPORTANT: Uses position: fixed to prevent scroll-behind on iOS Safari
+ */
+.no-scroll {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+}
+
+/* 
+ * .messaging-input class - Prevents iOS auto-zoom on focus
+ * All text inputs and textareas in messaging modals should use this
+ * iOS zooms inputs with font-size < 16px, so we enforce minimum 16px
+ */
+.messaging-input {
+  font-size: 16px !important;
+}

@@ -19,7 +19,8 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     /// </summary>
     public async Task<InventoryItem?> GetItemAsync(string userId, InventoryItemType type, CancellationToken cancellationToken = default)
     {
-        return await _context.InventoryItems
+        using var context = CreateContext();
+        return await context.InventoryItems
             .AsNoTracking()
             .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == type, cancellationToken);
     }
@@ -29,24 +30,24 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     /// </summary>
     public async Task AddItemAsync(string userId, InventoryItemType type, int quantity, CancellationToken cancellationToken = default)
     {
+        using var context = CreateContext();
+
         // Find existing item (with tracking for update)
-        var existingItem = await _context.InventoryItems
+        var existingItem = await context.InventoryItems
             .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == type, cancellationToken);
 
         if (existingItem != null)
         {
-            // Ensure we have the latest DB value (Blazor Server DbContext is long-lived)
-            await _context.Entry(existingItem).ReloadAsync(cancellationToken);
             // Update existing item
             existingItem.AddQuantity(quantity);
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
         }
         else
         {
             // Create new item
             var newItem = InventoryItem.Create(userId, type, quantity);
-            await _context.InventoryItems.AddAsync(newItem, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.InventoryItems.AddAsync(newItem, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -57,10 +58,11 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     /// </summary>
     public async Task<bool> ConsumeItemAsync(string userId, InventoryItemType type, int quantity, CancellationToken cancellationToken = default)
     {
+        using var context = CreateContext();
         // Atomic: decrement only if sufficient stock exists in a single DB round-trip.
         // The WHERE clause "Quantity >= {quantity}" makes the check-and-update atomic —
         // if two requests race, only one will match and decrement.
-        var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
+        var rowsAffected = await context.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE InventoryItems SET Quantity = Quantity - {quantity} WHERE UserId = {userId} AND Type = {(int)type} AND Quantity >= {quantity}",
             cancellationToken);
 
@@ -72,7 +74,8 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     /// </summary>
     public async Task<List<InventoryItem>> GetUserInventoryAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await _context.InventoryItems
+        using var context = CreateContext();
+        return await context.InventoryItems
             .AsNoTracking()
             .Where(i => i.UserId == userId)
             .OrderBy(i => i.Type)
@@ -84,8 +87,9 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     /// </summary>
     public async Task<List<InventoryItem>> GetItemsByTypesAsync(string userId, IEnumerable<InventoryItemType> types, CancellationToken cancellationToken = default)
     {
+        using var context = CreateContext();
         var typeList = types.ToList();
-        return await _context.InventoryItems
+        return await context.InventoryItems
             .AsNoTracking()
             .Where(i => i.UserId == userId && typeList.Contains(i.Type))
             .ToListAsync(cancellationToken);
@@ -100,18 +104,13 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     {
         if (items == null || items.Count == 0) return;
 
+        using var context = CreateContext();
         var itemTypes = items.Keys.ToList();
 
         // Single query: load all relevant items at once (with tracking for update)
-        var existingItems = await _context.InventoryItems
+        var existingItems = await context.InventoryItems
             .Where(i => i.UserId == userId && itemTypes.Contains(i.Type))
             .ToListAsync(cancellationToken);
-
-        // Reload all tracked entities to ensure fresh values (Blazor Server long-lived DbContext)
-        foreach (var item in existingItems)
-        {
-            await _context.Entry(item).ReloadAsync(cancellationToken);
-        }
 
         var existingDict = existingItems.ToDictionary(i => i.Type);
 
@@ -126,11 +125,11 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
             else
             {
                 var newItem = InventoryItem.Create(userId, type, quantity);
-                await _context.InventoryItems.AddAsync(newItem, cancellationToken);
+                await context.InventoryItems.AddAsync(newItem, cancellationToken);
             }
         }
 
         // Single SaveChangesAsync for all modifications
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

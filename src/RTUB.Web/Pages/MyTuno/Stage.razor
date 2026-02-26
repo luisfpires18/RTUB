@@ -1195,50 +1195,51 @@
         }
         else
         {
-            // Run ended (defeat) - restore HP to pre-run value and apply accumulated rewards
-            if (character != null)
-            {
-                try
-                {
-                    await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? currentStageNumber, currentStageNumber,
-                        totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error applying run rewards");
-                }
-            }
-
-            // Mark run as complete (may already be false from FightStageEnemy)
+            // Run ended (defeat) - apply accumulated rewards and return to checkpoint atomically
             // Save the starting stage BEFORE clearing run state — used by RECOMEÇAR
             retryStartStage ??= runStartingStage ?? currentStageNumber;
-            runInProgress = false;
-            runStartingHp = null;
-            runStartingStage = null;
-            pendingDefeatRewards = false;
 
-            // Return to checkpoint but do NOT auto-restart — show defeat summary instead
-            if (!_disposed && currentUser != null && stageProgress != null)
+            if (character != null && currentUser != null)
             {
                 try
                 {
-                    // Save the stage where the player was defeated before returning to checkpoint
                     defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
-
-                    stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
+                    var rewards = new EndRunRewardsDto
+                    {
+                        Xp = totalXPEarned,
+                        Fidelis = totalFidelisEarned,
+                        Finos = totalFinosDropped,
+                        Canecas = totalCanecasDropped,
+                        Cigarros = totalCigarrosDropped,
+                        Canhaos = totalCanhaosDropped,
+                        Shots = totalShotsDropped,
+                        Penalties = totalPenaltiesDropped,
+                        Fitab = totalFitabDropped,
+                        RestoreHp = defeatRestoreHp,
+                        InstrumentParts = totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        ExpirePenaltyBuff = true,
+                        StartStage = defeatStartStage ?? currentStageNumber,
+                        EndStage = currentStageNumber,
+                        RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
+                        Leitao = totalLeitaoDropped
+                    };
+                    stageProgress = await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
                     currentStageNumber = stageProgress.CurrentStage;
                     checkpointStage = stageProgress.LastCheckpoint;
-                    
+
                     // Reload character to get fresh HP
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "Error returning to checkpoint after defeat");
+                    Logger.LogError(ex, "Error ending run after defeat");
                 }
             }
+
+            runInProgress = false;
+            runStartingHp = null;
+            runStartingStage = null;
+            pendingDefeatRewards = false;
 
             // Stop the battle animation and show defeat summary
             showBattleAnimation = false;
@@ -1485,16 +1486,34 @@
                 // Save defeated-at stage before applying rewards
                 defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
 
-                // Apply accumulated rewards from the run
-                if (character != null && stagesCleared > 0)
+                // Apply accumulated rewards and return to checkpoint atomically
+                if (character != null && stagesCleared > 0 && currentUser != null)
                 {
                     try
                     {
-                        await StageService.ApplyRunRewardsAsync(
-                            character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
-                            totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            expirePenaltyBuff: false, runStartingStage ?? currentStageNumber, currentStageNumber,
-                            totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
+                        var rewards = new EndRunRewardsDto
+                        {
+                            Xp = totalXPEarned,
+                            Fidelis = totalFidelisEarned,
+                            Finos = totalFinosDropped,
+                            Canecas = totalCanecasDropped,
+                            Cigarros = totalCigarrosDropped,
+                            Canhaos = totalCanhaosDropped,
+                            Shots = totalShotsDropped,
+                            Penalties = totalPenaltiesDropped,
+                            Fitab = totalFitabDropped,
+                            RestoreHp = runStartingHp,
+                            InstrumentParts = totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                            ExpirePenaltyBuff = false,
+                            StartStage = runStartingStage ?? currentStageNumber,
+                            EndStage = currentStageNumber,
+                            RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
+                            Leitao = totalLeitaoDropped
+                        };
+                        stageProgress = await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
+                        currentStageNumber = stageProgress.CurrentStage;
+                        checkpointStage = stageProgress.LastCheckpoint;
+                        character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     }
                     catch (Exception ex)
                     {
@@ -1512,22 +1531,6 @@
                 runStartingHp = null;
                 runStartingStage = null;
                 pendingDefeatRewards = false;
-
-                // Return to checkpoint
-                if (currentUser != null && stageProgress != null)
-                {
-                    try
-                    {
-                        stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
-                        currentStageNumber = stageProgress.CurrentStage;
-                        checkpointStage = stageProgress.LastCheckpoint;
-                        character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "Error returning to checkpoint on early end");
-                    }
-                }
 
                 // Show reward summary (showBattleAnimation already set false above)
                 showDefeatSummary = true;
@@ -1619,14 +1622,30 @@
 
         // Apply pending defeat rewards if OnBattleFinished never fired
         // (e.g., user navigated away during the death animation)
-        if (pendingDefeatRewards && character != null && stagesCleared > 0)
+        if (pendingDefeatRewards && character != null && stagesCleared > 0 && currentUser != null)
         {
             try
             {
-                await StageService.ApplyRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? runStartingStage ?? currentStageNumber, currentStageNumber,
-                    totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
+                var rewards = new EndRunRewardsDto
+                {
+                    Xp = totalXPEarned,
+                    Fidelis = totalFidelisEarned,
+                    Finos = totalFinosDropped,
+                    Canecas = totalCanecasDropped,
+                    Cigarros = totalCigarrosDropped,
+                    Canhaos = totalCanhaosDropped,
+                    Shots = totalShotsDropped,
+                    Penalties = totalPenaltiesDropped,
+                    Fitab = totalFitabDropped,
+                    RestoreHp = defeatRestoreHp,
+                    InstrumentParts = totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                    ExpirePenaltyBuff = true,
+                    StartStage = defeatStartStage ?? runStartingStage ?? currentStageNumber,
+                    EndStage = currentStageNumber,
+                    RareSetPieces = totalRareSetDropped.Count > 0 ? totalRareSetDropped : null,
+                    Leitao = totalLeitaoDropped
+                };
+                await StageService.EndRunAsync(character.Id, currentUser.Id, rewards);
             }
             catch (Exception)
             {

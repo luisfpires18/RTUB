@@ -63,6 +63,17 @@ public interface IStageService
     Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, int leitao = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Atomically applies run rewards and returns to checkpoint in a single operation.
+    /// Eliminates the race condition between separate ApplyRunRewardsAsync + ReturnToCheckpointAsync calls.
+    /// </summary>
+    /// <param name="characterId">The character to apply rewards to</param>
+    /// <param name="userId">The user whose stage progress to reset</param>
+    /// <param name="rewards">Accumulated rewards from the run</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated stage progress after returning to checkpoint</returns>
+    Task<StageProgress> EndRunAsync(int characterId, string userId, EndRunRewardsDto rewards, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Calculates XP and Fidelis rewards for winning a given stage.
     /// Used when the interactive session wins but the deterministic sim predicted a loss
     /// (so the StageBattleResult has XPReward/FidelisReward = 0).

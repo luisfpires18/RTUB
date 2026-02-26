@@ -201,11 +201,10 @@ public class Program
                 }
             }
 
-            // Configure SQLite for better concurrency:
-            // - Cache=Shared: Uses shared cache mode to allow multiple connections to share data
-            // - Default Timeout: Sets the busy timeout (in seconds) for SQLite to wait when the database is locked
-            connectionStringBuilder.Cache = Microsoft.Data.Sqlite.SqliteCacheMode.Shared;
-            connectionStringBuilder.DefaultTimeout = 30; // Wait up to 30 seconds if database is locked
+            // Configure SQLite busy timeout: wait up to 30 seconds if database is locked.
+            // Do NOT use Cache=Shared — shared-cache introduces table-level locks that conflict
+            // with WAL mode and cause cross-connection deadlocks in Blazor Server.
+            connectionStringBuilder.DefaultTimeout = 30;
             finalConnectionString = connectionStringBuilder.ToString();
         }
         catch (Exception ex)
@@ -359,12 +358,23 @@ public class Program
 
                         var now = DateTime.UtcNow;
 
-                        // Update LastLoginDate to track user activity (both normal login and cookie validation)
-                        // This is throttled by the cache above to prevent excessive DB writes
-                        await db.Database.ExecuteSqlInterpolatedAsync($@"
-                            UPDATE AspNetUsers
-                            SET LastLoginDate = {now}
-                            WHERE Id = {userId};");
+                        // Update LastLoginDate with retry for SQLite "table locked" contention.
+                        // This raw SQL bypasses EF SaveChangesAsync retry, so handle it explicitly.
+                        for (int attempt = 1; ; attempt++)
+                        {
+                            try
+                            {
+                                await db.Database.ExecuteSqlInterpolatedAsync($@"
+                                    UPDATE AspNetUsers
+                                    SET LastLoginDate = {now}
+                                    WHERE Id = {userId};");
+                                break;
+                            }
+                            catch (Microsoft.Data.Sqlite.SqliteException ex) when (attempt < 3 && ex.SqliteErrorCode == 6)
+                            {
+                                await Task.Delay(50 * (int)Math.Pow(2, attempt - 1));
+                            }
+                        }
 
                     }
                     catch (Exception ex)

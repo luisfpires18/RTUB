@@ -1,0 +1,202 @@
+/* Breadcrumbs and navigation elements */
+
+.search-bar-container .input-group-text {
+    background-color: #2d2d2d;
+    border-color: #495057;
+    color: #ffffff;
+}
+
+.search-bar-container .btn-outline-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    background-color: transparent;
+    border-color: #495057;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.search-bar-container .btn-outline-secondary:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.search-bar-container .btn-outline-secondary i {
+    font-size: 0.875rem;
+}
+
+/* Mentor search in modal (Members page) */
+.mentor-search-container .input-group-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2d2d2d;
+    border-color: #495057;
+    color: #ffffff;
+    padding: 0.375rem 0.75rem;
+}
+
+.mentor-search-container .input-group-text i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.mentor-search-container .form-control {
+    background-color: #1a1a1a;
+    border-color: #495057;
+    color: #ffffff;
+}
+
+.mentor-search-container .form-control::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.mentor-search-container .form-control:focus {
+    background-color: #1a1a1a;
+    border-color: var(--bs-primary);
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.mentor-search-container .btn-outline-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    background-color: transparent;
+    border-color: #495057;
+    color: #ffffff;
+}
+
+.mentor-search-container .btn-outline-secondary:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+/* TablePagination component */
+.pagination-container {
+    margin-top: 1.5rem;
+}
+
+.pagination-info {
+    margin-top: 1rem;
+}
+
+.pagination-info-text {
+    color: #e2e2e2;
+}
+
+.pagination-info-label {
+    color: #e2e2e2;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.pagination .page-link {
+    color: var(--bs-primary);
+}
+
+.pagination .page-link:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.pagination .page-item.disabled .page-link {
+    cursor: not-allowed;
+}
+
+/* New EmptyState component - with purple hover */
+.empty-state-container {
+    margin: 1rem 0;
+}
+
+.empty-state-card {
+    background-color: rgba(110, 86, 207, 0.06);
+    border: 1px solid rgba(110, 86, 207, 0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-align: center;
+    cursor: default;
+}
+
+.empty-state-hoverable {
+    cursor: pointer;
+}
+
+.empty-state-card:hover {
+    background-color: rgba(110, 86, 207, 0.12);
+    border-color: #6E56CF;
+    box-shadow: 0 4px 12px rgba(110, 86, 207, 0.2);
+}
+
+.empty-state-card:focus-visible {
+    outline: 2px solid #6E56CF;
+    outline-offset: 2px;
+    border-color: #6E56CF;
+}
+
+.empty-state-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    color: #6E56CF;
+    opacity: 0.85;
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.empty-state-message {
+    font-size: 0.9375rem;
+    color: #b8b8b8;
+    margin: 0;
+    max-width: 600px;
+    line-height: 1.5;
+}
+
+/* Error Display Component - Based on EmptyState with red theme */
+.error-display-container {
+    margin: 1rem 0;
+}
+
+.error-display-card {
+    background-color: rgba(231, 76, 60, 0.06);
+    border: 1px solid rgba(231, 76, 60, 0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.error-display-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.error-display-icon {
+    font-size: 2.5rem;
+    color: #e74c3c;
+    opacity: 0.85;
+}
+
