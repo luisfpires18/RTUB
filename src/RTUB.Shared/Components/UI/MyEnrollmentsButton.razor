@@ -15,9 +15,12 @@
     Available to all authenticated users
 *@
 
-<button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsModal" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
-    <i class="bi bi-calendar-check"></i> Minhas Inscrições
-</button>
+@if (!HideButton)
+{
+    <button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsModal" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
+        <i class="bi bi-calendar-check"></i> Minhas Inscrições
+    </button>
+}
 
 <!-- Minhas Inscrições Modal -->
 @if (showMyEnrollmentsModal)
@@ -99,12 +102,18 @@
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseMyEnrollmentsModal" aria-label="Fechar modal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyEnrollmentsModal" aria-label="Voltar Atrás">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
 
 @code {
+    /// <summary>
+    /// When true, hides the trigger button (used when the parent page provides its own trigger via @ref)
+    /// </summary>
+    [Parameter]
+    public bool HideButton { get; set; }
+
     private bool showMyEnrollmentsModal = false;
     private bool showAllEvents = false;
     private List<EventEnrollmentDisplay> eventEnrollments = new();
@@ -137,6 +146,16 @@
                 currentUserId = appUser.Id;
             }
         }
+    }
+
+    /// <summary>
+    /// Opens the enrollments modal. Can be called externally via @ref.
+    /// </summary>
+    public async Task Open()
+    {
+        await LoadMyEnrollments();
+        showMyEnrollmentsModal = true;
+        StateHasChanged();
     }
 
     private async Task OpenMyEnrollmentsModal()

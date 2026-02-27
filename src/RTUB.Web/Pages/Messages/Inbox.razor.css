@@ -31,6 +31,7 @@
     /* Mobile chat layout dimensions */
     --rtub-msg-mobile-header-height: 60px;
     --rtub-msg-mobile-footer-height: 60px;
+    --rtub-msg-mobile-bottomnav-height: 56px;
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -498,8 +499,7 @@
     background: linear-gradient(135deg, #252431, #1f1f2a);
     border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    width: fit-content;
-    min-width: 220px;
+    width: 100%;
 }
 
 .rtub-messages__bubble--system .rtub-messages__bubble-content {
@@ -814,6 +814,16 @@
         padding-bottom: 0;
         margin-bottom: 0;
     }
+
+    /* MobileBottomNav inside the fixed .rtub-messages container —
+       override to flow as flex child instead of fixed positioning */
+    .rtub-messages ::deep .mobile-bottom-nav {
+        position: static;
+        flex-shrink: 0;
+        z-index: auto;
+        box-shadow: none;
+        border-top: 1px solid rgba(111, 66, 193, 0.25);
+    }
 }
 
 @media (max-width: 767px) {
@@ -823,21 +833,18 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0;
         padding: 0;
         margin: 0;
-        /* Ensure no extra spacing */
-        padding-bottom: 0;
-        margin-bottom: 0;
     }
 
     .rtub-messages .row {
         flex: 1;
         display: flex;
+        flex-direction: column;
         overflow: hidden;
+        min-height: 0;
         margin: 0;
-        /* Ensure no extra spacing */
-        padding-bottom: 0;
-        margin-bottom: 0;
     }
 
     /* Conversations panel - full height with internal scroll */
@@ -846,10 +853,8 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0;
         border-radius: 0;
-        /* Ensure no extra spacing at bottom */
-        padding-bottom: 0;
-        margin-bottom: 0;
     }
 
     /* Mobile header adjustments */
@@ -876,23 +881,17 @@
         overscroll-behavior: contain;
     }
 
-    /* Message thread panel - full height chat experience
-       On iOS Safari, the keyboard behavior requires special handling.
-       The container uses position: fixed with inset: 0 to fill the screen.
-       Height is dynamically adjusted via JS using the Visual Viewport API
-       to ensure the header stays visible when the keyboard opens. */
+    /* Message thread panel - flex child that fills remaining space.
+       All ancestors in the flex chain have min-height: 0 so this
+       correctly shrinks when the MobileBottomNav is present. */
     .rtub-messages__thread-panel {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0;
+        width: 100%;
         border-radius: 0;
-        /* z-index layering: thread panel (1000) < header (1001) < messages-page (1050) < modals (1060) */
-        z-index: 1000;
         /* Safe area padding for notch devices */
         padding-top: env(safe-area-inset-top, 0px);
         /* Prevent any scrolling of this container */
@@ -907,7 +906,6 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        /* min-height: 0 is critical for flex children to shrink properly */
         min-height: 0;
     }
 
@@ -928,47 +926,35 @@
 
     /* Scrollable message body - flex child that fills remaining space */
     .rtub-messages__thread-body {
-        flex: 1;
+        flex: 1 1 0;
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.5rem 0.75rem;
-        /* Account for the fixed footer at bottom */
-        padding-bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         /* Prevent elastic scroll bounce */
         touch-action: pan-y;
         overscroll-behavior: contain;
     }
 
-    /* FIXED footer - message composer at bottom (like WhatsApp) */
+    /* Footer - flex child, does not shrink */
     .rtub-messages__thread-footer {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        flex-shrink: 0;
         background: #0f0f10;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         padding: 0.5rem 0.75rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-        z-index: 1000;
         display: flex;
         align-items: center;
     }
 
     /* Read-only footer mobile override */
     .rtub-messages__thread-footer--readonly {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        flex-shrink: 0;
         background: #0f0f10;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         padding: 0.5rem 0.75rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-        z-index: 1000;
         display: flex;
         align-items: center;
         justify-content: center;

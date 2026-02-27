@@ -151,40 +151,28 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task<bool> ToggleLikeAsync(int commentId, string userId)
     {
-        // Load comment with likes in a single query
-        var comment = await _leaderboardCommentRepository.Query()
-            .Include(c => c.Likes)
-            .FirstOrDefaultAsync(c => c.Id == commentId);
+        // Use the repository's single-context method so Likes collection
+        // changes are properly tracked and persisted (base UpdateAsync only
+        // copies scalar properties via SetValues, losing navigation changes).
+        var result = await _leaderboardCommentRepository.ToggleLikeAsync(commentId, userId);
 
-        if (comment == null)
+        if (result == null)
         {
-            return false;
+            return false; // Comment not found
         }
 
-        var existingLike = comment.Likes.FirstOrDefault(l => l.UserId == userId);
-
-        if (existingLike != null)
+        // Send notification if liked (not unliked) and not liking own comment
+        if (result == true)
         {
-            // Unlike - remove the like
-            comment.Likes.Remove(existingLike);
-            await _leaderboardCommentRepository.UpdateAsync(comment);
-            return false; // Unliked
-        }
-        else
-        {
-            // Like - add a new like
-            var like = LeaderboardCommentLike.Create(commentId, userId);
-            comment.Likes.Add(like);
-            await _leaderboardCommentRepository.UpdateAsync(comment);
-
-            // Send notification to comment author (but not if liking own comment)
-            if (userId != comment.AuthorId)
+            // Need to get the comment author to check self-like
+            var comment = await _leaderboardCommentRepository.GetByIdWithDetailsAsync(commentId);
+            if (comment != null && userId != comment.AuthorId)
             {
                 await SendLikeNotificationAsync(userId, comment.AuthorId);
             }
-
-            return true; // Liked
         }
+
+        return result.Value;
     }
 
     /// <summary>

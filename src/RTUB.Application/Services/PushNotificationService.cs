@@ -196,8 +196,8 @@ public class PushNotificationService : IPushNotificationService
         // Build a userId -> userName lookup from subscriptions' UserAgent field
         // Note: UserAgent stores browser info, not username. We'll use User navigation property if loaded,
         // otherwise track results by subscription for logging later.
-        _logger.LogInformation("Sending push notification to {SubscriptionCount} subscriptions for {UserCount} users",
-            selectedSubscriptions.Count, userIdSet.Count);
+        _logger.LogInformation("Sending push notification '{Title}' (tag: {Tag}) to {SubscriptionCount} subscriptions for {UserCount} users",
+            notification.Title, notification.Tag ?? "none", selectedSubscriptions.Count, userIdSet.Count);
 
         var sent = 0;
         var failed = 0;
@@ -218,8 +218,8 @@ public class PushNotificationService : IPushNotificationService
             await SendInboxMessageAsync(userId, notification);
         }
 
-        _logger.LogInformation("Push notification delivery complete: {Sent} sent, {Failed} failed out of {Total} subscriptions",
-            sent, failed, selectedSubscriptions.Count);
+        _logger.LogInformation("Push notification '{Title}' (tag: {Tag}) delivery complete: {Sent} sent, {Failed} failed out of {Total} subscriptions",
+            notification.Title, notification.Tag ?? "none", sent, failed, selectedSubscriptions.Count);
 
         return (sent, failed);
     }

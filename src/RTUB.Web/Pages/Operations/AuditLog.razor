@@ -11,29 +11,30 @@
 @inject IAuditLogService AuditLogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <PageTitle>Audit Logs</PageTitle>
 
 <div class="container-fluid audit-log-page">
-    <div class="page-header">
-        <div class="page-header-content">
-            <div class="page-header-title">
-                <h1 class="page-title"><i class="bi bi-shield-check"></i> Histórico de atividades</h1>
-                <p class="lead page-header-subtitle text-light-theme">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
-            </div>
-            <div class="page-header-actions">
-                <LoginStatisticsButton />
-                <div class="ms-auto d-flex gap-2">
-                    <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
-                        <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
-                    </button>
-                    <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
-                        <i class="bi bi-trash"></i> <span class="btn-text">Truncate All</span>
-                    </button>
-                </div>
-            </div>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-shield-check"></i> Histórico de atividades</h1>
+            <p class="lead page-header-subtitle text-light-theme">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex gap-2">
+            <LoginStatisticsButton />
+            <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
+                <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
+            </button>
+            <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
+                <i class="bi bi-trash"></i> <span class="btn-text">Truncate All</span>
+            </button>
         </div>
     </div>
+
+    @* Ref-only instance for mobile nav — button hidden, modal renders at page level *@
+    <LoginStatisticsButton @ref="loginStatsButton" HideButton="true" />
 
     @if (isLoading)
     {
@@ -369,6 +370,9 @@
     </FooterContent>
 </Modal>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private bool isLoading = true;
     private List<RTUB.Core.Entities.AuditLog> auditLogs = new();
@@ -402,6 +406,14 @@
 
     // Export
     private bool isExporting = false;
+    private LoginStatisticsButton? loginStatsButton;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+    {
+        new("action-back", "Voltar", "bi-arrow-left"),
+        new("action-logins", "Logins", "bi-box-arrow-in-right"),
+        new("action-export", "Export", "bi-download"),
+        new("action-truncate", "Truncate", "bi-trash")
+    };
 
     // Available options for dropdowns
     private List<string> availableUsers = new();
@@ -413,6 +425,17 @@
         await LoadDropdownData();
         await LoadAuditLogs();
         isLoading = false;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back": Navigation.NavigateTo("/"); break;
+            case "action-logins": if (loginStatsButton != null) await loginStatsButton.OpenAsync(); break;
+            case "action-export": await ExportToJson(); break;
+            case "action-truncate": ShowTruncateConfirmation(); break;
+        }
     }
 
     private async Task LoadDropdownData()

@@ -19,16 +19,17 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-inbox"></i> Gestão de Pedidos</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Gerir todos os pedidos submetidos através do website.</p>
-        </div>
+<div class="page-header-centered mb-4">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-inbox"></i> Gestão de Pedidos</h1>
+        <p class="page-header-subtitle">Gerir todos os pedidos submetidos através do website.</p>
     </div>
+    <div class="page-header-right"></div>
+</div>
 
-    <!-- Search and Filter Controls -->
-    <div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch">
+<!-- Search and Filter Controls -->
+<div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch mb-4">
         <div class="flex-grow-1 search-bar-container">
             <SearchBar
                 @bind-Value="SearchTerm"
@@ -52,7 +53,6 @@
                 IconClass="bi-funnel" />
         </div>
     </div>
-</div>
 
 <!-- Pending Requests Grid -->
 <h3 class="mt-4 mb-3">Pedidos Pendentes</h3>
@@ -210,7 +210,7 @@ else
         }
     </Sections>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Voltar Atrás</button>
     </FooterContent>
 </DetailsModal>
 

@@ -40,43 +40,37 @@
 @inject IOptions<Toggles> Toggles
 @attribute [Authorize]
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Lista de todos os membros da RTUB.</p>
-        </div>
-
-        <!-- Page Header Actions -->
-        <div class="page-header-actions justify-content-lg-end">
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
-                        <i class="bi bi-plus-lg"></i> Adicionar Membro
-                    </button>
-                </Authorized>
-            </AuthorizeView>
-
-            <!-- Anniversaries button visible to all members -->
-            @if (Toggles.Value.MapEnabled)
-            {
-                <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
-                    <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
-                </button>
-            }
-            
-            <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
-                <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
-            </button>
-
-            <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
-                <i class="bi bi-cake2"></i> Aniversários
-            </button>
-        </div>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-people"></i> Membros</h1>
+        <p class="lead page-header-subtitle text-light-theme">Lista de todos os membros da RTUB.</p>
     </div>
+    <div class="page-header-right d-none d-xl-flex gap-2">
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
+                    <i class="bi bi-plus-lg"></i> Adicionar Membro
+                </button>
+            </Authorized>
+        </AuthorizeView>
+        @if (Toggles.Value.MapEnabled)
+        {
+            <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
+                <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
+            </button>
+        }
+        <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
+            <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
+        </button>
+        <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
+            <i class="bi bi-cake2"></i> Aniversários
+        </button>
+    </div>
+</div>
 
-    <!-- Search and Controls -->
-    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap search-controls-container">
+<!-- Search and Controls -->
+<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap search-controls-container mb-4">
         <div class="flex-grow-1 search-bar-container">
             <SearchBar @bind-Value="searchTerm"
                        Placeholder="Pesquisar membros..."
@@ -119,7 +113,6 @@
             </div>
         </div>
     </div>
-</div>
 
 @if (users == null)
 {
@@ -880,7 +873,7 @@ else
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -1046,7 +1039,7 @@ else
         </LoadableContent>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseActiveMembersManagementModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseActiveMembersManagementModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -1140,7 +1133,7 @@ else
         </LoadableContent>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseAnniversariesModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAnniversariesModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -1231,6 +1224,9 @@ else
         }
     </BodyContent>
 </ConfirmDialog>
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Cache enum values to avoid repeated allocation on each render
@@ -1422,6 +1418,7 @@ else
     private bool isAdmin = false;
     private bool isOwner = false;
     private bool currentUserIsMagister = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Computed flag: Can the current user edit dates?
     private bool CanEditDates => isOwner || currentUserIsMagister;
@@ -1430,6 +1427,30 @@ else
     {
         await CheckUserRoles();
         await LoadMembers();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isAdmin)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        if (Toggles.Value.MapEnabled)
+            items.Add(new("action-map", "Mapa", "bi-geo-alt"));
+        items.Add(new("action-active", "Ativos", "bi-person-badge"));
+        items.Add(new("action-birthdays", "Aniversários", "bi-cake2"));
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add": OpenCreateModal(); break;
+            case "action-map": NavigateToMap(); break;
+            case "action-active": await OpenActiveMembersManagementModal(); break;
+            case "action-birthdays": await OpenAnniversariesModal(); break;
+        }
     }
 
     private async Task CheckUserRoles()

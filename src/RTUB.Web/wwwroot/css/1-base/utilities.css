@@ -110,53 +110,77 @@
     text-overflow: ellipsis;
 }
 
-/* Centered page header layout - title in center, back button left, actions right */
+/* Centered page header layout - title in center, back button left, actions on row below */
 .page-header-centered {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
     justify-content: space-between;
+    margin-bottom: 1.5rem;
 }
 
 .page-header-left {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    min-width: 60px;
+    flex-shrink: 0;
+    min-width: 48px;
 }
 
 .page-header-center {
-    flex: 1 1 200px;
+    flex: 1 1 0;
     min-width: 0;
     text-align: center;
 }
 
+.page-header-center h1 {
+    margin-bottom: 0.25rem;
+}
+
+.page-header-center .page-header-subtitle {
+    margin-bottom: 0;
+    opacity: 0.7;
+}
+
+/* Actions row - forced to its own line below the title */
 .page-header-right {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     justify-content: flex-end;
-    min-width: 60px;
+    flex-basis: 100%;
 }
 
-@media (max-width: 768px) {
+/* Hide empty spacers */
+.page-header-left:empty {
+    min-width: 0;
+    width: 0;
+}
+
+.page-header-right:empty {
+    display: none;
+}
+
+/* Below xl breakpoint, desktop buttons are hidden and MobileBottomNav takes over */
+@media (max-width: 1199.98px) {
     .page-header-centered {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        justify-content: center;
     }
-    
-    .page-header-left {
+
+    .page-header-left:not(:empty) {
         order: 1;
         justify-content: flex-start;
     }
-    
+
     .page-header-center {
         order: 2;
+        flex-basis: 100%;
         text-align: center;
     }
-    
-    .page-header-right {
+
+    .page-header-right:not(:empty) {
         order: 3;
         justify-content: center;
     }

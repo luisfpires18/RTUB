@@ -15,8 +15,14 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @attribute [Authorize]
 
-<h1 class="mb-2"><i class="bi bi-trophy"></i> Hall of Fame</h1>
-<p class="lead page-header-subtitle mb-4 text-light-theme">Os recordistas da RTUB - quem brilha mais em cada categoria.</p>
+<div class="page-header-centered mb-4">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-trophy"></i> Hall of Fame</h1>
+        <p class="page-header-subtitle">Os recordistas da RTUB - quem brilha mais em cada categoria.</p>
+    </div>
+    <div class="page-header-right"></div>
+</div>
 
 @if (isLoading)
 {

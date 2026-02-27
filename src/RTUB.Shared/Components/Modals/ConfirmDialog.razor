@@ -3,63 +3,50 @@
     Reusable Confirm Dialog Component
     Used for delete confirmations and other yes/no dialogs
     Enhanced with ConfirmDialog2 styling (red header for danger actions)
+    Now delegates to the shared Modal component for consistent mobile UX.
 *@
 
-@if (Show)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
-        <div class="modal-dialog @SizeClass modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary @(ConfirmButtonClass == "btn-danger" ? "bg-danger bg-opacity-10" : "")" style="@(ConfirmButtonClass != "btn-danger" ? "background: rgba(var(--bs-primary-rgb), 0.1);" : "")">
-                    <h5 class="modal-title @(ConfirmButtonClass == "btn-danger" ? "text-danger" : "")">
-                        @if (ConfirmButtonClass == "btn-danger")
-                        {
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                        }
-                        @Title
-                    </h5>
-                    @if (ShowCloseButton)
+<Modal Show="@Show"
+       ShowChanged="@ShowChanged"
+       Title="@Title"
+       Size="@Size"
+       Centered="true"
+       ShowCloseButton="@ShowCloseButton"
+       OnClose="HandleCancel">
+    <BodyContent>
+        @if (this.BodyContent != null)
+        {
+            @this.BodyContent
+        }
+        else
+        {
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
+                <div>
+                    @if (!string.IsNullOrEmpty(Message))
                     {
-                        <button type="button" class="btn-close" @onclick="HandleCancel"></button>
+                        <p class="mb-2">@Message</p>
                     }
-                </div>
-                <div class="modal-body">
-                    @if (BodyContent != null)
+                    @if (!string.IsNullOrEmpty(WarningMessage))
                     {
-                        @BodyContent
+                        <p class="text-danger mb-0">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            <small>@WarningMessage</small>
+                        </p>
                     }
-                    else
-                    {
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
-                            <div>
-                                @if (!string.IsNullOrEmpty(Message))
-                                {
-                                    <p class="mb-2">@Message</p>
-                                }
-                                @if (!string.IsNullOrEmpty(WarningMessage))
-                                {
-                                    <p class="text-danger mb-0">
-                                        <i class="bi bi-exclamation-circle me-1"></i>
-                                        <small>@WarningMessage</small>
-                                    </p>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@Disabled">
-                        <i class="bi bi-x-circle me-2"></i>@CancelText
-                    </button>
-                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm" disabled="@Disabled">
-                        <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
-                    </button>
                 </div>
             </div>
-        </div>
-    </div>
-}
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@Disabled">
+            <i class="bi bi-arrow-left me-2"></i>@CancelText
+        </button>
+        <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm" disabled="@Disabled">
+            <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
+        </button>
+    </FooterContent>
+</Modal>
 
 @code {
     /// <summary>
@@ -132,30 +119,19 @@
     /// Modal size
     /// </summary>
     [Parameter]
-    public Modal.ModalSize Size { get; set; } = Modal.ModalSize.Default;
+    public Modal.ModalSize Size { get; set; } = Modal.ModalSize.Small;
 
     /// <summary>
     /// Whether to show close button in header
     /// </summary>
     [Parameter]
-    public bool ShowCloseButton { get; set; } = true;
+    public bool ShowCloseButton { get; set; } = false;
 
     /// <summary>
     /// Whether to disable the buttons (useful during async operations)
     /// </summary>
     [Parameter]
     public bool Disabled { get; set; } = false;
-
-    /// <summary>
-    /// Get CSS class for modal size
-    /// </summary>
-    private string SizeClass => Size switch
-    {
-        Modal.ModalSize.Small => "modal-sm",
-        Modal.ModalSize.Large => "modal-lg",
-        Modal.ModalSize.ExtraLarge => "modal-xl",
-        _ => ""
-    };
 
     private async Task HandleConfirm()
     {

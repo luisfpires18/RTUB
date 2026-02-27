@@ -33,29 +33,9 @@
         <div class="row g-0 h-100">
             @* Conversations List *@
             <div class="col-12 col-lg-4 rtub-messages__panel @(selectedConversation != null ? "d-none d-lg-block" : "")">
-                @* Mobile-only header with back button to home *@
+                @* Mobile-only header — just title *@
                 <div class="rtub-messages__panel-header--mobile d-lg-none">
-                    <a href="/" class="btn btn-link">
-                        <i class="bi bi-arrow-left"></i>
-                    </a>
                     <h3 class="mb-0">Mensagens</h3>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <button class="dropdown-item" @onclick="OpenNewMessageModal">
-                                    <i class="bi bi-person"></i> Nova mensagem
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" @onclick="OpenNewGroupModal">
-                                    <i class="bi bi-people"></i> Nova conversa de grupo
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
                 @* Desktop header *@
                 <div class="rtub-messages__panel-header d-none d-lg-flex">
@@ -186,7 +166,7 @@
                 {
                     <div class="rtub-messages__thread">
                         <div class="rtub-messages__thread-header">
-                            <button class="btn btn-link d-lg-none me-2" @onclick="BackToConversations">
+                            <button class="btn btn-link d-none me-2" @onclick="BackToConversations">
                                 <i class="bi bi-arrow-left"></i>
                             </button>
                             <div class="d-flex align-items-center flex-grow-1">
@@ -233,7 +213,7 @@
                                     }
                                 </div>
                             </div>
-                            <div class="rtub-messages__header-actions">
+                            <div class="rtub-messages__header-actions d-none d-lg-flex">
                                 <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsMuted ? "is-active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
                                     <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
                                 </button>
@@ -412,271 +392,252 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Nav (inside .rtub-messages so it's visible above z-index:1050 on mobile) -->
+    <MobileBottomNav Items="@CurrentMobileNavItems" OnSelect="HandleMobileNavSelect" />
 </div>
-
-@* New Message Modal *@
-@if (modals.IsOpen(ModalType.NewMessage))
-{
-    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down rtub-messages__modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-plus-lg"></i> Nova Mensagem</h5>
-                    <button type="button" class="btn-close" @onclick="CloseNewMessageModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Destinatário</label>
-                        <SearchBar @bind-Value="memberSearchTerm"
-                                   Placeholder="Pesquisar membro por nome ou alcunha..."
-                                   OnSearch="OnMemberSearch"
-                                   OnClear="ClearMemberSelection"
-                                   Compact="true" />
-                    </div>
-
-                    @if (filteredMembers.Any())
-                    {
-                        <div class="rtub-messages__member-list mb-3">
-                            @foreach (var member in filteredMembers.Take(10))
-                            {
-                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable" @key="member.Id"
-                                     @onclick="() => SelectMember(member)">
-                                    <div class="d-flex align-items-center">
-                                        <img src="@GetAvatarUrl(member.ImageUrl)" 
-                                             alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
-                                             class="rtub-messages__member-avatar me-2" 
-                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                        <div>
-                                            @if (!string.IsNullOrEmpty(member.Nickname))
-                                            {
-                                                <div><strong>@member.Nickname</strong></div>
-                                                <div class="text-muted small">@member.FirstName @member.LastName</div>
-                                            }
-                                            else
-                                            {
-                                                <div><strong>@member.FirstName @member.LastName</strong></div>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else if (!string.IsNullOrEmpty(memberSearchTerm) && selectedMember == null)
-                    {
-                        <div class="mt-2">
-                            <EmptyState Title="Nenhum membro encontrado"
-                                        Icon="bi-search"
-                                        Message="Tente ajustar os termos de pesquisa." />
-                        </div>
-                    }
-
-                    @if (selectedMember != null)
-                    {
-                        <div class="alert alert-success mb-3">
-                            <strong>Destinatário selecionado:</strong> 
-                            @(selectedMember.Nickname ?? $"{selectedMember.FirstName} {selectedMember.LastName}")
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Mensagem</label>
-                            <textarea class="form-control messaging-input" 
-                                      rows="4" 
-                                      placeholder="Escreva a sua mensagem..."
-                                      @bind="newMessageText"
-                                      maxlength="2000"></textarea>
-                            <small class="text-muted">@newMessageText.Length / 2000 caracteres</small>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseNewMessageModal">Cancelar</button>
-                    <button type="button" 
-                            class="btn btn-primary" 
-                            @onclick="SendNewMessage"
-                            disabled="@(selectedMember == null || string.IsNullOrWhiteSpace(newMessageText) || isSending)">
-                        @if (isSending)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        }
-                        Enviar
-                    </button>
-                </div>
-            </div>
+<Modal Show="@modals.IsOpen(ModalType.NewMessage)"
+       ShowChanged="@(async (bool show) => { if (!show) await CloseNewMessageModal(); })"
+       Title="Nova Mensagem"
+       Centered="true"
+       OnClose="CloseNewMessageModal">
+    <BodyContent>
+        <div class="mb-3">
+            <label class="form-label">Destinatário</label>
+            <SearchBar @bind-Value="memberSearchTerm"
+                       Placeholder="Pesquisar membro por nome ou alcunha..."
+                       OnSearch="OnMemberSearch"
+                       OnClear="ClearMemberSelection"
+                       Compact="true" />
         </div>
-    </div>
-}
 
-@* New Group Modal *@
-@if (modals.IsOpen(ModalType.NewGroup))
-{
-    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down rtub-messages__modal rtub-messages__modal--group">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-people"></i> Nova conversa de grupo</h5>
-                    <button type="button" class="btn-close" @onclick="CloseNewGroupModal"></button>
-                </div>
-                <div class="modal-body">
-                    @* Group name input *@
-                    <div class="mb-3">
-                        <label class="form-label">Nome do grupo</label>
-                        <input type="text" 
-                               class="form-control messaging-input" 
-                               placeholder="Inserir nome para o grupo..."
-                               @bind="newGroupName"
-                               maxlength="100" />
-                        <small class="text-muted">Escolha um nome descritivo para o grupo</small>
-                    </div>
-
-                    @* Member selection *@
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label mb-0">Adicionar membros</label>
-                            <span class="badge bg-primary">@selectedGroupMembers.Count selecionados</span>
-                        </div>
-                        <SearchBar @bind-Value="groupMemberSearchTerm"
-                                   Placeholder="Pesquisar membro por nome ou alcunha..."
-                                   OnSearch="OnGroupMemberSearch"
-                                   OnClear="ClearGroupMemberSearch"
-                                   Compact="true" />
-                    </div>
-
-                    @if (filteredGroupMembers.Any())
-                    {
-                        <div class="rtub-messages__member-list mb-3">
-                            @foreach (var member in filteredGroupMembers.Take(10))
-                            {
-                                var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
-                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable @(isSelected ? "is-selected" : "")"
-                                     @onclick="() => ToggleGroupMember(member)">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@GetAvatarUrl(member.ImageUrl)" 
-                                                 alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
-                                                 class="rtub-messages__member-avatar me-2" 
-                                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                            <div>
-                                                @if (!string.IsNullOrEmpty(member.Nickname))
-                                                {
-                                                    <div><strong>@member.Nickname</strong></div>
-                                                    <div class="text-muted small">@member.FirstName @member.LastName</div>
-                                                }
-                                                else
-                                                {
-                                                    <div><strong>@member.FirstName @member.LastName</strong></div>
-                                                }
-                                            </div>
-                                        </div>
-                                        @if (isSelected)
-                                        {
-                                            <i class="bi bi-check-circle-fill text-success"></i>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    @if (selectedGroupMembers.Any())
-                    {
-                        <div class="rtub-messages__selected-members mt-3">
-                            <label class="form-label">Membros selecionados:</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach (var member in selectedGroupMembers)
+        @if (filteredMembers.Any())
+        {
+            <div class="rtub-messages__member-list mb-3">
+                @foreach (var member in filteredMembers.Take(10))
+                {
+                    <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable" @key="member.Id"
+                         @onclick="() => SelectMember(member)">
+                        <div class="d-flex align-items-center">
+                            <img src="@GetAvatarUrl(member.ImageUrl)" 
+                                 alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
+                                 class="rtub-messages__member-avatar me-2" 
+                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                            <div>
+                                @if (!string.IsNullOrEmpty(member.Nickname))
                                 {
-                                    <span class="badge bg-primary d-flex align-items-center gap-1" @key="member.Id">
-                                        @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
-                                        <button type="button" class="btn-close btn-close-white btn-sm" 
-                                                @onclick="() => RemoveGroupMember(member)"
-                                                @onclick:stopPropagation="true"></button>
-                                    </span>
+                                    <div><strong>@member.Nickname</strong></div>
+                                    <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                }
+                                else
+                                {
+                                    <div><strong>@member.FirstName @member.LastName</strong></div>
                                 }
                             </div>
                         </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(memberSearchTerm) && selectedMember == null)
+        {
+            <div class="mt-2">
+                <EmptyState Title="Nenhum membro encontrado"
+                            Icon="bi-search"
+                            Message="Tente ajustar os termos de pesquisa." />
+            </div>
+        }
+
+        @if (selectedMember != null)
+        {
+            <div class="alert alert-success mb-3">
+                <strong>Destinatário selecionado:</strong> 
+                @(selectedMember.Nickname ?? $"{selectedMember.FirstName} {selectedMember.LastName}")
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Mensagem</label>
+                <textarea class="form-control messaging-input" 
+                          rows="4" 
+                          placeholder="Escreva a sua mensagem..."
+                          @bind="newMessageText"
+                          maxlength="2000"></textarea>
+                <small class="text-muted">@newMessageText.Length / 2000 caracteres</small>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseNewMessageModal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                @onclick="SendNewMessage"
+                disabled="@(selectedMember == null || string.IsNullOrWhiteSpace(newMessageText) || isSending)">
+            @if (isSending)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Enviar
+        </button>
+    </FooterContent>
+</Modal>
+
+@* New Group Modal *@
+<Modal Show="@modals.IsOpen(ModalType.NewGroup)"
+       ShowChanged="@(async (bool show) => { if (!show) await CloseNewGroupModal(); })"
+       Title="Nova conversa de grupo"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       OnClose="CloseNewGroupModal">
+    <BodyContent>
+        @* Group name input *@
+        <div class="mb-3">
+            <label class="form-label">Nome do grupo</label>
+            <input type="text" 
+                   class="form-control messaging-input" 
+                   placeholder="Inserir nome para o grupo..."
+                   @bind="newGroupName"
+                   maxlength="100" />
+            <small class="text-muted">Escolha um nome descritivo para o grupo</small>
+        </div>
+
+        @* Member selection *@
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label mb-0">Adicionar membros</label>
+                <span class="badge bg-primary">@selectedGroupMembers.Count selecionados</span>
+            </div>
+            <SearchBar @bind-Value="groupMemberSearchTerm"
+                       Placeholder="Pesquisar membro por nome ou alcunha..."
+                       OnSearch="OnGroupMemberSearch"
+                       OnClear="ClearGroupMemberSearch"
+                       Compact="true" />
+        </div>
+
+        @if (filteredGroupMembers.Any())
+        {
+            <div class="rtub-messages__member-list mb-3">
+                @foreach (var member in filteredGroupMembers.Take(10))
+                {
+                    var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
+                    <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable @(isSelected ? "is-selected" : "")"
+                         @onclick="() => ToggleGroupMember(member)">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <img src="@GetAvatarUrl(member.ImageUrl)" 
+                                     alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
+                                     class="rtub-messages__member-avatar me-2" 
+                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                <div>
+                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                    {
+                                        <div><strong>@member.Nickname</strong></div>
+                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                    }
+                                    else
+                                    {
+                                        <div><strong>@member.FirstName @member.LastName</strong></div>
+                                    }
+                                </div>
+                            </div>
+                            @if (isSelected)
+                            {
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (selectedGroupMembers.Any())
+        {
+            <div class="rtub-messages__selected-members mt-3">
+                <label class="form-label">Membros selecionados:</label>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var member in selectedGroupMembers)
+                    {
+                        <span class="badge bg-primary d-flex align-items-center gap-1" @key="member.Id">
+                            @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
+                            <button type="button" class="btn-close btn-close-white btn-sm" 
+                                    @onclick="() => RemoveGroupMember(member)"
+                                    @onclick:stopPropagation="true"></button>
+                        </span>
                     }
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseNewGroupModal">Cancelar</button>
-                    <button type="button" 
-                            class="btn btn-primary" 
-                            @onclick="CreateGroup"
-                            disabled="@(string.IsNullOrWhiteSpace(newGroupName) || selectedGroupMembers.Count < MinimumGroupMembers || isCreatingGroup)">
-                        @if (isCreatingGroup)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        }
-                        Criar grupo
-                    </button>
-                </div>
             </div>
-        </div>
-    </div>
-}
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseNewGroupModal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                @onclick="CreateGroup"
+                disabled="@(string.IsNullOrWhiteSpace(newGroupName) || selectedGroupMembers.Count < MinimumGroupMembers || isCreatingGroup)">
+            @if (isCreatingGroup)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Criar grupo
+        </button>
+    </FooterContent>
+</Modal>
 
 @* Group Members Modal *@
-@if (modals.IsOpen(ModalType.GroupMembers) && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)
-{
-    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-people me-2"></i> Membros do grupo</h5>
-                    <button type="button" class="btn-close" @onclick="CloseGroupMembersModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted mb-3">@selectedConversation.GroupParticipants.Count membros neste grupo</p>
+<Modal Show="@(modals.IsOpen(ModalType.GroupMembers) && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)"
+       ShowChanged="@(async (bool show) => { if (!show) await CloseGroupMembersModal(); })"
+       Title="Membros do grupo"
+       Centered="true"
+       OnClose="CloseGroupMembersModal">
+    <BodyContent>
+        <p class="text-muted mb-3">@selectedConversation?.GroupParticipants?.Count membros neste grupo</p>
 
-                    @if (selectedConversation.GroupParticipants.Count > 20)
-                    {
-                        <div class="mb-3">
-                            <SearchBar @bind-Value="groupMembersSearchTerm"
-                                       Placeholder="Pesquisar membros do grupo..."
-                                       OnSearch="OnGroupMembersSearch"
-                                       OnClear="ClearGroupMembersSearch"
-                                       Compact="true" />
-                        </div>
-                    }
-
-                    @{
-                        var filteredParticipants = GetFilteredGroupParticipants().ToList();
-                    }
-
-                    <div class="rtub-messages__group-members-list">
-                        @if (!filteredParticipants.Any())
-                        {
-                            <EmptyState Title="Nenhum membro encontrado"
-                                        Icon="bi-search"
-                                        Message="Tente ajustar os termos de pesquisa." />
-                        }
-                        else
-                        {
-                            @foreach (var participant in filteredParticipants)
-                            {
-                                <div class="rtub-messages__group-member" @key="participant.Id">
-                                    <img src="@GetAvatarUrl(participant.Avatar)"
-                                         alt="@(participant.Nickname ?? participant.Name)"
-                                         class="rtub-messages__group-member-avatar"
-                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                    <div class="rtub-messages__group-member-info">
-                                        <div class="rtub-messages__group-member-name">@(participant.Nickname ?? participant.Name)</div>
-                                        @if (!string.IsNullOrEmpty(participant.Nickname) && !string.IsNullOrEmpty(participant.Name))
-                                        {
-                                            <div class="rtub-messages__group-member-fullname">@participant.Name</div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseGroupMembersModal">Fechar</button>
-                </div>
+        @if (selectedConversation?.GroupParticipants?.Count > 20)
+        {
+            <div class="mb-3">
+                <SearchBar @bind-Value="groupMembersSearchTerm"
+                           Placeholder="Pesquisar membros do grupo..."
+                           OnSearch="OnGroupMembersSearch"
+                           OnClear="ClearGroupMembersSearch"
+                           Compact="true" />
             </div>
+        }
+
+        @{
+            var filteredParticipants = GetFilteredGroupParticipants().ToList();
+        }
+
+        <div class="rtub-messages__group-members-list">
+            @if (!filteredParticipants.Any())
+            {
+                <EmptyState Title="Nenhum membro encontrado"
+                            Icon="bi-search"
+                            Message="Tente ajustar os termos de pesquisa." />
+            }
+            else
+            {
+                @foreach (var participant in filteredParticipants)
+                {
+                    <div class="rtub-messages__group-member" @key="participant.Id">
+                        <img src="@GetAvatarUrl(participant.Avatar)"
+                             alt="@(participant.Nickname ?? participant.Name)"
+                             class="rtub-messages__group-member-avatar"
+                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                        <div class="rtub-messages__group-member-info">
+                            <div class="rtub-messages__group-member-name">@(participant.Nickname ?? participant.Name)</div>
+                            @if (!string.IsNullOrEmpty(participant.Nickname) && !string.IsNullOrEmpty(participant.Name))
+                            {
+                                <div class="rtub-messages__group-member-fullname">@participant.Name</div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
         </div>
-    </div>
-}
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseGroupMembersModal">Voltar Atrás</button>
+    </FooterContent>
+</Modal>
 
 @code {
     [Parameter]
@@ -715,6 +676,59 @@
     private enum ModalType { GroupMembers, NewMessage, NewGroup }
     private readonly MultiModalState<ModalType> modals = new();
     private string groupMembersSearchTerm = string.Empty;
+
+    // Mobile bottom nav — inbox items (static)
+    private static readonly IReadOnlyList<MobileBottomNav.MobileNavItem> _inboxNavItems = new[]
+    {
+        new MobileBottomNav.MobileNavItem("action-back",        "Voltar",        "bi-arrow-left"),
+        new MobileBottomNav.MobileNavItem("action-new-message", "Nova Mensagem", "bi-person"),
+        new MobileBottomNav.MobileNavItem("action-new-group",   "Novo Grupo",    "bi-people"),
+    };
+
+    // Dynamic — switches between inbox and thread nav items
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> CurrentMobileNavItems =>
+        selectedConversation != null ? GetThreadNavItems() : _inboxNavItems;
+
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> GetThreadNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("thread-back", "Voltar", "bi-arrow-left"),
+            new("thread-mute",
+                selectedConversation!.IsMuted ? "Ativar" : "Silenciar",
+                selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell"),
+            new("thread-pin",
+                selectedConversation.IsPinned ? "Desafixar" : "Afixar",
+                selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin"),
+        };
+
+        return items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back":
+                NavigationManager.NavigateTo("/");
+                break;
+            case "action-new-message":
+                await OpenNewMessageModal();
+                break;
+            case "action-new-group":
+                await OpenNewGroupModal();
+                break;
+            case "thread-back":
+                BackToConversations();
+                break;
+            case "thread-mute":
+                await ToggleMute();
+                break;
+            case "thread-pin":
+                await TogglePin();
+                break;
+        }
+    }
 
     // New message modal
     private string memberSearchTerm = string.Empty;
@@ -772,12 +786,15 @@
             !isInputFocusHandlerSetup)
         {
             isInputFocusHandlerSetup = true;
-            await JSRuntime.InvokeVoidAsync("messageScroller.setupInputFocusScroll", messageInput, messageThreadBody);
             
-            // Initialize JS-managed composer (handles Enter key, typing indicators)
-            // This eliminates per-keystroke SignalR round-trips that cause input lag
+            // Initialize JS-managed composer FIRST (handles Enter key, typing indicators, getTextAndClear)
+            // This must succeed for sending to work — isolate viewport setup errors
             _composerDotNetRef ??= DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("messageComposer.init", messageInput, _composerDotNetRef);
+            
+            // Viewport/keyboard scroll setup — non-critical, don't block composer
+            try { await JSRuntime.InvokeVoidAsync("messageScroller.setupInputFocusScroll", messageInput, messageThreadBody); }
+            catch { /* viewport handler is optional — sending still works without it */ }
         }
     }
 

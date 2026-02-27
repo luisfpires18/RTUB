@@ -180,3 +180,50 @@
 .enhance-row--maxed .enhance-row__cost i {
   color: rgba(255, 255, 255, 0.2);
 }
+
+/* ── Mobile: keep single-row layout, tighter sizing ── */
+@media (max-width: 768px) {
+  .enhance-row {
+    gap: 0.4rem;
+    padding: 0.4rem;
+  }
+
+  .enhance-row__icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 0.9rem;
+  }
+
+  .enhance-row__title {
+    font-size: 0.8rem;
+  }
+
+  .enhance-row__level {
+    font-size: 0.7rem;
+  }
+
+  .enhance-row__desc {
+    font-size: 0.65rem;
+  }
+
+  .enhance-row__stat {
+    font-size: 0.7rem;
+  }
+
+  .enhance-row__action {
+    min-width: 68px;
+    gap: 0.15rem;
+  }
+
+  .enhance-row__btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.3px;
+  }
+
+  .enhance-row__cost {
+    font-size: 0.6rem;
+    white-space: nowrap;
+  }
+}

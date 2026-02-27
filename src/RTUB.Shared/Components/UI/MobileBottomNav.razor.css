@@ -4,12 +4,12 @@
    Visible on mobile and tablet (≤1024px)
    ========================================== */
 
-/* Hidden on desktop by default */
+/* Hidden on desktop by default — visible below xl breakpoint (matches d-none d-xl-flex on desktop actions) */
 .mobile-bottom-nav {
     display: none;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1199.98px) {
     .mobile-bottom-nav {
         display: flex;
         position: fixed;
@@ -36,7 +36,7 @@
         padding: 0.4rem 0.25rem;
         background: transparent;
         border: none;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.85);
         font-size: 0.65rem;
         font-weight: 600;
         letter-spacing: 0.02em;
@@ -49,6 +49,23 @@
 
     .mobile-bottom-nav__btn i {
         font-size: 1.25rem;
+    }
+
+    .mobile-bottom-nav__icon-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mobile-bottom-nav__icon-wrap .badge {
+        position: absolute;
+        top: -6px;
+        right: -12px;
+        font-size: 0.55rem;
+        padding: 0.15em 0.4em;
+        line-height: 1;
+        min-width: 1rem;
     }
 
     .mobile-bottom-nav__btn--active {

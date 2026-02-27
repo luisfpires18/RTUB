@@ -17,4 +17,10 @@ public interface ILeaderboardCommentRepository : IRepository<LeaderboardComment>
     /// Gets comment by ID with author and likes
     /// </summary>
     Task<LeaderboardComment?> GetByIdWithDetailsAsync(int id);
+
+    /// <summary>
+    /// Toggles a like on a comment within a single tracked DbContext.
+    /// Returns true if liked, false if unliked, null if comment not found.
+    /// </summary>
+    Task<bool?> ToggleLikeAsync(int commentId, string userId);
 }

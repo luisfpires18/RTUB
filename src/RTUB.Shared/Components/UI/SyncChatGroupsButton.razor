@@ -23,6 +23,9 @@
 
     private bool isSyncing = false;
 
+    /// <summary>Triggers sync programmatically (e.g. from MobileBottomNav).</summary>
+    public async Task TriggerAsync() => await SyncGroups();
+
     private async Task SyncGroups()
     {
         if (isSyncing) return;

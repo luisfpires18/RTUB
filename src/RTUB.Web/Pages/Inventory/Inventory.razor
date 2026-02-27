@@ -15,21 +15,18 @@
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-box-seam"></i> Instrumentos</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Instrumentos da RTUB</p>
-        </div>
-
-        <!-- Page Header Actions -->
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-box-seam"></i> Instrumentos</h1>
+        <p class="lead page-header-subtitle text-light-theme">Instrumentos da RTUB</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
         <AuthorizeView Roles="Admin,Mod">
             <Authorized>
-                <div class="page-header-actions justify-content-lg-end">
-                    <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
-                        <i class="bi bi-plus-lg"></i> Adicionar Instrumento
-                    </button>
-                </div>
+                <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
+                    <i class="bi bi-plus-lg"></i> Adicionar Instrumento
+                </button>
             </Authorized>
         </AuthorizeView>
     </div>
@@ -99,10 +96,10 @@ else
     </div>
 
     <!-- Instruments Grid with InstrumentCircle Component -->
-    <div class="row">
+    <div class="row g-3 g-lg-4">
         @foreach (var instrument in paginatedInstruments)
         {
-            <div class="col-md-4 col-lg-2 mb-4" @key="instrument.Id">
+            <div class="col-6 col-md-4 col-lg-3 mb-3" @key="instrument.Id">
                 <AuthorizeView Roles="Admin,Mod">
                     <Authorized>
                         <InstrumentCircle Instrument="@instrument" 
@@ -338,8 +335,13 @@ else
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private bool loading = true;
+    private bool isAdminOrMod = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Instruments
     private List<Instrument> instruments = new();
@@ -384,6 +386,24 @@ else
     {
         LoadCategoriesFromEnum();
         await LoadData();
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdminOrMod = user.IsInRole("Admin") || user.IsInRole("Mod");
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isAdminOrMod)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-add") OpenCreateInstrumentModal();
     }
 
     private void LoadCategoriesFromEnum()

@@ -44,8 +44,6 @@ public class ShopService : IShopService
         await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Leitao, 1, cancellationToken);
 
         var newFitab = currentFitab - FitabPerLeitao;
-        _logger.LogInformation("User {UserId} exchanged {Fitab} FITAB for 1 Leitão. New FITAB balance: {Balance}",
-            userId, FitabPerLeitao, newFitab);
 
         return (true, "Trocaste 25 FITAB por 1 Leitão! 🐷", newFitab);
     }

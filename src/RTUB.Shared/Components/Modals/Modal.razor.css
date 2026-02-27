@@ -3,3 +3,21 @@
 .modal-header-primary {
     background: rgba(var(--bs-primary-rgb), 0.1);
 }
+
+/* Replace default Bootstrap btn-close (X) with a left-arrow icon */
+.modal-close-arrow {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.25rem;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    order: 1; /* push to the right side of the flex header */
+    margin-left: auto;
+}
+
+.modal-close-arrow:hover {
+    color: #fff;
+}

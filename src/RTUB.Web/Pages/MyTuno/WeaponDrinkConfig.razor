@@ -12,23 +12,22 @@
 @attribute [Authorize(Roles = "Owner")]
 @inject IItemTypeConfigService ConfigService
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <PageTitle>Configuração Items - RTUB</PageTitle>
 
 <div class="container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h1 class="mb-2"><i class="bi bi-sliders"></i> Configuração de Items</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">Gerir imagens de armas, bebidas, equipamento e combinações forjadas.</p>
-            </div>
-
-            <div class="page-header-actions justify-content-lg-end">
-                <a href="/my-tuno" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar ao My Tuno
-                </a>
-            </div>
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left d-none d-lg-flex">
+            <a href="/my-tuno" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+            </a>
         </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-sliders"></i> Configuração de Items</h1>
+            <p class="page-header-subtitle">Gerir imagens de armas, bebidas, equipamento e combinações forjadas.</p>
+        </div>
+        <div class="page-header-right"></div>
     </div>
 
     @if (loading)
@@ -38,40 +37,40 @@
     else
     {
         <!-- Tab navigation -->
-        <ul class="nav nav-tabs mb-4" role="tablist">
+        <ul class="nav nav-pills config-tab-nav mb-4" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "weapons" ? "active" : "")"
                         @onclick='() => activeTab = "weapons"'
                         type="button" role="tab">
-                    <i class="bi bi-slash-lg me-1"></i> Armas (@weaponConfigs.Count)
+                    <i class="bi bi-slash-lg"></i> <span>Armas</span> <span class="badge bg-dark bg-opacity-25">@weaponConfigs.Count</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "drinks" ? "active" : "")"
                         @onclick='() => activeTab = "drinks"'
                         type="button" role="tab">
-                    <i class="bi bi-cup-straw me-1"></i> Bebidas (@drinkConfigs.Count)
+                    <i class="bi bi-cup-straw"></i> <span>Bebidas</span> <span class="badge bg-dark bg-opacity-25">@drinkConfigs.Count</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "equipment" ? "active" : "")"
                         @onclick='() => activeTab = "equipment"'
                         type="button" role="tab">
-                    <i class="bi bi-shield-shaded me-1"></i> Equipamento (@equipmentConfigs.Count)
+                    <i class="bi bi-shield-shaded"></i> <span>Equip.</span> <span class="badge bg-dark bg-opacity-25">@equipmentConfigs.Count</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "consumables" ? "active" : "")"
                         @onclick='() => activeTab = "consumables"'
                         type="button" role="tab">
-                    <i class="bi bi-bag me-1"></i> Consumíveis (@consumableConfigs.Count)
+                    <i class="bi bi-bag"></i> <span>Consum.</span> <span class="badge bg-dark bg-opacity-25">@consumableConfigs.Count</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "forge" ? "active" : "")"
                         @onclick='() => activeTab = "forge"'
                         type="button" role="tab">
-                    <i class="bi bi-hammer me-1"></i> Combinações Forjadas
+                    <i class="bi bi-hammer"></i> <span>Forja</span>
                 </button>
             </li>
         </ul>
@@ -429,9 +428,76 @@
             font-size: 0.625rem;
         }
     }
+
+    /* Config tab navigation – wrapping pill grid */
+    .config-tab-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .config-tab-nav .nav-item { flex: 0 0 auto; }
+
+    .config-tab-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.15s ease;
+    }
+
+    .config-tab-nav .nav-link:hover {
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(111, 66, 193, 0.15);
+    }
+
+    .config-tab-nav .nav-link.active {
+        color: #fff;
+        background: rgba(111, 66, 193, 0.35);
+        border-color: rgba(111, 66, 193, 0.6);
+    }
+
+    .config-tab-nav .nav-link .badge {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
+    }
+
+    @@media (max-width: 768px) {
+        .config-tab-nav .nav-item {
+            flex: 1 1 calc((100% - 1rem) / 3);
+            max-width: calc((100% - 1rem) / 3);
+        }
+        .config-tab-nav .nav-link {
+            justify-content: center;
+            width: 100%;
+            padding: 0.45rem 0.25rem;
+            font-size: 0.78rem;
+        }
+    }
 </style>
 
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeTab" OnSelect="HandleMobileNavSelect" />
+
 @code {
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+    {
+        new("action-back", "Voltar", "bi-arrow-left")
+    };
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+            Navigation.NavigateTo("/my-tuno");
+    }
+
     private bool loading = true;
     private string activeTab = "weapons";
     private List<ItemTypeConfigDto> weaponConfigs = new();

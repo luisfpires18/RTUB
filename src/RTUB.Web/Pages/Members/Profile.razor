@@ -37,7 +37,13 @@
 </style>
 
 <div class="profile-page container-fluid w-100 d-flex flex-column align-items-center overflow-hidden">
-    <h1 class="text-center mb-4 w-100"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
+    <div class="page-header-centered mb-4 w-100">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-person-circle"></i> Meu Perfil</h1>
+        </div>
+        <div class="page-header-right"></div>
+    </div>
 
     @if (user == null)
     {
@@ -565,7 +571,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -590,7 +596,7 @@
         {
             <div class="alert @(ChangePasswordSucceeded ? "alert-success" : "alert-danger")">@ChangePasswordMessage</div>
         }
-        <EditForm Model="passwordModel" OnValidSubmit="ChangePassword">
+        <EditForm Model="passwordModel" OnValidSubmit="ChangePassword" id="changePasswordForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
@@ -615,22 +621,22 @@
                 <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal" disabled="@isChangingPassword">Cancelar</button>
-                <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isChangingPassword">
-                    @if (isChangingPassword)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        <span>A alterar...</span>
-                    }
-                    else
-                    {
-                        <span>Alterar Palavra-passe</span>
-                    }
-                </button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal" disabled="@isChangingPassword">Cancelar</button>
+        <button type="submit" form="changePasswordForm" class="btn btn-primary btn-primary-purple" disabled="@isChangingPassword">
+            @if (isChangingPassword)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>A alterar...</span>
+            }
+            else
+            {
+                <span>Alterar Palavra-passe</span>
+            }
+        </button>
+    </FooterContent>
 </Modal>
 
 @code {

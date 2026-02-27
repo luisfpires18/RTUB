@@ -11,12 +11,19 @@
 @inject IGeocodingService GeocodingService
 @inject IGeocodingQueue GeocodingQueue
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 @attribute [Authorize]
 
 <PageTitle>Mapa de Membros - RTUB</PageTitle>
 
-<h1 class="mb-2"><i class="bi bi-geo-alt"></i> Mapa de Membros</h1>
-<p class="lead page-header-subtitle mb-4 text-light-theme">Localização geográfica dos membros por cidade.</p>
+<div class="page-header-centered mb-4">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-geo-alt"></i> Mapa de Membros</h1>
+        <p class="page-header-subtitle">Localização geográfica dos membros por cidade.</p>
+    </div>
+    <div class="page-header-right"></div>
+</div>
 
 @if (isLoading)
 {
@@ -176,6 +183,8 @@ else
     </div>
 }
 
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private bool isLoading = true;
     private bool hasError = false;
@@ -185,6 +194,16 @@ else
     private List<MemberInfo> membersWithoutCityList = new();
     private List<string> pendingGeocodingCities = new();
     private bool[] expandedCards = new bool[4]; // Track expanded state for 4 cards
+    private List<MobileBottomNav.MobileNavItem> mobileNavItems = new()
+    {
+        new("action-back", "Voltar", "bi-arrow-left")
+    };
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+            Navigation.NavigateTo("/members");
+    }
 
     protected override async Task OnInitializedAsync()
     {

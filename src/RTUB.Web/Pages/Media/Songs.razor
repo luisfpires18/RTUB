@@ -32,26 +32,13 @@
 }
 else
 {
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-light btn-sm" @onclick="GoBack" aria-label="Voltar">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-            </div>
-
-            <AuthorizeView Roles="Admin,Mod">
-                <Authorized>
-                    <div class="page-header-actions justify-content-lg-end">
-                        <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música" aria-label="Criar Nova Música">
-                            <i class="bi bi-plus-lg"></i> Adicionar Música
-                        </button>
-                    </div>
-                </Authorized>
-            </AuthorizeView>
+    <div class="page-header-centered">
+        <div class="page-header-left d-none d-xl-flex">
+            <button class="btn btn-outline-light btn-sm" @onclick="GoBack" aria-label="Voltar">
+                <i class="bi bi-arrow-left"></i>
+            </button>
         </div>
-
-        <div class="album-detail-header text-center">
+        <div class="page-header-center">
             <h1 class="music-text-light album-detail-title">@album.Title</h1>
             @if (!string.IsNullOrEmpty(album.CoverImageSrc))
             {
@@ -68,6 +55,15 @@ else
             {
                 <p class="music-text-secondary">@album.Description</p>
             }
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <AuthorizeView Roles="Admin,Mod">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música" aria-label="Criar Nova Música">
+                        <i class="bi bi-plus-lg"></i> Adicionar Música
+                    </button>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </div>
 
@@ -116,6 +112,9 @@ else
     }
 }
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 <!-- Fixed Audio Player -->
 @if (!string.IsNullOrEmpty(currentAudioUrl))
 {
@@ -148,7 +147,7 @@ else
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -182,7 +181,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsPdfModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsPdfModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -223,7 +222,7 @@ else
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseLinksModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseLinksModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -235,7 +234,7 @@ else
        Centered="true"
        ShowCloseButton="false">
     <BodyContent>
-        <EditForm Model="editingSong" OnValidSubmit="CreateSong">
+        <EditForm Model="editingSong" OnValidSubmit="CreateSong" id="createSongForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
@@ -322,12 +321,12 @@ else
                 <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
-                <button type="submit" class="btn btn-success">Criar</button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
+        <button type="submit" form="createSongForm" class="btn btn-success">Criar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Edit Song Modal -->
@@ -338,7 +337,7 @@ else
        Centered="true"
        ShowCloseButton="false">
     <BodyContent>
-        <EditForm Model="editingSong" OnValidSubmit="SaveSong">
+        <EditForm Model="editingSong" OnValidSubmit="SaveSong" id="editSongForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
@@ -425,12 +424,12 @@ else
                 <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                <button type="submit" class="btn btn-success">Guardar</button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editSongForm" class="btn btn-success">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Song Confirmation Modal -->
@@ -625,6 +624,9 @@ else
     private string? currentUserId = null;
     private bool isAdminOrOwner = false;
     private bool isModerator = false;
+
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
@@ -684,6 +686,8 @@ else
         canEditSongs = isAdminOrOwner || isModerator;
         canDeleteSongs = isAdminOrOwner;
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        BuildMobileNavItems();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -743,6 +747,33 @@ else
     private void GoBack()
     {
         NavigationManager.NavigateTo("/music");
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+
+        if (canEditSongs)
+        {
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            GoBack();
+        }
+        else if (key == "action-add")
+        {
+            OpenCreateSongModal();
+        }
     }
 
     private async Task OpenEditModal(Song song)

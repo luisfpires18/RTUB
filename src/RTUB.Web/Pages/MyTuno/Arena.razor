@@ -33,24 +33,17 @@
 <PageTitle>Arena - My Tuno - RTUB</PageTitle>
 
 <div class="arena-page">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center gap-3">
-            <!-- Left: Back button -->
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left">
             <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
                 <i class="bi bi-arrow-left"></i>
             </button>
-            
-            <!-- Center: Title (takes remaining space + centers text) -->
-            <div class="flex-grow-1 text-center">
-                <h1 class="mb-2"><i class="bi bi-sword"></i> Arena</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">
-                    Escolhe um oponente para lutar.
-                </p>
-            </div>
-            
-            <!-- Right: Invisible spacer (maintains symmetry) -->
-            <div style="width: 48px;"></div>
         </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-sword"></i> Arena</h1>
+            <p class="page-header-subtitle">Escolhe um oponente para lutar.</p>
+        </div>
+        <div class="page-header-right"></div>
     </div>
 
     @if (loading)

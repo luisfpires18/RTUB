@@ -11,7 +11,7 @@
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        <EditForm Model="@this" OnValidSubmit="@HandleSubmit">
+        <EditForm Model="@this" OnValidSubmit="@HandleSubmit" id="meetingParticipationForm">
             <DataAnnotationsValidator />
 
             @* Will Attend Selection *@
@@ -59,12 +59,12 @@
                 </div>
             }
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Cancelar</button>
-                <button type="submit" class="btn btn-primary btn-primary-purple">@SubmitButtonText</button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Cancelar</button>
+        <button type="submit" form="meetingParticipationForm" class="btn btn-primary btn-primary-purple">@SubmitButtonText</button>
+    </FooterContent>
 </Modal>
 
 @code {

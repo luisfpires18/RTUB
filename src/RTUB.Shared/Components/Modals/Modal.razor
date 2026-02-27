@@ -17,6 +17,12 @@
                 @if (!string.IsNullOrEmpty(Title) || ShowCloseButton || HeaderActions != null)
                 {
                     <div class="modal-header modal-header-primary">
+                        @if (ShowCloseButton)
+                        {
+                            <button type="button" class="modal-mobile-back" @onclick="Close" aria-label="Voltar">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                        }
                         @if (HeaderActions != null)
                         {
                             <div class="modal-header-actions">
@@ -29,7 +35,9 @@
                         }
                         @if (ShowCloseButton)
                         {
-                            <button type="button" class="btn-close" @onclick="Close" aria-label="Fechar modal"></button>
+                            <button type="button" class="modal-close-arrow" @onclick="Close" aria-label="Voltar Atrás">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
                         }
                     </div>
                 }
@@ -40,6 +48,12 @@
                 {
                     <div class="modal-footer">
                         @FooterContent
+                    </div>
+                }
+                else if (ShowCloseButton)
+                {
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="Close">Voltar Atrás</button>
                     </div>
                 }
             </div>

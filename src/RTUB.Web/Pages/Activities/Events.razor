@@ -44,56 +44,62 @@
 @inject ILogger<Events> Logger
 
 <div class="events-page container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h1 class="mb-2"><i class="bi bi-calendar-event"></i> Atuações</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">Próximas atuações e atividades.</p>
-            </div>
-
-            <div class="page-header-actions justify-content-lg-end">
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
-                            <i class="bi bi-plus-lg"></i> Adicionar Atuação
-                        </button>
-                    </Authorized>
-                </AuthorizeView>
-                <button class="btn btn-purple btn-purple-light" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
-                    <i class="bi bi-trophy-fill"></i> Prémios
-                </button>
-                <AuthorizeView>
-                    <Authorized>
-                        <EnrollmentStatisticsButton/>
-                        <MyEnrollmentsButton />
-                    </Authorized>
-                </AuthorizeView>
-            </div>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-calendar-event"></i> Atuações</h1>
+            <p class="lead page-header-subtitle text-light-theme">Próximas atuações e atividades.</p>
         </div>
+        <div class="page-header-right d-none d-xl-flex gap-2">
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
+                        <i class="bi bi-plus-lg"></i> Adicionar Atuação
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            <button class="btn btn-purple btn-purple-light" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
+                <i class="bi bi-trophy-fill"></i> Prémios
+            </button>
+            <AuthorizeView>
+                <Authorized>
+                    <button class="btn btn-outline-primary" @onclick="() => _enrollmentStatsRef?.Open()" title="Ver Estatísticas">
+                        <i class="bi bi-bar-chart"></i> Estatísticas
+                    </button>
+                    <button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsViaRef" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
+                        <i class="bi bi-calendar-check"></i> Minhas Inscrições
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
 
-        <!-- Filter Controls -->
-        <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
-            <div class="flex-lg-shrink-0 filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedFiscalYear"
-                                SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                                OnChange="@OnFiscalYearChanged"
-                                AllItemsLabel="Todos os anos"
-                                Options="@fiscalYearOptions" />
-            </div>
-            <div class="flex-lg-shrink-0 filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedEventType"
-                                SelectedValueChanged="@(value => selectedEventType = value)"
-                                OnChange="@OnEventTypeChanged"
-                                AllItemsLabel="Todos os tipos"
-                                Options="@eventTypeOptions" />
-            </div>
-            <div class="form-check form-switch d-flex align-items-center videos-only-toggle">
-                <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showVideosOnlySwitch"
-                       @bind="showVideosOnly" @bind:after="OnVideosOnlyToggled">
-                <label class="form-check-label ms-2 form-check-label-clickable" for="showVideosOnlySwitch">
-                    Atuação com videos
-                </label>
-            </div>
+    @* Component instances outside hidden container so their modals work on all viewports *@
+    <EnrollmentStatisticsButton @ref="_enrollmentStatsRef" HideButton="true"/>
+    <MyEnrollmentsButton @ref="_myEnrollmentsRef" HideButton="true"/>
+
+    <!-- Filter Controls -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
+        <div class="flex-lg-shrink-0 filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Todos os anos"
+                            Options="@fiscalYearOptions" />
+        </div>
+        <div class="flex-lg-shrink-0 filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedEventType"
+                            SelectedValueChanged="@(value => selectedEventType = value)"
+                            OnChange="@OnEventTypeChanged"
+                            AllItemsLabel="Todos os tipos"
+                            Options="@eventTypeOptions" />
+        </div>
+        <div class="form-check form-switch d-flex align-items-center videos-only-toggle">
+            <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showVideosOnlySwitch"
+                   @bind="showVideosOnly" @bind:after="OnVideosOnlyToggled">
+            <label class="form-check-label ms-2 form-check-label-clickable" for="showVideosOnlySwitch">
+                Atuação com videos
+            </label>
         </div>
     </div>
 
@@ -112,10 +118,10 @@ else
 {
     @if (filteredFutureEvents.Any() && !showVideosOnly)
     {
-        <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
+        <div class="row g-3" @key="@($"future-events-{eventListRefreshTrigger}")">
             @foreach (var eventItem in paginatedFutureEvents)
             {
-                <div class="col-md-4 mb-4" @key="eventItem.Id">
+                <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
                     <AuthorizeView>
                         <Authorized>
                             @{
@@ -200,10 +206,10 @@ else if (!filteredPreviousEvents.Any())
 }
 else
 {
-    <div class="row" @key="@($"previous-events-{eventListRefreshTrigger}")">
+    <div class="row g-3" @key="@($"previous-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <div class="col-md-4 mb-4" @key="eventItem.Id">
+            <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -290,7 +296,7 @@ else
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        <EditForm Model="editingEvent" OnValidSubmit="SaveEvent">
+        <EditForm Model="editingEvent" OnValidSubmit="SaveEvent" id="editEventForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
@@ -395,12 +401,12 @@ else
                 <InputTextArea class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                <button type="submit" class="btn btn-primary btn-primary-purple">Guardar</button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editEventForm" class="btn btn-primary btn-primary-purple">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Confirmation Modal -->
@@ -717,7 +723,7 @@ else
             </AuthorizeView>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseEnrollmentListModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseEnrollmentListModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -856,7 +862,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -869,7 +875,7 @@ else
     <BodyContent>
         @if (editingTrophy != null)
         {
-            <EditForm Model="editingTrophy" OnValidSubmit="SaveTrophy">
+            <EditForm Model="editingTrophy" OnValidSubmit="SaveTrophy" id="editTrophyForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -878,13 +884,13 @@ else
                     <InputText class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseTrophyEditModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-primary-purple">Guardar</button>
-                </div>
             </EditForm>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyEditModal">Cancelar</button>
+        <button type="submit" form="editTrophyForm" class="btn btn-primary btn-primary-purple">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Trophy Delete Modal -->
@@ -989,7 +995,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophiesStatsModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophiesStatsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -1184,12 +1190,12 @@ else
                 <small class="text-muted">Máximo 200 caracteres</small>
             </div>
             
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseEditVideoModal">Cancelar</button>
-                <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveVideoTitle">Guardar</button>
-            </div>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditVideoModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveVideoTitle">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Enrollment Confirmation Modal -->
@@ -1503,6 +1509,9 @@ else
 
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private List<Event>? allEvents; // All events (unfiltered)
     private List<Event> events = new(); // Future events (filtered)
@@ -1543,6 +1552,7 @@ else
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private bool isTrophyCreateMode = false;
     private bool isLoadingTrophiesStats = false;
     private bool isInitializing = true;
@@ -1733,6 +1743,7 @@ else
         await LoadEventVideoCounts();
         await LoadEventTrophyCounts();
         await LoadCurrentUser();
+        BuildMobileNavItems();
         
         isInitializing = false;
         
@@ -1774,7 +1785,42 @@ else
             modals.Open(ModalType.Edit);
         }
     }
-    
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isUserAdmin)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-trophies", "Prémios", "bi-trophy-fill"));
+        if (currentUser != null)
+        {
+            items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
+            items.Add(new("action-enrollments", "Inscrições", "bi-calendar-check"));
+        }
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add": OpenCreateModal(); break;
+            case "action-trophies": await OpenTrophiesStatsModal(); break;
+            case "action-stats": _enrollmentStatsRef?.Open(); break;
+            case "action-enrollments":
+                if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
+                break;
+        }
+    }
+
+    private EnrollmentStatisticsButton? _enrollmentStatsRef;
+    private MyEnrollmentsButton? _myEnrollmentsRef;
+
+    private async Task OpenMyEnrollmentsViaRef()
+    {
+        if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
+    }
+
     private bool _pwaDetectionCompleted = false;
     
     protected override async Task OnAfterRenderAsync(bool firstRender)

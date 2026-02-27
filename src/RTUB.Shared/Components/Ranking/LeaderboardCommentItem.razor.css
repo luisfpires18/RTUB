@@ -4,6 +4,7 @@
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 0.75rem;
+    position: relative;
 }
 
 .comment-header {
@@ -38,7 +39,9 @@
 }
 
 .comment-delete-btn {
-    margin-left: auto;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
 }
 
 .comment-body {
@@ -149,20 +152,22 @@
         padding-right: 0; /* Remove padding since delete is in header */
     }
     
-    /* Like button full width on mobile */
+    /* Like button compact on mobile */
     .comment-footer {
-        justify-content: center;
+        justify-content: flex-start;
     }
     
     .comment-like-btn {
-        width: 100%;
-        max-width: 200px;
-        justify-content: center;
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.85rem;
+    }
+    
+    .comment-like-btn i {
+        font-size: 0.9rem;
     }
     
     .like-count {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
     
     .likes-list {

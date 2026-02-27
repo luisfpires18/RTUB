@@ -37,16 +37,20 @@
         else
         {
             <div class="logistics-board-header mb-4">
-                <!-- Top row: Back button on left, Title centered, Add List and Create Reminder on right -->
-                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                    <a href="/logistics" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Voltar
-                    </a>
-                    <h1 class="mb-0 text-center flex-grow-1">
-                        <i class="bi bi-kanban text-primary me-2"></i>
-                        <span>@board.Name</span>
-                    </h1>
-                    <div class="d-flex gap-2">
+                <!-- Top row: Back button on left, Title centered, Actions on right -->
+                <div class="page-header-centered">
+                    <div class="page-header-left d-none d-xl-flex">
+                        <a href="/logistics" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i>
+                        </a>
+                    </div>
+                    <div class="page-header-center">
+                        <h1>
+                            <i class="bi bi-kanban text-primary me-2"></i>
+                            <span>@board.Name</span>
+                        </h1>
+                    </div>
+                    <div class="page-header-right d-none d-xl-flex gap-2">
                         <button class="btn btn-purple" @onclick="OpenCreateReminderModal">
                             <i class="bi bi-bell"></i> Criar Lembrete
                         </button>
@@ -59,11 +63,6 @@
                         </AuthorizeView>
                     </div>
                 </div>
-                
-                @if (!string.IsNullOrWhiteSpace(board.Description))
-                {
-                    <p class="text-light-theme mt-2 mb-0 text-center">@board.Description</p>
-                }
                 
                 @if (board.Event != null)
                 {
@@ -245,112 +244,95 @@
     </NotAuthorized>
 </AuthorizeView>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @* List Modal - Create/Edit *@
-@if (modals.IsOpen(ModalType.List))
-{
-    <div class="modal fade show d-block logistics-modal logistics-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary logistics-modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-@(editingList == null ? "plus-circle" : "pencil-square") me-2"></i>
-                        @(editingList == null ? "Criar Lista" : "Editar Lista")
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseListModal"></button>
-                </div>
-                <div class="modal-body">
-                    <FormTextField Label="Nome da Lista"
-                                  Icon="list-ul"
-                                  @bind-Value="listName"
-                                  Placeholder="Nome da lista"
-                                  Required="true" />
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveList" disabled="@string.IsNullOrWhiteSpace(listName)">
-                        <i class="bi bi-check-circle me-2"></i>Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<Modal Show="@modals.IsOpen(ModalType.List)"
+       ShowChanged="@((bool show) => { if (!show) CloseListModal(); })"
+       Title="@(editingList == null ? "Criar Lista" : "Editar Lista")"
+       Centered="true"
+       OnClose="CloseListModal">
+    <BodyContent>
+        <FormTextField Label="Nome da Lista"
+                      Icon="list-ul"
+                      @bind-Value="listName"
+                      Placeholder="Nome da lista"
+                      Required="true" />
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
+            <i class="bi bi-arrow-left me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" @onclick="SaveList" disabled="@string.IsNullOrWhiteSpace(listName)">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+        </button>
+    </FooterContent>
+</Modal>
 
 @* Card Modal - Create/Edit *@
-@if (modals.IsOpen(ModalType.Card))
-{
-    <div class="modal fade show d-block logistics-modal logistics-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary logistics-modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-@(editingCard == null ? "plus-circle" : "pencil-square") me-2"></i>
-                        @(editingCard == null ? "Criar Cartão" : "Editar Cartão")
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseCardModal"></button>
+<Modal Show="@modals.IsOpen(ModalType.Card)"
+       ShowChanged="@((bool show) => { if (!show) CloseCardModal(); })"
+       Title="@(editingCard == null ? "Criar Cartão" : "Editar Cartão")"
+       Centered="true"
+       OnClose="CloseCardModal">
+    <BodyContent>
+        <FormTextField Label="Título"
+                      Icon="card-text"
+                      @bind-Value="cardTitle"
+                      Placeholder="Título do cartão"
+                      Required="true" />
+        
+        <FormTextArea Label="Descrição"
+                     Icon="text-paragraph"
+                     @bind-Value="cardDescription"
+                     Rows="3"
+                     Placeholder="Descrição do cartão (opcional)" />
+        
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
+            </label>
+            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                   @bind="userSearchTerm" @bind:event="oninput" />
+            @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
+            {
+                <div class="list-group mt-2 rounded list-group-scrollable">
+                    @foreach (var user in filteredUsers.Take(10))
+                    {
+                        var userName = user.UserName ?? user.Email ?? string.Empty;
+                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" @key="user.Id" 
+                                @onclick="() => SelectUser(user.Id, userName)">
+                            <i class="bi bi-person text-primary me-2"></i>
+                            @(user.UserName ?? user.Email)
+                        </button>
+                    }
                 </div>
-                <div class="modal-body">
-                    <FormTextField Label="Título"
-                                  Icon="card-text"
-                                  @bind-Value="cardTitle"
-                                  Placeholder="Título do cartão"
-                                  Required="true" />
-                    
-                    <FormTextArea Label="Descrição"
-                                 Icon="text-paragraph"
-                                 @bind-Value="cardDescription"
-                                 Rows="3"
-                                 Placeholder="Descrição do cartão (opcional)" />
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
-                        </label>
-                        <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
-                               @bind="userSearchTerm" @bind:event="oninput" />
-                        @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
-                        {
-                            <div class="list-group mt-2 rounded list-group-scrollable">
-                                @foreach (var user in filteredUsers.Take(10))
-                                {
-                                    var userName = user.UserName ?? user.Email ?? string.Empty;
-                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" @key="user.Id" 
-                                            @onclick="() => SelectUser(user.Id, userName)">
-                                        <i class="bi bi-person text-primary me-2"></i>
-                                        @(user.UserName ?? user.Email)
-                                    </button>
-                                }
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(selectedUserName))
-                        {
-                            <div class="d-flex align-items-center mt-2 p-2 bg-secondary bg-opacity-10 rounded">
-                                <i class="bi bi-person text-secondary me-2"></i>
-                                <span class="flex-grow-1">@selectedUserName</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearUserSelection">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
-                        }
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button type="button"
-                            class="btn @(string.IsNullOrWhiteSpace(cardTitle) ? "btn-outline-light" : "btn-primary btn-primary-purple")"
-                            @onclick="SaveCard"
-                            disabled="@string.IsNullOrWhiteSpace(cardTitle)">
-                        <i class="bi bi-check-circle me-2"></i>Guardar
+            }
+            @if (!string.IsNullOrEmpty(selectedUserName))
+            {
+                <div class="d-flex align-items-center mt-2 p-2 bg-secondary bg-opacity-10 rounded">
+                    <i class="bi bi-person text-secondary me-2"></i>
+                    <span class="flex-grow-1">@selectedUserName</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearUserSelection">
+                        <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
-            </div>
+            }
         </div>
-    </div>
-}
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">
+            <i class="bi bi-arrow-left me-2"></i>Cancelar
+        </button>
+        <button type="button"
+                class="btn @(string.IsNullOrWhiteSpace(cardTitle) ? "btn-outline-light" : "btn-primary btn-primary-purple")"
+                @onclick="SaveCard"
+                disabled="@string.IsNullOrWhiteSpace(cardTitle)">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+        </button>
+    </FooterContent>
+</Modal>
 
 @* Card Details Modal *@
 <DetailsModal Show="@(modals.IsOpen(ModalType.CardDetails) && selectedCard != null)"
@@ -647,8 +629,8 @@
                 </button>
             </Authorized>
         </AuthorizeView>
-        <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal" aria-label="Fechar modal">
-            <i class="bi bi-x-circle me-2"></i>Fechar
+        <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal" aria-label="Voltar Atrás">
+            <i class="bi bi-arrow-left me-2"></i>Fechar
         </button>
     </FooterContent>
 </DetailsModal>
@@ -676,138 +658,129 @@
                OnCancel="CloseDeleteCardModal" />
 
 @* Create Reminder Modal *@
-@if (modals.IsOpen(ModalType.CreateReminder))
-{
-    <div class="modal fade show d-block logistics-modal logistics-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary logistics-modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-bell me-2"></i>Criar Lembrete
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseCreateReminderModal"></button>
-                </div>
-                <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(reminderErrorMessage))
+<Modal Show="@modals.IsOpen(ModalType.CreateReminder)"
+       ShowChanged="@((bool show) => { if (!show) CloseCreateReminderModal(); })"
+       Title="Criar Lembrete"
+       Centered="true"
+       OnClose="CloseCreateReminderModal">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(reminderErrorMessage))
+        {
+            <div class="alert alert-danger mb-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>@reminderErrorMessage
+            </div>
+        }
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-card-checklist text-primary me-2"></i>Selecionar Cartão
+            </label>
+            <select class="form-select" @bind="selectedReminderCardId">
+                <option value="">-- Selecione um cartão --</option>
+                @if (lists != null)
+                {
+                    @foreach (var list in lists.OrderBy(l => l.Position))
                     {
-                        <div class="alert alert-danger mb-3">
-                            <i class="bi bi-exclamation-triangle me-2"></i>@reminderErrorMessage
+                        @foreach (var card in list.Cards.OrderBy(c => c.Position))
+                        {
+                            <option value="@card.Id" @key="card.Id">@list.Name - @card.Title</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-clock text-primary me-2"></i>Frequência
+            </label>
+            <select class="form-select" @bind="selectedReminderFrequency">
+                <option value="@((int)ReminderFrequency.OneTime)">Uma vez</option>
+                <option value="@((int)ReminderFrequency.Daily)">Diariamente</option>
+                <option value="@((int)ReminderFrequency.Weekly)">Semanalmente</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-calendar text-primary me-2"></i>Primeira Data do Lembrete
+            </label>
+            <input type="datetime-local" class="form-control" @bind="nextReminderDate" />
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label fw-semibold d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-people text-primary"></i>
+                <span>Utilizadores</span>
+            </label>
+            
+            @* Selected members as chips *@
+            @if (selectedReminderUserIds.Any())
+            {
+                <div class="selected-members-chips mb-2">
+                    @foreach (var userId in selectedReminderUserIds.ToList())
+                    {
+                        var user = users?.FirstOrDefault(u => u.Id == userId);
+                        if (user != null)
+                        {
+                            <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
+                                <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
+                                <span class="member-chip-name">@user.GetDisplayName()</span>
+                                <button type="button" class="member-chip-remove" @onclick="() => RemoveReminderUser(userId)" title="Remover utilizador" aria-label="Remover @user.GetDisplayName()">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </span>
+                        }
+                    }
+                </div>
+            }
+            
+            <div class="reminder-user-search-container">
+                <input type="text" class="form-control mb-2" placeholder="Pesquisar utilizador por nome ou alcunha..." 
+                       @bind="reminderUserSearchTerm" @bind:event="oninput" />
+            </div>
+            
+            @if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm) && filteredAvailableReminderUsers != null && filteredAvailableReminderUsers.Any())
+            {
+                <div class="member-list member-list-scrollable mb-3 member-list-scrollable-override">
+                    @foreach (var user in filteredAvailableReminderUsers.Take(10))
+                    {
+                        <div class="member-item p-2 mb-2 border rounded clickable-row" @key="user.Id"
+                             @onclick="() => AddReminderUser(user.Id)">
+                            <div class="d-flex align-items-center">
+                                <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
+                                     class="member-avatar-small me-2 member-avatar-small-override" />
+                                <div class="flex-grow-1">
+                                    @if (!string.IsNullOrEmpty(user.Nickname))
+                                    {
+                                        <div><strong>@user.Nickname</strong></div>
+                                        <div class="text-muted small">@user.FirstName @user.LastName</div>
+                                    }
+                                    else
+                                    {
+                                        <div><strong>@user.FirstName @user.LastName</strong></div>
+                                    }
+                                </div>
+                            </div>
                         </div>
                     }
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-card-checklist text-primary me-2"></i>Selecionar Cartão
-                        </label>
-                        <select class="form-select" @bind="selectedReminderCardId">
-                            <option value="">-- Selecione um cartão --</option>
-                            @if (lists != null)
-                            {
-                                @foreach (var list in lists.OrderBy(l => l.Position))
-                                {
-                                    @foreach (var card in list.Cards.OrderBy(c => c.Position))
-                                    {
-                                        <option value="@card.Id" @key="card.Id">@list.Name - @card.Title</option>
-                                    }
-                                }
-                            }
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-clock text-primary me-2"></i>Frequência
-                        </label>
-                        <select class="form-select" @bind="selectedReminderFrequency">
-                            <option value="@((int)ReminderFrequency.OneTime)">Uma vez</option>
-                            <option value="@((int)ReminderFrequency.Daily)">Diariamente</option>
-                            <option value="@((int)ReminderFrequency.Weekly)">Semanalmente</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar text-primary me-2"></i>Primeira Data do Lembrete
-                        </label>
-                        <input type="datetime-local" class="form-control" @bind="nextReminderDate" />
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold d-flex align-items-center gap-2 mb-1">
-                            <i class="bi bi-people text-primary"></i>
-                            <span>Utilizadores</span>
-                        </label>
-                        
-                        @* Selected members as chips *@
-                        @if (selectedReminderUserIds.Any())
-                        {
-                            <div class="selected-members-chips mb-2">
-                                @foreach (var userId in selectedReminderUserIds.ToList())
-                                {
-                                    var user = users?.FirstOrDefault(u => u.Id == userId);
-                                    if (user != null)
-                                    {
-                                        <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
-                                            <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
-                                            <span class="member-chip-name">@user.GetDisplayName()</span>
-                                            <button type="button" class="member-chip-remove" @onclick="() => RemoveReminderUser(userId)" title="Remover utilizador" aria-label="Remover @user.GetDisplayName()">
-                                                <i class="bi bi-x"></i>
-                                            </button>
-                                        </span>
-                                    }
-                                }
-                            </div>
-                        }
-                        
-                        <div class="reminder-user-search-container">
-                            <input type="text" class="form-control mb-2" placeholder="Pesquisar utilizador por nome ou alcunha..." 
-                                   @bind="reminderUserSearchTerm" @bind:event="oninput" />
-                        </div>
-                        
-                        @if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm) && filteredAvailableReminderUsers != null && filteredAvailableReminderUsers.Any())
-                        {
-                            <div class="member-list member-list-scrollable mb-3 member-list-scrollable-override">
-                                @foreach (var user in filteredAvailableReminderUsers.Take(10))
-                                {
-                                    <div class="member-item p-2 mb-2 border rounded clickable-row" @key="user.Id"
-                                         @onclick="() => AddReminderUser(user.Id)">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
-                                                 class="member-avatar-small me-2 member-avatar-small-override" />
-                                            <div class="flex-grow-1">
-                                                @if (!string.IsNullOrEmpty(user.Nickname))
-                                                {
-                                                    <div><strong>@user.Nickname</strong></div>
-                                                    <div class="text-muted small">@user.FirstName @user.LastName</div>
-                                                }
-                                                else
-                                                {
-                                                    <div><strong>@user.FirstName @user.LastName</strong></div>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm))
-                        {
-                            <p class="text-muted small">Nenhum utilizador encontrado.</p>
-                        }
-                    </div>
                 </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseCreateReminderModal">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button type="button" class="btn btn-purple" @onclick="SaveReminder" 
-                            disabled="@(string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())">
-                        <i class="bi bi-check-circle me-2"></i>Criar Lembrete
-                    </button>
-                </div>
-            </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm))
+            {
+                <p class="text-muted small">Nenhum utilizador encontrado.</p>
+            }
         </div>
-    </div>
-}
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCreateReminderModal">
+            <i class="bi bi-arrow-left me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-purple" @onclick="SaveReminder" 
+                disabled="@(string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())">
+            <i class="bi bi-check-circle me-2"></i>Criar Lembrete
+        </button>
+    </FooterContent>
+</Modal>
 
 @code {
     // Helper classes (private to avoid naming conflicts)
@@ -895,6 +868,10 @@
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
     private bool isMod = false;
     private bool isAdmin = false;
+
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
         (cardAssignments == null || !cardAssignments.Any(a => a.UserId == u.Id)) &&
@@ -942,6 +919,39 @@
         await CheckUserRole();
         environmentName = HostEnvironment.EnvironmentName;
         await LoadData();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left"),
+            new("action-reminder", "Lembrete", "bi-bell")
+        };
+
+        if (isAdmin)
+        {
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            Navigation.NavigateTo("/logistics");
+        }
+        else if (key == "action-reminder")
+        {
+            OpenCreateReminderModal();
+        }
+        else if (key == "action-add")
+        {
+            OpenCreateListModal();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

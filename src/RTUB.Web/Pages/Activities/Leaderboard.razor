@@ -226,6 +226,7 @@ else
            Title="Detalhes da Classificação"
            Size="Modal.ModalSize.Large"
            Centered="true"
+           ShowCloseButton="false"
            OnClose="CloseDetailsModal">
         <BodyContent>
             <!-- Centered Header Section -->
@@ -440,7 +441,7 @@ else
             </div>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -454,7 +455,7 @@ else
     <BodyContent>
         @if (editingLabel != null)
         {
-            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel" id="editLeaderboardLabelForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -483,13 +484,13 @@ else
                     </label>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Guardar</button>
-                </div>
             </EditForm>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editLeaderboardLabelForm" class="btn btn-success">Guardar</button>
+    </FooterContent>
 </Modal>
 
 @code {

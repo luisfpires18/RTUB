@@ -12,7 +12,13 @@
                 class="mobile-bottom-nav__btn @(item.Key == ActiveKey ? "mobile-bottom-nav__btn--active" : "")"
                 @onclick="() => OnSelect.InvokeAsync(item.Key)"
                 aria-selected="@(item.Key == ActiveKey)">
-            <i class="bi @item.Icon"></i>
+            <span class="mobile-bottom-nav__icon-wrap">
+                <i class="bi @item.Icon"></i>
+                @if (Badges != null && Badges.TryGetValue(item.Key, out var badge))
+                {
+                    @badge
+                }
+            </span>
             <span>@item.Label</span>
         </button>
     }
@@ -36,6 +42,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>
+    /// Optional per-item badge content keyed by item Key.
+    /// </summary>
+    [Parameter]
+    public Dictionary<string, RenderFragment>? Badges { get; set; }
 
     /// <summary>
     /// Represents a single bottom-nav item.

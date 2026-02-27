@@ -28,35 +28,33 @@
 <PageTitle>Apostas - RTUB</PageTitle>
 
 <div class="bets-page container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h1 class="mb-2"><i class="bi bi-cash-coin"></i> Apostas</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">
-                    Próximas apostas e resultados anteriores.
-                    @if (currentUser != null)
-                    {
-                        <br />
-                        <span class="badge bg-success mt-2">
-                            <i class="bi bi-coin me-1"></i>
-                            Saldo: @currentUser.FidelisBalance.ToString("F2") Fidelis
-                        </span>
-                    }
-                </p>
-            </div>
-
-            <div class="page-header-actions justify-content-lg-end">
-                <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
-                    <i class="bi bi-plus-lg"></i> Adicionar Aposta
-                </button>
-            </div>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-cash-coin"></i> Apostas</h1>
+            <p class="lead page-header-subtitle text-light-theme">
+                Próximas apostas e resultados anteriores.
+                @if (currentUser != null)
+                {
+                    <br />
+                    <span class="badge bg-success mt-2">
+                        <i class="bi bi-coin me-1"></i>
+                        Saldo: @currentUser.FidelisBalance.ToString("F2") Fidelis
+                    </span>
+                }
+            </p>
         </div>
-        
-        <!-- Purple Alert - Fidelis information -->
-        <Alert Type="Alert.AlertType.Purple" 
-               Icon="bi-coin"
-               Message=" Ganhe Fidelis jogando jogos! O seu saldo atual pode ser usado para apostar em duelos, decisões, entre outros!" />
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
+                <i class="bi bi-plus-lg"></i> Adicionar Aposta
+            </button>
+        </div>
     </div>
+        
+    <!-- Purple Alert - Fidelis information -->
+    <Alert Type="Alert.AlertType.Purple" 
+           Icon="bi-coin"
+           Message=" Ganhe Fidelis jogando jogos! O seu saldo atual pode ser usado para apostar em duelos, decisões, entre outros!" />
 
     @if (futureBets == null || pastBets == null)
     {
@@ -75,10 +73,10 @@
         {
             <div class="mb-4">
                 <h2 class="mb-3">Apostas Futuras</h2>
-                <div class="row">
+                <div class="row g-3">
                     @foreach (var bet in paginatedFutureBets)
                     {
-                        <div class="col-md-4 mb-4" @key="bet.Id">
+                        <div class="col-12 col-sm-6 col-md-4 mb-3" @key="bet.Id">
                             @{
                                 var userBet = GetUserBet(bet.Id);
                                 var betOptions = GetBetOptions(bet.Id);
@@ -132,10 +130,10 @@
         }
         else
         {
-            <div class="row">
+            <div class="row g-3">
                 @foreach (var bet in paginatedPastBets)
                 {
-                    <div class="col-md-4 mb-4" @key="bet.Id">
+                    <div class="col-12 col-sm-6 col-md-4 mb-3" @key="bet.Id">
                         @{
                             var userBet = GetUserBet(bet.Id);
                             var betOptions = GetBetOptions(bet.Id);
@@ -179,7 +177,7 @@
     <BodyContent>
         @if (editingBet != null)
         {
-            <EditForm Model="editingBet" OnValidSubmit="SaveBet">
+            <EditForm Model="editingBet" OnValidSubmit="SaveBet" id="editBetForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -347,19 +345,19 @@
                     </div>
                 }
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSaving">
-                        @if (isSaving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                        }
-                        Guardar
-                    </button>
-                </div>
             </EditForm>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editBetForm" class="btn btn-primary btn-primary-purple" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            Guardar
+        </button>
+    </FooterContent>
 </Modal>
 
 @* Delete Confirmation Modal *@
@@ -503,18 +501,18 @@
                 }
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="ClosePlaceBetModal">Cancelar</button>
-                <button type="button" class="btn btn-success" @onclick="PlaceBet" disabled="@(isSaving || selectedBetOptionId == 0 || betAmount <= 0 || betAmount > currentUser.FidelisBalance)">
-                    @if (isSaving)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    }
-                    Apostar
-                </button>
-            </div>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePlaceBetModal">Cancelar</button>
+        <button type="button" class="btn btn-success" @onclick="PlaceBet" disabled="@(isSaving || selectedBetOptionId == 0 || betAmount <= 0 || betAmount > (currentUser?.FidelisBalance ?? 0))">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            Apostar
+        </button>
+    </FooterContent>
 </Modal>
 
 @* Bet Details Modal (with Discussion) *@
@@ -782,18 +780,18 @@
                 </select>
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseResolveModal">Cancelar</button>
-                <button type="button" class="btn btn-warning" @onclick="ResolveBet" disabled="@(isSaving || selectedWinningOptionId == 0)">
-                    @if (isSaving)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    }
-                    Resolver Aposta
-                </button>
-            </div>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseResolveModal">Cancelar</button>
+        <button type="button" class="btn btn-warning" @onclick="ResolveBet" disabled="@(isSaving || selectedWinningOptionId == 0)">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            Resolver Aposta
+        </button>
+    </FooterContent>
 </Modal>
 
 <!-- Image Cropper Component -->
@@ -866,14 +864,18 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseAllBetsModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAllBetsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // User and auth
     private ApplicationUser? currentUser;
     private bool isAdmin = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-add", "Adicionar", "bi-plus-lg") };
 
     // Bets data
     private List<Bet> futureBets = new();
@@ -974,7 +976,12 @@
         await LoadBets();
         // Don't load members on initialization - will be loaded when MATCH modal is opened
     }
-    
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-add") await OpenCreateModal();
+    }
+
     private async Task LoadAllMembers()
     {
         if (membersLoaded) return; // Avoid reloading

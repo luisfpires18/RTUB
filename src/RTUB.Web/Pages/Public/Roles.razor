@@ -22,36 +22,36 @@
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
-        </div>
-
-        <div class="d-flex flex-column align-items-lg-end gap-2">
-            <AuthorizeView Roles="Mod,Admin">
-                <Authorized>
-                    <button class="btn btn-success align-self-lg-end" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
-                        <i class="bi bi-plus-lg"></i> Adicionar Ano Letivo
-                    </button>
-                </Authorized>
-            </AuthorizeView>
-
-            @if (fiscalYears.Any())
-            {
-                <div class="flex-sm-shrink-0 align-self-lg-end filter-dropdown-container">
-                    <FilterDropdown SelectedValue="@selectedFiscalYear"
-                                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                                    OnChange="@OnFiscalYearChanged"
-                                    AllItemsLabel="Selecionar Ano Letivo"
-                                    Items="@fiscalYears"
-                                    IconClass="bi-calendar-event" />
-                </div>
-            }
-        </div>
+<div class="page-header-centered mb-4">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
+        <p class="page-header-subtitle">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
+        <AuthorizeView Roles="Mod,Admin">
+            <Authorized>
+                <button class="btn btn-success" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
+                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Ano Letivo</span>
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
 </div>
+
+@if (fiscalYears.Any())
+{
+    <div class="d-flex justify-content-end mb-4">
+        <div class="filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Selecionar Ano Letivo"
+                            Items="@fiscalYears"
+                            IconClass="bi-calendar-event" />
+        </div>
+    </div>
+}
 
 @if (!fiscalYears.Any())
 {
@@ -64,10 +64,14 @@ else
     @* RGI Section - Visible only to MEMBER and ADMIN *@
     <AuthorizeView Roles="Member,Mod,Admin">
         <section class="mb-4">
-            <div class="text-center">
-                <h4 class="mb-3">Verifica os regulamentos gerais internos</h4>
-                <button class="btn btn-primary btn-lg" @onclick="OpenRgiModal">
-                    Abrir RGI
+            <div class="rgi-section">
+                <div class="rgi-section-icon">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                </div>
+                <h5 class="rgi-section-title">Regulamentos Gerais Internos</h5>
+                <p class="rgi-section-subtitle">Consulta os regulamentos e normas internas da RTUB</p>
+                <button class="btn btn-outline-primary" @onclick="OpenRgiModal">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Abrir RGI
                 </button>
             </div>
         </section>
@@ -738,7 +742,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseRgiModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseRgiModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -854,6 +858,8 @@ else
                OnConfirm="ConfirmRemoveAssignment"
                OnCancel="CloseRemoveAssignmentModal" />
 
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
@@ -864,6 +870,7 @@ else
     private bool isAdmin = false;
     private bool isMod = false;
     private bool canDoAction = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // RGI PDF state
     private enum ModalType { Rgi, CreateFiscalYear, AssignMember, RemoveAssignment }
@@ -926,6 +933,7 @@ else
         }
         
         await LoadRoleAssignments();
+        BuildMobileNavItems();
         
         // Handle ?manage=1 query parameter (redirect from /admin/roles)
         var manageParam = queryParams["manage"];
@@ -934,7 +942,20 @@ else
             await OpenCreateFiscalYearModal();
         }
     }
-    
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canDoAction)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-add") await OpenCreateFiscalYearModal();
+    }
+
     private async Task LoadFiscalYears()
     {
         var years = (await FiscalYearService.GetAllFiscalYearsAsync())

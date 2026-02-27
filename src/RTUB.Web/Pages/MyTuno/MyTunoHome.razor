@@ -37,30 +37,27 @@
 
 <PageTitle>My Tuno - RTUB</PageTitle>
 
-<div class="my-tuno-home-page">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h1 class="mb-2"><i class="bi bi-joystick"></i> My Tuno</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">
-                    Luta contra oponentes AI e melhora o teu personagem.
-                </p>
-            </div>
-            <div class="page-header-actions justify-content-lg-end">
-                <a href="/my-tuno/all-characters" class="btn btn-outline-primary">
-                    <i class="bi bi-trophy-fill me-2"></i>Classificação
-                </a>
-                <AuthorizeView Roles="Owner">
-                    <Authorized>
-                        <a href="/owner/stage-enemies" class="btn btn-outline-warning">
-                            <i class="bi bi-bug me-1"></i>Stage Enemies
-                        </a>
-                        <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
-                            <i class="bi bi-sliders me-1"></i>Config Armas/Bebidas
-                        </a>
-                    </Authorized>
-                </AuthorizeView>
-            </div>
+<div class="my-tuno-home-page container-fluid">
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-joystick"></i> My Tuno</h1>
+            <p class="page-header-subtitle">Luta contra oponentes AI e melhora o teu personagem.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <a href="/my-tuno/all-characters" class="btn btn-outline-primary">
+                <i class="bi bi-trophy-fill me-2"></i><span class="btn-text">Classificação</span>
+            </a>
+            <AuthorizeView Roles="Owner">
+                <Authorized>
+                    <a href="/owner/stage-enemies" class="btn btn-outline-warning">
+                        <i class="bi bi-bug me-1"></i><span class="btn-text">Stage Enemies</span>
+                    </a>
+                    <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
+                        <i class="bi bi-sliders me-1"></i><span class="btn-text">Config</span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </div>
 
@@ -1356,7 +1353,7 @@
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="CloseForgeWeaponTypeModal">
-                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                    <i class="bi bi-arrow-left me-2"></i>Cancelar
                 </button>
                 <button class="btn btn-warning" @onclick="ConfirmForge" disabled="@(selectedForgeWeaponType == null)">
                     <i class="bi bi-hammer me-2"></i>Forjar!
@@ -1403,7 +1400,7 @@
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-primary" @onclick="() => showForgeResultModal = false">
-                    <i class="bi bi-check-lg me-2"></i>Fechar
+                    <i class="bi bi-check-lg me-2"></i>Voltar Atrás
                 </button>
             </FooterContent>
         </Modal>
@@ -1597,7 +1594,7 @@
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="() => showWeaponsListModal = false">
-                    <i class="bi bi-x-lg me-2"></i>Fechar
+                    <i class="bi bi-arrow-left me-2"></i>Voltar Atrás
                 </button>
             </FooterContent>
         </Modal>
@@ -1825,7 +1822,7 @@
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="CloseStageModal">
-                    <i class="bi bi-x-lg me-2"></i>Fechar
+                    <i class="bi bi-arrow-left me-2"></i>Voltar Atrás
                 </button>
             </FooterContent>
         </Modal>
@@ -1888,7 +1885,7 @@
             </BodyContent>
             <FooterContent>
                 <button class="bm-modal__btn bm-modal__btn--close" @onclick="CloseBossModeModal">
-                    <i class="bi bi-x-lg me-1"></i>Fechar
+                    <i class="bi bi-arrow-left me-1"></i>Voltar Atrás
                 </button>
                 <button class="bm-modal__btn bm-modal__btn--enter" @onclick="StartBossMode" disabled="@(fitabQuantity < 1 || (character?.Level ?? 0) < 100)">
                     <i class="bi bi-lightning-fill me-1"></i>Entrar (1 FITAB)
@@ -1976,13 +1973,15 @@
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="CloseSurviveModeModal">
-                    <i class="bi bi-x-lg me-2"></i>Fechar
+                    <i class="bi bi-arrow-left me-2"></i>Voltar Atrás
                 </button>
             </FooterContent>
         </Modal>
     }
 
 </div>
+
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     /// <summary>
@@ -2039,6 +2038,8 @@
     private ApplicationUser? currentUser;
     private StageProgress? stageProgress;
     private bool loading = true;
+    private bool isOwner = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private int finoQuantity = 0;
     private int canecaQuantity = 0;
@@ -2236,6 +2237,29 @@
     {
         AdminRefreshService.OnRefreshRequested += HandleAdminRefreshAsync;
         await LoadDataAsync();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        items.Add(new("nav-ranking", "Classificação", "bi-trophy-fill"));
+        if (isOwner)
+        {
+            items.Add(new("nav-enemies", "Enemies", "bi-bug"));
+            items.Add(new("nav-config", "Config", "bi-sliders"));
+        }
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "nav-ranking": Navigation.NavigateTo("/my-tuno/all-characters"); break;
+            case "nav-enemies": Navigation.NavigateTo("/owner/stage-enemies"); break;
+            case "nav-config": Navigation.NavigateTo("/owner/weapon-drink-config"); break;
+        }
     }
 
     private async Task LoadDataAsync()
@@ -2250,6 +2274,7 @@
             if (user.Identity?.IsAuthenticated == true)
             {
                 currentUser = await UserManager.GetUserAsync(user);
+                isOwner = user.IsInRole("Owner");
                 if (currentUser != null)
                 {
                     // Refresh from fresh context — scoped DI context has stale data

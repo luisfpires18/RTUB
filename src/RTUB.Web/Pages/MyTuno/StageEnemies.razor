@@ -13,22 +13,23 @@
 @inherits CrudTablePageBase<StageEnemy>
 @inject IStageEnemyManagementService StageEnemyService
 @inject ILogger<StageEnemies> Logger
+@inject NavigationManager Navigation
 
 <div class="stage-enemies-page container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h1 class="mb-2"><i class="bi bi-bug"></i> Stage Enemies</h1>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">Manage enemies for Stage Mode.</p>
-            </div>
-
-            <div class="page-header-actions justify-content-lg-end">
-                <button class="btn btn-success" @onclick="OpenCreateModal" title="Add New Enemy">
-                    <i class="bi bi-plus-lg"></i> Add Enemy
-                </button>
-            </div>
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-bug"></i> Stage Enemies</h1>
+            <p class="page-header-subtitle">Manage enemies for Stage Mode.</p>
         </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Add New Enemy">
+                <i class="bi bi-plus-lg"></i> <span class="btn-text">Add Enemy</span>
+            </button>
+        </div>
+    </div>
 
+    <div class="mb-4">
         <!-- Filters -->
         <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
             <div class="flex-lg-shrink-0 filter-dropdown-container">
@@ -203,6 +204,8 @@
     </BodyContent>
 </ConfirmDialog>
 
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private enum ModalType { Edit, Delete }
     private readonly MultiModalState<ModalType> modals = new();
@@ -211,6 +214,12 @@
     private StageEnemy? deletingEnemy;
     private int? editingEnemyId;
     private EditForm? editForm;
+
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+    {
+        new("action-back", "Voltar", "bi-arrow-left"),
+        new("action-add", "Add Enemy", "bi-plus-lg")
+    };
 
     // Filter state
     private string selectedEnemyType = string.Empty;
@@ -227,6 +236,15 @@
         PaginationHelper.PageSize = 24;
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back": Navigation.NavigateTo("/my-tuno"); break;
+            case "action-add": OpenCreateModal(); break;
+        }
     }
 
     protected override async Task LoadItemsAsync()

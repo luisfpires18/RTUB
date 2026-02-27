@@ -27,9 +27,6 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
-        // Seed all biome stage enemies (runs even for existing databases)
-        await SeedAllBiomeEnemiesAsync(dbContext);
-
         // Development-only: reset passwords, emails and clear push subscriptions
         await ResetDevDataAsync(dbContext, environment, logger);
 
@@ -71,6 +68,9 @@ public static partial class SeedData
         await SeedRehearsalsAsync(dbContext, userManager);
 
         await SeedMusicAsync(dbContext);
+
+        // My Tuno - sSeed all biome stage enemies for the first time
+        await SeedAllBiomeEnemiesAsync(dbContext);
     }
 
     /// <summary>

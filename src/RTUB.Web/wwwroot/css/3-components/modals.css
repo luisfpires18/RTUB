@@ -119,81 +119,286 @@ body.modal-open {
     overflow-y: auto;
 }
 
+/* ========================================
+   MOBILE BACK BUTTON (hidden on desktop)
+   ======================================== */
+.modal-mobile-back {
+    display: none;
+}
+
 /* Mobile modal improvements */
 @media (max-width: 767px) {
-    /* Full-screen or near full-screen modal on mobile */
-    .modal-dialog {
-        margin: 0.5rem;
-        max-width: calc(100% - 1rem);
-        height: calc(100vh - 1rem);
-        height: calc(100dvh - 1rem);
+    /* True full-screen modal on mobile (skip small/confirm dialogs) */
+    .modal-dialog:not(.modal-sm),
+    .modal-dialog.modal-dialog-centered:not(.modal-sm) {
+        margin: 0;
+        max-width: 100%;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
         display: flex;
-        align-items: center;
+        align-items: stretch;
+    }
+
+    /* Small modals stay as centered boxes on mobile */
+    .modal-dialog.modal-sm {
+        max-width: 90%;
+        margin: 1.75rem auto;
+    }
+
+    .modal-dialog.modal-sm .modal-content {
+        border-radius: 1rem;
+        border: 1px solid rgba(111, 66, 193, 0.3);
+        height: auto;
+        max-height: none;
+    }
+
+    .modal-dialog.modal-sm .modal-footer {
+        flex-direction: row !important;
+        justify-content: flex-end !important;
+        gap: 0.5rem !important;
+        padding: 0.75rem 1rem !important;
+        background: transparent !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn {
+        flex: 0 0 auto !important;
+        flex-direction: row !important;
+        font-size: 0.875rem !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.5rem !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn::before {
+        display: none !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn > i,
+    .modal-dialog.modal-sm .modal-footer .btn > .bi {
+        display: inline !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn-secondary {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn-danger {
+        background: #dc3545 !important;
+        border: 1px solid #dc3545 !important;
+        color: #fff !important;
+    }
+
+    .modal-dialog.modal-sm .modal-footer .btn-primary {
+        background: var(--bs-primary) !important;
+        border: 1px solid var(--bs-primary) !important;
+        color: #fff !important;
+    }
+
+    .modal-dialog.modal-sm .modal-header .btn-close {
+        display: block !important;
     }
 
     .modal-content {
         display: flex;
         flex-direction: column;
+        height: 100%;
         max-height: 100%;
-        border-radius: 1rem;
+        border-radius: 0;
+        border: none;
         overflow: hidden;
     }
 
+    /* Header as mobile navbar */
     .modal-header {
-        flex: 0 0 auto; /* Fixed header */
-        padding: 0.875rem 1rem;
-        border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+        flex: 0 0 auto;
+        padding: 0.625rem 1rem;
+        border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.25);
+        background-color: #151516;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .modal-title {
-        font-size: 1.125rem;
+        font-size: 1.0625rem;
         font-weight: 600;
+        flex: 1;
+        text-align: center;
+        margin: 0;
+    }
+
+    /* Mobile back button */
+    .modal-mobile-back {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--bs-primary);
+        background: none;
+        border: none;
+        padding: 0.375rem 0.5rem;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Hide back button — footer Cancelar / Fechar replaces it */
+    .modal-mobile-back {
+        display: none !important;
+    }
+
+    .modal-mobile-back:active {
+        opacity: 0.7;
+    }
+
+    .modal-mobile-back i {
+        font-size: 1.125rem;
+    }
+
+    /* Hide X close button on mobile — mobile-back replaces it */
+    .modal-header .btn-close {
+        display: none !important;
     }
 
     .modal-body {
-        flex: 1 1 auto; /* Scrollable content area */
+        flex: 1 1 auto;
         padding: 1rem;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        min-height: 0; /* Critical for flex scrolling */
+        min-height: 0;
     }
 
+    /* ─── Footer as MobileBottomNav ─── */
     .modal-footer {
-        flex: 0 0 auto; /* Fixed footer */
-        padding: 0.875rem 1rem;
-        border-top: 1px solid rgba(var(--bs-primary-rgb), 0.2);
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        flex: 0 0 auto;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-around !important;
+        align-items: stretch !important;
+        padding: 0.25rem 0;
+        padding-bottom: env(safe-area-inset-bottom, 0.25rem);
+        border-top: 1px solid rgba(111, 66, 193, 0.25);
+        background: #111114;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
+        gap: 0 !important;
     }
 
+    /* Every button becomes a MobileBottomNav-style item */
     .modal-footer .btn {
-        flex: 1 1 100%;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.15rem;
+        padding: 0.4rem 0.25rem !important;
+        margin: 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.65rem !important;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        box-shadow: none !important;
+    }
+
+    .modal-footer .btn:active {
+        color: #c7a7ff;
+    }
+
+    /* Hide any existing <i> icons inside buttons (we inject via ::before) */
+    .modal-footer .btn > i,
+    .modal-footer .btn > .bi {
+        display: none;
+    }
+
+    /* Also hide spinner "me-1/me-2" margin text orphans */
+    .modal-footer .btn > .me-1,
+    .modal-footer .btn > .me-2 {
+        margin: 0 !important;
+    }
+
+    /* Auto-inject icon above text via ::before pseudo-element */
+    .modal-footer .btn::before {
+        font-family: "bootstrap-icons" !important;
+        font-size: 1.25rem;
+        display: block;
+        font-style: normal;
+        font-weight: normal;
+        line-height: 1;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Icon per button variant */
+    .modal-footer .btn-secondary::before,
+    .modal-footer .btn-outline-secondary::before {
+        content: "\f12c"; /* bi-arrow-left */
+    }
+
+    .modal-footer .btn-primary::before,
+    .modal-footer .btn-primary-purple::before,
+    .modal-footer .btn-success::before {
+        content: "\f633"; /* bi-check-lg */
+    }
+
+    .modal-footer .btn-danger::before {
+        content: "\f5de"; /* bi-trash */
+    }
+
+    /* Highlighted colors for action buttons (matches MobileBottomNav --active) */
+    .modal-footer .btn-primary,
+    .modal-footer .btn-primary-purple,
+    .modal-footer .btn-success {
+        color: #a88ee5;
+    }
+
+    .modal-footer .btn-danger {
+        color: #e57373;
+    }
+
+    /* Secondary stays dimmed (default rgba(255,255,255,0.5)) */
+
+    /* All sizes become full-screen on mobile */
+    .modal-lg,
+    .modal-xl {
+        max-width: 100%;
         margin: 0;
     }
 
-    /* Large modals should be near full screen on mobile */
-    .modal-lg,
-    .modal-xl {
-        max-width: calc(100% - 1rem);
-        margin: 0.5rem;
-    }
-
-    /* Better close button touch target */
-    .btn-close {
-        padding: 0.75rem;
-    }
-    
     /* Ensure pagination and other controls inside modal don't cause page scroll */
     .modal-body .pagination {
         margin-bottom: 0;
     }
-    
+
     /* Fix for tables with pagination inside modals */
     .modal-body .table-responsive {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    /* Header actions layout in fullscreen mobile */
+    .modal-header-actions {
+        flex: 1;
+        text-align: center;
     }
 }
 
@@ -224,11 +429,7 @@ body.modal-open {
 @supports (padding: env(safe-area-inset-bottom)) {
     @media (max-width: 767px) {
         .modal-content {
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .modal-footer {
-            padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
+            padding-bottom: 0;
         }
     }
 }

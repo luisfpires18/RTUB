@@ -35,22 +35,25 @@
     {
         <div class="enrollments-inner">
             <!-- Page Header -->
-            <div class="d-flex flex-column gap-3 mb-4 page-header-block">
-                <div class="d-flex align-items-center gap-3 page-header-row">
-                    <button class="btn btn-outline-secondary btn-sm back-button" @onclick="NavigateBack">
+            <div class="page-header-centered">
+                <div class="page-header-left d-none d-xl-flex">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <div class="page-header-text">
-                        <h1 class="mb-2"><i class="bi bi-people"></i> Inscrições</h1>
-                        <p class="lead page-header-subtitle mb-0 text-light-theme">@selectedEvent.Name</p>
-                    </div>
+                </div>
+                <div class="page-header-center">
+                    <h1><i class="bi bi-people"></i> Inscrições</h1>
+                    <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
+                </div>
+                <div class="page-header-right d-none d-xl-flex">
                     @if (isUserAdmin)
                     {
-                        <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="CopyLinkToClipboard" title="Copiar link">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="CopyLinkToClipboard" title="Copiar link">
                             <i class="bi bi-link-45deg"></i>
                         </button>
                     }
                 </div>
+            </div>
                 
                 @* Copy Link Feedback Alert *@
                 @if (!string.IsNullOrEmpty(copyLinkFeedbackMessage))
@@ -61,7 +64,6 @@
                            OnDismiss="ClearCopyLinkFeedback"
                            AdditionalClasses="mb-0" />
                 }
-            </div>
 
         <!-- My Enrollment Section (for non-past, non-cancelled events) -->
         @if (!selectedEvent.IsCancelled && selectedEvent.Date.Date >= DateTime.Today)
@@ -367,6 +369,9 @@
     }
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 <!-- Participation Modal (Enrollment Modal) -->
 @if (enrollmentForm != null)
 {
@@ -415,6 +420,9 @@
     private enum ModalType { DeleteEnrollment, Enroll }
     private readonly MultiModalState<ModalType> modals = new();
     private Enrollment? deletingEnrollment;
+    
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // User's own enrollment state
     private Enrollment? userEnrollment;
@@ -481,6 +489,34 @@
         }
         
         await LoadEventAndEnrollments();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+
+        if (isUserAdmin)
+        {
+            items.Add(new("action-copy", "Copiar Link", "bi-link-45deg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            NavigateBack();
+        }
+        else if (key == "action-copy")
+        {
+            await CopyLinkToClipboard();
+        }
     }
 
     private async Task LoadEventAndEnrollments()

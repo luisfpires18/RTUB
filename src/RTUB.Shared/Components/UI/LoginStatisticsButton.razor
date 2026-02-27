@@ -4,9 +4,12 @@
 @using RTUB.Application.Helpers
 @inject UserManager<ApplicationUser> UserManager
 
+@if (!HideButton)
+{
 <button class="btn btn-purple btn-login-statistics" @onclick="OpenLoginsModal" title="Ver logins" aria-label="Ver registos de login">
     <i class="bi bi-box-arrow-in-right"></i> Logins
 </button>
+}
 
 @if (showLoginModal)
 {
@@ -76,7 +79,7 @@
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseLoginsModal" aria-label="Fechar modal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseLoginsModal" aria-label="Voltar Atrás">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -179,6 +182,16 @@
         return Task.CompletedTask;
     }
 
+
+    /// <summary>When true, hides the trigger button (component acts as modal-only, triggered via OpenAsync).</summary>
+    [Parameter] public bool HideButton { get; set; }
+
+    /// <summary>Opens the login statistics modal programmatically (e.g. from MobileBottomNav).</summary>
+    public async Task OpenAsync()
+    {
+        await OpenLoginsModal();
+        StateHasChanged();
+    }
 
     private class LoginRecord
     {

@@ -26,23 +26,22 @@
     else
     {
         <!-- Page Header -->
-        <div class="discussion-header mb-4">
-            <div class="discussion-header-actions">
+        <div class="page-header-centered">
+            <div class="page-header-left"></div>
+
+            <div class="page-header-center">
+                <h1><i class="bi bi-question-circle"></i> Perguntas</h1>
+                <p class="page-header-subtitle">Faça perguntas aos membros dos Órgãos Sociais</p>
             </div>
 
-            <div class="discussion-header-title">
-                <h1 class="mb-2"><i class="bi bi-question-circle"></i> Perguntas</h1>
-                <p class="mb-0 text-muted">Faça perguntas aos membros dos Órgãos Sociais</p>
-            </div>
-
-            @if (currentUser != null)
-            {
-                <div class="discussion-header-actions page-header-actions justify-content-end justify-content-lg-end">
+            <div class="page-header-right d-none d-xl-flex">
+                @if (currentUser != null)
+                {
                     <button class="btn btn-success" @onclick="OpenCreateQuestionModal" title="Criar Nova Pergunta">
                         <i class="bi bi-plus-lg"></i> Nova Pergunta
                     </button>
-                </div>
-            }
+                }
+            </div>
         </div>
 
         <!-- Search Bar and Filter -->
@@ -140,6 +139,9 @@
     }
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 <!-- Create Question Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Create)" 
        ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) ClearMemberSelection(); })"
@@ -147,7 +149,7 @@
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <EditForm Model="@newQuestionModel" OnValidSubmit="CreateQuestion">
+        <EditForm Model="@newQuestionModel" OnValidSubmit="CreateQuestion" id="createQuestionForm">
             <DataAnnotationsValidator />
             
             <div class="mb-3">
@@ -234,16 +236,16 @@
                 <ValidationMessage For="@(() => newQuestionModel.Content)" />
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Create)">
-                    Cancelar
-                </button>
-                <button type="submit" class="btn btn-primary" disabled="@(!CanSubmitQuestion())">
-                    <i class="bi bi-send me-1"></i> Enviar Pergunta
-                </button>
-            </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Create)">
+            Cancelar
+        </button>
+        <button type="submit" form="createQuestionForm" class="btn btn-primary" disabled="@(!CanSubmitQuestion())">
+            <i class="bi bi-send me-1"></i> Enviar Pergunta
+        </button>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Confirmation -->
@@ -307,7 +309,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.FullContent)">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.FullContent)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -440,7 +442,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Reply)">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Reply)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -493,6 +495,9 @@
     private Question? questionToView;
     private Question? questionToReply;
 
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUserAsync();
@@ -500,6 +505,27 @@
         await LoadMemberFilterOptionsAsync();
         await LoadQuestionsAsync();
         isLoading = false;
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+
+        if (currentUser != null)
+        {
+            items.Add(new("action-add", "Nova Pergunta", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-add")
+        {
+            OpenCreateQuestionModal();
+        }
     }
 
     private async Task LoadCurrentUserAsync()

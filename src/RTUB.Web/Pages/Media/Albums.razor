@@ -23,31 +23,29 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Albums> Logger
+@inject IJSRuntime JS
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-disc"></i> Música</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Discografia da RTUB</p>
-        </div>
-
-        <div class="page-header-actions justify-content-lg-end d-flex gap-2">
-            <AuthorizeView>
-                <Authorized>
-                    <button class="btn btn-purple btn-purple-light" @onclick="OpenStatisticsModal" title="Ver Estatísticas" aria-label="Ver Estatísticas">
-                        <i class="bi bi-bar-chart-fill"></i> Estatísticas
-                    </button>
-                </Authorized>
-            </AuthorizeView>
-            
-            <AuthorizeView Roles="Admin,Mod">
-                <Authorized>
-                    <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Novo Álbum">
-                        <i class="bi bi-plus-lg"></i> Adicionar Álbum
-                    </button>
-                </Authorized>
-            </AuthorizeView>
-        </div>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-disc"></i> Música</h1>
+        <p class="lead page-header-subtitle text-light-theme">Discografia da RTUB</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex gap-2">
+        <AuthorizeView>
+            <Authorized>
+                <button class="btn btn-purple btn-purple-light" @onclick="OpenStatisticsModal" title="Ver Estatísticas" aria-label="Ver Estatísticas">
+                    <i class="bi bi-bar-chart-fill"></i> Estatísticas
+                </button>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin,Mod">
+            <Authorized>
+                <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Novo Álbum">
+                    <i class="bi bi-plus-lg"></i> Adicionar Álbum
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
 </div>
 
@@ -65,11 +63,16 @@ else
     @* Public Albums Grid *@
     @if (publicAlbums.Any())
     {
-        <h3 class="mb-3"><i class="bi bi-globe"></i> Álbuns Públicos</h3>
-        <div class="row">
+        <section id="section-public">
+        <AuthorizeView>
+            <Authorized>
+                <h3 class="mb-3"><i class="bi bi-globe"></i> Álbuns Públicos</h3>
+            </Authorized>
+        </AuthorizeView>
+        <div class="row g-3 g-lg-4">
             @foreach (var album in paginatedPublicAlbums)
             {
-                <div class="col-md-4 col-lg-2 mb-4" @key="album.Id">
+                <div class="col-6 col-md-4 col-lg-3 mb-3" @key="album.Id">
                     <div class="card album-card h-100">
                         <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
                             @if (!string.IsNullOrEmpty(album.CoverImageSrc))
@@ -137,6 +140,7 @@ else
                         PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
                         OnPageChanged="@HandlePublicPageChange"
                         OnPageSizeChanged="@HandlePublicPageSizeChange" />
+        </section>
     }
 
     @* Private Albums Grid - Only visible to authenticated users *@
@@ -144,11 +148,12 @@ else
         <Authorized>
             @if (privateAlbums.Any())
             {
+                <section id="section-private">
                 <h3 class="mb-3 mt-4"><i class="bi bi-lock"></i> Álbuns Privados</h3>
-                <div class="row">
+                <div class="row g-3 g-lg-4">
                     @foreach (var album in paginatedPrivateAlbums)
                     {
-                        <div class="col-md-4 col-lg-2 mb-4" @key="album.Id">
+                        <div class="col-6 col-md-4 col-lg-3 mb-3" @key="album.Id">
                             <div class="card album-card h-100">
                                 <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
                                     @if (!string.IsNullOrEmpty(album.CoverImageSrc))
@@ -222,10 +227,14 @@ else
                                 PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
                                 OnPageChanged="@HandlePrivatePageChange"
                                 OnPageSizeChanged="@HandlePrivatePageSizeChange" />
+                </section>
             }
         </Authorized>
     </AuthorizeView>
 }
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeMobileSection" OnSelect="HandleMobileNavSelect" />
 
 <!-- CRUD Modals -->
 <CrudModalManager TEntity="Album"
@@ -575,7 +584,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseStatisticsModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseStatisticsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -624,12 +633,20 @@ else
     private string exclusiveMemberSearchTerm = string.Empty;
     private string? currentUserId;
 
+    // Mobile bottom nav
+    private string activeMobileSection = "section-public";
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+    private bool isAuthenticated;
+    private bool isAdminOrMod;
+
     protected override async Task OnInitializedAsync()
     {
         // Get current user ID
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (user.Identity?.IsAuthenticated == true)
+        isAuthenticated = user.Identity?.IsAuthenticated == true;
+        isAdminOrMod = user.IsInRole("Admin") || user.IsInRole("Mod");
+        if (isAuthenticated)
         {
             currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             
@@ -650,7 +667,44 @@ else
             }
         }
         
+        BuildMobileNavItems();
         await LoadAlbums();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+
+        if (isAuthenticated)
+        {
+            items.Add(new("section-public", "Públicos", "bi-globe"));
+            items.Add(new("section-private", "Privados", "bi-lock"));
+            items.Add(new("action-statistics", "Estatísticas", "bi-bar-chart-fill"));
+        }
+
+        if (isAdminOrMod)
+        {
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key.StartsWith("section-"))
+        {
+            activeMobileSection = key;
+            await JS.InvokeVoidAsync("eval", $"document.getElementById('{key}')?.scrollIntoView({{behavior:'smooth',block:'start'}})");
+        }
+        else if (key == "action-statistics")
+        {
+            await OpenStatisticsModal();
+        }
+        else if (key == "action-add")
+        {
+            OpenCreateModal();
+        }
     }
 
     private async Task LoadAlbums()

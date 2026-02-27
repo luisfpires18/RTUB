@@ -12,10 +12,10 @@ window.messageScroller = {
     _viewportHandlerSetup: false,
     
     /**
-     * Store reference to the thread panel element for viewport resizing
+     * Store reference to the messages container element for viewport resizing
      * @private
      */
-    _threadPanelElement: null,
+    _messagesContainer: null,
     
     /**
      * Store reference to input element for focus handling
@@ -44,27 +44,35 @@ window.messageScroller = {
             // Only apply on mobile
             if (window.innerWidth > self._MOBILE_BREAKPOINT) return;
             
-            // Use cached element or find it (cache for performance on frequent events)
-            if (!self._threadPanelElement || !document.contains(self._threadPanelElement)) {
-                self._threadPanelElement = document.querySelector('.rtub-messages__thread-panel');
+            // Target the outer fixed container (.rtub-messages), not the thread panel
+            if (!self._messagesContainer || !document.contains(self._messagesContainer)) {
+                self._messagesContainer = document.querySelector('.rtub-messages');
             }
             
-            const threadPanel = self._threadPanelElement;
-            if (!threadPanel) return;
+            const container = self._messagesContainer;
+            if (!container) return;
             
             // Get the visual viewport height (accounts for keyboard)
             const viewportHeight = window.visualViewport.height;
             const viewportOffsetTop = window.visualViewport.offsetTop;
             
-            // Set the thread panel height to match visual viewport
-            // and position it at the visual viewport offset
-            threadPanel.style.height = viewportHeight + 'px';
-            threadPanel.style.top = viewportOffsetTop + 'px';
-            threadPanel.style.bottom = 'auto';
+            // Only apply inline overrides when the keyboard is OPEN.
+            // Threshold: viewport is at least 100px smaller than window.innerHeight
+            // This prevents overriding CSS -webkit-fill-available on initial load,
+            // which is critical for PWA standalone mode sizing.
+            const keyboardOpen = (window.innerHeight - viewportHeight) > 100;
+            
+            if (keyboardOpen) {
+                container.style.height = viewportHeight + 'px';
+                container.style.top = viewportOffsetTop + 'px';
+                container.style.bottom = 'auto';
+            } else {
+                // Keyboard closed — clear inline overrides so CSS rules apply
+                container.style.height = '';
+                container.style.top = '';
+                container.style.bottom = '';
+            }
         };
-        
-        // Initial setup - set viewport size immediately
-        updateViewportHeight();
         
         // Listen for Visual Viewport resize (keyboard open/close)
         window.visualViewport.addEventListener('resize', updateViewportHeight);

@@ -33,32 +33,31 @@
 else
 {
     
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="discussion-header">
-            <div class="discussion-header-actions">
-                <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-            </div>
-
-            <div class="discussion-header-title">
-                <h1 class="mb-2">@report.Title</h1>
-                <p class="mb-0 text-muted">Ano Letivo: @report.Year</p>
-            </div>
-
-            <div class="discussion-header-actions page-header-actions justify-content-end justify-content-lg-end">
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <button class="btn btn-purple btn-purple-light" @onclick="OpenTransactionHistoryModal" title="Histórico de Transações">
-                            <i class="bi bi-clock-history"></i> Histórico de Transações
-                        </button>
-                    </Authorized>
-                </AuthorizeView>
-                <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
-                    <i class="bi bi-cash-coin"></i> Ver Calotes
-                </button>
-            </div>
+    <div class="page-header-centered">
+        <div class="page-header-left d-none d-xl-flex">
+            <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
         </div>
+
+        <div class="page-header-center">
+            <h1>@report.Title</h1>
+            <p class="page-header-subtitle">Ano Letivo: @report.Year</p>
+        </div>
+
+        <div class="page-header-right d-none d-xl-flex gap-2">
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-purple btn-purple-light" @onclick="OpenTransactionHistoryModal" title="Histórico de Transações">
+                        <i class="bi bi-clock-history"></i> Histórico de Transações
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
+                <i class="bi bi-cash-coin"></i> Ver Calotes
+            </button>
+        </div>
+    </div>
 
         @if (report.IsPublished)
         {
@@ -74,7 +73,6 @@ else
                 @report.Summary
             </div>
         }
-    </div>
 
 <!-- Summary Cards - 3x2 Grid -->
 <div class="summary-cards-container mb-4">
@@ -333,6 +331,9 @@ else
     }
 }
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 <!-- Activity Create/Edit Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Activity)" 
        ShowChanged="@((bool show) => modals.Toggle(ModalType.Activity, show))"
@@ -340,7 +341,7 @@ else
        Centered="true"
        ShowCloseButton="true">
     <BodyContent>
-      <EditForm Model="editingActivity" OnValidSubmit="SaveActivity">
+      <EditForm Model="editingActivity" OnValidSubmit="SaveActivity" id="editActivityForm">
             <DataAnnotationsValidator />
 <ErrorDisplay />
 
@@ -395,12 +396,12 @@ else
                 <InputTextArea class="form-control" rows="3" @bind-Value="editingActivity!.Description" />
     </div>
 
-            <div class="d-flex justify-content-end gap-2">
-       <button type="button" class="btn btn-secondary" @onclick="CloseActivityModal">Cancelar</button>
-     <button type="submit" class="btn btn-success">Guardar</button>
-    </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseActivityModal">Cancelar</button>
+        <button type="submit" form="editActivityForm" class="btn btn-success">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Transaction Create/Edit Modal -->
@@ -410,7 +411,7 @@ else
        Centered="true"
     ShowCloseButton="true">
     <BodyContent>
-        <EditForm Model="editingTransaction" OnValidSubmit="SaveTransaction">
+        <EditForm Model="editingTransaction" OnValidSubmit="SaveTransaction" id="editTransactionForm">
             <DataAnnotationsValidator />
     <ErrorDisplay />
 
@@ -505,12 +506,12 @@ else
                 </div>
             }
 
-       <div class="d-flex justify-content-end gap-2">
-           <button type="button" class="btn btn-secondary" @onclick="CloseTransactionModal">Cancelar</button>
-        <button type="submit" class="btn btn-success">Guardar</button>
-         </div>
         </EditForm>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTransactionModal">Cancelar</button>
+        <button type="submit" form="editTransactionForm" class="btn btn-success">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Activity Confirmation Modal -->
@@ -565,7 +566,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseReceiptModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseReceiptModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -582,11 +583,11 @@ else
             </label>
             <input type="number" class="form-control" step="0.01" @bind="editingBankCashValue" placeholder="0.00" />
         </div>
-        <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-secondary" @onclick="CloseBankCashModal">Cancelar</button>
-            <button type="button" class="btn btn-success" @onclick="SaveBankCashValue">Guardar</button>
-        </div>
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseBankCashModal">Cancelar</button>
+        <button type="button" class="btn btn-success" @onclick="SaveBankCashValue">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Transaction History Modal -->
@@ -648,7 +649,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTransactionHistoryModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTransactionHistoryModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -662,6 +663,9 @@ else
 
     private enum ModalType { Activity, Transaction, DeleteActivity, DeleteTransaction, Receipt, BankCash, TransactionHistory }
     private readonly MultiModalState<ModalType> modals = new();
+
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private bool isCreateActivityMode = false;
     private bool isCreateTransactionMode = false;
@@ -772,7 +776,40 @@ else
      await LoadActivities();    // Then load activities (which recalculates totals using transactions)
         await LoadBankAndCashMoney(); // Load bank and cash money values
         await LoadCalotesTotal(); // Load total calotes
+        BuildMobileNavItems();
   }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left"),
+            new("action-calotes", "Calotes", "bi-cash-coin")
+        };
+
+        if (isAdmin)
+        {
+            items.Add(new("action-history", "Histórico", "bi-clock-history"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            GoBack();
+        }
+        else if (key == "action-calotes")
+        {
+            ViewCalotes();
+        }
+        else if (key == "action-history")
+        {
+            await OpenTransactionHistoryModal();
+        }
+    }
 
     /// <summary>
     /// Determines if the current user can create finance reports.

@@ -68,6 +68,8 @@
     max-height: 340px;
     width: 340px;
     object-fit: cover;
+    display: block;
+    margin: 0 auto;
 }
 
 .album-detail-header {
@@ -79,6 +81,7 @@
 .album-detail-title {
     margin-bottom: 0.75rem;
     text-align: center;
+    order: -1;
 }
 
 .album-detail-year {

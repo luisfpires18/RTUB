@@ -10,14 +10,8 @@
 }
 
 .logistics-board-header h1 {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    margin: 0;
     white-space: nowrap;
-}
-
-.logistics-board-header > div:first-child {
-    position: relative;
 }
 
 @keyframes fadeInDown {

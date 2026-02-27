@@ -15,13 +15,16 @@
     Member-only component
 *@
 
-<AuthorizeView>
-    <Authorized>
-        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-            <i class="bi bi-bar-chart"></i> Estatísticas
-        </button>
-    </Authorized>
-</AuthorizeView>
+@if (!HideButton)
+{
+    <AuthorizeView>
+        <Authorized>
+            <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
+                <i class="bi bi-bar-chart"></i> Estatísticas
+            </button>
+        </Authorized>
+    </AuthorizeView>
+}
 
 <!-- Statistics Modal -->
 @if (showStatsModal)
@@ -134,12 +137,18 @@
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
 
 @code {
+    /// <summary>
+    /// When true, hides the trigger button (used when the parent page provides its own trigger via @ref)
+    /// </summary>
+    [Parameter]
+    public bool HideButton { get; set; }
+
     private bool showStatsModal = false;
     
     // Default dates set to current fiscal year (Sept 1 - Aug 31)
@@ -179,6 +188,15 @@
     {
         var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         return new DateTime(startYear + 1, 8, 31);
+    }
+
+    /// <summary>
+    /// Opens the statistics modal. Can be called externally via @ref.
+    /// </summary>
+    public void Open()
+    {
+        showStatsModal = true;
+        StateHasChanged();
     }
 
     private void OpenStatsModal()

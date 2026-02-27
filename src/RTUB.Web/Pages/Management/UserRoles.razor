@@ -14,27 +14,32 @@
 @attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-person-gear"></i> Gestão de Funções de Utilizadores</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Gerir funções dos utilizadores entre Member, Admin e Owner.</p>
-        </div>
-
-        <div class="page-header-actions justify-content-lg-end">
-            @if (isCurrentUserOwner)
-            {
-                <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
-                <SyncMemberStatusButton OnSyncCompleted="HandleSyncCompleted" />
-            }
-        </div>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-person-gear"></i> Gestão de Funções de Utilizadores</h1>
+        <p class="lead page-header-subtitle text-light-theme">Gerir funções dos utilizadores entre Member, Admin e Owner.</p>
     </div>
-
-    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2">
-        <SearchBar @bind-Value="SearchTerm"
-                   Placeholder="Pesquisar por nome, username, email, nickname ou ID..."
-                   OnSearch="UpdateSearch" />
+    <div class="page-header-right d-none d-xl-flex gap-2">
+        @if (isCurrentUserOwner)
+        {
+            <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
+            <SyncMemberStatusButton OnSyncCompleted="HandleSyncCompleted" />
+        }
     </div>
+</div>
+
+@* Ref instances for mobile nav \u2014 no modal, just async work *@
+@if (isCurrentUserOwner)
+{
+    <div style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;">
+        <SyncChatGroupsButton @ref="syncChatRef" OnSyncCompleted="HandleSyncCompleted" />
+        <SyncMemberStatusButton @ref="syncStatusRef" OnSyncCompleted="HandleSyncCompleted" />
+    </div>
+}
+<div class="d-flex flex-column flex-lg-row align-items-stretch gap-2 mb-4">
+    <SearchBar @bind-Value="SearchTerm"               Placeholder="Pesquisar por nome, username, email, nickname ou ID..."
+               OnSearch="UpdateSearch" />
 </div>
 
 <!-- Success/Error Message -->
@@ -255,7 +260,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseUserDetailsModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUserDetailsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -270,11 +275,17 @@ else
                OnConfirm="ConfirmRoleChange"
                OnCancel="CancelRoleChange" />
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private Dictionary<string, List<string>> userRolesDict = new();
     private string message = "";
     private bool isError = false;
     private bool isCurrentUserOwner = false;
+    private SyncChatGroupsButton? syncChatRef;
+    private SyncMemberStatusButton? syncStatusRef;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Edit role modal
     private enum ModalType { EditRole, UserDetails }
@@ -302,6 +313,27 @@ else
         
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isCurrentUserOwner)
+        {
+            items.Add(new("action-sync-chat", "Sync Chat", "bi-chat-dots"));
+            items.Add(new("action-sync-status", "Sync Status", "bi-arrow-repeat"));
+        }
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-sync-chat": if (syncChatRef != null) await syncChatRef.TriggerAsync(); break;
+            case "action-sync-status": if (syncStatusRef != null) await syncStatusRef.TriggerAsync(); break;
+        }
     }
 
     private void HandleSyncCompleted((bool Success, string Message) result)

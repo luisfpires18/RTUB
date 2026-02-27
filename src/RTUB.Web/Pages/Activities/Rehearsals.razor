@@ -34,47 +34,44 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<Rehearsals> Logger
 
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-music-note-list"></i> Ensaios</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).</p>
-        </div>
-
-        <div class="page-header-actions justify-content-lg-end">
-            @if (isAdmin)
-            {
-                <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
-                    <i class="bi bi-plus-lg"></i> Adicionar Ensaio
-                </button>
-                <button class="btn btn-success" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
-                    <i class="bi bi-calendar-range"></i> Adicionar Vários
-                </button>
-            }
-            <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-                <i class="bi bi-bar-chart"></i> Estatísticas
-            </button>
-
-            <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
-                <i class="bi bi-calendar-check"></i> Minhas Presenças
-            </button>
-        </div>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-music-note-list"></i> Ensaios</h1>
+        <p class="lead page-header-subtitle text-light-theme">Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).</p>
     </div>
+    <div class="page-header-right d-none d-xl-flex gap-2">
+        @if (isAdmin)
+        {
+            <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
+                <i class="bi bi-plus-lg"></i> Adicionar Ensaio
+            </button>
+            <button class="btn btn-success" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
+                <i class="bi bi-calendar-range"></i> Adicionar Vários
+            </button>
+        }
+        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
+            <i class="bi bi-bar-chart"></i> Estatísticas
+        </button>
+        <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
+            <i class="bi bi-calendar-check"></i> Minhas Presenças
+        </button>
+    </div>
+</div>
 
-    <!-- Filter Controls -->
-    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
-        <div class="flex-grow-1 filter-search-container">
-            <SearchBar @bind-Value="searchTerm"
-                       Placeholder="Pesquisar por tema ou localização..."
-                       OnSearch="@HandleSearchChanged" />
-        </div>
-        <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-            <FilterDropdown SelectedValue="@selectedFiscalYear"
-                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                            OnChange="@OnFiscalYearChanged"
-                            AllItemsLabel="Todos os anos"
-                            Options="@fiscalYearOptions" />
-        </div>
+<!-- Filter Controls -->
+<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
+    <div class="flex-grow-1 filter-search-container">
+        <SearchBar @bind-Value="searchTerm"
+                   Placeholder="Pesquisar por tema ou localização..."
+                   OnSearch="@HandleSearchChanged" />
+    </div>
+    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
+        <FilterDropdown SelectedValue="@selectedFiscalYear"
+                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                        OnChange="@OnFiscalYearChanged"
+                        AllItemsLabel="Todos os anos"
+                        Options="@fiscalYearOptions" />
     </div>
 </div>
 
@@ -216,374 +213,359 @@ else
 }
 
 <!-- View Attendances Modal -->
-@if (modals.IsOpen(ModalType.Attendances) && selectedRehearsal != null)
-{
-    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Presenças - @selectedRehearsal.Date.ToString("dd MMM yyyy")</h5>
-                    <button type="button" class="btn-close" @onclick="CloseAttendancesModal"></button>
+<Modal Show="@(modals.IsOpen(ModalType.Attendances) && selectedRehearsal != null)"
+       ShowChanged="@((bool show) => { if (!show) CloseAttendancesModal(); })"
+       Title="@($"Presenças - {selectedRehearsal?.Date.ToString("dd MMM yyyy")}")"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseAttendancesModal">
+    <BodyContent>
+        @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
+        {
+            <!-- Filter and Search Row -->
+            <div class="row g-2 mb-3">
+                @if (isAdmin && isSelectedRehearsalApprovable)
+                {
+                    <div class="col-12 col-md-4">
+                        <FilterDropdown
+                            SelectedValue="@attendanceApprovalFilter"
+                            SelectedValueChanged="@(value => attendanceApprovalFilter = value)"
+                            OnChange="@FilterAttendances"
+                            UseDefaultOption="false"
+                            Items="@(new[] { "Todos", "Pendente", "Aprovado" })" />
+                    </div>
+                }
+                <div class="@(isAdmin && isSelectedRehearsalApprovable ? "col-12 col-md-8" : "col-12")">
+                    <SearchBar @bind-Value="attendanceSearchTerm"
+                               Placeholder="Pesquisar por nome..."
+                               OnSearch="@HandleAttendanceSearchChanged" />
                 </div>
-                <div class="modal-body">
-                    @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
+            </div>
+            
+            var notAttendingMembers = selectedRehearsalAttendances.Where(a => a.User != null && !a.WillAttend).ToList();
+            
+            @if (filteredMainParticipants.Any())
+            {
+                <h6 class="mb-3 heading-purple">Membros (@filteredMainParticipants.Count)</h6>
+                
+                <div class="enrollment-card-grid enrollment-card-grid-mobile-two mb-4">
+                    @foreach (var attendance in paginatedMainParticipants)
                     {
-                        <!-- Filter and Search Row -->
-                        <div class="row g-2 mb-3">
-                            @if (isAdmin && isSelectedRehearsalApprovable)
-                            {
-                                <div class="col-12 col-md-4">
-                                    <FilterDropdown
-                                        SelectedValue="@attendanceApprovalFilter"
-                                        SelectedValueChanged="@(value => attendanceApprovalFilter = value)"
-                                        OnChange="@FilterAttendances"
-                                        UseDefaultOption="false"
-                                        Items="@(new[] { "Todos", "Pendente", "Aprovado" })" />
-                                </div>
-                            }
-                            <div class="@(isAdmin && isSelectedRehearsalApprovable ? "col-12 col-md-8" : "col-12")">
-                                <SearchBar @bind-Value="attendanceSearchTerm"
-                                           Placeholder="Pesquisar por nome..."
-                                           OnSearch="@HandleAttendanceSearchChanged" />
-                            </div>
-                        </div>
-                        
-                        var notAttendingMembers = selectedRehearsalAttendances.Where(a => a.User != null && !a.WillAttend).ToList();
-                        
-                        @if (filteredMainParticipants.Any())
-                        {
-                            <h6 class="mb-3 heading-purple">Membros (@filteredMainParticipants.Count)</h6>
-                            
-                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two mb-4">
-                                @foreach (var attendance in paginatedMainParticipants)
+                        var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
+                         <EnrollmentCard @key="attendance.Id" 
+                            AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                            TunaName="@attendance.User?.Nickname"
+                            FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
+                            InstrumentText="@instrumentDisplay"
+                            OtherInstruments="@attendance.OtherInstruments"
+                            Notes="@attendance.Notes"
+                            AltText="@attendance.User?.GetDisplayName()"
+                            ShowEditButton="false"
+                            ShowDeleteButton="@CanDeleteAttendance(attendance)"
+                            ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                            ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                            OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                            OnApprove="@(() => ApproveAttendance(attendance))"
+                            OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
+                            DeleteTooltip="Eliminar"
+                            ApproveTooltip="Aprovar"
+                            CancelTooltip="Cancelar">
+                            <BadgeContent>
+                                @if (attendance.User != null)
                                 {
-                                    var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                     <EnrollmentCard @key="attendance.Id" 
-                                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
-                                        TunaName="@attendance.User?.Nickname"
-                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
-                                        InstrumentText="@instrumentDisplay"
-                                        OtherInstruments="@attendance.OtherInstruments"
-                                        Notes="@attendance.Notes"
-                                        AltText="@attendance.User?.GetDisplayName()"
-                                        ShowEditButton="false"
-                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
-                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
-                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
-                                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                        OnApprove="@(() => ApproveAttendance(attendance))"
-                                        OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
-                                        DeleteTooltip="Eliminar"
-                                        ApproveTooltip="Aprovar"
-                                        CancelTooltip="Cancelar">
-                                        <BadgeContent>
-                                            @if (attendance.User != null)
-                                            {
-                                                <div class="enrollment-card-badges-row">
-                                                    @* Status badge first *@
-                                                    @if (attendance.Attended)
-                                                    {
-                                                        <span class="badge bg-success">Aprovado</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-warning">Pendente</span>
-                                                    }
-                                                </div>
-                                                <div class="enrollment-card-badges-row">
-                                                    @* Category badge below status *@
-                                                    @if (attendance.User.Positions.Contains(Position.Magister))
-                                                    {
-                                                        <PositionBadge Position="Position.Magister" />
-                                                    }
-                                                    else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
-                                                    {
-                                                        <CategoryBadge Category="MemberCategory.Tuno" />
-                                                    }
-                                                    else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
-                                                    {
-                                                        <CategoryBadge Category="MemberCategory.Caloiro" />
-                                                    }
-                                                </div>
-                                            }
-                                        </BadgeContent>
-                                    </EnrollmentCard>
+                                    <div class="enrollment-card-badges-row">
+                                        @* Status badge first *@
+                                        @if (attendance.Attended)
+                                        {
+                                            <span class="badge bg-success">Aprovado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pendente</span>
+                                        }
+                                    </div>
+                                    <div class="enrollment-card-badges-row">
+                                        @* Category badge below status *@
+                                        @if (attendance.User.Positions.Contains(Position.Magister))
+                                        {
+                                            <PositionBadge Position="Position.Magister" />
+                                        }
+                                        else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                        {
+                                            <CategoryBadge Category="MemberCategory.Tuno" />
+                                        }
+                                        else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                        {
+                                            <CategoryBadge Category="MemberCategory.Caloiro" />
+                                        }
+                                    </div>
                                 }
-                            </div>
-                            
-                            <!-- Pagination for Main Participants -->
-                            @if (filteredMainParticipants.Count > 0)
-                            {
-                                <div class="mb-3">
-                                    <TablePagination 
-                                        TotalItems="@filteredMainParticipants.Count"
-                                        CurrentPage="@mainParticipantsPagination.CurrentPage"
-                                        PageSize="@mainParticipantsPagination.PageSize"
-                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                        OnPageChanged="@HandleMainParticipantsPageChange"
-                                        OnPageSizeChanged="@HandleMainParticipantsPageSizeChange" />
-                                </div>
-                            }
-
-                            @* Instrument Counts - Horizontal Counter Section *@
-                            <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
-                            <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
-                        }
-
-                        @if (filteredLeitoes.Any())
-                        {
-                            <h6 class="mb-3 heading-warning">Leitões (@filteredLeitoes.Count)</h6>
-                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
-                                @foreach (var attendance in paginatedLeitoes)
-                                {
-                                    var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                    <EnrollmentCard @key="attendance.Id" 
-                                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
-                                        TunaName="@attendance.User?.Nickname"
-                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
-                                        InstrumentText="@instrumentDisplay"
-                                        OtherInstruments="@attendance.OtherInstruments"
-                                        Notes="@attendance.Notes"
-                                        AltText="@attendance.User?.GetDisplayName()"
-                                        ShowEditButton="false"
-                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
-                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
-                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
-                                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                        OnApprove="@(() => ApproveAttendance(attendance))"
-                                        OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
-                                        DeleteTooltip="Eliminar"
-                                        ApproveTooltip="Aprovar"
-                                        CancelTooltip="Cancelar">
-                                        <BadgeContent>
-                                            <div class="enrollment-card-badges-row">
-                                                @* Status badge first *@
-                                                @if (attendance.Attended)
-                                                {
-                                                    <span class="badge bg-success">Aprovado</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                }
-                                            </div>
-                                            <div class="enrollment-card-badges-row">
-                                                @* Category badge below status *@
-                                                <CategoryBadge Category="MemberCategory.Leitao" />
-                                            </div>
-                                        </BadgeContent>
-                                    </EnrollmentCard>
-                                }
-                            </div>
-                            
-                            <!-- Pagination for Leitões -->
-                            @if (filteredLeitoes.Count > 0)
-                            {
-                                <div class="mt-3">
-                                    <TablePagination 
-                                        TotalItems="@filteredLeitoes.Count"
-                                        CurrentPage="@leitoesPagination.CurrentPage"
-                                        PageSize="@leitoesPagination.PageSize"
-                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                        OnPageChanged="@HandleLeitoesPageChange"
-                                        OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
-                                </div>
-                            }
-                        }
-                        
-                        @if (filteredNotAttending.Any())
-                        {
-                            <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
-                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
-                                @foreach (var attendance in paginatedNotAttending)
-                                {
-                                <EnrollmentCard
-                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
-                                    TunaName="@attendance.User?.Nickname"
-                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
-                                    InstrumentText=""
-                                    Notes="@attendance.Notes"
-                                    AltText="@attendance.User?.GetDisplayName()"
-                                    ShowEditButton="false"
-                                    ShowDeleteButton="@CanDeleteAttendance(attendance)"
-                                    OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                    DeleteTooltip="Eliminar">
-                                        <BadgeContent>
-                                            @if (attendance.User != null)
-                                            {
-                                                <div class="enrollment-card-badges-row">
-                                                    @* Category badge for not attending members *@
-                                                    @if (attendance.User.Positions.Contains(Position.Magister))
-                                                    {
-                                                        <PositionBadge Position="Position.Magister" />
-                                                    }
-                                                    else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
-                                                    {
-                                                        <CategoryBadge Category="MemberCategory.Tuno" />
-                                                    }
-                                                    else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
-                                                    {
-                                                        <CategoryBadge Category="MemberCategory.Caloiro" />
-                                                    }
-                                                    else if (attendance.User.Categories.Contains(MemberCategory.Leitao))
-                                                    {
-                                                        <CategoryBadge Category="MemberCategory.Leitao" />
-                                                    }
-                                                </div>
-                                            }
-                                        </BadgeContent>
-                                    </EnrollmentCard>
-                                }
-                            </div>
-                            
-                            <!-- Pagination for Not Attending Members -->
-                            @if (filteredNotAttending.Count > 0)
-                            {
-                                <div class="mt-3">
-                                    <TablePagination 
-                                        TotalItems="@filteredNotAttending.Count"
-                                        CurrentPage="@notAttendingPagination.CurrentPage"
-                                        PageSize="@notAttendingPagination.PageSize"
-                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                        OnPageChanged="@HandleNotAttendingPageChange"
-                                        OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
-                                </div>
-                            }
-                        }
+                            </BadgeContent>
+                        </EnrollmentCard>
                     }
-                    else
+                </div>
+                
+                <!-- Pagination for Main Participants -->
+                @if (filteredMainParticipants.Count > 0)
+                {
+                    <div class="mb-3">
+                        <TablePagination 
+                            TotalItems="@filteredMainParticipants.Count"
+                            CurrentPage="@mainParticipantsPagination.CurrentPage"
+                            PageSize="@mainParticipantsPagination.PageSize"
+                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            OnPageChanged="@HandleMainParticipantsPageChange"
+                            OnPageSizeChanged="@HandleMainParticipantsPageSizeChange" />
+                    </div>
+                }
+
+                @* Instrument Counts - Horizontal Counter Section *@
+                <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
+                <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
+            }
+
+            @if (filteredLeitoes.Any())
+            {
+                <h6 class="mb-3 heading-warning">Leitões (@filteredLeitoes.Count)</h6>
+                <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
+                    @foreach (var attendance in paginatedLeitoes)
                     {
-                        <EmptyState Title="Nenhuma presença registada ainda"
-                                   Icon="bi-calendar-check" />
-                    }
-                    
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
-                            @if (isSelectedRehearsalApprovable)
-                            {
-                                <div class="mt-3">
-                                    <!-- Success Alert (auto-dismiss) -->
-                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                        var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
+                        <EnrollmentCard @key="attendance.Id" 
+                            AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                            TunaName="@attendance.User?.Nickname"
+                            FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
+                            InstrumentText="@instrumentDisplay"
+                            OtherInstruments="@attendance.OtherInstruments"
+                            Notes="@attendance.Notes"
+                            AltText="@attendance.User?.GetDisplayName()"
+                            ShowEditButton="false"
+                            ShowDeleteButton="@CanDeleteAttendance(attendance)"
+                            ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                            ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                            OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                            OnApprove="@(() => ApproveAttendance(attendance))"
+                            OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
+                            DeleteTooltip="Eliminar"
+                            ApproveTooltip="Aprovar"
+                            CancelTooltip="Cancelar">
+                            <BadgeContent>
+                                <div class="enrollment-card-badges-row">
+                                    @* Status badge first *@
+                                    @if (attendance.Attended)
                                     {
-                                        <Alert Type="Alert.AlertType.Purple"
-                                               Title="@addMemberFeedbackMessage"
-                                               Dismissible="true"
-                                               OnDismiss="ClearAddMemberFeedback"
-                                               AdditionalClasses="mb-2" />
-                                    }
-
-                                    <!-- Error Alert (manual dismiss) -->
-                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
-                                    {
-                                        <Alert Type="Alert.AlertType.Error"
-                                               Title="@addMemberFeedbackMessage"
-                                               Dismissible="true"
-                                               OnDismiss="ClearAddMemberFeedback"
-                                               AdditionalClasses="mb-2" />
-                                    }
-
-                                    @if (!showAddMemberSearch)
-                                    {
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberSearch">
-                                            <i class="bi bi-plus-circle"></i>
-                                            Adicionar Membro
-                                        </button>
+                                        <span class="badge bg-success">Aprovado</span>
                                     }
                                     else
                                     {
-                                        <div class="mb-2">
-                                            <SearchBar @bind-Value="addMemberSearchTerm"
-                                                       Placeholder="Pesquisar membro por nome..."
-                                                       OnSearch="@HandleAddMemberSearchChanged" />
-
-                                            @if (!string.IsNullOrWhiteSpace(addMemberSearchTerm) && filteredAvailableMembers.Any())
-                                            {
-                                                <div class="member-list member-list-scrollable mt-2">
-                                                    @foreach (var member in filteredAvailableMembers)
-                                                    {
-                                                        <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
-                                                             @onclick="() => AddMemberToRehearsal(member)"
-                                                             tabindex="0"
-                                                             @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
-                                                            <div class="d-flex align-items-center">
-                                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                                     class="member-avatar-small me-2" />
-                                                                <div>
-                                                                    <strong>@member.GetDisplayName()</strong>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                            else if (!string.IsNullOrWhiteSpace(addMemberSearchTerm))
-                                            {
-                                                <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                            }
-                                        </div>
-
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberSearch">
-                                            <i class="bi bi-x-circle"></i>
-                                            Cancelar
-                                        </button>
+                                        <span class="badge bg-warning">Pendente</span>
                                     }
                                 </div>
-                            }
-                        </Authorized>
-                    </AuthorizeView>
+                                <div class="enrollment-card-badges-row">
+                                    @* Category badge below status *@
+                                    <CategoryBadge Category="MemberCategory.Leitao" />
+                                </div>
+                            </BadgeContent>
+                        </EnrollmentCard>
+                    }
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseAttendancesModal">Fechar</button>
+                
+                <!-- Pagination for Leitões -->
+                @if (filteredLeitoes.Count > 0)
+                {
+                    <div class="mt-3">
+                        <TablePagination 
+                            TotalItems="@filteredLeitoes.Count"
+                            CurrentPage="@leitoesPagination.CurrentPage"
+                            PageSize="@leitoesPagination.PageSize"
+                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            OnPageChanged="@HandleLeitoesPageChange"
+                            OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+                    </div>
+                }
+            }
+            
+            @if (filteredNotAttending.Any())
+            {
+                <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
+                <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
+                    @foreach (var attendance in paginatedNotAttending)
+                    {
+                    <EnrollmentCard
+                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                        TunaName="@attendance.User?.Nickname"
+                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
+                        InstrumentText=""
+                        Notes="@attendance.Notes"
+                        AltText="@attendance.User?.GetDisplayName()"
+                        ShowEditButton="false"
+                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
+                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                        DeleteTooltip="Eliminar">
+                            <BadgeContent>
+                                @if (attendance.User != null)
+                                {
+                                    <div class="enrollment-card-badges-row">
+                                        @* Category badge for not attending members *@
+                                        @if (attendance.User.Positions.Contains(Position.Magister))
+                                        {
+                                            <PositionBadge Position="Position.Magister" />
+                                        }
+                                        else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                        {
+                                            <CategoryBadge Category="MemberCategory.Tuno" />
+                                        }
+                                        else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                        {
+                                            <CategoryBadge Category="MemberCategory.Caloiro" />
+                                        }
+                                        else if (attendance.User.Categories.Contains(MemberCategory.Leitao))
+                                        {
+                                            <CategoryBadge Category="MemberCategory.Leitao" />
+                                        }
+                                    </div>
+                                }
+                            </BadgeContent>
+                        </EnrollmentCard>
+                    }
                 </div>
-            </div>
-        </div>
-    </div>
-}
+                
+                <!-- Pagination for Not Attending Members -->
+                @if (filteredNotAttending.Count > 0)
+                {
+                    <div class="mt-3">
+                        <TablePagination 
+                            TotalItems="@filteredNotAttending.Count"
+                            CurrentPage="@notAttendingPagination.CurrentPage"
+                            PageSize="@notAttendingPagination.PageSize"
+                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            OnPageChanged="@HandleNotAttendingPageChange"
+                            OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <EmptyState Title="Nenhuma presença registada ainda"
+                       Icon="bi-calendar-check" />
+        }
+        
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                @if (isSelectedRehearsalApprovable)
+                {
+                    <div class="mt-3">
+                        <!-- Success Alert (auto-dismiss) -->
+                        @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Purple"
+                                   Title="@addMemberFeedbackMessage"
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+
+                        <!-- Error Alert (manual dismiss) -->
+                        @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Error"
+                                   Title="@addMemberFeedbackMessage"
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+
+                        @if (!showAddMemberSearch)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberSearch">
+                                <i class="bi bi-plus-circle"></i>
+                                Adicionar Membro
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="mb-2">
+                                <SearchBar @bind-Value="addMemberSearchTerm"
+                                           Placeholder="Pesquisar membro por nome..."
+                                           OnSearch="@HandleAddMemberSearchChanged" />
+
+                                @if (!string.IsNullOrWhiteSpace(addMemberSearchTerm) && filteredAvailableMembers.Any())
+                                {
+                                    <div class="member-list member-list-scrollable mt-2">
+                                        @foreach (var member in filteredAvailableMembers)
+                                        {
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
+                                                 @onclick="() => AddMemberToRehearsal(member)"
+                                                 tabindex="0"
+                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                         class="member-avatar-small me-2" />
+                                                    <div>
+                                                        <strong>@member.GetDisplayName()</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(addMemberSearchTerm))
+                                {
+                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                }
+                            </div>
+
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberSearch">
+                                <i class="bi bi-x-circle"></i>
+                                Cancelar
+                            </button>
+                        }
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAttendancesModal">Voltar Atrás</button>
+    </FooterContent>
+</Modal>
 
 <!-- Edit/Delete Modals -->
-@if (modals.IsOpen(ModalType.Edit) && editingRehearsal != null)
-{
-    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Editar Ensaio</h5>
-                    <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-geo-alt text-primary me-2"></i>Localização
-                        </label>
-                        <input type="text" class="form-control" @bind="editLocation" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-music-note-list text-primary me-2"></i>Tema (opcional)
-                        </label>
-                        <input type="text" class="form-control" @bind="editTheme" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-card-text text-primary me-2"></i>Descrição (opcional)
-                        </label>
-                        <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
-                        </label>
-                        <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveEdit">Guardar</button>
-                </div>
-            </div>
+<Modal Show="@(modals.IsOpen(ModalType.Edit) && editingRehearsal != null)"
+       ShowChanged="@((bool show) => { if (!show) CloseEditModal(); })"
+       Title="Editar Ensaio"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+            </label>
+            <input type="text" class="form-control" @bind="editLocation" />
         </div>
-    </div>
-}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-music-note-list text-primary me-2"></i>Tema (opcional)
+            </label>
+            <input type="text" class="form-control" @bind="editTheme" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-card-text text-primary me-2"></i>Descrição (opcional)
+            </label>
+            <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
+            </label>
+            <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="SaveEdit">Guardar</button>
+    </FooterContent>
+</Modal>
 
 <!-- Delete Rehearsal Confirmation Modal -->
 <ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
@@ -685,7 +667,7 @@ else
                     <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
                 </div>
             }
-            <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm">
+            <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm" id="createRehearsalForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -720,12 +702,12 @@ else
                     <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar</button>
-                </div>
             </EditForm>
         </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
+            <button type="submit" form="createRehearsalForm" class="btn btn-primary">Criar</button>
+        </FooterContent>
     </Modal>
 }
 
@@ -840,7 +822,7 @@ else
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -848,68 +830,63 @@ else
 <!-- Date Range Modal (Admin Only) -->
 @if (modals.IsOpen(ModalType.DateRange) && isAdmin)
 {
-    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title">Criar Ensaios (Intervalo)</h5>
-                    <button type="button" class="btn-close" @onclick="CloseDateRangeModal"></button>
+    <Modal Show="@modals.IsOpen(ModalType.DateRange)"
+           ShowChanged="@((bool show) => { if (!show) CloseDateRangeModal(); })"
+           Title="Criar Ensaios (Intervalo)"
+           OnClose="CloseDateRangeModal">
+        <BodyContent>
+            @if (!string.IsNullOrEmpty(rangeFeedbackMessage))
+            {
+                <div class="alert @(rangeFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                    @rangeFeedbackMessage
+                    <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
                 </div>
-                <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(rangeFeedbackMessage))
-                    {
-                        <div class="alert @(rangeFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                            @rangeFeedbackMessage
-                            <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
-                        </div>
-                    }
-                    <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm">
-                        <DataAnnotationsValidator />
-                        <ErrorDisplay />
+            }
+            <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm" id="rangeRehearsalForm">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-plus text-primary me-2"></i>Data Início *
-                            </label>
-                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim *
-                            </label>
-                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
-                            </label>
-                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
-                            </label>
-                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
-                            </label>
-                            <InputTextArea class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
-                        </div>
-                        <p class="text-muted">
-                            <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
-                        </p>
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Criar</button>
-                        </div>
-                    </EditForm>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-plus text-primary me-2"></i>Data Início *
+                    </label>
+                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
                 </div>
-            </div>
-        </div>
-    </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim *
+                    </label>
+                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
+                    </label>
+                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
+                    </label>
+                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
+                    </label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
+                </div>
+                <p class="text-muted">
+                    <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
+                </p>
+
+            </EditForm>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
+            <button type="submit" form="rangeRehearsalForm" class="btn btn-primary">Criar</button>
+        </FooterContent>
+    </Modal>
 }
 
 <!-- Ver Detalhes Modal -->
@@ -1058,7 +1035,7 @@ else
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseMyAttendancesModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyAttendancesModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -1167,11 +1144,15 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     private bool loading = true;
     private bool isInitializing = true;
     private bool isAdmin = false;
     private bool isOwner = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private string? currentUserId;
     private ApplicationUser? currentUser;
     private List<InstrumentType> currentUserInstruments = new();
@@ -1384,6 +1365,31 @@ else
         await LoadData();
         loading = false;
         isInitializing = false;
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isAdmin)
+        {
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+            items.Add(new("action-add-range", "Vários", "bi-calendar-range"));
+        }
+        items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
+        items.Add(new("action-attendances", "Presenças", "bi-calendar-check"));
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add": OpenCreateSingleModal(); break;
+            case "action-add-range": OpenDateRangeModal(); break;
+            case "action-stats": OpenStatsModal(); break;
+            case "action-attendances": await OpenMyAttendancesModal(); break;
+        }
     }
 
     private async Task LoadData()

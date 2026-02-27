@@ -13,17 +13,16 @@
 <PageTitle>Database Manager</PageTitle>
 
 <div class="container-fluid database-viewer-page">
-    <div class="page-header">
-        <div class="page-header-content">
-            <div class="page-header-title">
-                <h1 class="page-title"><i class="bi bi-database"></i> Database Manager</h1>
-                <p class="lead page-header-subtitle text-light-theme">View and manage database tables and entities</p>
-            </div>
-            <div class="page-header-actions">
-                <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
-                    <i class="bi bi-arrow-clockwise"></i> <span class="btn-text">Refresh</span>
-                </button>
-            </div>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-database"></i> Database Manager</h1>
+            <p class="lead page-header-subtitle text-light-theme">View and manage database tables and entities</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i> <span class="btn-text">Refresh</span>
+            </button>
         </div>
     </div>
 
@@ -274,6 +273,9 @@
     </div>
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
 @code {
     // Table list
     private List<string> tables = new();
@@ -305,10 +307,16 @@
     private bool isExecutingQuery = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-refresh", "Refresh", "bi-arrow-clockwise") };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadTablesAsync();
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-refresh") await RefreshData();
     }
 
     private async Task LoadTablesAsync()

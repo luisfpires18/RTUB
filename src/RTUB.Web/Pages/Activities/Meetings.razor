@@ -46,56 +46,54 @@
 }
 else
 {
-<div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-calendar3"></i> Reuniões</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">Gerir reuniões e assembleias da organização.</p>
-        </div>
-
-        <div class="page-header-actions justify-content-lg-end">
-            @if (CanManageMeetings())
-            {
-                <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
-                    <i class="bi bi-plus-lg"></i> Criar Reunião
-                </button>
-            }
-            @if (CanProposeCVMeeting())
-            {
-                <button class="btn btn-primary" @onclick="OpenProposalModal" title="Propor Reunião de CV">
-                    <i class="bi bi-megaphone"></i> Propor Reunião de CV
-                </button>
-            }
-            @if (IsDirecaoMember())
-            {
-                <button class="btn btn-primary" @onclick="OpenDirecaoProposalModal" title="Propor Reunião Direção">
-                    <i class="bi bi-briefcase"></i> Propor Reunião Direção
-                </button>
-            }
-            <button class="btn btn-primary" 
-                    @onclick="OpenAGProposalModal" 
-                    title="Propor Assembleia Geral"
-                    disabled="@(!CanProposeAGMeeting())">
-                <i class="bi bi-people"></i> Propor Assembleia Geral
-            </button>
-        </div>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-calendar3"></i> Reuniões</h1>
+        <p class="lead page-header-subtitle text-light-theme">Gerir reuniões e assembleias da organização.</p>
     </div>
+    <div class="page-header-right d-none d-xl-flex gap-2">
+        @if (CanManageMeetings())
+        {
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
+                <i class="bi bi-plus-lg"></i> Criar Reunião
+            </button>
+        }
+        @if (CanProposeCVMeeting())
+        {
+            <button class="btn btn-primary" @onclick="OpenProposalModal" title="Propor Reunião de CV">
+                <i class="bi bi-megaphone"></i> Propor Reunião de CV
+            </button>
+        }
+        @if (IsDirecaoMember())
+        {
+            <button class="btn btn-primary" @onclick="OpenDirecaoProposalModal" title="Propor Reunião Direção">
+                <i class="bi bi-briefcase"></i> Propor Reunião Direção
+            </button>
+        }
+        <button class="btn btn-primary" 
+                @onclick="OpenAGProposalModal" 
+                title="Propor Assembleia Geral"
+                disabled="@(!CanProposeAGMeeting())">
+            <i class="bi bi-people"></i> Propor Assembleia Geral
+        </button>
+    </div>
+</div>
 
-    <!-- Search Box and Fiscal Year Filter -->
-    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
-        <div class="flex-grow-1 filter-search-container">
-            <SearchBar
-                @bind-Value="searchTerm"
-                OnSearch="HandleSearchChanged"
-                Placeholder="Pesquisar por título ou declaração..." />
-        </div>
-        <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-            <FilterDropdown SelectedValue="@selectedFiscalYear"
-                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                            OnChange="@OnFiscalYearChanged"
-                            AllItemsLabel="Todos os anos"
-                            Options="@fiscalYearOptions" />
-        </div>
+<!-- Search Box and Fiscal Year Filter -->
+<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
+    <div class="flex-grow-1 filter-search-container">
+        <SearchBar
+            @bind-Value="searchTerm"
+            OnSearch="HandleSearchChanged"
+            Placeholder="Pesquisar por título ou declaração..." />
+    </div>
+    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
+        <FilterDropdown SelectedValue="@selectedFiscalYear"
+                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                        OnChange="@OnFiscalYearChanged"
+                        AllItemsLabel="Todos os anos"
+                        Options="@fiscalYearOptions" />
     </div>
 </div>
 
@@ -371,7 +369,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+        <button class="btn btn-secondary" @onclick="CloseViewDetailsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -810,7 +808,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button class="btn btn-secondary" @onclick="CloseRequestDetailsModal">Fechar</button>
+        <button class="btn btn-secondary" @onclick="CloseRequestDetailsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 
@@ -1152,7 +1150,7 @@ else
             </AuthorizeView>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseParticipantsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseParticipantsModal">Voltar Atrás</button>
         </FooterContent>
     </Modal>
 }
@@ -1508,7 +1506,7 @@ else
                 }
             </div>
             <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
-                <i class="bi bi-x-lg me-1"></i>Fechar
+                <i class="bi bi-arrow-left me-1"></i>Fechar
             </button>
         </div>
     </FooterContent>
@@ -1760,7 +1758,7 @@ else
             </button>
         }
         <button class="btn btn-secondary" @onclick="CloseViewAtaModal">
-            <i class="bi bi-x-lg me-1"></i>Fechar
+            <i class="bi bi-arrow-left me-1"></i>Fechar
         </button>
     </FooterContent>
 </Modal>
@@ -1776,6 +1774,9 @@ else
                OnConfirm="PublishAta"
                OnCancel="ClosePublishAtaConfirmModal"
                Disabled="@isAtaLoading" />
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Meeting> meetings = new();
@@ -1805,6 +1806,7 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Ata modal variables
     private Meeting? ataMeeting;
@@ -2016,6 +2018,32 @@ else
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
         await LoadParticipationsAsync();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (CanManageMeetings())
+            items.Add(new("action-create", "Criar", "bi-plus-lg"));
+        if (CanProposeCVMeeting())
+            items.Add(new("action-propose-cv", "Convocar CV", "bi-megaphone"));
+        if (IsDirecaoMember())
+            items.Add(new("action-propose-dir", "Convocar Direção", "bi-briefcase"));
+        if (CanProposeAGMeeting())
+            items.Add(new("action-propose-ag", "Convocar AG", "bi-people"));
+        mobileNavItems = items;
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-create": await OpenCreateModal(); break;
+            case "action-propose-cv": OpenProposalModal(); break;
+            case "action-propose-dir": OpenDirecaoProposalModal(); break;
+            case "action-propose-ag": if (CanProposeAGMeeting()) OpenAGProposalModal(); break;
+        }
     }
 
     private async Task LoadParticipationsAsync()

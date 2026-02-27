@@ -14,9 +14,13 @@
 
 <PageTitle>Enviar Email de Anúncio</PageTitle>
 
-<div class="mb-4">
-    <h1 class="page-title"><i class="bi bi-envelope"></i> Enviar Email de Anúncio</h1>
-    <p class="lead page-header-subtitle mb-4 text-light-theme">Enviar anúncios por email para todos os utilizadores subscritos</p>
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-envelope"></i> Enviar Email de Anúncio</h1>
+        <p class="lead page-header-subtitle text-light-theme">Enviar anúncios por email para todos os utilizadores subscritos</p>
+    </div>
+    <div class="page-header-right"></div>
 </div>
 
     @if (!string.IsNullOrEmpty(message))
@@ -199,7 +203,7 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 

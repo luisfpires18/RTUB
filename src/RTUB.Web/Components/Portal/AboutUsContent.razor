@@ -66,7 +66,7 @@
     <BodyContent>
         @if (editingLabel != null)
         {
-            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel" id="editAboutUsLabelForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -88,13 +88,13 @@
                     <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Guardar</button>
-                </div>
             </EditForm>
         }
     </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editAboutUsLabelForm" class="btn btn-success">Guardar</button>
+    </FooterContent>
 </Modal>
 
 <!-- Trophy Modal -->
@@ -127,7 +127,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
 

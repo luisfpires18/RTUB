@@ -69,9 +69,18 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="@(() => showLikesModal = false)">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="@(() => showLikesModal = false)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+
+<!-- Delete Confirmation -->
+<ConfirmDialog Show="@showDeleteConfirm"
+               ShowChanged="@((bool show) => showDeleteConfirm = show)"
+               Title="Eliminar Comentário"
+               Message="Tem a certeza que deseja eliminar este comentário?"
+               ConfirmText="Eliminar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDelete" />
 
 @code {
     [Parameter, EditorRequired]
@@ -85,6 +94,7 @@
     
     private bool IsProcessing { get; set; }
     private bool showLikesModal { get; set; }
+    private bool showDeleteConfirm { get; set; }
     
     private async Task HandleLikeToggle()
     {
@@ -101,7 +111,12 @@
         }
     }
     
-    private async Task HandleDelete()
+    private void HandleDelete()
+    {
+        showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDelete()
     {
         if (IsProcessing) return;
         
@@ -113,6 +128,7 @@
         finally
         {
             IsProcessing = false;
+            showDeleteConfirm = false;
         }
     }
     

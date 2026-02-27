@@ -448,14 +448,23 @@ iframe {
   .py-4 { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
   .py-5 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
 
-  /* Fix overflow issues on mobile */
+  /* Fix overflow issues on mobile — iOS Safari needs BOTH html AND body */
+  html,
   body {
     overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
-  
+
+  /* Prevent any page content from causing horizontal scroll */
+  .content-main {
+    overflow-x: hidden;
+  }
+
   /* Allow horizontal scroll for family tree page */
+  html:has(.family-tree-viewport),
   body:has(.family-tree-viewport) {
     overflow-x: visible;
+    overscroll-behavior-x: auto;
   }
 
   .row {

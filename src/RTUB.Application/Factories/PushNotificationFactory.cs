@@ -272,7 +272,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         return new SendPushNotificationDto
         {
             Title = "Nova inscrição",
-            Body = $"{userDisplayName} vai a {eventTypeDisplay} {@event.Name}",
+            Body = $"{userDisplayName} vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
             Tag = $"event-enrollment-{@event.Id}"
@@ -294,7 +294,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         return new SendPushNotificationDto
         {
             Title = "Inscrição cancelada",
-            Body = $"{userDisplayName} já não vai a {eventTypeDisplay} {@event.Name}",
+            Body = $"{userDisplayName} já não vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
             Tag = $"event-cancellation-{@event.Id}"
@@ -316,7 +316,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         return new SendPushNotificationDto
         {
             Title = "Não vai ao evento",
-            Body = $"{userDisplayName} não vai a {eventTypeDisplay} {@event.Name}",
+            Body = $"{userDisplayName} não vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
             Tag = $"event-non-enrollment-{@event.Id}"

@@ -126,3 +126,10 @@
         max-height: calc(80vh - env(safe-area-inset-bottom));
     }
 }
+
+/* Mobile bottom padding to account for MobileBottomNav overlap */
+@media (max-width: 1199.98px) {
+    ::deep .song-grid {
+        padding-bottom: 5rem;
+    }
+}

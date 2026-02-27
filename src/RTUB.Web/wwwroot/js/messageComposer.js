@@ -30,7 +30,14 @@ window.messageComposer = {
     init: function (textarea, dotNetRef) {
         this.dispose();
 
-        if (!textarea || !(textarea instanceof HTMLTextAreaElement)) return;
+        // Fallback: if Blazor ElementReference didn't resolve, query the DOM directly
+        if (!textarea || !(textarea instanceof HTMLTextAreaElement)) {
+            textarea = document.querySelector('.rtub-messages__composer-input');
+        }
+        if (!textarea || !(textarea instanceof HTMLTextAreaElement)) {
+            console.warn('[messageComposer] init: textarea not found or invalid');
+            return;
+        }
 
         this._textarea = textarea;
         this._dotNetRef = dotNetRef;
@@ -110,9 +117,17 @@ window.messageComposer = {
      * @returns {string}
      */
     getTextAndClear: function () {
-        if (!this._textarea) return '';
-        var text = this._textarea.value;
-        this._textarea.value = '';
+        var ta = this._textarea;
+        
+        // Fallback: if _textarea is null or detached from DOM, query directly
+        if (!ta || !document.contains(ta)) {
+            ta = document.querySelector('.rtub-messages__composer-input');
+            if (ta) this._textarea = ta; // re-attach reference
+        }
+        
+        if (!ta) return '';
+        var text = ta.value;
+        ta.value = '';
         this._stopTypingQuiet();
         return text;
     },

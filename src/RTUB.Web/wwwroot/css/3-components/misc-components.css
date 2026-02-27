@@ -205,6 +205,30 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
+/* Login button - polished styling */
+.login-card .btn-primary-purple {
+    padding: 0.7rem 1.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.35);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.login-card .btn-primary-purple:hover {
+    background-color: #5a32a3;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 14px rgba(111, 66, 193, 0.5);
+    transform: translateY(-1px);
+}
+
+.login-card .btn-primary-purple:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(111, 66, 193, 0.3);
+}
+
 /* Public pages */
 .public-content {
     padding: 2rem 0;

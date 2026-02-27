@@ -6,6 +6,7 @@
 @inject ISlideshowService SlideshowService
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <!-- Push Notification Prompt for PWA mode -->
 <PushNotificationPrompt />
@@ -144,13 +145,22 @@
 
 </div>
 
-<!-- #6 Mobile Bottom Nav — fixed bar for scroll navigation (visible ≤1024px) -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" />
+<!-- #6 Mobile Bottom Nav -->
+@if (isAuthenticated)
+{
+    <MobileBottomNav Items="@appNavItems" OnSelect="HandleAppNavSelect"
+                     Badges="@appNavBadges" />
+}
+else
+{
+    <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" />
+}
 
 @code {
     private List<Slideshow>? slides;
     private string activeSection = "section-aboutus";
     private DotNetObjectReference<Index>? dotNetRef;
+    private bool isAuthenticated;
 
     // Desktop sticky nav items
     private static readonly IReadOnlyList<PortalSectionNav.PortalNavItem> desktopNavItems = new[]
@@ -162,7 +172,7 @@
         new PortalSectionNav.PortalNavItem("section-fitab",     "FITAB"),
     };
 
-    // Mobile bottom nav items
+    // Mobile bottom nav items (portal section scroll — public only)
     private static readonly IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new[]
     {
         new MobileBottomNav.MobileNavItem("section-aboutus",   "Sobre Nós",  "bi-info-circle"),
@@ -172,16 +182,38 @@
         new MobileBottomNav.MobileNavItem("section-fitab",     "FITAB",      "bi-lightning-fill"),
     };
 
+    // App navigation items (for authenticated users bottom nav)
+    private static readonly IReadOnlyList<MobileBottomNav.MobileNavItem> appNavItems = new[]
+    {
+        new MobileBottomNav.MobileNavItem("/music",        "Música",    "bi-music-note-beamed"),
+        new MobileBottomNav.MobileNavItem("/events",       "Atuações",  "bi-calendar-event"),
+        new MobileBottomNav.MobileNavItem("/rehearsals",   "Ensaios",   "bi-music-note-list"),
+        new MobileBottomNav.MobileNavItem("/messages",     "Mensagens", "bi-chat-dots"),
+        new MobileBottomNav.MobileNavItem("/profile",      "Perfil",    "bi-person-circle"),
+    };
+
+    // Badge for unread messages on the /messages nav item
+    private Dictionary<string, RenderFragment> appNavBadges = new()
+    {
+        ["/messages"] = @<UnreadMessagesBadge CssClass="" />
+    };
+
     // Section IDs for scroll-spy
     private static readonly string[] sectionIds = new[]
     {
         "section-aboutus", "section-joinus", "section-history", "section-hierarchy", "section-fitab"
     };
 
+    private Task HandleAppNavSelect(string route)
+    {
+        Navigation.NavigateTo(route);
+        return Task.CompletedTask;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var isAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
+        isAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
 
         if (isAuthenticated)
         {
