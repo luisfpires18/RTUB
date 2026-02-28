@@ -1,0 +1,34 @@
+/* Member List - Shared scrollable member selection component
+   Extracted from calotes.css — used across 10+ pages */
+
+/* Member list in modal */
+.member-list-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.member-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.member-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-color: var(--bs-primary) !important;
+}
+
+.member-item.selected {
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border-color: var(--bs-primary) !important;
+}
+
+.member-avatar-small {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-primary);
+}

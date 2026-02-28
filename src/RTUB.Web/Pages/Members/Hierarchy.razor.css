@@ -1,4 +1,5 @@
 /* Hierarquia Family Tree Styles - All scoped under .family-tree-page */
+/* Migrated from wwwroot/css/4-pages/family-tree.css */
 
 /* Page wrapper - scopes all styles to this page only */
 .family-tree-page {
@@ -6,13 +7,13 @@
 }
 
 /* Desktop: Scroll wrapper is transparent */
-.family-tree-page .family-tree-scroll {
+::deep .family-tree-page .family-tree-scroll {
     width: 100%;
     overflow: visible;
 }
 
 /* Viewport wrapper - allows full horizontal scrolling without clipping */
-.family-tree-page .family-tree-viewport {
+::deep .family-tree-page .family-tree-viewport {
     width: 100%;
     overflow-x: auto;
     overflow-y: visible;
@@ -22,7 +23,7 @@
     margin-right: 0;
 }
 
-.family-tree-page .family-tree-container {
+::deep .family-tree-page .family-tree-container {
     padding: 20px;
     min-height: 400px;
     display: inline-block;
@@ -30,7 +31,7 @@
     width: fit-content;
 }
 
-.family-tree-page .tree-level {
+::deep .family-tree-page .tree-level {
     display: flex;
     flex-wrap: wrap;
     gap: 40px;
@@ -40,18 +41,18 @@
     min-width: fit-content;
 }
 
-.family-tree-page .tree-node-wrapper {
+::deep .family-tree-page .tree-node-wrapper {
     flex: 0 0 auto;
 }
 
-.family-tree-page .member-node {
+::deep .family-tree-page .member-node {
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
 }
 
-.family-tree-page .member-card {
+::deep .family-tree-page .member-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -64,37 +65,37 @@
     cursor: pointer;
 }
 
-.family-tree-page .member-card:hover {
+::deep .family-tree-page .member-card:hover {
     background: rgba(var(--bs-primary-rgb), 0.2);
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
 }
 
-.family-tree-page .member-info {
+::deep .family-tree-page .member-info {
     text-align: center;
     margin-top: 8px;
 }
 
-.family-tree-page .member-name {
+::deep .family-tree-page .member-name {
     font-weight: 600;
     font-size: 14px;
     color: var(--bs-body-color);
 }
 
-.family-tree-page .member-nickname {
+::deep .family-tree-page .member-nickname {
     font-size: 12px;
     color: #6c757d;
     font-style: italic;
 }
 
-.family-tree-page .children-connector {
+::deep .family-tree-page .children-connector {
     width: 2px;
     height: 30px;
     background: var(--bs-primary);
     margin: 10px auto;
 }
 
-.family-tree-page .children-container {
+::deep .family-tree-page .children-container {
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
@@ -102,7 +103,7 @@
     position: relative;
 }
 
-.family-tree-page .children-container::before {
+::deep .family-tree-page .children-container::before {
     content: '';
     position: absolute;
     top: -10px;
@@ -113,12 +114,12 @@
     background: var(--bs-primary);
 }
 
-.family-tree-page .child-node {
+::deep .family-tree-page .child-node {
     position: relative;
     flex: 0 0 auto;
 }
 
-.family-tree-page .child-node::before {
+::deep .family-tree-page .child-node::before {
     content: '';
     position: absolute;
     top: -10px;
@@ -132,7 +133,7 @@
 /* Mobile responsive styles - all scoped under .family-tree-page */
 @media (max-width: 768px) {
     /* Scroll container enables horizontal + vertical scrolling on mobile */
-    .family-tree-page .family-tree-scroll {
+    ::deep .family-tree-page .family-tree-scroll {
         width: 100%;
         height: calc(100vh - 180px);
         overflow-x: auto;
@@ -141,20 +142,20 @@
         position: relative;
     }
 
-    .family-tree-page .family-tree-viewport {
+    ::deep .family-tree-page .family-tree-viewport {
         width: 100%;
         overflow: visible;
         min-width: fit-content;
     }
 
-    .family-tree-page .family-tree-container {
+    ::deep .family-tree-page .family-tree-container {
         padding: 10px;
         min-width: fit-content;
         width: fit-content;
         display: block;
     }
 
-    .family-tree-page .tree-level {
+    ::deep .family-tree-page .tree-level {
         gap: 20px;
         flex-wrap: nowrap;
         min-width: fit-content;
@@ -163,17 +164,17 @@
         display: flex;
     }
     
-    .family-tree-page .children-container {
+    ::deep .family-tree-page .children-container {
         gap: 20px;
         flex-wrap: nowrap;
         min-width: fit-content;
     }
 
-    .family-tree-page .member-node {
+    ::deep .family-tree-page .member-node {
         min-width: fit-content;
     }
 
-    .family-tree-page .member-card {
+    ::deep .family-tree-page .member-card {
         max-width: 220px;
         width: 70vw;
         min-width: 120px;
@@ -181,31 +182,31 @@
         border-width: 1.5px;
     }
 
-    .family-tree-page .member-avatar-medium {
+    ::deep .family-tree-page .member-avatar-medium {
         width: 50px;
         height: 50px;
     }
 
-    .family-tree-page .member-name {
+    ::deep .family-tree-page .member-name {
         font-size: 12px;
         word-break: break-word;
     }
 
-    .family-tree-page .member-nickname {
+    ::deep .family-tree-page .member-nickname {
         font-size: 11px;
         word-break: break-word;
     }
 
-    .family-tree-page .children-connector {
+    ::deep .family-tree-page .children-connector {
         height: 25px;
         margin: 8px auto;
     }
 
-    .family-tree-page .children-container::before {
+    ::deep .family-tree-page .children-container::before {
         width: calc(100% - 40px);
     }
 
-    .family-tree-page .child-node::before {
+    ::deep .family-tree-page .child-node::before {
         height: 8px;
         top: -8px;
     }
