@@ -728,6 +728,12 @@ public class Program
                         {
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
                         }
+                        // Service Worker must always be revalidated so browsers detect updates immediately
+                        // Without this, the SW file gets the 30-day cache and users see stale UI
+                        else if (path.EndsWith("service-worker.js"))
+                        {
+                            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
+                        }
                         // PWA icons and manifest should have shorter cache to allow updates
                         else if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
                         {
