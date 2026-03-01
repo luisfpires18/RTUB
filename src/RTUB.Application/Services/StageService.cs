@@ -709,24 +709,16 @@ public class StageService : IStageService
             }
         }
 
-        // Leitão drop — only at boss fights in the player's CURRENT biome, and only at stage >= bossMode.stageOffset
-        // This prevents farming early bosses for easy leitão drops.
+        // Leitão drop — only from bosses in the player's current biome (1000-stage block),
+        // but never below the stageOffset threshold (first biome that drops leitão).
+        // e.g. highestStage=3500 → biome 3001-4000, clamped to 3500-4000
+        //      highestStage=9200 → biome 9001-10000 (above offset, no clamping)
         if (enemyType == EnemyType.Boss)
         {
             var bossStageOffset = _myTunoScalingConfig.BossMode.StageOffset;
-            if (stageNumber >= bossStageOffset)
-            {
-                // Determine the player's current biome range (1000-stage blocks)
-                var currentBiomeMin = ((highestStage - 1) / 1000) * 1000 + 1;
-                var currentBiomeMax = currentBiomeMin + 999;
-
-                // Only drop if the boss stage is within the player's current biome
-                if (stageNumber >= currentBiomeMin && stageNumber <= currentBiomeMax)
-                {
-                    if (random.NextDouble() < dropRates.LeitaoDropChance)
-                        leitaoDropped++;
-                }
-            }
+            var currentBiomeMin = Math.Max(((highestStage - 1) / 1000) * 1000 + 1, bossStageOffset);
+            if (stageNumber >= currentBiomeMin && random.NextDouble() < dropRates.LeitaoDropChance)
+                leitaoDropped++;
         }
 
         return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped, leitaoDropped);
