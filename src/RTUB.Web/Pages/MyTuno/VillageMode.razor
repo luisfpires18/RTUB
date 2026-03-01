@@ -1,0 +1,164 @@
+@page "/my-tuno/village"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using RTUB.Shared.Components.UI
+@attribute [Authorize(Roles = "Owner")]
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject ILogger<VillageMode> Logger
+@implements IAsyncDisposable
+
+<PageTitle>Vila do MyTuno - RTUB</PageTitle>
+
+<div class="village-page">
+    @if (loading)
+    {
+        <div class="village-loading">
+            <LoadingSpinner />
+            <p class="text-light mt-3">A carregar a vila...</p>
+        </div>
+    }
+    else
+    {
+        <div class="village-screen">
+            @* ── Phaser canvas container ── *@
+            <div id="villageGameContainer" class="village-canvas"></div>
+
+            @* ── Top bar overlay ── *@
+            <div class="village-top-bar">
+                <button class="village-back-btn" @onclick="GoBack" title="Voltar">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <div class="village-title">
+                    <i class="bi bi-houses"></i>
+                    <span>Vila do MyTuno</span>
+                </div>
+
+                <div class="village-spacer"></div>
+            </div>
+
+            @* ── Resource bar ── *@
+            <div class="village-resource-bar">
+                <div class="resource-item resource-wood">
+                    <span class="resource-icon">🪵</span>
+                    <div class="resource-info">
+                        <span class="resource-amount">@FormatRes(resWood)</span>
+                        <span class="resource-prod">+@FormatProd(prodWood)/h</span>
+                    </div>
+                </div>
+                <div class="resource-item resource-clay">
+                    <span class="resource-icon">🧱</span>
+                    <div class="resource-info">
+                        <span class="resource-amount">@FormatRes(resClay)</span>
+                        <span class="resource-prod">+@FormatProd(prodClay)/h</span>
+                    </div>
+                </div>
+                <div class="resource-item resource-iron">
+                    <span class="resource-icon">⛏️</span>
+                    <div class="resource-info">
+                        <span class="resource-amount">@FormatRes(resIron)</span>
+                        <span class="resource-prod">+@FormatProd(prodIron)/h</span>
+                    </div>
+                </div>
+                <div class="resource-item resource-crop">
+                    <span class="resource-icon">🌾</span>
+                    <div class="resource-info">
+                        <span class="resource-amount">@FormatRes(resCrop)</span>
+                        <span class="resource-prod">+@FormatProd(prodCrop)/h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool loading = true;
+    private bool hasRendered;
+    private DotNetObjectReference<VillageMode>? objRef;
+
+    // Resource amounts (updated from JS)
+    private int resWood = 500;
+    private int resClay = 500;
+    private int resIron = 500;
+    private int resCrop = 500;
+
+    // Production per second (used for display)
+    private double prodWood = 5;
+    private double prodClay = 5;
+    private double prodIron = 5;
+    private double prodCrop = 5;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                objRef = DotNetObjectReference.Create(this);
+                loading = false;
+                StateHasChanged();
+
+                // Wait for DOM to update before starting Phaser
+                await Task.Delay(100);
+                await JSRuntime.InvokeVoidAsync("villageModeGame.start", "villageGameContainer", objRef);
+                hasRendered = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to start village mode");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called from JS every second with updated resource amounts.
+    /// </summary>
+    [JSInvokable]
+    public void UpdateResources(int wood, int clay, int iron, int crop)
+    {
+        resWood = wood;
+        resClay = clay;
+        resIron = iron;
+        resCrop = crop;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private static string FormatRes(int amount)
+    {
+        if (amount >= 1_000_000) return $"{amount / 1_000_000.0:F1}M";
+        if (amount >= 10_000) return $"{amount / 1_000.0:F1}K";
+        return amount.ToString("N0");
+    }
+
+    private static string FormatProd(double perSecond)
+    {
+        var perHour = perSecond * 3600;
+        return FormatRes((int)perHour);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hasRendered)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("villageModeGame.destroy");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to destroy village game");
+            }
+        }
+
+        objRef?.Dispose();
+    }
+}

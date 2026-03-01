@@ -627,6 +627,16 @@
                                                  Disabled="true" Tooltip="Soon..." />
                                 </NotAuthorized>
                             </AuthorizeView>
+                            <AuthorizeView Roles="Owner">
+                                <Authorized>
+                                    <FantasyTile Icon="bi-houses" Label="Vila" Color="purple" Size="lg"
+                                                 Clickable="true" OnClick="@NavigateToVillage" />
+                                </Authorized>
+                                <NotAuthorized>
+                                    <FantasyTile Icon="bi-houses" Label="Vila" Color="purple" Size="lg"
+                                                 Disabled="true" Tooltip="Em breve..." />
+                                </NotAuthorized>
+                            </AuthorizeView>
                         </div>
                     </div>
                 </div>
@@ -2587,6 +2597,11 @@
     private void NavigateToArena()
     {
         Navigation.NavigateTo("/my-tuno/arena");
+    }
+
+    private void NavigateToVillage()
+    {
+        Navigation.NavigateTo("/my-tuno/village");
     }
 
     private async Task OpenSurviveModeModal()
