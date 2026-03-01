@@ -5,10 +5,10 @@
 :root {
     --purple: #6f42c1;
     --purple-hover: #8a5dd1;
-    --card-bg: #1a1a1b;
+    --card-bg: var(--rtub-surface-alt);
     --text-white-full: #ffffff;
     --text-light-theme: #b0b0b0;
-    --border-color: #2f2f2f;
+    --border-color: var(--bs-border-color);
     --hover-bg: #252525;
 }
 

@@ -213,21 +213,21 @@
 
 /* Comments Section Styles */
 .add-comment-form {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     border-radius: 8px;
     padding: 1rem;
 }
 
 .add-comment-form textarea {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     color: var(--bs-white);
     resize: vertical;
 }
 
 .add-comment-form textarea:focus {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border-color: var(--bs-primary);
     color: var(--bs-white);
 }
@@ -247,7 +247,7 @@
 }
 
 .comments-list::-webkit-scrollbar-track {
-    background: #1a1a1b;
+    background: var(--rtub-surface-alt);
     border-radius: 4px;
 }
 
@@ -286,7 +286,7 @@
 
 /* Ranking story panel */
 .ranking-story-panel {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     border-radius: 8px;
     padding: 1.5rem;
@@ -330,7 +330,7 @@
 
 /* Activity list item */
 .activity-list-item {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border-color: #343536;
     margin-bottom: 0.5rem;
     border-radius: 4px;

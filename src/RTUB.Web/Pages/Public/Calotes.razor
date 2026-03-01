@@ -21,9 +21,8 @@
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
 
-<main>
 <div class="page-header-centered mb-4">
-    <div class="page-header-left">
+    <div class="page-header-left d-none d-xl-flex">
         <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
             <i class="bi bi-arrow-left"></i>
         </button>
@@ -411,7 +410,6 @@ else
         </Sections>
     </DetailsModal>
 }
-</main>
 
 <MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
@@ -504,7 +502,10 @@ else
 
     private void BuildMobileNavItems()
     {
-        var items = new List<MobileBottomNav.MobileNavItem>();
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
         if (isAdminOrMod)
             items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
         mobileNavItems = items;
@@ -512,7 +513,8 @@ else
 
     private void HandleMobileNavSelect(string key)
     {
-        if (key == "action-add") OpenAddCaloteModal();
+        if (key == "action-back") GoBack();
+        else if (key == "action-add") OpenAddCaloteModal();
     }
 
     private async Task LoadFiscalYears()

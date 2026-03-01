@@ -14,7 +14,7 @@
   display: block;
   padding: 0.375rem 0.75rem;
   color: var(--bs-link-color);
-  background-color: #1c1c1d;
+  background-color: var(--rtub-input-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: 0.25rem;
 }

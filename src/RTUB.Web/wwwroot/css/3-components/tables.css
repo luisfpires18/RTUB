@@ -17,14 +17,14 @@
   background-color: #181819;
 }
 .table thead {
-  background-color: #151516;
+  background-color: var(--rtub-surface);
 }
 .table thead th {
   font-weight: 600;
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: #151516;
+  background-color: var(--rtub-surface);
 }
 
 /* Table enhancements for mobile */

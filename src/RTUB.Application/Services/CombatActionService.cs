@@ -940,7 +940,11 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 character.ShotBuffBattlesRemaining = MyTunoScaling.ShotBuffRuns;
                 if (session != null)
                 {
-                    session.Player.Power = CombatMath.ClampToLong(session.Player.Power * character.EffectiveShotBuffMultiplier);
+                    var mult = character.EffectiveShotBuffMultiplier;
+                    session.Player.MaxHP = CombatMath.ClampToLong(session.Player.MaxHP * mult);
+                    session.Player.CurrentHP = CombatMath.ClampToLong(session.Player.CurrentHP * mult);
+                    session.Player.Power = CombatMath.ClampToLong(session.Player.Power * mult);
+                    session.Player.Defense = CombatMath.ClampToLong(session.Player.Defense * mult);
                     session.HasShotBuff = true;
                 }
 

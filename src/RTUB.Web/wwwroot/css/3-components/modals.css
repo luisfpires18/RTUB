@@ -219,7 +219,7 @@ body.modal-open {
         flex: 0 0 auto;
         padding: 0.625rem 1rem;
         border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.25);
-        background-color: #151516;
+        background-color: var(--rtub-surface);
         display: flex;
         align-items: center;
         gap: 0.5rem;

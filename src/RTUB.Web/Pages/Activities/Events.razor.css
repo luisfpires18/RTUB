@@ -117,7 +117,7 @@
 
 /* Trophy card */
 .trophy-card {
-    background-color: #151516;
+    background-color: var(--rtub-surface);
     border: 2px solid #2f2f2f;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }

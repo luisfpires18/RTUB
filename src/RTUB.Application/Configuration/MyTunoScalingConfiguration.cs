@@ -886,7 +886,7 @@ public class BossModeFidelisRewards
 public class PiggiesCostConfig
 {
     /// <summary>Stat upgrade: level at which Leitão cost kicks in (stage ~10k).</summary>
-    public int StatUpgradeStartLevel { get; set; } = 100;
+    public int StatUpgradeStartLevel { get; set; } = 601;
     /// <summary>Speed upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
     public int SpeedUpgradeStartLevel { get; set; } = 20;
     /// <summary>Crit upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
@@ -894,7 +894,7 @@ public class PiggiesCostConfig
     /// <summary>Base Leitão cost for stat upgrades.</summary>
     public int StatUpgradeBaseCost { get; set; } = 1;
     /// <summary>Every N upgrade levels, add +1 Leitão cost.</summary>
-    public int StatUpgradeCostEveryNLevels { get; set; } = 5;
+    public int StatUpgradeCostEveryNLevels { get; set; } = 100;
 
     /// <summary>Improvement upgrade: level at which Leitão cost kicks in.</summary>
     public int ImprovementStartLevel { get; set; } = 20;
@@ -907,14 +907,14 @@ public class PiggiesCostConfig
     public int PowerCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Weapon upgrade: level at which Leitão cost kicks in.</summary>
-    public int WeaponUpgradeStartLevel { get; set; } = 500;
+    public int WeaponUpgradeStartLevel { get; set; } = 601;
     public int WeaponUpgradeBaseCost { get; set; } = 1;
-    public int WeaponUpgradeCostEveryNLevels { get; set; } = 5;
+    public int WeaponUpgradeCostEveryNLevels { get; set; } = 100;
 
     /// <summary>Equipment slot upgrade: level at which Leitão cost kicks in.</summary>
-    public int EquipmentUpgradeStartLevel { get; set; } = 500;
+    public int EquipmentUpgradeStartLevel { get; set; } = 601;
     public int EquipmentUpgradeBaseCost { get; set; } = 1;
-    public int EquipmentUpgradeCostEveryNLevels { get; set; } = 5;
+    public int EquipmentUpgradeCostEveryNLevels { get; set; } = 100;
 
     /// <summary>
     /// Calculates the Leitão cost for a given upgrade level.

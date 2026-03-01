@@ -91,7 +91,7 @@
 }
 
 .kanban-card {
-    background: #212121;
+    background: var(--rtub-select-bg);
     border-radius: 6px;
     margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -216,7 +216,7 @@
 
 /* Board Card Styles - Mirroring RequestCard Design */
 .logistics-board-card {
-    background-color: #151516;
+    background-color: var(--rtub-surface);
     border: 1px solid var(--bs-border-color);
     border-radius: 0.5rem;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -325,14 +325,14 @@
 /* Form controls in dark theme */
 .modal-content .form-control,
 .modal-content .form-select {
-    background: #212121;
+    background: var(--rtub-select-bg);
     border-color: #2f2f2f;
     color: #e2e2e2;
 }
 
 .modal-content .form-control:focus,
 .modal-content .form-select:focus {
-    background: #212121;
+    background: var(--rtub-select-bg);
     border-color: #6f42c1;
     color: #e2e2e2;
     box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);

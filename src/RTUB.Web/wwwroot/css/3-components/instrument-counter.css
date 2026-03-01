@@ -2,7 +2,7 @@
 
 /* Horizontal Instrument Counter Section */
 .instrument-counter-section {
-  background-color: #151516;
+  background-color: var(--rtub-surface);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 0;
