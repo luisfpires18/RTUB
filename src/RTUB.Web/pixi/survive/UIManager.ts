@@ -13,6 +13,9 @@ import type { EnemyState, PlayerStats, WeaponInstance } from './types';
 import type { WeaponSystem } from './WeaponSystem';
 import type { UpgradeSystem } from './UpgradeSystem';
 
+/** Height of the HTML battle-top-bar overlay (px). */
+const TOP_BAR_OFFSET = 54;
+
 export class UIManager {
   private uiContainer: PIXI.Container;
   private vpWidth: number;
@@ -71,11 +74,11 @@ export class UIManager {
   }
 
   create(level: number, biomeName: string, timerDuration: number, maxHP: number): void {
-    // ─── Timer bar (top center) ───────────────────────────
+    // ─── Timer bar (top center, below HTML top bar) ───────
     const timerBarW = 240;
     const timerBarH = 24;
     const timerBarX = this.vpWidth / 2 - timerBarW / 2;
-    const timerBarY = 10;
+    const timerBarY = TOP_BAR_OFFSET + 10;
 
     const timerBarBg = new PIXI.Graphics();
     timerBarBg.roundRect(timerBarX, timerBarY, timerBarW, timerBarH, 6);
@@ -123,9 +126,10 @@ export class UIManager {
     this.hpText.position.set(this.vpWidth / 2, hpBarY + hpBarH / 2);
     this.uiContainer.addChild(this.hpText);
 
-    // ─── Level / Biome (top left) ─────────────────────────
+    // ─── Level / Biome (top left, below HTML bar) ────────
+    const leftY = TOP_BAR_OFFSET + 10;
     const levelBg = new PIXI.Graphics();
-    levelBg.roundRect(8, 10, 170, 24, 5);
+    levelBg.roundRect(8, leftY, 170, 24, 5);
     levelBg.fill({ color: 0x000000, alpha: 0.6 });
     this.uiContainer.addChild(levelBg);
 
@@ -133,12 +137,12 @@ export class UIManager {
       text: `Cap.${level} — ${biomeName}`,
       style: { fontFamily: 'Arial', fontSize: 13, fontWeight: 'bold', fill: 0xffcc00 },
     });
-    this.levelText.position.set(14, 13);
+    this.levelText.position.set(14, leftY + 3);
     this.uiContainer.addChild(this.levelText);
 
     // ─── Stats panel ──────────────────────────────────────
     const statsBg = new PIXI.Graphics();
-    statsBg.roundRect(8, 38, 170, 38, 5);
+    statsBg.roundRect(8, leftY + 28, 170, 38, 5);
     statsBg.fill({ color: 0x000000, alpha: 0.5 });
     this.uiContainer.addChild(statsBg);
 
@@ -146,12 +150,12 @@ export class UIManager {
       text: '',
       style: { fontFamily: 'Arial', fontSize: 10, fill: 0xcccccc, lineHeight: 13 },
     });
-    this.statsText.position.set(14, 41);
+    this.statsText.position.set(14, leftY + 31);
     this.uiContainer.addChild(this.statsText);
 
     // ─── Player level indicator ───────────────────────────
     const lvlBg = new PIXI.Graphics();
-    lvlBg.roundRect(8, 80, 80, 20, 5);
+    lvlBg.roundRect(8, leftY + 70, 80, 20, 5);
     lvlBg.fill({ color: 0x000000, alpha: 0.5 });
     this.uiContainer.addChild(lvlBg);
 
@@ -159,12 +163,13 @@ export class UIManager {
       text: 'Lv.1',
       style: { fontFamily: 'Arial', fontSize: 11, fontWeight: 'bold', fill: 0x4fc3f7 },
     });
-    this.playerLevelText.position.set(14, 82);
+    this.playerLevelText.position.set(14, leftY + 72);
     this.uiContainer.addChild(this.playerLevelText);
 
-    // ─── Kill counter (top right) ─────────────────────────
+    // ─── Kill counter (top right, below HTML bar) ────────
+    const rightY = TOP_BAR_OFFSET + 10;
     const killBg = new PIXI.Graphics();
-    killBg.roundRect(this.vpWidth - 120, 10, 112, 24, 5);
+    killBg.roundRect(this.vpWidth - 120, rightY, 112, 24, 5);
     killBg.fill({ color: 0x000000, alpha: 0.6 });
     this.uiContainer.addChild(killBg);
 
@@ -172,12 +177,12 @@ export class UIManager {
       text: '☠ 0',
       style: { fontFamily: 'Arial', fontSize: 13, fontWeight: 'bold', fill: 0xff6666 },
     });
-    this.killText.position.set(this.vpWidth - 114, 13);
+    this.killText.position.set(this.vpWidth - 114, rightY + 3);
     this.uiContainer.addChild(this.killText);
 
     // ─── Coin counter ─────────────────────────────────────
     const orbBg = new PIXI.Graphics();
-    orbBg.roundRect(this.vpWidth - 120, 38, 112, 24, 5);
+    orbBg.roundRect(this.vpWidth - 120, rightY + 28, 112, 24, 5);
     orbBg.fill({ color: 0x000000, alpha: 0.6 });
     this.uiContainer.addChild(orbBg);
 
@@ -185,7 +190,7 @@ export class UIManager {
       text: '🪙 0',
       style: { fontFamily: 'Arial', fontSize: 13, fontWeight: 'bold', fill: 0xffd700 },
     });
-    this.orbText.position.set(this.vpWidth - 114, 41);
+    this.orbText.position.set(this.vpWidth - 114, rightY + 31);
     this.uiContainer.addChild(this.orbText);
 
     // ─── Weapon slots (bottom center) ─────────────────────
@@ -270,7 +275,7 @@ export class UIManager {
     const barWidth = 300;
     const barHeight = 16;
     const x = (this.vpWidth - barWidth) / 2;
-    const y = 70;
+    const y = TOP_BAR_OFFSET + 70;
 
     this.bossHPBarBg = new PIXI.Graphics();
     this.bossHPBarBg.roundRect(x - 2, y - 2, barWidth + 4, barHeight + 4, 4);

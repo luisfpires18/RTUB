@@ -255,10 +255,18 @@ export class SurviveScene {
     this.enemyManager.onBossSpawn = (isFinal) => {
       this.ui.showBossHPBar(isFinal);
       this.particles.flashScreen(this.uiContainer, this.vpWidth, this.vpHeight, isFinal ? 0xff0000 : 0xff6600);
+      // Freeze timer during every boss fight (mid-boss & final boss)
+      this.timerStopped = true;
     };
     this.enemyManager.onBossDeath = (isFinal) => {
       this.ui.hideBossHPBar();
-      if (isFinal) { this.won = true; this._onWin(); }
+      if (isFinal) {
+        this.won = true;
+        this._onWin();
+      } else {
+        // Mid-boss defeated — resume timer and spawns
+        this.timerStopped = false;
+      }
     };
 
     // Spawn initial enemies
@@ -456,7 +464,6 @@ export class SurviveScene {
 
       if (!this.enemyManager.finalBossSpawned) {
         this.enemyManager.finalBossSpawned = true;
-        this.timerStopped = true;
         this.enemyManager.spawnBoss(true, this.playerX, this.playerY);
       }
     }
@@ -482,8 +489,10 @@ export class SurviveScene {
     this._movePlayer(dt, dx, dy);
     this._updateCamera(dt);
 
-    // 2. Enemy spawning & movement
-    this.enemyManager.updateSpawning(dt, this.timeElapsed, this.camX, this.camY);
+    // 2. Enemy spawning & movement (skip spawns during boss fights)
+    if (!this.enemyManager.activeBoss) {
+      this.enemyManager.updateSpawning(dt, this.timeElapsed, this.camX, this.camY);
+    }
     this.enemyManager.updateMovement(dt, this.playerX, this.playerY, this.camX, this.camY);
     this.enemyManager.rebuildGrid();
 

@@ -8,8 +8,15 @@
     inset: 0;
     background: #000;
     z-index: 100;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
+}
+
+.stage-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
 }
 
 .battle-screen {
@@ -390,21 +397,137 @@
     box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ===================================================================
+   Desktop (fullscreen) adaptation — mirrors Stage
+   =================================================================== */
+@media (min-width: 769px) {
+    .battle-top-bar {
+        padding: 8px 16px;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+
+    .battle-back-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .floor-num {
+        font-size: 1.5rem;
+    }
+
+    .floor-label {
+        font-size: 0.6rem;
+    }
+
+    .reward-tag {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 34px;
+        height: 32px;
+        font-size: 0.72rem;
+        padding: 0 6px;
+    }
+
+    .battle-buffs-strip {
+        top: 60px;
+        gap: 6px;
+    }
+
+    .buff-tag {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+    }
+
     .defeat-panel {
-        max-width: 340px;
-        padding: 3rem 1.5rem 1.5rem;
+        max-width: 420px;
+        padding: 3.5rem 2rem 2rem;
     }
 
     .defeat-stage {
-        font-size: 1.3rem;
+        font-size: 1.6rem;
+    }
+
+    .defeat-reward-row {
+        font-size: 1rem;
+    }
+
+    .defeat-btn {
+        font-size: 1.1rem;
+        padding: 0.85rem;
     }
 }
 
-@media (max-width: 576px) {
+/* Large desktop */
+@media (min-width: 1200px) {
+    .battle-top-bar {
+        padding: 10px 24px;
+        gap: 16px;
+    }
+
+    .floor-num {
+        font-size: 1.6rem;
+    }
+
+    .reward-tag {
+        font-size: 0.78rem;
+        padding: 3px 10px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 38px;
+        height: 34px;
+        font-size: 0.78rem;
+    }
+}
+
+/* === Mobile compact === */
+@media (max-width: 480px) {
+    .battle-top-bar {
+        padding: 4px 6px;
+        gap: 4px;
+    }
+
+    .battle-back-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+
+    .floor-num {
+        font-size: 1.1rem;
+    }
+
+    .reward-tag {
+        font-size: 0.58rem;
+        padding: 1px 5px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 24px;
+        height: 24px;
+        font-size: 0.58rem;
+    }
+
+    .buff-tag {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+    }
+
     .defeat-panel {
-        max-width: 300px;
-        padding: 2.5rem 1rem 1rem;
+        width: 95%;
+        padding: 2.5rem 1.25rem 1.25rem;
+    }
+
+    .defeat-stage {
+        font-size: 1.2rem;
+    }
+
+    .defeat-reward-row {
+        font-size: 0.85rem;
     }
 }

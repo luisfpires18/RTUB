@@ -459,6 +459,11 @@ iframe {
     overflow-x: hidden;
   }
 
+  /* Global bottom clearance so footer/content don't hide behind fixed bottom nav */
+  .footer-main {
+    padding-bottom: 4.5rem;
+  }
+
   /* Allow horizontal scroll for family tree page */
   html:has(.family-tree-viewport),
   body:has(.family-tree-viewport) {

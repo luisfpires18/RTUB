@@ -2289,6 +2289,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.paused = false;
     }
   }
+  const TOP_BAR_OFFSET = 54;
   class UIManager {
     constructor(uiContainer, vpWidth, vpHeight) {
       __publicField(this, "uiContainer");
@@ -2341,7 +2342,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const timerBarW = 240;
       const timerBarH = 24;
       const timerBarX = this.vpWidth / 2 - timerBarW / 2;
-      const timerBarY = 10;
+      const timerBarY = TOP_BAR_OFFSET + 10;
       const timerBarBg = new PIXI__namespace.Graphics();
       timerBarBg.roundRect(timerBarX, timerBarY, timerBarW, timerBarH, 6);
       timerBarBg.fill({ color: 0, alpha: 0.7 });
@@ -2380,55 +2381,57 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.hpText.anchor.set(0.5, 0.5);
       this.hpText.position.set(this.vpWidth / 2, hpBarY + hpBarH / 2);
       this.uiContainer.addChild(this.hpText);
+      const leftY = TOP_BAR_OFFSET + 10;
       const levelBg = new PIXI__namespace.Graphics();
-      levelBg.roundRect(8, 10, 170, 24, 5);
+      levelBg.roundRect(8, leftY, 170, 24, 5);
       levelBg.fill({ color: 0, alpha: 0.6 });
       this.uiContainer.addChild(levelBg);
       this.levelText = new PIXI__namespace.Text({
         text: `Cap.${level} — ${biomeName}`,
         style: { fontFamily: "Arial", fontSize: 13, fontWeight: "bold", fill: 16763904 }
       });
-      this.levelText.position.set(14, 13);
+      this.levelText.position.set(14, leftY + 3);
       this.uiContainer.addChild(this.levelText);
       const statsBg = new PIXI__namespace.Graphics();
-      statsBg.roundRect(8, 38, 170, 38, 5);
+      statsBg.roundRect(8, leftY + 28, 170, 38, 5);
       statsBg.fill({ color: 0, alpha: 0.5 });
       this.uiContainer.addChild(statsBg);
       this.statsText = new PIXI__namespace.Text({
         text: "",
         style: { fontFamily: "Arial", fontSize: 10, fill: 13421772, lineHeight: 13 }
       });
-      this.statsText.position.set(14, 41);
+      this.statsText.position.set(14, leftY + 31);
       this.uiContainer.addChild(this.statsText);
       const lvlBg = new PIXI__namespace.Graphics();
-      lvlBg.roundRect(8, 80, 80, 20, 5);
+      lvlBg.roundRect(8, leftY + 70, 80, 20, 5);
       lvlBg.fill({ color: 0, alpha: 0.5 });
       this.uiContainer.addChild(lvlBg);
       this.playerLevelText = new PIXI__namespace.Text({
         text: "Lv.1",
         style: { fontFamily: "Arial", fontSize: 11, fontWeight: "bold", fill: 5227511 }
       });
-      this.playerLevelText.position.set(14, 82);
+      this.playerLevelText.position.set(14, leftY + 72);
       this.uiContainer.addChild(this.playerLevelText);
+      const rightY = TOP_BAR_OFFSET + 10;
       const killBg = new PIXI__namespace.Graphics();
-      killBg.roundRect(this.vpWidth - 120, 10, 112, 24, 5);
+      killBg.roundRect(this.vpWidth - 120, rightY, 112, 24, 5);
       killBg.fill({ color: 0, alpha: 0.6 });
       this.uiContainer.addChild(killBg);
       this.killText = new PIXI__namespace.Text({
         text: "☠ 0",
         style: { fontFamily: "Arial", fontSize: 13, fontWeight: "bold", fill: 16737894 }
       });
-      this.killText.position.set(this.vpWidth - 114, 13);
+      this.killText.position.set(this.vpWidth - 114, rightY + 3);
       this.uiContainer.addChild(this.killText);
       const orbBg = new PIXI__namespace.Graphics();
-      orbBg.roundRect(this.vpWidth - 120, 38, 112, 24, 5);
+      orbBg.roundRect(this.vpWidth - 120, rightY + 28, 112, 24, 5);
       orbBg.fill({ color: 0, alpha: 0.6 });
       this.uiContainer.addChild(orbBg);
       this.orbText = new PIXI__namespace.Text({
         text: "🪙 0",
         style: { fontFamily: "Arial", fontSize: 13, fontWeight: "bold", fill: 16766720 }
       });
-      this.orbText.position.set(this.vpWidth - 114, 41);
+      this.orbText.position.set(this.vpWidth - 114, rightY + 31);
       this.uiContainer.addChild(this.orbText);
       this._createWeaponSlots();
       this._createMinimap();
@@ -2476,7 +2479,7 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
       const barWidth = 300;
       const barHeight = 16;
       const x = (this.vpWidth - barWidth) / 2;
-      const y = 70;
+      const y = TOP_BAR_OFFSET + 70;
       this.bossHPBarBg = new PIXI__namespace.Graphics();
       this.bossHPBarBg.roundRect(x - 2, y - 2, barWidth + 4, barHeight + 4, 4);
       this.bossHPBarBg.fill({ color: 0, alpha: 0.7 });
@@ -2837,12 +2840,15 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
       this.enemyManager.onBossSpawn = (isFinal) => {
         this.ui.showBossHPBar(isFinal);
         this.particles.flashScreen(this.uiContainer, this.vpWidth, this.vpHeight, isFinal ? 16711680 : 16737792);
+        this.timerStopped = true;
       };
       this.enemyManager.onBossDeath = (isFinal) => {
         this.ui.hideBossHPBar();
         if (isFinal) {
           this.won = true;
           this._onWin();
+        } else {
+          this.timerStopped = false;
         }
       };
       this.enemyManager.spawnInitial();
@@ -3024,7 +3030,6 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
         }
         if (!this.enemyManager.finalBossSpawned) {
           this.enemyManager.finalBossSpawned = true;
-          this.timerStopped = true;
           this.enemyManager.spawnBoss(true, this.playerX, this.playerY);
         }
       }
@@ -3043,7 +3048,9 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
       const { dx, dy } = this.input.getMovement(dt);
       this._movePlayer(dt, dx, dy);
       this._updateCamera(dt);
-      this.enemyManager.updateSpawning(dt, this.timeElapsed, this.camX, this.camY);
+      if (!this.enemyManager.activeBoss) {
+        this.enemyManager.updateSpawning(dt, this.timeElapsed, this.camX, this.camY);
+      }
       this.enemyManager.updateMovement(dt, this.playerX, this.playerY, this.camX, this.camY);
       this.enemyManager.rebuildGrid();
       this.weaponSystem.update(dt, this.playerX, this.playerY, this.stats);
