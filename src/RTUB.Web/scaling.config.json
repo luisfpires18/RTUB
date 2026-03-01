@@ -289,8 +289,7 @@
         "penaltyDropChance": 0.0004,
         "instrumentPartDropChance": 0.0006,
         "fitabDropChance": 0.005,
-        "leitaoDropChance": 1.0,
-        "leitaoBonusEveryNBosses": 5
+        "leitaoDropChance": 1.0
       },
 
       "fidelisRewards": {

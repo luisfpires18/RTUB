@@ -865,9 +865,6 @@ public class BossModeDropRates
 
     /// <summary>Leitão drop chance per boss kill (Boss Mode exclusive currency). Drops exactly 1 on success.</summary>
     public double LeitaoDropChance { get; set; } = 0.15;
-
-    /// <summary>Extra Leitão per N boss stages cleared in a single run.</summary>
-    public int LeitaoBonusEveryNBosses { get; set; } = 5;
 }
 
 /// <summary>

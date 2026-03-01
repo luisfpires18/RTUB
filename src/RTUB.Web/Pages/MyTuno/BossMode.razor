@@ -1198,23 +1198,23 @@
             }
             _precomputedWin = false;
 
+            // Capture and null the battle reference BEFORE accumulating rewards
+            // to prevent double-counting if JS fires OnBattleFinished twice.
+            var finishedBattle = currentBattle;
+            currentBattle = null;
+
             // Accumulate rewards
-            totalFidelisEarned += currentBattle.FidelisReward;
-            totalLeitaoDropped += currentBattle.LeitaoDropped;
-            totalFinosDropped += currentBattle.FinosDropped;
-            totalCanecasDropped += currentBattle.CanecasDropped;
-            totalCigarrosDropped += currentBattle.CigarrosDropped;
-            totalCanhaosDropped += currentBattle.CanhaosDropped;
-            totalShotsDropped += currentBattle.ShotsDropped;
-            totalPenaltiesDropped += currentBattle.PenaltiesDropped;
+            totalFidelisEarned += finishedBattle.FidelisReward;
+            totalLeitaoDropped += finishedBattle.LeitaoDropped;
+            totalFinosDropped += finishedBattle.FinosDropped;
+            totalCanecasDropped += finishedBattle.CanecasDropped;
+            totalCigarrosDropped += finishedBattle.CigarrosDropped;
+            totalCanhaosDropped += finishedBattle.CanhaosDropped;
+            totalShotsDropped += finishedBattle.ShotsDropped;
+            totalPenaltiesDropped += finishedBattle.PenaltiesDropped;
             bossesCleared++;
 
-            // Bonus Leitão every N bosses in a single run
-            var bonusEvery = ScalingConfigOptions.Value.BossMode.DropRates.LeitaoBonusEveryNBosses;
-            if (bonusEvery > 0 && bossesCleared % bonusEvery == 0)
-                totalLeitaoDropped++;
-
-            foreach (var part in currentBattle.InstrumentPartsDropped)
+            foreach (var part in finishedBattle.InstrumentPartsDropped)
             {
                 if (totalInstrumentPartsDropped.ContainsKey(part))
                     totalInstrumentPartsDropped[part]++;
@@ -1274,7 +1274,8 @@
             _precomputedWin = false;
 
             // Defeated — show buff screen (use consumables & try again)
-            defeatedAtBossStage = currentBattle.BossStage;
+            defeatedAtBossStage = currentBattle?.BossStage ?? 0;
+            currentBattle = null;
 
             // Destroy the Phaser game so canvas doesn't block interactions
             if (hasRendered)
