@@ -1,164 +1,389 @@
 @page "/my-tuno/village"
+@page "/my-tuno/village/{Tab}"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.JSInterop
 @using RTUB.Shared.Components.UI
 @attribute [Authorize(Roles = "Owner")]
-@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject ILogger<VillageMode> Logger
-@implements IAsyncDisposable
+@implements IDisposable
 
 <PageTitle>Vila do MyTuno - RTUB</PageTitle>
 
-<div class="village-page">
-    @if (loading)
+<div class="container-fluid">
+    @* ── Page Header ── *@
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left">
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-houses"></i> Vila do MyTuno</h1>
+            <p class="page-header-subtitle">Gere os recursos e edifícios da tua vila.</p>
+        </div>
+        <div class="page-header-right"></div>
+    </div>
+
+    @* ── Resource summary strip (always visible) ── *@
+    <div class="vl-res-strip mb-3">
+        @foreach (var res in resources)
+        {
+            <div class="vl-res-chip @res.CssClass">
+                @if (!string.IsNullOrEmpty(res.SpriteUrl))
+                {
+                    <img src="@res.SpriteUrl" alt="@res.Name" class="vl-res-chip__sprite" />
+                }
+                else
+                {
+                    <span class="vl-res-chip__icon">@res.Icon</span>
+                }
+                <span class="vl-res-chip__amount">@FormatNumber(res.Amount)</span>
+            </div>
+        }
+    </div>
+
+    @* ── Tab navigation ── *@
+    <ul class="nav nav-pills vl-tab-nav mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "recursos" ? "active" : "")"
+                    @onclick='() => SwitchTab("recursos")' type="button" role="tab">
+                <i class="bi bi-box-seam"></i> <span>Recursos</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "edificios" ? "active" : "")"
+                    @onclick='() => SwitchTab("edificios")' type="button" role="tab">
+                <i class="bi bi-building"></i> <span>Edifícios</span>
+            </button>
+        </li>
+    </ul>
+
+    @* ═══════════════════════════════════════════
+       TAB: Recursos
+       ═══════════════════════════════════════════ *@
+    @if (activeTab == "recursos")
     {
-        <div class="village-loading">
-            <LoadingSpinner />
-            <p class="text-light mt-3">A carregar a vila...</p>
+        <div class="row g-3">
+            @foreach (var res in resources)
+            {
+                var field = GetResourceField(res);
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="vl-res-card @res.CssClass">
+                        <div class="vl-res-card__header">
+                            <div class="vl-res-card__icon-wrap">
+                                @if (!string.IsNullOrEmpty(res.SpriteUrl))
+                                {
+                                    <img src="@res.SpriteUrl" alt="@res.Name" class="vl-res-card__sprite" />
+                                }
+                                else
+                                {
+                                    <span class="vl-res-card__icon">@res.Icon</span>
+                                }
+                            </div>
+                            <div>
+                                <h3 class="vl-res-card__name">@res.Name</h3>
+                                @if (field is not null)
+                                {
+                                    <span class="vl-res-card__field-name">@field.Name — Nv. @field.Level</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="vl-res-card__amount-row">
+                            <span class="vl-res-card__amount">@FormatNumber(res.Amount)</span>
+                            <span class="vl-res-card__capacity">/ @FormatNumber(res.Capacity)</span>
+                        </div>
+
+                        <div class="vl-res-card__bar-track">
+                            <div class="vl-res-card__bar-fill" style="width: @CapacityPercent(res)%"></div>
+                        </div>
+
+                        <div class="vl-res-card__stats">
+                            <div class="vl-res-card__stat">
+                                <span class="vl-res-card__stat-label">Produção</span>
+                                <span class="vl-res-card__stat-value vl-res-card__prod">+@FormatNumber(res.PerHour)/h</span>
+                            </div>
+                            @if (field is not null)
+                            {
+                                <div class="vl-res-card__stat">
+                                    <span class="vl-res-card__stat-label">Próx. nível</span>
+                                    <span class="vl-res-card__stat-value">+@FormatNumber(ProductionAtLevel(field.Level + 1))/h</span>
+                                </div>
+                            }
+                        </div>
+
+                        @if (field is not null)
+                        {
+                            <div class="vl-res-card__upgrade">
+                                <h4 class="vl-res-card__cost-title">Melhorar para Nv. @(field.Level + 1)</h4>
+                                <div class="vl-res-card__costs">
+                                    @{
+                                        var cost = GetUpgradeCost(field);
+                                    }
+                                    <span class="vl-cost-inline @(GetResource("wood").Amount >= cost.Wood ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🪵 @FormatNumber(cost.Wood)</span>
+                                    <span class="vl-cost-inline @(GetResource("clay").Amount >= cost.Clay ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🧱 @FormatNumber(cost.Clay)</span>
+                                    <span class="vl-cost-inline @(GetResource("iron").Amount >= cost.Iron ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">⛏️ @FormatNumber(cost.Iron)</span>
+                                    <span class="vl-cost-inline @(GetResource("crop").Amount >= cost.Crop ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🌾 @FormatNumber(cost.Crop)</span>
+                                </div>
+                                <button class="btn btn-sm vl-upgrade-btn @(CanAfford(field) ? "" : "disabled")"
+                                        disabled="@(!CanAfford(field))"
+                                        @onclick="() => UpgradeBuilding(field)">
+                                    <i class="bi bi-arrow-up-circle-fill"></i> Melhorar
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     }
-    else
+
+    @* ═══════════════════════════════════════════
+       TAB: Edifícios
+       ═══════════════════════════════════════════ *@
+    @if (activeTab == "edificios")
     {
-        <div class="village-screen">
-            @* ── Phaser canvas container ── *@
-            <div id="villageGameContainer" class="village-canvas"></div>
+        <div class="row g-3">
+            @foreach (var b in buildings)
+            {
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="vl-bld-card vl-bld-card--@b.Type @(selectedBuilding?.Id == b.Id ? "vl-bld-card--selected" : "")"
+                         @onclick="() => SelectBuilding(b)">
+                        <div class="vl-bld-card__header">
+                            <div class="vl-bld-card__icon-wrap">
+                                @if (!string.IsNullOrEmpty(b.SpriteUrl))
+                                {
+                                    <img src="@b.SpriteUrl" alt="@b.Name" class="vl-bld-card__sprite" />
+                                }
+                                else
+                                {
+                                    <span class="vl-bld-card__icon">@b.Icon</span>
+                                }
+                            </div>
+                            <div class="vl-bld-card__info">
+                                <h3 class="vl-bld-card__name">@b.Name</h3>
+                                <span class="vl-bld-card__desc">@b.Description</span>
+                            </div>
+                            <span class="vl-bld-card__level">@b.Level</span>
+                        </div>
 
-            @* ── Top bar overlay ── *@
-            <div class="village-top-bar">
-                <button class="village-back-btn" @onclick="GoBack" title="Voltar">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
+                        @if (b.IsProducer)
+                        {
+                            <div class="vl-bld-card__prod">
+                                <span class="vl-bld-card__prod-label">Produção</span>
+                                <span class="vl-bld-card__prod-value">+@FormatNumber(b.ProductionPerHour)/h</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="vl-bld-card__prod">
+                                <span class="vl-bld-card__prod-label">Capacidade</span>
+                                <span class="vl-bld-card__prod-value">@FormatNumber(StorageCapacity(b.Level))</span>
+                            </div>
+                        }
 
-                <div class="village-title">
-                    <i class="bi bi-houses"></i>
-                    <span>Vila do MyTuno</span>
-                </div>
-
-                <div class="village-spacer"></div>
-            </div>
-
-            @* ── Resource bar ── *@
-            <div class="village-resource-bar">
-                <div class="resource-item resource-wood">
-                    <span class="resource-icon">🪵</span>
-                    <div class="resource-info">
-                        <span class="resource-amount">@FormatRes(resWood)</span>
-                        <span class="resource-prod">+@FormatProd(prodWood)/h</span>
+                        <div class="vl-bld-card__upgrade-row">
+                            @{
+                                var bCost = GetUpgradeCost(b);
+                            }
+                            <div class="vl-bld-card__costs">
+                                <span class="vl-cost-inline @(GetResource("wood").Amount >= bCost.Wood ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🪵 @FormatNumber(bCost.Wood)</span>
+                                <span class="vl-cost-inline @(GetResource("clay").Amount >= bCost.Clay ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🧱 @FormatNumber(bCost.Clay)</span>
+                                <span class="vl-cost-inline @(GetResource("iron").Amount >= bCost.Iron ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">⛏️ @FormatNumber(bCost.Iron)</span>
+                                <span class="vl-cost-inline @(GetResource("crop").Amount >= bCost.Crop ? "vl-cost-inline--ok" : "vl-cost-inline--lack")">🌾 @FormatNumber(bCost.Crop)</span>
+                            </div>
+                            <button class="btn btn-sm vl-upgrade-btn @(CanAfford(b) ? "" : "disabled")"
+                                    disabled="@(!CanAfford(b))"
+                                    @onclick="() => UpgradeBuilding(b)"
+                                    @onclick:stopPropagation="true">
+                                <i class="bi bi-arrow-up-circle-fill"></i> Nv. @(b.Level + 1)
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="resource-item resource-clay">
-                    <span class="resource-icon">🧱</span>
-                    <div class="resource-info">
-                        <span class="resource-amount">@FormatRes(resClay)</span>
-                        <span class="resource-prod">+@FormatProd(prodClay)/h</span>
-                    </div>
-                </div>
-                <div class="resource-item resource-iron">
-                    <span class="resource-icon">⛏️</span>
-                    <div class="resource-info">
-                        <span class="resource-amount">@FormatRes(resIron)</span>
-                        <span class="resource-prod">+@FormatProd(prodIron)/h</span>
-                    </div>
-                </div>
-                <div class="resource-item resource-crop">
-                    <span class="resource-icon">🌾</span>
-                    <div class="resource-info">
-                        <span class="resource-amount">@FormatRes(resCrop)</span>
-                        <span class="resource-prod">+@FormatProd(prodCrop)/h</span>
-                    </div>
-                </div>
-            </div>
+            }
         </div>
     }
 </div>
 
 @code {
-    private bool loading = true;
-    private bool hasRendered;
-    private DotNetObjectReference<VillageMode>? objRef;
+    [Parameter] public string? Tab { get; set; }
 
-    // Resource amounts (updated from JS)
-    private int resWood = 500;
-    private int resClay = 500;
-    private int resIron = 500;
-    private int resCrop = 500;
+    private System.Threading.Timer? resourceTimer;
+    private VillageBuilding? selectedBuilding;
+    private string activeTab = "recursos";
 
-    // Production per second (used for display)
-    private double prodWood = 5;
-    private double prodClay = 5;
-    private double prodIron = 5;
-    private double prodCrop = 5;
+    /* ── Data models ── */
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private sealed class VillageResource
     {
-        if (firstRender)
-        {
-            try
-            {
-                objRef = DotNetObjectReference.Create(this);
-                loading = false;
-                StateHasChanged();
+        public required string Id { get; init; }
+        public required string Name { get; init; }
+        public required string Icon { get; init; }
+        public string? SpriteUrl { get; init; }
+        public required string CssClass { get; init; }
+        public double Amount { get; set; }
+        public double Production { get; set; }
+        public double Capacity { get; set; }
+        public double PerHour => Math.Round(Production * 3600);
+    }
 
-                // Wait for DOM to update before starting Phaser
-                await Task.Delay(100);
-                await JSRuntime.InvokeVoidAsync("villageModeGame.start", "villageGameContainer", objRef);
-                hasRendered = true;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Failed to start village mode");
-            }
+    private sealed class VillageBuilding
+    {
+        public required int Id { get; init; }
+        public required string Type { get; init; }
+        public required string Name { get; init; }
+        public required string Icon { get; init; }
+        public string? SpriteUrl { get; init; }
+        public required string Description { get; init; }
+        public int Level { get; set; }
+        public bool IsProducer { get; init; }
+        public required string ProducesResource { get; init; }
+        public required UpgradeCostBase BaseCost { get; init; }
+        public double ProductionPerHour => IsProducer ? Math.Round(ProductionAtLevelStatic(Level) * 3600) : 0;
+    }
+
+    private record UpgradeCostBase(int Wood, int Clay, int Iron, int Crop);
+    private record UpgradeCostResult(int Wood, int Clay, int Iron, int Crop);
+
+    /* ── State ── */
+
+    private readonly List<VillageResource> resources =
+    [
+        new() { Id = "wood", Name = "Madeira",  Icon = "🪵", CssClass = "vl-res--wood",  Amount = 500, Production = 5, Capacity = 2000 },
+        new() { Id = "clay", Name = "Barro",    Icon = "🧱", CssClass = "vl-res--clay",  Amount = 500, Production = 5, Capacity = 2000 },
+        new() { Id = "iron", Name = "Ferro",    Icon = "⛏️", CssClass = "vl-res--iron",  Amount = 500, Production = 5, Capacity = 2000 },
+        new() { Id = "crop", Name = "Alimento", Icon = "🌾", CssClass = "vl-res--crop",  Amount = 500, Production = 5, Capacity = 2000 },
+    ];
+
+    private readonly List<VillageBuilding> buildings =
+    [
+        new() { Id = 0, Type = "townhall",   Name = "Centro da Vila", Icon = "🏛️", Description = "Coração da vila. Aumenta a capacidade de armazenamento.", Level = 1, IsProducer = false, ProducesResource = "",     BaseCost = new(100, 100, 80, 60) },
+        new() { Id = 1, Type = "lumbermill", Name = "Serralharia",    Icon = "🪵", Description = "Produz madeira para construção.",                        Level = 1, IsProducer = true,  ProducesResource = "wood", BaseCost = new(50, 30, 20, 10) },
+        new() { Id = 2, Type = "claypit",    Name = "Cova de Barro",  Icon = "🧱", Description = "Extrai barro para materiais de construção.",              Level = 1, IsProducer = true,  ProducesResource = "clay", BaseCost = new(30, 50, 20, 10) },
+        new() { Id = 3, Type = "ironmine",   Name = "Mina de Ferro",  Icon = "⛏️", Description = "Extrai ferro para ferramentas e armas.",                 Level = 1, IsProducer = true,  ProducesResource = "iron", BaseCost = new(30, 20, 50, 10) },
+        new() { Id = 4, Type = "farm",       Name = "Quinta",         Icon = "🌾", Description = "Produz alimento para alimentar a vila.",                   Level = 1, IsProducer = true,  ProducesResource = "crop", BaseCost = new(20, 20, 10, 50) },
+    ];
+
+    /* ── Lifecycle ── */
+
+    protected override void OnInitialized()
+    {
+        resourceTimer = new System.Threading.Timer(
+            _ => InvokeAsync(TickResources),
+            null,
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+    }
+
+    protected override void OnParametersSet()
+    {
+        activeTab = string.Equals(Tab, "edificios", StringComparison.OrdinalIgnoreCase)
+            ? "edificios"
+            : "recursos";
+    }
+
+    /* ── Tab switching ── */
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        selectedBuilding = null;
+        Navigation.NavigateTo(tab == "recursos" ? "/my-tuno/village" : "/my-tuno/village/edificios", replace: true);
+    }
+
+    /* ── Resource ticking ── */
+
+    private void TickResources()
+    {
+        foreach (var r in resources)
+            r.Amount = Math.Min(r.Amount + r.Production, r.Capacity);
+        StateHasChanged();
+    }
+
+    /* ── Helpers ── */
+
+    /// <summary>Returns the producer building that generates the given resource, or null for non-produced.</summary>
+    private VillageBuilding? GetResourceField(VillageResource res)
+        => buildings.FirstOrDefault(b => b.ProducesResource == res.Id);
+
+    private static string FormatNumber(double amount)
+    {
+        var v = (int)Math.Floor(amount);
+        if (v >= 1_000_000) return $"{v / 1_000_000.0:F1}M";
+        if (v >= 10_000) return $"{v / 1_000.0:F1}K";
+        return v.ToString("N0");
+    }
+
+    private static string CapacityPercent(VillageResource r)
+        => (r.Capacity > 0 ? Math.Min(100, r.Amount / r.Capacity * 100) : 0).ToString("F0");
+
+    private static double ProductionAtLevelStatic(int level)
+        => Math.Round(5 * Math.Pow(1.4, level - 1) * 100) / 100;
+
+    private static double ProductionAtLevel(int level)
+        => Math.Round(ProductionAtLevelStatic(level) * 3600);
+
+    private static int StorageCapacity(int level)
+        => 2000 + (level - 1) * 1000;
+
+    /* ── Upgrade logic ── */
+
+    private UpgradeCostResult GetUpgradeCost(VillageBuilding b)
+    {
+        var mult = Math.Pow(1.5, b.Level - 1);
+        return new(
+            (int)Math.Ceiling(b.BaseCost.Wood * mult),
+            (int)Math.Ceiling(b.BaseCost.Clay * mult),
+            (int)Math.Ceiling(b.BaseCost.Iron * mult),
+            (int)Math.Ceiling(b.BaseCost.Crop * mult));
+    }
+
+    private VillageResource GetResource(string id) => resources.First(r => r.Id == id);
+
+    private bool CanAfford(VillageBuilding b)
+    {
+        var cost = GetUpgradeCost(b);
+        return GetResource("wood").Amount >= cost.Wood
+            && GetResource("clay").Amount >= cost.Clay
+            && GetResource("iron").Amount >= cost.Iron
+            && GetResource("crop").Amount >= cost.Crop;
+    }
+
+    private void UpgradeBuilding(VillageBuilding b)
+    {
+        if (!CanAfford(b)) return;
+        var cost = GetUpgradeCost(b);
+
+        GetResource("wood").Amount -= cost.Wood;
+        GetResource("clay").Amount -= cost.Clay;
+        GetResource("iron").Amount -= cost.Iron;
+        GetResource("crop").Amount -= cost.Crop;
+
+        b.Level++;
+
+        if (b.IsProducer)
+        {
+            var res = GetResource(b.ProducesResource);
+            res.Production = ProductionAtLevelStatic(b.Level);
+        }
+
+        if (b.Type == "townhall")
+        {
+            var cap = StorageCapacity(b.Level);
+            foreach (var r in resources) r.Capacity = cap;
         }
     }
 
-    /// <summary>
-    /// Called from JS every second with updated resource amounts.
-    /// </summary>
-    [JSInvokable]
-    public void UpdateResources(int wood, int clay, int iron, int crop)
-    {
-        resWood = wood;
-        resClay = clay;
-        resIron = iron;
-        resCrop = crop;
-        InvokeAsync(StateHasChanged);
-    }
+    /* ── Panel ── */
 
-    private void GoBack()
-    {
-        Navigation.NavigateTo("/my-tuno");
-    }
+    private void SelectBuilding(VillageBuilding b)
+        => selectedBuilding = selectedBuilding?.Id == b.Id ? null : b;
 
-    private static string FormatRes(int amount)
-    {
-        if (amount >= 1_000_000) return $"{amount / 1_000_000.0:F1}M";
-        if (amount >= 10_000) return $"{amount / 1_000.0:F1}K";
-        return amount.ToString("N0");
-    }
+    /* ── Navigation ── */
 
-    private static string FormatProd(double perSecond)
-    {
-        var perHour = perSecond * 3600;
-        return FormatRes((int)perHour);
-    }
+    private void GoBack() => Navigation.NavigateTo("/my-tuno");
 
-    public async ValueTask DisposeAsync()
-    {
-        if (hasRendered)
-        {
-            try
-            {
-                await JSRuntime.InvokeVoidAsync("villageModeGame.destroy");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Failed to destroy village game");
-            }
-        }
-
-        objRef?.Dispose();
-    }
+    public void Dispose() => resourceTimer?.Dispose();
 }

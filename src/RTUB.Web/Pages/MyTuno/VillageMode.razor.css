@@ -1,200 +1,478 @@
 /* ═══════════════════════════════════════════
-   Village Mode — Scoped Styles
+   Village Mode — Black & Purple Theme
+   Follows the standard RTUB app layout.
    ═══════════════════════════════════════════ */
 
-/* ─── Fullscreen Layout ─── */
-.village-page {
-    position: fixed;
-    inset: 0;
-    background: #1a2e10;
-    z-index: 100;
-    overflow: hidden;
+/* ─── Resource Summary Strip (always visible) ─── */
+.vl-res-strip {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
 }
 
-.village-loading {
+.vl-res-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    background: var(--rtub-surface, #151516);
+    border: 1px solid var(--bs-border-color, #2f2f2f);
+    flex: 1;
+    min-width: 0;
+}
+
+.vl-res-chip__sprite {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.vl-res-chip__icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.vl-res-chip__amount {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Chip accent colors */
+.vl-res-chip.vl-res--wood .vl-res-chip__amount { color: #d4a843; }
+.vl-res-chip.vl-res--clay .vl-res-chip__amount { color: #e08850; }
+.vl-res-chip.vl-res--iron .vl-res-chip__amount { color: #99b3c4; }
+.vl-res-chip.vl-res--crop .vl-res-chip__amount { color: #88cc55; }
+
+/* ─── Tab Navigation ─── */
+.vl-tab-nav {
+    gap: 0.35rem;
+}
+
+.vl-tab-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.vl-tab-nav .nav-link:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(111, 66, 193, 0.1);
+}
+
+.vl-tab-nav .nav-link.active {
+    background-color: var(--bs-primary, #6f42c1) !important;
+    color: #fff;
+}
+
+.vl-tab-nav .nav-link i {
+    font-size: 1rem;
+}
+
+/* ═══════════════════════════════════════════
+   Resource Cards (Resources Tab)
+   ═══════════════════════════════════════════ */
+
+.vl-res-card {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    gap: 0.6rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: var(--rtub-surface, #151516);
+    border: 1px solid var(--bs-border-color, #2f2f2f);
+    transition: border-color 0.2s, box-shadow 0.2s;
     height: 100%;
 }
 
-.village-screen {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    background: #1a2e10;
-    overflow: hidden;
+.vl-res-card:hover {
+    border-color: rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.village-canvas {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    overflow: hidden;
-    background: #2a4a20;
-}
-
-::deep .village-canvas canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* ─── Top Bar ─── */
-.village-top-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
+.vl-res-card__header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
-    background: linear-gradient(180deg, rgba(20, 30, 10, 0.92) 0%, rgba(20, 30, 10, 0.7) 80%, transparent 100%);
-    pointer-events: auto;
+    gap: 0.6rem;
 }
 
-.village-back-btn {
+.vl-res-card__icon-wrap {
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 2px solid rgba(212, 168, 67, 0.5);
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.4);
-    color: #d4a843;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    border-radius: 10px;
+    background: rgba(111, 66, 193, 0.08);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    flex-shrink: 0;
 }
 
-.village-back-btn:hover {
-    background: rgba(212, 168, 67, 0.2);
-    border-color: #d4a843;
-    transform: scale(1.1);
+.vl-res-card__sprite {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
 }
 
-.village-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #ffd700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-    letter-spacing: 0.5px;
-}
-
-.village-title i {
-    font-size: 1.2rem;
-}
-
-.village-spacer {
-    flex: 1;
-}
-
-/* ─── Resource Bar ─── */
-.village-resource-bar {
-    position: absolute;
-    top: 52px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.4rem 0.8rem;
-    background: rgba(10, 15, 5, 0.88);
-    border: 1px solid rgba(212, 168, 67, 0.3);
-    border-radius: 12px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    pointer-events: auto;
-}
-
-.resource-item {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    transition: background 0.2s ease;
-}
-
-.resource-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.resource-icon {
-    font-size: 1.15rem;
+.vl-res-card__icon {
+    font-size: 1.5rem;
     line-height: 1;
 }
 
-.resource-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.2;
+.vl-res-card__name {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e2e2;
 }
 
-.resource-amount {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #ffffff;
+.vl-res-card__field-name {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Amount row */
+.vl-res-card__amount-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+}
+
+.vl-res-card__amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.vl-res-card__capacity {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
     font-variant-numeric: tabular-nums;
 }
 
-.resource-prod {
-    font-size: 0.65rem;
-    color: #88cc88;
-    font-weight: 500;
+/* Resource accent colors on amount */
+.vl-res--wood .vl-res-card__amount { color: #d4a843; }
+.vl-res--clay .vl-res-card__amount { color: #e08850; }
+.vl-res--iron .vl-res-card__amount { color: #99b3c4; }
+.vl-res--crop .vl-res-card__amount { color: #88cc55; }
+
+/* Capacity bar */
+.vl-res-card__bar-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
 }
 
-/* Resource-specific accent colors */
-.resource-wood .resource-amount { color: #d4a843; }
-.resource-clay .resource-amount { color: #e08850; }
-.resource-iron .resource-amount { color: #99b3c4; }
-.resource-crop .resource-amount { color: #88cc55; }
+.vl-res-card__bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s linear;
+}
 
-/* ─── Responsive ─── */
+.vl-res--wood .vl-res-card__bar-fill { background: #d4a843; }
+.vl-res--clay .vl-res-card__bar-fill { background: #e08850; }
+.vl-res--iron .vl-res-card__bar-fill { background: #99b3c4; }
+.vl-res--crop .vl-res-card__bar-fill { background: #88cc55; }
+
+/* Stats */
+.vl-res-card__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.vl-res-card__stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vl-res-card__stat-label {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.vl-res-card__stat-value {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+}
+
+.vl-res-card__prod {
+    color: #88cc55 !important;
+}
+
+/* Upgrade section inside resource card */
+.vl-res-card__upgrade {
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.vl-res-card__cost-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.vl-res-card__costs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+/* ─── Shared inline cost badge ─── */
+.vl-cost-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+}
+
+.vl-cost-inline--ok {
+    border-color: rgba(100, 200, 80, 0.2);
+    color: #88cc55;
+}
+
+.vl-cost-inline--lack {
+    border-color: rgba(220, 60, 60, 0.2);
+    color: #e05050;
+}
+
+/* ─── Shared upgrade button ─── */
+.vl-upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    font-size: 0.78rem;
+    background: var(--bs-primary, #6f42c1);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    transition: all 0.2s;
+}
+
+.vl-upgrade-btn:hover:not(.disabled) {
+    background: #8354d8;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(111, 66, 193, 0.35);
+}
+
+.vl-upgrade-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: #333;
+    color: #888;
+}
+
+/* ═══════════════════════════════════════════
+   Building Cards (Buildings Tab)
+   ═══════════════════════════════════════════ */
+
+.vl-bld-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem;
+    border-radius: 12px;
+    background: var(--rtub-surface, #151516);
+    border: 1px solid var(--bs-border-color, #2f2f2f);
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.vl-bld-card:hover {
+    border-color: rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.vl-bld-card--selected {
+    border-color: rgba(111, 66, 193, 0.5) !important;
+    box-shadow: 0 0 16px rgba(111, 66, 193, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.vl-bld-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.vl-bld-card__icon-wrap {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+/* Building type-specific icon backgrounds */
+.vl-bld-card--townhall .vl-bld-card__icon-wrap {
+    background: rgba(212, 168, 67, 0.1);
+    border: 1px solid rgba(212, 168, 67, 0.2);
+}
+
+.vl-bld-card--lumbermill .vl-bld-card__icon-wrap {
+    background: rgba(139, 105, 20, 0.12);
+    border: 1px solid rgba(139, 105, 20, 0.2);
+}
+
+.vl-bld-card--claypit .vl-bld-card__icon-wrap {
+    background: rgba(194, 112, 58, 0.1);
+    border: 1px solid rgba(194, 112, 58, 0.2);
+}
+
+.vl-bld-card--ironmine .vl-bld-card__icon-wrap {
+    background: rgba(122, 139, 153, 0.12);
+    border: 1px solid rgba(122, 139, 153, 0.2);
+}
+
+.vl-bld-card--farm .vl-bld-card__icon-wrap {
+    background: rgba(107, 158, 58, 0.1);
+    border: 1px solid rgba(107, 158, 58, 0.2);
+}
+
+.vl-bld-card__sprite {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.vl-bld-card__icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.vl-bld-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.vl-bld-card__name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #e2e2e2;
+}
+
+.vl-bld-card__desc {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.vl-bld-card__level {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--bs-primary, #6f42c1);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+/* Town hall golden level badge */
+.vl-bld-card--townhall .vl-bld-card__level {
+    background: linear-gradient(135deg, #d4a843, #a88430);
+}
+
+/* Production row */
+.vl-bld-card__prod {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vl-bld-card__prod-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.vl-bld-card__prod-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #88cc55;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Upgrade row */
+.vl-bld-card__upgrade-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.vl-bld-card__costs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+/* ═══════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════ */
+
 @media (max-width: 576px) {
-    .village-resource-bar {
-        top: 48px;
-        gap: 0.15rem;
-        padding: 0.3rem 0.5rem;
-        border-radius: 10px;
+    .vl-res-strip {
+        gap: 0.25rem;
     }
 
-    .resource-item {
-        padding: 0.15rem 0.35rem;
-        gap: 0.2rem;
+    .vl-res-chip {
+        padding: 0.25rem 0.45rem;
     }
 
-    .resource-icon {
-        font-size: 0.95rem;
+    .vl-res-chip__amount {
+        font-size: 0.78rem;
     }
 
-    .resource-amount {
-        font-size: 0.75rem;
+    .vl-res-card__amount {
+        font-size: 1.2rem;
     }
 
-    .resource-prod {
-        font-size: 0.6rem;
-    }
-
-    .village-title span {
-        font-size: 0.95rem;
-    }
-
-    .village-back-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
+    .vl-tab-nav .nav-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
     }
 }
 
