@@ -89,7 +89,7 @@ public class InventoryService : IInventoryService
         }
 
         var maxHp = character.ShotBuffBattlesRemaining > 0
-            ? Character.CreateShotBuffedCopy(character).TotalHP
+            ? character.GetDisplayMaxHP()
             : character.TotalHP;
 
         var currentHp = character.CurrentHP ?? maxHp;
@@ -332,11 +332,10 @@ public class InventoryService : IInventoryService
         character.ShotBuffBattlesRemaining = ShotBuffBattles;
         
         // Scale up CurrentHP proportionally to the new buffed max HP
-        // Use CreateShotBuffedCopy to get the EXACT same buffed max HP that will be used in arena
+        // Use the clean percentage formula for the buffed max HP
         var currentHpValue = character.CurrentHP ?? character.TotalHP;
         var unbuffedMaxHp = character.TotalHP;
-        var buffedCopy = Character.CreateShotBuffedCopy(character);
-        var buffedMaxHp = buffedCopy.TotalHP;
+        var buffedMaxHp = character.GetDisplayMaxHP();
         
         // Calculate the new CurrentHP proportionally
         var hpRatio = (double)currentHpValue / unbuffedMaxHp;

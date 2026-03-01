@@ -153,6 +153,14 @@ public class Character : BaseEntity
     // HP constants
     private const int MinHP = 0;
 
+    /// <summary>
+    /// Shot-buff multiplier applied to the final Total* stats.
+    /// Always 1.0 on the persisted character; set to EffectiveShotBuffMultiplier
+    /// on the combat copy returned by CreateShotBuffedCopy.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    private double _appliedShotMultiplier = 1.0;
+
     // Upgrade Counts (for cost calculation)
     public int HpUpgrades { get; set; }
     public int PowerUpgrades { get; set; }
@@ -332,16 +340,21 @@ public class Character : BaseEntity
     // Computed properties (not stored in database)
     // Stats scale with level (linear) + upgrades (flat additive):
     // stat = (base + flatBonus × n) × levelFactor + equipment
+    // When _appliedShotMultiplier > 1.0 (combat copies), the final total is scaled.
     // Linear per-upgrade growth with level amplification.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalHP => SafeAdd(
-        ClampToLong((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor()),
-        EquipmentHPBonus);
+    public long TotalHP => ClampToLong(
+        SafeAdd(
+            ClampToLong((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor()),
+            EquipmentHPBonus)
+        * _appliedShotMultiplier);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalPower => SafeAdd(
-        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor()),
-        EquipmentPowerBonus);
+    public long TotalPower => ClampToLong(
+        SafeAdd(
+            ClampToLong((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor()),
+            EquipmentPowerBonus)
+        * _appliedShotMultiplier);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalSpeed => SafeAdd(
@@ -382,9 +395,11 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalDefense => SafeAdd(
-        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor()),
-        EquipmentDefenseBonus);
+    public long TotalDefense => ClampToLong(
+        SafeAdd(
+            ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor()),
+            EquipmentDefenseBonus)
+        * _appliedShotMultiplier);
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -814,37 +829,28 @@ public class Character : BaseEntity
         if (source == null)
             throw new ArgumentNullException(nameof(source));
 
-        var buffMultiplier = source.EffectiveShotBuffMultiplier;
-
-        // Scale base stats AND upgrades — the compounding with the exponential
-        // upgrade formula (stat × scale × (1+mult)^upgrades) is intentional:
-        // investing in both Shot-buff upgrades and stat upgrades yields increasing returns.
-        // The green-HP-bar overflow is prevented separately by clamping CurrentHP
-        // to TotalHP in CombatActionService.CreateSession and JS updatePlayerHPBar.
-        var buffedHP = (int)Math.Round(source.HP * buffMultiplier);
-        var buffedHpUpgrades = (int)Math.Round(source.HpUpgrades * buffMultiplier);
-        var buffedPowerUpgrades = (int)Math.Round(source.PowerUpgrades * buffMultiplier);
-        var buffedDefenseUpgrades = (int)Math.Round(source.DefenseUpgrades * buffMultiplier);
-
+        // Clean multiplier applied to the final Total* stats.
+        // All base stats, upgrades, and equipment bonuses are copied as-is;
+        // the _appliedShotMultiplier makes TotalHP/TotalPower/TotalDefense
+        // return the exact advertised percentage increase.
         return new Character
         {
+            _appliedShotMultiplier = source.EffectiveShotBuffMultiplier,
             Id = source.Id,
             UserId = source.UserId,
             Level = source.Level,
             XP = source.XP,
-            // Boost base stats by buff multiplier
-            HP = buffedHP,
-            Power = (int)Math.Round(source.Power * buffMultiplier),
-            Speed = (int)Math.Round(source.Speed * buffMultiplier),
-            Defense = (int)Math.Round(source.Defense * buffMultiplier),
-            CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
-            // Scale HP/Power/Defense upgrades — synergizes with the compound upgrade formula
-            HpUpgrades = buffedHpUpgrades,
-            PowerUpgrades = buffedPowerUpgrades,
+            HP = source.HP,
+            Power = source.Power,
+            Speed = source.Speed,
+            Defense = source.Defense,
+            CriticalChance = source.CriticalChance,
+            HpUpgrades = source.HpUpgrades,
+            PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
-            DefenseUpgrades = buffedDefenseUpgrades,
-            // Carry over equipment bonuses (not buffed — they are flat bonuses)
+            DefenseUpgrades = source.DefenseUpgrades,
+            // Equipment bonuses — now included in the buff via Total* multiplier
             EquippedHead = source.EquippedHead,
             EquippedShoulders = source.EquippedShoulders,
             EquippedChest = source.EquippedChest,
@@ -887,7 +893,9 @@ public class Character : BaseEntity
             CanhaoBuffExpiresAt = source.CanhaoBuffExpiresAt,
             CanhaoBuffRemainingMs = source.CanhaoBuffRemainingMs,
             PenaltyBuffExpiresAt = source.PenaltyBuffExpiresAt,
-            PenaltyBuffRemainingMs = source.PenaltyBuffRemainingMs
+            PenaltyBuffRemainingMs = source.PenaltyBuffRemainingMs,
+            ShotStatBuffUpgrades = source.ShotStatBuffUpgrades,
+            ShotBuffUpgrades = source.ShotBuffUpgrades
         };
     }
 
@@ -918,10 +926,7 @@ public class Character : BaseEntity
             XP -= XpForLevel(Level);
             Level++;
             // Heal to full HP on level-up (accounts for shot buff)
-            var maxHP = ShotBuffBattlesRemaining > 0
-                ? CreateShotBuffedCopy(this).TotalHP
-                : TotalHP;
-            CurrentHP = maxHP;
+            CurrentHP = GetBuffedMaxHP();
         }
     }
 
@@ -932,18 +937,12 @@ public class Character : BaseEntity
     /// </summary>
     public void UpgradeHP()
     {
-        var maxHP = ShotBuffBattlesRemaining > 0
-            ? CreateShotBuffedCopy(this).TotalHP
-            : TotalHP;
+        var maxHP = GetBuffedMaxHP();
         var wasAtFullHp = CurrentHP == null || CurrentHP >= maxHP;
         HpUpgrades++;
         if (wasAtFullHp)
         {
-            // Recalculate buffed max after upgrade
-            var newMaxHP = ShotBuffBattlesRemaining > 0
-                ? CreateShotBuffedCopy(this).TotalHP
-                : TotalHP;
-            CurrentHP = newMaxHP;
+            CurrentHP = GetBuffedMaxHP();
         }
     }
 
@@ -1099,9 +1098,7 @@ public class Character : BaseEntity
     /// </summary>
     public void Heal(long amount)
     {
-        var maxHP = ShotBuffBattlesRemaining > 0 
-            ? CreateShotBuffedCopy(this).TotalHP 
-            : TotalHP;
+        var maxHP = GetBuffedMaxHP();
         var currentHp = CurrentHP ?? maxHP;
         currentHp += amount;
         CurrentHP = Math.Min(maxHP, currentHp);
@@ -1112,10 +1109,7 @@ public class Character : BaseEntity
     /// </summary>
     public void RestoreHP()
     {
-        var maxHP = ShotBuffBattlesRemaining > 0 
-            ? CreateShotBuffedCopy(this).TotalHP 
-            : TotalHP;
-        CurrentHP = maxHP;
+        CurrentHP = GetBuffedMaxHP();
     }
 
     /// <summary>
@@ -1225,14 +1219,14 @@ public class Character : BaseEntity
         if (ShotBuffBattlesRemaining <= 0) return;
 
         // Capture buffed max HP before decrementing
-        var buffedMaxHp = CreateShotBuffedCopy(this).TotalHP;
+        var buffedMaxHp = GetBuffedMaxHP();
 
         ShotBuffBattlesRemaining--;
 
         if (ShotBuffBattlesRemaining == 0)
         {
             // Buff fully expired — scale CurrentHP proportionally back to unbuffed max
-            var unbuffedMaxHp = TotalHP;
+            var unbuffedMaxHp = TotalHP; // now returns unbuffed (multiplier is 1.0 on source)
             var currentHp = CurrentHP ?? buffedMaxHp;
             var hpRatio = (double)currentHp / buffedMaxHp;
             CurrentHP = Math.Max(1, ClampToLong(hpRatio * unbuffedMaxHp));
@@ -1249,17 +1243,43 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Gets the buffed max HP (for internal use).
+    /// Applies the shot-buff multiplier directly to the final total.
+    /// </summary>
+    private long GetBuffedMaxHP()
+    {
+        if (ShotBuffBattlesRemaining > 0)
+            return ClampToLong(TotalHP * EffectiveShotBuffMultiplier);
+        return TotalHP;
+    }
+
+    /// <summary>
     /// Gets the display max HP for UI, accounting for shot buff.
-    /// Uses CreateShotBuffedCopy to get the exact same value used in combat.
+    /// Uses the same clean-percentage formula used in combat.
     /// </summary>
     public long GetDisplayMaxHP()
     {
+        return GetBuffedMaxHP();
+    }
+
+    /// <summary>
+    /// Gets the display total Power for UI, accounting for shot buff.
+    /// </summary>
+    public long GetDisplayTotalPower()
+    {
         if (ShotBuffBattlesRemaining > 0)
-        {
-            var buffedCopy = CreateShotBuffedCopy(this);
-            return buffedCopy.TotalHP;
-        }
-        return TotalHP;
+            return ClampToLong(TotalPower * EffectiveShotBuffMultiplier);
+        return TotalPower;
+    }
+
+    /// <summary>
+    /// Gets the display total Defense for UI, accounting for shot buff.
+    /// </summary>
+    public long GetDisplayTotalDefense()
+    {
+        if (ShotBuffBattlesRemaining > 0)
+            return ClampToLong(TotalDefense * EffectiveShotBuffMultiplier);
+        return TotalDefense;
     }
 
     /// <summary>

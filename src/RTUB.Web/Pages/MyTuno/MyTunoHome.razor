@@ -535,17 +535,18 @@
                         @{
                             var hasEnhancementHP = character.ShotBuffBattlesRemaining > 0;
                             var hasEnhancement = character.ShotBuffBattlesRemaining > 0;
+                            var shotPct = $"+{(int)((character.EffectiveShotBuffMultiplier - 1) * 100)}% (Shot)";
                         }
                         <div class="ftile-grid ftile-grid--3col">
                             <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"{Fmt(currentHP)}/{Fmt(displayMaxHP)}")"
                                          Color="red" Size="md" Highlighted="@hasEnhancementHP"
-                                         Tooltip="@(hasEnhancementHP ? "+5% (Shot)" : "")" />
-                            <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(character.TotalPower)"
+                                         Tooltip="@(hasEnhancementHP ? shotPct : "")" />
+                            <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(character.GetDisplayTotalPower())"
                                          Color="green" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
-                            <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(character.TotalDefense)"
+                                         Tooltip="@(hasEnhancement ? shotPct : "")" />
+                            <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(character.GetDisplayTotalDefense())"
                                          Color="gray" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancement ? shotPct : "")" />
                             <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{character.ActionTime:F1}s")"
                                          Color="blue" Size="md" />
                             <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{character.TotalCriticalChance * 100:F1}%")"

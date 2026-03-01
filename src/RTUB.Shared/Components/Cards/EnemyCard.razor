@@ -68,8 +68,7 @@
             long maxHP;
             if (Character != null && Character.ShotBuffBattlesRemaining > 0)
             {
-                var buffedCopy = Character.CreateShotBuffedCopy(Character);
-                maxHP = buffedCopy.TotalHP;
+                maxHP = Character.GetDisplayMaxHP();
             }
             else
             {
