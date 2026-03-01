@@ -61,8 +61,7 @@
 @import url('3-components/instrument-circle.css');
 @import url('3-components/details-modal.css');
 @import url('3-components/portal-headers.css');
-@import url('3-components/event-album-cards.css');
-@import url('3-components/event-card-enhancements.css');
+@import url('3-components/event-cards.css');
 @import url('3-components/enrollment.css');
 @import url('3-components/repertoire-modal.css');
 @import url('3-components/audio-player.css');
@@ -89,28 +88,33 @@
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');
 
+/* Game Styles (shared across game pages) */
+@import url('3-components/game-avoid-questions.css');
+@import url('3-components/game-tomato-thrower.css');
+
+/* Profile Components (shared across profile-related pages) */
+@import url('3-components/profile-components.css');
+
+/* Member List (shared member selection component) */
+@import url('3-components/member-list.css');
+
+/* Kanban & Logistics (board + modal overrides) */
+@import url('3-components/kanban.css');
+
+/* Music Components (shared across media pages) */
+@import url('3-components/music.css');
+
+/* Admin Buttons (shared across admin pages) */
+@import url('3-components/admin-buttons.css');
+
+/* Governing Bodies (shared across portal/public pages) */
+@import url('3-components/governing-bodies.css');
+
+/* Rank Card (shared across Leaderboard + Profile) */
+@import url('3-components/rank-card.css');
+
 /* ========================================
    4. PAGES - Page-Specific Styles
    ======================================== */
-@import url('4-pages/about-us.css');
-@import url('4-pages/join-us.css');
-@import url('4-pages/history.css');
-@import url('4-pages/hierarchy.css');
-@import url('4-pages/profile.css');
-@import url('4-pages/kanban.css');
-@import url('4-pages/fitab.css');
-@import url('4-pages/music.css');
-@import url('4-pages/admin.css');
-@import url('4-pages/identity.css');
-@import url('4-pages/member.css');
-@import url('4-pages/governing-bodies.css');
-@import url('4-pages/family-tree.css');
-@import url('4-pages/account-security.css');
-@import url('4-pages/roles.css');
-@import url('4-pages/calotes.css');
-@import url('4-pages/finance-reports.css');
-@import url('4-pages/avoid-questions.css');
-@import url('4-pages/bmr-game.css');
-@import url('4-pages/tomato-thrower.css');
-@import url('4-pages/my-tuno.css');
 @import url('4-pages/homepage-mobile.css');
+@import url('4-pages/member-map.css');

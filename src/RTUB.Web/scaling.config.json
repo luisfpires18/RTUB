@@ -125,7 +125,7 @@
         "instrumentPartDropChance": 0.0003,
         "rareSetDropChance": 0.00005,
         "bossDropMultiplier": 3.0,
-        "leitaoDropChance": 0.33
+        "leitaoDropChance": 1.0
       },
 
       "rareSet": {
@@ -289,7 +289,7 @@
         "penaltyDropChance": 0.0004,
         "instrumentPartDropChance": 0.0006,
         "fitabDropChance": 0.005,
-        "leitaoDropChance": 0.66,
+        "leitaoDropChance": 1.0,
         "leitaoBonusEveryNBosses": 5
       },
 
@@ -298,9 +298,9 @@
       },
 
       "piggies": {
-        "statUpgradeStartLevel": 500,
+        "statUpgradeStartLevel": 601,
         "statUpgradeBaseCost": 1,
-        "statUpgradeCostEveryNLevels": 5,
+        "statUpgradeCostEveryNLevels": 100,
         "speedUpgradeStartLevel": 20,
         "critUpgradeStartLevel": 50,
         "improvementStartLevel": 20,
@@ -309,12 +309,12 @@
         "powerStartLevel": 20,
         "powerBaseCost": 1,
         "powerCostEveryNLevels": 5,
-        "weaponUpgradeStartLevel": 500,
+        "weaponUpgradeStartLevel": 601,
         "weaponUpgradeBaseCost": 1,
-        "weaponUpgradeCostEveryNLevels": 5,
-        "equipmentUpgradeStartLevel": 500,
+        "weaponUpgradeCostEveryNLevels": 100,
+        "equipmentUpgradeStartLevel": 601,
         "equipmentUpgradeBaseCost": 1,
-        "equipmentUpgradeCostEveryNLevels": 5
+        "equipmentUpgradeCostEveryNLevels": 100
       },
 
       "fitabDropChanceStage": 0.002,

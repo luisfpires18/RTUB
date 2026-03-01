@@ -40,7 +40,7 @@
 }
 
 .participation-card {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #2f2f2f;
     max-width: 360px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);

@@ -62,7 +62,7 @@
         margin-bottom: 1rem;
         border: 1px solid #343536;
         border-radius: 8px;
-        background-color: #1a1a1b;
+        background-color: var(--rtub-surface-alt);
         padding: 0.75rem;
     }
     
@@ -220,7 +220,7 @@
 
 /* Activity list item */
 .activity-list-item {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border-color: #343536;
     margin-bottom: 0.5rem;
     border-radius: 4px;

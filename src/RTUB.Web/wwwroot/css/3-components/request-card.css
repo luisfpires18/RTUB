@@ -2,7 +2,7 @@
 
 /* Request Card Styles (similar to RehearsalCard but slightly bigger) */
 .request-card {
-  background-color: #151516;
+  background-color: var(--rtub-surface);
   border: 1px solid var(--bs-border-color);
   border-radius: 0.5rem;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;

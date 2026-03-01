@@ -33,4 +33,10 @@
   /* Override dropdown active state to use primary purple color */
   --bs-dropdown-link-active-bg: var(--bs-primary);
   --bs-dropdown-link-active-color: #ffffff;
+
+  /* Surface colors (dark card/panel backgrounds) */
+  --rtub-surface: #151516;
+  --rtub-surface-alt: #1a1a1b;
+  --rtub-input-bg: #1c1c1d;
+  --rtub-select-bg: #212121;
 }

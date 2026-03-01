@@ -59,7 +59,7 @@
 
 /* --- 2.1: Panel Container --- */
 .rtub-messages__panel {
-    background: #1a1a1b;
+    background: var(--rtub-surface-alt);
     border-right: 1px solid var(--bs-border-color);
     display: flex;
     flex-direction: column;
@@ -277,7 +277,7 @@
 .rtub-messages__thread-header {
     padding: 1rem;
     border-bottom: 1px solid var(--bs-border-color);
-    background: #1a1a1b;
+    background: var(--rtub-surface-alt);
     display: flex;
     align-items: center;
     flex-shrink: 0; /* Prevent header from shrinking */
@@ -597,7 +597,7 @@
 .rtub-messages__thread-footer {
     padding: 1rem;
     border-top: 1px solid var(--bs-border-color);
-    background: #1a1a1b;
+    background: var(--rtub-surface-alt);
     flex-shrink: 0; /* Prevent footer from shrinking */
 }
 

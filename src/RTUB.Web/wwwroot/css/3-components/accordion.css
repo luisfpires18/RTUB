@@ -2,7 +2,7 @@
 
 /* Accordion styling for dark theme - Reports page */
 .accordion-button {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     color: #e2e2e2;
     border-color: rgba(var(--bs-primary-rgb), 0.25);
 }
@@ -27,12 +27,12 @@
 }
 
 .accordion-item {
-    background-color: #151516;
+    background-color: var(--rtub-surface);
     border-color: rgba(var(--bs-primary-rgb), 0.25);
 }
 
 .accordion-body {
-    background-color: #151516;
+    background-color: var(--rtub-surface);
     color: #e2e2e2;
 }
 

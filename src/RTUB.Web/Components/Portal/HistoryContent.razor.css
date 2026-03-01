@@ -1,6 +1,6 @@
 /* ============================================
-   A NOSSA HISTÓRIA (HISTORY) PAGE STYLES
-   Inner elements for HistoryContent.razor
+   A NOSSA HISTÓRIA (HISTORY) CONTENT STYLES
+   Migrated from wwwroot/css/4-pages/history.css
    (outer container handled by .portal-card)
    ============================================ */
 
@@ -25,7 +25,7 @@
     color: #e2e2e2;
 }
 
-.closing-content i {
+::deep .closing-content i {
     font-size: 2rem;
     color: var(--bs-primary);
     margin-top: 0.25rem;

@@ -1,4 +1,5 @@
-/* FITAB Page Styles
+/* FITAB Content Styles
+   Migrated from wwwroot/css/4-pages/fitab.css
    (outer container handled by .portal-card,
     inner cards handled by .portal-inner-card) */
 
@@ -9,7 +10,7 @@
     margin: 0;
 }
 
-.fitab-features-list li {
+::deep .fitab-features-list li {
     font-size: 1rem;
     line-height: 1.8;
     color: #e2e2e2;
@@ -18,16 +19,10 @@
     text-align: left;
 }
 
-.fitab-features-list li::before {
+::deep .fitab-features-list li::before {
     content: "▸";
     position: absolute;
     left: 0;
     color: var(--bs-primary);
     font-size: 1.2rem;
-}
-
-/* Accessibility */
-.portal-card *:focus-visible {
-    outline: 2px solid var(--bs-primary);
-    outline-offset: 2px;
 }

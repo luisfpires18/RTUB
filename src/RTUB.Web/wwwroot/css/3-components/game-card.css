@@ -1,5 +1,5 @@
 .game-card {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     border-radius: 8px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -22,7 +22,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #2d2d30 0%, #1a1a1b 100%);
+    background: linear-gradient(135deg, #2d2d30 0%, var(--rtub-surface-alt) 100%);
 }
 
 .game-icon-large {

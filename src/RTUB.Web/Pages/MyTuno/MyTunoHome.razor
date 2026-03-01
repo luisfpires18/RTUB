@@ -547,11 +547,9 @@
                                          Color="gray" Size="md" Highlighted="@hasEnhancement"
                                          Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
                             <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{character.ActionTime:F1}s")"
-                                         Color="blue" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
+                                         Color="blue" Size="md" />
                             <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{character.TotalCriticalChance * 100:F1}%")"
-                                         Color="yellow" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
+                                         Color="yellow" Size="md" />
                         </div>
                         
                         <!-- Active Enhancements Section -->

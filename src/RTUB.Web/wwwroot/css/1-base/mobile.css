@@ -340,8 +340,7 @@ iframe {
     padding: 0.875rem;
   }
 
-  .event-image,
-  .member-event-image {
+  .event-image {
     height: 150px;
   }
 

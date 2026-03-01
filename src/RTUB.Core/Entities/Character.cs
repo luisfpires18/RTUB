@@ -818,11 +818,13 @@ public class Character : BaseEntity
 
         // Scale base stats AND upgrades — the compounding with the exponential
         // upgrade formula (stat × scale × (1+mult)^upgrades) is intentional:
-        // investing in both Shot-buff upgrades and HP upgrades yields increasing returns.
+        // investing in both Shot-buff upgrades and stat upgrades yields increasing returns.
         // The green-HP-bar overflow is prevented separately by clamping CurrentHP
         // to TotalHP in CombatActionService.CreateSession and JS updatePlayerHPBar.
         var buffedHP = (int)Math.Round(source.HP * buffMultiplier);
         var buffedHpUpgrades = (int)Math.Round(source.HpUpgrades * buffMultiplier);
+        var buffedPowerUpgrades = (int)Math.Round(source.PowerUpgrades * buffMultiplier);
+        var buffedDefenseUpgrades = (int)Math.Round(source.DefenseUpgrades * buffMultiplier);
 
         return new Character
         {
@@ -836,12 +838,12 @@ public class Character : BaseEntity
             Speed = (int)Math.Round(source.Speed * buffMultiplier),
             Defense = (int)Math.Round(source.Defense * buffMultiplier),
             CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
-            // Scale HP upgrades — synergizes with the compound upgrade formula
+            // Scale HP/Power/Defense upgrades — synergizes with the compound upgrade formula
             HpUpgrades = buffedHpUpgrades,
-            PowerUpgrades = source.PowerUpgrades,
+            PowerUpgrades = buffedPowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
-            DefenseUpgrades = source.DefenseUpgrades,
+            DefenseUpgrades = buffedDefenseUpgrades,
             // Carry over equipment bonuses (not buffed — they are flat bonuses)
             EquippedHead = source.EquippedHead,
             EquippedShoulders = source.EquippedShoulders,

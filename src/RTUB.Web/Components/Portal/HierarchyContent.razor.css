@@ -1,4 +1,5 @@
-/* Hierarchy Page Styles
+/* Hierarchy Content Styles
+   Migrated from wwwroot/css/4-pages/hierarchy.css
    (outer container handled by .portal-card) */
 
 /* Stage Cards Grid */
@@ -177,7 +178,7 @@
     outline-offset: 2px;
 }
 
-.hierarchy-card-image-wrapper img[alt]:empty::after {
+::deep .hierarchy-card-image-wrapper img[alt]:empty::after {
     content: attr(alt);
     display: flex;
     align-items: center;

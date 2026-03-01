@@ -359,3 +359,9 @@ html {
         padding: 1.25rem;
     }
 }
+
+/* Accessibility - focus-visible for interactive elements inside portal cards */
+.portal-card *:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}

@@ -2,7 +2,7 @@
 
 /* Misc */
 .card {
-  background-color: #151516;
+  background-color: var(--rtub-surface);
   border: 1px solid var(--bs-border-color);
   border-radius: 0.375rem;
   padding: 1rem;

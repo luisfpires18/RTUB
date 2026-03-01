@@ -124,7 +124,7 @@
 
 /* Improved list header */
 .kanban-list-header {
-    background: linear-gradient(135deg, #0f0f10 0%, #1a1a1b 100%);
+    background: linear-gradient(135deg, #0f0f10 0%, var(--rtub-surface-alt) 100%);
 }
 
 /* Better card status indicators */

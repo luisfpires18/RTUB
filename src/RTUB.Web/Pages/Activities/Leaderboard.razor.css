@@ -213,21 +213,21 @@
 
 /* Comments Section Styles */
 .add-comment-form {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     border-radius: 8px;
     padding: 1rem;
 }
 
 .add-comment-form textarea {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     color: var(--bs-white);
     resize: vertical;
 }
 
 .add-comment-form textarea:focus {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border-color: var(--bs-primary);
     color: var(--bs-white);
 }
@@ -247,7 +247,7 @@
 }
 
 .comments-list::-webkit-scrollbar-track {
-    background: #1a1a1b;
+    background: var(--rtub-surface-alt);
     border-radius: 4px;
 }
 
@@ -286,7 +286,7 @@
 
 /* Ranking story panel */
 .ranking-story-panel {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border: 1px solid #343536;
     border-radius: 8px;
     padding: 1.5rem;
@@ -330,7 +330,7 @@
 
 /* Activity list item */
 .activity-list-item {
-    background-color: #1a1a1b;
+    background-color: var(--rtub-surface-alt);
     border-color: #343536;
     margin-bottom: 0.5rem;
     border-radius: 4px;
@@ -339,4 +339,325 @@
 /* Badge alignment */
 .badge-center {
     align-self: center;
+}
+
+/* ========================================
+   LEADERBOARD STYLES (migrated from global)
+   ======================================== */
+
+/* Ranks Timeline */
+.ranks-timeline-container {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.ranks-timeline-header {
+    margin-bottom: 20px;
+}
+
+::deep .ranks-timeline-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.ranks-timeline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+/* Mobile adjustments for timeline */
+@media (max-width: 768px) {
+    .ranks-timeline {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* Leaderboard Container */
+.leaderboard-container {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-header {
+    background-color: #2a2a2a;
+    padding: 20px 24px;
+    border-bottom: 2px solid #3a3a3a;
+    text-align: center;
+}
+
+::deep .leaderboard-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.leaderboard-body {
+    padding: 0;
+}
+
+/* Leaderboard Card (Row) — rendered by LeaderboardCard child component */
+::deep .leaderboard-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+::deep .leaderboard-card:hover {
+    background-color: rgba(138, 43, 226, 0.1);
+}
+
+::deep .leaderboard-card:last-child {
+    border-bottom: none;
+}
+
+/* Rank Number */
+::deep .leaderboard-rank {
+    flex-shrink: 0;
+    width: 50px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Medal styling for top 3 */
+::deep .leaderboard-card.position-first .leaderboard-rank {
+    font-size: 2rem;
+}
+
+::deep .leaderboard-card.position-second .leaderboard-rank {
+    font-size: 2rem;
+}
+
+::deep .leaderboard-card.position-third .leaderboard-rank {
+    font-size: 2rem;
+}
+
+/* Avatar */
+::deep .leaderboard-avatar {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #3a3a3a;
+}
+
+::deep .leaderboard-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Player Info */
+::deep .leaderboard-info {
+    flex: 1;
+    min-width: 0;
+}
+
+::deep .leaderboard-nickname {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+::deep .leaderboard-name {
+    font-size: 0.875rem;
+    color: #b0b0b0;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+::deep .leaderboard-instrument {
+    font-size: 0.75rem;
+    color: #888888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+::deep .leaderboard-stats {
+    font-size: 0.75rem;
+    color: #999999;
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Level Badge */
+::deep .leaderboard-level {
+    flex-shrink: 0;
+}
+
+::deep .level-pill {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: var(--bs-primary);
+    color: #ffffff;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* XP Score */
+::deep .leaderboard-xp {
+    flex-shrink: 0;
+    min-width: 100px;
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Top 3 Position Styling */
+::deep .leaderboard-card.position-first {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), transparent);
+    border-left: 4px solid #FFD700;
+}
+
+::deep .leaderboard-card.position-first:hover {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+::deep .leaderboard-card.position-first .leaderboard-avatar {
+    border-color: #FFD700;
+}
+
+::deep .leaderboard-card.position-second {
+    background: linear-gradient(90deg, rgba(192, 192, 192, 0.05), transparent);
+    border-left: 4px solid #C0C0C0;
+}
+
+::deep .leaderboard-card.position-second:hover {
+    background: linear-gradient(90deg, rgba(192, 192, 192, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+::deep .leaderboard-card.position-second .leaderboard-avatar {
+    border-color: #C0C0C0;
+}
+
+::deep .leaderboard-card.position-third {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.05), transparent);
+    border-left: 4px solid #CD7F32;
+}
+
+::deep .leaderboard-card.position-third:hover {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+::deep .leaderboard-card.position-third .leaderboard-avatar {
+    border-color: #CD7F32;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    ::deep .leaderboard-card {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    ::deep .leaderboard-rank {
+        width: 40px;
+        font-size: 1.25rem;
+    }
+
+    ::deep .leaderboard-card.position-first .leaderboard-rank,
+    ::deep .leaderboard-card.position-second .leaderboard-rank,
+    ::deep .leaderboard-card.position-third .leaderboard-rank {
+        font-size: 1.5rem;
+    }
+
+    ::deep .leaderboard-avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    ::deep .leaderboard-info {
+        flex: 1 1 100%;
+        order: 3;
+    }
+
+    ::deep .leaderboard-level {
+        flex: 1 1 100%;
+        order: 4;
+    }
+
+    ::deep .level-pill {
+        display: block;
+        text-align: center;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    ::deep .leaderboard-xp {
+        order: 2;
+        min-width: auto;
+        font-size: 1.1rem;
+    }
+
+    ::deep .leaderboard-nickname {
+        font-size: 1rem;
+    }
+
+    ::deep .leaderboard-name {
+        font-size: 0.8rem;
+    }
+
+    ::deep .leaderboard-instrument {
+        font-size: 0.7rem;
+    }
+    
+    ::deep .leaderboard-stats {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+
+@media (max-width: 480px) {
+    .leaderboard-header {
+        padding: 16px;
+    }
+
+    ::deep .leaderboard-header h2 {
+        font-size: 1.25rem;
+    }
+
+    ::deep .leaderboard-card {
+        padding: 10px 12px;
+    }
+    
+    .leaderboard-container {
+        border-radius: 8px;
+    }
+    
+    .ranks-timeline-container {
+        padding: 16px;
+        border-radius: 8px;
+    }
 }
