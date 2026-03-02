@@ -53,6 +53,29 @@ public class SongRepository : Repository<Song>, ISongRepository
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
+    public async Task AddYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)
+    {
+        using var context = CreateContext();
+        await context.Set<SongYouTubeUrl>().AddAsync(youtubeUrl);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Overrides base delete to include YouTubeUrls so InMemory cascade delete works.
+    /// </summary>
+    public override async Task DeleteAsync(Song entity)
+    {
+        using var context = CreateContext();
+        var tracked = await context.Set<Song>()
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == entity.Id);
+        if (tracked != null)
+        {
+            context.Set<Song>().Remove(tracked);
+            await context.SaveChangesAsync();
+        }
+    }
+
     public async Task DeleteYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)
     {
         using var context = CreateContext();

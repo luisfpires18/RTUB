@@ -181,28 +181,23 @@ public class BattleServiceTests : IDisposable
         _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
             .Returns(combatResult);
 
-        var initialXP = playerCharacter.XP;
-        var initialFidelis = user.FidelisBalance;
-
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
         // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
-        // XP = round(100 * 1.0) = 100
+        // XP = round(100 * 1.0) = 100  (pre-computed on DTO, no longer applied to character)
         battle.AttackerXP.Should().Be(100);
-        // Fidelis = round(120 * 1.0, 2) = 120.00
+        // Fidelis = round(120 * 1.0, 2) = 120.00  (pre-computed on DTO, no longer applied to user)
         battle.AttackerFidelis.Should().Be(120.00m);
 
-        // Verify character gained XP (may have leveled up, resetting XP to 0)
+        // Verify arena stats were applied to character (arena only awards rating, not XP/Fidelis)
+        _context.ChangeTracker.Clear();
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
-        (updatedCharacter!.Level > 1 || updatedCharacter.XP > initialXP).Should().BeTrue(
-            "character should have gained XP or leveled up");
-
-        // Verify user Fidelis was updated via DbContext
-        var updatedUser = await _context.Users.FindAsync("user1");
-        updatedUser!.FidelisBalance.Should().Be(initialFidelis + 120.00m);
+        updatedCharacter!.ArenaWins.Should().Be(1, "winner should have 1 arena win");
+        // Same level: +10 rating
+        updatedCharacter.ArenaRating.Should().Be(10, "same-level win should give +10 rating");
     }
 
     [Fact]
@@ -289,27 +284,21 @@ public class BattleServiceTests : IDisposable
         _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
             .Returns(combatResult);
 
-        var initialXP = playerCharacter.XP;
-        var initialFidelis = user.FidelisBalance;
-
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
         // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
-        // XP = round(50 * 1.0) = 50
+        // XP = round(50 * 1.0) = 50  (pre-computed on DTO, no longer applied to character)
         battle.AttackerXP.Should().Be(50);
-        // Fidelis = round(40 * 1.0, 2) = 40.00
+        // Fidelis = round(40 * 1.0, 2) = 40.00  (pre-computed on DTO, no longer applied to user)
         battle.AttackerFidelis.Should().Be(40.00m);
 
-        // Verify character XP was updated
+        // Verify arena stats: draws give 0 rating change
+        _context.ChangeTracker.Clear();
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
-        updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
-
-        // Verify user Fidelis was updated via DbContext
-        var updatedUser = await _context.Users.FindAsync("user1");
-        updatedUser!.FidelisBalance.Should().Be(initialFidelis + 40.00m);
+        updatedCharacter!.ArenaRating.Should().Be(0, "draws should not change arena rating");
     }
 
     [Fact]
@@ -443,8 +432,6 @@ public class BattleServiceTests : IDisposable
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
-        var initialPlayerXP = playerCharacter.XP;
-
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
@@ -470,13 +457,15 @@ public class BattleServiceTests : IDisposable
 
         // Assert
         // Level 1 vs higher level: levelDiff > 0 → levelDiffMult > 1.0
-        // XP = round(BaseWinXP(100) * levelDiffMult) > 100
+        // XP = round(BaseWinXP(100) * levelDiffMult) > 100  (pre-computed on DTO)
         battle.AttackerXP.Should().BeGreaterThan(100, "because higher-level opponents should give bonus XP");
 
-        // Verify XP was applied to character (may have leveled up, so check level or XP increased)
+        // Verify arena stats were applied (arena only awards rating, not XP/Fidelis)
+        _context.ChangeTracker.Clear();
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
-        (updatedCharacter!.XP + (updatedCharacter.Level - 1) * 100).Should().BeGreaterThan(initialPlayerXP,
-            "character should have gained XP (may have leveled up)");
+        updatedCharacter!.ArenaWins.Should().Be(1, "winner should have 1 arena win");
+        // Opponent higher level: +15 rating
+        updatedCharacter.ArenaRating.Should().Be(15, "beating a higher-level opponent should give +15 rating");
     }
 
     [Fact]

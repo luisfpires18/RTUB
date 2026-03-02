@@ -157,6 +157,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _rehearsalService.UpdateRehearsalAsync(rehearsal.Id, "New Location", "New Theme", "New Description", "New Notes");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Rehearsals.FindAsync(rehearsal.Id);
         updated!.Location.Should().Be("New Location");
         updated.Theme.Should().Be("New Theme");
@@ -185,6 +186,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _rehearsalService.CancelRehearsalAsync(rehearsal.Id, "Test reason");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var canceled = await _context.Rehearsals.FindAsync(rehearsal.Id);
         canceled!.IsCanceled.Should().BeTrue();
         canceled.CancellationReason.Should().Be("Test reason");
@@ -211,6 +213,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _rehearsalService.DeleteRehearsalAsync(rehearsal.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Rehearsals.FindAsync(rehearsal.Id);
         deleted.Should().BeNull();
     }

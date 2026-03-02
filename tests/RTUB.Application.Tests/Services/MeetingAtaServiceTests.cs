@@ -48,6 +48,8 @@ public class MeetingAtaServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _mockContextFactory = new Mock<IDbContextFactory<ApplicationDbContext>>();
         _mockContextFactory.Setup(f => f.CreateDbContext())
             .Returns(() => _fixture.CreateContext());
+        _mockContextFactory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => _fixture.CreateContext());
 
         _ataService = new MeetingAtaService(
             _ataRepository,

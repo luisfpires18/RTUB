@@ -208,6 +208,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _eventService.CancelEventAsync(eventId, cancellationReason);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var cancelledEvent = await _context.Events.FindAsync(eventId);
         cancelledEvent.Should().NotBeNull();
         cancelledEvent!.IsCancelled.Should().BeTrue();
@@ -241,6 +242,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _eventService.UncancelEventAsync(eventId);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var uncancelledEvent = await _context.Events.FindAsync(eventId);
         uncancelledEvent.Should().NotBeNull();
         uncancelledEvent!.IsCancelled.Should().BeFalse();
@@ -647,6 +649,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _eventService.CancelEventAsync(eventEntity.Id, "Cancelled");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var enrollments = await _context.Enrollments.Where(e => e.EventId == eventEntity.Id).ToListAsync();
         enrollments.Should().BeEmpty();
 

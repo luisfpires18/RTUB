@@ -252,6 +252,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, false, InstrumentType.Bandolim);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.RehearsalAttendances.FindAsync(attendance.Id);
         updated!.Attended.Should().BeFalse();
         updated.Instrument.Should().Be(InstrumentType.Bandolim);
@@ -282,6 +283,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         await _attendanceService.DeleteAttendanceAsync(attendance.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deleted = await _context.RehearsalAttendances.FindAsync(attendance.Id);
         deleted.Should().BeNull();
     }

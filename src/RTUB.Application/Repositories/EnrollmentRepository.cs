@@ -120,8 +120,14 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
     public async Task DeleteByEventIdAsync(int eventId)
     {
         using var context = CreateContext();
-        await context.Enrollments
+        var enrollments = await context.Enrollments
             .Where(e => e.EventId == eventId)
-            .ExecuteDeleteAsync();
+            .ToListAsync();
+
+        if (enrollments.Count > 0)
+        {
+            context.Enrollments.RemoveRange(enrollments);
+            await context.SaveChangesAsync();
+        }
     }
 }

@@ -489,6 +489,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _meetingService.DeleteMeetingAsync(meetingId);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Meetings.FindAsync(meetingId);
         deleted.Should().BeNull();
     }

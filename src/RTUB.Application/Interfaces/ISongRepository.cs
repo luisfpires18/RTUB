@@ -36,6 +36,12 @@ public interface ISongRepository : IRepository<Song>
     Task<Song?> GetSongForUpdateAsync(int id);
 
     /// <summary>
+    /// Adds a YouTube URL to a song
+    /// </summary>
+    /// <param name="youtubeUrl">The YouTube URL entity to add</param>
+    Task AddYouTubeUrlAsync(SongYouTubeUrl youtubeUrl);
+
+    /// <summary>
     /// Deletes a YouTube URL from a song
     /// </summary>
     /// <param name="youtubeUrl">The YouTube URL entity to delete</param>

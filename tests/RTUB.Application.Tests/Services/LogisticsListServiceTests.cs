@@ -204,6 +204,7 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.UpdateListAsync(list.Id, "Updated Name");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsLists.FindAsync(list.Id);
         updated!.Name.Should().Be("Updated Name");
     }
@@ -233,6 +234,7 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.UpdateListPositionAsync(list.Id, 5);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsLists.FindAsync(list.Id);
         updated!.Position.Should().Be(5);
     }

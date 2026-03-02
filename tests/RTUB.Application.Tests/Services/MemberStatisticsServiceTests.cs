@@ -402,7 +402,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
 
         // Act & Assert
         var act = () => new MemberStatisticsService(null!, xpSettings);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("context");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("contextFactory");
     }
 
     [Fact]

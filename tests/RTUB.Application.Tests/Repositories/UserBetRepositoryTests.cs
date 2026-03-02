@@ -188,7 +188,7 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task GetByBetIdAsync_IncludesUserAndBetOption()
+    public async Task GetByBetIdAsync_IncludesBetOptionButNotUser()
     {
         // Arrange
         var user1 = CreateTestUser("ubet-betid-include-test", "include@test.com");
@@ -201,17 +201,18 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Assert
         result.Should().HaveCount(1);
-        result.First().User.Should().NotBeNull();
-        result.First().User!.Id.Should().Be(user1.Id);
-        result.First().User!.Email.Should().Be("include@test.com");
+        // GetByBetIdAsync intentionally does NOT include User to avoid tracking conflicts
+        // Users are loaded separately in BetService
+        result.First().User.Should().BeNull();
         result.First().BetOption.Should().NotBeNull();
         result.First().BetOption!.Title.Should().Be("Test Option");
     }
 
     [Fact]
-    public async Task GetByBetIdAsync_DoesNotUseAsNoTracking()
+    public async Task GetByBetIdAsync_ReturnsDetachedEntities()
     {
-        // Arrange - Note: GetByBetIdAsync does NOT use AsNoTracking() because entities will be modified
+        // Arrange - GetByBetIdAsync creates and disposes its own context,
+        // so returned entities are always detached from any external context
         var user1 = CreateTestUser("ubet-betid-tracking-test");
         var bet = CreateTestBet();
         var option = CreateTestBetOption(bet.Id);
@@ -221,13 +222,14 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
         var result = await _repository.GetByBetIdAsync(bet.Id);
         var firstUserBet = result.First();
 
-        // Modify the user bet
+        // Modify the returned entity and save on _context
         firstUserBet.FidelisAmount = 999m;
         await _context.SaveChangesAsync();
 
-        // Verify user bet WAS tracked (current behavior - intentional for modification)
+        // Verify mutation was NOT persisted — entity is detached (came from a disposed internal context)
+        _context.ChangeTracker.Clear();
         var freshUserBet = await _context.UserBets.FindAsync(userBet.Id);
-        freshUserBet!.FidelisAmount.Should().Be(999m, "UserBet is tracked when using GetByBetIdAsync (intentional for modification)");
+        freshUserBet!.FidelisAmount.Should().Be(100m, "Returned entity is detached from any active context, so mutations are not persisted");
     }
 
     [Fact]

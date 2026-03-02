@@ -148,15 +148,14 @@ public class SongService : ISongService
             return; // URL already exists, don't add duplicate
         }
 
-        // Add YouTube URL to song
+        // Add YouTube URL to song directly via repository
         var youtubeUrl = new SongYouTubeUrl
         {
             SongId = songId,
             Url = url.Trim()
         };
 
-        song.YouTubeUrls.Add(youtubeUrl);
-        await _songRepository.UpdateAsync(song);
+        await _songRepository.AddYouTubeUrlAsync(youtubeUrl);
     }
 
     public async Task RemoveYouTubeUrlAsync(int songId, string url)

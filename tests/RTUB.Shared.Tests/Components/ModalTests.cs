@@ -93,13 +93,14 @@ public class ModalTests : TestContext
     [Fact]
     public void Modal_DoesNotRenderFooter_WhenFooterContentIsNull()
     {
-        // Arrange & Act
+        // Arrange & Act — also disable ShowCloseButton (default true) which renders a fallback footer
         var cut = RenderComponent<Modal>(parameters => parameters
             .Add(p => p.Show, true)
-            .Add(p => p.Title, "Test"));
+            .Add(p => p.Title, "Test")
+            .Add(p => p.ShowCloseButton, false));
 
         // Assert
-        cut.Markup.Should().NotContain("modal-footer", "modal should not have footer when FooterContent is null");
+        cut.Markup.Should().NotContain("modal-footer", "modal should not have footer when FooterContent is null and ShowCloseButton is false");
     }
 
     [Fact]
@@ -111,7 +112,7 @@ public class ModalTests : TestContext
             .Add(p => p.Title, "Test"));
 
         // Assert
-        cut.Markup.Should().Contain("btn-close", "modal should have close button by default");
+        cut.Markup.Should().Contain("modal-close-arrow", "modal should have close button by default");
     }
 
     [Fact]
@@ -124,7 +125,7 @@ public class ModalTests : TestContext
             .Add(p => p.ShowCloseButton, false));
 
         // Assert
-        cut.Markup.Should().NotContain("btn-close", "modal should not have close button when ShowCloseButton is false");
+        cut.Markup.Should().NotContain("modal-close-arrow", "modal should not have close button when ShowCloseButton is false");
     }
 
     [Fact]
@@ -218,7 +219,7 @@ public class ModalTests : TestContext
             })));
 
         // Act
-        var closeButton = cut.Find("button.btn-close");
+        var closeButton = cut.Find("button.modal-close-arrow");
         closeButton.Click();
 
         // Assert
@@ -241,7 +242,7 @@ public class ModalTests : TestContext
             })));
 
         // Act
-        var closeButton = cut.Find("button.btn-close");
+        var closeButton = cut.Find("button.modal-close-arrow");
         closeButton.Click();
 
         // Assert

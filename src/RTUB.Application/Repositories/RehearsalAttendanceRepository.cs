@@ -131,8 +131,10 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
     public async Task DeleteByRehearsalIdAsync(int rehearsalId)
     {
         using var context = CreateContext();
-        await context.RehearsalAttendances
+        var items = await context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsalId)
-            .ExecuteDeleteAsync();
+            .ToListAsync();
+        context.RehearsalAttendances.RemoveRange(items);
+        await context.SaveChangesAsync();
     }
 }

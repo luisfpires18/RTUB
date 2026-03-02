@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Web.Services;
 using RTUB.Web.Tests.Pages.Base;
 using IndexPage = RTUB.Pages.Index;
 
@@ -32,6 +33,9 @@ public class IndexPageTests : PageTestBase
 
         // Setup MediaSessionInterop for AboutUsContent component
         Services.AddSingleton(new RTUB.Web.Interop.MediaSessionInterop(MockJSRuntime.Object));
+
+        // Setup MessagesNotificationService for UnreadMessagesBadge (rendered for authenticated users)
+        Services.AddSingleton(new MessagesNotificationService());
 
         // Setup services for AboutUsContent component
         var mockLabelService = SetupService<ILabelService>();

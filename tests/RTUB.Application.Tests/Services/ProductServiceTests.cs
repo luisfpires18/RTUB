@@ -155,6 +155,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _context.SaveChangesAsync();
 
         await _service.DeleteAsync(product.Id);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
     }
@@ -177,6 +178,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.DeleteAsync(product.Id);
 
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/product.jpg"), Times.Once);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
     }
@@ -191,6 +193,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.DeleteAsync(product.Id);
 
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
     }

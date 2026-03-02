@@ -437,6 +437,9 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var deleted = await _songService.GetSongByIdAsync(song.Id);
         deleted.Should().BeNull();
 
+        // Clear tracked entities so _context re-reads from the InMemory store
+        _context.ChangeTracker.Clear();
+
         // Verify YouTube URLs are also deleted
         var orphanedUrls = await _context.SongYouTubeUrls
             .Where(u => u.SongId == song.Id)
