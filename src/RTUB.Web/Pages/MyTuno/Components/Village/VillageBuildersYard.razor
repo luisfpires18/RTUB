@@ -1,0 +1,43 @@
+@using RTUB.Application.DTOs
+
+@if (State.ActiveBuildJob != null)
+{
+    <div class="village-panel">
+        <div class="village-panel__header">
+            <span>Estaleiro</span>
+        </div>
+        <div class="village-panel__body">
+            <div class="d-flex align-items-center justify-content-between">
+                <span style="font-size:0.85rem; color:#e2e2e2;">
+                    A construir <strong>@State.ActiveBuildJob.BuildingName</strong> Nv @State.ActiveBuildJob.ToLevel
+                </span>
+                <span style="font-size:0.75rem; color:rgba(255,255,255,0.4);">@FormatTime(BuildTimeRemaining)</span>
+            </div>
+            <div class="village-progress-track mt-2">
+                <div class="village-progress-fill" style="width: @((int)(100.0 * BuildProgress))%; transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    /// <summary>Live build progress (0..1), driven by server-side timer.</summary>
+    [Parameter]
+    public double BuildProgress { get; set; }
+
+    /// <summary>Live remaining seconds, driven by server-side timer.</summary>
+    [Parameter]
+    public double BuildTimeRemaining { get; set; }
+
+    private string FormatTime(double seconds)
+    {
+        if (seconds <= 0) return "Pronto!";
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
+        if (ts.TotalMinutes >= 1) return $"{ts.Minutes}m {ts.Seconds}s";
+        return $"{ts.Seconds}s";
+    }
+}

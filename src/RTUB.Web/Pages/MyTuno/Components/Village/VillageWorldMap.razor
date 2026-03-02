@@ -1,0 +1,97 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <span class="text-muted" style="font-size:0.75rem;">Posição:</span>
+        <strong>@State.PosX | @State.PosY</strong>
+        <span class="text-muted ms-2" style="font-size:0.75rem;">Vista:</span>
+        <strong>@_viewX | @_viewY</strong>
+    </div>
+    <div class="d-flex gap-1">
+        <button class="v-enhance-row__btn" style="padding:0.15rem 0.5rem; font-size:0.7rem;" @onclick="() => Move(0, 1)">↑</button>
+        <button class="v-enhance-row__btn" style="padding:0.15rem 0.5rem; font-size:0.7rem;" @onclick="() => Move(-1, 0)">←</button>
+        <button class="v-enhance-row__btn" style="padding:0.15rem 0.5rem; font-size:0.7rem;" @onclick="CenterOnPlayer">●</button>
+        <button class="v-enhance-row__btn" style="padding:0.15rem 0.5rem; font-size:0.7rem;" @onclick="() => Move(1, 0)">→</button>
+        <button class="v-enhance-row__btn" style="padding:0.15rem 0.5rem; font-size:0.7rem;" @onclick="() => Move(0, -1)">↓</button>
+    </div>
+</div>
+
+<div class="village-worldmap-grid">
+    @for (int row = _viewY + MapRadius; row >= _viewY - MapRadius; row--)
+    {
+        var y = row;
+        @for (int col = _viewX - MapRadius; col <= _viewX + MapRadius; col++)
+        {
+            var x = col;
+            var tile = GetTile(x, y);
+            var isPlayer = x == State.PosX && y == State.PosY;
+            <div class="village-map-tile @(isPlayer ? "village-map-tile--player" : "") village-map-tile--@tile.Type"
+                 title="@tile.Label (@x|@y)">
+                @if (!string.IsNullOrEmpty(tile.Icon))
+                {
+                    <span class="village-map-tile-icon">@tile.Icon</span>
+                }
+                else
+                {
+                    <span class="village-map-tile-empty">—</span>
+                }
+                <span class="village-map-tile-coord">@x|@y</span>
+            </div>
+        }
+    }
+</div>
+
+<div class="d-flex flex-wrap gap-3 justify-content-center mt-2" style="font-size:0.7rem; color:rgba(255,255,255,0.5);">
+    <span>🏰 Povoação</span>
+    <span>🪵 Floresta</span>
+    <span>🪨 Barreiro</span>
+    <span>⛏️ Mina</span>
+    <span>🍖 Quinta</span>
+    <span>🐾 Bestas</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    private const int MapRadius = 4; // 9x9 grid
+    private int _viewX;
+    private int _viewY;
+
+    protected override void OnInitialized()
+    {
+        CenterOnPlayer();
+    }
+
+    private void CenterOnPlayer()
+    {
+        _viewX = State.PosX;
+        _viewY = State.PosY;
+    }
+
+    private void Move(int dx, int dy)
+    {
+        _viewX += dx;
+        _viewY += dy;
+    }
+
+    private record TileInfo(string Type, string Label, string Icon);
+
+    private TileInfo GetTile(int x, int y)
+    {
+        if (x == State.PosX && y == State.PosY)
+            return new("settlement", "A Tua Povoação", "🏰");
+
+        var seed = VillageGameRules.StrHash($"{State.Kingdom}_{x}_{y}");
+        var rng = VillageGameRules.Mulberry32(seed);
+        var val = rng();
+
+        if (val < 0.08) return new("forest", "Floresta", "🪵");
+        if (val < 0.16) return new("clay", "Barreiro", "🪨");
+        if (val < 0.24) return new("iron", "Mina de Ferro", "⛏️");
+        if (val < 0.32) return new("food", "Quinta", "🍖");
+        if (val < 0.38) return new("beasts", "Acampamento de Bestas", "🐾");
+        return new("plains", "", "");
+    }
+}

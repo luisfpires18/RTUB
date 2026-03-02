@@ -1,0 +1,486 @@
+/* ===================================================================
+   My Tuno Village – Scoped Styles
+   woo-travian layout positions/sizes + RTUB purple/dark design tokens
+   =================================================================== */
+
+/* Page wrapper */
+.my-tuno-village-page {
+    max-width: 1600px;
+}
+
+/* ─── Resource Bar (woo-travian style: individual cards in row) ─── */
+::deep .village-res-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+::deep .village-res-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+    border: 1px solid rgba(111, 66, 193, 0.2);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    min-width: 160px;
+    flex: 1;
+    max-width: 240px;
+}
+
+::deep .village-res-card__icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+::deep .village-res-card__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+}
+
+::deep .village-res-card__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+::deep .village-res-card__rate {
+    font-size: 0.6rem;
+    color: #6f42c1;
+    white-space: nowrap;
+    display: block;
+    text-align: right;
+    margin-top: 0.1rem;
+}
+
+/* ─── Panel (woo-travian: rounded-2xl border border-white/10 bg-white/5) ─── */
+::deep .village-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+::deep .village-panel__header {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(111, 66, 193, 0.15);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #e2e2e2;
+}
+
+::deep .village-panel__body {
+    padding: 0.75rem;
+}
+
+/* ─── Tabs (woo-travian style) ─── */
+::deep .village-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+::deep .village-tab {
+    background: transparent;
+    border: 1px solid rgba(111, 66, 193, 0.2);
+    border-radius: 8px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+::deep .village-tab:hover {
+    color: #e2e2e2;
+    border-color: rgba(111, 66, 193, 0.4);
+}
+
+::deep .village-tab--active {
+    color: #fff;
+    border-color: #6f42c1;
+    background: rgba(111, 66, 193, 0.15);
+}
+
+::deep .village-tab--right {
+    margin-left: auto;
+}
+
+/* ─── Group Card (woo-travian: rounded-2xl border bg-white/5 p-3) ─── */
+::deep .village-group-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 14px;
+    padding: 0.75rem;
+}
+
+::deep .village-group-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+::deep .village-group-card__name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e2e2e2;
+}
+
+/* ─── Badge (pill label) ─── */
+::deep .village-badge {
+    font-size: 0.7rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: #e2e2e2;
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    white-space: nowrap;
+}
+
+/* ─── Tile Grid (field tiles like woo-travian: grid 2/3/4 cols) ─── */
+::deep .village-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    ::deep .village-tile-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    ::deep .village-tile-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+::deep .village-tile {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 10px;
+    padding: 0.5rem;
+}
+
+::deep .village-tile__field-num {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+::deep .village-tile__cost {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Building Grid (woo-travian: grid 2/3 cols) ─── */
+::deep .village-building-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    ::deep .village-building-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+::deep .village-building-tile {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 10px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.15s ease;
+}
+
+::deep .village-building-tile:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::deep .village-building-tile__icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+::deep .village-building-tile__name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    text-align: center;
+}
+
+::deep .village-building-tile__level {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+::deep .village-building-tile__cost {
+    font-size: 0.65rem;
+    margin-top: 0.15rem;
+}
+
+/* ─── Button (woo-travian: restyled to match dark theme) ─── */
+::deep .village-btn {
+    background: linear-gradient(135deg, #1a1a2e, #0f0f1c);
+    color: #e2e2e2;
+    border: 1px solid rgba(111, 66, 193, 0.3);
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+::deep .village-btn:hover:not(:disabled) {
+    border-color: rgba(111, 66, 193, 0.6);
+    background: rgba(111, 66, 193, 0.12);
+    transform: translateY(-1px);
+}
+
+::deep .village-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ─── Troops Grid (woo-travian: simple 2-col name/count) ─── */
+::deep .village-troops-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem 0.75rem;
+}
+
+::deep .village-troops-grid__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+::deep .village-troops-grid__name {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+::deep .village-troops-grid__count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #e2e2e2;
+}
+
+::deep .village-troops-upkeep {
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(111, 66, 193, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+::deep .village-troops-upkeep__value {
+    font-variant-numeric: tabular-nums;
+    color: #e2e2e2;
+}
+
+/* ─── Progress bar (Builder's Yard) ─── */
+::deep .village-progress-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+::deep .village-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6f42c1, #a88ee5);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* ─── Resource chips ─── */
+::deep .res-chip {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+}
+
+::deep .res-chip + .res-chip {
+    margin-left: 0.3rem;
+}
+
+/* ─── Mission templates (woo-travian: rounded-2xl, 2-col layout) ─── */
+::deep .village-mission-template {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 14px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+::deep .village-troop-input {
+    width: 55px !important;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(111, 66, 193, 0.2);
+    color: #e2e2e2;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+/* ─── World Map (inline grid) ─── */
+::deep .village-worldmap-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 2px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+::deep .village-map-tile {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #1a1a2e 0%, #131325 100%);
+    border: 1px solid rgba(111, 66, 193, 0.08);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: default;
+    transition: border-color 0.15s;
+}
+
+::deep .village-map-tile:hover {
+    border-color: rgba(111, 66, 193, 0.35);
+}
+
+::deep .village-map-tile--player {
+    border: 2px solid #6f42c1;
+    background: linear-gradient(180deg, #2a1f4e 0%, #1a1535 100%);
+}
+
+::deep .village-map-tile-icon {
+    font-size: 1rem;
+}
+
+::deep .village-map-tile-coord {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Tip line ─── */
+::deep .village-tip {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* ─── Missions: enhance-row (used only in missions now) ─── */
+::deep .v-enhance-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.6rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(111, 66, 193, 0.1);
+    border-radius: 10px;
+    margin-bottom: 0.4rem;
+}
+
+::deep .v-enhance-row__icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+::deep .v-enhance-row__icon--mission { background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(243, 156, 18, 0.08)); }
+
+::deep .v-enhance-row__info {
+    flex: 1;
+    min-width: 0;
+}
+
+::deep .v-enhance-row__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #e2e2e2;
+}
+
+::deep .v-enhance-row__desc {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+::deep .v-enhance-row__action {
+    display: flex;
+    align-items: center;
+}
+
+::deep .v-enhance-row__btn {
+    background: linear-gradient(135deg, #1a1a2e, #0f0f1c);
+    color: #e2e2e2;
+    border: 1px solid rgba(111, 66, 193, 0.3);
+    padding: 0.25rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+::deep .v-enhance-row__btn:hover:not(:disabled) {
+    border-color: rgba(111, 66, 193, 0.6);
+    background: rgba(111, 66, 193, 0.12);
+}
+
+::deep .v-enhance-row__btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+    ::deep .village-res-bar {
+        gap: 0.4rem;
+    }
+
+    ::deep .village-res-card {
+        min-width: 130px;
+    }
+}

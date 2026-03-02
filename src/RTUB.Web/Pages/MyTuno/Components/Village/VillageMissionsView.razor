@@ -1,0 +1,207 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+
+@* ─── Completed missions awaiting claim ─── *@
+@if (State.ActiveMissions.Any(m => m.Status != "Ongoing" && !m.Claimed))
+{
+    <h6 class="text-muted mb-2" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">
+        Resultados
+    </h6>
+    @foreach (var mission in State.ActiveMissions.Where(m => m.Status != "Ongoing" && !m.Claimed))
+    {
+        <div class="v-enhance-row">
+            <div class="v-enhance-row__icon v-enhance-row__icon--mission">
+                @(mission.Status == "Success" ? "✅" : "❌")
+            </div>
+            <div class="v-enhance-row__info">
+                <div class="v-enhance-row__title">@mission.Name</div>
+                @if (mission.Status == "Success")
+                {
+                    <div class="v-enhance-row__desc">
+                        🪵 @((int)(mission.RewardWood ?? 0))
+                        🪨 @((int)(mission.RewardStone ?? 0))
+                        🍖 @((int)(mission.RewardFood ?? 0))
+                    </div>
+                }
+                @if (mission.Losses?.Count > 0)
+                {
+                    <div class="v-enhance-row__desc text-danger">
+                        Perdas: @string.Join(", ", mission.Losses.Select(l => $"{l.Key}: {l.Value}"))
+                    </div>
+                }
+            </div>
+            <div class="v-enhance-row__action">
+                <button class="v-enhance-row__btn" @onclick="() => OnClaim.InvokeAsync(mission.Id)">
+                    @(mission.Status == "Success" ? "Reclamar" : "Dispensar")
+                </button>
+            </div>
+        </div>
+    }
+}
+
+@* ─── Ongoing missions ─── *@
+@if (State.ActiveMissions.Any(m => m.Status == "Ongoing"))
+{
+    <h6 class="text-muted mb-2 mt-3" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">
+        Em Progresso
+    </h6>
+    @foreach (var mission in State.ActiveMissions.Where(m => m.Status == "Ongoing"))
+    {
+        <div class="v-enhance-row">
+            <div class="v-enhance-row__icon v-enhance-row__icon--mission">⏳</div>
+            <div class="v-enhance-row__info">
+                <div class="v-enhance-row__title">@mission.Name <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">@mission.Difficulty</span></div>
+                <div class="v-enhance-row__desc">
+                    @(mission.RemainingSeconds > 0 ? $"Regressa em {FormatTime(mission.RemainingSeconds)}" : "Completa! Atualiza para ver.")
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@* ─── Mission templates ─── *@
+<h6 class="text-muted mb-2 mt-3" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">
+    Missões Disponíveis
+</h6>
+@foreach (var template in VillageMissionsConfig.Templates)
+{
+    var diff = _selectedDifficulty.GetValueOrDefault(template.Key, VillageMissionDifficulty.Easy);
+    var derived = VillageGameRules.GetMissionDerived(template, diff);
+
+    <div class="village-mission-template">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+            <div>
+                <strong>@template.Name</strong>
+                <div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">@string.Join(", ", template.Beasts)</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm village-troop-input" style="width:auto;"
+                        value="@diff"
+                        @onchange="e => SetDifficulty(template.Key, e)">
+                    <option value="@VillageMissionDifficulty.Easy">Fácil</option>
+                    <option value="@VillageMissionDifficulty.Medium">Médio</option>
+                    <option value="@VillageMissionDifficulty.Hard">Difícil</option>
+                </select>
+                <span class="badge bg-secondary" style="font-size:0.65rem;">@derived.RequiredPower Pwr • @derived.DurationSec s</span>
+            </div>
+        </div>
+
+        <div class="mb-2" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">
+            Recompensa:
+            <span class="res-chip">🪵 @((int)derived.RewardWood)</span>
+            <span class="res-chip">🪨 @((int)derived.RewardStone)</span>
+            <span class="res-chip">🍖 @((int)derived.RewardFood)</span>
+        </div>
+
+        @* Troop assignment *@
+        <div class="row g-2">
+            <div class="col-md-7">
+                @foreach (var unit in VillageUnitsConfig.All)
+                {
+                    var have = State.Troops.GetValueOrDefault(unit.Type);
+                    <div class="d-flex align-items-center gap-2 mb-1" style="font-size:0.8rem;">
+                        <span>@unit.Icon</span>
+                        <span style="min-width:80px;">@unit.Name</span>
+                        <span class="text-muted" style="font-size:0.65rem;">@unit.Attack atk • @have disp.</span>
+                        <input type="number" class="form-control form-control-sm village-troop-input"
+                               min="0" max="@have"
+                               value="@GetDraft(template.Key, unit.Type)"
+                               @onchange="e => SetDraft(template.Key, unit.Type, e)" />
+                    </div>
+                }
+            </div>
+            <div class="col-md-5">
+                <div class="mb-1" style="font-size:0.8rem;">
+                    Poder: <strong class="@(ComputePower(template.Key) >= derived.RequiredPower ? "text-success" : "text-danger")">
+                        @ComputePower(template.Key)
+                    </strong> / @derived.RequiredPower
+                </div>
+                <div class="mb-2" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">
+                    Perdas estimadas: @EstimatedLosses(template.Key, derived.RequiredPower)
+                </div>
+                <button class="v-enhance-row__btn"
+                        disabled="@(!CanDispatch(template.Key, derived.RequiredPower))"
+                        @onclick="() => HandleDispatch(template.Key, diff)">
+                    Enviar Missão
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<(string MissionKey, VillageMissionDifficulty Difficulty, Dictionary<VillageUnitType, int> Troops)> OnDispatch { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnClaim { get; set; }
+
+    private Dictionary<string, VillageMissionDifficulty> _selectedDifficulty = new();
+    private Dictionary<string, Dictionary<VillageUnitType, int>> _drafts = new();
+
+    private void SetDifficulty(string key, ChangeEventArgs e)
+    {
+        if (Enum.TryParse<VillageMissionDifficulty>(e.Value?.ToString(), out var d))
+            _selectedDifficulty[key] = d;
+    }
+
+    private int GetDraft(string missionKey, VillageUnitType unitType)
+    {
+        if (_drafts.TryGetValue(missionKey, out var dict) && dict.TryGetValue(unitType, out var val))
+            return val;
+        return 0;
+    }
+
+    private void SetDraft(string missionKey, VillageUnitType unitType, ChangeEventArgs e)
+    {
+        if (!_drafts.ContainsKey(missionKey))
+            _drafts[missionKey] = new();
+
+        if (int.TryParse(e.Value?.ToString(), out var val))
+        {
+            var max = State.Troops.GetValueOrDefault(unitType);
+            _drafts[missionKey][unitType] = Math.Clamp(val, 0, max);
+        }
+    }
+
+    private int ComputePower(string missionKey)
+    {
+        if (!_drafts.TryGetValue(missionKey, out var dict)) return 0;
+        return VillageGameRules.TotalAttackPower(dict);
+    }
+
+    private string EstimatedLosses(string missionKey, int requiredPower)
+    {
+        var power = ComputePower(missionKey);
+        if (power <= 0) return "—";
+        var ratio = VillageGameRules.CasualtiesRatio(power, requiredPower);
+        if (ratio <= 0) return "Nenhuma";
+        return $"~{(ratio * 100):F0}%";
+    }
+
+    private bool CanDispatch(string missionKey, int requiredPower)
+    {
+        var power = ComputePower(missionKey);
+        return power >= requiredPower;
+    }
+
+    private async Task HandleDispatch(string missionKey, VillageMissionDifficulty difficulty)
+    {
+        var troops = _drafts.GetValueOrDefault(missionKey) ?? new();
+        var filtered = troops.Where(kvp => kvp.Value > 0).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        await OnDispatch.InvokeAsync((missionKey, difficulty, filtered));
+        _drafts.Remove(missionKey);
+    }
+
+    private string FormatTime(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
+        if (ts.TotalMinutes >= 1) return $"{ts.Minutes}m {ts.Seconds}s";
+        return $"{ts.Seconds}s";
+    }
+}

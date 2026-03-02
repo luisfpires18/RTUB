@@ -89,6 +89,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IItemTypeConfigRepository, ItemTypeConfigRepository>();
         services.AddScoped<IForgeComboConfigRepository, ForgeComboConfigRepository>();
 
+        // Village Game repositories
+        services.AddScoped<IVillageRepository, VillageRepository>();
+
         return services;
     }
 
@@ -282,6 +285,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IGameFilterService, GameFilterService>();
         services.AddScoped<ITimeFormatter, TimeFormatter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers village game services
+    /// </summary>
+    public static IServiceCollection AddVillageServices(this IServiceCollection services)
+    {
+        services.AddScoped<IVillageService, VillageService>();
 
         return services;
     }

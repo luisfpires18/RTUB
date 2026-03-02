@@ -1,0 +1,47 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+
+@* Resource bar: producible resources + unique stats *@
+<div class="village-res-bar">
+    @foreach (var res in _resources)
+    {
+        <div class="village-res-card">
+            <span class="village-res-card__icon">@res.Icon</span>
+            <span class="village-res-card__label">@res.Name</span>
+            <span class="village-res-card__value" id="village-res-@res.Key">@((int)res.Amount)</span>
+            <span class="village-res-card__rate">+@res.Rate.ToString("F2")/s Cap @((int)State.StorageCap)</span>
+        </div>
+    }
+
+    @* Unique stats (no rate, display only) *@
+    <div class="village-res-card village-res-card--unique">
+        <span class="village-res-card__icon">👥</span>
+        <span class="village-res-card__label">População</span>
+        <span class="village-res-card__value">@State.Population</span>
+    </div>
+    <div class="village-res-card village-res-card--unique">
+        <span class="village-res-card__icon">⭐</span>
+        <span class="village-res-card__label">Prestígio</span>
+        <span class="village-res-card__value">@((int)State.Prestige)</span>
+    </div>
+    <div class="village-res-card village-res-card--unique">
+        <span class="village-res-card__icon">💰</span>
+        <span class="village-res-card__label">Dinheiro</span>
+        <span class="village-res-card__value">@((int)State.Money)</span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    private record ResourceDisplay(string Key, string Name, string Icon, double Amount, double Rate);
+
+    private ResourceDisplay[] _resources => new[]
+    {
+        new ResourceDisplay("wood", "Madeira", "🪵", State.Wood, State.WoodRate),
+        new ResourceDisplay("stone", "Pedra", "🪨", State.Stone, State.StoneRate),
+        new ResourceDisplay("food", "Comida", "🍖", State.Food, State.FoodRate),
+    };
+}

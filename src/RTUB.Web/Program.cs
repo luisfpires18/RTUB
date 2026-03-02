@@ -448,6 +448,7 @@ public class Program
         services.AddQuestionServices();
         services.AddRankingServices();
         services.AddGameServices();
+        services.AddVillageServices();
         services.AddFinanceServices();
         services.AddBettingServices();
         services.AddEmailServices();

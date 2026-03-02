@@ -1,0 +1,346 @@
+@page "/my-tuno-village"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+@using RTUB.Shared.Components.UI
+@using RTUB.Pages.MyTuno.Components.Village
+@attribute [Authorize(Roles = "Owner")]
+@implements IDisposable
+@inject IVillageService VillageService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>My Tuno Village - RTUB</PageTitle>
+
+<div class="my-tuno-village-page container-fluid">
+    @* ─── Header (RTUB page-header-centered pattern, no back button) ─── *@
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-houses me-2"></i>My Tuno Village</h1>
+            <p class="page-header-subtitle">Gere a tua vila, produz recursos e envia missões.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex"></div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_state == null)
+    {
+        <EmptyState Title="Erro ao carregar"
+                    Message="Não foi possível carregar a vila."
+                    Icon="bi-exclamation-triangle" />
+    }
+    else
+    {
+        @* ─── Resource Bar (woo-travian style: individual res cards) ─── *@
+        <VillageResourceBar State="_state" />
+
+        @* ─── Toast ─── *@
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <div class="mb-3">
+                <Alert Type="@(_statusIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+                       Message="@_statusMessage"
+                       Dismissible="true"
+                       OnDismiss="@(() => _statusMessage = null)" />
+            </div>
+        }
+
+        @* ─── Top Row: Builders Yard + Units side by side ─── *@
+        <div class="row g-4 mb-3">
+            <div class="col-lg-8">
+                <VillageBuildersYard State="_state" BuildProgress="_buildProgress" BuildTimeRemaining="_buildTimeRemaining" />
+            </div>
+            <div class="col-lg-4">
+                <div class="village-panel">
+                    <div class="village-panel__header">
+                        <span>Unidades</span>
+                    </div>
+                    <div class="village-panel__body">
+                        <VillageTroopsPanel State="_state" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ─── Holdings Panel (full width) ─── *@
+        <div class="row g-4">
+            <div class="col-12">
+
+                @* Holdings Panel (card with tabs) *@
+                <div class="village-panel mt-3">
+                    <div class="village-panel__header">
+                        <span>@_state.Kingdom — Holdings</span>
+                    </div>
+                    <div class="village-panel__body">
+                        @* Tab bar *@
+                        <div class="village-tabs">
+                            <button type="button" class="village-tab @(_activeTab == 0 ? "village-tab--active" : "")" @onclick="() => _activeTab = 0">
+                                Campos de Recursos
+                            </button>
+                            <button type="button" class="village-tab @(_activeTab == 1 ? "village-tab--active" : "")" @onclick="() => _activeTab = 1">
+                                Edifícios
+                            </button>
+                            <button type="button" class="village-tab @(_activeTab == 2 ? "village-tab--active" : "")" @onclick="() => _activeTab = 2">
+                                Missões
+                            </button>
+                            <button type="button" class="village-tab village-tab--right @(_activeTab == 3 ? "village-tab--active" : "")" @onclick="() => _activeTab = 3">
+                                Mapa
+                            </button>
+                        </div>
+
+                        @* Tab Content *@
+                        <div class="village-tab-content">
+                            @switch (_activeTab)
+                            {
+                                case 0:
+                                    <VillageResourceFields State="_state" OnUpgrade="HandleFieldUpgrade" />
+                                    break;
+                                case 1:
+                                    <VillageOverview State="_state"
+                                                   OnConstructBuilding="HandleConstructBuilding"
+                                                   OnUpgradeBuilding="HandleUpgradeBuilding" />
+                                    break;
+                                case 2:
+                                    <VillageMissionsView State="_state"
+                                                       OnDispatch="HandleDispatchMission"
+                                                       OnClaim="HandleClaimMission" />
+                                    break;
+                                case 3:
+                                    <VillageWorldMap State="_state" />
+                                    break;
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <p class="village-tip mt-2">Dica: O tempo de treino escala com o nível do edifício.</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private VillageStateDto? _state;
+    private bool _isLoading = true;
+    private int _activeTab;
+    private string? _statusMessage;
+    private bool _statusIsError;
+    private DotNetObjectReference<MyTunoVillage>? _dotNetRef;
+    private bool _jsTimerStarted;
+
+    // Build progress bar state (Destilaria pattern: server-side timer)
+    private double _buildProgress;
+    private double _buildTimeRemaining;
+    private DateTime _buildStartTime;
+    private double _buildDurationSecs;
+    private System.Threading.Timer? _buildBarTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userId = await GetUserId();
+            if (string.IsNullOrEmpty(userId)) return;
+            _state = await VillageService.GetOrCreateVillageStateAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Erro ao carregar vila: {ex.Message}", true);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _state != null)
+        {
+            await StartJsTimer();
+            StartBuildBarTimer();
+        }
+    }
+
+    private async Task StartJsTimer()
+    {
+        if (_jsTimerStarted || _state == null) return;
+        try
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("villageTimer.start", _dotNetRef,
+                new { wood = _state.Wood, stone = _state.Stone, food = _state.Food },
+                new { wood = _state.WoodRate, stone = _state.StoneRate, food = _state.FoodRate },
+                _state.StorageCap);
+            _jsTimerStarted = true;
+        }
+        catch { }
+    }
+
+    private async Task SyncJsTimer()
+    {
+        if (_state == null) return;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("villageTimer.sync",
+                new { wood = _state.Wood, stone = _state.Stone, food = _state.Food },
+                new { wood = _state.WoodRate, stone = _state.StoneRate, food = _state.FoodRate },
+                _state.StorageCap);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Start (or restart) the server-side build progress timer (Destilaria pattern).
+    /// Ticks every 1s, updates _buildProgress / _buildTimeRemaining, calls StateHasChanged.
+    /// </summary>
+    private void StartBuildBarTimer()
+    {
+        _buildBarTimer?.Dispose();
+        _buildBarTimer = null;
+
+        if (_state?.ActiveBuildJob == null || _state.ActiveBuildJob.RemainingSeconds <= 0)
+        {
+            _buildProgress = 0;
+            _buildTimeRemaining = 0;
+            return;
+        }
+
+        _buildDurationSecs = _state.ActiveBuildJob.DurationSecs;
+        _buildTimeRemaining = _state.ActiveBuildJob.RemainingSeconds;
+        _buildStartTime = DateTime.UtcNow;
+        _buildProgress = Math.Min(1.0, (_buildDurationSecs - _buildTimeRemaining) / _buildDurationSecs);
+
+        _buildBarTimer = new System.Threading.Timer(async _ =>
+        {
+            var elapsed = (DateTime.UtcNow - _buildStartTime).TotalSeconds;
+            var remaining = Math.Max(0, _buildTimeRemaining - elapsed);
+            var progress = Math.Min(1.0, (_buildDurationSecs - (_buildTimeRemaining - elapsed)) / _buildDurationSecs);
+
+            _buildProgress = progress;
+            _buildTimeRemaining = _buildTimeRemaining - elapsed;
+            _buildStartTime = DateTime.UtcNow; // reset anchor
+
+            if (remaining <= 0)
+            {
+                _buildProgress = 1;
+                _buildTimeRemaining = 0;
+                _buildBarTimer?.Dispose();
+                _buildBarTimer = null;
+
+                // Build finished — trigger server sync
+                try
+                {
+                    var userId = await GetUserId();
+                    if (userId != null)
+                    {
+                        _state = await VillageService.TickAndGetStateAsync(userId);
+                        await SyncJsTimer();
+                        StartBuildBarTimer(); // restart if another build queued
+                    }
+                }
+                catch { }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    [JSInvokable("OnPeriodicSync")]
+    public async Task OnPeriodicSync()
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        _state = await VillageService.TickAndGetStateAsync(userId);
+        await SyncJsTimer();
+        StartBuildBarTimer();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<string?> GetUserId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private void ShowStatus(string message, bool isError = false)
+    {
+        _statusMessage = message;
+        _statusIsError = isError;
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            _statusMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // ──── Event Handlers ────
+
+    private async Task HandleFieldUpgrade((VillageResourceType ResourceType, int SlotIndex) args)
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        var result = await VillageService.UpgradeFieldAsync(userId, args.ResourceType, args.SlotIndex);
+        if (result.State != null) _state = result.State;
+        ShowStatus(result.Message, !result.Success);
+        await SyncJsTimer();
+        StartBuildBarTimer();
+    }
+
+    private async Task HandleConstructBuilding(VillageBuildingType buildingType)
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        var result = await VillageService.ConstructBuildingAsync(userId, buildingType);
+        if (result.State != null) _state = result.State;
+        ShowStatus(result.Message, !result.Success);
+        await SyncJsTimer();
+        StartBuildBarTimer();
+    }
+
+    private async Task HandleUpgradeBuilding(VillageBuildingType buildingType)
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        var result = await VillageService.UpgradeBuildingAsync(userId, buildingType);
+        if (result.State != null) _state = result.State;
+        ShowStatus(result.Message, !result.Success);
+        await SyncJsTimer();
+        StartBuildBarTimer();
+    }
+
+    private async Task HandleDispatchMission((string MissionKey, VillageMissionDifficulty Difficulty, Dictionary<VillageUnitType, int> Troops) args)
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        var result = await VillageService.DispatchMissionAsync(userId, args.MissionKey, args.Difficulty, args.Troops);
+        if (result.State != null) _state = result.State;
+        ShowStatus(result.Message, !result.Success);
+        await SyncJsTimer();
+    }
+
+    private async Task HandleClaimMission(int missionId)
+    {
+        var userId = await GetUserId();
+        if (userId == null) return;
+        var result = await VillageService.ClaimMissionAsync(userId, missionId);
+        if (result.State != null) _state = result.State;
+        ShowStatus(result.Message, !result.Success);
+        await SyncJsTimer();
+    }
+
+    public void Dispose()
+    {
+        _buildBarTimer?.Dispose();
+        try { _ = JSRuntime.InvokeVoidAsync("villageTimer.stop"); } catch { }
+        _dotNetRef?.Dispose();
+    }
+}

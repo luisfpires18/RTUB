@@ -153,6 +153,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ItemTypeConfig> ItemTypeConfigs { get; set; }
     public DbSet<ForgeComboConfig> ForgeComboConfigs { get; set; }
 
+    // Village Game DbSets
+    public DbSet<Village> Villages { get; set; }
+    public DbSet<VillageField> VillageFields { get; set; }
+    public DbSet<VillageBuilding> VillageBuildings { get; set; }
+    public DbSet<VillageBuildJob> VillageBuildJobs { get; set; }
+    public DbSet<VillageTroop> VillageTroops { get; set; }
+    public DbSet<VillageMission> VillageMissions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

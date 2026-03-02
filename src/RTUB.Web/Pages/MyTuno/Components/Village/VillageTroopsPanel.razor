@@ -1,0 +1,38 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+
+@* woo-travian style: simple 2-col grid of name + count *@
+<div class="village-troops-grid">
+    @foreach (var unit in VillageUnitsConfig.All)
+    {
+        var count = State.Troops.GetValueOrDefault(unit.Type);
+        <div class="village-troops-grid__row">
+            <span class="village-troops-grid__name">@unit.Name</span>
+            <span class="village-troops-grid__count">@count</span>
+        </div>
+    }
+</div>
+<div class="village-troops-upkeep">
+    <span class="d-flex align-items-center gap-1">
+        <span>🍖</span>
+        <span>Consumo</span>
+    </span>
+    <span class="village-troops-upkeep__value">@ComputeUpkeep().ToString("F2")/s • @((ComputeUpkeep() * 3600).ToString("F0"))/h</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    private double ComputeUpkeep()
+    {
+        double total = 0;
+        foreach (var unit in VillageUnitsConfig.All)
+        {
+            var count = State.Troops.GetValueOrDefault(unit.Type);
+            total += count * unit.Upkeep;
+        }
+        return total;
+    }
+}

@@ -1,0 +1,112 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+
+@* Building card grid with 3-resource costs *@
+<div class="village-group-card">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <span class="village-group-card__icon">🏘️</span>
+            <div>
+                <span class="village-group-card__name">Edifícios da Vila</span>
+                <div style="font-size:0.7rem; color:rgba(255,255,255,0.35);">Gere as estruturas da tua vila</div>
+            </div>
+        </div>
+        @if (State.AvailableBuildings.Count > 0 && State.ActiveBuildJob == null)
+        {
+            <button class="village-btn" @onclick="() => _showAvailable = !_showAvailable">+</button>
+        }
+    </div>
+
+    @* Grid of built buildings *@
+    <div class="village-building-grid mt-3">
+        @if (!State.Buildings.Any(b => b.Value > 0))
+        {
+            <div style="grid-column: 1 / -1; font-size:0.85rem; color:rgba(255,255,255,0.5);">
+                Sem edifícios. Clica <strong style="color:#e2e2e2">+ Adicionar</strong> para construir.
+            </div>
+        }
+        @foreach (var kvp in State.Buildings.Where(b => b.Value > 0))
+        {
+            var meta = VillageBuildingsConfig.Get(kvp.Key);
+            var costTuple = VillageGameRules.GetBuildingCost(kvp.Key, kvp.Value + 1);
+            <div class="village-building-tile">
+                <span class="village-building-tile__icon">@GetBuildingIcon(kvp.Key)</span>
+                <div class="village-building-tile__name">@meta.Name</div>
+                <div class="village-building-tile__level">Nível @kvp.Value</div>
+                <div class="village-building-tile__cost">
+                    <span class="res-chip">🪵 @((int)costTuple.Wood)</span>
+                    <span class="res-chip">🪨 @((int)costTuple.Stone)</span>
+                    <span class="res-chip">🍖 @((int)costTuple.Food)</span>
+                </div>
+                <button class="village-btn mt-2"
+                        disabled="@(!CanUpgradeBuilding(kvp.Key, costTuple))"
+                        @onclick="() => OnUpgradeBuilding.InvokeAsync(kvp.Key)">
+                    Melhorar
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+@* Available Buildings panel *@
+@if (_showAvailable && State.AvailableBuildings.Count > 0)
+{
+    <div class="village-group-card mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="village-group-card__name">Construir Novo Edifício</span>
+            <button class="village-btn" style="font-size:0.7rem;" @onclick="() => _showAvailable = false">Fechar</button>
+        </div>
+        <div class="village-building-grid">
+            @foreach (var buildingType in State.AvailableBuildings)
+            {
+                var meta = VillageBuildingsConfig.Get(buildingType);
+                var costTuple = VillageGameRules.GetBuildingCost(buildingType, 1);
+                <div class="village-building-tile">
+                    <span class="village-building-tile__icon">@GetBuildingIcon(buildingType)</span>
+                    <div class="village-building-tile__name">@meta.Name</div>
+                    <div style="font-size:0.65rem; color:rgba(255,255,255,0.35);">@meta.Description</div>
+                    <div class="village-building-tile__cost">
+                        <span class="res-chip">🪵 @((int)costTuple.Wood)</span>
+                        <span class="res-chip">🪨 @((int)costTuple.Stone)</span>
+                        <span class="res-chip">🍖 @((int)costTuple.Food)</span>
+                    </div>
+                    <button class="village-btn mt-2"
+                            disabled="@(!CanAfford(costTuple))"
+                            @onclick="() => OnConstructBuilding.InvokeAsync(buildingType)">
+                        Construir
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<VillageBuildingType> OnConstructBuilding { get; set; }
+
+    [Parameter]
+    public EventCallback<VillageBuildingType> OnUpgradeBuilding { get; set; }
+
+    private bool _showAvailable;
+
+    private string GetBuildingIcon(VillageBuildingType type) => type switch
+    {
+        VillageBuildingType.SalaDaTuna => "🎵",
+        VillageBuildingType.CentroAcademico => "🎓",
+        VillageBuildingType.Cantina => "🍽️",
+        VillageBuildingType.TeatroMunicipal => "🎭",
+        VillageBuildingType.CamaraMunicipal => "🏛️",
+        _ => "🏠"
+    };
+
+    private bool CanUpgradeBuilding(VillageBuildingType type, (double Wood, double Stone, double Food) cost) =>
+        State.ActiveBuildJob == null && CanAfford(cost);
+
+    private bool CanAfford((double Wood, double Stone, double Food) cost) =>
+        State.Wood >= cost.Wood && State.Stone >= cost.Stone && State.Food >= cost.Food;
+}

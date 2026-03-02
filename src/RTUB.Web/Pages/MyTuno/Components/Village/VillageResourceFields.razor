@@ -1,0 +1,72 @@
+@using RTUB.Application.DTOs
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+
+@* Grouped containers with tile grid: 3 resource types *@
+<div class="d-flex flex-column gap-3">
+    @foreach (var group in _fieldGroups)
+    {
+        <div class="village-group-card">
+            @* Group header: icon circle + name + tile count badge *@
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="village-group-card__icon">@group.Icon</span>
+                    <span class="village-group-card__name">@group.Name</span>
+                </div>
+                <span class="village-badge">Campos @group.Fields.Count</span>
+            </div>
+
+            @* Tile grid *@
+            <div class="village-tile-grid mt-3">
+                @foreach (var field in group.Fields)
+                {
+                    var affordable = CanUpgrade(field);
+                    <div class="village-tile">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="village-badge">Nv @field.Level</span>
+                            <span class="village-tile__field-num">Campo #@(field.SlotIndex + 1)</span>
+                        </div>
+                        <div class="village-tile__cost mt-1">
+                            Próx.:
+                            <span class="@(affordable ? "" : "text-danger")">
+                                <span class="res-chip">🪵 @((int)field.NextCostWood)</span>
+                                <span class="res-chip">🪨 @((int)field.NextCostStone)</span>
+                                <span class="res-chip">🍖 @((int)field.NextCostFood)</span>
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <button class="village-btn"
+                                    disabled="@(!affordable)"
+                                    @onclick="() => OnUpgrade.InvokeAsync((field.ResourceType, field.SlotIndex))">
+                                Melhorar
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VillageStateDto State { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<(VillageResourceType ResourceType, int SlotIndex)> OnUpgrade { get; set; }
+
+    private record FieldGroup(string Name, string Icon, string CssKey, IReadOnlyList<FieldDto> Fields);
+
+    private FieldGroup[] _fieldGroups => new[]
+    {
+        new FieldGroup("Serralharia", "🪵", "wood", State.Fields.Where(f => f.ResourceType == VillageResourceType.Wood).OrderBy(f => f.SlotIndex).ToList()),
+        new FieldGroup("Mina", "🪨", "stone", State.Fields.Where(f => f.ResourceType == VillageResourceType.Stone).OrderBy(f => f.SlotIndex).ToList()),
+        new FieldGroup("Horta", "🍖", "food", State.Fields.Where(f => f.ResourceType == VillageResourceType.Food).OrderBy(f => f.SlotIndex).ToList()),
+    };
+
+    private bool CanUpgrade(FieldDto field) =>
+        State.ActiveBuildJob == null &&
+        State.Wood >= field.NextCostWood &&
+        State.Stone >= field.NextCostStone &&
+        State.Food >= field.NextCostFood;
+}
