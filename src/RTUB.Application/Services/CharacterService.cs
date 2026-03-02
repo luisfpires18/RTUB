@@ -98,9 +98,15 @@ public class CharacterService : ICharacterService
     public decimal GetDailyRewardAmount(int characterLevel, decimal currentBalance = 0m)
     {
         var config = _myTunoConfig.Value.DailyReward;
-        var baseReward = config.BaseFidelis + (characterLevel * config.PerLevelFidelis);
+
+        // Power curve: Multiplier × level^Exponent, floored at BaseFidelis
+        var powerReward = characterLevel > 0
+            ? Math.Round((decimal)(config.Multiplier * Math.Pow(characterLevel, config.Exponent)), 0)
+            : 0m;
+
+        var reward = Math.Max(config.BaseFidelis, powerReward + (characterLevel * config.PerLevelFidelis));
         var balanceBonus = Math.Round(currentBalance * config.BalancePercent, 2);
-        return baseReward + balanceBonus;
+        return reward + balanceBonus;
     }
 
     /// <inheritdoc />

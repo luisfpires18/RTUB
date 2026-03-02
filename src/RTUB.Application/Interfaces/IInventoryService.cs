@@ -183,17 +183,28 @@ public interface IInventoryService
     decimal GetWeaponUpgradeCost(int currentLevel);
 
     /// <summary>
-    /// Calculates ALL drink requirements for a WEAPON upgrade at a given level.
-    /// Weapons require ALL drink tiers from tier 0 through the current tier (cumulative).
-    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
+    /// Calculates drink requirements for a WEAPON upgrade at a given level.
+    /// Returns only the single drink type for the current tier (not cumulative).
     /// </summary>
     List<(InventoryItemType DrinkType, int Quantity)> GetUpgradeDrinkRequirement(int currentLevel);
 
     /// <summary>
-    /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.
-    /// Equipment requires ALL drink tiers from tier 0 through the current tier (cumulative).
+    /// Calculates the Leitão cost for a WEAPON upgrade at a given level.
+    /// Leitão is required starting from the Licor tier (level 301+).
+    /// </summary>
+    int GetUpgradeLeitaoCost(int currentLevel);
+
+    /// <summary>
+    /// Calculates drink requirements for an EQUIPMENT upgrade at a given level.
+    /// Returns only the single drink type for the current tier (not cumulative).
     /// </summary>
     List<(InventoryItemType DrinkType, int Quantity)> GetEquipmentUpgradeDrinkRequirements(int currentLevel);
+
+    /// <summary>
+    /// Calculates the Leitão cost for an EQUIPMENT upgrade at a given level.
+    /// Leitão is required starting from the Licor tier (level 301+).
+    /// </summary>
+    int GetEquipmentUpgradeLeitaoCost(int currentLevel);
 
     /// <summary>
     /// Gets the enhancement level for a specific equipment slot: floor(highestStage / 100) + slot purchased bonus.

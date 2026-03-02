@@ -230,23 +230,23 @@ public class CharacterServiceTests
     [Fact]
     public void GetDailyRewardAmount_Level1_ShouldReturnBaseReward()
     {
-        // Default config: BaseFidelis=500, PerLevelFidelis=5, BalancePercent=0.0
+        // Default config: BaseFidelis=100 (floor), Multiplier=3.6, Exponent=2.44
         var result = _service.GetDailyRewardAmount(1);
-        result.Should().Be(505m); // 500 + (1 * 5) + 0 balance
+        result.Should().Be(100m); // 3.6 * 1^2.44 = 4 → floor at 100
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level50_ShouldScaleWithLevel()
     {
         var result = _service.GetDailyRewardAmount(50);
-        result.Should().Be(750m); // 500 + (50 * 5) + 0 balance
+        result.Should().BeInRange(49_000m, 52_000m); // ~50,317 via power curve
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level0_ShouldReturnBase()
     {
         var result = _service.GetDailyRewardAmount(0);
-        result.Should().Be(500m); // 500 + (0 * 5) + 0 balance
+        result.Should().Be(100m); // floor
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class CharacterServiceTests
     {
         // Default config: BalancePercent=0.0 (no balance bonus in v5)
         var result = _service.GetDailyRewardAmount(1, 10_000m);
-        result.Should().Be(505m); // 500 + (1 * 5) + (10000 * 0 = 0)
+        result.Should().Be(100m); // floor, balance bonus is 0
     }
 
     #endregion
@@ -301,12 +301,12 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(550m); // 500 + (10 * 5) + (100 * 0.0 = 0)
+        reward.Should().BeInRange(900m, 1100m); // ~992 via power curve at level 10
 
         // Verify balance persisted to DB
         using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
         var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        dbUser!.FidelisBalance.Should().Be(650m); // 100 + 550
+        dbUser!.FidelisBalance.Should().BeInRange(1000m, 1200m); // 100 + ~992
         var dbCharacter = await verifyCtx.Characters.FirstOrDefaultAsync(c => c.UserId == userId);
         dbCharacter!.LastDailyRewardClaim.Should().NotBeNull();
         dbCharacter.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
@@ -418,11 +418,11 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(505m); // 500 + (1 * 5) + (500 * 0.0 = 0)
+        reward.Should().Be(100m); // floor at level 1
 
         using var verifyCtx = new ApplicationDbContext(dbOptions, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
         var dbUser = await verifyCtx.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        dbUser!.FidelisBalance.Should().Be(1005m); // 500 + 505
+        dbUser!.FidelisBalance.Should().Be(600m); // 500 + 100
     }
 
     [Theory]

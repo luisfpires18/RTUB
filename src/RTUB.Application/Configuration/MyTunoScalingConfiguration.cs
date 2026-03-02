@@ -757,11 +757,17 @@ public class GatheringResourceConfig
 /// </summary>
 public class DailyRewardConfig
 {
-    /// <summary>Base Fidelis amount for the daily reward.</summary>
-    public decimal BaseFidelis { get; set; } = 500m;
+    /// <summary>Minimum (floor) Fidelis amount for the daily reward.</summary>
+    public decimal BaseFidelis { get; set; } = 100m;
 
-    /// <summary>Additional Fidelis per character level.</summary>
-    public decimal PerLevelFidelis { get; set; } = 5m;
+    /// <summary>Multiplier for the power-curve formula: reward = Multiplier × level^Exponent.</summary>
+    public double Multiplier { get; set; } = 3.6;
+
+    /// <summary>Exponent for the power-curve formula: reward = Multiplier × level^Exponent.</summary>
+    public double Exponent { get; set; } = 2.44;
+
+    /// <summary>Legacy linear per-level bonus (kept for backward compatibility, default 0).</summary>
+    public decimal PerLevelFidelis { get; set; } = 0m;
 
     /// <summary>Percentage of current Fidelis balance added as bonus. Set to 0 in v5.</summary>
     public decimal BalancePercent { get; set; } = 0.0m;

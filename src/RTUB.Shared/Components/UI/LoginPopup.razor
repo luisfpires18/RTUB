@@ -65,6 +65,8 @@
                 ShowPopup = true;
                 StateHasChanged();
             }
+            catch (TaskCanceledException) { }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error checking if login popup should be shown");

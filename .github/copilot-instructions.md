@@ -110,6 +110,8 @@ Combat flow: `DeterministicCombatEngine` pre-computes outcomes (seeded RNG). `Co
 
 xUnit + Moq + FluentAssertions. Naming: `MethodName_Scenario_ExpectedResult`. Tests use **real repositories** backed by EF InMemory provider (not mocked repos). `DatabaseFixture` provides shared context with `CleanDatabase()`. bUnit for Razor component tests. Integration tests use `TestWebApplicationFactory`.
 
+**Mandatory green gate:** After any code change, always run `dotnet test RTUB.sln` and ensure **100 % of tests pass** (0 failures) before considering the work complete. If a change breaks existing tests, fix them in the same commit — never leave the suite red.
+
 ## Key Files
 
 - DI registration: `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`

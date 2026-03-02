@@ -224,7 +224,7 @@ public class BossModeService : IBossModeService
         var highestStage = stageProgress?.HighestStage ?? 1;
 
         var (fidelisReward, leitaoDropped, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped) =
-            CalculateBossRewards(combatResult, bossStage, character.Level, highestStage);
+            CalculateBossRewards(bossStage, character.Level, highestStage);
 
         // Update progress (hasShotBuff and hasPenaltyBuff tracked for potential future use)
         await UpdateProgressAfterBattle(character, progress, combatResult, bossFullHP);
@@ -511,14 +511,16 @@ public class BossModeService : IBossModeService
     }
 
     /// <summary>
-    /// Calculates rewards for defeating a boss in Boss Mode.
+    /// Calculates potential rewards for a boss battle in Boss Mode.
+    /// Always computes rewards regardless of outcome so that interactive combat
+    /// corrections (deterministic predicted loss → interactive win) have the correct
+    /// reward values available on the BossModeBattleResult. The page only accumulates
+    /// rewards when the battle is confirmed as a win.
     /// Boss Mode no longer awards XP — only Fidelis, Leitão, and consumable drops.
     /// </summary>
     private (decimal fidelis, int leitao, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts) CalculateBossRewards(
-        CombatResult combatResult, int bossStage, int characterLevel, int highestStage = 1)
+        int bossStage, int characterLevel, int highestStage = 1)
     {
-        if (combatResult.Outcome != BattleOutcome.AttackerWon)
-            return (0m, 0, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>());
 
         var random = Random.Shared;
         var bossConfig = _config.BossMode;

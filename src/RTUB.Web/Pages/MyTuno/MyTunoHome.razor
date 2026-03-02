@@ -1412,8 +1412,7 @@
         var wpnDrinkReqs = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
         var hasFidelis = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
         var hasDrinks = wpnDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
-        var wpnPiggies = MyTunoConfig.Value.BossMode.Piggies;
-        var wpnLeitaoCost = PiggiesCostConfig.CalculateCost(pendingWeapon.Level, wpnPiggies.WeaponUpgradeStartLevel, wpnPiggies.WeaponUpgradeBaseCost, wpnPiggies.WeaponUpgradeCostEveryNLevels);
+        var wpnLeitaoCost = InventoryService.GetUpgradeLeitaoCost(pendingWeapon.Level);
         var hasLeitaoWpn = wpnLeitaoCost == 0 || leitaoQuantity >= wpnLeitaoCost;
         var canAffordUpgrade = hasFidelis && hasDrinks && hasLeitaoWpn;
         var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
@@ -1681,8 +1680,7 @@
                     var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
                     var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
                     var eqDrinkReqs = InventoryService.GetEquipmentUpgradeDrinkRequirements(eqSlotBonusLevel);
-                    var eqPiggies = MyTunoConfig.Value.BossMode.Piggies;
-                    var eqLeitaoCost = PiggiesCostConfig.CalculateCost(eqSlotBonusLevel, eqPiggies.EquipmentUpgradeStartLevel, eqPiggies.EquipmentUpgradeBaseCost, eqPiggies.EquipmentUpgradeCostEveryNLevels);
+                    var eqLeitaoCost = InventoryService.GetEquipmentUpgradeLeitaoCost(eqSlotBonusLevel);
                     var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
                     var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
                     var hasDrinksEq = eqDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
