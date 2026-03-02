@@ -16,7 +16,9 @@ public class ReportRepository : Repository<Report>, IReportRepository
 
     public async Task<IEnumerable<Report>> GetPublishedWithActivitiesAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Report>()
+            .AsNoTracking()
             .Include(r => r.Activities)
                 .ThenInclude(a => a.Transactions)
             .Where(r => r.IsPublished)
@@ -26,7 +28,8 @@ public class ReportRepository : Repository<Report>, IReportRepository
 
     public async Task<Report?> GetByIdWithActivitiesAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Report>()
             .Include(r => r.Activities)
                 .ThenInclude(a => a.Transactions)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -34,7 +37,9 @@ public class ReportRepository : Repository<Report>, IReportRepository
 
     public async Task<IEnumerable<Report>> GetAllWithActivitiesAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Report>()
+            .AsNoTracking()
             .Include(r => r.Activities)
                 .ThenInclude(a => a.Transactions)
             .ToListAsync();

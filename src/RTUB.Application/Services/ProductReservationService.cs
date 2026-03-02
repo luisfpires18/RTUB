@@ -35,8 +35,8 @@ public class ProductReservationService : IProductReservationService
 
     public async Task<ProductReservation?> GetByProductAndUserAsync(int productId, string userId)
     {
-        return await _productReservationRepository.Query()
-            .FirstOrDefaultAsync(r => r.ProductId == productId && r.UserId == userId);
+        return await _productReservationRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(r => r.ProductId == productId && r.UserId == userId));
     }
 
     public async Task<ProductReservation> CreateAsync(ProductReservation reservation)

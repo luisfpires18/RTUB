@@ -290,9 +290,9 @@ public class EventService : IEventService
 
     public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds, CancellationToken cancellationToken = default)
     {
-        var videos = await _eventVideoRepository.Query()
+        var videos = await _eventVideoRepository.QueryAsync(q => q
             .Where(v => v.EventId == eventId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken), cancellationToken);
 
         for (int i = 0; i < videoIds.Count; i++)
         {

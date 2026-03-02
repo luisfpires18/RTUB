@@ -16,7 +16,8 @@ public class DiscussionRepository : Repository<Discussion>, IDiscussionRepositor
 
     public async Task<Discussion?> GetByIdWithEventAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Discussion>()
             .AsNoTracking()
             .Include(d => d.Event)
             .FirstOrDefaultAsync(d => d.Id == id);
@@ -24,7 +25,8 @@ public class DiscussionRepository : Repository<Discussion>, IDiscussionRepositor
 
     public async Task<Discussion?> GetByEventIdAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Discussion>()
             .AsNoTracking()
             .Include(d => d.Event)
             .FirstOrDefaultAsync(d => d.EventId == eventId);

@@ -44,10 +44,9 @@ public class ActivityService : IActivityService
     public async Task<IEnumerable<Activity>> GetAllActivitiesAsync()
     {
         // Use query to include Transactions for computed properties
-        return await _activityRepository.Query()
-            .AsNoTracking()
+        return await _activityRepository.QueryAsync(q => q
             .Include(a => a.Transactions)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -59,12 +58,11 @@ public class ActivityService : IActivityService
     {
         // Use query to filter and include Transactions for computed properties
         // Order by latest date (EndDate if available, otherwise StartDate) descending
-        return await _activityRepository.Query()
-            .AsNoTracking()
+        return await _activityRepository.QueryAsync(q => q
             .Include(a => a.Transactions)
             .Where(a => a.ReportId == reportId)
             .OrderByDescending(a => a.EndDate ?? a.StartDate)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>

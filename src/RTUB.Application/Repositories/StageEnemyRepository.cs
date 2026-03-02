@@ -35,7 +35,8 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
             if (_allEnemiesCache != null)
                 return _allEnemiesCache;
 
-            _allEnemiesCache = await _contextFactory.CreateDbContext().StageEnemies
+            using var context = _contextFactory.CreateDbContext();
+            _allEnemiesCache = await context.StageEnemies
                 .AsNoTracking()
                 .ToListAsync();
             return _allEnemiesCache;

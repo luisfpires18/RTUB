@@ -114,11 +114,10 @@ public class Activity : BaseEntity
 
 ```csharp
 var entity = await _repository.GetByIdOrThrowAsync(id);
-var entities = await _repository.Query()
-    .AsNoTracking()
+var entities = await _repository.QueryAsync(q => q
     .Include(e => e.RelatedEntity)
     .ThenInclude(r => r.NestedEntity)
-    .ToListAsync();
+    .ToListAsync());
 ```
 
 ### Query Optimization

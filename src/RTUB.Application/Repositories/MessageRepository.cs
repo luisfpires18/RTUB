@@ -16,7 +16,8 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
     public async Task<IEnumerable<Message>> GetConversationMessagesAsync(int conversationId, int? limit = null, int? offset = null)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Message>()
             .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .Include(m => m.Sender)
@@ -39,7 +40,9 @@ public class MessageRepository : Repository<Message>, IMessageRepository
     {
         // Count messages in conversations where user is a participant
         // and the message is not read by the user and not sent by the user
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Message>()
+            .AsNoTracking()
             .Where(m => m.Conversation != null &&
                         m.Conversation.Participants.Contains(userId) &&
                         !m.Conversation.IsArchived &&
@@ -50,7 +53,9 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
     public async Task<int> GetUnreadCountForConversationAsync(int conversationId, string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Message>()
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId &&
                         m.SenderId != userId &&
                         !m.ReadBy.Contains(userId))
@@ -65,7 +70,9 @@ public class MessageRepository : Repository<Message>, IMessageRepository
             return new Dictionary<int, int>();
         }
 
-        var unreadCounts = await _dbSet
+        using var context = CreateContext();
+        var unreadCounts = await context.Set<Message>()
+            .AsNoTracking()
             .Where(m => conversationIdList.Contains(m.ConversationId) &&
                         m.SenderId != userId &&
                         !m.ReadBy.Contains(userId))
@@ -105,7 +112,9 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
     public async Task<Message?> GetLatestMessageAsync(int conversationId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Message>()
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .OrderByDescending(m => m.CreatedAt)
             .FirstOrDefaultAsync();
@@ -121,7 +130,9 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
         // Get the latest message for each conversation using a subquery approach
         // This is more efficient than loading all messages and grouping in memory
-        var latestMessages = await _dbSet
+        using var context = CreateContext();
+        var latestMessages = await context.Set<Message>()
+            .AsNoTracking()
             .Where(m => conversationIdList.Contains(m.ConversationId))
             .GroupBy(m => m.ConversationId)
             .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()!)

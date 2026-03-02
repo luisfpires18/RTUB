@@ -39,14 +39,13 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task<List<LeaderboardCommentDto>> GetCommentsForUserAsync(string targetUserId, string? currentUserId)
     {
-        var comments = await _leaderboardCommentRepository.Query()
-            .AsNoTracking()
+        var comments = await _leaderboardCommentRepository.QueryAsync(q => q
             .Include(c => c.Author)
             .Include(c => c.Likes)
                 .ThenInclude(l => l.User)
             .Where(c => c.TargetUserId == targetUserId && c.DeletedAt == null)
             .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
+            .ToListAsync());
 
         // Check if current user is admin
         bool isAdmin = false;
@@ -124,9 +123,9 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task DeleteCommentAsync(int commentId, string userId, bool isAdmin)
     {
-        var comment = await _leaderboardCommentRepository.Query()
+        var comment = await _leaderboardCommentRepository.QueryAsync(q => q
             .Include(c => c.Likes)
-            .FirstOrDefaultAsync(c => c.Id == commentId);
+            .FirstOrDefaultAsync(c => c.Id == commentId));
 
         if (comment == null)
         {

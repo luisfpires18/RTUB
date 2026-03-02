@@ -45,8 +45,12 @@ public class HallOfFamePageTests : PageTestBase
         var mockAttendanceDbSet = emptyAttendances.BuildMockDbSet();
         SetupAsyncQueryable(mockAttendanceDbSet);
         _mockRehearsalAttendanceRepository
-            .Setup(x => x.Query())
-            .Returns(mockAttendanceDbSet.Object);
+            .Setup(x => x.QueryAsync(It.IsAny<Func<IQueryable<RehearsalAttendance>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockAttendanceDbSet.Object)!;
+            }));
 
         _mockRoleAssignmentService
             .Setup(x => x.GetAllRoleAssignmentsAsync())

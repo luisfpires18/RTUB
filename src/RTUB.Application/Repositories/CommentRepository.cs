@@ -17,7 +17,8 @@ public class CommentRepository : Repository<Comment>, ICommentRepository
 
     public async Task<IEnumerable<Comment>> GetByPostIdAsync(int postId, int page, int pageSize)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Comment>()
             .AsNoTracking()
             .Include(c => c.Author)
             .Include(c => c.Images)
@@ -28,7 +29,9 @@ public class CommentRepository : Repository<Comment>, ICommentRepository
 
     public async Task<int> GetCountByPostIdAsync(int postId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Comment>()
+            .AsNoTracking()
             .Where(c => c.PostId == postId && !c.IsDeleted)
             .CountAsync();
     }
@@ -41,7 +44,9 @@ public class CommentRepository : Repository<Comment>, ICommentRepository
             return new Dictionary<int, int>();
         }
 
-        var counts = await _dbSet
+        using var context = CreateContext();
+        var counts = await context.Set<Comment>()
+            .AsNoTracking()
             .Where(c => postIdsList.Contains(c.PostId) && !c.IsDeleted)
             .GroupBy(c => c.PostId)
             .Select(g => new { PostId = g.Key, Count = g.Count() })

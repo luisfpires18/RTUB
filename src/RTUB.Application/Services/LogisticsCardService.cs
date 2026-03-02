@@ -52,10 +52,10 @@ public class LogisticsCardService : ILogisticsCardService
     /// <returns>The logistics card if found, null otherwise</returns>
     public async Task<LogisticsCard?> GetCardByIdAsync(int id)
     {
-        return await _cardRepository.Query()
+        return await _cardRepository.QueryAsync(q => q
             .Include(c => c.Event)
             .Include(c => c.AssignedToUser)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id));
     }
 
     /// <summary>
@@ -262,8 +262,8 @@ public class LogisticsCardService : ILogisticsCardService
         var card = await _cardRepository.GetByIdOrThrowAsync(cardId);
 
         // Check if assignment already exists
-        var existingAssignment = await _assignmentRepository.Query()
-            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId);
+        var existingAssignment = await _assignmentRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId));
 
         if (existingAssignment != null)
             throw new InvalidOperationException($"Utilizador já está atribuído a este cartão");
@@ -280,8 +280,8 @@ public class LogisticsCardService : ILogisticsCardService
     /// <exception cref="InvalidOperationException">Thrown when the assignment is not found</exception>
     public async Task RemoveCardAssignmentAsync(int cardId, string userId)
     {
-        var assignment = await _assignmentRepository.Query()
-            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId);
+        var assignment = await _assignmentRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId));
 
         if (assignment == null)
             throw new InvalidOperationException($"Atribuição não encontrada");
@@ -296,10 +296,10 @@ public class LogisticsCardService : ILogisticsCardService
     /// <returns>Collection of card assignments with user information</returns>
     public async Task<IEnumerable<LogisticsCardAssignment>> GetCardAssignmentsAsync(int cardId)
     {
-        return await _assignmentRepository.Query()
+        return await _assignmentRepository.QueryAsync(q => q
             .Include(a => a.User)
             .Where(a => a.CardId == cardId)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -420,10 +420,10 @@ public class LogisticsCardService : ILogisticsCardService
     /// <returns>Collection of active reminders ordered by next reminder date</returns>
     public async Task<IEnumerable<LogisticsCardReminder>> GetCardRemindersAsync(int cardId)
     {
-        return await _reminderRepository.Query()
+        return await _reminderRepository.QueryAsync(q => q
             .Where(r => r.CardId == cardId && r.IsActive)
             .OrderBy(r => r.NextReminderDate)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>

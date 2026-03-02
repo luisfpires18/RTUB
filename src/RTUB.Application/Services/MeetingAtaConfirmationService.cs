@@ -29,8 +29,8 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
     /// </summary>
     public async Task<MeetingAtaConfirmation?> GetUserConfirmationAsync(int ataId, string userId)
     {
-        return await _confirmationRepository.Query()
-            .FirstOrDefaultAsync(c => c.MeetingAtaId == ataId && c.UserId == userId);
+        return await _confirmationRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(c => c.MeetingAtaId == ataId && c.UserId == userId));
     }
 
     /// <summary>
@@ -46,8 +46,8 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
         }
 
         // Verify user participated (WillAttend = true)
-        var participation = await _participationRepository.Query()
-            .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend);
+        var participation = await _participationRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend));
 
         if (participation == null)
         {
@@ -82,8 +82,8 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
         }
 
         // Verify user participated (WillAttend = true)
-        var participation = await _participationRepository.Query()
-            .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend);
+        var participation = await _participationRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend));
 
         if (participation == null)
         {
@@ -110,9 +110,9 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
     /// </summary>
     public async Task<IEnumerable<MeetingAtaConfirmation>> GetConfirmationsByAtaIdAsync(int ataId)
     {
-        return await _confirmationRepository.Query()
+        return await _confirmationRepository.QueryAsync(q => q
             .Where(c => c.MeetingAtaId == ataId)
             .Include(c => c.User)
-            .ToListAsync();
+            .ToListAsync());
     }
 }

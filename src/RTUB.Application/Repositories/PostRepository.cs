@@ -17,7 +17,8 @@ public class PostRepository : Repository<Post>, IPostRepository
 
     public override async Task<Post?> GetByIdAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Post>()
             .Include(p => p.Author)
             .Include(p => p.Media)
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -25,7 +26,8 @@ public class PostRepository : Repository<Post>, IPostRepository
 
     public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(int discussionId, int page, int pageSize, string? searchTerm)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Post>()
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Comments)
@@ -42,7 +44,9 @@ public class PostRepository : Repository<Post>, IPostRepository
 
     public async Task<int> GetCountByDiscussionIdAsync(int discussionId, string? searchTerm)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Post>()
+            .AsNoTracking()
             .Where(p => p.DiscussionId == discussionId && !p.IsDeleted)
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
                 p => p.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) ||

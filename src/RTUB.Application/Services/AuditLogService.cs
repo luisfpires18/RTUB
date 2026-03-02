@@ -68,19 +68,10 @@ public class AuditLogService : IAuditLogService
         int page = 1,
         int pageSize = 100)
     {
-        var query = ApplyFilters(
-            _auditLogRepository.Query(),
-            userName,
-            excludeUserName,
-            entityType,
-            action,
-            fromDate,
-            toDate,
-            criticalOnly);
-
-        return await query
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
+        return await _auditLogRepository.QueryAsync(q =>
+            ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly)
+                .OrderByDescending(a => a.Timestamp)
+                .PaginateAsync(page, pageSize));
     }
 
     public async Task<int> GetCountAsync(
@@ -92,26 +83,18 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
-        var query = ApplyFilters(
-            _auditLogRepository.Query(),
-            userName,
-            excludeUserName,
-            entityType,
-            action,
-            fromDate,
-            toDate,
-            criticalOnly);
-
-        return await query.CountAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly)
+                .CountAsync());
     }
 
     public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
     {
-        return await ExcludeHiddenEntities(_auditLogRepository.Query())
-            .AsNoTracking()
-            .Where(a => a.EntityType == entityType && a.EntityId == entityId)
-            .OrderByDescending(a => a.Timestamp)
-            .ToListAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ExcludeHiddenEntities(q)
+                .Where(a => a.EntityType == entityType && a.EntityId == entityId)
+                .OrderByDescending(a => a.Timestamp)
+                .ToListAsync());
     }
 
     public async Task<IEnumerable<AuditLog>> SearchChangesAsync(string searchTerm, int page = 1, int pageSize = 100)
@@ -121,41 +104,42 @@ public class AuditLogService : IAuditLogService
             return Enumerable.Empty<AuditLog>();
         }
 
-        return await ExcludeHiddenEntities(_auditLogRepository.Query())
-            .Where(a => a.Changes != null && a.Changes.Contains(searchTerm))
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
+        return await _auditLogRepository.QueryAsync(q =>
+            ExcludeHiddenEntities(q)
+                .Where(a => a.Changes != null && a.Changes.Contains(searchTerm))
+                .OrderByDescending(a => a.Timestamp)
+                .PaginateAsync(page, pageSize));
     }
 
     public async Task<IEnumerable<string>> GetEntityTypesAsync()
     {
-        return await ExcludeHiddenEntities(_auditLogRepository.Query())
-            .AsNoTracking()
-            .Select(a => a.EntityType)
-            .Distinct()
-            .OrderBy(e => e)
-            .ToListAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ExcludeHiddenEntities(q)
+                .Select(a => a.EntityType)
+                .Distinct()
+                .OrderBy(e => e)
+                .ToListAsync());
     }
 
     public async Task<IEnumerable<string>> GetActionTypesAsync()
     {
-        return await ExcludeHiddenEntities(_auditLogRepository.Query())
-            .AsNoTracking()
-            .Select(a => a.Action)
-            .Distinct()
-            .OrderBy(a => a)
-            .ToListAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ExcludeHiddenEntities(q)
+                .Select(a => a.Action)
+                .Distinct()
+                .OrderBy(a => a)
+                .ToListAsync());
     }
 
     public async Task<IEnumerable<string>> GetUserNamesAsync()
     {
-        return await ExcludeHiddenEntities(_auditLogRepository.Query())
-            .AsNoTracking()
-            .Where(a => a.UserName != null)
-            .Select(a => a.UserName!)
-            .Distinct()
-            .OrderBy(u => u)
-            .ToListAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ExcludeHiddenEntities(q)
+                .Where(a => a.UserName != null)
+                .Select(a => a.UserName!)
+                .Distinct()
+                .OrderBy(u => u)
+                .ToListAsync());
     }
 
     public async Task DeleteAsync(int id)
@@ -189,20 +173,10 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
-        var query = ApplyFilters(
-            _auditLogRepository.Query(),
-            userName,
-            excludeUserName,
-            entityType,
-            action,
-            fromDate,
-            toDate,
-            criticalOnly);
-
-        return await query
-            .AsNoTracking()
-            .OrderByDescending(a => a.Timestamp)
-            .ToListAsync();
+        return await _auditLogRepository.QueryAsync(q =>
+            ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly)
+                .OrderByDescending(a => a.Timestamp)
+                .ToListAsync());
     }
 
     public async Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
@@ -216,25 +190,15 @@ public class AuditLogService : IAuditLogService
         int page = 1,
         int pageSize = 100)
     {
-        var query = ApplyFilters(
-            _auditLogRepository.Query(),
-            userName,
-            excludeUserName,
-            entityType,
-            action,
-            fromDate,
-            toDate,
-            criticalOnly);
-
-        // Get total count
-        var totalCount = await query.CountAsync();
-
-        // Get paged data
-        var logs = await query
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
-
-        return (logs, totalCount);
+        return await _auditLogRepository.QueryAsync(async q =>
+        {
+            var filtered = ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly);
+            var totalCount = await filtered.CountAsync();
+            var logs = await filtered
+                .OrderByDescending(a => a.Timestamp)
+                .PaginateAsync(page, pageSize);
+            return ((IEnumerable<AuditLog>)logs, totalCount);
+        });
     }
 
     public async Task AddAsync(AuditLog auditLog)

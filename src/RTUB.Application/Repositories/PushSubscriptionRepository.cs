@@ -16,7 +16,8 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
 
     public async Task<IEnumerable<PushSubscription>> GetByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<PushSubscription>()
             .Include(s => s.User)
             .AsNoTracking()
             .Where(s => s.UserId == userId)
@@ -25,11 +26,12 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
 
     /// <summary>
     /// Gets a subscription by endpoint URL
-    /// Note: Returns a tracked entity to support update scenarios in SubscribeAsync
     /// </summary>
     public async Task<PushSubscription?> GetByEndpointAsync(string endpoint)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<PushSubscription>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Endpoint == endpoint);
     }
 
@@ -48,7 +50,8 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
 
     public async Task<IEnumerable<PushSubscription>> GetAllActiveAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<PushSubscription>()
             .Include(s => s.User)
             .AsNoTracking()
             .ToListAsync();

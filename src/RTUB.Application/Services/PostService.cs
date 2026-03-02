@@ -89,10 +89,10 @@ public class PostService : IPostService
             if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
             {
                 // Load author to get nickname (use Query to include navigation properties)
-                var authorUser = await _enrollmentRepository.Query()
+                var authorUser = await _enrollmentRepository.QueryAsync(q => q
                     .Where(e => e.UserId == authorId)
                     .Select(e => e.User)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync());
 
                 if (authorUser != null)
                 {
@@ -105,10 +105,10 @@ public class PostService : IPostService
                         baseUrl);
 
                     // Get enrolled users with WillAttend=true (excluding the author)
-                    var enrolledUserIds = await _enrollmentRepository.Query()
+                    var enrolledUserIds = await _enrollmentRepository.QueryAsync(q => q
                         .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId && e.WillAttend)
                         .Select(e => e.UserId)
-                        .ToListAsync();
+                        .ToListAsync());
 
                     // Send to each enrolled user
                     foreach (var userId in enrolledUserIds)

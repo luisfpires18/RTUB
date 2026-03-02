@@ -16,14 +16,6 @@ public class Repository<T> : IRepository<T> where T : class
 {
     protected readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    /// <summary>
-    /// Provides a fresh <see cref="DbSet{T}"/> backed by a new short-lived DbContext.
-    /// Derived repositories use this for read-only queries (always with AsNoTracking).
-    /// Each access creates a new context; the context is released when the query completes
-    /// and the DbSet goes out of scope (no explicit Dispose needed for read-only usage).
-    /// </summary>
-    protected DbSet<T> _dbSet => _contextFactory.CreateDbContext().Set<T>();
-
     public Repository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _contextFactory = contextFactory;
@@ -148,15 +140,15 @@ public class Repository<T> : IRepository<T> where T : class
     }
 
     /// <summary>
-    /// Gets a queryable for complex queries (read-only, no-tracking).
-    /// WARNING: The returned IQueryable's underlying context is NOT disposed automatically.
-    /// Derived repos should prefer using CreateContext() + context.Set&lt;T&gt;().AsNoTracking() directly.
-    /// TODO: Remove this method once all callers are migrated to CreateContext().
+    /// Executes a query with a properly scoped and disposed DbContext.
+    /// The <paramref name="queryFunc"/> receives an <see cref="IQueryable{T}"/> (with AsNoTracking)
+    /// and must materialize it (e.g., ToListAsync, FirstOrDefaultAsync, CountAsync).
+    /// Replaces the old Query() method that leaked the underlying DbContext.
     /// </summary>
-    public virtual IQueryable<T> Query()
+    public virtual async Task<TResult> QueryAsync<TResult>(Func<IQueryable<T>, Task<TResult>> queryFunc, CancellationToken cancellationToken = default)
     {
-        var context = CreateContext();
-        return context.Set<T>().AsNoTracking().AsQueryable();
+        using var context = CreateContext();
+        return await queryFunc(context.Set<T>().AsNoTracking()).ConfigureAwait(false);
     }
 
     /// <summary>

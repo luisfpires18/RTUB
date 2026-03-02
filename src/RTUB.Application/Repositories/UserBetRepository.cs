@@ -17,7 +17,8 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
 
     public async Task<IEnumerable<UserBet>> GetByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<UserBet>()
             .AsNoTracking()
             .Where(ub => ub.UserId == userId)
             .Include(ub => ub.Bet)
@@ -30,7 +31,8 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
     {
         // Not using AsNoTracking() because these entities will be modified in BetService
         // Not including User navigation property to avoid tracking conflicts - users are loaded separately in BetService
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<UserBet>()
             .Where(ub => ub.BetId == betId)
             .Include(ub => ub.BetOption)
             .ToListAsync();
@@ -40,7 +42,8 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
     {
         // Using AsNoTracking() for display purposes - no modifications needed
         // Including User navigation property for display in modals
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<UserBet>()
             .AsNoTracking()
             .Where(ub => ub.BetId == betId)
             .Include(ub => ub.User)
@@ -50,7 +53,8 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
 
     public async Task<UserBet?> GetUserBetForBetAsync(string userId, int betId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<UserBet>()
             .AsNoTracking()
             .Include(ub => ub.BetOption)
             .FirstOrDefaultAsync(ub => ub.UserId == userId && ub.BetId == betId);
@@ -58,7 +62,8 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
 
     public async Task<IEnumerable<UserBet>> GetByBetOptionIdAsync(int betOptionId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<UserBet>()
             .AsNoTracking()
             .Where(ub => ub.BetOptionId == betOptionId)
             .Include(ub => ub.User)

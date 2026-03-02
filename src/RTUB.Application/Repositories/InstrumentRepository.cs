@@ -17,7 +17,8 @@ public class InstrumentRepository : Repository<Instrument>, IInstrumentRepositor
 
     public async Task<IEnumerable<Instrument>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Instrument>()
             .AsNoTracking()
             .OrderBy(i => i.Name)
             .ToListAsync();
@@ -25,7 +26,8 @@ public class InstrumentRepository : Repository<Instrument>, IInstrumentRepositor
 
     public async Task<IEnumerable<Instrument>> GetByCategoryAsync(string category)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Instrument>()
             .AsNoTracking()
             .Where(i => i.Category == category)
             .OrderBy(i => i.Name)
@@ -34,7 +36,8 @@ public class InstrumentRepository : Repository<Instrument>, IInstrumentRepositor
 
     public async Task<IEnumerable<Instrument>> GetByConditionAsync(InstrumentCondition condition)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Instrument>()
             .AsNoTracking()
             .Where(i => i.Condition == condition)
             .OrderBy(i => i.Name)
@@ -43,7 +46,8 @@ public class InstrumentRepository : Repository<Instrument>, IInstrumentRepositor
 
     public async Task<IEnumerable<Instrument>> GetByLocationAsync(string location)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Instrument>()
             .AsNoTracking()
             .Where(i => i.Location == location)
             .OrderBy(i => i.Name)

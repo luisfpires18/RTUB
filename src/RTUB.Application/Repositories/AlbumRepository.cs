@@ -16,7 +16,8 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task<IEnumerable<Album>> GetPublicAlbumsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Album>()
             .AsNoTracking()
             .Where(a => !a.IsPrivate)
             .OrderByDescending(a => a.Year)
@@ -25,7 +26,8 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Album>()
             .AsNoTracking()
             .Include(a => a.Songs)
             .OrderByDescending(a => a.Year)
@@ -34,7 +36,8 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task<Album?> GetAlbumWithSongsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Album>()
             .AsNoTracking()
             .Include(a => a.Songs.OrderBy(s => s.TrackNumber))
             .FirstOrDefaultAsync(a => a.Id == id);
@@ -42,17 +45,18 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
 
     public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false)
     {
+        using var context = CreateContext();
         // Owners can see all albums
         if (isOwner)
         {
-            return await _dbSet
+            return await context.Set<Album>()
                 .AsNoTracking()
                 .OrderByDescending(a => a.Year)
                 .ToListAsync();
         }
 
         // Regular users can see non-exclusive albums + exclusive albums where they are in the access list
-        return await _dbSet
+        return await context.Set<Album>()
             .AsNoTracking()
             .Where(a => !a.IsExclusive || a.AlbumAccesses.Any(aa => aa.UserId == userId))
             .OrderByDescending(a => a.Year)

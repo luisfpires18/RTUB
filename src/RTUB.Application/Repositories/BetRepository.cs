@@ -17,9 +17,10 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<IEnumerable<Bet>> GetFutureBetsAsync()
     {
+        using var context = CreateContext();
         // Using local server time for consistency with Events
         var now = DateTime.Now;
-        return await _dbSet
+        return await context.Set<Bet>()
             .AsNoTracking()
             .Where(b => b.DateTime > now && !b.IsCancelled)
             .OrderBy(b => b.DateTime)
@@ -28,9 +29,10 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<IEnumerable<Bet>> GetPastBetsAsync()
     {
+        using var context = CreateContext();
         // Using local server time for consistency with Events
         var now = DateTime.Now;
-        return await _dbSet
+        return await context.Set<Bet>()
             .AsNoTracking()
             .Where(b => b.DateTime <= now)
             .OrderByDescending(b => b.DateTime)
@@ -39,7 +41,8 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<Bet?> GetBetWithOptionsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Bet>()
             .AsNoTracking()
             .Include(b => b.Options)
                 .ThenInclude(o => o.MemberA)
@@ -50,8 +53,9 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<Bet?> GetBetWithDetailsAsync(int id)
     {
+        using var context = CreateContext();
         // Not using AsNoTracking() because the Bet entity will be modified in ResolveBetAsync
-        return await _dbSet
+        return await context.Set<Bet>()
             .Include(b => b.Options)
                 .ThenInclude(o => o.MemberA)
             .Include(b => b.Options)

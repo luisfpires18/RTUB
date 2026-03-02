@@ -16,7 +16,8 @@ public class ItemTypeConfigRepository : Repository<ItemTypeConfig>, IItemTypeCon
 
     public async Task<List<ItemTypeConfig>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ItemTypeConfig>()
             .AsNoTracking()
             .OrderBy(c => c.Category)
             .ThenBy(c => c.DisplayName)
@@ -25,7 +26,8 @@ public class ItemTypeConfigRepository : Repository<ItemTypeConfig>, IItemTypeCon
 
     public async Task<List<ItemTypeConfig>> GetByCategoryOrderedAsync(string category)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ItemTypeConfig>()
             .AsNoTracking()
             .Where(c => c.Category == category)
             .OrderBy(c => c.DisplayName)
@@ -34,13 +36,16 @@ public class ItemTypeConfigRepository : Repository<ItemTypeConfig>, IItemTypeCon
 
     public async Task<ItemTypeConfig?> GetByTypeKeyAsync(string typeKey)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ItemTypeConfig>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.TypeKey == typeKey);
     }
 
     public async Task<bool> ExistsByTypeKeyAsync(string typeKey)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ItemTypeConfig>()
             .AsNoTracking()
             .AnyAsync(c => c.TypeKey == typeKey);
     }

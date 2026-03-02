@@ -16,7 +16,9 @@ public class NaipeCommentRepository : Repository<NaipeComment>, INaipeCommentRep
 
     public async Task<IEnumerable<NaipeComment>> GetCommentsForContentAsync(int contentId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<NaipeComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .Where(c => c.NaipeContentId == contentId && c.DeletedAt == null)
             .OrderByDescending(c => c.CreatedAt)
@@ -25,7 +27,9 @@ public class NaipeCommentRepository : Repository<NaipeComment>, INaipeCommentRep
 
     public async Task<NaipeComment?> GetByIdWithDetailsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<NaipeComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .FirstOrDefaultAsync(c => c.Id == id);
     }

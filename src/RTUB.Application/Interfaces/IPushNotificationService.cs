@@ -14,7 +14,8 @@ public interface IPushNotificationService
     /// <param name="subscription">The push subscription details</param>
     /// <param name="userAgent">Optional user agent information</param>
     /// <param name="userName">Optional user name for logging</param>
-    Task SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null);
+    /// <returns>True if a new subscription was created; false if an existing subscription was updated</returns>
+    Task<bool> SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null);
 
     /// <summary>
     /// Unsubscribes from push notifications by endpoint

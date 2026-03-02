@@ -216,12 +216,11 @@ public class NaipeService : INaipeService
 
     public async Task<List<NaipeCommentDto>> GetCommentsAsync(int contentId, string? currentUserId)
     {
-        var comments = await _naipeCommentRepository.Query()
-            .AsNoTracking()
+        var comments = await _naipeCommentRepository.QueryAsync(q => q
             .Include(c => c.Author)
             .Where(c => c.NaipeContentId == contentId && c.DeletedAt == null)
             .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
+            .ToListAsync());
 
         // Check if current user is admin
         bool isAdmin = await IsUserAdminAsync(currentUserId);

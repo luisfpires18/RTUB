@@ -63,8 +63,8 @@ public class MemberInstrumentService : IMemberInstrumentService
 
     public async Task SetPrimaryInstrumentAsync(int instrumentId, string memberId)
     {
-        var instrument = await _memberInstrumentRepository.Query()
-            .FirstOrDefaultAsync(mi => mi.Id == instrumentId && mi.MemberId == memberId);
+        var instrument = await _memberInstrumentRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(mi => mi.Id == instrumentId && mi.MemberId == memberId));
 
         if (instrument == null)
         {
@@ -94,9 +94,9 @@ public class MemberInstrumentService : IMemberInstrumentService
     /// </summary>
     private async Task UnmarkAllPrimaryInstrumentsAsync(string memberId)
     {
-        var primaryInstruments = await _memberInstrumentRepository.Query()
+        var primaryInstruments = await _memberInstrumentRepository.QueryAsync(q => q
             .Where(mi => mi.MemberId == memberId && mi.IsPrimary)
-            .ToListAsync();
+            .ToListAsync());
 
         // Note: Typically only 0-1 primary instruments per member, so minimal overhead
         foreach (var instrument in primaryInstruments)
@@ -108,9 +108,9 @@ public class MemberInstrumentService : IMemberInstrumentService
 
     public async Task<Dictionary<string, List<MemberInstrument>>> GetMemberInstrumentsByUserIdsAsync(IEnumerable<string> userIds)
     {
-        var instruments = await _memberInstrumentRepository.Query()
+        var instruments = await _memberInstrumentRepository.QueryAsync(q => q
             .Where(mi => userIds.Contains(mi.MemberId))
-            .ToListAsync();
+            .ToListAsync());
 
         return instruments
             .GroupBy(mi => mi.MemberId)

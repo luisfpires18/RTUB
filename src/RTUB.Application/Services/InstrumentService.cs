@@ -89,19 +89,17 @@ public class InstrumentService : IInstrumentService
 
     public async Task<Dictionary<InstrumentCondition, int>> GetConditionStatsAsync()
     {
-        return await _instrumentRepository.Query()
-            .AsNoTracking()
+        return await _instrumentRepository.QueryAsync(q => q
             .GroupBy(i => i.Condition)
             .Select(g => new { Condition = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Condition, x => x.Count);
+            .ToDictionaryAsync(x => x.Condition, x => x.Count));
     }
 
     public async Task<Dictionary<string, int>> GetCategoryStatsAsync()
     {
-        return await _instrumentRepository.Query()
-            .AsNoTracking()
+        return await _instrumentRepository.QueryAsync(q => q
             .GroupBy(i => i.Category)
             .Select(g => new { Category = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Category, x => x.Count);
+            .ToDictionaryAsync(x => x.Category, x => x.Count));
     }
 }

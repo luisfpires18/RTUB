@@ -51,9 +51,9 @@ public class EventRepertoireService : IEventRepertoireService
     public async Task UpdateRepertoireOrderAsync(int eventId, DateTime date, List<int> songIds)
     {
         var dateOnly = date.Date;
-        var repertoireItems = await _repertoireRepository.Query()
+        var repertoireItems = await _repertoireRepository.QueryAsync(q => q
             .Where(er => er.EventId == eventId && er.RepertoireDate.Date == dateOnly)
-            .ToListAsync();
+            .ToListAsync());
 
         for (int i = 0; i < songIds.Count; i++)
         {

@@ -16,7 +16,8 @@ public class ForgeComboConfigRepository : Repository<ForgeComboConfig>, IForgeCo
 
     public async Task<List<ForgeComboConfig>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ForgeComboConfig>()
             .AsNoTracking()
             .OrderBy(c => c.ComboKey)
             .ToListAsync();
@@ -24,13 +25,16 @@ public class ForgeComboConfigRepository : Repository<ForgeComboConfig>, IForgeCo
 
     public async Task<ForgeComboConfig?> GetByComboKeyAsync(string comboKey)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ForgeComboConfig>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.ComboKey == comboKey);
     }
 
     public async Task<List<ForgeComboConfig>> GetAllWithPicturesAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ForgeComboConfig>()
             .AsNoTracking()
             .Where(c => c.PictureUrl != null)
             .ToListAsync();

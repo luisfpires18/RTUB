@@ -39,9 +39,9 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <returns>The logistics board if found, null otherwise</returns>
     public async Task<LogisticsBoard?> GetBoardByIdAsync(int id)
     {
-        return await _boardRepository.Query()
+        return await _boardRepository.QueryAsync(q => q
             .Include(b => b.Event)
-            .FirstOrDefaultAsync(b => b.Id == id);
+            .FirstOrDefaultAsync(b => b.Id == id));
     }
 
     /// <summary>
@@ -60,10 +60,10 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <returns>Collection of all logistics boards</returns>
     public async Task<IEnumerable<LogisticsBoard>> GetAllBoardsAsync()
     {
-        return await _boardRepository.Query()
+        return await _boardRepository.QueryAsync(q => q
             .Include(b => b.Event)
             .OrderByDescending(b => b.CreatedAt)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -76,29 +76,32 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <returns>A tuple containing the boards for the page and the total count</returns>
     public async Task<(IEnumerable<LogisticsBoard> Boards, int TotalCount)> GetBoardsPagedAsync(int page, int pageSize, string? searchTerm = null, bool? isCompleted = null)
     {
-        var query = _boardRepository.Query()
-            .Include(b => b.Event)
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        return await _boardRepository.QueryAsync(async q =>
         {
-            query = query.Where(b => b.Name.Contains(searchTerm!) || b.Description.Contains(searchTerm!));
-        }
+            var query = q
+                .Include(b => b.Event)
+                .AsQueryable();
 
-        if (isCompleted.HasValue)
-        {
-            query = query.Where(b => b.IsCompleted == isCompleted.Value);
-        }
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(b => b.Name.Contains(searchTerm!) || b.Description.Contains(searchTerm!));
+            }
 
-        var totalCount = await query.CountAsync();
+            if (isCompleted.HasValue)
+            {
+                query = query.Where(b => b.IsCompleted == isCompleted.Value);
+            }
 
-        var boards = await query
-            .OrderByDescending(b => b.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-        return (boards, totalCount);
+            var boards = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return ((IEnumerable<LogisticsBoard>)boards, totalCount);
+        });
     }
 
     /// <summary>
@@ -149,10 +152,10 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <exception cref="InvalidOperationException">Thrown when the board is not found</exception>
     public async Task DeleteBoardAsync(int id)
     {
-        var board = await _boardRepository.Query()
+        var board = await _boardRepository.QueryAsync(q => q
             .Include(b => b.Lists)
             .ThenInclude(l => l.Cards)
-            .FirstOrDefaultAsync(b => b.Id == id);
+            .FirstOrDefaultAsync(b => b.Id == id));
 
         if (board == null)
             throw new InvalidOperationException($"Quadro com ID {id} não encontrado");

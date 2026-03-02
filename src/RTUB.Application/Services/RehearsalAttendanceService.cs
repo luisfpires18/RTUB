@@ -46,9 +46,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (attendance != null)
         {
             // Load the rehearsal navigation property
-            await _attendanceRepository.Query()
+            attendance = await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
-                .FirstOrDefaultAsync(a => a.Id == id);
+                .FirstOrDefaultAsync(a => a.Id == id));
         }
         return attendance;
     }
@@ -228,18 +228,18 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
     public async Task<int> GetUserAttendanceCountAsync(string userId, DateTime startDate, DateTime endDate)
     {
-        return await _attendanceRepository.Query()
+        return await _attendanceRepository.QueryAsync(q => q
             .Include(a => a.Rehearsal)
             .Where(a => a.UserId == userId &&
                        a.Attended &&
                        a.Rehearsal!.Date >= startDate.Date &&
                        a.Rehearsal.Date <= endDate.Date)
-            .CountAsync();
+            .CountAsync());
     }
 
     public async Task<Dictionary<string, int>> GetAttendanceStatsAsync(DateTime startDate, DateTime endDate)
     {
-        var attendances = await _attendanceRepository.Query()
+        var attendances = await _attendanceRepository.QueryAsync(q => q
             .Include(a => a.Rehearsal)
             .Include(a => a.User)
             .Where(a => a.Attended &&
@@ -247,7 +247,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                        a.Rehearsal.Date <= endDate.Date)
             .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToListAsync();
+            .ToListAsync());
 
         return attendances.ToDictionary(a => a.UserId, a => a.Count);
     }
@@ -257,11 +257,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         try
         {
             // Load the rehearsal if not already loaded
-            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.Query()
+            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
                 .Where(a => a.Id == attendance.Id)
                 .Select(a => a.Rehearsal)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync());
 
             if (rehearsal == null)
                 return;
@@ -289,11 +289,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         try
         {
             // Load the rehearsal if not already loaded
-            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.Query()
+            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
                 .Where(a => a.Id == attendance.Id)
                 .Select(a => a.Rehearsal)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync());
 
             if (rehearsal == null)
                 return;
@@ -320,11 +320,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         try
         {
-            var detailedAttendance = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var detailedAttendance = await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
                 .Include(a => a.User)
-                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id));
 
             if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
             {
@@ -347,15 +346,14 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
                             && a.WillAttend
                             && a.UserId != detailedAttendance.UserId
                             && !string.IsNullOrEmpty(a.UserId))
                 .Select(a => a.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync());
 
             if (recipientIds.Count == 0)
             {
@@ -375,11 +373,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         try
         {
-            var detailedAttendance = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var detailedAttendance = await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
                 .Include(a => a.User)
-                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id));
 
             if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
             {
@@ -402,15 +399,14 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
                             && a.WillAttend
                             && a.UserId != detailedAttendance.UserId
                             && !string.IsNullOrEmpty(a.UserId))
                 .Select(a => a.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync());
 
             if (recipientIds.Count == 0)
             {
@@ -430,11 +426,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         try
         {
-            var detailedAttendance = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var detailedAttendance = await _attendanceRepository.QueryAsync(q => q
                 .Include(a => a.Rehearsal)
                 .Include(a => a.User)
-                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id));
 
             if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
             {
@@ -457,15 +452,14 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _attendanceRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
                             && a.WillAttend
                             && a.UserId != detailedAttendance.UserId
                             && !string.IsNullOrEmpty(a.UserId))
                 .Select(a => a.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync());
 
             if (recipientIds.Count == 0)
             {

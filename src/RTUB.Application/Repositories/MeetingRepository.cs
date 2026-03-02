@@ -21,7 +21,8 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
     {
         // Note: This is a simplified version. Veterano filtering is handled in the service layer
         // because it requires ApplicationUser context which creates tight coupling in repository
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Meeting>()
             .AsNoTracking()
             .AsQueryable()
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
@@ -43,7 +44,8 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
     {
         // Note: Veterano visibility check is handled in the service layer
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Meeting>()
             .AsNoTracking()
             .Include(m => m.Organizer)
             .Include(m => m.TunoRepresentative)
@@ -53,7 +55,8 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
     public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
     {
         // Note: Veterano filtering is handled in the service layer
-        var query = _dbSet.AsQueryable();
+        using var context = CreateContext();
+        var query = context.Set<Meeting>().AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

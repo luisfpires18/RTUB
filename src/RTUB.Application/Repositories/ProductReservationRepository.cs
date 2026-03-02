@@ -16,7 +16,9 @@ public class ProductReservationRepository : Repository<ProductReservation>, IPro
 
     public async Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ProductReservation>()
+            .AsNoTracking()
             .Include(pr => pr.Product)
             .Where(pr => pr.UserId == userId)
             .OrderByDescending(pr => pr.CreatedAt)
@@ -25,7 +27,9 @@ public class ProductReservationRepository : Repository<ProductReservation>, IPro
 
     public async Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ProductReservation>()
+            .AsNoTracking()
             .Include(pr => pr.User)
             .Where(pr => pr.ProductId == productId)
             .OrderByDescending(pr => pr.CreatedAt)

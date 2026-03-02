@@ -3,8 +3,14 @@
  */
 import type { BattleEvent } from '../types/battle-events';
 
-/** Session-level cache bust — set once per page load. */
-export const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+/**
+ * Cache-bust string for asset URLs.
+ * Previously used Date.now() which defeated browser caching entirely —
+ * every page load re-fetched all sprites and audio.
+ * Now empty: static files rely on server-side Cache-Control headers
+ * (30-day cache in production, configured in Program.cs).
+ */
+export const SESSION_CACHE_BUST = '';
 
 /** Track which asset paths are already loaded in PIXI.Assets. */
 export const loadedAssetAliases = new Set<string>();
@@ -12,8 +18,8 @@ export const loadedAssetAliases = new Set<string>();
 /** Cache decoded AudioBuffers so music files are only fetched/decoded once. */
 export const audioBufferCache: Record<string, AudioBuffer> = {};
 
-/** Cache-bust for audio files. */
-export const audioCacheBuster = `?v=${Date.now()}`;
+/** Cache-bust for audio files — empty for the same reason as SESSION_CACHE_BUST. */
+export const audioCacheBuster = '';
 
 /**
  * Resolve a field from a battle event, handling PascalCase → camelCase → lowercase.

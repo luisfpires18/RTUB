@@ -17,7 +17,9 @@ public class LogisticsCardRepository : Repository<LogisticsCard>, ILogisticsCard
 
     public async Task<IEnumerable<LogisticsCard>> GetCardsByListIdAsync(int listId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsCard>()
+            .AsNoTracking()
             .Include(c => c.AssignedToUser)
             .Include(c => c.Event)
             .Where(c => c.ListId == listId)
@@ -27,7 +29,9 @@ public class LogisticsCardRepository : Repository<LogisticsCard>, ILogisticsCard
 
     public async Task<IEnumerable<LogisticsCard>> GetCardsByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsCard>()
+            .AsNoTracking()
             .Include(c => c.List)
             .ThenInclude(l => l.Board)
             .ThenInclude(b => b.Event)
@@ -39,7 +43,9 @@ public class LogisticsCardRepository : Repository<LogisticsCard>, ILogisticsCard
 
     public async Task<IEnumerable<LogisticsCard>> SearchCardsAsync(string? searchTerm, int page, int pageSize)
     {
-        return await Query()
+        using var context = CreateContext();
+        return await context.Set<LogisticsCard>()
+            .AsNoTracking()
             .Include(c => c.AssignedToUser)
             .Include(c => c.List)
             .ThenInclude(l => l.Board)

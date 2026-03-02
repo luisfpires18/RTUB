@@ -16,7 +16,8 @@ public class PostMediaRepository : Repository<PostMedia>, IPostMediaRepository
 
     public async Task<IEnumerable<PostMedia>> GetByPostIdAsync(int postId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<PostMedia>()
             .AsNoTracking()
             .Where(pm => pm.PostId == postId)
             .OrderBy(pm => pm.SortOrder)

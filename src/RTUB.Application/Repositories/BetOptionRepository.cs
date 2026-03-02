@@ -17,7 +17,8 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
 
     public async Task<IEnumerable<BetOption>> GetByBetIdAsync(int betId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<BetOption>()
             .AsNoTracking()
             .Where(o => o.BetId == betId)
             .Include(o => o.MemberA)
@@ -27,7 +28,8 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
 
     public async Task<BetOption?> GetWithMembersAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<BetOption>()
             .AsNoTracking()
             .Include(o => o.MemberA)
             .Include(o => o.MemberB)
@@ -42,7 +44,8 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
             return new Dictionary<int, List<BetOption>>();
         }
 
-        var options = await _dbSet
+        using var context = CreateContext();
+        var options = await context.Set<BetOption>()
             .AsNoTracking()
             .Where(o => betIdsList.Contains(o.BetId))
             .Include(o => o.MemberA)

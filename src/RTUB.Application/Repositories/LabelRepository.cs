@@ -16,14 +16,16 @@ public class LabelRepository : Repository<Label>, ILabelRepository
 
     public async Task<Label?> GetByReferenceAsync(string reference)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Label>()
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Reference == reference);
     }
 
     public async Task<IEnumerable<Label>> GetActiveLabelsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Label>()
             .AsNoTracking()
             .Where(l => l.IsActive)
             .ToListAsync();

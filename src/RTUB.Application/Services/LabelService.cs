@@ -29,8 +29,8 @@ public class LabelService : ILabelService
 
     public async Task<Label?> GetLabelByReferenceAsync(string reference)
     {
-        return await _labelRepository.Query()
-            .FirstOrDefaultAsync(l => l.Reference == reference && l.IsActive);
+        return await _labelRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(l => l.Reference == reference && l.IsActive));
     }
 
     public async Task<IEnumerable<Label>> GetAllLabelsAsync()
@@ -40,10 +40,9 @@ public class LabelService : ILabelService
 
     public async Task<IEnumerable<Label>> GetActiveLabelsAsync()
     {
-        return await _labelRepository.Query()
-            .AsNoTracking()
+        return await _labelRepository.QueryAsync(q => q
             .Where(l => l.IsActive)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     public async Task<Label> CreateLabelAsync(string reference, string title, string content, bool isActive = true)

@@ -16,7 +16,8 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
 
     public async Task<IEnumerable<Conversation>> GetUserConversationsAsync(string userId, bool includeArchived = false)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Conversation>()
             .AsNoTracking()
             .Where(c => c.Participants.Contains(userId));
 
@@ -33,7 +34,8 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
 
     public async Task<Conversation?> GetWithMessagesAsync(int conversationId, int? limit = null)
     {
-        var query = _dbSet
+        using var context = CreateContext();
+        var query = context.Set<Conversation>()
             .AsNoTracking()
             .Include(c => c.Messages.OrderByDescending(m => m.CreatedAt))
             .ThenInclude(m => m.Sender)
@@ -69,7 +71,8 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
         var participantIds = new List<string> { userId1, userId2 }.OrderBy(id => id).ToList();
         var participantsString = string.Join(";", participantIds);
 
-        var conversation = await _dbSet
+        using var context = CreateContext();
+        var conversation = await context.Set<Conversation>()
             .FirstOrDefaultAsync(c => c.Participants == participantsString && !c.IsSystemConversation && !c.IsGroup);
 
         if (conversation == null)
@@ -92,13 +95,17 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
     {
         var participantsString = string.Join(";", participantIds.OrderBy(id => id));
 
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Conversation>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Participants == participantsString);
     }
 
     public async Task<Conversation?> GetSystemConversationForUserAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Conversation>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Participants == userId && c.IsSystemConversation);
     }
 
@@ -115,13 +122,17 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
 
     public async Task<Conversation?> GetGroupByTitleAsync(string title)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Conversation>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.IsGroup && c.Title == title && !c.IsArchived);
     }
 
     public async Task<IEnumerable<Conversation>> GetSystemGroupsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Conversation>()
+            .AsNoTracking()
             .Where(c => c.IsGroup && c.CreatedByUserId == "system" && !c.IsArchived)
             .ToListAsync();
     }
