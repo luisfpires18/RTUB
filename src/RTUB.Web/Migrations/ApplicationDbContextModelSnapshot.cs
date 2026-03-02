@@ -877,9 +877,6 @@ namespace RTUB.Migrations
                     b.Property<int>("HP")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("HeavyAttackUpgrades")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("HpUpgrades")
                         .HasColumnType("INTEGER");
 
@@ -944,9 +941,6 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShotStatBuffUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SpecialAttackUpgrades")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Speed")

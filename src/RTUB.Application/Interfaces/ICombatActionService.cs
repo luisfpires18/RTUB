@@ -1,6 +1,5 @@
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
@@ -9,7 +8,7 @@ namespace RTUB.Application.Interfaces;
 /// Unlike ICombatEngine which pre-computes all events, this processes one action at a time
 /// and maintains state in a CombatSession that lives on the Razor page.
 ///
-/// Blade Crafter model: auto-attacks fire automatically, spells are manually triggered.
+/// Auto-attack model: attacks fire automatically based on speed bar.
 /// </summary>
 public interface ICombatActionService
 {
@@ -20,7 +19,6 @@ public interface ICombatActionService
         Character player,
         List<Character> enemies,
         int seed,
-        List<SpecialAttack>? equippedSpells = null,
         string mode = "stage");
 
     /// <summary>
@@ -31,7 +29,6 @@ public interface ICombatActionService
         Character player,
         List<CombatantState> enemyStates,
         int seed,
-        List<SpecialAttack>? equippedSpells = null,
         string mode = "stage");
 
     /// <summary>
@@ -40,19 +37,9 @@ public interface ICombatActionService
     CombatActionResult ProcessPlayerAutoAttack(CombatSession session);
 
     /// <summary>
-    /// Processes a player spell cast (user clicked a spell button).
-    /// </summary>
-    CombatActionResult ProcessPlayerSpell(CombatSession session, string attackId);
-
-    /// <summary>
     /// Processes an enemy auto-attack (enemy speed bar filled).
     /// </summary>
     CombatActionResult ProcessEnemyAttack(CombatSession session, int enemyIndex);
-
-    /// <summary>
-    /// Advances spell cooldowns by the given elapsed sim-time (called by JS after each tick).
-    /// </summary>
-    Dictionary<string, double> TickCooldowns(CombatSession session, double elapsedSeconds);
 
     /// <summary>
     /// Advances consumable cooldowns by real elapsed time (independent of battle speed).

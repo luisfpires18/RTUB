@@ -195,6 +195,23 @@ public interface IInventoryService
     int GetUpgradeLeitaoCost(int currentLevel);
 
     /// <summary>
+    /// Returns the next drink tier after the given drink, or null if already at max tier.
+    /// </summary>
+    InventoryItemType? GetNextDrinkTier(InventoryItemType currentDrink);
+
+    /// <summary>
+    /// Calculates the Fidelis cost to upgrade a weapon's drink tier.
+    /// Cost is half the total Fidelis it would take to level a weapon from 1 to its current level.
+    /// </summary>
+    decimal GetDrinkUpgradeCost(int currentWeaponLevel);
+
+    /// <summary>
+    /// Upgrades a forged weapon's source drink to the next tier, recalculating stats.
+    /// The player must have unlocked the next drink tier and have enough Fidelis.
+    /// </summary>
+    Task<(bool Success, string Message)> UpgradeWeaponDrinkAsync(string userId, int weaponId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Calculates drink requirements for an EQUIPMENT upgrade at a given level.
     /// Returns only the single drink type for the current tier (not cumulative).
     /// </summary>

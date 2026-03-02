@@ -13,7 +13,6 @@ public class MyTunoScalingConfiguration
     public MyTunoLevelScaling LevelScaling { get; set; } = new();
     public MyTunoUpgrades Upgrades { get; set; } = new();
     public MyTunoImprovements Improvements { get; set; } = new();
-    public MyTunoPowers Powers { get; set; } = new();
     public BattleRewards BattleRewards { get; set; } = new();
     public CombatConfig Combat { get; set; } = new();
 
@@ -224,18 +223,6 @@ public class MyTunoImprovements
     /// <summary>Maximum double gathering chance cap (0.50 = 50%).</summary>
     public double MaxDoubleGatheringChance { get; set; } = 0.50;
 
-}
-
-/// <summary>
-/// Configuration for Powers (combat power enhancements).
-/// </summary>
-public class MyTunoPowers
-{
-    /// <summary>Increase heavy attack damage multiplier</summary>
-    public UpgradeFlatStat HeavyAttack { get; set; } = new() { FlatBonus = 0.05, BaseCost = 100, CostPerLevel = 100 };
-
-    /// <summary>Increase special attack damage multiplier (high cost scaling)</summary>
-    public UpgradeFlatStat SpecialAttack { get; set; } = new() { FlatBonus = 0.05, BaseCost = 250, CostPerLevel = 250 };
 }
 
 /// <summary>
@@ -808,6 +795,12 @@ public class BossModeConfig
 
     /// <summary>Additional multiplier applied on top of the tier stats for boss fights.</summary>
     public double BossStatMultiplier { get; set; } = 2.0;
+
+    /// <summary>Boss stage beyond which quadratic growth kicks in (extra stat scaling).</summary>
+    public int DeepBossThreshold { get; set; } = 100;
+
+    /// <summary>Per-stage quadratic growth rate beyond <see cref="DeepBossThreshold"/>.</summary>
+    public double DeepBossGrowthRate { get; set; } = 0.003;
 
     /// <summary>Drop rates for boss mode rewards.</summary>
     public BossModeDropRates DropRates { get; set; } = new();

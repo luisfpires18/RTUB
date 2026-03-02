@@ -252,7 +252,7 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default)
+    public async Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, int bossesKilled = 0, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
@@ -281,7 +281,7 @@ public class SurviveModeService : ISurviveModeService
         // Calculate rewards (gate consumable drops behind biome progression)
         var stageProgressForDrops = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
         var highestStageForDrops = stageProgressForDrops?.HighestStage ?? 1;
-        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, true, highestStageForDrops);
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, true, highestStageForDrops, bossesKilled);
         result.CharacterId = characterId;
 
         // Update progress
@@ -298,7 +298,7 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default)
+    public async Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, int bossesKilled = 0, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
@@ -315,7 +315,7 @@ public class SurviveModeService : ISurviveModeService
         var stageProgressForDrops = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
         var highestStageForDrops = stageProgressForDrops?.HighestStage ?? 1;
         var survivalRatio = Math.Min(survivalTimeSeconds / config.TimerDurationSeconds, 1.0);
-        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, false, highestStageForDrops);
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, false, highestStageForDrops, bossesKilled);
         result.CharacterId = characterId;
 
         // Scale rewards by survival ratio (died early = less rewards)
@@ -335,12 +335,33 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null, int startStage = 0, int endStage = 0,
         CancellationToken cancellationToken = default)
     {
-        // Survive mode no longer grants rewards — no-op.
-        return Task.CompletedTask;
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        var user = await _userManager.FindByIdAsync(character.UserId)
+            ?? throw new InvalidOperationException("User not found");
+
+        // Apply Fidelis
+        if (fidelis > 0)
+        {
+            user.FidelisBalance += fidelis;
+            await _userManager.UpdateAsync(user);
+        }
+
+        // Apply item drops (leitão + fitab)
+        var drops = new Dictionary<InventoryItemType, int>();
+        if (finos > 0) drops[InventoryItemType.Leitao] = finos;   // finos param repurposed for leitão count
+        if (canecas > 0) drops[InventoryItemType.Fitab] = canecas; // canecas param repurposed for fitab count
+        if (drops.Count > 0)
+            await _inventoryRepository.AddItemsAsync(character.UserId, drops, cancellationToken);
+
+        _logger.LogInformation(
+            "Survive mode rewards applied for character {CharId}: {Fidelis} Fidelis, {Leitao} Leitão, {Fitab} FITAB",
+            characterId, fidelis, finos, canecas);
     }
 
     /// <inheritdoc />
@@ -462,11 +483,33 @@ public class SurviveModeService : ISurviveModeService
 
     /// <summary>
     /// Calculates rewards for a survive level attempt.
+    /// Fidelis: base per level scaled by biome reward multiplier + per-enemy-kill bonus.
+    /// FITAB: 0.2% chance per enemy killed (same as stage mode).
+    /// Leitão: 1 dropped only when the final boss is killed.
+    /// No XP, no consumables, no instrument parts.
     /// </summary>
     private SurviveModeLevelResult CalculateRewards(int level, SurviveModeLevelConfig config,
-        int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived, int highestStage = 1)
+        int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived, int highestStage = 1, int bossesKilled = 0)
     {
-        // Survive mode no longer grants rewards — it's a pure challenge mode.
+        var rewardMult = config.RewardMultiplier;
+
+        // Fidelis: base + per-kill bonus, scaled by biome reward multiplier
+        var baseFidelis = BaseFidelisPerLevel * (1 + (level - 1) * (decimal)RewardScalePerLevel);
+        var killFidelis = (decimal)(FidelisPerEnemyKill * enemiesKilled);
+        var totalFidelis = Math.Round((baseFidelis + killFidelis) * (decimal)rewardMult, 2);
+
+        // FITAB: same drop chance as stage mode (0.2% per enemy killed)
+        var fitabDropChance = _config.BossMode?.FitabDropChanceStage ?? 0.002;
+        var fitabDropped = 0;
+        for (var i = 0; i < enemiesKilled; i++)
+        {
+            if (Random.Shared.NextDouble() < fitabDropChance)
+                fitabDropped++;
+        }
+
+        // Leitão: only on final boss kill (bossesKilled >= 2 means mid-boss + final boss)
+        var leitaoDropped = (survived && bossesKilled >= 2) ? 1 : 0;
+
         return new SurviveModeLevelResult
         {
             Level = level,
@@ -477,7 +520,7 @@ public class SurviveModeService : ISurviveModeService
             RequiredTimeSeconds = config.TimerDurationSeconds,
             EnemiesKilled = enemiesKilled,
             XPReward = 0,
-            FidelisReward = 0,
+            FidelisReward = totalFidelis,
             FinosDropped = 0,
             CanecasDropped = 0,
             CigarrosDropped = 0,
@@ -485,7 +528,8 @@ public class SurviveModeService : ISurviveModeService
             ShotsDropped = 0,
             PenaltiesDropped = 0,
             InstrumentPartsDropped = new List<InventoryItemType>(),
-            FitabDropped = 0
+            FitabDropped = fitabDropped,
+            LeitaoDropped = leitaoDropped
         };
     }
 }

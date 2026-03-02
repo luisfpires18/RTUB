@@ -8,7 +8,6 @@ import type { Application, Container, Graphics, Sprite, Text, TextStyle } from '
 import type { BattleEvent } from '../types/battle-events';
 import type {
   StageBattleData,
-  SpellDefinition,
   EnemyDefinition,
   ConsumableQuantities,
   ConsumableImages,
@@ -29,7 +28,6 @@ import {
 import {
   getSharedAudioContext,
   playSound as sharedPlaySound,
-  playSpellSound as sharedPlaySpellSound,
   loadBackgroundMusic,
   stopMusic,
   setMusicVolume,
@@ -41,7 +39,6 @@ import {
   showDamageText,
   showEffectLabel,
   screenShake,
-  playSpellVfx,
   playBuffVfx,
 } from '../shared/vfx';
 
@@ -118,18 +115,6 @@ interface EnemyPosition {
   isAerial: boolean;
 }
 
-interface SpellButton {
-  container: Container;
-  bg: Graphics;
-  iconText: Text;
-  nameText: Text;
-  cdOverlay: Graphics;
-  cdText: Text;
-  attackId: string;
-  cooldownSeconds: number;
-  spell: SpellDefinition;
-}
-
 interface ConsumableButton {
   type: string;
   container: Container;
@@ -202,12 +187,14 @@ export class StageBattleScene implements VfxOwner {
   private battleStartTime = 0;
   private currentSimTime = 0;
 
-  // Battle speed (anti-exploit) – only 1x or 5x allowed
+  // Battle speed (anti-exploit) – server-provided allowlist; defaults to [1, 5]
+  private _allowedSpeeds: number[] = [1, 5];
   private _battleSpeed = 1.0;
   get battleSpeed(): number { return this._battleSpeed; }
   set battleSpeed(v: number) {
-    this._battleSpeed = v === 5 ? 5 : 1;
+    this._battleSpeed = this._allowedSpeeds.includes(v) ? v : 1;
   }
+  get allowedSpeeds(): number[] { return this._allowedSpeeds; }
 
   // Playback
   private playbackSpeed = 1;
@@ -230,6 +217,11 @@ export class StageBattleScene implements VfxOwner {
   private _playerAttacking = false;
   private _enemyAttacking: Record<number, boolean> = {};
 
+  // Pending flash timeout IDs — tracked per entity to prevent overlapping
+  // flash restores from resetting tint too early when attacks overlap.
+  private _playerFlashTimeout: ReturnType<typeof setTimeout> | null = null;
+  private _enemyFlashTimeouts: Record<number, ReturnType<typeof setTimeout>> = {};
+
   // Shot / penalty buff visual
   private hasShotBuff: boolean;
   private hasPenaltyBuff: boolean;
@@ -250,21 +242,14 @@ export class StageBattleScene implements VfxOwner {
 
   // Interactive mode
   private interactiveMode: boolean;
-  private spells: SpellDefinition[];
   private interactivePlayerHP: number | null;
   private interactivePlayerMaxHP: number | null;
   private interactivePlayerActionTime: number | null;
   private interactiveEnemies: EnemyDefinition[];
-  private _playerAttackPending = false;
-  private _enemyAttackPending: boolean[] = [];
-  private _spellPending = false;
-  private _cooldownTickAccum = 0;
+  private _pendingPlayerAttacks = 0;
+  private _pendingEnemyAttacks: number[] = [];
+  private static readonly MAX_PENDING_ATTACKS = 3;
   private _consumableTickAccum = 0;
-
-  // Spell bar UI
-  private spellButtons: SpellButton[] = [];
-  private spellCooldowns: Record<string, number> = {};
-  private spellBarContainer: Container | null = null;
 
   // Consumable bar UI
   private consumableBarContainer: Container | null = null;
@@ -282,6 +267,26 @@ export class StageBattleScene implements VfxOwner {
 
   // Destroyed flag — prevents async callbacks from running after destroy
   private _destroyed = false;
+
+  // JS-side heartbeat interval — pings Blazor every 30s to reset the server watchdog
+  private _heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private static readonly HEARTBEAT_INTERVAL_MS = 30_000;
+
+  // JS-side battle watchdog — if a single battle exceeds this, force-finish it
+  private _jsBattleWatchdogId: ReturnType<typeof setTimeout> | null = null;
+  private static readonly JS_BATTLE_WATCHDOG_MS = 120_000; // 2 minutes
+
+  // WebGL context loss recovery timer
+  private _contextLossTimerId: ReturnType<typeof setTimeout> | null = null;
+  private static readonly CONTEXT_LOSS_RECOVERY_MS = 5_000;
+
+  // Interop call timeout — prevents hung promises from freezing combat
+  private static readonly INTEROP_TIMEOUT_MS = 15_000;
+
+  // finishBattle retry state
+  private _finishRetryCount = 0;
+  private static readonly FINISH_RETRY_MAX = 3;
+  private static readonly FINISH_RETRY_DELAY_MS = 2_000;
 
   // Event listeners
   private _onContextLost: ((e: Event) => void) | null = null;
@@ -330,6 +335,12 @@ export class StageBattleScene implements VfxOwner {
     this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
     this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
 
+    // Server-provided allowed speeds (anti-cheat)
+    const serverSpeeds = (data.AllowedSpeeds ?? data.allowedSpeeds) as number[] | undefined;
+    if (Array.isArray(serverSpeeds) && serverSpeeds.length > 0) {
+      this._allowedSpeeds = serverSpeeds.filter(s => typeof s === 'number');
+    }
+
     // Animation flags
     this._enemyAttacking = {};
 
@@ -343,12 +354,11 @@ export class StageBattleScene implements VfxOwner {
 
     // Interactive mode
     this.interactiveMode = pick<boolean>(data, 'InteractiveMode', 'interactiveMode', false);
-    this.spells = (data.Spells ?? data.spells ?? []) as SpellDefinition[];
     this.interactivePlayerHP = (data.PlayerHP ?? data.playerHP ?? null) as number | null;
     this.interactivePlayerMaxHP = (data.PlayerMaxHP ?? data.playerMaxHP ?? null) as number | null;
     this.interactivePlayerActionTime = (data.PlayerActionTime ?? data.playerActionTime ?? null) as number | null;
     this.interactiveEnemies = (data.Enemies ?? data.enemies ?? []) as EnemyDefinition[];
-    this._enemyAttackPending = Array(this.enemyCount).fill(false);
+    this._pendingEnemyAttacks = Array(this.enemyCount).fill(0);
 
     // Consumables
     const cData = (data.consumables ?? data.Consumables ?? {}) as Record<string, unknown>;
@@ -433,11 +443,6 @@ export class StageBattleScene implements VfxOwner {
     sharedPlaySound(this.audioContext, type, this.sfxVolume);
   }
 
-  private _playSpellSound(attackId: string): void {
-    if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
-    sharedPlaySpellSound(this.audioContext, attackId, this.sfxVolume);
-  }
-
   /* ────────────────────────── PixiJS Init ────────────────────────── */
 
   private async initPixi(): Promise<void> {
@@ -470,15 +475,26 @@ export class StageBattleScene implements VfxOwner {
       });
     } catch { /* already frozen */ }
 
-    // WebGL context loss — let PixiJS recover automatically
+    // WebGL context loss — start a recovery timer; if not restored, force-finish
     this._onContextLost = (e: Event) => {
-      console.warn('WebGL context lost — battle continues on restore');
+      console.warn('WebGL context lost — waiting for restore');
       e.preventDefault();
+      if (this._contextLossTimerId != null) clearTimeout(this._contextLossTimerId);
+      this._contextLossTimerId = setTimeout(() => {
+        if (!this._destroyed && !this.battleFinished) {
+          console.warn('WebGL context not restored within timeout — forcing battle finish');
+          this.finishBattle();
+        }
+      }, StageBattleScene.CONTEXT_LOSS_RECOVERY_MS);
     };
     this.app.canvas.addEventListener('webglcontextlost', this._onContextLost);
 
     this._onContextRestored = () => {
       console.log('WebGL context restored');
+      if (this._contextLossTimerId != null) {
+        clearTimeout(this._contextLossTimerId);
+        this._contextLossTimerId = null;
+      }
     };
     this.app.canvas.addEventListener('webglcontextrestored', this._onContextRestored);
 
@@ -567,7 +583,6 @@ export class StageBattleScene implements VfxOwner {
 
     if (this.interactiveMode) {
       this.initInteractiveState();
-      this.createSpellBar();
       this.createConsumableBar();
       this.startInteractiveBattle();
     } else {
@@ -1049,7 +1064,7 @@ export class StageBattleScene implements VfxOwner {
       else if (this.enemyCount >= 5) countScaleFactor = 0.60;
       else if (this.enemyCount >= 4) countScaleFactor = 0.75;
       else if (this.enemyCount >= 3) countScaleFactor = 0.85;
-      const bossBoost = isBoss ? 1.25 : 1.0;
+      const bossBoost = isBoss ? 1.5 : 1.0;
       const maxSpriteHeight = height * 0.28;
 
       for (let i = 0; i < this.enemyCount; i++) {
@@ -1065,10 +1080,10 @@ export class StageBattleScene implements VfxOwner {
       }
     } else {
       // ── Desktop: fixed pixel sizes, auto-shrink if formation won't fit ──
-      // Normal enemies: 180px target. Boss/miniboss: 360px target.
+      // Normal enemies: 180px target. Boss/miniboss: 450px target.
       // If the formation has too many rows to fit vertically, shrink uniformly.
       const baseSizeNormal = 180;
-      const baseSizeBig = 360;
+      const baseSizeBig = 450;
       const isBigEnemy = isBoss || isMiniboss;
 
       // Predict how many rows we need to calculate vertical space
@@ -1505,88 +1520,6 @@ export class StageBattleScene implements VfxOwner {
     }
   }
 
-  /* ────────────────────── Spell Bar UI ───────────────────────────── */
-
-  private createSpellBar(): void {
-    if (!this.spells || this.spells.length === 0 || !this.app || !this.stage) return;
-
-    const { width, height } = this.app.screen;
-    const isMobile = this.isMobile;
-    const barY = height - (isMobile ? 95 : 85);
-    const btnSize = isMobile ? 42 : 52;
-    const gap = isMobile ? 6 : 10;
-    const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * gap;
-    const startX = (width - totalWidth) / 2;
-
-    this.spellBarContainer = new PIXI.Container();
-    this.spellBarContainer.y = barY;
-    this.stage.addChild(this.spellBarContainer);
-
-    this.spellButtons = [];
-    for (let i = 0; i < this.spells.length; i++) {
-      const spell = this.spells[i];
-      const attackId = (spell.attackId ?? spell.AttackId ?? '') as string;
-      const name = (spell.name ?? spell.Name ?? attackId) as string;
-      const icon = (spell.icon ?? spell.Icon ?? '⚔️') as string;
-      const cooldownSeconds = (spell.cooldownSeconds ?? spell.CooldownSeconds ?? 0) as number;
-
-      const btnContainer = new PIXI.Container();
-      btnContainer.x = startX + i * (btnSize + gap);
-      btnContainer.y = 0;
-
-      const bg = new PIXI.Graphics();
-      bg.roundRect(0, 0, btnSize, btnSize, 8);
-      bg.fill({ color: 0x2a2a3e, alpha: 0.92 });
-      bg.stroke({ color: 0x5566aa, width: 2 });
-      btnContainer.addChild(bg);
-
-      const iconText = new PIXI.Text({
-        text: icon,
-        style: { fontSize: isMobile ? 16 : 20, fill: 0xffffff },
-      });
-      iconText.anchor.set(0.5);
-      iconText.x = btnSize / 2;
-      iconText.y = btnSize / 2 - 6;
-      btnContainer.addChild(iconText);
-
-      const nameText = new PIXI.Text({
-        text: name.substring(0, 6),
-        style: { fontSize: isMobile ? 7 : 9, fill: 0xcccccc, fontFamily: 'Arial' },
-      });
-      nameText.anchor.set(0.5);
-      nameText.x = btnSize / 2;
-      nameText.y = btnSize - 6;
-      btnContainer.addChild(nameText);
-
-      // Cooldown overlay
-      const cdOverlay = new PIXI.Graphics();
-      cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
-      cdOverlay.fill({ color: 0x000000, alpha: 0.6 });
-      cdOverlay.visible = false;
-      btnContainer.addChild(cdOverlay);
-
-      const cdText = new PIXI.Text({
-        text: '',
-        style: { fontSize: isMobile ? 14 : 18, fill: 0xff6644, fontWeight: 'bold' },
-      });
-      cdText.anchor.set(0.5);
-      cdText.x = btnSize / 2;
-      cdText.y = btnSize / 2;
-      cdText.visible = false;
-      btnContainer.addChild(cdText);
-
-      btnContainer.eventMode = 'static';
-      btnContainer.cursor = 'pointer';
-      btnContainer.on('pointerdown', () => this.onSpellButtonClick(attackId, cooldownSeconds));
-
-      this.spellBarContainer.addChild(btnContainer);
-      this.spellButtons.push({
-        container: btnContainer, bg, iconText, nameText,
-        cdOverlay, cdText, attackId, cooldownSeconds, spell,
-      });
-    }
-  }
-
   /* ────────────────────── Consumable Bar UI ──────────────────────── */
 
   private createConsumableBar(): void {
@@ -1745,7 +1678,7 @@ export class StageBattleScene implements VfxOwner {
     if (this._destroyed || !this.dotNetRef || this._consumablePending) return;
     this._consumablePending = true;
     try {
-      const json = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as string | null;
+      const json = await this.invokeWithTimeout<string | null>('OnUseConsumable', StageBattleScene.INTEROP_TIMEOUT_MS, type);
       if (this._destroyed || this.battleFinished) { this._consumablePending = false; return; }
       if (!json) { this._consumablePending = false; return; }
 
@@ -1896,105 +1829,106 @@ export class StageBattleScene implements VfxOwner {
     this.battleStartTime = Date.now();
     this.currentSimTime = 0;
     this.battleFinished = false;
-    this._cooldownTickAccum = 0;
     this._consumableTickAccum = 0;
+    this._finishRetryCount = 0;
+
+    // Start JS-side battle watchdog — safety net in case battle never ends
+    this.clearJsBattleWatchdog();
+    this._jsBattleWatchdogId = setTimeout(() => {
+      if (!this._destroyed && !this.battleFinished && this.isPlaying) {
+        console.warn(`JS battle watchdog: battle exceeded ${StageBattleScene.JS_BATTLE_WATCHDOG_MS}ms, forcing finish`);
+        this.finishBattle();
+      }
+    }, StageBattleScene.JS_BATTLE_WATCHDOG_MS);
+
+    // Start heartbeat ping to Blazor every 30s to keep the server watchdog alive
+    this.startHeartbeat();
   }
 
-  private onSpellButtonClick(attackId: string, cooldownSeconds: number): void {
-    if (this.battleFinished || this._spellPending) return;
-    const cd = this.spellCooldowns[attackId] ?? 0;
-    if (cd > 0) return;
-    this.requestPlayerSpell(attackId, cooldownSeconds);
+  /* ──────────────── Heartbeat & Watchdog Helpers ─────────────────── */
+
+  /** Pings Blazor every 30s so the server-side watchdog timer resets. */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this._heartbeatInterval = setInterval(() => {
+      if (this._destroyed || this.battleFinished || !this.dotNetRef) {
+        this.stopHeartbeat();
+        return;
+      }
+      this.dotNetRef.invokeMethodAsync('OnBattleHeartbeat').catch((e: unknown) => {
+        console.warn('Heartbeat ping failed:', (e as Error).message);
+      });
+    }, StageBattleScene.HEARTBEAT_INTERVAL_MS);
+  }
+
+  private stopHeartbeat(): void {
+    if (this._heartbeatInterval != null) {
+      clearInterval(this._heartbeatInterval);
+      this._heartbeatInterval = null;
+    }
+  }
+
+  private clearJsBattleWatchdog(): void {
+    if (this._jsBattleWatchdogId != null) {
+      clearTimeout(this._jsBattleWatchdogId);
+      this._jsBattleWatchdogId = null;
+    }
+  }
+
+  /**
+   * Wraps a dotNetRef.invokeMethodAsync call with a timeout.
+   * If the promise doesn't resolve/reject within `timeoutMs`, the returned
+   * promise rejects with an error so callers' catch/finally blocks run.
+   */
+  private invokeWithTimeout<T>(method: string, timeoutMs: number, ...args: unknown[]): Promise<T> {
+    if (!this.dotNetRef) return Promise.reject(new Error('dotNetRef is null'));
+    const interopPromise = this.dotNetRef.invokeMethodAsync(method, ...args) as Promise<T>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      const id = setTimeout(() => reject(new Error(`Interop call '${method}' timed out after ${timeoutMs}ms`)), timeoutMs);
+      // If the interop resolves first, clear the timeout to avoid leaking timers
+      interopPromise.then(() => clearTimeout(id), () => clearTimeout(id));
+    });
+    return Promise.race([interopPromise, timeoutPromise]);
   }
 
   /* ──────────────── Interactive Server Calls ─────────────────────── */
 
   private async requestPlayerAutoAttack(): Promise<void> {
     if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-      this._playerAttackPending = false;
+      this._pendingPlayerAttacks = Math.max(0, this._pendingPlayerAttacks - 1);
       return;
     }
     try {
-      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as string | null;
+      const json = await this.invokeWithTimeout<string | null>('OnPlayerAutoAttack', StageBattleScene.INTEROP_TIMEOUT_MS);
       if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestPlayerAutoAttack error:', (e as Error).message);
     } finally {
-      this._playerAttackPending = false;
-      // Reset timer AFTER attack fires so the bar stays at 0 until the hit lands
-      this.playerSpeedBarTimer = this.playerActionTime * 1000;
+      this._pendingPlayerAttacks = Math.max(0, this._pendingPlayerAttacks - 1);
     }
   }
 
   private async requestEnemyAttack(enemyIndex: number): Promise<void> {
     if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-      this._enemyAttackPending[enemyIndex] = false;
+      this._pendingEnemyAttacks[enemyIndex] = Math.max(0, this._pendingEnemyAttacks[enemyIndex] - 1);
       return;
     }
     try {
-      const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as string | null;
+      const json = await this.invokeWithTimeout<string | null>('OnEnemyAttack', StageBattleScene.INTEROP_TIMEOUT_MS, enemyIndex);
       if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestEnemyAttack error:', (e as Error).message);
     } finally {
-      this._enemyAttackPending[enemyIndex] = false;
-      // Reset timer AFTER attack fires so the bar stays at 0 until the hit lands
-      this.enemySpeedBarTimers[enemyIndex] = this.enemyActionTimes[enemyIndex] * 1000;
-    }
-  }
-
-  private async requestPlayerSpell(attackId: string, cooldownSeconds: number): Promise<void> {
-    if (this._destroyed || !this.dotNetRef || this._spellPending || this.battleFinished) return;
-    this._spellPending = true;
-    try {
-      this.spellCooldowns[attackId] = cooldownSeconds;
-      this.updateSpellCooldownVisuals();
-
-      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as string | null;
-      if (this._destroyed || this.battleFinished) return;
-      if (json) {
-        const result = JSON.parse(json) as CombatActionResult;
-        const serverCooldowns = (result.spellCooldowns ?? result.SpellCooldowns) as Record<string, number> | undefined;
-        if (serverCooldowns) {
-          for (const [id, rem] of Object.entries(serverCooldowns)) {
-            this.spellCooldowns[id] = rem;
-          }
-        }
-        this.processServerResult(result);
-      }
-    } catch (e) {
-      console.warn('requestPlayerSpell error:', (e as Error).message);
-    } finally {
-      this._spellPending = false;
-      if (!this._destroyed) this.updateSpellCooldownVisuals();
-    }
-  }
-
-  private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
-    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
-    try {
-      const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds) as string | null;
-      if (this._destroyed || this.battleFinished) return;
-      if (json) {
-        const data = JSON.parse(json);
-        // Server returns { spells: {...} } or direct map
-        const spellCooldowns = data.spells ?? data;
-        for (const [id, remaining] of Object.entries(spellCooldowns)) {
-          this.spellCooldowns[id] = remaining as number;
-        }
-        this.updateSpellCooldownVisuals();
-      }
-    } catch (e) {
-      console.warn('OnTickCooldowns error:', (e as Error).message);
+      this._pendingEnemyAttacks[enemyIndex] = Math.max(0, this._pendingEnemyAttacks[enemyIndex] - 1);
     }
   }
 
   private async requestTickConsumableCooldowns(realElapsedSeconds: number): Promise<void> {
     if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
-      const json = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns', realElapsedSeconds) as string | null;
+      const json = await this.invokeWithTimeout<string | null>('OnTickConsumableCooldowns', StageBattleScene.INTEROP_TIMEOUT_MS, realElapsedSeconds);
       if (this._destroyed || this.battleFinished) return;
       if (json) {
         const data = JSON.parse(json) as Record<string, number>;
@@ -2035,37 +1969,9 @@ export class StageBattleScene implements VfxOwner {
     switch (evtType) {
       case 'HPUpdate': this.handleHPUpdate(evt); break;
       case 'Attack': this.handleAttack(evt); break;
-      case 'SpellAttack': this.handleSpellAttack(evt); break;
-      case 'StatusEffect': this.handleStatusEffect(evt); break;
       case 'KO': this.handleKO(evt); break;
       default: break;
     }
-  }
-
-  private handleSpellAttack(evt: BattleEvent): void {
-    const attackId = getEventField<string>(evt, 'AttackId') ?? '';
-    const vfxType = getEventField<number>(evt, 'VfxType');
-    const vfxColor = getEventField<number>(evt, 'VfxColor') ?? 0x00ccff;
-    const isAoe = getEventField<boolean>(evt, 'IsAoE') ?? false;
-
-    this._playSpellSound(attackId);
-
-    if (isAoe) {
-      for (let i = 0; i < this.enemySprites.length; i++) {
-        const enemy = this.enemySprites[i];
-        if (enemy && enemy.alpha > 0.3 && this.playerSprite) {
-          playSpellVfx(this, vfxType, vfxColor, this.playerSprite, enemy);
-        }
-      }
-    } else {
-      const targetIdx = this.resolveEnemyIndex(evt);
-      const target = this.enemySprites[targetIdx];
-      if (target && this.playerSprite) {
-        playSpellVfx(this, vfxType, vfxColor, this.playerSprite, target);
-      }
-    }
-
-    screenShake(this);
   }
 
   private resolveEnemyIndex(evt: BattleEvent): number {
@@ -2075,28 +1981,6 @@ export class StageBattleScene implements VfxOwner {
       if (!isNaN(idx) && idx >= 0 && idx < this.enemySprites.length) return idx;
     }
     return 0;
-  }
-
-  private handleStatusEffect(evt: BattleEvent): void {
-    const target = getEventField<string>(evt, 'Target') ?? '';
-    const effect = getEventField<string>(evt, 'Effect') ?? '';
-    if (target === 'Attacker' || target === 'Player') {
-      if (this.playerSprite) showEffectLabel(this, effect, this.playerSprite);
-    } else if (target.startsWith('Enemy')) {
-      const idx = parseInt(target.replace('Enemy', ''));
-      const sprite = this.enemySprites[idx];
-      if (sprite) showEffectLabel(this, effect, sprite);
-    }
-  }
-
-  private updateSpellCooldownVisuals(): void {
-    for (const btn of this.spellButtons) {
-      const cd = this.spellCooldowns[btn.attackId] ?? 0;
-      btn.cdOverlay.visible = cd > 0;
-      btn.cdText.visible = cd > 0;
-      if (cd > 0) btn.cdText.text = `${Math.ceil(cd)}`;
-      btn.container.alpha = cd > 0 ? 0.5 : 1;
-    }
   }
 
   /* ────────────────────── Main Update Loop ───────────────────────── */
@@ -2122,16 +2006,17 @@ export class StageBattleScene implements VfxOwner {
           // No targets — hold bar at full until enemies appear
           this.playerSpeedBarTimer = this.playerActionTime * 1000;
           this.updatePlayerSpeedBar();
-        } else if (this._playerAttackPending) {
-          // Attack in flight — freeze bar at 0 until server responds
-          this.updatePlayerSpeedBar();
         } else {
-          this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+          this.playerSpeedBarTimer -= simDelta;
           this.updatePlayerSpeedBar();
-          if (this.playerSpeedBarTimer <= 0) {
-            this._playerAttackPending = true;
+          // Fire one or more attacks if enough simulated time elapsed (carry over overshoot)
+          while (this.playerSpeedBarTimer <= 0 && this._pendingPlayerAttacks < StageBattleScene.MAX_PENDING_ATTACKS) {
+            this._pendingPlayerAttacks++;
+            this.playerSpeedBarTimer += this.playerActionTime * 1000;
             this.requestPlayerAutoAttack();
           }
+          // Clamp for display if pipeline is saturated (all pending slots full)
+          if (this.playerSpeedBarTimer < 0) this.playerSpeedBarTimer = 0;
         }
       }
 
@@ -2142,30 +2027,19 @@ export class StageBattleScene implements VfxOwner {
             // Player dead — hold bar at full
             this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
             this.updateEnemySpeedBar(i);
-          } else if (this._enemyAttackPending[i]) {
-            // Attack in flight — freeze bar at 0
-            this.updateEnemySpeedBar(i);
           } else {
-            this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+            this.enemySpeedBarTimers[i] -= simDelta;
             this.updateEnemySpeedBar(i);
-            if (this.enemySpeedBarTimers[i] <= 0) {
-              this._enemyAttackPending[i] = true;
+            // Fire one or more attacks if enough simulated time elapsed (carry over overshoot)
+            while (this.enemySpeedBarTimers[i] <= 0 && this._pendingEnemyAttacks[i] < StageBattleScene.MAX_PENDING_ATTACKS) {
+              this._pendingEnemyAttacks[i]++;
+              this.enemySpeedBarTimers[i] += this.enemyActionTimes[i] * 1000;
               this.requestEnemyAttack(i);
             }
+            // Clamp for display if pipeline is saturated
+            if (this.enemySpeedBarTimers[i] < 0) this.enemySpeedBarTimers[i] = 0;
           }
         }
-      }
-
-      // Tick spell cooldowns every ~200ms of sim time (scales with battle speed)
-      this._cooldownTickAccum += simDelta;
-      if (this._cooldownTickAccum >= 200) {
-        const spellElapsed = this._cooldownTickAccum / 1000;
-        this._cooldownTickAccum = 0;
-        for (const id of Object.keys(this.spellCooldowns)) {
-          this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - spellElapsed);
-        }
-        this.updateSpellCooldownVisuals();
-        this.requestTickCooldowns(spellElapsed);
       }
 
       // Tick consumable cooldowns every ~200ms of REAL time (not battle-speed-scaled)
@@ -2536,6 +2410,9 @@ export class StageBattleScene implements VfxOwner {
 
   private animatePlayerAttack(isCritical: boolean): void {
     if (!this.playerSprite) return;
+    // Skip visual lunge if an attack animation is already in progress —
+    // prevents two animateTo chains from fighting over the sprite position.
+    if (this._playerAttacking) return;
     this._playerAttacking = true;
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
@@ -2566,6 +2443,7 @@ export class StageBattleScene implements VfxOwner {
 
   private animateEnemyAttack(isCritical: boolean): void {
     for (let index = 0; index < this.enemySprites.length; index++) {
+      if (this._enemyAttacking[index]) continue; // skip if already animating
       const enemy = this.enemySprites[index];
       this._enemyAttacking[index] = true;
       const lungeDistance = isCritical ? 80 : 60;
@@ -2596,6 +2474,8 @@ export class StageBattleScene implements VfxOwner {
     if (enemyIndex < 0 || enemyIndex >= this.enemySprites.length) return;
     const enemy = this.enemySprites[enemyIndex];
     if (!enemy) return;
+    // Skip visual lunge if already animating this enemy
+    if (this._enemyAttacking[enemyIndex]) return;
     this._enemyAttacking[enemyIndex] = true;
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
@@ -2623,34 +2503,43 @@ export class StageBattleScene implements VfxOwner {
 
   private flashPlayer(isCritical: boolean): void {
     if (!this.playerSprite) return;
+    // Cancel any pending flash restore so overlapping hits don't reset tint prematurely
+    if (this._playerFlashTimeout != null) {
+      clearTimeout(this._playerFlashTimeout);
+      this._playerFlashTimeout = null;
+    }
     this.playerSprite.tint = isCritical ? 0xcc0000 : 0xff0000;
     const flashDuration = isCritical ? 180 : 100;
-    const id = setTimeout(() => {
+    // Ensure flash is visible: min 50ms even at extreme speeds
+    const scaledFlash = Math.max(50, flashDuration / this.battleSpeed);
+    this._playerFlashTimeout = setTimeout(() => {
       if (this.playerSprite) this.playerSprite.tint = 0xffffff;
-    }, flashDuration / this.battleSpeed) as unknown as number;
-    this._timeoutIds.push(id);
+      this._playerFlashTimeout = null;
+    }, scaledFlash);
   }
 
   private flashEnemy(enemyIndex: number, isCritical: boolean): void {
     if (enemyIndex < 0 || enemyIndex >= this.enemySprites.length) return;
     const enemy = this.enemySprites[enemyIndex];
     if (!enemy) return;
+    // Cancel any pending flash restore for this enemy
+    if (this._enemyFlashTimeouts[enemyIndex] != null) {
+      clearTimeout(this._enemyFlashTimeouts[enemyIndex]);
+      delete this._enemyFlashTimeouts[enemyIndex];
+    }
     enemy.tint = isCritical ? 0xcc0000 : 0xff0000;
     const flashDuration = isCritical ? 180 : 100;
-    const id = setTimeout(() => {
+    // Ensure flash is visible: min 50ms even at extreme speeds
+    const scaledFlash = Math.max(50, flashDuration / this.battleSpeed);
+    this._enemyFlashTimeouts[enemyIndex] = setTimeout(() => {
       enemy.tint = 0xffffff;
-    }, flashDuration / this.battleSpeed) as unknown as number;
-    this._timeoutIds.push(id);
+      delete this._enemyFlashTimeouts[enemyIndex];
+    }, scaledFlash);
   }
 
   private flashEnemies(isCritical: boolean): void {
-    for (const enemy of this.enemySprites) {
-      enemy.tint = isCritical ? 0xcc0000 : 0xff0000;
-      const flashDuration = isCritical ? 180 : 100;
-      const id = setTimeout(() => {
-        enemy.tint = 0xffffff;
-      }, flashDuration / this.battleSpeed) as unknown as number;
-      this._timeoutIds.push(id);
+    for (let i = 0; i < this.enemySprites.length; i++) {
+      this.flashEnemy(i, isCritical);
     }
   }
 
@@ -2794,26 +2683,48 @@ export class StageBattleScene implements VfxOwner {
     this.battleFinished = true;
     this.isPlaying = false;
 
+    // Stop heartbeat and JS battle watchdog
+    this.stopHeartbeat();
+    this.clearJsBattleWatchdog();
+
     if (this.eventTimer) {
       clearInterval(this.eventTimer);
       this.eventTimer = null;
     }
 
-    if (this.dotNetRef) {
-      try {
-        this.dotNetRef.invokeMethodAsync('OnBattleFinished').catch((e: unknown) => {
-          console.warn('Could not notify Blazor of battle finish:', e);
-        });
-      } catch (e) {
-        console.warn('finishBattle: dotNetRef error:', (e as Error).message);
-      }
+    this.notifyBlazerFinished();
+  }
+
+  /** Notifies Blazor that the battle finished, with retry on failure. */
+  private notifyBlazerFinished(): void {
+    if (this._destroyed || !this.dotNetRef) return;
+    try {
+      this.dotNetRef.invokeMethodAsync('OnBattleFinished').catch((e: unknown) => {
+        console.warn('Could not notify Blazor of battle finish:', e);
+        this.retryFinishNotification();
+      });
+    } catch (e) {
+      console.warn('finishBattle: dotNetRef error:', (e as Error).message);
+      this.retryFinishNotification();
     }
+  }
+
+  /** Retries the OnBattleFinished call up to FINISH_RETRY_MAX times. */
+  private retryFinishNotification(): void {
+    this._finishRetryCount++;
+    if (this._finishRetryCount > StageBattleScene.FINISH_RETRY_MAX || this._destroyed || !this.dotNetRef) {
+      console.error(`OnBattleFinished failed after ${this._finishRetryCount} attempts — giving up (server watchdog will handle)`);
+      return;
+    }
+    console.warn(`Retrying OnBattleFinished (attempt ${this._finishRetryCount}/${StageBattleScene.FINISH_RETRY_MAX}) in ${StageBattleScene.FINISH_RETRY_DELAY_MS}ms`);
+    const id = setTimeout(() => this.notifyBlazerFinished(), StageBattleScene.FINISH_RETRY_DELAY_MS) as unknown as number;
+    this._timeoutIds.push(id);
   }
 
   /* ──────────────── Public API ────────────────────────────────────── */
 
   setSpeed(speed: number): void {
-    const validSpeed = speed === 5 ? 5 : 1;
+    const validSpeed = this._allowedSpeeds.includes(speed) ? speed : 1;
     this.playbackSpeed = validSpeed;
     this._battleSpeed = validSpeed;
   }
@@ -2830,6 +2741,14 @@ export class StageBattleScene implements VfxOwner {
     this._destroyed = true;
     this.battleFinished = true;
     this.isPlaying = false;
+
+    // Stop heartbeat, JS battle watchdog, and context loss timer
+    this.stopHeartbeat();
+    this.clearJsBattleWatchdog();
+    if (this._contextLossTimerId != null) {
+      clearTimeout(this._contextLossTimerId);
+      this._contextLossTimerId = null;
+    }
 
     // Remove event listeners
     if (this._onResize) {
@@ -2849,12 +2768,16 @@ export class StageBattleScene implements VfxOwner {
     this._timeoutIds = [];
     this._rafIds = [];
 
+    // Clear pending flash timeouts
+    if (this._playerFlashTimeout != null) clearTimeout(this._playerFlashTimeout);
+    this._playerFlashTimeout = null;
+    for (const key of Object.keys(this._enemyFlashTimeouts)) {
+      clearTimeout(this._enemyFlashTimeouts[Number(key)]);
+    }
+    this._enemyFlashTimeouts = {};
+
     // Destroy pooled texts
     destroyTextPool(this._textPool);
-
-    // Clean up spell bar
-    this.spellButtons = [];
-    this.spellBarContainer = null;
 
     if (this.eventTimer) {
       clearInterval(this.eventTimer);
@@ -2907,6 +2830,16 @@ export class StageBattleScene implements VfxOwner {
     this.isPlaying = false;
     this.battleFinished = true;
 
+    // Stop heartbeat and JS battle watchdog from previous battle
+    this.stopHeartbeat();
+    this.clearJsBattleWatchdog();
+
+    // Clear accumulated timeouts/rafs from previous battle to prevent unbounded growth
+    for (const id of this._timeoutIds) clearTimeout(id);
+    for (const id of this._rafIds) cancelAnimationFrame(id);
+    this._timeoutIds = [];
+    this._rafIds = [];
+
     // Update battle data
     this.eventsList = (data.events as BattleEvent[]) ?? [];
     this.dotNetRef = (data.dotNetRef as DotNet.DotNetObject | null) ?? this.dotNetRef;
@@ -2924,12 +2857,12 @@ export class StageBattleScene implements VfxOwner {
 
     // Interactive mode
     this.interactiveMode = pick<boolean>(data, 'InteractiveMode', 'interactiveMode', this.interactiveMode);
-    this.spells = (data.spells ?? data.Spells ?? this.spells) as SpellDefinition[];
     this.interactivePlayerHP = (data.playerHP ?? data.PlayerHP ?? null) as number | null;
     this.interactivePlayerMaxHP = (data.playerMaxHP ?? data.PlayerMaxHP ?? null) as number | null;
     this.interactivePlayerActionTime = (data.playerActionTime ?? data.PlayerActionTime ?? null) as number | null;
     this.interactiveEnemies = (data.enemies ?? data.Enemies ?? []) as EnemyDefinition[];
-    this._enemyAttackPending = Array(this.enemyCount).fill(false);
+    this._pendingPlayerAttacks = 0;
+    this._pendingEnemyAttacks = Array(this.enemyCount).fill(0);
 
     // Consumable quantities
     const cData = (data.consumables ?? data.Consumables) as Record<string, unknown> | undefined;
@@ -2988,14 +2921,6 @@ export class StageBattleScene implements VfxOwner {
       }
     }
 
-    // Spell cooldowns
-    const scData = (data.spellCooldowns ?? data.SpellCooldowns) as Record<string, number> | undefined;
-    if (scData) {
-      for (const [id, remaining] of Object.entries(scData)) {
-        this.spellCooldowns[id] = remaining;
-      }
-    }
-
     // Pre-load new textures while old scene is visible
     try {
       await this.loadAssets();
@@ -3018,7 +2943,7 @@ export class StageBattleScene implements VfxOwner {
     this.idleAnimationTime = 0;
     this.enemyIdleOffsets = [];
 
-    // Build persistent set (keep player, bars, background, consumable/spell bars)
+    // Build persistent set (keep player, bars, background, consumable bars)
     const persistent = new Set<Container>();
     if (this.backgroundSprite) persistent.add(this.backgroundSprite);
     if (this._overlay) persistent.add(this._overlay);
@@ -3049,7 +2974,6 @@ export class StageBattleScene implements VfxOwner {
       if (this.bossSpeedBar.text) persistent.add(this.bossSpeedBar.text);
     }
     if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
-    if (this.spellBarContainer) persistent.add(this.spellBarContainer);
     if (this.canhaoTimerBar) {
       persistent.add(this.canhaoTimerBar.bar);
       persistent.add(this.canhaoTimerBar.barBg);
@@ -3176,6 +3100,16 @@ export class StageBattleScene implements VfxOwner {
     this._playerAttacking = false;
     this._enemyAttacking = {};
 
+    // Clear any pending flash timeouts from previous battle
+    if (this._playerFlashTimeout != null) {
+      clearTimeout(this._playerFlashTimeout);
+      this._playerFlashTimeout = null;
+    }
+    for (const key of Object.keys(this._enemyFlashTimeouts)) {
+      clearTimeout(this._enemyFlashTimeouts[Number(key)]);
+    }
+    this._enemyFlashTimeouts = {};
+
     // Create new enemies
     const width = this.app.screen.width;
     const height = this.app.screen.height;
@@ -3239,14 +3173,6 @@ export class StageBattleScene implements VfxOwner {
     // Restart battle
     if (this.interactiveMode) {
       this.initInteractiveState();
-      if (this.spells?.length > 0) {
-        if (this.spellBarContainer) {
-          this.spellBarContainer.destroy({ children: true, texture: false });
-          this.spellBarContainer = null;
-          this.spellButtons = [];
-        }
-        this.createSpellBar();
-      }
       // Update consumable bar in-place (no destroy to avoid CDN flicker)
       if (this.consumableBarContainer && this.consumableButtons.length > 0) {
         for (const btn of this.consumableButtons) {

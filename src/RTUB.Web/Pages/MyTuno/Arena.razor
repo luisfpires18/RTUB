@@ -361,9 +361,8 @@
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
 
-    // Interactive combat session (spells / Blade Crafter mode)
+    // Interactive combat session
     private CombatSession? _combatSession;
-    private List<RTUB.Core.Entities.SpecialAttack>? _starterSpells;
     private Character? _currentOpponent;
     private static readonly JsonSerializerOptions _spellJsonOptions = new()
     {
@@ -554,8 +553,6 @@
                 if (equippedWeapon != null)
                     combatInstrumentType = InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
             }
-            _starterSpells = null; // Special attacks disabled in Arena (Battle Mode)
-
             // Create CPU snapshot at full HP for the interactive session.
             // Arena uses base stats — no consumable buffs applied or consumed.
             var opponentSnapshot = Character.CreateCpuSnapshot(opponent);
@@ -563,7 +560,6 @@
                 character,
                 new List<Character> { opponentSnapshot },
                 currentBattle.Seed,
-                _starterSpells,
                 "arena");
 
             // Start live battle animation via pixiBattle.js (interactive mode)
@@ -666,20 +662,6 @@
     }
 
     /// <summary>
-    /// Called by JS when the user clicks a spell button.
-    /// Returns CombatActionResult JSON for JS to animate.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnPlayerSpell(string attackId)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
-
-        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
-
-    /// <summary>
     /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
     /// Returns CombatActionResult JSON for JS to animate.
     /// </summary>
@@ -693,25 +675,7 @@
         return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
     }
 
-    /// <summary>
-    /// Called by JS on each tick to advance spell cooldowns.
-    /// Returns updated cooldown map.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnTickCooldowns(double elapsedSeconds)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
 
-        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-
-        var result = new Dictionary<string, object>
-        {
-            ["spells"] = cooldowns,
-            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
-        };
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
 
     [JSInvokable]
     public async Task OnBattleFinished()

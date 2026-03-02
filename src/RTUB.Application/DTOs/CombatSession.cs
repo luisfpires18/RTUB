@@ -1,6 +1,4 @@
-using RTUB.Core.Entities;
 using RTUB.Core.Utilities;
-using RTUB.Application.DTOs;
 
 namespace RTUB.Application.DTOs;
 
@@ -52,90 +50,6 @@ public class CombatSession
 
     /// <summary>Effective Penalty lifesteal percent (scaled by consumable upgrades).</summary>
     public double EffectivePenaltyLifesteal { get; set; }
-
-    /// <summary>
-    /// Damage bonus multiplier for heavy attacks from Powers upgrades (e.g., 0.10 = +10%).
-    /// </summary>
-    public double HeavyAttackDamageBonus { get; set; }
-
-    /// <summary>
-    /// Damage bonus multiplier for special attacks (non-heavy) from Powers upgrades (e.g., 0.10 = +10%).
-    /// </summary>
-    public double SpecialAttackDamageBonus { get; set; }
-
-    // ── Status Effect Tracking ──
-
-    /// <summary>
-    /// Sleep turns remaining per enemy (key = enemy identifier, value = turns left).
-    /// While sleeping, enemy speed bar is frozen.
-    /// </summary>
-    public Dictionary<string, int> EnemySleepTurns { get; set; } = [];
-
-    /// <summary>
-    /// Vulnerable stacks per enemy (key = enemy identifier, value = hits remaining).
-    /// Next attack deals double damage.
-    /// </summary>
-    public Dictionary<string, int> EnemyVulnerableStacks { get; set; } = [];
-
-    /// <summary>
-    /// Bleed ticks per enemy (key = enemy identifier, value = (ticksRemaining, damagePerTick)).
-    /// </summary>
-    public Dictionary<string, (int TicksRemaining, int DamagePerTick)> EnemyBleed { get; set; } = [];
-
-    /// <summary>
-    /// Slow effect per enemy (key = enemy identifier, value = (hitsRemaining, slowFraction)).
-    /// </summary>
-    public Dictionary<string, (int HitsRemaining, double SlowFraction)> EnemySlow { get; set; } = [];
-
-    /// <summary>
-    /// Player power boost stacks (hits remaining, boost fraction).
-    /// </summary>
-    public (int HitsRemaining, double BoostFraction) PlayerPowerBoost { get; set; }
-
-    /// <summary>
-    /// Player haste stacks (hits remaining, speed factor).
-    /// </summary>
-    public (int HitsRemaining, double SpeedFraction) PlayerHaste { get; set; }
-
-    /// <summary>
-    /// Player defense boost stacks (hits remaining, boost fraction).
-    /// </summary>
-    public (int HitsRemaining, double BoostFraction) PlayerDefenseBoost { get; set; }
-
-    /// <summary>
-    /// Player regen effect (ticks remaining, heal per tick as fraction of MaxHP).
-    /// </summary>
-    public (int TicksRemaining, double HealFraction) PlayerRegen { get; set; }
-
-    /// <summary>
-    /// Player instrument shield (hits remaining that are fully absorbed).
-    /// </summary>
-    public int InstrumentShieldHits { get; set; }
-
-    /// <summary>
-    /// Enemy power reduction (key = enemy identifier, value = (hitsRemaining, reductionFraction)).
-    /// Saxofone jazz solo reduces enemy power.
-    /// </summary>
-    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyPowerReduction { get; set; } = [];
-
-    /// <summary>
-    /// Enemy defense break (key = enemy identifier, value = (hitsRemaining, reductionFraction)).
-    /// Guitarra power chord reduces enemy defense.
-    /// </summary>
-    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyDefenseBreak { get; set; } = [];
-
-    // ── Spell State ──
-
-    /// <summary>
-    /// Player's equipped spells for this battle.
-    /// </summary>
-    public List<SpecialAttack> EquippedSpells { get; set; } = [];
-
-    /// <summary>
-    /// Remaining cooldown per spell (key = AttackId, value = remaining seconds).
-    /// Starts at 0 (all spells ready at battle start).
-    /// </summary>
-    public Dictionary<string, double> SpellCooldowns { get; set; } = [];
 
     /// <summary>
     /// Remaining cooldown per consumable (key = consumable type name e.g. "fino", value = remaining seconds).

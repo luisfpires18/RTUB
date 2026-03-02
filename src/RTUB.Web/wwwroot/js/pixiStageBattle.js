@@ -3,10 +3,10 @@ var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { en
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 (function() {
   "use strict";
-  const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+  const SESSION_CACHE_BUST = "";
   const loadedAssetAliases = /* @__PURE__ */ new Set();
   const audioBufferCache = {};
-  const audioCacheBuster = `?v=${Date.now()}`;
+  const audioCacheBuster = "";
   function getEventField(evt, field) {
     if (!evt) return void 0;
     const record = evt;
@@ -153,95 +153,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
     }
   }
-  function playSpellSound(ctx, attackId, sfxVolume) {
-    if (!sfxVolume) return;
-    if (ctx.state === "suspended") ctx.resume();
-    const t = ctx.currentTime;
-    const vol = sfxVolume;
-    const playNote = (freq, type, start, dur, v = 0.3) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.connect(g);
-      g.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = type;
-      g.gain.setValueAtTime(vol * v, t + start);
-      g.gain.exponentialRampToValueAtTime(0.01, t + start + dur);
-      osc.start(t + start);
-      osc.stop(t + start + dur);
-    };
-    switch (attackId) {
-      case "heavy_attack":
-        playNote(120, "sawtooth", 0, 0.15, 0.5);
-        playNote(180, "square", 0.03, 0.12, 0.4);
-        break;
-      case "guitarra_barrage":
-        for (let i = 0; i < 6; i++) {
-          playNote(82 + i * 15, "sawtooth", i * 0.07, 0.08, 0.4);
-          playNote(165 + i * 10, "square", i * 0.07 + 0.03, 0.06, 0.25);
-        }
-        break;
-      case "bandolim_swiftchord":
-        playNote(587, "triangle", 0, 0.12, 0.4);
-        playNote(784, "triangle", 0.02, 0.1, 0.35);
-        playNote(988, "sine", 0.04, 0.08, 0.3);
-        break;
-      case "cavaquinho_paralysis":
-        for (let i = 0; i < 5; i++)
-          playNote(800 + Math.random() * 400, "square", i * 0.06, 0.05, 0.3);
-        playNote(200, "sawtooth", 0.35, 0.2, 0.4);
-        break;
-      case "acordeao_fear":
-        playNote(130, "sawtooth", 0, 0.6, 0.4);
-        playNote(138, "sawtooth", 0, 0.55, 0.35);
-        playNote(98, "square", 0.1, 0.4, 0.3);
-        playNote(65, "triangle", 0.2, 0.4, 0.25);
-        break;
-      case "contrabaixo_sonicboom": {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.connect(g);
-        g.connect(ctx.destination);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(110, t);
-        osc.frequency.exponentialRampToValueAtTime(35, t + 0.5);
-        g.gain.setValueAtTime(vol * 0.6, t);
-        g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-        osc.start(t);
-        osc.stop(t + 0.5);
-        playNote(55, "triangle", 0, 0.4, 0.3);
-        playNote(220, "square", 0.05, 0.15, 0.2);
-        break;
-      }
-      case "percussao_combo":
-        playNote(200, "square", 0, 0.06, 0.5);
-        playNote(300, "square", 0.08, 0.06, 0.4);
-        playNote(250, "square", 0.16, 0.06, 0.45);
-        playNote(400, "square", 0.24, 0.08, 0.5);
-        playNote(150, "triangle", 0, 0.3, 0.25);
-        break;
-      case "pandeireta_boomerang":
-        for (let i = 0; i < 8; i++) {
-          playNote(400 + i * 50, "sine", i * 0.04, 0.06, 0.35);
-        }
-        for (let i = 0; i < 8; i++) {
-          playNote(750 - i * 50, "sine", 0.32 + i * 0.04, 0.06, 0.3);
-        }
-        break;
-      case "estandarte_rally":
-        playNote(262, "triangle", 0, 0.15, 0.4);
-        playNote(330, "triangle", 0.12, 0.15, 0.4);
-        playNote(392, "triangle", 0.24, 0.2, 0.45);
-        playNote(196, "sine", 0, 0.5, 0.2);
-        break;
-      case "violino_sleep":
-        playNote(660, "sine", 0, 0.3, 0.35);
-        playNote(600, "sine", 0.15, 0.3, 0.3);
-        playNote(550, "sine", 0.3, 0.3, 0.25);
-        playNote(500, "sine", 0.45, 0.35, 0.2);
-        break;
-    }
-  }
   async function loadBackgroundMusic(ctx, musicUrl, volume, audioEnabled) {
     const state = { source: null, gainNode: null, currentTrack: musicUrl };
     try {
@@ -288,7 +199,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const speed = owner.battleSpeed ?? 1;
-    const adjustedDuration = speed > 0 ? duration / speed : duration;
+    const adjustedDuration = Math.max(20, speed > 0 ? duration / speed : duration);
     const startTime = Date.now();
     const container = target;
     const startValues = {};
@@ -381,30 +292,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     textPool.pool = [];
   }
-  const STATUS_LABELS = {
-    sleep: "💤 SLEEP",
-    bleed: "🩸 BLEED",
-    slow: "🐌 SLOW",
-    vulnerable: "⚡ VULN",
-    powerboost: "💪 POWER UP",
-    haste: "⚡ HASTE",
-    shield: "🛡️ SHIELD",
-    defensebreak: "💥 DEF BREAK",
-    defenseboost: "🛡️ DEF UP",
-    regen: "💚 REGEN"
-  };
-  const STATUS_COLORS = {
-    sleep: 10053375,
-    bleed: 16724787,
-    slow: 6724044,
-    vulnerable: 16755200,
-    powerboost: 16737792,
-    haste: 65416,
-    shield: 4491519,
-    defensebreak: 16729156,
-    defenseboost: 4491519,
-    regen: 4521796
-  };
+  const MIN_FLOAT_MS = 350;
   function showFloatingText(owner, text, x, y, color) {
     if (!owner.stage || !owner.app) return;
     const floatText = getPooledText(owner._textPool, text, {
@@ -419,7 +307,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     floatText.x = x;
     floatText.y = y;
     owner.stage.addChild(floatText);
-    animateTo(owner, floatText, { y: floatText.y - 70, alpha: 0 }, 900, () => {
+    const speed = owner.battleSpeed || 1;
+    const compensated = Math.max(900, MIN_FLOAT_MS * speed);
+    animateTo(owner, floatText, { y: floatText.y - 70, alpha: 0 }, compensated, () => {
       releaseText(owner._textPool, floatText);
     });
   }
@@ -440,228 +330,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     if (!damageText) return;
     damageText.anchor.set(0.5);
-    damageText.x = x;
+    damageText.x = x + (Math.random() - 0.5) * 30;
     damageText.y = y;
     owner.stage.addChild(damageText);
-    animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, duration, () => {
+    const speed = owner.battleSpeed || 1;
+    const compensated = Math.max(duration, MIN_FLOAT_MS * speed);
+    animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, compensated, () => {
       releaseText(owner._textPool, damageText);
     });
-  }
-  function showEffectLabel(owner, effectName, sprite) {
-    const label = STATUS_LABELS[effectName] || effectName.toUpperCase();
-    const color = STATUS_COLORS[effectName] || 16777215;
-    showFloatingText(
-      owner,
-      label,
-      sprite.x,
-      sprite.y - (sprite.height || 40) - 30,
-      color
-    );
-  }
-  function screenShake(owner) {
-    if (!owner.stage) return;
-    const intensity = 4;
-    const originalX = owner.stage.x;
-    const originalY = owner.stage.y;
-    let count = 0;
-    const shake = () => {
-      if (count >= 6 || !owner.stage) {
-        if (owner.stage) {
-          owner.stage.x = originalX;
-          owner.stage.y = originalY;
-        }
-        return;
-      }
-      owner.stage.x = originalX + (Math.random() - 0.5) * intensity * 2;
-      owner.stage.y = originalY + (Math.random() - 0.5) * intensity * 2;
-      count++;
-      const id = setTimeout(shake, 30);
-      owner._timeoutIds.push(id);
-    };
-    shake();
-  }
-  function playSpellVfx(owner, vfxType, color, source, target) {
-    if (!source || !target || !owner.stage) return;
-    const srcX = source.x;
-    const srcY = source.y - (source.height || 40) / 2;
-    const tgtX = target.x;
-    const tgtY = target.y - (target.height || 40) / 2;
-    switch (vfxType) {
-      case 0:
-        createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      case 1:
-        createBeamVfx(owner, color, tgtX, tgtY);
-        break;
-      case 2:
-        createAoeVfx(owner, color, tgtX, tgtY);
-        break;
-      case 4:
-        createMeleeStrikeVfx(owner, color, tgtX, tgtY);
-        break;
-      case 5:
-        createSoundWaveVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      case 6:
-        createMusicNotesVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      default:
-        createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-    }
-  }
-  function createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const proj = new PIXI.Graphics();
-    proj.circle(0, 0, 8);
-    proj.fill({ color, alpha: 0.9 });
-    proj.x = srcX;
-    proj.y = srcY;
-    owner.stage.addChild(proj);
-    const glow = new PIXI.Graphics();
-    glow.circle(0, 0, 14);
-    glow.fill({ color, alpha: 0.3 });
-    glow.x = srcX;
-    glow.y = srcY;
-    owner.stage.addChild(glow);
-    const duration = 350 / owner.battleSpeed;
-    const startTime = Date.now();
-    const animate = () => {
-      const t = Math.min((Date.now() - startTime) / duration, 1);
-      proj.x = srcX + (tgtX - srcX) * t;
-      proj.y = srcY + (tgtY - srcY) * t;
-      glow.x = proj.x;
-      glow.y = proj.y;
-      glow.alpha = 0.3 * (1 - t * 0.5);
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        const flash = new PIXI.Graphics();
-        flash.circle(0, 0, 20);
-        flash.fill({ color, alpha: 0.8 });
-        flash.x = tgtX;
-        flash.y = tgtY;
-        owner.stage.addChild(flash);
-        animateTo(owner, flash, { alpha: 0, scale: 2 }, 200, () => {
-          if (flash.parent) flash.parent.removeChild(flash);
-          flash.destroy();
-        });
-        if (proj.parent) proj.parent.removeChild(proj);
-        proj.destroy();
-        if (glow.parent) glow.parent.removeChild(glow);
-        glow.destroy();
-      }
-    };
-    requestAnimationFrame(animate);
-  }
-  function createBeamVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const beam = new PIXI.Graphics();
-    beam.rect(-4, -200, 8, 200);
-    beam.fill({ color, alpha: 0.8 });
-    beam.x = tgtX;
-    beam.y = tgtY;
-    beam.alpha = 0;
-    owner.stage.addChild(beam);
-    animateTo(owner, beam, { alpha: 1 }, 100, () => {
-      animateTo(owner, beam, { alpha: 0 }, 400, () => {
-        if (beam.parent) beam.parent.removeChild(beam);
-        beam.destroy();
-      });
-    });
-  }
-  function createAoeVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const ring = new PIXI.Graphics();
-    ring.circle(0, 0, 10);
-    ring.stroke({ color, width: 3, alpha: 0.9 });
-    ring.x = tgtX;
-    ring.y = tgtY;
-    owner.stage.addChild(ring);
-    animateTo(owner, ring, { scale: 6, alpha: 0 }, 500, () => {
-      if (ring.parent) ring.parent.removeChild(ring);
-      ring.destroy();
-    });
-  }
-  function createMeleeStrikeVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const slash = new PIXI.Graphics();
-    slash.moveTo(-15, -15);
-    slash.lineTo(15, 15);
-    slash.moveTo(15, -15);
-    slash.lineTo(-15, 15);
-    slash.stroke({ color, width: 4, alpha: 0.9 });
-    slash.x = tgtX;
-    slash.y = tgtY;
-    owner.stage.addChild(slash);
-    animateTo(owner, slash, { alpha: 0, scale: 2 }, 350, () => {
-      if (slash.parent) slash.parent.removeChild(slash);
-      slash.destroy();
-    });
-  }
-  function createSoundWaveVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const midX = (srcX + tgtX) / 2;
-    const midY = (srcY + tgtY) / 2;
-    for (let i = 0; i < 3; i++) {
-      const ring = new PIXI.Graphics();
-      ring.circle(0, 0, 12);
-      ring.stroke({ color, width: 3, alpha: 0.8 });
-      ring.x = midX;
-      ring.y = midY;
-      ring.scale.set(0.3);
-      ring.alpha = 0;
-      owner.stage.addChild(ring);
-      const delay = i * 120 / owner.battleSpeed;
-      const capturedI = i;
-      const id = setTimeout(() => {
-        ring.alpha = 0.8;
-        animateTo(owner, ring, { alpha: 0, scale: 3 + capturedI }, 500 / owner.battleSpeed, () => {
-          if (ring.parent) ring.parent.removeChild(ring);
-          ring.destroy();
-        });
-      }, delay);
-      owner._timeoutIds.push(id);
-    }
-  }
-  function createMusicNotesVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const notes = ["♪", "♫", "♩", "♬"];
-    for (let i = 0; i < 5; i++) {
-      const note = new PIXI.Text({
-        text: notes[i % notes.length],
-        style: { fontSize: 18 + Math.random() * 8, fill: color, fontFamily: "serif" }
-      });
-      note.anchor.set(0.5);
-      note.x = srcX + (Math.random() - 0.5) * 30;
-      note.y = srcY + (Math.random() - 0.5) * 20;
-      note.alpha = 0;
-      owner.stage.addChild(note);
-      const delay = i * 80 / owner.battleSpeed;
-      const endX = tgtX + (Math.random() - 0.5) * 40;
-      const endY = tgtY - 20 + (Math.random() - 0.5) * 30;
-      const noteStartX = note.x;
-      const noteStartY = note.y;
-      const id = setTimeout(() => {
-        note.alpha = 1;
-        const duration = 450 / owner.battleSpeed;
-        const startTime = Date.now();
-        const animateNote = () => {
-          const t = Math.min((Date.now() - startTime) / duration, 1);
-          note.x = noteStartX + (endX - noteStartX) * t;
-          note.y = noteStartY + (endY - noteStartY) * t - Math.sin(t * Math.PI) * 20;
-          note.alpha = 1 - t * 0.6;
-          note.rotation = Math.sin(t * Math.PI * 2) * 0.3;
-          if (t < 1) {
-            requestAnimationFrame(animateNote);
-          } else {
-            if (note.parent) note.parent.removeChild(note);
-            note.destroy();
-          }
-        };
-        animateNote();
-      }, delay);
-      owner._timeoutIds.push(id);
-    }
   }
   function playBuffVfx(owner, target, color) {
     if (!target || !owner.stage) return;
@@ -706,7 +382,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   let globalAudioEnabled = false;
   let globalSfxVolume = 0.5;
   let musicState = null;
-  class StageBattleScene {
+  const _StageBattleScene = class _StageBattleScene {
     /* ────────────────────────── Constructor ────────────────────────── */
     constructor(container, data) {
       // PIXI application
@@ -759,7 +435,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "enemySpeedBarTimers", []);
       __publicField(this, "battleStartTime", 0);
       __publicField(this, "currentSimTime", 0);
-      // Battle speed (anti-exploit) – only 1x or 5x allowed
+      // Battle speed (anti-exploit) – server-provided allowlist; defaults to [1, 5]
+      __publicField(this, "_allowedSpeeds", [1, 5]);
       __publicField(this, "_battleSpeed", 1);
       // Playback
       __publicField(this, "playbackSpeed", 1);
@@ -778,6 +455,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       // Attack animation flags
       __publicField(this, "_playerAttacking", false);
       __publicField(this, "_enemyAttacking", {});
+      // Pending flash timeout IDs — tracked per entity to prevent overlapping
+      // flash restores from resetting tint too early when attacks overlap.
+      __publicField(this, "_playerFlashTimeout", null);
+      __publicField(this, "_enemyFlashTimeouts", {});
       // Shot / penalty buff visual
       __publicField(this, "hasShotBuff");
       __publicField(this, "hasPenaltyBuff");
@@ -795,20 +476,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "enemySpriteAliases", []);
       // Interactive mode
       __publicField(this, "interactiveMode");
-      __publicField(this, "spells");
       __publicField(this, "interactivePlayerHP");
       __publicField(this, "interactivePlayerMaxHP");
       __publicField(this, "interactivePlayerActionTime");
       __publicField(this, "interactiveEnemies");
-      __publicField(this, "_playerAttackPending", false);
-      __publicField(this, "_enemyAttackPending", []);
-      __publicField(this, "_spellPending", false);
-      __publicField(this, "_cooldownTickAccum", 0);
+      __publicField(this, "_pendingPlayerAttacks", 0);
+      __publicField(this, "_pendingEnemyAttacks", []);
       __publicField(this, "_consumableTickAccum", 0);
-      // Spell bar UI
-      __publicField(this, "spellButtons", []);
-      __publicField(this, "spellCooldowns", {});
-      __publicField(this, "spellBarContainer", null);
       // Consumable bar UI
       __publicField(this, "consumableBarContainer", null);
       __publicField(this, "consumableButtons", []);
@@ -823,6 +497,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "_textPool", { pool: [] });
       // Destroyed flag — prevents async callbacks from running after destroy
       __publicField(this, "_destroyed", false);
+      // JS-side heartbeat interval — pings Blazor every 30s to reset the server watchdog
+      __publicField(this, "_heartbeatInterval", null);
+      // JS-side battle watchdog — if a single battle exceeds this, force-finish it
+      __publicField(this, "_jsBattleWatchdogId", null);
+      // 2 minutes
+      // WebGL context loss recovery timer
+      __publicField(this, "_contextLossTimerId", null);
+      // finishBattle retry state
+      __publicField(this, "_finishRetryCount", 0);
       // Event listeners
       __publicField(this, "_onContextLost", null);
       __publicField(this, "_onContextRestored", null);
@@ -851,18 +534,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.enemyHPs = Array.from({ length: this.enemyCount }, () => ({ current: 100, max: 100 }));
       this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
       this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
+      const serverSpeeds = data.AllowedSpeeds ?? data.allowedSpeeds;
+      if (Array.isArray(serverSpeeds) && serverSpeeds.length > 0) {
+        this._allowedSpeeds = serverSpeeds.filter((s) => typeof s === "number");
+      }
       this._enemyAttacking = {};
       this.audioEnabled = globalAudioEnabled;
       this.sfxVolume = globalSfxVolume;
       this.hasShotBuff = pick(data, "HasShotBuff", "hasShotBuff", false);
       this.hasPenaltyBuff = pick(data, "HasPenaltyBuff", "hasPenaltyBuff", false);
       this.interactiveMode = pick(data, "InteractiveMode", "interactiveMode", false);
-      this.spells = data.Spells ?? data.spells ?? [];
       this.interactivePlayerHP = data.PlayerHP ?? data.playerHP ?? null;
       this.interactivePlayerMaxHP = data.PlayerMaxHP ?? data.playerMaxHP ?? null;
       this.interactivePlayerActionTime = data.PlayerActionTime ?? data.playerActionTime ?? null;
       this.interactiveEnemies = data.Enemies ?? data.enemies ?? [];
-      this._enemyAttackPending = Array(this.enemyCount).fill(false);
+      this._pendingEnemyAttacks = Array(this.enemyCount).fill(0);
       const cData = data.consumables ?? data.Consumables ?? {};
       this.consumableQuantities = {
         fino: pick(cData, "Fino", "fino", 0),
@@ -906,7 +592,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return this._battleSpeed;
     }
     set battleSpeed(v) {
-      this._battleSpeed = v === 5 ? 5 : 1;
+      this._battleSpeed = this._allowedSpeeds.includes(v) ? v : 1;
+    }
+    get allowedSpeeds() {
+      return this._allowedSpeeds;
     }
     /* ────────────────────────── Audio Setup ────────────────────────── */
     setupAudio() {
@@ -939,10 +628,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
       playSound(this.audioContext, type, this.sfxVolume);
     }
-    _playSpellSound(attackId) {
-      if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
-      playSpellSound(this.audioContext, attackId, this.sfxVolume);
-    }
     /* ────────────────────────── PixiJS Init ────────────────────────── */
     async initPixi() {
       while (this.container.firstChild) {
@@ -971,12 +656,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       } catch {
       }
       this._onContextLost = (e) => {
-        console.warn("WebGL context lost — battle continues on restore");
+        console.warn("WebGL context lost — waiting for restore");
         e.preventDefault();
+        if (this._contextLossTimerId != null) clearTimeout(this._contextLossTimerId);
+        this._contextLossTimerId = setTimeout(() => {
+          if (!this._destroyed && !this.battleFinished) {
+            console.warn("WebGL context not restored within timeout — forcing battle finish");
+            this.finishBattle();
+          }
+        }, _StageBattleScene.CONTEXT_LOSS_RECOVERY_MS);
       };
       this.app.canvas.addEventListener("webglcontextlost", this._onContextLost);
       this._onContextRestored = () => {
         console.log("WebGL context restored");
+        if (this._contextLossTimerId != null) {
+          clearTimeout(this._contextLossTimerId);
+          this._contextLossTimerId = null;
+        }
       };
       this.app.canvas.addEventListener("webglcontextrestored", this._onContextRestored);
       this._onResize = () => {
@@ -1046,7 +742,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.createHudBars(width, height);
       if (this.interactiveMode) {
         this.initInteractiveState();
-        this.createSpellBar();
         this.createConsumableBar();
         this.startInteractiveBattle();
       } else {
@@ -1505,7 +1200,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         else if (this.enemyCount >= 5) countScaleFactor = 0.6;
         else if (this.enemyCount >= 4) countScaleFactor = 0.75;
         else if (this.enemyCount >= 3) countScaleFactor = 0.85;
-        const bossBoost = isBoss ? 1.25 : 1;
+        const bossBoost = isBoss ? 1.5 : 1;
         const maxSpriteHeight = height * 0.28;
         for (let i = 0; i < this.enemyCount; i++) {
           const alias = ((_c = this.enemySpriteAliases) == null ? void 0 : _c[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
@@ -1520,7 +1215,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       } else {
         const baseSizeNormal = 180;
-        const baseSizeBig = 360;
+        const baseSizeBig = 450;
         const isBigEnemy = isBoss || isMiniboss;
         const maxCols = 5;
         const hpBarReserve = 22;
@@ -1838,81 +1533,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.updateIndividualEnemyHPBar(i);
       }
     }
-    /* ────────────────────── Spell Bar UI ───────────────────────────── */
-    createSpellBar() {
-      if (!this.spells || this.spells.length === 0 || !this.app || !this.stage) return;
-      const { width, height } = this.app.screen;
-      const isMobile = this.isMobile;
-      const barY = height - (isMobile ? 95 : 85);
-      const btnSize = isMobile ? 42 : 52;
-      const gap = isMobile ? 6 : 10;
-      const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * gap;
-      const startX = (width - totalWidth) / 2;
-      this.spellBarContainer = new PIXI.Container();
-      this.spellBarContainer.y = barY;
-      this.stage.addChild(this.spellBarContainer);
-      this.spellButtons = [];
-      for (let i = 0; i < this.spells.length; i++) {
-        const spell = this.spells[i];
-        const attackId = spell.attackId ?? spell.AttackId ?? "";
-        const name = spell.name ?? spell.Name ?? attackId;
-        const icon = spell.icon ?? spell.Icon ?? "⚔️";
-        const cooldownSeconds = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 0;
-        const btnContainer = new PIXI.Container();
-        btnContainer.x = startX + i * (btnSize + gap);
-        btnContainer.y = 0;
-        const bg = new PIXI.Graphics();
-        bg.roundRect(0, 0, btnSize, btnSize, 8);
-        bg.fill({ color: 2763326, alpha: 0.92 });
-        bg.stroke({ color: 5596842, width: 2 });
-        btnContainer.addChild(bg);
-        const iconText = new PIXI.Text({
-          text: icon,
-          style: { fontSize: isMobile ? 16 : 20, fill: 16777215 }
-        });
-        iconText.anchor.set(0.5);
-        iconText.x = btnSize / 2;
-        iconText.y = btnSize / 2 - 6;
-        btnContainer.addChild(iconText);
-        const nameText = new PIXI.Text({
-          text: name.substring(0, 6),
-          style: { fontSize: isMobile ? 7 : 9, fill: 13421772, fontFamily: "Arial" }
-        });
-        nameText.anchor.set(0.5);
-        nameText.x = btnSize / 2;
-        nameText.y = btnSize - 6;
-        btnContainer.addChild(nameText);
-        const cdOverlay = new PIXI.Graphics();
-        cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
-        cdOverlay.fill({ color: 0, alpha: 0.6 });
-        cdOverlay.visible = false;
-        btnContainer.addChild(cdOverlay);
-        const cdText = new PIXI.Text({
-          text: "",
-          style: { fontSize: isMobile ? 14 : 18, fill: 16737860, fontWeight: "bold" }
-        });
-        cdText.anchor.set(0.5);
-        cdText.x = btnSize / 2;
-        cdText.y = btnSize / 2;
-        cdText.visible = false;
-        btnContainer.addChild(cdText);
-        btnContainer.eventMode = "static";
-        btnContainer.cursor = "pointer";
-        btnContainer.on("pointerdown", () => this.onSpellButtonClick(attackId, cooldownSeconds));
-        this.spellBarContainer.addChild(btnContainer);
-        this.spellButtons.push({
-          container: btnContainer,
-          bg,
-          iconText,
-          nameText,
-          cdOverlay,
-          cdText,
-          attackId,
-          cooldownSeconds,
-          spell
-        });
-      }
-    }
     /* ────────────────────── Consumable Bar UI ──────────────────────── */
     createConsumableBar() {
       if (!this.app || !this.stage) return;
@@ -2044,7 +1664,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this._destroyed || !this.dotNetRef || this._consumablePending) return;
       this._consumablePending = true;
       try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnUseConsumable", type);
+        const json = await this.invokeWithTimeout("OnUseConsumable", _StageBattleScene.INTEROP_TIMEOUT_MS, type);
         if (this._destroyed || this.battleFinished) {
           this._consumablePending = false;
           return;
@@ -2195,94 +1815,92 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.battleStartTime = Date.now();
       this.currentSimTime = 0;
       this.battleFinished = false;
-      this._cooldownTickAccum = 0;
       this._consumableTickAccum = 0;
+      this._finishRetryCount = 0;
+      this.clearJsBattleWatchdog();
+      this._jsBattleWatchdogId = setTimeout(() => {
+        if (!this._destroyed && !this.battleFinished && this.isPlaying) {
+          console.warn(`JS battle watchdog: battle exceeded ${_StageBattleScene.JS_BATTLE_WATCHDOG_MS}ms, forcing finish`);
+          this.finishBattle();
+        }
+      }, _StageBattleScene.JS_BATTLE_WATCHDOG_MS);
+      this.startHeartbeat();
     }
-    onSpellButtonClick(attackId, cooldownSeconds) {
-      if (this.battleFinished || this._spellPending) return;
-      const cd = this.spellCooldowns[attackId] ?? 0;
-      if (cd > 0) return;
-      this.requestPlayerSpell(attackId, cooldownSeconds);
+    /* ──────────────── Heartbeat & Watchdog Helpers ─────────────────── */
+    /** Pings Blazor every 30s so the server-side watchdog timer resets. */
+    startHeartbeat() {
+      this.stopHeartbeat();
+      this._heartbeatInterval = setInterval(() => {
+        if (this._destroyed || this.battleFinished || !this.dotNetRef) {
+          this.stopHeartbeat();
+          return;
+        }
+        this.dotNetRef.invokeMethodAsync("OnBattleHeartbeat").catch((e) => {
+          console.warn("Heartbeat ping failed:", e.message);
+        });
+      }, _StageBattleScene.HEARTBEAT_INTERVAL_MS);
+    }
+    stopHeartbeat() {
+      if (this._heartbeatInterval != null) {
+        clearInterval(this._heartbeatInterval);
+        this._heartbeatInterval = null;
+      }
+    }
+    clearJsBattleWatchdog() {
+      if (this._jsBattleWatchdogId != null) {
+        clearTimeout(this._jsBattleWatchdogId);
+        this._jsBattleWatchdogId = null;
+      }
+    }
+    /**
+     * Wraps a dotNetRef.invokeMethodAsync call with a timeout.
+     * If the promise doesn't resolve/reject within `timeoutMs`, the returned
+     * promise rejects with an error so callers' catch/finally blocks run.
+     */
+    invokeWithTimeout(method, timeoutMs, ...args) {
+      if (!this.dotNetRef) return Promise.reject(new Error("dotNetRef is null"));
+      const interopPromise = this.dotNetRef.invokeMethodAsync(method, ...args);
+      const timeoutPromise = new Promise((_, reject) => {
+        const id = setTimeout(() => reject(new Error(`Interop call '${method}' timed out after ${timeoutMs}ms`)), timeoutMs);
+        interopPromise.then(() => clearTimeout(id), () => clearTimeout(id));
+      });
+      return Promise.race([interopPromise, timeoutPromise]);
     }
     /* ──────────────── Interactive Server Calls ─────────────────────── */
     async requestPlayerAutoAttack() {
       if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-        this._playerAttackPending = false;
+        this._pendingPlayerAttacks = Math.max(0, this._pendingPlayerAttacks - 1);
         return;
       }
       try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnPlayerAutoAttack");
+        const json = await this.invokeWithTimeout("OnPlayerAutoAttack", _StageBattleScene.INTEROP_TIMEOUT_MS);
         if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("requestPlayerAutoAttack error:", e.message);
       } finally {
-        this._playerAttackPending = false;
-        this.playerSpeedBarTimer = this.playerActionTime * 1e3;
+        this._pendingPlayerAttacks = Math.max(0, this._pendingPlayerAttacks - 1);
       }
     }
     async requestEnemyAttack(enemyIndex) {
       if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-        this._enemyAttackPending[enemyIndex] = false;
+        this._pendingEnemyAttacks[enemyIndex] = Math.max(0, this._pendingEnemyAttacks[enemyIndex] - 1);
         return;
       }
       try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnEnemyAttack", enemyIndex);
+        const json = await this.invokeWithTimeout("OnEnemyAttack", _StageBattleScene.INTEROP_TIMEOUT_MS, enemyIndex);
         if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("requestEnemyAttack error:", e.message);
       } finally {
-        this._enemyAttackPending[enemyIndex] = false;
-        this.enemySpeedBarTimers[enemyIndex] = this.enemyActionTimes[enemyIndex] * 1e3;
-      }
-    }
-    async requestPlayerSpell(attackId, cooldownSeconds) {
-      if (this._destroyed || !this.dotNetRef || this._spellPending || this.battleFinished) return;
-      this._spellPending = true;
-      try {
-        this.spellCooldowns[attackId] = cooldownSeconds;
-        this.updateSpellCooldownVisuals();
-        const json = await this.dotNetRef.invokeMethodAsync("OnPlayerSpell", attackId);
-        if (this._destroyed || this.battleFinished) return;
-        if (json) {
-          const result = JSON.parse(json);
-          const serverCooldowns = result.spellCooldowns ?? result.SpellCooldowns;
-          if (serverCooldowns) {
-            for (const [id, rem] of Object.entries(serverCooldowns)) {
-              this.spellCooldowns[id] = rem;
-            }
-          }
-          this.processServerResult(result);
-        }
-      } catch (e) {
-        console.warn("requestPlayerSpell error:", e.message);
-      } finally {
-        this._spellPending = false;
-        if (!this._destroyed) this.updateSpellCooldownVisuals();
-      }
-    }
-    async requestTickCooldowns(elapsedSeconds) {
-      if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
-      try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnTickCooldowns", elapsedSeconds);
-        if (this._destroyed || this.battleFinished) return;
-        if (json) {
-          const data = JSON.parse(json);
-          const spellCooldowns = data.spells ?? data;
-          for (const [id, remaining] of Object.entries(spellCooldowns)) {
-            this.spellCooldowns[id] = remaining;
-          }
-          this.updateSpellCooldownVisuals();
-        }
-      } catch (e) {
-        console.warn("OnTickCooldowns error:", e.message);
+        this._pendingEnemyAttacks[enemyIndex] = Math.max(0, this._pendingEnemyAttacks[enemyIndex] - 1);
       }
     }
     async requestTickConsumableCooldowns(realElapsedSeconds) {
       if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
       try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnTickConsumableCooldowns", realElapsedSeconds);
+        const json = await this.invokeWithTimeout("OnTickConsumableCooldowns", _StageBattleScene.INTEROP_TIMEOUT_MS, realElapsedSeconds);
         if (this._destroyed || this.battleFinished) return;
         if (json) {
           const data = JSON.parse(json);
@@ -2323,38 +1941,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         case "Attack":
           this.handleAttack(evt);
           break;
-        case "SpellAttack":
-          this.handleSpellAttack(evt);
-          break;
-        case "StatusEffect":
-          this.handleStatusEffect(evt);
-          break;
         case "KO":
           this.handleKO(evt);
           break;
       }
-    }
-    handleSpellAttack(evt) {
-      const attackId = getEventField(evt, "AttackId") ?? "";
-      const vfxType = getEventField(evt, "VfxType");
-      const vfxColor = getEventField(evt, "VfxColor") ?? 52479;
-      const isAoe = getEventField(evt, "IsAoE") ?? false;
-      this._playSpellSound(attackId);
-      if (isAoe) {
-        for (let i = 0; i < this.enemySprites.length; i++) {
-          const enemy = this.enemySprites[i];
-          if (enemy && enemy.alpha > 0.3 && this.playerSprite) {
-            playSpellVfx(this, vfxType, vfxColor, this.playerSprite, enemy);
-          }
-        }
-      } else {
-        const targetIdx = this.resolveEnemyIndex(evt);
-        const target = this.enemySprites[targetIdx];
-        if (target && this.playerSprite) {
-          playSpellVfx(this, vfxType, vfxColor, this.playerSprite, target);
-        }
-      }
-      screenShake(this);
     }
     resolveEnemyIndex(evt) {
       const defender = getEventField(evt, "Defender") ?? "";
@@ -2363,26 +1953,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (!isNaN(idx) && idx >= 0 && idx < this.enemySprites.length) return idx;
       }
       return 0;
-    }
-    handleStatusEffect(evt) {
-      const target = getEventField(evt, "Target") ?? "";
-      const effect = getEventField(evt, "Effect") ?? "";
-      if (target === "Attacker" || target === "Player") {
-        if (this.playerSprite) showEffectLabel(this, effect, this.playerSprite);
-      } else if (target.startsWith("Enemy")) {
-        const idx = parseInt(target.replace("Enemy", ""));
-        const sprite = this.enemySprites[idx];
-        if (sprite) showEffectLabel(this, effect, sprite);
-      }
-    }
-    updateSpellCooldownVisuals() {
-      for (const btn of this.spellButtons) {
-        const cd = this.spellCooldowns[btn.attackId] ?? 0;
-        btn.cdOverlay.visible = cd > 0;
-        btn.cdText.visible = cd > 0;
-        if (cd > 0) btn.cdText.text = `${Math.ceil(cd)}`;
-        btn.container.alpha = cd > 0 ? 0.5 : 1;
-      }
     }
     /* ────────────────────── Main Update Loop ───────────────────────── */
     update() {
@@ -2398,15 +1968,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           if (!anyEnemyAlive) {
             this.playerSpeedBarTimer = this.playerActionTime * 1e3;
             this.updatePlayerSpeedBar();
-          } else if (this._playerAttackPending) {
-            this.updatePlayerSpeedBar();
           } else {
-            this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+            this.playerSpeedBarTimer -= simDelta;
             this.updatePlayerSpeedBar();
-            if (this.playerSpeedBarTimer <= 0) {
-              this._playerAttackPending = true;
+            while (this.playerSpeedBarTimer <= 0 && this._pendingPlayerAttacks < _StageBattleScene.MAX_PENDING_ATTACKS) {
+              this._pendingPlayerAttacks++;
+              this.playerSpeedBarTimer += this.playerActionTime * 1e3;
               this.requestPlayerAutoAttack();
             }
+            if (this.playerSpeedBarTimer < 0) this.playerSpeedBarTimer = 0;
           }
         }
         for (let i = 0; i < this.enemyCount; i++) {
@@ -2414,27 +1984,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             if (this.playerCurrentHp <= 0) {
               this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1e3;
               this.updateEnemySpeedBar(i);
-            } else if (this._enemyAttackPending[i]) {
-              this.updateEnemySpeedBar(i);
             } else {
-              this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+              this.enemySpeedBarTimers[i] -= simDelta;
               this.updateEnemySpeedBar(i);
-              if (this.enemySpeedBarTimers[i] <= 0) {
-                this._enemyAttackPending[i] = true;
+              while (this.enemySpeedBarTimers[i] <= 0 && this._pendingEnemyAttacks[i] < _StageBattleScene.MAX_PENDING_ATTACKS) {
+                this._pendingEnemyAttacks[i]++;
+                this.enemySpeedBarTimers[i] += this.enemyActionTimes[i] * 1e3;
                 this.requestEnemyAttack(i);
               }
+              if (this.enemySpeedBarTimers[i] < 0) this.enemySpeedBarTimers[i] = 0;
             }
           }
-        }
-        this._cooldownTickAccum += simDelta;
-        if (this._cooldownTickAccum >= 200) {
-          const spellElapsed = this._cooldownTickAccum / 1e3;
-          this._cooldownTickAccum = 0;
-          for (const id of Object.keys(this.spellCooldowns)) {
-            this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - spellElapsed);
-          }
-          this.updateSpellCooldownVisuals();
-          this.requestTickCooldowns(spellElapsed);
         }
         this._consumableTickAccum += delta;
         if (this._consumableTickAccum >= 200) {
@@ -2748,6 +2308,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     animatePlayerAttack(isCritical) {
       var _a, _b;
       if (!this.playerSprite) return;
+      if (this._playerAttacking) return;
       this._playerAttacking = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
@@ -2775,6 +2336,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     animateEnemyAttack(isCritical) {
       var _a, _b;
       for (let index = 0; index < this.enemySprites.length; index++) {
+        if (this._enemyAttacking[index]) continue;
         const enemy = this.enemySprites[index];
         this._enemyAttacking[index] = true;
         const lungeDistance = isCritical ? 80 : 60;
@@ -2804,6 +2366,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (enemyIndex < 0 || enemyIndex >= this.enemySprites.length) return;
       const enemy = this.enemySprites[enemyIndex];
       if (!enemy) return;
+      if (this._enemyAttacking[enemyIndex]) return;
       this._enemyAttacking[enemyIndex] = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
@@ -2826,32 +2389,37 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ──────────────── Flash Effects ─────────────────────────────────── */
     flashPlayer(isCritical) {
       if (!this.playerSprite) return;
+      if (this._playerFlashTimeout != null) {
+        clearTimeout(this._playerFlashTimeout);
+        this._playerFlashTimeout = null;
+      }
       this.playerSprite.tint = isCritical ? 13369344 : 16711680;
       const flashDuration = isCritical ? 180 : 100;
-      const id = setTimeout(() => {
+      const scaledFlash = Math.max(50, flashDuration / this.battleSpeed);
+      this._playerFlashTimeout = setTimeout(() => {
         if (this.playerSprite) this.playerSprite.tint = 16777215;
-      }, flashDuration / this.battleSpeed);
-      this._timeoutIds.push(id);
+        this._playerFlashTimeout = null;
+      }, scaledFlash);
     }
     flashEnemy(enemyIndex, isCritical) {
       if (enemyIndex < 0 || enemyIndex >= this.enemySprites.length) return;
       const enemy = this.enemySprites[enemyIndex];
       if (!enemy) return;
+      if (this._enemyFlashTimeouts[enemyIndex] != null) {
+        clearTimeout(this._enemyFlashTimeouts[enemyIndex]);
+        delete this._enemyFlashTimeouts[enemyIndex];
+      }
       enemy.tint = isCritical ? 13369344 : 16711680;
       const flashDuration = isCritical ? 180 : 100;
-      const id = setTimeout(() => {
+      const scaledFlash = Math.max(50, flashDuration / this.battleSpeed);
+      this._enemyFlashTimeouts[enemyIndex] = setTimeout(() => {
         enemy.tint = 16777215;
-      }, flashDuration / this.battleSpeed);
-      this._timeoutIds.push(id);
+        delete this._enemyFlashTimeouts[enemyIndex];
+      }, scaledFlash);
     }
     flashEnemies(isCritical) {
-      for (const enemy of this.enemySprites) {
-        enemy.tint = isCritical ? 13369344 : 16711680;
-        const flashDuration = isCritical ? 180 : 100;
-        const id = setTimeout(() => {
-          enemy.tint = 16777215;
-        }, flashDuration / this.battleSpeed);
-        this._timeoutIds.push(id);
+      for (let i = 0; i < this.enemySprites.length; i++) {
+        this.flashEnemy(i, isCritical);
       }
     }
     /* ──────────────── KO / Victory / Draw ──────────────────────────── */
@@ -2981,23 +2549,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this._destroyed || this.battleFinished) return;
       this.battleFinished = true;
       this.isPlaying = false;
+      this.stopHeartbeat();
+      this.clearJsBattleWatchdog();
       if (this.eventTimer) {
         clearInterval(this.eventTimer);
         this.eventTimer = null;
       }
-      if (this.dotNetRef) {
-        try {
-          this.dotNetRef.invokeMethodAsync("OnBattleFinished").catch((e) => {
-            console.warn("Could not notify Blazor of battle finish:", e);
-          });
-        } catch (e) {
-          console.warn("finishBattle: dotNetRef error:", e.message);
-        }
+      this.notifyBlazerFinished();
+    }
+    /** Notifies Blazor that the battle finished, with retry on failure. */
+    notifyBlazerFinished() {
+      if (this._destroyed || !this.dotNetRef) return;
+      try {
+        this.dotNetRef.invokeMethodAsync("OnBattleFinished").catch((e) => {
+          console.warn("Could not notify Blazor of battle finish:", e);
+          this.retryFinishNotification();
+        });
+      } catch (e) {
+        console.warn("finishBattle: dotNetRef error:", e.message);
+        this.retryFinishNotification();
       }
+    }
+    /** Retries the OnBattleFinished call up to FINISH_RETRY_MAX times. */
+    retryFinishNotification() {
+      this._finishRetryCount++;
+      if (this._finishRetryCount > _StageBattleScene.FINISH_RETRY_MAX || this._destroyed || !this.dotNetRef) {
+        console.error(`OnBattleFinished failed after ${this._finishRetryCount} attempts — giving up (server watchdog will handle)`);
+        return;
+      }
+      console.warn(`Retrying OnBattleFinished (attempt ${this._finishRetryCount}/${_StageBattleScene.FINISH_RETRY_MAX}) in ${_StageBattleScene.FINISH_RETRY_DELAY_MS}ms`);
+      const id = setTimeout(() => this.notifyBlazerFinished(), _StageBattleScene.FINISH_RETRY_DELAY_MS);
+      this._timeoutIds.push(id);
     }
     /* ──────────────── Public API ────────────────────────────────────── */
     setSpeed(speed) {
-      const validSpeed = speed === 5 ? 5 : 1;
+      const validSpeed = this._allowedSpeeds.includes(speed) ? speed : 1;
       this.playbackSpeed = validSpeed;
       this._battleSpeed = validSpeed;
     }
@@ -3012,6 +2598,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this._destroyed = true;
       this.battleFinished = true;
       this.isPlaying = false;
+      this.stopHeartbeat();
+      this.clearJsBattleWatchdog();
+      if (this._contextLossTimerId != null) {
+        clearTimeout(this._contextLossTimerId);
+        this._contextLossTimerId = null;
+      }
       if (this._onResize) {
         window.removeEventListener("resize", this._onResize);
         this._onResize = null;
@@ -3026,9 +2618,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       for (const id of this._rafIds) cancelAnimationFrame(id);
       this._timeoutIds = [];
       this._rafIds = [];
+      if (this._playerFlashTimeout != null) clearTimeout(this._playerFlashTimeout);
+      this._playerFlashTimeout = null;
+      for (const key of Object.keys(this._enemyFlashTimeouts)) {
+        clearTimeout(this._enemyFlashTimeouts[Number(key)]);
+      }
+      this._enemyFlashTimeouts = {};
       destroyTextPool(this._textPool);
-      this.spellButtons = [];
-      this.spellBarContainer = null;
       if (this.eventTimer) {
         clearInterval(this.eventTimer);
         this.eventTimer = null;
@@ -3069,13 +2665,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Reset For Next Battle ─────────────────────────── */
     async resetForNextBattle(data) {
-      var _a, _b;
+      var _a;
       if (this._destroyed || !this.app || !this.stage) {
         console.warn("resetForNextBattle: app/stage destroyed, skipping");
         return;
       }
       this.isPlaying = false;
       this.battleFinished = true;
+      this.stopHeartbeat();
+      this.clearJsBattleWatchdog();
+      for (const id of this._timeoutIds) clearTimeout(id);
+      for (const id of this._rafIds) cancelAnimationFrame(id);
+      this._timeoutIds = [];
+      this._rafIds = [];
       this.eventsList = data.events ?? [];
       this.dotNetRef = data.dotNetRef ?? this.dotNetRef;
       this.stageNumber = pick(data, "StageNumber", "stageNumber", this.stageNumber + 1);
@@ -3090,12 +2692,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.hasShotBuff = pick(data, "HasShotBuff", "hasShotBuff", this.hasShotBuff);
       this.hasPenaltyBuff = pick(data, "HasPenaltyBuff", "hasPenaltyBuff", false);
       this.interactiveMode = pick(data, "InteractiveMode", "interactiveMode", this.interactiveMode);
-      this.spells = data.spells ?? data.Spells ?? this.spells;
       this.interactivePlayerHP = data.playerHP ?? data.PlayerHP ?? null;
       this.interactivePlayerMaxHP = data.playerMaxHP ?? data.PlayerMaxHP ?? null;
       this.interactivePlayerActionTime = data.playerActionTime ?? data.PlayerActionTime ?? null;
       this.interactiveEnemies = data.enemies ?? data.Enemies ?? [];
-      this._enemyAttackPending = Array(this.enemyCount).fill(false);
+      this._pendingPlayerAttacks = 0;
+      this._pendingEnemyAttacks = Array(this.enemyCount).fill(0);
       const cData = data.consumables ?? data.Consumables;
       if (cData) {
         this.consumableQuantities = {
@@ -3141,12 +2743,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (ccData) {
         for (const [type, remaining] of Object.entries(ccData)) {
           this.consumableCooldowns[type] = remaining;
-        }
-      }
-      const scData = data.spellCooldowns ?? data.SpellCooldowns;
-      if (scData) {
-        for (const [id, remaining] of Object.entries(scData)) {
-          this.spellCooldowns[id] = remaining;
         }
       }
       try {
@@ -3196,7 +2792,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (this.bossSpeedBar.text) persistent.add(this.bossSpeedBar.text);
       }
       if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
-      if (this.spellBarContainer) persistent.add(this.spellBarContainer);
       if (this.canhaoTimerBar) {
         persistent.add(this.canhaoTimerBar.bar);
         persistent.add(this.canhaoTimerBar.barBg);
@@ -3321,6 +2916,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
       this._playerAttacking = false;
       this._enemyAttacking = {};
+      if (this._playerFlashTimeout != null) {
+        clearTimeout(this._playerFlashTimeout);
+        this._playerFlashTimeout = null;
+      }
+      for (const key of Object.keys(this._enemyFlashTimeouts)) {
+        clearTimeout(this._enemyFlashTimeouts[Number(key)]);
+      }
+      this._enemyFlashTimeouts = {};
       const width = this.app.screen.width;
       const height = this.app.screen.height;
       this.isMobile = width <= height || width < 500;
@@ -3389,14 +2992,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this._destroyed || !this.app || !this.stage) return;
       if (this.interactiveMode) {
         this.initInteractiveState();
-        if (((_b = this.spells) == null ? void 0 : _b.length) > 0) {
-          if (this.spellBarContainer) {
-            this.spellBarContainer.destroy({ children: true, texture: false });
-            this.spellBarContainer = null;
-            this.spellButtons = [];
-          }
-          this.createSpellBar();
-        }
         if (this.consumableBarContainer && this.consumableButtons.length > 0) {
           for (const btn of this.consumableButtons) {
             this.updateConsumableButton(btn.type);
@@ -3419,7 +3014,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       globalAudioEnabled = enabled;
       setMusicVolume(musicState, 0.3, enabled);
     }
-  }
+  };
+  __publicField(_StageBattleScene, "MAX_PENDING_ATTACKS", 3);
+  __publicField(_StageBattleScene, "HEARTBEAT_INTERVAL_MS", 3e4);
+  __publicField(_StageBattleScene, "JS_BATTLE_WATCHDOG_MS", 12e4);
+  __publicField(_StageBattleScene, "CONTEXT_LOSS_RECOVERY_MS", 5e3);
+  // Interop call timeout — prevents hung promises from freezing combat
+  __publicField(_StageBattleScene, "INTEROP_TIMEOUT_MS", 15e3);
+  __publicField(_StageBattleScene, "FINISH_RETRY_MAX", 3);
+  __publicField(_StageBattleScene, "FINISH_RETRY_DELAY_MS", 2e3);
+  let StageBattleScene = _StageBattleScene;
   let stageScene = null;
   let _stopped = false;
   function createGame(containerId, battleData) {
@@ -3450,7 +3054,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       enemyPlacements: data.enemyPlacements ?? data.EnemyPlacements,
       HasShotBuff: pick(data, "HasShotBuff", "hasShotBuff", false),
       interactiveMode: pick(data, "InteractiveMode", "interactiveMode", false),
-      spells: data.spells ?? data.Spells,
       playerHP: data.playerHP ?? data.PlayerHP,
       playerMaxHP: data.playerMaxHP ?? data.PlayerMaxHP,
       playerActionTime: data.playerActionTime ?? data.PlayerActionTime,
@@ -3459,6 +3062,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       consumableImages: data.consumableImages ?? data.ConsumableImages,
       activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
       BattleSpeed: data.battleSpeed ?? data.BattleSpeed,
+      AllowedSpeeds: data.allowedSpeeds ?? data.AllowedSpeeds,
       canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
       penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc
     });
@@ -3514,7 +3118,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       enemyPlacements: data.enemyPlacements ?? data.EnemyPlacements,
       HasShotBuff: data.HasShotBuff ?? data.hasShotBuff,
       interactiveMode: data.interactiveMode ?? data.InteractiveMode,
-      spells: data.spells ?? data.Spells,
       playerHP: data.playerHP ?? data.PlayerHP,
       playerMaxHP: data.playerMaxHP ?? data.PlayerMaxHP,
       playerActionTime: data.playerActionTime ?? data.PlayerActionTime,
@@ -3522,7 +3125,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       consumables: data.consumables ?? data.Consumables,
       consumableImages: data.consumableImages ?? data.ConsumableImages,
       consumableCooldowns: data.consumableCooldowns ?? data.ConsumableCooldowns,
-      spellCooldowns: data.spellCooldowns ?? data.SpellCooldowns,
       activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
       canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
       penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc
@@ -3534,7 +3136,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     destroySceneOnly,
     setSpeed(speed) {
       if (stageScene) {
-        stageScene.setSpeed(speed === 5 ? 5 : 1);
+        stageScene.setSpeed(speed);
       }
     },
     setAudioEnabled(enabled) {

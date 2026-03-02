@@ -166,8 +166,8 @@
                     
                     <!-- Controls (right side) -->
                     <div class="battle-controls">
-                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
-                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">Normal</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 100.0 ? "active" : "")" @onclick="() => SetBattleSpeed(100.0)">Max</button>
                         <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
@@ -375,6 +375,7 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = false;
+    private bool isOwner = false;
 
     // Accumulated loot tracker for the current run
     private int totalXPEarned = 0;
@@ -429,9 +430,10 @@
 
     // Watchdog: if JS doesn't call OnBattleFinished within this time, force-end
     // the run to prevent permanent stall (e.g. JS crash / WebGL context loss).
-    // Max battle SimTime is 300s (5 min) at 1x speed, so 6 min covers the worst case.
+    // JS sends a heartbeat every 30s to reset this timer, so it only fires when
+    // the JS↔Blazor communication is fully broken.
     private CancellationTokenSource? _watchdogCts;
-    private const int WatchdogTimeoutMs = 360_000; // 6 minutes
+    private const int WatchdogTimeoutMs = 120_000; // 2 minutes
 
     // Tracks whether the current battle's replay was already sent to JS (so we can
     // release the JSON string early to reduce GC pressure on long runs).
@@ -464,9 +466,6 @@
         // Not an R2 URL — return as-is (local SVGs etc.)
         return fullUrl;
     }
-
-    // Spell cooldowns preserved across stage transitions (copied from old session before destroy)
-    private Dictionary<string, double>? _preservedSpellCooldowns;
 
     private static readonly JsonSerializerOptions _spellJsonOptions = new()
     {
@@ -519,6 +518,7 @@
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            isOwner = user.IsInRole("Owner");
 
             if (user.Identity?.IsAuthenticated == true)
             {
@@ -611,7 +611,6 @@
                 }
                 // Reset cooldowns for the new run
                 _consumableCooldowns.Clear();
-                _preservedSpellCooldowns = null;
                 Logger.LogInformation("Stage mode started by {UserName} at floor {Stage}", currentUser.UserName, stageProgress.CurrentStage);
 
                 // Load consumable quantities for in-fight bar (once per run)
@@ -679,8 +678,6 @@
             character.CanhaoBuffExpiresAt = preBattleCanhaoBuff;
 
             // Create interactive combat session from enemy metadata
-            // This drives the REAL combat — player auto-attacks only (no special attacks in stage mode for now)
-            List<RTUB.Core.Entities.SpecialAttack>? starterSpells = null;
             var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.DTOs.CombatantState
             {
                 Identifier = $"Enemy{i}",
@@ -701,19 +698,8 @@
                 sessionChar,
                 enemyStates,
                 currentBattle.Seed,
-                starterSpells,
                 "stage");
 
-            // Restore preserved cooldowns from previous stage (so they don't reset)
-            if (_preservedSpellCooldowns != null)
-            {
-                foreach (var kvp in _preservedSpellCooldowns)
-                {
-                    if (_combatSession.SpellCooldowns.ContainsKey(kvp.Key) && kvp.Value > 0)
-                        _combatSession.SpellCooldowns[kvp.Key] = kvp.Value;
-                }
-                _preservedSpellCooldowns = null;
-            }
             // Restore consumable cooldowns (persist across entire run)
             foreach (var kvp in _consumableCooldowns)
             {
@@ -788,6 +774,7 @@
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,
+                        AllowedSpeeds = GetAllowedSpeeds(),
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0,
                         HasPenaltyBuff = character.HasPenaltyBuff,
                         // ── Interactive combat data (spells / Blade Crafter mode) ──
@@ -820,7 +807,6 @@
                             Canhao = _consumableImages.GetValueOrDefault("Canhao")
                         },
                         ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
-                        SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),
                         ActiveBuffs = new
                         {
                             Cigarro = _combatSession.HasCigarroBuff,
@@ -939,16 +925,15 @@
         await FightStageEnemy();
     }
 
-    // ── Interactive combat JSInvokable methods (Blade Crafter spell system) ──
+    // ── Interactive combat JSInvokable methods ──
 
     /// <summary>
-    /// Saves spell and consumable cooldowns from the current session so they
+    /// Saves consumable cooldowns from the current session so they
     /// persist across stage transitions (session is destroyed and recreated each stage).
     /// </summary>
     private void PreserveCooldownsFromSession()
     {
         if (_combatSession == null) return;
-        _preservedSpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns);
         // Consumable cooldowns are stored at page level — sync from session
         foreach (var kvp in _combatSession.ConsumableCooldowns)
         {
@@ -971,20 +956,6 @@
     }
 
     /// <summary>
-    /// Called by JS when the user clicks a spell button.
-    /// Returns CombatActionResult JSON for JS to animate.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnPlayerSpell(string attackId)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
-
-        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
-
-    /// <summary>
     /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
     /// Returns CombatActionResult JSON for JS to animate.
     /// </summary>
@@ -996,20 +967,6 @@
 
         var result = CombatActionService.ProcessEnemyAttack(_combatSession, enemyIndex);
         return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
-
-    /// <summary>
-    /// Called by JS on each tick to advance spell cooldowns.
-    /// Returns updated cooldown map.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnTickCooldowns(double elapsedSeconds)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
-
-        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-        return Task.FromResult(JsonSerializer.Serialize(new { spells = cooldowns }, _spellJsonOptions));
     }
 
     /// <summary>
@@ -1074,6 +1031,22 @@
             "penalty" => _penaltyQty = Math.Max(0, _penaltyQty - 1),
             _ => 0
         };
+    }
+
+    /// <summary>
+    /// Called periodically by JS (every ~30s) during an active battle to confirm
+    /// the JS↔Blazor circuit is alive. Resets the server-side watchdog timer so it
+    /// only fires when communication is truly broken.
+    /// </summary>
+    [JSInvokable]
+    public void OnBattleHeartbeat()
+    {
+        if (_disposed || _endingRun) return;
+        if (!runInProgress && !pendingDefeatRewards) return;
+
+        // Reset the watchdog — the JS side is still alive and ticking
+        CancelWatchdog();
+        StartWatchdog();
     }
 
     [JSInvokable]
@@ -1194,8 +1167,9 @@
                 stagesCleared++;
                 
                 // Brief delay then start next stage automatically
-                // Keep showBattleAnimation = true to avoid hiding/recreating the container
-                await Task.Delay(200);
+                // Scale by battleSpeed so high-speed modes don't bottleneck on fixed delays
+                var transitionMs = Math.Max(10, (int)(200 / battleSpeed));
+                await Task.Delay(transitionMs);
                 if (_disposed || _endingRun) return;
                 // Preserve cooldowns before destroying session
                 PreserveCooldownsFromSession();
@@ -1282,8 +1256,12 @@
 
     private async Task SetBattleSpeed(double speed)
     {
-        // Clamp to allowed values to prevent exploit via tampered calls
-        speed = speed switch { 5.0 => 5.0, _ => 1.0 };
+        // Clamp to allowed values: Normal (1x) or Max (100x)
+        speed = speed switch
+        {
+            100.0 => 100.0,
+            _ => 1.0
+        };
         battleSpeed = speed;
         try
         {
@@ -1293,6 +1271,14 @@
         {
             Logger.LogWarning(ex, "Error setting battle speed");
         }
+    }
+
+    /// <summary>
+    /// Returns the speed options the current user is allowed to use (server-authoritative).
+    /// </summary>
+    private int[] GetAllowedSpeeds()
+    {
+        return [1, 100];
     }
 
     /// <summary>

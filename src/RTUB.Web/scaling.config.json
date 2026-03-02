@@ -259,7 +259,7 @@
 
     "bossMode": {
       "stageOffset": 3500,
-      "bossStageScaling": 10,
+      "bossStageScaling": 20,
       "xpPerBossLevel": 120,
       "bossLevelXPPower": 0.6,
       "xpLevelPenaltyRate": 0.01,
@@ -278,7 +278,10 @@
         "criticalChance": 0.15
       },
 
-      "bossStatMultiplier": 2.5,
+      "bossStatMultiplier": 3.0,
+
+      "deepBossThreshold": 100,
+      "deepBossGrowthRate": 0.002,
 
       "dropRates": {
         "finoDropChance": 0.003,

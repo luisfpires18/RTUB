@@ -20,8 +20,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return Object.freeze(n);
   }
   const PIXI__namespace = /* @__PURE__ */ _interopNamespaceDefault(PIXI2);
-  const SESSION_CACHE_BUST = `?v=${Date.now()}`;
-  const audioCacheBuster = `?v=${Date.now()}`;
+  const SESSION_CACHE_BUST = "";
+  const audioCacheBuster = "";
   const PLAYER_RADIUS = 24;
   const ENEMY_HIT_RADIUS = 24;
   const ELITE_SCALE = 1.6;
@@ -161,7 +161,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const WEAPON_SHARPSHOT = {
     id: "sharpshot",
-    name: "Tiro Certeiro",
+    name: "Sharpshot",
     icon: "🎯",
     description: "Dispara projéteis no inimigo mais próximo.",
     pattern: AttackPattern.Projectile,
@@ -174,7 +174,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_SPINBLADE = {
     id: "spinblade",
-    name: "Lâmina Giratória",
+    name: "Spinning Blade",
     icon: "🔪",
     description: "Lâminas orbitam à volta do jogador.",
     pattern: AttackPattern.Orbital,
@@ -186,7 +186,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_SHOCKWAVE = {
     id: "shockwave",
-    name: "Onda de Choque",
+    name: "Shockwave",
     icon: "💥",
     description: "Explosão periódica à volta do jogador.",
     pattern: AttackPattern.AoE,
@@ -198,7 +198,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_BOOMERANG = {
     id: "boomerang",
-    name: "Bumerangue",
+    name: "Boomerang",
     icon: "🪃",
     description: "Projétil que volta ao jogador.",
     pattern: AttackPattern.Boomerang,
@@ -211,7 +211,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_LIGHTNING = {
     id: "lightning",
-    name: "Raio",
+    name: "Lightning",
     icon: "⚡",
     description: "Relâmpago em cadeia que salta entre inimigos.",
     pattern: AttackPattern.Lightning,
@@ -223,7 +223,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_FORCEFIELD = {
     id: "forcefield",
-    name: "Barreira",
+    name: "Force Field",
     icon: "🛡️",
     description: "Aura de dano à volta do jogador.",
     pattern: AttackPattern.ForceField,
@@ -235,7 +235,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_COMPANION = {
     id: "companion",
-    name: "Leitão Aliado",
+    name: "Pig Companion",
     icon: "🐷",
     description: "Um leitão que orbita e ataca inimigos.",
     pattern: AttackPattern.Companion,
@@ -248,7 +248,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_FIRERAIN = {
     id: "firerain",
-    name: "Chuva de Fogo",
+    name: "Fire Rain",
     icon: "🔥",
     description: "Bolas de fogo caem em posições aleatórias.",
     pattern: AttackPattern.Projectile,
@@ -261,7 +261,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_EVO_THUNDER_SHOT = {
     id: "evo_thundershot",
-    name: "Trovão Certeiro",
+    name: "Thunder Shot",
     icon: "🌩️",
     description: "Projéteis elétricos que encadeiam entre inimigos.",
     pattern: AttackPattern.Projectile,
@@ -280,7 +280,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_EVO_GUARDIAN_BLADE = {
     id: "evo_guardianblade",
-    name: "Lâmina Protetora",
+    name: "Guardian Blade",
     icon: "⚔️",
     description: "Lâminas orbitais com aura de dano contínuo.",
     pattern: AttackPattern.Orbital,
@@ -297,7 +297,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_EVO_APOCALYPSE = {
     id: "evo_apocalypse",
-    name: "Apocalipse",
+    name: "Apocalypse",
     icon: "☄️",
     description: "Meteoros caem do céu com ondas de choque.",
     pattern: AttackPattern.AoE,
@@ -314,7 +314,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   const WEAPON_EVO_PIG_RANG = {
     id: "evo_pigrang",
-    name: "Leitão Bumerangue",
+    name: "Pig Boomerang",
     icon: "🐗",
     description: "Leitões arremessam bumerangues devastadores.",
     pattern: AttackPattern.Companion,
@@ -336,28 +336,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       ingredientA: "sharpshot",
       ingredientB: "lightning",
       result: WEAPON_EVO_THUNDER_SHOT,
-      description: "🎯 Tiro Certeiro + ⚡ Raio → 🌩️ Trovão Certeiro"
+      description: "🎯 Sharpshot + ⚡ Lightning → 🌩️ Thunder Shot"
     },
     {
       id: "evo_guardianblade",
       ingredientA: "spinblade",
       ingredientB: "forcefield",
       result: WEAPON_EVO_GUARDIAN_BLADE,
-      description: "🔪 Lâmina + 🛡️ Barreira → ⚔️ Lâmina Protetora"
+      description: "🔪 Spinning Blade + 🛡️ Force Field → ⚔️ Guardian Blade"
     },
     {
       id: "evo_apocalypse",
       ingredientA: "shockwave",
       ingredientB: "firerain",
       result: WEAPON_EVO_APOCALYPSE,
-      description: "💥 Onda de Choque + 🔥 Chuva de Fogo → ☄️ Apocalipse"
+      description: "💥 Shockwave + 🔥 Fire Rain → ☄️ Apocalypse"
     },
     {
       id: "evo_pigrang",
       ingredientA: "boomerang",
       ingredientB: "companion",
       result: WEAPON_EVO_PIG_RANG,
-      description: "🪃 Bumerangue + 🐷 Leitão → 🐗 Leitão Bumerangue"
+      description: "🪃 Boomerang + 🐷 Pig Companion → 🐗 Pig Boomerang"
     }
   ];
   const ALL_WEAPONS = [
@@ -803,6 +803,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "activeBoss", null);
       __publicField(this, "spatialGrid", new SpatialGrid(128));
       __publicField(this, "enemiesKilled", 0);
+      __publicField(this, "bossesKilled", 0);
       __publicField(this, "totalSpawned", 0);
       __publicField(this, "midBossSpawned", false);
       __publicField(this, "finalBossSpawned", false);
@@ -1124,6 +1125,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.enemiesKilled++;
         this.audio.playSFX("hit");
         if (enemy.isBoss) {
+          this.bossesKilled++;
           this.activeBoss = null;
           (_b = this.onBossDeath) == null ? void 0 : _b.call(this, !!enemy.isFinalBoss);
         }
@@ -1926,7 +1928,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "moveSpeed",
       icon: "🏃",
-      name: "Pés Rápidos",
+      name: "Swift Feet",
       description: "+12% velocidade de movimento",
       maxLevel: 5,
       apply: (s) => {
@@ -1936,7 +1938,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "damage",
       icon: "⚔️",
-      name: "Força Bruta",
+      name: "Brute Force",
       description: "+15% dano total",
       maxLevel: 5,
       apply: (s) => {
@@ -1946,7 +1948,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "hp",
       icon: "❤️",
-      name: "Vitalidade",
+      name: "Vitality",
       description: "+15 HP máximo e cura 10",
       maxLevel: 5,
       apply: (s) => {
@@ -1957,7 +1959,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "atkRange",
       icon: "🎯",
-      name: "Olho de Águia",
+      name: "Eagle Eye",
       description: "+12% alcance",
       maxLevel: 5,
       apply: (s) => {
@@ -1967,7 +1969,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "atkSpeed",
       icon: "⚡",
-      name: "Fogo Rápido",
+      name: "Rapid Fire",
       description: "+12% velocidade de ataque",
       maxLevel: 5,
       apply: (s) => {
@@ -1977,7 +1979,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "armor",
       icon: "🛡️",
-      name: "Defesa",
+      name: "Armor",
       description: "-8% dano recebido",
       maxLevel: 5,
       apply: (s) => {
@@ -1987,7 +1989,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "magnet",
       icon: "🧲",
-      name: "Íman de Moedas",
+      name: "Coin Magnet",
       description: "+80 raio de recolha",
       maxLevel: 3,
       apply: (s) => {
@@ -1997,7 +1999,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     {
       id: "coinRate",
       icon: "🪙",
-      name: "Febre do Ouro",
+      name: "Gold Rush",
       description: "2x moedas por inimigo",
       maxLevel: 3,
       apply: (s) => {
@@ -3196,7 +3198,8 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
               "OnLevelComplete",
               this.enemyManager.enemiesKilled,
               this.timeElapsed,
-              this.upgradeSystem.xpOrbsCollected
+              this.upgradeSystem.xpOrbsCollected,
+              this.enemyManager.bossesKilled
             );
           } catch (e) {
             console.error("Failed to invoke OnLevelComplete:", e);
@@ -3217,7 +3220,8 @@ ${rng}  🏃 ${Math.round(stats.playerSpeed)}`;
               "OnPlayerDeath",
               this.enemyManager.enemiesKilled,
               this.timeElapsed,
-              this.upgradeSystem.xpOrbsCollected
+              this.upgradeSystem.xpOrbsCollected,
+              this.enemyManager.bossesKilled
             );
           } catch (e) {
             console.error("Failed to invoke OnPlayerDeath:", e);

@@ -1,8 +1,7 @@
-export type { BattleEvent, BattleEventType, VfxType } from './battle-events';
+export type { BattleEvent, BattleEventType } from './battle-events';
 export type {
   ArenaBattleData,
   StageBattleData,
-  SpellDefinition,
   EnemyDefinition,
   ConsumableQuantities,
   ConsumableImages,

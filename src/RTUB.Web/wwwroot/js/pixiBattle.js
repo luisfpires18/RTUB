@@ -3,10 +3,10 @@ var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { en
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 (function() {
   "use strict";
-  const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+  const SESSION_CACHE_BUST = "";
   const loadedAssetAliases = /* @__PURE__ */ new Set();
   const audioBufferCache = {};
-  const audioCacheBuster = `?v=${Date.now()}`;
+  const audioCacheBuster = "";
   function getEventField(evt, field) {
     if (!evt) return void 0;
     const record = evt;
@@ -154,95 +154,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
     }
   }
-  function playSpellSound(ctx, attackId, sfxVolume) {
-    if (!sfxVolume) return;
-    if (ctx.state === "suspended") ctx.resume();
-    const t = ctx.currentTime;
-    const vol = sfxVolume;
-    const playNote = (freq, type, start, dur, v = 0.3) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.connect(g);
-      g.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = type;
-      g.gain.setValueAtTime(vol * v, t + start);
-      g.gain.exponentialRampToValueAtTime(0.01, t + start + dur);
-      osc.start(t + start);
-      osc.stop(t + start + dur);
-    };
-    switch (attackId) {
-      case "heavy_attack":
-        playNote(120, "sawtooth", 0, 0.15, 0.5);
-        playNote(180, "square", 0.03, 0.12, 0.4);
-        break;
-      case "guitarra_barrage":
-        for (let i = 0; i < 6; i++) {
-          playNote(82 + i * 15, "sawtooth", i * 0.07, 0.08, 0.4);
-          playNote(165 + i * 10, "square", i * 0.07 + 0.03, 0.06, 0.25);
-        }
-        break;
-      case "bandolim_swiftchord":
-        playNote(587, "triangle", 0, 0.12, 0.4);
-        playNote(784, "triangle", 0.02, 0.1, 0.35);
-        playNote(988, "sine", 0.04, 0.08, 0.3);
-        break;
-      case "cavaquinho_paralysis":
-        for (let i = 0; i < 5; i++)
-          playNote(800 + Math.random() * 400, "square", i * 0.06, 0.05, 0.3);
-        playNote(200, "sawtooth", 0.35, 0.2, 0.4);
-        break;
-      case "acordeao_fear":
-        playNote(130, "sawtooth", 0, 0.6, 0.4);
-        playNote(138, "sawtooth", 0, 0.55, 0.35);
-        playNote(98, "square", 0.1, 0.4, 0.3);
-        playNote(65, "triangle", 0.2, 0.4, 0.25);
-        break;
-      case "contrabaixo_sonicboom": {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.connect(g);
-        g.connect(ctx.destination);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(110, t);
-        osc.frequency.exponentialRampToValueAtTime(35, t + 0.5);
-        g.gain.setValueAtTime(vol * 0.6, t);
-        g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-        osc.start(t);
-        osc.stop(t + 0.5);
-        playNote(55, "triangle", 0, 0.4, 0.3);
-        playNote(220, "square", 0.05, 0.15, 0.2);
-        break;
-      }
-      case "percussao_combo":
-        playNote(200, "square", 0, 0.06, 0.5);
-        playNote(300, "square", 0.08, 0.06, 0.4);
-        playNote(250, "square", 0.16, 0.06, 0.45);
-        playNote(400, "square", 0.24, 0.08, 0.5);
-        playNote(150, "triangle", 0, 0.3, 0.25);
-        break;
-      case "pandeireta_boomerang":
-        for (let i = 0; i < 8; i++) {
-          playNote(400 + i * 50, "sine", i * 0.04, 0.06, 0.35);
-        }
-        for (let i = 0; i < 8; i++) {
-          playNote(750 - i * 50, "sine", 0.32 + i * 0.04, 0.06, 0.3);
-        }
-        break;
-      case "estandarte_rally":
-        playNote(262, "triangle", 0, 0.15, 0.4);
-        playNote(330, "triangle", 0.12, 0.15, 0.4);
-        playNote(392, "triangle", 0.24, 0.2, 0.45);
-        playNote(196, "sine", 0, 0.5, 0.2);
-        break;
-      case "violino_sleep":
-        playNote(660, "sine", 0, 0.3, 0.35);
-        playNote(600, "sine", 0.15, 0.3, 0.3);
-        playNote(550, "sine", 0.3, 0.3, 0.25);
-        playNote(500, "sine", 0.45, 0.35, 0.2);
-        break;
-    }
-  }
   async function loadBackgroundMusic(ctx, musicUrl, volume, audioEnabled) {
     const state = { source: null, gainNode: null, currentTrack: musicUrl };
     try {
@@ -289,7 +200,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const speed = owner.battleSpeed ?? 1;
-    const adjustedDuration = speed > 0 ? duration / speed : duration;
+    const adjustedDuration = Math.max(20, speed > 0 ? duration / speed : duration);
     const startTime = Date.now();
     const container = target;
     const startValues = {};
@@ -385,48 +296,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     textPool.pool = [];
   }
-  const STATUS_LABELS = {
-    sleep: "💤 SLEEP",
-    bleed: "🩸 BLEED",
-    slow: "🐌 SLOW",
-    vulnerable: "⚡ VULN",
-    powerboost: "💪 POWER UP",
-    haste: "⚡ HASTE",
-    shield: "🛡️ SHIELD",
-    defensebreak: "💥 DEF BREAK",
-    defenseboost: "🛡️ DEF UP",
-    regen: "💚 REGEN"
-  };
-  const STATUS_COLORS = {
-    sleep: 10053375,
-    bleed: 16724787,
-    slow: 6724044,
-    vulnerable: 16755200,
-    powerboost: 16737792,
-    haste: 65416,
-    shield: 4491519,
-    defensebreak: 16729156,
-    defenseboost: 4491519,
-    regen: 4521796
-  };
-  function showFloatingText(owner, text, x, y, color) {
-    if (!owner.stage || !owner.app) return;
-    const floatText = getPooledText(owner._textPool, text, {
-      fontFamily: "Arial",
-      fontSize: 26,
-      fontWeight: "bold",
-      fill: color,
-      stroke: { color: 0, width: 4 }
-    });
-    if (!floatText) return;
-    floatText.anchor.set(0.5);
-    floatText.x = x;
-    floatText.y = y;
-    owner.stage.addChild(floatText);
-    animateTo(owner, floatText, { y: floatText.y - 70, alpha: 0 }, 900, () => {
-      releaseText(owner._textPool, floatText);
-    });
-  }
+  const MIN_FLOAT_MS = 350;
   function showDamageText(owner, damage, isCritical, x, y) {
     if (!owner.stage || !owner.app) return;
     const text = isCritical ? `CRIT! -${formatNum(Math.abs(damage))}` : `-${formatNum(Math.abs(damage))}`;
@@ -444,251 +314,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     if (!damageText) return;
     damageText.anchor.set(0.5);
-    damageText.x = x;
+    damageText.x = x + (Math.random() - 0.5) * 30;
     damageText.y = y;
     owner.stage.addChild(damageText);
-    animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, duration, () => {
+    const speed = owner.battleSpeed || 1;
+    const compensated = Math.max(duration, MIN_FLOAT_MS * speed);
+    animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, compensated, () => {
       releaseText(owner._textPool, damageText);
     });
-  }
-  function showEffectLabel(owner, effectName, sprite) {
-    const label = STATUS_LABELS[effectName] || effectName.toUpperCase();
-    const color = STATUS_COLORS[effectName] || 16777215;
-    showFloatingText(
-      owner,
-      label,
-      sprite.x,
-      sprite.y - (sprite.height || 40) - 30,
-      color
-    );
-  }
-  function screenShake(owner) {
-    if (!owner.stage) return;
-    const intensity = 4;
-    const originalX = owner.stage.x;
-    const originalY = owner.stage.y;
-    let count = 0;
-    const shake = () => {
-      if (count >= 6 || !owner.stage) {
-        if (owner.stage) {
-          owner.stage.x = originalX;
-          owner.stage.y = originalY;
-        }
-        return;
-      }
-      owner.stage.x = originalX + (Math.random() - 0.5) * intensity * 2;
-      owner.stage.y = originalY + (Math.random() - 0.5) * intensity * 2;
-      count++;
-      const id = setTimeout(shake, 30);
-      owner._timeoutIds.push(id);
-    };
-    shake();
-  }
-  function playSpellVfx(owner, vfxType, color, source, target) {
-    if (!source || !target || !owner.stage) return;
-    const srcX = source.x;
-    const srcY = source.y - (source.height || 40) / 2;
-    const tgtX = target.x;
-    const tgtY = target.y - (target.height || 40) / 2;
-    switch (vfxType) {
-      case 0:
-        createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      case 1:
-        createBeamVfx(owner, color, tgtX, tgtY);
-        break;
-      case 2:
-        createAoeVfx(owner, color, tgtX, tgtY);
-        break;
-      case 4:
-        createMeleeStrikeVfx(owner, color, tgtX, tgtY);
-        break;
-      case 5:
-        createSoundWaveVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      case 6:
-        createMusicNotesVfx(owner, color, srcX, srcY, tgtX, tgtY);
-        break;
-      default:
-        createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-    }
-  }
-  function createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const proj = new PIXI.Graphics();
-    proj.circle(0, 0, 8);
-    proj.fill({ color, alpha: 0.9 });
-    proj.x = srcX;
-    proj.y = srcY;
-    owner.stage.addChild(proj);
-    const glow = new PIXI.Graphics();
-    glow.circle(0, 0, 14);
-    glow.fill({ color, alpha: 0.3 });
-    glow.x = srcX;
-    glow.y = srcY;
-    owner.stage.addChild(glow);
-    const duration = 350 / owner.battleSpeed;
-    const startTime = Date.now();
-    const animate = () => {
-      const t = Math.min((Date.now() - startTime) / duration, 1);
-      proj.x = srcX + (tgtX - srcX) * t;
-      proj.y = srcY + (tgtY - srcY) * t;
-      glow.x = proj.x;
-      glow.y = proj.y;
-      glow.alpha = 0.3 * (1 - t * 0.5);
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        const flash = new PIXI.Graphics();
-        flash.circle(0, 0, 20);
-        flash.fill({ color, alpha: 0.8 });
-        flash.x = tgtX;
-        flash.y = tgtY;
-        owner.stage.addChild(flash);
-        animateTo(owner, flash, { alpha: 0, scale: 2 }, 200, () => {
-          if (flash.parent) flash.parent.removeChild(flash);
-          flash.destroy();
-        });
-        if (proj.parent) proj.parent.removeChild(proj);
-        proj.destroy();
-        if (glow.parent) glow.parent.removeChild(glow);
-        glow.destroy();
-      }
-    };
-    requestAnimationFrame(animate);
-  }
-  function createBeamVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const beam = new PIXI.Graphics();
-    beam.rect(-4, -200, 8, 200);
-    beam.fill({ color, alpha: 0.8 });
-    beam.x = tgtX;
-    beam.y = tgtY;
-    beam.alpha = 0;
-    owner.stage.addChild(beam);
-    animateTo(owner, beam, { alpha: 1 }, 100, () => {
-      animateTo(owner, beam, { alpha: 0 }, 400, () => {
-        if (beam.parent) beam.parent.removeChild(beam);
-        beam.destroy();
-      });
-    });
-  }
-  function createAoeVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const ring = new PIXI.Graphics();
-    ring.circle(0, 0, 10);
-    ring.stroke({ color, width: 3, alpha: 0.9 });
-    ring.x = tgtX;
-    ring.y = tgtY;
-    owner.stage.addChild(ring);
-    animateTo(owner, ring, { scale: 6, alpha: 0 }, 500, () => {
-      if (ring.parent) ring.parent.removeChild(ring);
-      ring.destroy();
-    });
-  }
-  function createMeleeStrikeVfx(owner, color, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const slash = new PIXI.Graphics();
-    slash.moveTo(-15, -15);
-    slash.lineTo(15, 15);
-    slash.moveTo(15, -15);
-    slash.lineTo(-15, 15);
-    slash.stroke({ color, width: 4, alpha: 0.9 });
-    slash.x = tgtX;
-    slash.y = tgtY;
-    owner.stage.addChild(slash);
-    animateTo(owner, slash, { alpha: 0, scale: 2 }, 350, () => {
-      if (slash.parent) slash.parent.removeChild(slash);
-      slash.destroy();
-    });
-  }
-  function createSoundWaveVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const midX = (srcX + tgtX) / 2;
-    const midY = (srcY + tgtY) / 2;
-    for (let i = 0; i < 3; i++) {
-      const ring = new PIXI.Graphics();
-      ring.circle(0, 0, 12);
-      ring.stroke({ color, width: 3, alpha: 0.8 });
-      ring.x = midX;
-      ring.y = midY;
-      ring.scale.set(0.3);
-      ring.alpha = 0;
-      owner.stage.addChild(ring);
-      const delay = i * 120 / owner.battleSpeed;
-      const capturedI = i;
-      const id = setTimeout(() => {
-        ring.alpha = 0.8;
-        animateTo(owner, ring, { alpha: 0, scale: 3 + capturedI }, 500 / owner.battleSpeed, () => {
-          if (ring.parent) ring.parent.removeChild(ring);
-          ring.destroy();
-        });
-      }, delay);
-      owner._timeoutIds.push(id);
-    }
-  }
-  function createMusicNotesVfx(owner, color, srcX, srcY, tgtX, tgtY) {
-    if (!owner.stage) return;
-    const notes = ["♪", "♫", "♩", "♬"];
-    for (let i = 0; i < 5; i++) {
-      const note = new PIXI.Text({
-        text: notes[i % notes.length],
-        style: { fontSize: 18 + Math.random() * 8, fill: color, fontFamily: "serif" }
-      });
-      note.anchor.set(0.5);
-      note.x = srcX + (Math.random() - 0.5) * 30;
-      note.y = srcY + (Math.random() - 0.5) * 20;
-      note.alpha = 0;
-      owner.stage.addChild(note);
-      const delay = i * 80 / owner.battleSpeed;
-      const endX = tgtX + (Math.random() - 0.5) * 40;
-      const endY = tgtY - 20 + (Math.random() - 0.5) * 30;
-      const noteStartX = note.x;
-      const noteStartY = note.y;
-      const id = setTimeout(() => {
-        note.alpha = 1;
-        const duration = 450 / owner.battleSpeed;
-        const startTime = Date.now();
-        const animateNote = () => {
-          const t = Math.min((Date.now() - startTime) / duration, 1);
-          note.x = noteStartX + (endX - noteStartX) * t;
-          note.y = noteStartY + (endY - noteStartY) * t - Math.sin(t * Math.PI) * 20;
-          note.alpha = 1 - t * 0.6;
-          note.rotation = Math.sin(t * Math.PI * 2) * 0.3;
-          if (t < 1) {
-            requestAnimationFrame(animateNote);
-          } else {
-            if (note.parent) note.parent.removeChild(note);
-            note.destroy();
-          }
-        };
-        animateNote();
-      }, delay);
-      owner._timeoutIds.push(id);
-    }
-  }
-  function playBuffVfx(owner, target, color) {
-    if (!target || !owner.stage) return;
-    const cx = target.x;
-    const cy = target.y - (target.height || 40) / 2;
-    for (let i = 0; i < 8; i++) {
-      const p = new PIXI.Graphics();
-      p.circle(0, 0, 3);
-      p.fill({ color, alpha: 0.8 });
-      p.x = cx + (Math.random() - 0.5) * 30;
-      p.y = cy + (Math.random() - 0.5) * 20;
-      owner.stage.addChild(p);
-      animateTo(
-        owner,
-        p,
-        { y: p.y - 40 - Math.random() * 30, alpha: 0 },
-        600 + Math.random() * 200,
-        () => {
-          if (p.parent) p.parent.removeChild(p);
-          p.destroy();
-        }
-      );
-    }
   }
   const DEFAULT_WIDTH = 800;
   const DEFAULT_HEIGHT = 500;
@@ -757,18 +390,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "musicState", null);
       // Interactive mode
       __publicField(this, "interactiveMode");
-      __publicField(this, "spells");
       __publicField(this, "interactivePlayerHP");
       __publicField(this, "interactivePlayerMaxHP");
       __publicField(this, "interactivePlayerActionTime");
       __publicField(this, "interactiveEnemies");
       __publicField(this, "_playerAttackPending", false);
       __publicField(this, "_enemyAttackPending", false);
-      __publicField(this, "_spellPending", false);
-      __publicField(this, "_cooldownTickAccum", 0);
-      __publicField(this, "spellButtons", []);
-      __publicField(this, "spellCooldowns", {});
-      __publicField(this, "spellBarContainer", null);
       // Cleanup trackers (VfxOwner requirement)
       __publicField(this, "_timeoutIds", []);
       __publicField(this, "_rafIds", []);
@@ -789,7 +416,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.attackerSpritePath = data.AttackerSpritePath ?? data.attackerSpritePath ?? "";
       this.defenderSpritePath = data.DefenderSpritePath ?? data.defenderSpritePath ?? "";
       this.interactiveMode = data.InteractiveMode ?? data.interactiveMode ?? false;
-      this.spells = data.Spells ?? data.spells ?? [];
       this.interactivePlayerHP = data.PlayerHP ?? data.playerHP ?? null;
       this.interactivePlayerMaxHP = data.PlayerMaxHP ?? data.playerMaxHP ?? null;
       this.interactivePlayerActionTime = data.PlayerActionTime ?? data.playerActionTime ?? null;
@@ -829,10 +455,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _playSound(type) {
       if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
       playSound(this.audioContext, type, this.sfxVolume);
-    }
-    _playSpellSound(attackId) {
-      if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
-      playSpellSound(this.audioContext, attackId, this.sfxVolume);
     }
     toggleAudio() {
       this.audioEnabled = !this.audioEnabled;
@@ -943,7 +565,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.startIdleAnimation();
       if (this.interactiveMode) {
         this.initInteractiveState();
-        this.createSpellBar();
         this.startInteractiveBattle();
       } else if (this.mode === "live") {
         this.startTimedBattle();
@@ -1230,85 +851,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.drawHpBars();
       this.drawSpeedBars();
     }
-    /* ────────────────────── Spell Bar UI ───────────────────────────── */
-    createSpellBar() {
-      if (!this.spells || this.spells.length === 0 || !this.app || !this.stage) return;
-      const { width, height } = this.app.screen;
-      const isMobile = width < 768;
-      const btnSize = isMobile ? 52 : 68;
-      const btnGap = isMobile ? 10 : 14;
-      const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
-      const startX = (width - totalWidth) / 2;
-      const barY = height - btnSize - 8;
-      this.spellBarContainer = new PIXI.Container();
-      this.stage.addChild(this.spellBarContainer);
-      const backdrop = new PIXI.Graphics();
-      backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
-      backdrop.fill({ color: 0, alpha: 0.5 });
-      this.spellBarContainer.addChild(backdrop);
-      this.spellButtons = [];
-      for (let i = 0; i < this.spells.length; i++) {
-        const spell = this.spells[i];
-        const attackId = spell.attackId ?? spell.AttackId ?? "";
-        const name = spell.name ?? spell.Name ?? attackId;
-        const icon = spell.icon ?? spell.Icon ?? "⚡";
-        const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
-        const x = startX + i * (btnSize + btnGap);
-        const btnContainer = new PIXI.Container();
-        btnContainer.x = x;
-        btnContainer.y = barY;
-        const bg = new PIXI.Graphics();
-        bg.roundRect(0, 0, btnSize, btnSize, 6);
-        bg.fill({ color: 2763338, alpha: 0.9 });
-        bg.stroke({ color: 6710954, width: 2 });
-        btnContainer.addChild(bg);
-        const iconText = new PIXI.Text({
-          text: icon,
-          style: { fontSize: isMobile ? 22 : 28, fontFamily: "Arial, sans-serif", fill: 16777215 }
-        });
-        iconText.anchor.set(0.5);
-        iconText.x = btnSize / 2;
-        iconText.y = btnSize / 2 - 4;
-        btnContainer.addChild(iconText);
-        const nameText = new PIXI.Text({
-          text: name.length > 6 ? name.substring(0, 6) : name,
-          style: { fontSize: isMobile ? 8 : 10, fontFamily: "Arial, sans-serif", fill: 13421772 }
-        });
-        nameText.anchor.set(0.5);
-        nameText.x = btnSize / 2;
-        nameText.y = btnSize - 6;
-        btnContainer.addChild(nameText);
-        const cdOverlay = new PIXI.Graphics();
-        cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
-        cdOverlay.fill({ color: 0, alpha: 0.7 });
-        cdOverlay.visible = false;
-        btnContainer.addChild(cdOverlay);
-        const cdText = new PIXI.Text({
-          text: "",
-          style: { fontSize: 16, fontFamily: "Arial, sans-serif", fontWeight: "bold", fill: 16777215 }
-        });
-        cdText.anchor.set(0.5);
-        cdText.x = btnSize / 2;
-        cdText.y = btnSize / 2;
-        cdText.visible = false;
-        btnContainer.addChild(cdText);
-        btnContainer.eventMode = "static";
-        btnContainer.cursor = "pointer";
-        btnContainer.on("pointerdown", () => this.onSpellButtonClick(attackId));
-        this.spellBarContainer.addChild(btnContainer);
-        this.spellButtons.push({
-          container: btnContainer,
-          bg,
-          iconText,
-          nameText,
-          cdOverlay,
-          cdText,
-          attackId,
-          cooldownSeconds: cooldown,
-          spell
-        });
-      }
-    }
     /* ────────────────── Interactive Battle Flow ────────────────────── */
     startInteractiveBattle() {
       this.battleStartTime = Date.now();
@@ -1317,16 +859,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.isPlaying = true;
       this._playerAttackPending = false;
       this._enemyAttackPending = false;
-      this._spellPending = false;
-      this._cooldownTickAccum = 0;
-    }
-    onSpellButtonClick(attackId) {
-      if (this.battleFinished || !this.isPlaying) return;
-      if (this._spellPending) return;
-      const cd = this.spellCooldowns[attackId] ?? 0;
-      if (cd > 0) return;
-      this._spellPending = true;
-      this.requestPlayerSpell(attackId);
     }
     async requestPlayerAutoAttack() {
       if (this._destroyed || !this.dotNetRef || this.battleFinished) {
@@ -1360,48 +892,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.speedBarTimers.defender = this.actionTime.defender * 1e3;
       }
     }
-    async requestPlayerSpell(attackId) {
-      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-        this._spellPending = false;
-        return;
-      }
-      try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnPlayerSpell", attackId);
-        if (this._destroyed || this.battleFinished) return;
-        if (json) this.processServerResult(JSON.parse(json));
-      } catch (e) {
-        console.warn("OnPlayerSpell error:", e);
-      } finally {
-        this._spellPending = false;
-      }
-    }
-    async requestTickCooldowns(elapsedSeconds) {
-      if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
-      try {
-        const json = await this.dotNetRef.invokeMethodAsync("OnTickCooldowns", elapsedSeconds);
-        if (this._destroyed || this.battleFinished) return;
-        if (json) {
-          const data = JSON.parse(json);
-          const spellCooldowns = data.spells ?? data;
-          for (const [id, remaining] of Object.entries(spellCooldowns)) {
-            this.spellCooldowns[id] = remaining;
-          }
-        }
-      } catch (e) {
-        console.warn("OnTickCooldowns error:", e);
-      }
-    }
     processServerResult(result) {
       if (this._destroyed || this.battleFinished || !result) return;
       const events = result.events ?? result.Events ?? [];
       for (const evt of events) {
         this.processInteractiveEvent(evt);
-      }
-      const cooldowns = result.spellCooldowns ?? result.SpellCooldowns;
-      if (cooldowns) {
-        for (const [id, remaining] of Object.entries(cooldowns)) {
-          this.spellCooldowns[id] = remaining;
-        }
       }
       const battleOver = result.battleOver ?? result.BattleOver ?? false;
       if (battleOver) {
@@ -1420,107 +915,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     processInteractiveEvent(evt) {
       const evtType = evt.type ?? evt.Type;
-      const attackId = evt.attackId ?? evt.AttackId;
       switch (evtType) {
         case "HPUpdate":
-          this.processEvent(evt);
-          break;
         case "Attack":
-          if (attackId) {
-            this.handleSpellAttack(evt);
-          } else {
-            this.processEvent(evt);
-          }
-          break;
         case "KO":
           this.processEvent(evt);
           break;
         case "StatusEffect":
           this.handleStatusEffect(evt);
           break;
-      }
-    }
-    /* ────────────────────── Spell / Status VFX ─────────────────────── */
-    handleSpellAttack(evt) {
-      const attacker = evt.attacker ?? evt.Attacker ?? "";
-      const defender = evt.defender ?? evt.Defender ?? "";
-      const damage = evt.damage ?? evt.Damage ?? 0;
-      const isCritical = evt.isCritical ?? evt.IsCritical ?? false;
-      const vfxType = evt.vfxType ?? evt.VfxType;
-      const vfxColor = evt.vfxColor ?? evt.VfxColor ?? "#ff6600";
-      const doScreenShake = evt.screenShake ?? evt.ScreenShake ?? false;
-      const visualHint = evt.visualHint ?? evt.VisualHint;
-      const abilityName = evt.abilityName ?? evt.AbilityName ?? "Spell";
-      const effectName = evt.effectName ?? evt.EffectName;
-      const attackId = evt.attackId ?? evt.AttackId;
-      const color = typeof vfxColor === "string" && vfxColor.startsWith("#") ? parseInt(vfxColor.replace("#", ""), 16) : typeof vfxColor === "number" ? vfxColor : 16737792;
-      if (doScreenShake || visualHint === "screenShake") screenShake(this);
-      const atkChar = attacker === "Attacker" ? this.characterSprites.attacker : this.characterSprites.defender;
-      const defChar = defender === "Defender" ? this.characterSprites.defender : this.characterSprites.attacker;
-      if (!atkChar || !defChar) return;
-      const atkSpr = atkChar.sprite;
-      const defSpr = defChar.sprite;
-      if (attacker === "Attacker") {
-        const startX = atkChar.originX;
-        animateTo(this, atkSpr, { x: startX + 40 }, 120, () => {
-          animateTo(this, atkSpr, { x: startX }, 200);
-        });
-        showFloatingText(this, abilityName.toUpperCase(), atkSpr.x, atkSpr.y - atkSpr.height * 0.8, color);
-        if (defender === "Attacker") {
-          playBuffVfx(this, atkSpr, color);
-          if (damage < 0) {
-            showFloatingText(this, `+${formatNum(Math.abs(damage))}`, atkSpr.x, atkSpr.y - atkSpr.height * 0.6, 4521796);
-          }
-          if (effectName) showEffectLabel(this, effectName, atkSpr);
-        } else {
-          playSpellVfx(this, vfxType, color, atkSpr, defSpr);
-          defSpr.tint = isCritical ? 16711680 : 16733525;
-          const id = setTimeout(
-            () => {
-              if (!defSpr.destroyed) defSpr.tint = 16777215;
-            },
-            200 / this.battleSpeed
-          );
-          this._timeoutIds.push(id);
-          if (damage > 0) {
-            showDamageText(this, damage, isCritical, defSpr.x, defSpr.y - defSpr.height * 0.6);
-          }
-          if (effectName) showEffectLabel(this, effectName, defSpr);
-        }
-        if (attackId) {
-          this._playSpellSound(attackId);
-        } else {
-          this._playSound(isCritical ? "critical" : "attack");
-        }
-      }
-    }
-    handleStatusEffect(evt) {
-      var _a, _b;
-      const character = evt.character ?? evt.Character ?? "";
-      const effectName = evt.effectName ?? evt.EffectName ?? "";
-      const damage = evt.damage ?? evt.Damage ?? 0;
-      const target = character === "Attacker" ? (_a = this.characterSprites.attacker) == null ? void 0 : _a.sprite : (_b = this.characterSprites.defender) == null ? void 0 : _b.sprite;
-      if (!target) return;
-      showEffectLabel(this, effectName, target);
-      if (damage > 0) {
-        showDamageText(this, damage, false, target.x, target.y - target.height * 0.6);
-      }
-    }
-    updateSpellCooldownVisuals() {
-      for (const btn of this.spellButtons) {
-        const cd = this.spellCooldowns[btn.attackId] ?? 0;
-        if (cd > 0) {
-          btn.cdOverlay.visible = true;
-          btn.cdText.visible = true;
-          btn.cdText.text = Math.ceil(cd).toString();
-          btn.container.cursor = "not-allowed";
-          btn.bg.alpha = 0.5;
-        } else {
-          btn.cdOverlay.visible = false;
-          btn.cdText.visible = false;
-          btn.container.cursor = "pointer";
-          btn.bg.alpha = 0.9;
-        }
       }
     }
     /* ────────────────────── Timed / Replay Modes ───────────────────── */
@@ -1931,16 +1334,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             }
           }
         }
-        this._cooldownTickAccum += simDelta;
-        if (this._cooldownTickAccum >= 200) {
-          const elapsed = this._cooldownTickAccum / 1e3;
-          this._cooldownTickAccum = 0;
-          for (const id of Object.keys(this.spellCooldowns)) {
-            this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
-          }
-          this.updateSpellCooldownVisuals();
-          this.requestTickCooldowns(elapsed);
-        }
         this.drawSpeedBars();
         return;
       }
@@ -2008,8 +1401,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this._timeoutIds = [];
       this._rafIds = [];
       destroyTextPool(this._textPool);
-      this.spellBarContainer = null;
-      this.spellButtons = [];
       if (this.app) {
         this.app.ticker.stop();
         while (this.stage && this.stage.children && this.stage.children.length > 0) {
@@ -2060,7 +1451,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const d = battleData;
     const hasShotBuff = d.HasShotBuff ?? d.hasShotBuff ?? false;
     const interactiveMode = d.InteractiveMode ?? d.interactiveMode ?? false;
-    const spells = d.Spells ?? d.spells ?? [];
     const playerHP = d.PlayerHP ?? d.playerHP ?? null;
     const playerMaxHP = d.PlayerMaxHP ?? d.playerMaxHP ?? null;
     const playerActionTime = d.PlayerActionTime ?? d.playerActionTime ?? null;
@@ -2077,7 +1467,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       DefenderSpritePath: defenderSpritePath,
       HasShotBuff: hasShotBuff,
       InteractiveMode: interactiveMode,
-      Spells: spells,
       PlayerHP: playerHP ?? void 0,
       PlayerMaxHP: playerMaxHP ?? void 0,
       PlayerActionTime: playerActionTime ?? void 0,

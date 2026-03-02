@@ -21,42 +21,42 @@ const LEVEL_THRESHOLD_STEP = 35;
 
 const PASSIVE_DEFS: PassiveDef[] = [
   {
-    id: 'moveSpeed', icon: '🏃', name: 'Pés Rápidos',
+    id: 'moveSpeed', icon: '🏃', name: 'Swift Feet',
     description: '+12% velocidade de movimento', maxLevel: 5,
     apply: (s) => { s.playerSpeed *= 1.12; },
   },
   {
-    id: 'damage', icon: '⚔️', name: 'Força Bruta',
+    id: 'damage', icon: '⚔️', name: 'Brute Force',
     description: '+15% dano total', maxLevel: 5,
     apply: (s) => { s.damageMultiplier *= 1.15; },
   },
   {
-    id: 'hp', icon: '❤️', name: 'Vitalidade',
+    id: 'hp', icon: '❤️', name: 'Vitality',
     description: '+15 HP máximo e cura 10', maxLevel: 5,
     apply: (s) => { s.maxHP += 15; s.playerHP = Math.min(s.playerHP + 10, s.maxHP); },
   },
   {
-    id: 'atkRange', icon: '🎯', name: 'Olho de Águia',
+    id: 'atkRange', icon: '🎯', name: 'Eagle Eye',
     description: '+12% alcance', maxLevel: 5,
     apply: (s) => { s.rangeMultiplier *= 1.12; },
   },
   {
-    id: 'atkSpeed', icon: '⚡', name: 'Fogo Rápido',
+    id: 'atkSpeed', icon: '⚡', name: 'Rapid Fire',
     description: '+12% velocidade de ataque', maxLevel: 5,
     apply: (s) => { s.cooldownMultiplier *= 0.88; },
   },
   {
-    id: 'armor', icon: '🛡️', name: 'Defesa',
+    id: 'armor', icon: '🛡️', name: 'Armor',
     description: '-8% dano recebido', maxLevel: 5,
     apply: (s) => { s.armor = 1 - (1 - s.armor) * 0.92; },
   },
   {
-    id: 'magnet', icon: '🧲', name: 'Íman de Moedas',
+    id: 'magnet', icon: '🧲', name: 'Coin Magnet',
     description: '+80 raio de recolha', maxLevel: 3,
     apply: (s) => { s.magnetRadius += 80; },
   },
   {
-    id: 'coinRate', icon: '🪙', name: 'Febre do Ouro',
+    id: 'coinRate', icon: '🪙', name: 'Gold Rush',
     description: '2x moedas por inimigo', maxLevel: 3,
     apply: (s) => { s.coinDropMult *= 2; },
   },

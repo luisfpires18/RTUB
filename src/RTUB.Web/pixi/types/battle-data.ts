@@ -2,18 +2,6 @@
  * Data shapes passed from Blazor to JS via IJSRuntime.InvokeVoidAsync.
  */
 
-/** Spell definition from the server. */
-export interface SpellDefinition {
-  attackId?: string;
-  AttackId?: string;
-  name?: string;
-  Name?: string;
-  icon?: string;
-  Icon?: string;
-  cooldownSeconds?: number;
-  CooldownSeconds?: number;
-}
-
 /** Enemy combatant passed for interactive mode. */
 export interface EnemyDefinition {
   hp?: number;
@@ -55,8 +43,6 @@ export interface ArenaBattleData {
   // Interactive mode
   InteractiveMode?: boolean;
   interactiveMode?: boolean;
-  Spells?: SpellDefinition[];
-  spells?: SpellDefinition[];
   PlayerHP?: number;
   playerHP?: number;
   PlayerMaxHP?: number;
@@ -150,8 +136,6 @@ export interface StageBattleData {
   // Interactive
   InteractiveMode?: boolean;
   interactiveMode?: boolean;
-  Spells?: SpellDefinition[];
-  spells?: SpellDefinition[];
   PlayerHP?: number;
   playerHP?: number;
   PlayerMaxHP?: number;
@@ -168,8 +152,6 @@ export interface StageBattleData {
   consumableImages?: ConsumableImages;
   ConsumableCooldowns?: Record<string, number>;
   consumableCooldowns?: Record<string, number>;
-  SpellCooldowns?: Record<string, number>;
-  spellCooldowns?: Record<string, number>;
   ActiveBuffs?: ActiveBuffs;
   activeBuffs?: ActiveBuffs;
 }

@@ -24,8 +24,9 @@ export function animateTo(
   }
 
   // Adjust animation duration based on battle speed, matching original JS behaviour
+  // Floor at 20ms so animations remain visible at extreme speeds (10x/20x)
   const speed = owner.battleSpeed ?? 1;
-  const adjustedDuration = speed > 0 ? duration / speed : duration;
+  const adjustedDuration = Math.max(20, speed > 0 ? duration / speed : duration);
 
   const startTime = Date.now();
   const container = target as unknown as Record<string, unknown>;

@@ -70,7 +70,7 @@ Follow this directive order:
 - Namespace JS functions under objects (e.g., `stageBattleGame.start(...)`, `rtubAudioPlayer.playAudio(...)`)
 - Game rendering uses **PixiJS 8** — TypeScript source in `src/RTUB.Web/pixi/`, built with Vite into IIFE bundles at `wwwroot/js/pixi-build/`
 - Audio uses **Web Audio API** oscillators for SFX and `AudioBufferSource` for background music (arena/stage); survive mode uses HTML `Audio()` element pools
-- Interactive combat: JS calls `[JSInvokable]` methods on Blazor (`OnPlayerAutoAttack`, `OnEnemyAttack`, `OnPlayerSpell`, `OnTickCooldowns`, `OnBattleFinished`)
+- Interactive combat: JS calls `[JSInvokable]` methods on Blazor (`OnPlayerAutoAttack`, `OnEnemyAttack`, `OnBattleFinished`) — auto-attack only, no spells
 
 ## PixiJS TypeScript Build
 
@@ -104,7 +104,7 @@ Four modes with different DB write strategies:
 - **Battle (Arena)** — 2-3 writes after each fight via `FinalizeAndApplyRewardsAsync`
 - **Survive** — 1 write per level (`CompleteLevelAsync`), rewards at run end
 
-Combat flow: `DeterministicCombatEngine` pre-computes outcomes (seeded RNG). `CombatActionService` processes interactive actions (auto-attacks, spells with status effects). `CombatSession` tracks in-memory state. Game balance constants live in `MyTunoScaling` (static, configured from `scaling.config.json`).
+Combat flow: `DeterministicCombatEngine` pre-computes outcomes (seeded RNG). `CombatActionService` processes interactive actions (auto-attacks only — spells/special attacks have been removed). `CombatSession` tracks in-memory state. Game balance constants live in `MyTunoScaling` (static, configured from `scaling.config.json`).
 
 ## Testing
 
@@ -116,6 +116,5 @@ xUnit + Moq + FluentAssertions. Naming: `MethodName_Scenario_ExpectedResult`. Te
 
 - DI registration: `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`
 - Game balance: `src/RTUB.Web/scaling.config.json` → `MyTunoScaling.Configure()`
-- Combat definitions: `src/RTUB.Application/Data/SpecialAttackDefinitions.cs`
 - DB context: `src/RTUB.Application/Data/ApplicationDbContext.cs` (~55 DbSets)
 - Practice docs: `docs/backend-practices.md`, `docs/frontend-practices.md`

@@ -1252,6 +1252,8 @@
                                     </div>
                                 </div>
                             </div>
+
+
                         </div>
                         }
                     </div>
@@ -1416,6 +1418,12 @@
         var hasLeitaoWpn = wpnLeitaoCost == 0 || leitaoQuantity >= wpnLeitaoCost;
         var canAffordUpgrade = hasFidelis && hasDrinks && hasLeitaoWpn;
         var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
+        var nextDrinkTier = InventoryService.GetNextDrinkTier(pendingWeapon.SourceDrink);
+        var drinkUpgradeCost = nextDrinkTier != null ? InventoryService.GetDrinkUpgradeCost(pendingWeapon.Level) : 0m;
+        var canAffordDrinkUpgrade = nextDrinkTier != null && currentUser != null && currentUser.FidelisBalance >= drinkUpgradeCost;
+        var nextDrinkRes = nextDrinkTier != null ? activeResources.FirstOrDefault(r => r.Type == nextDrinkTier.Value.ToString()) : null;
+        var nextDrinkUnlocked = nextDrinkRes != null && (stageProgress?.HighestStage ?? 0) >= nextDrinkRes.UnlockStage;
+        var currentDrinkRes = activeResources.FirstOrDefault(r => r.Type == pendingWeapon.SourceDrink.ToString());
         <Modal Show="@showWeaponActionModal"
                ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
                Title="@pendingWeapon.Name"
@@ -1457,6 +1465,60 @@
                     </div>
                 </div>
 
+                <!-- Base Drink -->
+                <div class="mb-3">
+                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
+                        <i class="bi bi-cup-straw me-1"></i>Bebida Base:
+                    </small>
+                    <div class="ftile-grid ftile-grid--2col">
+                        <FantasyTile ImageUrl="@(GetDrinkPictureUrl(pendingWeapon.SourceDrink))" Icon="@(currentDrinkRes?.Icon ?? "bi-cup-straw")" Label="@(currentDrinkRes?.Name ?? pendingWeapon.SourceDrink.ToString())"
+                                     Value="" Color="purple" Size="md" />
+                    </div>
+                </div>
+
+                @if (nextDrinkTier != null && nextDrinkUnlocked)
+                {
+                    // Pre-compute projected stats after drink tier upgrade
+                    var _forging = MyTunoConfig.Value.StageMode.Forging;
+                    var _baseStats = MyTunoConfig.Value.StageMode.EquipmentStats.Instrument;
+                    var _nextEnergyCost = nextDrinkRes?.EnergyCost ?? 1;
+                    var _nextDrinkMult = 1.0 + (_nextEnergyCost - 1) * _forging.DrinkStatBonusPerTier;
+                    var _handedMult = pendingWeapon.IsTwoHanded ? _forging.TwoHandedMultiplier : 1.0;
+                    var _nextScale = _nextDrinkMult * _handedMult;
+                    var _hpPerLvl = MyTunoConfig.Value.StageMode.EquipmentHpPerLevel;
+                    var _powPerLvl = MyTunoConfig.Value.StageMode.EquipmentPowerPerLevel;
+                    var _defPerLvl = MyTunoConfig.Value.StageMode.EquipmentDefensePerLevel;
+                    var projHP = (int)Math.Round((_baseStats.HP + pendingWeapon.Level * _hpPerLvl) * _nextScale);
+                    var projPow = (int)Math.Round((_baseStats.Power + pendingWeapon.Level * _powPerLvl) * _nextScale);
+                    var projDef = (int)Math.Round((_baseStats.Defense + pendingWeapon.Level * _defPerLvl) * _nextScale);
+                    var deltaHP = projHP - pendingWeapon.BonusHP;
+                    var deltaPow = projPow - pendingWeapon.BonusPower;
+                    var deltaDef = projDef - pendingWeapon.BonusDefense;
+
+                    <!-- Drink Tier Upgrade -->
+                    <div class="wpn-upgrade-section mb-3">
+                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
+                            <i class="bi bi-arrow-up-circle me-1"></i>Upgrade Bebida para @(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString()):
+                        </small>
+                        <div class="ftile-grid ftile-grid--2col">
+                            <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(drinkUpgradeCost)"
+                                         Color="gold" Size="md" Insufficient="@(!canAffordDrinkUpgrade)">
+                                <span class="ftile-stock @(canAffordDrinkUpgrade ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
+                            </FantasyTile>
+                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(nextDrinkTier.Value))" Icon="@(nextDrinkRes?.Icon ?? "bi-cup-straw")" Label="@(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())"
+                                         Value="" Color="purple" Size="md" />
+                        </div>
+                        <div class="ftile-grid ftile-grid--bonus mt-2">
+                            @if (deltaHP != 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(projHP)}")"
+                                Color="red" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaHP)</span></FantasyTile> }
+                            @if (deltaPow != 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(projPow)}")"
+                                Color="green" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaPow)</span></FantasyTile> }
+                            @if (deltaDef != 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(projDef)}")"
+                                Color="gray" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaDef)</span></FantasyTile> }
+                        </div>
+                    </div>
+                }
+
                 <!-- Upgrade Requirements Section -->
                 <div class="wpn-upgrade-section">
                     <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
@@ -1493,6 +1555,12 @@
                     <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
                     </button>
+                    @if (nextDrinkTier != null && nextDrinkUnlocked)
+                    {
+                        <button class="btn btn-outline-warning btn-sm" @onclick="() => ConfirmWeaponDrinkUpgrade()" disabled="@(weaponActioning || !canAffordDrinkUpgrade)">
+                            <i class="bi bi-cup-straw me-1"></i>Upgrade para @(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())
+                        </button>
+                    }
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
                     @if (pendingWeapon.IsEquipped)
@@ -2582,6 +2650,8 @@
         }
     }
 
+
+
     private void NavigateToArena()
     {
         Navigation.NavigateTo("/my-tuno/arena");
@@ -3590,6 +3660,44 @@
         {
             Logger.LogError(ex, "Error upgrading weapon");
             toastMessage = "Erro ao melhorar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            weaponActioning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmWeaponDrinkUpgrade()
+    {
+        if (currentUser == null || pendingWeapon == null) return;
+
+        try
+        {
+            weaponActioning = true;
+            StateHasChanged();
+
+            var (success, message) = await InventoryService.UpgradeWeaponDrinkAsync(currentUser.Id, pendingWeapon.Id);
+            if (success)
+            {
+                await RefreshCurrentUserAsync();
+                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error upgrading weapon drink tier");
+            toastMessage = "Erro ao melhorar bebida da arma.";
             toastIsError = true;
         }
         finally

@@ -1245,6 +1245,102 @@ public class InventoryService : IInventoryService
         return CalculateDrinkTierRequirements(currentLevel).LeitaoCost;
     }
 
+    /// <inheritdoc />
+    public InventoryItemType? GetNextDrinkTier(InventoryItemType currentDrink)
+    {
+        var index = Array.IndexOf(DrinkTierOrder, currentDrink);
+        if (index < 0 || index >= DrinkTierOrder.Length - 1)
+            return null;
+        return DrinkTierOrder[index + 1];
+    }
+
+    /// <inheritdoc />
+    public decimal GetDrinkUpgradeCost(int currentWeaponLevel)
+    {
+        if (currentWeaponLevel <= 0) return 0m;
+
+        // Half the total Fidelis cost from level 0 → current level.
+        // Total cost = Σ (baseCost + i × costPerLevel) for i=0..L-1
+        //            = L × baseCost + costPerLevel × L×(L-1)/2
+        // Half cost  = L × baseCost / 2 + costPerLevel × L×(L-1) / 4
+        var forging = _scalingConfig.StageMode.Forging;
+        var L = (decimal)currentWeaponLevel;
+        var totalCost = L * forging.WeaponUpgradeBaseCost + forging.WeaponUpgradeCostPerLevel * L * (L - 1) / 2m;
+        return Math.Round(totalCost / 2m, 2);
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> UpgradeWeaponDrinkAsync(
+        string userId, int weaponId, CancellationToken cancellationToken = default)
+    {
+        var ctx = _contextFactory.CreateDbContext();
+        var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(
+            w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+        if (weapon == null)
+            return (false, "Arma não encontrada");
+
+        var nextDrink = GetNextDrinkTier(weapon.SourceDrink);
+        if (nextDrink == null)
+            return (false, "A arma já está no tier máximo de bebida.");
+
+        // Validate player has unlocked the next drink tier (stage requirement)
+        var nextDrinkResource = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == nextDrink.Value.ToString());
+        if (nextDrinkResource == null)
+            return (false, "Bebida seguinte não encontrada na configuração.");
+
+        var stageProgress = await ctx.StageProgresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
+        var highestStage = stageProgress?.HighestStage ?? 0;
+        if (highestStage < nextDrinkResource.UnlockStage)
+            return (false, $"Precisas de atingir o stage {nextDrinkResource.UnlockStage} para desbloquear {nextDrinkResource.Name}.");
+
+        var cost = GetDrinkUpgradeCost(weapon.Level);
+
+        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user == null || user.FidelisBalance < cost)
+            return (false, $"Fidelis insuficiente (necessário: {cost:N0})");
+
+        var character = await ctx.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        if (character == null)
+            return (false, "Personagem não encontrado");
+
+        var transaction = await ctx.Database.BeginTransactionIfSupportedAsync(cancellationToken);
+
+        user.FidelisBalance -= cost;
+        weapon.SourceDrink = nextDrink.Value;
+
+        // Recalculate stats with the new drink tier multiplier
+        var hpPerLvl = _scalingConfig.StageMode.EquipmentHpPerLevel;
+        var powPerLvl = _scalingConfig.StageMode.EquipmentPowerPerLevel;
+        var defPerLvl = _scalingConfig.StageMode.EquipmentDefensePerLevel;
+        var forging = _scalingConfig.StageMode.Forging;
+        var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
+
+        var drinkEnergyCost = nextDrinkResource.EnergyCost;
+        var drinkTierMult = 1.0 + (drinkEnergyCost - 1) * forging.DrinkStatBonusPerTier;
+        var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
+        var scaleMult = drinkTierMult * handedMult;
+
+        weapon.BonusHP = (int)Math.Round((baseStats.HP + weapon.Level * hpPerLvl) * scaleMult);
+        weapon.BonusPower = (int)Math.Round((baseStats.Power + weapon.Level * powPerLvl) * scaleMult);
+        weapon.BonusDefense = (int)Math.Round((baseStats.Defense + weapon.Level * defPerLvl) * scaleMult);
+
+        // Recalculate equipment bonuses if weapon is equipped
+        if (weapon.IsEquipped)
+        {
+            await RecalculateEquipmentBonusesAsync(character, cancellationToken, ctx);
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
+
+        var currentDrinkName = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString())?.Name ?? weapon.SourceDrink.ToString();
+        return (true, $"Bebida da arma melhorada para {currentDrinkName}!");
+    }
+
     /// <summary>
     /// Calculates drink requirements for an EQUIPMENT upgrade at a given level.
     /// Returns only the single drink type for the current tier (not cumulative).

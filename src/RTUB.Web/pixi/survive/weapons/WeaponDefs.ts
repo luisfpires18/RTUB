@@ -28,7 +28,7 @@ function levels(base: WeaponLevelStats, scale: Partial<Record<keyof WeaponLevelS
 
 export const WEAPON_SHARPSHOT: WeaponDef = {
   id: 'sharpshot',
-  name: 'Tiro Certeiro',
+  name: 'Sharpshot',
   icon: '🎯',
   description: 'Dispara projéteis no inimigo mais próximo.',
   pattern: AttackPattern.Projectile,
@@ -44,7 +44,7 @@ export const WEAPON_SHARPSHOT: WeaponDef = {
 
 export const WEAPON_SPINBLADE: WeaponDef = {
   id: 'spinblade',
-  name: 'Lâmina Giratória',
+  name: 'Spinning Blade',
   icon: '🔪',
   description: 'Lâminas orbitam à volta do jogador.',
   pattern: AttackPattern.Orbital,
@@ -59,7 +59,7 @@ export const WEAPON_SPINBLADE: WeaponDef = {
 
 export const WEAPON_SHOCKWAVE: WeaponDef = {
   id: 'shockwave',
-  name: 'Onda de Choque',
+  name: 'Shockwave',
   icon: '💥',
   description: 'Explosão periódica à volta do jogador.',
   pattern: AttackPattern.AoE,
@@ -74,7 +74,7 @@ export const WEAPON_SHOCKWAVE: WeaponDef = {
 
 export const WEAPON_BOOMERANG: WeaponDef = {
   id: 'boomerang',
-  name: 'Bumerangue',
+  name: 'Boomerang',
   icon: '🪃',
   description: 'Projétil que volta ao jogador.',
   pattern: AttackPattern.Boomerang,
@@ -90,7 +90,7 @@ export const WEAPON_BOOMERANG: WeaponDef = {
 
 export const WEAPON_LIGHTNING: WeaponDef = {
   id: 'lightning',
-  name: 'Raio',
+  name: 'Lightning',
   icon: '⚡',
   description: 'Relâmpago em cadeia que salta entre inimigos.',
   pattern: AttackPattern.Lightning,
@@ -105,7 +105,7 @@ export const WEAPON_LIGHTNING: WeaponDef = {
 
 export const WEAPON_FORCEFIELD: WeaponDef = {
   id: 'forcefield',
-  name: 'Barreira',
+  name: 'Force Field',
   icon: '🛡️',
   description: 'Aura de dano à volta do jogador.',
   pattern: AttackPattern.ForceField,
@@ -120,7 +120,7 @@ export const WEAPON_FORCEFIELD: WeaponDef = {
 
 export const WEAPON_COMPANION: WeaponDef = {
   id: 'companion',
-  name: 'Leitão Aliado',
+  name: 'Pig Companion',
   icon: '🐷',
   description: 'Um leitão que orbita e ataca inimigos.',
   pattern: AttackPattern.Companion,
@@ -136,7 +136,7 @@ export const WEAPON_COMPANION: WeaponDef = {
 
 export const WEAPON_FIRERAIN: WeaponDef = {
   id: 'firerain',
-  name: 'Chuva de Fogo',
+  name: 'Fire Rain',
   icon: '🔥',
   description: 'Bolas de fogo caem em posições aleatórias.',
   pattern: AttackPattern.Projectile,
@@ -156,7 +156,7 @@ export const WEAPON_FIRERAIN: WeaponDef = {
 
 export const WEAPON_EVO_THUNDER_SHOT: WeaponDef = {
   id: 'evo_thundershot',
-  name: 'Trovão Certeiro',
+  name: 'Thunder Shot',
   icon: '🌩️',
   description: 'Projéteis elétricos que encadeiam entre inimigos.',
   pattern: AttackPattern.Projectile,
@@ -173,7 +173,7 @@ export const WEAPON_EVO_THUNDER_SHOT: WeaponDef = {
 
 export const WEAPON_EVO_GUARDIAN_BLADE: WeaponDef = {
   id: 'evo_guardianblade',
-  name: 'Lâmina Protetora',
+  name: 'Guardian Blade',
   icon: '⚔️',
   description: 'Lâminas orbitais com aura de dano contínuo.',
   pattern: AttackPattern.Orbital,
@@ -188,7 +188,7 @@ export const WEAPON_EVO_GUARDIAN_BLADE: WeaponDef = {
 
 export const WEAPON_EVO_APOCALYPSE: WeaponDef = {
   id: 'evo_apocalypse',
-  name: 'Apocalipse',
+  name: 'Apocalypse',
   icon: '☄️',
   description: 'Meteoros caem do céu com ondas de choque.',
   pattern: AttackPattern.AoE,
@@ -203,7 +203,7 @@ export const WEAPON_EVO_APOCALYPSE: WeaponDef = {
 
 export const WEAPON_EVO_PIG_RANG: WeaponDef = {
   id: 'evo_pigrang',
-  name: 'Leitão Bumerangue',
+  name: 'Pig Boomerang',
   icon: '🐗',
   description: 'Leitões arremessam bumerangues devastadores.',
   pattern: AttackPattern.Companion,
@@ -223,28 +223,28 @@ export const EVOLUTION_RECIPES: ReadonlyArray<EvolutionDef> = [
     ingredientA: 'sharpshot',
     ingredientB: 'lightning',
     result: WEAPON_EVO_THUNDER_SHOT,
-    description: '🎯 Tiro Certeiro + ⚡ Raio → 🌩️ Trovão Certeiro',
+    description: '🎯 Sharpshot + ⚡ Lightning → 🌩️ Thunder Shot',
   },
   {
     id: 'evo_guardianblade',
     ingredientA: 'spinblade',
     ingredientB: 'forcefield',
     result: WEAPON_EVO_GUARDIAN_BLADE,
-    description: '🔪 Lâmina + 🛡️ Barreira → ⚔️ Lâmina Protetora',
+    description: '🔪 Spinning Blade + 🛡️ Force Field → ⚔️ Guardian Blade',
   },
   {
     id: 'evo_apocalypse',
     ingredientA: 'shockwave',
     ingredientB: 'firerain',
     result: WEAPON_EVO_APOCALYPSE,
-    description: '💥 Onda de Choque + 🔥 Chuva de Fogo → ☄️ Apocalipse',
+    description: '💥 Shockwave + 🔥 Fire Rain → ☄️ Apocalypse',
   },
   {
     id: 'evo_pigrang',
     ingredientA: 'boomerang',
     ingredientB: 'companion',
     result: WEAPON_EVO_PIG_RANG,
-    description: '🪃 Bumerangue + 🐷 Leitão → 🐗 Leitão Bumerangue',
+    description: '🪃 Boomerang + 🐷 Pig Companion → 🐗 Pig Boomerang',
   },
 ];
 

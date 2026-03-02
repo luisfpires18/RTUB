@@ -142,8 +142,8 @@
                     }
 
                     <div class="battle-controls">
-                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
-                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">Normal</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 100.0 ? "active" : "")" @onclick="() => SetBattleSpeed(100.0)">Max</button>
                         <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
@@ -543,6 +543,7 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
+    private bool isOwner = false;
 
     // Accumulated loot tracker
     private decimal totalFidelisEarned = 0;
@@ -587,9 +588,8 @@
     private readonly SemaphoreSlim _bossLock = new(1, 1);
     private List<EnemyStatsInfo> currentEnemyStats = new();
 
-    // Interactive combat session (spells / Blade Crafter mode)
+    // Interactive combat session
     private CombatSession? _combatSession;
-    private List<RTUB.Core.Entities.SpecialAttack>? _starterSpells;
 
     // In-combat consumable quantities (Fino & Caneca healing)
     private int _finoQty, _canecaQty;
@@ -671,6 +671,7 @@
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            isOwner = user.IsInRole("Owner");
 
             if (user.Identity?.IsAuthenticated == true)
             {
@@ -867,7 +868,7 @@
                         }
                     }
 
-                    // ── Interactive combat session (spells / Blade Crafter mode) ──
+                    // ── Interactive combat session ──
                     RTUB.Core.Enums.InstrumentType? combatInstrumentType = null;
                     if (character.EquippedWeapon1.HasValue)
                     {
@@ -876,7 +877,6 @@
                         if (equippedWeapon != null)
                             combatInstrumentType = InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
                     }
-                    _starterSpells = null; // Special attacks disabled in Boss Mode
                     var enemyStates = currentEnemyStats.Select((e, i) => new CombatantState
                     {
                         Identifier = $"Enemy{i}",
@@ -905,7 +905,7 @@
                     // same reference as character (when no shot buff), so restoring afterward
                     // would cause the session to start with post-battle HP instead of pre-battle.
                     _combatSession = CombatActionService.CreateSession(
-                        sessionChar, enemyStates, currentBattle.Seed, _starterSpells, "boss");
+                        sessionChar, enemyStates, currentBattle.Seed, "boss");
 
                     character.CurrentHP = savedHp; // Restore post-battle HP on the tracked entity
 
@@ -923,6 +923,7 @@
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = new List<int> { 0 },
                         BattleSpeed = battleSpeed,
+                        AllowedSpeeds = GetAllowedSpeeds(),
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0,
                         // ── Interactive combat data ──
                         InteractiveMode = true,
@@ -1001,20 +1002,6 @@
     }
 
     /// <summary>
-    /// Called by JS when the user clicks a spell button.
-    /// Returns CombatActionResult JSON for JS to animate.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnPlayerSpell(string attackId)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
-
-        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
-
-    /// <summary>
     /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
     /// Returns CombatActionResult JSON for JS to animate.
     /// </summary>
@@ -1026,20 +1013,6 @@
 
         var result = CombatActionService.ProcessEnemyAttack(_combatSession, enemyIndex);
         return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
-    }
-
-    /// <summary>
-    /// Called by JS on each tick to advance spell cooldowns.
-    /// Returns updated cooldown map.
-    /// </summary>
-    [JSInvokable]
-    public Task<string> OnTickCooldowns(double elapsedSeconds)
-    {
-        if (_combatSession == null || _combatSession.IsComplete)
-            return Task.FromResult("{}");
-
-        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-        return Task.FromResult(JsonSerializer.Serialize(new { spells = cooldowns }, _spellJsonOptions));
     }
 
     /// <summary>
@@ -1231,8 +1204,9 @@
 
             StateHasChanged();
 
-            // Auto-start next boss fight
-            await Task.Delay(200);
+            // Auto-start next boss fight — scale delay by battle speed
+            var transitionMs = Math.Max(10, (int)(200 / battleSpeed));
+            await Task.Delay(transitionMs);
             await FightBoss();
         }
         else
@@ -1309,14 +1283,26 @@
 
     private async Task SetBattleSpeed(double speed)
     {
-        // Clamp to allowed values to prevent exploit via tampered calls
-        speed = speed switch { 5.0 => 5.0, _ => 1.0 };
+        // Clamp to allowed values: Normal (1x) or Max (100x)
+        speed = speed switch
+        {
+            100.0 => 100.0,
+            _ => 1.0
+        };
         battleSpeed = speed;
         if (hasRendered)
         {
             try { await JSRuntime.InvokeVoidAsync("stageBattleGame.setSpeed", speed); }
             catch { }
         }
+    }
+
+    /// <summary>
+    /// Returns the speed options the current user is allowed to use (server-authoritative).
+    /// </summary>
+    private int[] GetAllowedSpeeds()
+    {
+        return [1, 100];
     }
 
     private async Task ToggleAudio()

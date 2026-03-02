@@ -162,14 +162,6 @@ public static class MyTunoScaling
     /// <summary>Maximum double gathering chance cap (0.50 = 50%).</summary>
     public static double MaxDoubleGatheringChance { get; private set; } = 0.50;
 
-    // ── Powers (combat power enhancements) ──
-
-    /// <summary>Heavy attack damage bonus per upgrade (additive to base 2.0x multiplier).</summary>
-    public static double HeavyAttackBonusPerUpgrade { get; private set; } = 0.05;
-
-    /// <summary>Special attack damage bonus per upgrade (additive to base multiplier).</summary>
-    public static double SpecialAttackBonusPerUpgrade { get; private set; } = 0.05;
-
     // ── Rare Set (ultra-rare equipment upgrades) ──
 
     /// <summary>Crit chance bonus per applied rare set piece (0.05 = 5%).</summary>
@@ -219,8 +211,6 @@ public static class MyTunoScaling
         double baseCastTime = 3.0,
         double castTimeReductionPerUpgrade = 0.1,
         double minCastTime = 0.1,
-        double heavyAttackBonusPerUpgrade = 0.05,
-        double specialAttackBonusPerUpgrade = 0.05,
         double finoHealPercent = 0.25,
         double finoCooldownSeconds = 150,
         double canecaHealPercent = 0.50,
@@ -278,8 +268,6 @@ public static class MyTunoScaling
         BaseCastTime = baseCastTime;
         CastTimeReductionPerUpgrade = castTimeReductionPerUpgrade;
         MinCastTime = minCastTime;
-        HeavyAttackBonusPerUpgrade = heavyAttackBonusPerUpgrade;
-        SpecialAttackBonusPerUpgrade = specialAttackBonusPerUpgrade;
         FinoHealPercent = finoHealPercent;
         FinoCooldownSeconds = finoCooldownSeconds;
         CanecaHealPercent = canecaHealPercent;

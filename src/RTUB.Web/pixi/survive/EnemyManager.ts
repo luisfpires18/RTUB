@@ -48,6 +48,7 @@ export class EnemyManager {
   readonly spatialGrid = new SpatialGrid<EnemyState>(128);
 
   enemiesKilled = 0;
+  bossesKilled = 0;
   totalSpawned = 0;
 
   midBossSpawned = false;
@@ -417,6 +418,7 @@ export class EnemyManager {
       this.audio.playSFX('hit');
 
       if (enemy.isBoss) {
+        this.bossesKilled++;
         this.activeBoss = null;
         this.onBossDeath?.(!!enemy.isFinalBoss);
       }

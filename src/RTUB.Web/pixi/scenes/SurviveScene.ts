@@ -668,6 +668,7 @@ export class SurviveScene {
             this.enemyManager.enemiesKilled,
             this.timeElapsed,
             this.upgradeSystem.xpOrbsCollected,
+            this.enemyManager.bossesKilled,
           );
         } catch (e) { console.error('Failed to invoke OnLevelComplete:', e); }
       }
@@ -689,6 +690,7 @@ export class SurviveScene {
             this.enemyManager.enemiesKilled,
             this.timeElapsed,
             this.upgradeSystem.xpOrbsCollected,
+            this.enemyManager.bossesKilled,
           );
         } catch (e) { console.error('Failed to invoke OnPlayerDeath:', e); }
       }

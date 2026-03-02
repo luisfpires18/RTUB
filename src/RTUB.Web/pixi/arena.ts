@@ -39,7 +39,6 @@ function createGame(
   const d = battleData as Record<string, unknown>;
   const hasShotBuff = (d.HasShotBuff ?? d.hasShotBuff ?? false) as boolean;
   const interactiveMode = (d.InteractiveMode ?? d.interactiveMode ?? false) as boolean;
-  const spells = (d.Spells ?? d.spells ?? []) as ArenaBattleData['Spells'];
   const playerHP = (d.PlayerHP ?? d.playerHP ?? null) as number | null;
   const playerMaxHP = (d.PlayerMaxHP ?? d.playerMaxHP ?? null) as number | null;
   const playerActionTime = (d.PlayerActionTime ?? d.playerActionTime ?? null) as number | null;
@@ -57,7 +56,6 @@ function createGame(
     DefenderSpritePath: defenderSpritePath,
     HasShotBuff: hasShotBuff,
     InteractiveMode: interactiveMode,
-    Spells: spells,
     PlayerHP: playerHP ?? undefined,
     PlayerMaxHP: playerMaxHP ?? undefined,
     PlayerActionTime: playerActionTime ?? undefined,

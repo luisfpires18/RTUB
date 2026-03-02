@@ -44,7 +44,6 @@ function createGame(containerId: string, battleData: StageBattleData): void {
     enemyPlacements: data.enemyPlacements ?? data.EnemyPlacements,
     HasShotBuff: pick<boolean>(data, 'HasShotBuff', 'hasShotBuff', false),
     interactiveMode: pick<boolean>(data, 'InteractiveMode', 'interactiveMode', false),
-    spells: data.spells ?? data.Spells,
     playerHP: data.playerHP ?? data.PlayerHP,
     playerMaxHP: data.playerMaxHP ?? data.PlayerMaxHP,
     playerActionTime: data.playerActionTime ?? data.PlayerActionTime,
@@ -53,6 +52,7 @@ function createGame(containerId: string, battleData: StageBattleData): void {
     consumableImages: data.consumableImages ?? data.ConsumableImages,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
     BattleSpeed: data.battleSpeed ?? data.BattleSpeed,
+    AllowedSpeeds: data.allowedSpeeds ?? data.AllowedSpeeds,
     canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
     penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
   });
@@ -114,7 +114,6 @@ function nextBattle(battleData: StageBattleData): void {
     enemyPlacements: data.enemyPlacements ?? data.EnemyPlacements,
     HasShotBuff: data.HasShotBuff ?? data.hasShotBuff,
     interactiveMode: data.interactiveMode ?? data.InteractiveMode,
-    spells: data.spells ?? data.Spells,
     playerHP: data.playerHP ?? data.PlayerHP,
     playerMaxHP: data.playerMaxHP ?? data.PlayerMaxHP,
     playerActionTime: data.playerActionTime ?? data.PlayerActionTime,
@@ -122,7 +121,6 @@ function nextBattle(battleData: StageBattleData): void {
     consumables: data.consumables ?? data.Consumables,
     consumableImages: data.consumableImages ?? data.ConsumableImages,
     consumableCooldowns: data.consumableCooldowns ?? data.ConsumableCooldowns,
-    spellCooldowns: data.spellCooldowns ?? data.SpellCooldowns,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
     canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
     penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
@@ -136,7 +134,7 @@ const api: StageBattleGameApi = {
   destroySceneOnly,
   setSpeed(speed: number) {
     if (stageScene) {
-      stageScene.setSpeed(speed === 5 ? 5 : 1);
+      stageScene.setSpeed(speed);
     }
   },
   setAudioEnabled(enabled: boolean) {

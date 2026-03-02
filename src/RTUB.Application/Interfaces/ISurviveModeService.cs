@@ -34,13 +34,13 @@ public interface ISurviveModeService
     /// Completes a level — the player survived the timer. Calculates and returns rewards.
     /// Server validates survival time against the run start timestamp.
     /// </summary>
-    Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default);
+    Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, int bossesKilled = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ends the run — the player died before the timer expired.
     /// Calculates partial rewards based on survival time and enemies killed.
     /// </summary>
-    Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default);
+    Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, int bossesKilled = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated survive mode run rewards (XP, Fidelis, drops).

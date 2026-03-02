@@ -1,6 +1,6 @@
 /**
  * Shared visual effects for Arena and Stage battle scenes.
- * Includes spell VFX, floating text, screen shake, buff particles.
+ * Includes floating text, screen shake, buff particles.
  */
 import type { Container, Text } from 'pixi.js';
 import { animateTo } from './tween';
@@ -46,6 +46,14 @@ const STATUS_COLORS: Record<string, number> = {
 
 // ─── Floating Text ────────────────────────────────────────────
 
+/**
+ * Minimum visible duration (ms) for floating/damage text after speed-scaling.
+ * At high speeds (10x/20x) the base duration ÷ speed can shrink to <20ms (invisible).
+ * We compensate by passing a pre-inflated duration so animateTo still produces
+ * at least MIN_FLOAT_MS of on-screen time.
+ */
+const MIN_FLOAT_MS = 350;
+
 /** Show floating text that drifts up and fades. */
 export function showFloatingText(
   owner: VfxOwner,
@@ -67,7 +75,10 @@ export function showFloatingText(
   floatText.x = x;
   floatText.y = y;
   owner.stage.addChild(floatText);
-  animateTo(owner, floatText, { y: floatText.y - 70, alpha: 0 }, 900, () => {
+  // Compensate so visible duration ≥ MIN_FLOAT_MS after animateTo divides by speed
+  const speed = owner.battleSpeed || 1;
+  const compensated = Math.max(900, MIN_FLOAT_MS * speed);
+  animateTo(owner, floatText, { y: floatText.y - 70, alpha: 0 }, compensated, () => {
     releaseText(owner._textPool, floatText);
   });
 }
@@ -99,10 +110,14 @@ export function showDamageText(
   });
   if (!damageText) return;
   damageText.anchor.set(0.5);
-  damageText.x = x;
+  // Slight random X-offset so overlapping texts at high speeds don't pile up
+  damageText.x = x + (Math.random() - 0.5) * 30;
   damageText.y = y;
   owner.stage.addChild(damageText);
-  animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, duration, () => {
+  // Compensate so visible duration ≥ MIN_FLOAT_MS after animateTo divides by speed
+  const speed = owner.battleSpeed || 1;
+  const compensated = Math.max(duration, MIN_FLOAT_MS * speed);
+  animateTo(owner, damageText, { y: damageText.y - floatDistance, alpha: 0 }, compensated, () => {
     releaseText(owner._textPool, damageText);
   });
 }
@@ -148,244 +163,6 @@ export function screenShake(owner: VfxOwner): void {
     owner._timeoutIds.push(id);
   };
   shake();
-}
-
-// ─── Spell VFX ────────────────────────────────────────────────
-
-/** Play spell VFX based on type enum. */
-export function playSpellVfx(
-  owner: VfxOwner,
-  vfxType: number | undefined,
-  color: number,
-  source: Container,
-  target: Container,
-): void {
-  if (!source || !target || !owner.stage) return;
-  const srcX = source.x;
-  const srcY = source.y - ((source as unknown as { height?: number }).height || 40) / 2;
-  const tgtX = target.x;
-  const tgtY = target.y - ((target as unknown as { height?: number }).height || 40) / 2;
-
-  switch (vfxType) {
-    case 0:
-      createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-      break;
-    case 1:
-      createBeamVfx(owner, color, tgtX, tgtY);
-      break;
-    case 2:
-      createAoeVfx(owner, color, tgtX, tgtY);
-      break;
-    case 4:
-      createMeleeStrikeVfx(owner, color, tgtX, tgtY);
-      break;
-    case 5:
-      createSoundWaveVfx(owner, color, srcX, srcY, tgtX, tgtY);
-      break;
-    case 6:
-      createMusicNotesVfx(owner, color, srcX, srcY, tgtX, tgtY);
-      break;
-    default:
-      createProjectileVfx(owner, color, srcX, srcY, tgtX, tgtY);
-  }
-}
-
-function createProjectileVfx(
-  owner: VfxOwner,
-  color: number,
-  srcX: number,
-  srcY: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const proj = new PIXI.Graphics();
-  proj.circle(0, 0, 8);
-  proj.fill({ color, alpha: 0.9 });
-  proj.x = srcX;
-  proj.y = srcY;
-  owner.stage.addChild(proj);
-
-  const glow = new PIXI.Graphics();
-  glow.circle(0, 0, 14);
-  glow.fill({ color, alpha: 0.3 });
-  glow.x = srcX;
-  glow.y = srcY;
-  owner.stage.addChild(glow);
-
-  const duration = 350 / owner.battleSpeed;
-  const startTime = Date.now();
-  const animate = (): void => {
-    const t = Math.min((Date.now() - startTime) / duration, 1);
-    proj.x = srcX + (tgtX - srcX) * t;
-    proj.y = srcY + (tgtY - srcY) * t;
-    glow.x = proj.x;
-    glow.y = proj.y;
-    glow.alpha = 0.3 * (1 - t * 0.5);
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      const flash = new PIXI.Graphics();
-      flash.circle(0, 0, 20);
-      flash.fill({ color, alpha: 0.8 });
-      flash.x = tgtX;
-      flash.y = tgtY;
-      owner.stage!.addChild(flash);
-      animateTo(owner, flash, { alpha: 0, scale: 2 }, 200, () => {
-        if (flash.parent) flash.parent.removeChild(flash);
-        flash.destroy();
-      });
-      if (proj.parent) proj.parent.removeChild(proj);
-      proj.destroy();
-      if (glow.parent) glow.parent.removeChild(glow);
-      glow.destroy();
-    }
-  };
-  requestAnimationFrame(animate);
-}
-
-function createBeamVfx(
-  owner: VfxOwner,
-  color: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const beam = new PIXI.Graphics();
-  beam.rect(-4, -200, 8, 200);
-  beam.fill({ color, alpha: 0.8 });
-  beam.x = tgtX;
-  beam.y = tgtY;
-  beam.alpha = 0;
-  owner.stage.addChild(beam);
-  animateTo(owner, beam, { alpha: 1 }, 100, () => {
-    animateTo(owner, beam, { alpha: 0 }, 400, () => {
-      if (beam.parent) beam.parent.removeChild(beam);
-      beam.destroy();
-    });
-  });
-}
-
-function createAoeVfx(
-  owner: VfxOwner,
-  color: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const ring = new PIXI.Graphics();
-  ring.circle(0, 0, 10);
-  ring.stroke({ color, width: 3, alpha: 0.9 });
-  ring.x = tgtX;
-  ring.y = tgtY;
-  owner.stage.addChild(ring);
-  animateTo(owner, ring, { scale: 6, alpha: 0 }, 500, () => {
-    if (ring.parent) ring.parent.removeChild(ring);
-    ring.destroy();
-  });
-}
-
-function createMeleeStrikeVfx(
-  owner: VfxOwner,
-  color: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const slash = new PIXI.Graphics();
-  slash.moveTo(-15, -15);
-  slash.lineTo(15, 15);
-  slash.moveTo(15, -15);
-  slash.lineTo(-15, 15);
-  slash.stroke({ color, width: 4, alpha: 0.9 });
-  slash.x = tgtX;
-  slash.y = tgtY;
-  owner.stage.addChild(slash);
-  animateTo(owner, slash, { alpha: 0, scale: 2 }, 350, () => {
-    if (slash.parent) slash.parent.removeChild(slash);
-    slash.destroy();
-  });
-}
-
-function createSoundWaveVfx(
-  owner: VfxOwner,
-  color: number,
-  srcX: number,
-  srcY: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const midX = (srcX + tgtX) / 2;
-  const midY = (srcY + tgtY) / 2;
-  for (let i = 0; i < 3; i++) {
-    const ring = new PIXI.Graphics();
-    ring.circle(0, 0, 12);
-    ring.stroke({ color, width: 3, alpha: 0.8 });
-    ring.x = midX;
-    ring.y = midY;
-    ring.scale.set(0.3);
-    ring.alpha = 0;
-    owner.stage.addChild(ring);
-    const delay = (i * 120) / owner.battleSpeed;
-    const capturedI = i;
-    const id = setTimeout(() => {
-      ring.alpha = 0.8;
-      animateTo(owner, ring, { alpha: 0, scale: 3 + capturedI }, 500 / owner.battleSpeed, () => {
-        if (ring.parent) ring.parent.removeChild(ring);
-        ring.destroy();
-      });
-    }, delay) as unknown as number;
-    owner._timeoutIds.push(id);
-  }
-}
-
-function createMusicNotesVfx(
-  owner: VfxOwner,
-  color: number,
-  srcX: number,
-  srcY: number,
-  tgtX: number,
-  tgtY: number,
-): void {
-  if (!owner.stage) return;
-  const notes = ['♪', '♫', '♩', '♬'];
-  for (let i = 0; i < 5; i++) {
-    const note = new PIXI.Text({
-      text: notes[i % notes.length],
-      style: { fontSize: 18 + Math.random() * 8, fill: color, fontFamily: 'serif' },
-    });
-    note.anchor.set(0.5);
-    note.x = srcX + (Math.random() - 0.5) * 30;
-    note.y = srcY + (Math.random() - 0.5) * 20;
-    note.alpha = 0;
-    owner.stage.addChild(note);
-    const delay = (i * 80) / owner.battleSpeed;
-    const endX = tgtX + (Math.random() - 0.5) * 40;
-    const endY = tgtY - 20 + (Math.random() - 0.5) * 30;
-    const noteStartX = note.x;
-    const noteStartY = note.y;
-    const id = setTimeout(() => {
-      note.alpha = 1;
-      const duration = 450 / owner.battleSpeed;
-      const startTime = Date.now();
-      const animateNote = (): void => {
-        const t = Math.min((Date.now() - startTime) / duration, 1);
-        note.x = noteStartX + (endX - noteStartX) * t;
-        note.y = noteStartY + (endY - noteStartY) * t - Math.sin(t * Math.PI) * 20;
-        note.alpha = 1 - t * 0.6;
-        note.rotation = Math.sin(t * Math.PI * 2) * 0.3;
-        if (t < 1) {
-          requestAnimationFrame(animateNote);
-        } else {
-          if (note.parent) note.parent.removeChild(note);
-          note.destroy();
-        }
-      };
-      animateNote();
-    }, delay) as unknown as number;
-    owner._timeoutIds.push(id);
-  }
 }
 
 /** Play upward buff/heal particles on a target sprite. */

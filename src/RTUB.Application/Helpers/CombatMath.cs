@@ -1,5 +1,4 @@
 using RTUB.Core.Configuration;
-using RTUB.Core.Entities;
 using RTUB.Core.Utilities;
 
 namespace RTUB.Application.Helpers;
@@ -78,28 +77,5 @@ public static class CombatMath
         var (rawDamage, isCritical) = CalculateRawDamage(power, criticalChance, rng);
         var finalDamage = ApplyDefenseMitigation(rawDamage, targetDefense);
         return (finalDamage, isCritical);
-    }
-
-    /// <summary>
-    /// Calculates spell damage using the spell's <see cref="SpecialAttack.DamageMultiplier"/>.
-    /// Spells that have <see cref="SpecialAttack.CanCrit"/> set always crit (premium feel).
-    /// Defence is <strong>not</strong> applied — spell damage bypasses armor.
-    /// </summary>
-    /// <param name="power">Caster's total power stat.</param>
-    /// <param name="spell">The spell definition.</param>
-    /// <param name="rng">Seeded RNG for deterministic results.</param>
-    /// <returns>Final spell damage.</returns>
-    public static long CalculateSpellDamage(long power, SpecialAttack spell, SeededRandom rng)
-    {
-        var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
-        var damage = power * variance * spell.DamageMultiplier;
-
-        if (spell.CanCrit)
-        {
-            // Spells that can crit always crit (premium feel)
-            damage *= 2;
-        }
-
-        return ClampToLong(damage);
     }
 }

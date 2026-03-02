@@ -8,19 +8,7 @@ export type BattleEventType =
   | 'Attack'
   | 'HPUpdate'
   | 'KO'
-  | 'Victory'
-  | 'StatusEffect';
-
-/** VFX type enum mirroring the C# SpellVfxType. */
-export const enum VfxType {
-  Projectile = 0,
-  Beam = 1,
-  AoE = 2,
-  // 3 unused
-  Melee = 4,
-  SoundWave = 5,
-  MusicNotes = 6,
-}
+  | 'Victory';
 
 /**
  * A single battle event as emitted by the server (JSON-serialised).
@@ -68,32 +56,10 @@ export interface BattleEvent {
   ActionTime?: number;
   actionTime?: number;
 
-  // Spell / VFX
-  AttackId?: string;
-  attackId?: string;
-
-  VfxType?: VfxType;
-  vfxType?: VfxType;
-
-  VfxColor?: string | number;
-  vfxColor?: string | number;
-
-  ScreenShake?: boolean;
-  screenShake?: boolean;
+  // Victory / KO
+  Winner?: string;
+  winner?: string;
 
   VisualHint?: string;
   visualHint?: string;
-
-  AbilityName?: string;
-  abilityName?: string;
-
-  EffectName?: string;
-  effectName?: string;
-
-  // Multi-target (AoE spells)
-  Targets?: string[];
-  targets?: string[];
-
-  TargetDamages?: number[];
-  targetDamages?: number[];
 }

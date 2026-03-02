@@ -6,7 +6,7 @@
  */
 import type { Application, Container, Graphics, Sprite, Text, TextStyle, Ticker } from 'pixi.js';
 import type { BattleEvent } from '../types/battle-events';
-import type { ArenaBattleData, SpellDefinition, EnemyDefinition } from '../types/battle-data';
+import type { ArenaBattleData, EnemyDefinition } from '../types/battle-data';
 import type { CombatActionResult, CombatOutcome } from '../types/combat-result';
 import type { VfxOwner } from '../shared/vfx';
 import type { MusicState } from '../shared/audio';
@@ -23,7 +23,6 @@ import {
 import {
   getSharedAudioContext,
   playSound,
-  playSpellSound,
   loadBackgroundMusic,
   stopMusic,
   setMusicVolume,
@@ -35,7 +34,6 @@ import {
   showDamageText,
   showEffectLabel,
   screenShake,
-  playSpellVfx,
   playBuffVfx,
 } from '../shared/vfx';
 
@@ -56,18 +54,6 @@ interface CharacterSprite {
   sprite: Sprite;
   originX: number;
   originY: number;
-}
-
-interface SpellButton {
-  container: Container;
-  bg: Graphics;
-  iconText: Text;
-  nameText: Text;
-  cdOverlay: Graphics;
-  cdText: Text;
-  attackId: string;
-  cooldownSeconds: number;
-  spell: SpellDefinition;
 }
 
 interface TimedBattleEvent {
@@ -153,18 +139,12 @@ export class ArenaBattleScene implements VfxOwner {
 
   // Interactive mode
   private interactiveMode: boolean;
-  private spells: SpellDefinition[];
   private interactivePlayerHP: number | null;
   private interactivePlayerMaxHP: number | null;
   private interactivePlayerActionTime: number | null;
   private interactiveEnemies: EnemyDefinition[];
   private _playerAttackPending = false;
   private _enemyAttackPending = false;
-  private _spellPending = false;
-  private _cooldownTickAccum = 0;
-  private spellButtons: SpellButton[] = [];
-  private spellCooldowns: Record<string, number> = {};
-  private spellBarContainer: Container | null = null;
 
   // Cleanup trackers (VfxOwner requirement)
   _timeoutIds: number[] = [];
@@ -194,8 +174,6 @@ export class ArenaBattleScene implements VfxOwner {
     hasShotBuff?: boolean;
     InteractiveMode?: boolean;
     interactiveMode?: boolean;
-    Spells?: SpellDefinition[];
-    spells?: SpellDefinition[];
     PlayerHP?: number;
     playerHP?: number;
     PlayerMaxHP?: number;
@@ -221,7 +199,6 @@ export class ArenaBattleScene implements VfxOwner {
 
     // Interactive mode
     this.interactiveMode = data.InteractiveMode ?? data.interactiveMode ?? false;
-    this.spells = data.Spells ?? data.spells ?? [];
     this.interactivePlayerHP = data.PlayerHP ?? data.playerHP ?? null;
     this.interactivePlayerMaxHP = data.PlayerMaxHP ?? data.playerMaxHP ?? null;
     this.interactivePlayerActionTime = data.PlayerActionTime ?? data.playerActionTime ?? null;
@@ -256,11 +233,6 @@ export class ArenaBattleScene implements VfxOwner {
   private _playSound(type: 'attack' | 'hit' | 'critical' | 'ko' | 'victory' | 'block'): void {
     if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
     playSound(this.audioContext, type, this.sfxVolume);
-  }
-
-  private _playSpellSound(attackId: string): void {
-    if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
-    playSpellSound(this.audioContext, attackId, this.sfxVolume);
   }
 
   toggleAudio(): boolean {
@@ -395,7 +367,6 @@ export class ArenaBattleScene implements VfxOwner {
 
     if (this.interactiveMode) {
       this.initInteractiveState();
-      this.createSpellBar();
       this.startInteractiveBattle();
     } else if (this.mode === 'live') {
       this.startTimedBattle();
@@ -710,94 +681,6 @@ export class ArenaBattleScene implements VfxOwner {
     this.drawSpeedBars();
   }
 
-  /* ────────────────────── Spell Bar UI ───────────────────────────── */
-
-  private createSpellBar(): void {
-    if (!this.spells || this.spells.length === 0 || !this.app || !this.stage) return;
-
-    const { width, height } = this.app.screen;
-    const isMobile = width < 768;
-    const btnSize = isMobile ? 52 : 68;
-    const btnGap = isMobile ? 10 : 14;
-    const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
-    const startX = (width - totalWidth) / 2;
-    const barY = height - btnSize - 8;
-
-    this.spellBarContainer = new PIXI.Container();
-    this.stage.addChild(this.spellBarContainer);
-
-    const backdrop = new PIXI.Graphics();
-    backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
-    backdrop.fill({ color: 0x000000, alpha: 0.5 });
-    this.spellBarContainer.addChild(backdrop);
-
-    this.spellButtons = [];
-
-    for (let i = 0; i < this.spells.length; i++) {
-      const spell = this.spells[i];
-      const attackId = spell.attackId ?? spell.AttackId ?? '';
-      const name = spell.name ?? spell.Name ?? attackId;
-      const icon = spell.icon ?? spell.Icon ?? '⚡';
-      const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
-      const x = startX + i * (btnSize + btnGap);
-
-      const btnContainer = new PIXI.Container();
-      btnContainer.x = x;
-      btnContainer.y = barY;
-
-      const bg = new PIXI.Graphics();
-      bg.roundRect(0, 0, btnSize, btnSize, 6);
-      bg.fill({ color: 0x2a2a4a, alpha: 0.9 });
-      bg.stroke({ color: 0x6666aa, width: 2 });
-      btnContainer.addChild(bg);
-
-      const iconText = new PIXI.Text({
-        text: icon,
-        style: { fontSize: isMobile ? 22 : 28, fontFamily: 'Arial, sans-serif', fill: 0xffffff },
-      });
-      iconText.anchor.set(0.5);
-      iconText.x = btnSize / 2;
-      iconText.y = btnSize / 2 - 4;
-      btnContainer.addChild(iconText);
-
-      const nameText = new PIXI.Text({
-        text: name.length > 6 ? name.substring(0, 6) : name,
-        style: { fontSize: isMobile ? 8 : 10, fontFamily: 'Arial, sans-serif', fill: 0xcccccc },
-      });
-      nameText.anchor.set(0.5);
-      nameText.x = btnSize / 2;
-      nameText.y = btnSize - 6;
-      btnContainer.addChild(nameText);
-
-      const cdOverlay = new PIXI.Graphics();
-      cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
-      cdOverlay.fill({ color: 0x000000, alpha: 0.7 });
-      cdOverlay.visible = false;
-      btnContainer.addChild(cdOverlay);
-
-      const cdText = new PIXI.Text({
-        text: '',
-        style: { fontSize: 16, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff },
-      });
-      cdText.anchor.set(0.5);
-      cdText.x = btnSize / 2;
-      cdText.y = btnSize / 2;
-      cdText.visible = false;
-      btnContainer.addChild(cdText);
-
-      btnContainer.eventMode = 'static';
-      btnContainer.cursor = 'pointer';
-      btnContainer.on('pointerdown', () => this.onSpellButtonClick(attackId));
-
-      this.spellBarContainer.addChild(btnContainer);
-
-      this.spellButtons.push({
-        container: btnContainer, bg, iconText, nameText, cdOverlay, cdText,
-        attackId, cooldownSeconds: cooldown, spell,
-      });
-    }
-  }
-
   /* ────────────────── Interactive Battle Flow ────────────────────── */
 
   private startInteractiveBattle(): void {
@@ -807,17 +690,6 @@ export class ArenaBattleScene implements VfxOwner {
     this.isPlaying = true;
     this._playerAttackPending = false;
     this._enemyAttackPending = false;
-    this._spellPending = false;
-    this._cooldownTickAccum = 0;
-  }
-
-  private onSpellButtonClick(attackId: string): void {
-    if (this.battleFinished || !this.isPlaying) return;
-    if (this._spellPending) return;
-    const cd = this.spellCooldowns[attackId] ?? 0;
-    if (cd > 0) return;
-    this._spellPending = true;
-    this.requestPlayerSpell(attackId);
   }
 
   private async requestPlayerAutoAttack(): Promise<void> {
@@ -854,52 +726,12 @@ export class ArenaBattleScene implements VfxOwner {
     }
   }
 
-  private async requestPlayerSpell(attackId: string): Promise<void> {
-    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
-      this._spellPending = false;
-      return;
-    }
-    try {
-      const json = await this.dotNetRef.invokeMethodAsync<string>('OnPlayerSpell', attackId);
-      if (this._destroyed || this.battleFinished) return;
-      if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
-    } catch (e) {
-      console.warn('OnPlayerSpell error:', e);
-    } finally {
-      this._spellPending = false;
-    }
-  }
-
-  private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
-    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
-    try {
-      const json = await this.dotNetRef.invokeMethodAsync<string>('OnTickCooldowns', elapsedSeconds);
-      if (this._destroyed || this.battleFinished) return;
-      if (json) {
-        const data = JSON.parse(json) as Record<string, unknown>;
-        const spellCooldowns = (data.spells ?? data) as Record<string, number>;
-        for (const [id, remaining] of Object.entries(spellCooldowns)) {
-          this.spellCooldowns[id] = remaining;
-        }
-      }
-    } catch (e) {
-      console.warn('OnTickCooldowns error:', e);
-    }
-  }
-
   private processServerResult(result: CombatActionResult): void {
     if (this._destroyed || this.battleFinished || !result) return;
 
     const events = result.events ?? result.Events ?? [];
     for (const evt of events) {
       this.processInteractiveEvent(evt);
-    }
-
-    const cooldowns = result.spellCooldowns ?? result.SpellCooldowns;
-    if (cooldowns) {
-      for (const [id, remaining] of Object.entries(cooldowns)) {
-        this.spellCooldowns[id] = remaining;
-      }
     }
 
     const battleOver = result.battleOver ?? result.BattleOver ?? false;
@@ -920,19 +752,10 @@ export class ArenaBattleScene implements VfxOwner {
 
   private processInteractiveEvent(evt: BattleEvent): void {
     const evtType = evt.type ?? evt.Type;
-    const attackId = evt.attackId ?? evt.AttackId;
 
     switch (evtType) {
       case 'HPUpdate':
-        this.processEvent(evt);
-        break;
       case 'Attack':
-        if (attackId) {
-          this.handleSpellAttack(evt);
-        } else {
-          this.processEvent(evt);
-        }
-        break;
       case 'KO':
         this.processEvent(evt);
         break;
@@ -942,111 +765,6 @@ export class ArenaBattleScene implements VfxOwner {
       case 'Victory':
       case 'BattleStart':
         break;
-    }
-  }
-
-  /* ────────────────────── Spell / Status VFX ─────────────────────── */
-
-  private handleSpellAttack(evt: BattleEvent): void {
-    const attacker = evt.attacker ?? evt.Attacker ?? '';
-    const defender = evt.defender ?? evt.Defender ?? '';
-    const damage = evt.damage ?? evt.Damage ?? 0;
-    const isCritical = evt.isCritical ?? evt.IsCritical ?? false;
-    const vfxType = evt.vfxType ?? evt.VfxType;
-    const vfxColor = evt.vfxColor ?? evt.VfxColor ?? '#ff6600';
-    const doScreenShake = evt.screenShake ?? evt.ScreenShake ?? false;
-    const visualHint = evt.visualHint ?? evt.VisualHint;
-    const abilityName = evt.abilityName ?? evt.AbilityName ?? 'Spell';
-    const effectName = evt.effectName ?? evt.EffectName;
-    const attackId = evt.attackId ?? evt.AttackId;
-
-    const color =
-      typeof vfxColor === 'string' && vfxColor.startsWith('#')
-        ? parseInt(vfxColor.replace('#', ''), 16)
-        : typeof vfxColor === 'number'
-          ? vfxColor
-          : 0xff6600;
-
-    if (doScreenShake || visualHint === 'screenShake') screenShake(this);
-
-    const atkChar = attacker === 'Attacker' ? this.characterSprites.attacker : this.characterSprites.defender;
-    const defChar = defender === 'Defender' ? this.characterSprites.defender : this.characterSprites.attacker;
-    if (!atkChar || !defChar) return;
-
-    const atkSpr = atkChar.sprite;
-    const defSpr = defChar.sprite;
-
-    if (attacker === 'Attacker') {
-      // Player spell — lunge animation
-      const startX = atkChar.originX;
-      animateTo(this, atkSpr, { x: startX + 40 }, 120, () => {
-        animateTo(this, atkSpr, { x: startX }, 200);
-      });
-
-      // Show ability name above attacker
-      showFloatingText(this, abilityName.toUpperCase(), atkSpr.x, atkSpr.y - atkSpr.height * 0.8, color);
-
-      if (defender === 'Attacker') {
-        // Self-buff/heal
-        playBuffVfx(this, atkSpr, color);
-        if (damage < 0) {
-          showFloatingText(this, `+${formatNum(Math.abs(damage))}`, atkSpr.x, atkSpr.y - atkSpr.height * 0.6, 0x44ff44);
-        }
-        if (effectName) showEffectLabel(this, effectName, atkSpr);
-      } else {
-        // Hit defender
-        playSpellVfx(this, vfxType, color, atkSpr, defSpr);
-        defSpr.tint = isCritical ? 0xff0000 : 0xff5555;
-        const id = setTimeout(
-          () => { if (!defSpr.destroyed) defSpr.tint = 0xffffff; },
-          200 / this.battleSpeed,
-        ) as unknown as number;
-        this._timeoutIds.push(id);
-        if (damage > 0) {
-          showDamageText(this, damage, isCritical, defSpr.x, defSpr.y - defSpr.height * 0.6);
-        }
-        if (effectName) showEffectLabel(this, effectName, defSpr);
-      }
-
-      if (attackId) {
-        this._playSpellSound(attackId);
-      } else {
-        this._playSound(isCritical ? 'critical' : 'attack');
-      }
-    }
-  }
-
-  private handleStatusEffect(evt: BattleEvent): void {
-    const character = evt.character ?? evt.Character ?? '';
-    const effectName = evt.effectName ?? evt.EffectName ?? '';
-    const damage = evt.damage ?? evt.Damage ?? 0;
-
-    const target = character === 'Attacker'
-      ? this.characterSprites.attacker?.sprite
-      : this.characterSprites.defender?.sprite;
-    if (!target) return;
-
-    showEffectLabel(this, effectName, target);
-    if (damage > 0) {
-      showDamageText(this, damage, false, target.x, target.y - target.height * 0.6);
-    }
-  }
-
-  private updateSpellCooldownVisuals(): void {
-    for (const btn of this.spellButtons) {
-      const cd = this.spellCooldowns[btn.attackId] ?? 0;
-      if (cd > 0) {
-        btn.cdOverlay.visible = true;
-        btn.cdText.visible = true;
-        btn.cdText.text = Math.ceil(cd).toString();
-        btn.container.cursor = 'not-allowed';
-        btn.bg.alpha = 0.5;
-      } else {
-        btn.cdOverlay.visible = false;
-        btn.cdText.visible = false;
-        btn.container.cursor = 'pointer';
-        btn.bg.alpha = 0.9;
-      }
     }
   }
 
@@ -1509,18 +1227,6 @@ export class ArenaBattleScene implements VfxOwner {
         }
       }
 
-      // Tick cooldowns (~200ms)
-      this._cooldownTickAccum += simDelta;
-      if (this._cooldownTickAccum >= 200) {
-        const elapsed = this._cooldownTickAccum / 1000;
-        this._cooldownTickAccum = 0;
-        for (const id of Object.keys(this.spellCooldowns)) {
-          this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
-        }
-        this.updateSpellCooldownVisuals();
-        this.requestTickCooldowns(elapsed);
-      }
-
       this.drawSpeedBars();
       return; // Don't process pre-computed events
     }
@@ -1612,10 +1318,6 @@ export class ArenaBattleScene implements VfxOwner {
 
     // Destroy pooled texts
     destroyTextPool(this._textPool);
-
-    // Clean up interactive mode
-    this.spellBarContainer = null;
-    this.spellButtons = [];
 
     if (this.app) {
       this.app.ticker.stop();

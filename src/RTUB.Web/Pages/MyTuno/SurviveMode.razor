@@ -73,7 +73,7 @@
                         <span class="floor-num">@currentLevel</span>
                     </div>
 
-                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0)
+                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0 || totalFidelis > 0)
                     {
                         <div class="battle-rewards-strip">
                             @if (levelsCompleted > 0)
@@ -88,10 +88,22 @@
                                     <i class="bi bi-crosshair"></i> @Fmt(totalEnemiesKilled)
                                 </span>
                             }
-                            @if (totalCoinsCollected > 0)
+                            @if (totalFidelis > 0)
                             {
-                                <span class="reward-tag reward-tag--coins">
-                                    <i class="bi bi-coin"></i> @Fmt(totalCoinsCollected)
+                                <span class="reward-tag reward-tag--fidelis">
+                                    <i class="bi bi-gem"></i> @Fmt(totalFidelis)
+                                </span>
+                            }
+                            @if (totalFitab > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink" style="color: #e040fb;">
+                                    <i class="bi bi-lightning-fill"></i> @totalFitab FITAB
+                                </span>
+                            }
+                            @if (totalLeitao > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink" style="color: #ff9800;">
+                                    <i class="bi bi-piggy-bank"></i> @totalLeitao Leitão
                                 </span>
                             }
                         </div>
@@ -107,24 +119,7 @@
                     </div>
                 </div>
 
-                @* ── Active Buff Indicators (below top bar) ── *@
-                @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
-                {
-                    <div class="battle-buffs-strip">
-                        @if (character.CigarroShieldHitsRemaining > 0)
-                        {
-                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge</span>
-                        }
-                        @if (character.HasCanhaoBuff)
-                        {
-                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>AOE</span>
-                        }
-                        @if (character.HasPenaltyBuff)
-                        {
-                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>Lifesteal</span>
-                        }
-                    </div>
-                }
+                @* ── Active Buff Indicators — removed (survive mode has no buffs) ── *@
             </div>
         }
 
@@ -137,7 +132,7 @@
                         <span>SURVIVAL ENDED</span>
                     </div>
                     <div class="defeat-stage">Level @Fmt(defeatedAtLevel)</div>
-                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0)
+                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0 || totalFidelis > 0)
                     {
                         <div class="defeat-rewards">
                             @if (levelsCompleted > 0)
@@ -151,11 +146,25 @@
                                 <i class="bi bi-crosshair text-info"></i>
                                 <span>@Fmt(totalEnemiesKilled) Inimigos</span>
                             </div>
-                            @if (totalCoinsCollected > 0)
+                            @if (totalFidelis > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-coin text-warning"></i>
-                                    <span>🪙 @Fmt(totalCoinsCollected) Moedas</span>
+                                    <i class="bi bi-gem text-primary"></i>
+                                    <span>@Fmt(totalFidelis) Fidelis</span>
+                                </div>
+                            }
+                            @if (totalLeitao > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-piggy-bank text-warning"></i>
+                                    <span>@Fmt(totalLeitao) Leitão</span>
+                                </div>
+                            }
+                            @if (totalFitab > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-ticket-perforated text-info"></i>
+                                    <span>@Fmt(totalFitab) FITAB</span>
                                 </div>
                             }
                         </div>
@@ -212,10 +221,12 @@
     private int currentLevel = 1;
     private string currentBiomeName = "Forest";
 
-    // Run totals (stats only — no rewards in survive mode)
+    // Run totals (rewards accumulated across the run)
     private int levelsCompleted = 0;
     private int totalEnemiesKilled = 0;
-    private int totalCoinsCollected = 0;
+    private decimal totalFidelis = 0;
+    private int totalLeitao = 0;
+    private int totalFitab = 0;
     private SurviveModeLevelResult? lastResult;
 
     // Defeat summary
@@ -381,7 +392,7 @@
     }
 
     [JSInvokable]
-    public async Task OnLevelComplete(int enemiesKilled, double survivalTime, int coinsCollected = 0)
+    public async Task OnLevelComplete(int enemiesKilled, double survivalTime, int coinsCollected = 0, int bossesKilled = 0)
     {
         if (_disposed || character == null) return;
 
@@ -393,12 +404,14 @@
 
         try
         {
-            var result = await SurviveModeService.CompleteLevelAsync(character.Id, enemiesKilled, survivalTime);
+            var result = await SurviveModeService.CompleteLevelAsync(character.Id, enemiesKilled, survivalTime, bossesKilled);
 
             lastResult = result;
             levelsCompleted++;
             totalEnemiesKilled += enemiesKilled;
-            totalCoinsCollected += coinsCollected;
+            totalFidelis += result.FidelisReward;
+            totalLeitao += result.LeitaoDropped;
+            totalFitab += result.FitabDropped;
 
             // Advance to next level (increment locally — don't re-read from DB
             // as progress.CurrentLevel may differ if StartLevelParam was used)
@@ -424,7 +437,7 @@
     }
 
     [JSInvokable]
-    public async Task OnPlayerDeath(int enemiesKilled, double survivalTime, int coinsCollected = 0)
+    public async Task OnPlayerDeath(int enemiesKilled, double survivalTime, int coinsCollected = 0, int bossesKilled = 0)
     {
         if (_disposed || character == null) return;
 
@@ -436,12 +449,24 @@
 
         try
         {
-            var result = await SurviveModeService.EndRunAsync(character.Id, enemiesKilled, survivalTime);
+            var result = await SurviveModeService.EndRunAsync(character.Id, enemiesKilled, survivalTime, bossesKilled);
 
             lastResult = result;
             totalEnemiesKilled += enemiesKilled;
-            totalCoinsCollected += coinsCollected;
+            totalFidelis += result.FidelisReward;
+            totalLeitao += result.LeitaoDropped;
+            totalFitab += result.FitabDropped;
             defeatedAtLevel = currentLevel;
+
+            // Apply accumulated rewards from entire run
+            await SurviveModeService.ApplyRunRewardsAsync(
+                character.Id,
+                xp: 0,
+                fidelis: totalFidelis,
+                finos: totalLeitao,    // leitão
+                canecas: totalFitab,   // fitab
+                cigarros: 0, canhaos: 0, shots: 0,
+                cancellationToken: default);
 
             // Destroy JS game
             try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
@@ -553,7 +578,9 @@
     {
         levelsCompleted = 0;
         totalEnemiesKilled = 0;
-        totalCoinsCollected = 0;
+        totalFidelis = 0;
+        totalLeitao = 0;
+        totalFitab = 0;
         lastResult = null;
     }
 

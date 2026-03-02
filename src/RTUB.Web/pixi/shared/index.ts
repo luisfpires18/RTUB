@@ -13,7 +13,6 @@ export {
 export {
   getSharedAudioContext,
   playSound,
-  playSpellSound,
   loadBackgroundMusic,
   stopMusic,
   setMusicVolume,
@@ -38,7 +37,6 @@ export {
   showDamageText,
   showEffectLabel,
   screenShake,
-  playSpellVfx,
   playBuffVfx,
   type VfxOwner,
 } from './vfx';

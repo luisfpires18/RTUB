@@ -102,4 +102,9 @@ public class SurviveModeLevelResult
     /// FITAB tokens dropped.
     /// </summary>
     public int FitabDropped { get; set; }
+
+    /// <summary>
+    /// Number of leitões dropped.
+    /// </summary>
+    public int LeitaoDropped { get; set; }
 }

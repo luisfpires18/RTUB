@@ -3,12 +3,10 @@
  */
 import type { BattleEvent } from './battle-events';
 
-/** Returned by OnPlayerAutoAttack, OnPlayerSpell, OnEnemyAttack. */
+/** Returned by OnPlayerAutoAttack, OnEnemyAttack. */
 export interface CombatActionResult {
   events?: BattleEvent[];
   Events?: BattleEvent[];
-  spellCooldowns?: Record<string, number>;
-  SpellCooldowns?: Record<string, number>;
   battleOver?: boolean;
   BattleOver?: boolean;
   outcome?: CombatOutcome;
@@ -46,5 +44,5 @@ export interface ConsumableResult {
   Message?: string;
 }
 
-/** Returned by OnTickCooldowns / OnTickConsumableCooldowns. */
+/** Returned by OnTickConsumableCooldowns. */
 export type CooldownMap = Record<string, number>;

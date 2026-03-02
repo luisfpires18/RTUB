@@ -495,10 +495,18 @@ public class BossModeService : IBossModeService
         var bossMult = bossConfig.BossStatMultiplier;
         var stageMult = _biomeService.GetStageProgressionMultiplier(equivalentStage);
 
-        // Use tier boss stats, further amplified by boss mode multiplier + per-stage growth
-        var hp = Math.Max(1, (long)(tier.BossHP * bossMult * stageMult));
-        var power = Math.Max(1, (long)(tier.BossPower * bossMult * stageMult));
-        var defense = Math.Max(1, (long)(tier.BossDefense * bossMult * stageMult));
+        // Deep boss quadratic growth: beyond threshold, stats accelerate
+        var deepMult = 1.0;
+        if (bossStage > bossConfig.DeepBossThreshold)
+        {
+            var over = bossStage - bossConfig.DeepBossThreshold;
+            deepMult = 1.0 + bossConfig.DeepBossGrowthRate * over * over;
+        }
+
+        // Use tier boss stats, further amplified by boss mode multiplier + per-stage growth + deep scaling
+        var hp = Math.Max(1, (long)(tier.BossHP * bossMult * stageMult * deepMult));
+        var power = Math.Max(1, (long)(tier.BossPower * bossMult * stageMult * deepMult));
+        var defense = Math.Max(1, (long)(tier.BossDefense * bossMult * stageMult * deepMult));
         var speed = (long)tier.Speed;
         var critChance = Math.Min(tier.CritChance, _config.Combat.CriticalChanceCap);
 

@@ -149,8 +149,6 @@ public class Program
                 baseCastTime: myTunoScaling.Gathering.CastTimeSeconds,
                 castTimeReductionPerUpgrade: myTunoScaling.Improvements.CastSpeed.FlatBonus,
                 minCastTime: myTunoScaling.Improvements.MinCastTime,
-                heavyAttackBonusPerUpgrade: myTunoScaling.Powers.HeavyAttack.FlatBonus,
-                specialAttackBonusPerUpgrade: myTunoScaling.Powers.SpecialAttack.FlatBonus,
                 finoHealPercent: myTunoScaling.Consumables.FinoHealPercent,
                 finoCooldownSeconds: myTunoScaling.Consumables.FinoCooldownSeconds,
                 canecaHealPercent: myTunoScaling.Consumables.CanecaHealPercent,

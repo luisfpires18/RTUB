@@ -199,14 +199,6 @@ public class Character : BaseEntity
     /// <summary>Number of Penalty timer + lifesteal upgrades purchased (3 max)</summary>
     public int PenaltyTimerUpgrades { get; set; }
 
-    // ── Powers (combat power enhancements) ──
-
-    /// <summary>Number of heavy attack damage upgrades purchased</summary>
-    public int HeavyAttackUpgrades { get; set; }
-
-    /// <summary>Number of special attack damage upgrades purchased</summary>
-    public int SpecialAttackUpgrades { get; set; }
-
     // ── Custom Skin ──
 
     /// <summary>
@@ -504,22 +496,6 @@ public class Character : BaseEntity
     public double EffectivePenaltyLifesteal => Math.Min(
         MyTunoScaling.MaxPenaltyLifesteal,
         MyTunoScaling.PenaltyLifestealPercent + PenaltyTimerUpgrades * MyTunoScaling.PenaltyLifestealPerUpgrade);
-
-    // ── Powers computed properties ──
-
-    /// <summary>
-    /// Heavy attack damage bonus multiplier (additive on top of base 2.0x).
-    /// Each upgrade adds HeavyAttackBonusPerUpgrade.
-    /// </summary>
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double HeavyAttackDamageBonus => HeavyAttackUpgrades * MyTunoScaling.HeavyAttackBonusPerUpgrade;
-
-    /// <summary>
-    /// Special attack damage bonus multiplier (additive on top of base).
-    /// Each upgrade adds SpecialAttackBonusPerUpgrade.
-    /// </summary>
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double SpecialAttackDamageBonus => SpecialAttackUpgrades * MyTunoScaling.SpecialAttackBonusPerUpgrade;
 
     /// <summary>
     /// Computes the level-based stat multiplier using linear growth.
@@ -1029,24 +1005,6 @@ public class Character : BaseEntity
     public double EffectiveCastTime => Math.Max(
         MyTunoScaling.MinCastTime,
         MyTunoScaling.BaseCastTime - CastSpeedUpgrades * MyTunoScaling.CastTimeReductionPerUpgrade);
-
-    // ── Powers upgrade methods ──
-
-    /// <summary>
-    /// Upgrades heavy attack damage multiplier
-    /// </summary>
-    public void UpgradeHeavyAttack()
-    {
-        HeavyAttackUpgrades++;
-    }
-
-    /// <summary>
-    /// Upgrades special attack damage multiplier
-    /// </summary>
-    public void UpgradeSpecialAttack()
-    {
-        SpecialAttackUpgrades++;
-    }
 
     // ── Consumable upgrade methods ──
 
