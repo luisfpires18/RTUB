@@ -77,7 +77,13 @@ public class LabelServiceTests
         var label = Label.Create("about-us", "About Us", "Content");
         var labelsList = new List<Label> { label };
         var mockQueryable = labelsList.BuildMockDbSet().Object;
-        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockLabelRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Label>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetLabelByReferenceAsync("about-us");
@@ -93,7 +99,13 @@ public class LabelServiceTests
         // Arrange
         var labelsList = new List<Label>();
         var mockQueryable = labelsList.BuildMockDbSet().Object;
-        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockLabelRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Label>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetLabelByReferenceAsync("non-existent");
@@ -110,7 +122,13 @@ public class LabelServiceTests
         label.Deactivate();
         var labelsList = new List<Label> { label };
         var mockQueryable = labelsList.BuildMockDbSet().Object;
-        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockLabelRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Label>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetLabelByReferenceAsync("inactive-label");
@@ -126,7 +144,13 @@ public class LabelServiceTests
         var label = Label.Create("active-label", "Active", "Content");
         var labelsList = new List<Label> { label };
         var mockQueryable = labelsList.BuildMockDbSet().Object;
-        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockLabelRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Label>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetLabelByReferenceAsync("active-label");
@@ -165,7 +189,13 @@ public class LabelServiceTests
         inactive.Deactivate();
         var labelsList = new List<Label> { active1, active2, inactive };
         var mockQueryable = labelsList.BuildMockDbSet().Object;
-        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockLabelRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Label>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetActiveLabelsAsync();

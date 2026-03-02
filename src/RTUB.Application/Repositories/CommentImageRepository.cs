@@ -16,7 +16,8 @@ public class CommentImageRepository : Repository<CommentImage>, ICommentImageRep
 
     public async Task<IEnumerable<CommentImage>> GetByCommentIdAsync(int commentId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<CommentImage>()
             .AsNoTracking()
             .Where(ci => ci.CommentId == commentId)
             .OrderBy(ci => ci.SortOrder)

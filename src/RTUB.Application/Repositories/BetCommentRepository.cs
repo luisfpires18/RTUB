@@ -16,7 +16,9 @@ public class BetCommentRepository : Repository<BetComment>, IBetCommentRepositor
 
     public async Task<IEnumerable<BetComment>> GetCommentsForBetAsync(int betId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<BetComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .Where(c => c.BetId == betId && c.DeletedAt == null)
             .OrderByDescending(c => c.CreatedAt)
@@ -25,7 +27,9 @@ public class BetCommentRepository : Repository<BetComment>, IBetCommentRepositor
 
     public async Task<BetComment?> GetByIdWithDetailsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<BetComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
@@ -38,7 +42,9 @@ public class BetCommentRepository : Repository<BetComment>, IBetCommentRepositor
             return new Dictionary<int, int>();
         }
 
-        var counts = await _dbSet
+        using var context = CreateContext();
+        var counts = await context.Set<BetComment>()
+            .AsNoTracking()
             .Where(c => betIdsList.Contains(c.BetId) && c.DeletedAt == null)
             .GroupBy(c => c.BetId)
             .Select(g => new { BetId = g.Key, Count = g.Count() })

@@ -365,7 +365,7 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Act & Assert
         var act = () => new UserRoleQueryService(null!);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("context");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("contextFactory");
     }
 
     public void Dispose()

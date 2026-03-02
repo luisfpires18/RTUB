@@ -95,12 +95,11 @@ public class MeetingParticipationService : IMeetingParticipationService
             return new Dictionary<int, int>();
 
         // Use a single query to get all participation counts
-        var counts = await _participationRepository.Query()
-            .AsNoTracking()
+        var counts = await _participationRepository.QueryAsync(q => q
             .Where(p => meetingIdList.Contains(p.MeetingId) && p.WillAttend)
             .GroupBy(p => p.MeetingId)
             .Select(g => new { MeetingId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.MeetingId, x => x.Count);
+            .ToDictionaryAsync(x => x.MeetingId, x => x.Count));
 
         return counts;
     }

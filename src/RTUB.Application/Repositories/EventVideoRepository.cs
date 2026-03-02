@@ -16,7 +16,8 @@ public class EventVideoRepository : Repository<EventVideo>, IEventVideoRepositor
 
     public async Task<IEnumerable<EventVideo>> GetByEventIdAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<EventVideo>()
             .AsNoTracking()
             .Include(ev => ev.CreatedByUser)
             .Where(ev => ev.EventId == eventId)
@@ -27,7 +28,9 @@ public class EventVideoRepository : Repository<EventVideo>, IEventVideoRepositor
 
     public async Task<int> GetCountByEventIdAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<EventVideo>()
+            .AsNoTracking()
             .Where(ev => ev.EventId == eventId)
             .CountAsync();
     }

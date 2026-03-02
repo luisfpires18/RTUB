@@ -287,10 +287,10 @@ public class UserProfileService : IUserProfileService
             // ===================================================================
 
             // LeaderboardCommentLikes by UserId (likes on other users' comments)
-            var commentsWithUserLikes = await _leaderboardCommentRepository.Query()
+            var commentsWithUserLikes = await _leaderboardCommentRepository.QueryAsync(q => q
                 .Include(c => c.Likes)
                 .Where(c => c.Likes.Any(l => l.UserId == userId))
-                .ToListAsync();
+                .ToListAsync());
             foreach (var comment in commentsWithUserLikes)
             {
                 var likeToRemove = comment.Likes.FirstOrDefault(l => l.UserId == userId);
@@ -299,24 +299,24 @@ public class UserProfileService : IUserProfileService
             }
 
             // LeaderboardComments where AuthorId or TargetUserId = userId
-            var leaderboardComments = await _leaderboardCommentRepository.Query()
+            var leaderboardComments = await _leaderboardCommentRepository.QueryAsync(q => q
                 .Include(c => c.Likes)
                 .Where(c => c.AuthorId == userId || c.TargetUserId == userId)
-                .ToListAsync();
+                .ToListAsync());
             foreach (var comment in leaderboardComments)
                 await _leaderboardCommentRepository.DeleteAsync(comment);
 
             // Comments where AuthorId = userId
-            var comments = await _commentRepository.Query()
+            var comments = await _commentRepository.QueryAsync(q => q
                 .Where(c => c.AuthorId == userId)
-                .ToListAsync();
+                .ToListAsync());
             foreach (var comment in comments)
                 await _commentRepository.DeleteAsync(comment);
 
             // Posts where AuthorId = userId
-            var posts = await _postRepository.Query()
+            var posts = await _postRepository.QueryAsync(q => q
                 .Where(p => p.AuthorId == userId)
-                .ToListAsync();
+                .ToListAsync());
             foreach (var post in posts)
                 await _postRepository.DeleteAsync(post);
 
@@ -378,11 +378,11 @@ public class UserProfileService : IUserProfileService
             // ===================================================================
 
             // Meeting - set all user references to null
-            var meetings = await _meetingRepository.Query()
+            var meetings = await _meetingRepository.QueryAsync(q => q
                 .Where(m => m.OrganizerUserId == userId
                          || m.TunoRepresentativeUserId == userId
                          || m.DelegatedAtaWriterMemberId == userId)
-                .ToListAsync();
+                .ToListAsync());
             foreach (var meeting in meetings)
             {
                 if (meeting.OrganizerUserId == userId) meeting.OrganizerUserId = null;
@@ -392,9 +392,9 @@ public class UserProfileService : IUserProfileService
             }
 
             // MeetingRequests by AuthorUserId
-            var meetingRequests = await _meetingRequestRepository.Query()
+            var meetingRequests = await _meetingRequestRepository.QueryAsync(q => q
                 .Where(mr => mr.AuthorUserId == userId)
-                .ToListAsync();
+                .ToListAsync());
             foreach (var meetingRequest in meetingRequests)
                 await _meetingRequestRepository.DeleteAsync(meetingRequest);
 

@@ -62,7 +62,7 @@ public class PushNotificationService : IPushNotificationService
         }
     }
 
-    public async Task SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null)
+    public async Task<bool> SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null)
     {
         if (string.IsNullOrWhiteSpace(subscription.Endpoint))
         {
@@ -91,6 +91,7 @@ public class PushNotificationService : IPushNotificationService
             existingSubscription.UpdatedAt = DateTime.UtcNow;
 
             await _subscriptionRepository.UpdateAsync(existingSubscription);
+            return false;
         }
         else
         {
@@ -106,6 +107,7 @@ public class PushNotificationService : IPushNotificationService
             };
 
             await _subscriptionRepository.AddAsync(newSubscription);
+            return true;
         }
     }
 

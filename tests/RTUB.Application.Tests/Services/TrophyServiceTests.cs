@@ -49,7 +49,13 @@ public class TrophyServiceTests
         var trophy = Trophy.Create("Melhor Apresentação", 1);
         var trophies = new List<Trophy> { trophy };
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetByIdAsync(trophy.Id);
@@ -66,7 +72,13 @@ public class TrophyServiceTests
         // Arrange
         var trophies = new List<Trophy>();
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetByIdAsync(999);
@@ -86,7 +98,13 @@ public class TrophyServiceTests
             Trophy.Create("Melhor Apresentação", 1)
         };
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetAllAsync();
@@ -101,7 +119,13 @@ public class TrophyServiceTests
         // Arrange
         var trophies = new List<Trophy>();
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetAllAsync();
@@ -120,7 +144,13 @@ public class TrophyServiceTests
             Trophy.Create("Trophy 2", 1)
         };
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetByEventIdAsync(1);
@@ -136,7 +166,13 @@ public class TrophyServiceTests
         // Arrange
         var trophies = new List<Trophy>();
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _trophyService.GetByEventIdAsync(1);
@@ -201,7 +237,13 @@ public class TrophyServiceTests
 
         var trophies = new List<Trophy> { trophy3, trophy2, trophy1 }; // Simulating descending order
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = (await _trophyService.GetAllAsync()).ToList();
@@ -221,7 +263,13 @@ public class TrophyServiceTests
             Trophy.Create("C Trophy", 1)
         };
         var mockQueryable = trophies.BuildMockDbSet().Object;
-        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockTrophyRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Trophy>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = (await _trophyService.GetByEventIdAsync(1)).ToList();

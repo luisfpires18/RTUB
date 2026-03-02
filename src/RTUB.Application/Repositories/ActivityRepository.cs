@@ -16,14 +16,18 @@ public class ActivityRepository : Repository<Activity>, IActivityRepository
 
     public async Task<Activity?> GetWithReportAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Activity>()
+            .AsNoTracking()
             .Include(a => a.Report)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
     public async Task<Activity?> GetWithTransactionsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Activity>()
+            .AsNoTracking()
             .Include(a => a.Transactions)
             .FirstOrDefaultAsync(a => a.Id == id);
     }

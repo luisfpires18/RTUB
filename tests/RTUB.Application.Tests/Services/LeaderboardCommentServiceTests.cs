@@ -119,7 +119,13 @@ public class LeaderboardCommentServiceTests
     {
         // Arrange
         var mockQueryable = new List<LeaderboardComment>().BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _userManagerMock.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
 
@@ -147,7 +153,13 @@ public class LeaderboardCommentServiceTests
         var comments = new List<LeaderboardComment> { comment2, comment1 }; // Already ordered desc
         var mockQueryable = comments.BuildMockDbSet().Object;
 
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _userManagerMock.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
 
@@ -174,7 +186,13 @@ public class LeaderboardCommentServiceTests
         var comments = new List<LeaderboardComment> { comment1 }; // Repository should not return deleted
         var mockQueryable = comments.BuildMockDbSet().Object;
 
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _userManagerMock.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
 
@@ -191,40 +209,38 @@ public class LeaderboardCommentServiceTests
     {
         // Arrange
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
-        comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID
-        comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike>());
+        comment.GetType().GetProperty("Id")!.SetValue(comment, 1);
 
-        var comments = new List<LeaderboardComment> { comment };
-        var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.ToggleLikeAsync(1, _testUser.Id))
+            .ReturnsAsync((bool?)true);
+
+        _mockCommentRepository
+            .Setup(r => r.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(comment);
 
         // Act
         var result = await _service.ToggleLikeAsync(comment.Id, _testUser.Id);
 
         // Assert
         result.Should().BeTrue(); // Liked
-        _mockCommentRepository.Verify(r => r.UpdateAsync(It.IsAny<LeaderboardComment>()), Times.Once);
+        _mockCommentRepository.Verify(r => r.ToggleLikeAsync(1, _testUser.Id), Times.Once);
     }
 
     [Fact]
     public async Task ToggleLikeAsync_WhenLikeExists_RemovesLike()
     {
         // Arrange
-        var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
-        comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID
-        var like = LeaderboardCommentLike.Create(comment.Id, _testUser.Id);
-        comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike> { like });
-
-        var comments = new List<LeaderboardComment> { comment };
-        var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.ToggleLikeAsync(1, _testUser.Id))
+            .ReturnsAsync((bool?)false);
 
         // Act
-        var result = await _service.ToggleLikeAsync(comment.Id, _testUser.Id);
+        var result = await _service.ToggleLikeAsync(1, _testUser.Id);
 
         // Assert
         result.Should().BeFalse(); // Unliked
-        _mockCommentRepository.Verify(r => r.UpdateAsync(It.IsAny<LeaderboardComment>()), Times.Once);
+        _mockCommentRepository.Verify(r => r.ToggleLikeAsync(1, _testUser.Id), Times.Once);
     }
 
     [Fact]
@@ -244,7 +260,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _userManagerMock.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
 
@@ -271,7 +293,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _userManagerMock.Setup(um => um.FindByIdAsync(_testUser.Id))
             .ReturnsAsync(_testUser);
         _userManagerMock.Setup(um => um.GetRolesAsync(_testUser))
@@ -294,7 +322,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         await _service.DeleteCommentAsync(comment.Id, _testAuthor.Id, false);
@@ -314,7 +348,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         await _service.DeleteCommentAsync(comment.Id, _adminUser.Id, true);
@@ -333,7 +373,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var act = async () => await _service.DeleteCommentAsync(comment.Id, "otherUser", false);
@@ -354,7 +400,13 @@ public class LeaderboardCommentServiceTests
 
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
-        _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockCommentRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<LeaderboardComment>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         await _service.DeleteCommentAsync(comment.Id, _testAuthor.Id, false);

@@ -83,12 +83,14 @@ public interface IRepository<T> where T : class
     Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
 
     /// <summary>
-    /// Gets a queryable for complex queries
-    /// Allows services to build custom queries while still using repository
-    /// Can be combined with QueryableExtensions (Paginate, WhereIf, etc.)
+    /// Executes a query with a properly scoped and disposed DbContext.
+    /// The <paramref name="queryFunc"/> receives an <see cref="IQueryable{T}"/> (with AsNoTracking)
+    /// and must materialize it (e.g., ToListAsync, FirstOrDefaultAsync, CountAsync).
     /// </summary>
-    /// <returns>IQueryable for the entity type</returns>
-    IQueryable<T> Query();
+    /// <typeparam name="TResult">The materialized result type</typeparam>
+    /// <param name="queryFunc">Function that builds and executes the query</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<TResult> QueryAsync<TResult>(Func<IQueryable<T>, Task<TResult>> queryFunc, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves all pending changes to the database

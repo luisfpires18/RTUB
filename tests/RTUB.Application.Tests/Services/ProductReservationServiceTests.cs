@@ -28,7 +28,13 @@ public class ProductReservationServiceTests
         var reservation = ProductReservation.Create(1, "user123", "TestUser", true, "M", "Display Name");
         var emptyList = new List<ProductReservation>();
         var mockQueryable = emptyList.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<ProductReservation>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<ProductReservation>()))
             .ReturnsAsync(reservation);
 
@@ -50,7 +56,13 @@ public class ProductReservationServiceTests
         var existingReservation = ProductReservation.Create(1, "user123", "TestUser", false);
         var existingList = new List<ProductReservation> { existingReservation };
         var mockQueryable = existingList.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<ProductReservation>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         var reservation = ProductReservation.Create(1, "user123", "TestUser", false);
 
@@ -135,8 +147,14 @@ public class ProductReservationServiceTests
     {
         // Arrange
         var reservation = ProductReservation.Create(1, "user1", "User1", false, null, "Custom Name");
-        _mockRepository.Setup(r => r.Query())
-            .Returns(new List<ProductReservation> { reservation }.BuildMockDbSet().Object);
+        var mockQueryable = new List<ProductReservation> { reservation }.BuildMockDbSet().Object;
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<ProductReservation>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetByProductAndUserAsync(1, "user1");

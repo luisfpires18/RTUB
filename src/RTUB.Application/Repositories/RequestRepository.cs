@@ -17,7 +17,8 @@ public class RequestRepository : Repository<Request>, IRequestRepository
 
     public async Task<IEnumerable<Request>> GetByStatusAsync(RequestStatus status)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Request>()
             .AsNoTracking()
             .Where(r => r.Status == status)
             .OrderBy(r => r.PreferredDate)
@@ -26,7 +27,9 @@ public class RequestRepository : Repository<Request>, IRequestRepository
 
     public async Task<int> GetPendingCountAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Request>()
+            .AsNoTracking()
             .CountAsync(r => r.Status == RequestStatus.Pending);
     }
 }

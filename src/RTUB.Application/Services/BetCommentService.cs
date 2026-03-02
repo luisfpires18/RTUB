@@ -28,12 +28,11 @@ public class BetCommentService : IBetCommentService
     /// </summary>
     public async Task<List<BetCommentDto>> GetCommentsForBetAsync(int betId, string? currentUserId, bool isAdmin = false)
     {
-        var comments = await _betCommentRepository.Query()
-            .AsNoTracking()
+        var comments = await _betCommentRepository.QueryAsync(q => q
             .Include(c => c.Author)
             .Where(c => c.BetId == betId && c.DeletedAt == null)
             .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
+            .ToListAsync());
 
         return comments.Select(c => new BetCommentDto
         {
@@ -56,10 +55,9 @@ public class BetCommentService : IBetCommentService
     /// </summary>
     public async Task<int> GetCommentCountForBetAsync(int betId)
     {
-        return await _betCommentRepository.Query()
-            .AsNoTracking()
+        return await _betCommentRepository.QueryAsync(q => q
             .Where(c => c.BetId == betId && c.DeletedAt == null)
-            .CountAsync();
+            .CountAsync());
     }
 
     /// <summary>
@@ -104,8 +102,8 @@ public class BetCommentService : IBetCommentService
     /// </summary>
     public async Task DeleteCommentAsync(int commentId, string userId, bool isAdmin)
     {
-        var comment = await _betCommentRepository.Query()
-            .FirstOrDefaultAsync(c => c.Id == commentId);
+        var comment = await _betCommentRepository.QueryAsync(q => q
+            .FirstOrDefaultAsync(c => c.Id == commentId));
 
         if (comment == null)
         {

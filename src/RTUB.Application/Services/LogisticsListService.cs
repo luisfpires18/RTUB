@@ -43,10 +43,9 @@ public class LogisticsListService : ILogisticsListService
     /// <returns>Collection of all logistics lists</returns>
     public async Task<IEnumerable<LogisticsList>> GetAllListsAsync()
     {
-        return await _listRepository.Query()
-            .AsNoTracking()
+        return await _listRepository.QueryAsync(q => q
             .OrderBy(l => l.Position)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -56,14 +55,13 @@ public class LogisticsListService : ILogisticsListService
     /// <returns>Collection of logistics lists with related data</returns>
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsAsync()
     {
-        return await _listRepository.Query()
-            .AsNoTracking()
+        return await _listRepository.QueryAsync(q => q
             .Include(l => l.Cards.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Event)
             .Include(l => l.Cards.OrderBy(c => c.Position))
                 .ThenInclude(c => c.AssignedToUser)
             .OrderBy(l => l.Position)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -84,15 +82,14 @@ public class LogisticsListService : ILogisticsListService
     /// <returns>Collection of logistics lists with related data for the specified board</returns>
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsByBoardIdAsync(int boardId)
     {
-        return await _listRepository.Query()
-            .AsNoTracking()
+        return await _listRepository.QueryAsync(q => q
             .Include(l => l.Cards.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Event)
             .Include(l => l.Cards.OrderBy(c => c.Position))
                 .ThenInclude(c => c.AssignedToUser)
             .Where(l => l.BoardId == boardId)
             .OrderBy(l => l.Position)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -143,9 +140,9 @@ public class LogisticsListService : ILogisticsListService
     /// <exception cref="InvalidOperationException">Thrown when the list is not found</exception>
     public async Task DeleteListAsync(int id)
     {
-        var list = await _listRepository.Query()
+        var list = await _listRepository.QueryAsync(q => q
             .Include(l => l.Cards)
-            .FirstOrDefaultAsync(l => l.Id == id);
+            .FirstOrDefaultAsync(l => l.Id == id));
 
         if (list == null)
             throw new InvalidOperationException($"Lista com ID {id} não encontrada");

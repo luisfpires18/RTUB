@@ -16,7 +16,9 @@ public class LeaderboardCommentRepository : Repository<LeaderboardComment>, ILea
 
     public async Task<IEnumerable<LeaderboardComment>> GetCommentsForUserAsync(string targetUserId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LeaderboardComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .Include(c => c.Likes)
                 .ThenInclude(l => l.User)
@@ -27,7 +29,9 @@ public class LeaderboardCommentRepository : Repository<LeaderboardComment>, ILea
 
     public async Task<LeaderboardComment?> GetByIdWithDetailsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LeaderboardComment>()
+            .AsNoTracking()
             .Include(c => c.Author)
             .Include(c => c.Likes)
                 .ThenInclude(l => l.User)

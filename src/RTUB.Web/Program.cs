@@ -256,7 +256,6 @@ public class Program
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        var loginMade = false;
         // Configure cookie authentication to redirect to /login instead of /Account/Login
         services.ConfigureApplicationCookie(options =>
         {
@@ -329,8 +328,6 @@ public class Program
                             userName,
                             DateTime.UtcNow,
                             UserAgentHelper.GetShortUserAgent(cookieUserAgent));
-
-                        loginMade = true;
 
                         // Cache for 1 hour to prevent duplicate logs from the same session
                         // This ensures the log appears only once per login session
@@ -547,8 +544,8 @@ public class Program
                     // Allow more unacknowledged render batches for long-running stage farming
                     // (hundreds of rapid stage transitions generate many small render diffs)
                     options.MaxBufferedUnacknowledgedRenderBatches = 20;
-                    // Keep disconnected circuits alive longer so brief network blips don't lose state
-                    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10);
+                    // Keep disconnected circuits alive for brief network blips
+                    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
                 });
 
         // Configure SignalR hub options for larger messages (image uploads)
@@ -559,18 +556,6 @@ public class Program
             options.EnableDetailedErrors = builder.Environment.IsDevelopment();
             options.KeepAliveInterval = TimeSpan.FromSeconds(15);
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
-        });
-
-        // Configure circuit options for better stability
-        services.AddServerSideBlazor(options =>
-        {
-            options.DetailedErrors = builder.Environment.IsDevelopment();
-        });
-
-        // Configure circuit options to ensure absolute path for SignalR hub
-        services.Configure<Microsoft.AspNetCore.Components.Server.CircuitOptions>(options =>
-        {
-            options.DetailedErrors = builder.Environment.IsDevelopment();
         });
 
         services.AddCascadingAuthenticationState();
@@ -865,12 +850,9 @@ public class Program
             var loginLogCacheKey = $"login-success:{user.Id}";
             if (!cache.TryGetValue(loginLogCacheKey, out _))
             {
-                if (!loginMade)
-                {
-                    logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                        user.UserName,
-                        DateTime.UtcNow);
-                }
+                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                    user.UserName,
+                    DateTime.UtcNow);
 
                 // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
                 cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions

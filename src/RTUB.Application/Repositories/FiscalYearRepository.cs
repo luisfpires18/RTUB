@@ -16,14 +16,16 @@ public class FiscalYearRepository : Repository<FiscalYear>, IFiscalYearRepositor
 
     public async Task<FiscalYear?> GetByStartYearAsync(int startYear)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<FiscalYear>()
             .AsNoTracking()
             .FirstOrDefaultAsync(fy => fy.StartYear == startYear);
     }
 
     public async Task<IEnumerable<FiscalYear>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<FiscalYear>()
             .AsNoTracking()
             .OrderByDescending(fy => fy.StartYear)
             .ToListAsync();

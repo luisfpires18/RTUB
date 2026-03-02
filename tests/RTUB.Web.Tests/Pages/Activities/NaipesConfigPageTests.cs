@@ -72,8 +72,8 @@ public class NaipesConfigPageTests : PageTestBase
         var cut = RenderComponent<NaipesConfig>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
-        // Assert
-        cut.Markup.Should().Contain("Voltar aos Naipes", "page should display back button");
+        // Assert - desktop back link targets /naipes, mobile nav shows "Voltar"
+        cut.Markup.Should().Contain("href=\"/naipes\"", "page should display back link to /naipes");
     }
 
     [Fact]

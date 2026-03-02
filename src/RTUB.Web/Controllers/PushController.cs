@@ -87,9 +87,16 @@ public class PushController : ControllerBase
         {
             var userAgent = Request.Headers.UserAgent.ToString();
 
-            await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
+            var isNew = await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
 
-            _logger.LogInformation("User {userName} subscribed to push notifications", userName);
+            if (isNew)
+            {
+                _logger.LogInformation("User {userName} subscribed to push notifications", userName);
+            }
+            else
+            {
+                _logger.LogDebug("User {userName} renewed push subscription", userName);
+            }
 
             return Ok(new { message = "Inscrito com sucesso para notifica��es push" });
         }

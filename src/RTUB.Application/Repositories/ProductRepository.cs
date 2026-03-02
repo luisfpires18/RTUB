@@ -16,7 +16,8 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Product>()
             .AsNoTracking()
             .OrderBy(p => p.Type)
             .ThenBy(p => p.Name)
@@ -25,7 +26,8 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetAvailableAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Product>()
             .AsNoTracking()
             .Where(p => p.IsAvailable)
             .OrderBy(p => p.Type)
@@ -35,7 +37,8 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetPublicAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Product>()
             .AsNoTracking()
             .Where(p => p.IsPublic && p.IsAvailable)
             .OrderBy(p => p.Type)
@@ -45,7 +48,8 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetByTypeAsync(string type)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Product>()
             .AsNoTracking()
             .Where(p => p.Type == type)
             .OrderBy(p => p.Name)

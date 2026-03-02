@@ -369,6 +369,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _auditLogService.DeleteAsync(logId);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var finalCount = await _context.AuditLogs.CountAsync();
         finalCount.Should().Be(4);
 

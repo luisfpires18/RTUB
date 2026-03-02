@@ -146,11 +146,10 @@ public class EnrollmentService : IEnrollmentService
     {
         try
         {
-            var detailedEnrollment = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var detailedEnrollment = await _enrollmentRepository.QueryAsync(q => q
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken), cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -173,15 +172,14 @@ public class EnrollmentService : IEnrollmentService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
                             && e.WillAttend
                             && e.UserId != detailedEnrollment.UserId
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken), cancellationToken);
 
             if (recipientIds.Count == 0)
             {
@@ -200,11 +198,10 @@ public class EnrollmentService : IEnrollmentService
     {
         try
         {
-            var detailedEnrollment = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var detailedEnrollment = await _enrollmentRepository.QueryAsync(q => q
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken), cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -227,15 +224,14 @@ public class EnrollmentService : IEnrollmentService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
                             && e.WillAttend
                             && e.UserId != detailedEnrollment.UserId
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken), cancellationToken);
 
             if (recipientIds.Count == 0)
             {
@@ -254,11 +250,10 @@ public class EnrollmentService : IEnrollmentService
     {
         try
         {
-            var detailedEnrollment = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var detailedEnrollment = await _enrollmentRepository.QueryAsync(q => q
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken), cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -281,15 +276,14 @@ public class EnrollmentService : IEnrollmentService
                 userDisplayName,
                 baseUrl);
 
-            var recipientIds = await _enrollmentRepository.Query()
-                .AsNoTracking()
+            var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
                             && e.WillAttend
                             && e.UserId != detailedEnrollment.UserId
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken), cancellationToken);
 
             if (recipientIds.Count == 0)
             {

@@ -342,9 +342,9 @@ public class ConversationRepositoryTests : IClassFixture<DatabaseFixture>, IDisp
 
         // Act
         await _repository.ArchiveConversationAsync(conversation.Id);
-        await _context.SaveChangesAsync();
 
-        // Assert
+        // Assert — clear tracker so FindAsync hits the InMemory store, not the stale tracked entity
+        _context.ChangeTracker.Clear();
         var updatedConversation = await _context.Conversations.FindAsync(conversation.Id);
         updatedConversation!.IsArchived.Should().BeTrue();
     }

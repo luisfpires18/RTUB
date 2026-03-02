@@ -61,6 +61,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         await _repository.DeleteByRehearsalIdAsync(rehearsal.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingAttendances = await _context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsal.Id)
             .ToListAsync();
@@ -85,6 +86,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         await _repository.DeleteByRehearsalIdAsync(rehearsal.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingAttendances = await _context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsal.Id)
             .ToListAsync();
@@ -110,6 +112,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         await _repository.DeleteByRehearsalIdAsync(rehearsal1.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var rehearsal1Attendances = await _context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsal1.Id)
             .ToListAsync();
@@ -155,6 +158,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         await _repository.DeleteByRehearsalIdAsync(rehearsal1.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingAttendance = await _context.RehearsalAttendances
             .FirstOrDefaultAsync(a => a.RehearsalId == rehearsal2.Id);
         remainingAttendance.Should().NotBeNull();
@@ -186,6 +190,7 @@ public class RehearsalAttendanceRepositoryTests : IClassFixture<DatabaseFixture>
         await _repository.DeleteByRehearsalIdAsync(rehearsal.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingAttendances = await _context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsal.Id)
             .ToListAsync();

@@ -17,7 +17,9 @@ public class LogisticsBoardRepository : Repository<LogisticsBoard>, ILogisticsBo
 
     public async Task<LogisticsBoard?> GetBoardWithListsAndCardsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsBoard>()
+            .AsNoTracking()
             .Include(b => b.Event)
             .Include(b => b.Lists.OrderBy(l => l.Position))
             .ThenInclude(l => l.Cards.OrderBy(c => c.Position))
@@ -34,14 +36,18 @@ public class LogisticsBoardRepository : Repository<LogisticsBoard>, ILogisticsBo
 
     public async Task<LogisticsBoard?> GetBoardByEventIdAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsBoard>()
+            .AsNoTracking()
             .Include(b => b.Event)
             .FirstOrDefaultAsync(b => b.EventId == eventId);
     }
 
     public async Task<IEnumerable<LogisticsBoard>> SearchBoardsAsync(string? searchTerm, int page, int pageSize)
     {
-        return await Query()
+        using var context = CreateContext();
+        return await context.Set<LogisticsBoard>()
+            .AsNoTracking()
             .Include(b => b.Event)
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
                 b => b.Name.Contains(searchTerm!) ||

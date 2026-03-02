@@ -16,13 +16,17 @@ public class ConversationUserSettingsRepository : Repository<ConversationUserSet
 
     public async Task<ConversationUserSettings?> GetByUserAndConversationAsync(string userId, int conversationId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ConversationUserSettings>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId && s.ConversationId == conversationId);
     }
 
     public async Task<IEnumerable<ConversationUserSettings>> GetByUserAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<ConversationUserSettings>()
+            .AsNoTracking()
             .Where(s => s.UserId == userId)
             .ToListAsync();
     }
@@ -66,7 +70,8 @@ public class ConversationUserSettingsRepository : Repository<ConversationUserSet
         if (userIdList.Count == 0)
             return [];
 
-        var mutedUserIds = await _dbSet
+        using var context = CreateContext();
+        var mutedUserIds = await context.Set<ConversationUserSettings>()
             .AsNoTracking()
             .Where(s => s.ConversationId == conversationId && userIdList.Contains(s.UserId) && s.IsMuted)
             .Select(s => s.UserId)

@@ -17,7 +17,8 @@ public class RoleAssignmentRepository : Repository<RoleAssignment>, IRoleAssignm
 
     public async Task<IEnumerable<RoleAssignment>> GetByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<RoleAssignment>()
             .AsNoTracking()
             .Where(ra => ra.UserId == userId)
             .ToListAsync();
@@ -25,7 +26,8 @@ public class RoleAssignmentRepository : Repository<RoleAssignment>, IRoleAssignm
 
     public async Task<IEnumerable<RoleAssignment>> GetByPositionAsync(Position position)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<RoleAssignment>()
             .AsNoTracking()
             .Where(ra => ra.Position == position)
             .ToListAsync();

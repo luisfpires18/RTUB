@@ -116,6 +116,8 @@
                     }
                 }
             }
+            catch (TaskCanceledException) { }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error checking if push prompt should be shown");

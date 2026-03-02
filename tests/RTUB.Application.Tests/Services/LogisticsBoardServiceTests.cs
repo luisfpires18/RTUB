@@ -145,6 +145,7 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         await _service.UpdateBoardAsync(board.Id, "Updated Name", "Updated Description");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsBoards.FindAsync(board.Id);
         updated!.Name.Should().Be("Updated Name");
         updated.Description.Should().Be("Updated Description");
@@ -174,6 +175,7 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         await _service.AssociateBoardWithEventAsync(board.Id, eventEntity.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsBoards.FindAsync(board.Id);
         updated!.EventId.Should().Be(eventEntity.Id);
     }
@@ -195,6 +197,7 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         await _service.AssociateBoardWithEventAsync(board.Id, null);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsBoards.FindAsync(board.Id);
         updated!.EventId.Should().BeNull();
     }

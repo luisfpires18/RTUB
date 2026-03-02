@@ -17,7 +17,8 @@ public class SongRepository : Repository<Song>, ISongRepository
 
     public async Task<Song?> GetSongByIdWithUrlsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Song>()
             .AsNoTracking()
             .Include(s => s.YouTubeUrls)
             .FirstOrDefaultAsync(s => s.Id == id);
@@ -25,7 +26,8 @@ public class SongRepository : Repository<Song>, ISongRepository
 
     public async Task<IEnumerable<Song>> GetAllSongsWithAlbumAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Song>()
             .AsNoTracking()
             .Include(s => s.Album)
             .Include(s => s.YouTubeUrls)
@@ -34,7 +36,8 @@ public class SongRepository : Repository<Song>, ISongRepository
 
     public async Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Song>()
             .AsNoTracking()
             .Include(s => s.YouTubeUrls)
             .Where(s => s.AlbumId == albumId)
@@ -48,6 +51,29 @@ public class SongRepository : Repository<Song>, ISongRepository
         return await context.Set<Song>()
             .Include(s => s.YouTubeUrls)
             .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task AddYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)
+    {
+        using var context = CreateContext();
+        await context.Set<SongYouTubeUrl>().AddAsync(youtubeUrl);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Overrides base delete to include YouTubeUrls so InMemory cascade delete works.
+    /// </summary>
+    public override async Task DeleteAsync(Song entity)
+    {
+        using var context = CreateContext();
+        var tracked = await context.Set<Song>()
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == entity.Id);
+        if (tracked != null)
+        {
+            context.Set<Song>().Remove(tracked);
+            await context.SaveChangesAsync();
+        }
     }
 
     public async Task DeleteYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)

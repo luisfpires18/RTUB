@@ -16,14 +16,16 @@ public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
 
     public override async Task<Rehearsal?> GetByIdAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Rehearsal>()
             .Include(r => r.Attendances)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<Rehearsal?> GetRehearsalByDateAsync(DateTime date)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Rehearsal>()
             .AsNoTracking()
             .Include(r => r.Attendances)
             .FirstOrDefaultAsync(r => r.Date.Date == date.Date);
@@ -31,7 +33,8 @@ public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
 
     public async Task<IEnumerable<Rehearsal>> GetRehearsalsAsync(DateTime startDate, DateTime endDate)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Rehearsal>()
             .AsNoTracking()
             .Include(r => r.Attendances)
             .Where(r => r.Date >= startDate.Date && r.Date <= endDate.Date)
@@ -42,7 +45,8 @@ public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
     public async Task<IEnumerable<Rehearsal>> GetUpcomingRehearsalsAsync(int count = 10)
     {
         var today = DateTime.Today;
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Rehearsal>()
             .AsNoTracking()
             .Include(r => r.Attendances)
             .Where(r => r.Date >= today)

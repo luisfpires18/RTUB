@@ -1334,19 +1334,16 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     /// <summary>
-    /// This test replicates the exact scenario reported by the user:
-    /// - Member "Jeans" is retired
-    /// - Activities in January 2026: 13th, 10th, 8th, 6th  
-    /// - Activities in December 2025: 11th, 4th, 4th, 2nd, 2nd
-    /// - NO activities in November 2025 or earlier
-    /// - Today is January 14, 2026
-    /// - Expected: 2/3 consecutive months (Jan + Dec)
-    /// - Bug showed: 3/3 consecutive months (incorrect)
+    /// Scenario from production "Jeans" member — date-relative version.
+    /// - Activities exist in the previous month (M-1) and the month before (M-2).
+    /// - NO activities in M-3 or earlier.
+    /// - Expected: 2/3 consecutive months (still retired).
     /// </summary>
     [Fact]
     public async Task GetMemberStatusAsync_JeansScenario_ExactDatesJanDecOnly_Returns2Of3()
     {
-        // Arrange - Replicate the exact scenario with fixed dates
+        // Arrange — use dates relative to now so the test works on any date
+        var now = DateTime.UtcNow;
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true; // Jeans was retired
@@ -1357,12 +1354,16 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 
-        // Create January 2026 rehearsals (6th, 8th, 13th)
-        var jan6 = new DateTime(2026, 1, 6);
-        var jan8 = new DateTime(2026, 1, 8);
-        var jan13 = new DateTime(2026, 1, 13);
+        // M-1: previous month — rehearsals on 6th, 8th, 13th
+        var prevMonth = now.AddMonths(-1);
+        var m1Dates = new[]
+        {
+            new DateTime(prevMonth.Year, prevMonth.Month, 6),
+            new DateTime(prevMonth.Year, prevMonth.Month, 8),
+            new DateTime(prevMonth.Year, prevMonth.Month, Math.Min(13, DateTime.DaysInMonth(prevMonth.Year, prevMonth.Month)))
+        };
 
-        foreach (var date in new[] { jan6, jan8, jan13 })
+        foreach (var date in m1Dates)
         {
             var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
             _context.Rehearsals.Add(rehearsal);
@@ -1373,25 +1374,29 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _context.RehearsalAttendances.Add(attendance);
         }
 
-        // Create January 2026 event (10th)
-        var jan10Event = Event.Create("January Event", new DateTime(2026, 1, 10), "Location", EventType.Atuacao);
-        _context.Events.Add(jan10Event);
+        // M-1: event on 10th
+        var m1EventDate = new DateTime(prevMonth.Year, prevMonth.Month, Math.Min(10, DateTime.DaysInMonth(prevMonth.Year, prevMonth.Month)));
+        var m1Event = Event.Create("Month-1 Event", m1EventDate, "Location", EventType.Atuacao);
+        _context.Events.Add(m1Event);
         await _context.SaveChangesAsync();
 
-        var jan10Enrollment = new Enrollment
+        _context.Enrollments.Add(new Enrollment
         {
-            EventId = jan10Event.Id,
+            EventId = m1Event.Id,
             UserId = userId,
             WillAttend = true,
             EnrolledAt = DateTime.UtcNow
+        });
+
+        // M-2: two months ago — rehearsals on 2nd, 4th
+        var twoMonthsAgo = now.AddMonths(-2);
+        var m2Dates = new[]
+        {
+            new DateTime(twoMonthsAgo.Year, twoMonthsAgo.Month, 2),
+            new DateTime(twoMonthsAgo.Year, twoMonthsAgo.Month, 4)
         };
-        _context.Enrollments.Add(jan10Enrollment);
 
-        // Create December 2025 rehearsals (2nd, 4th)
-        var dec2 = new DateTime(2025, 12, 2);
-        var dec4 = new DateTime(2025, 12, 4);
-
-        foreach (var date in new[] { dec2, dec4 })
+        foreach (var date in m2Dates)
         {
             var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
             _context.Rehearsals.Add(rehearsal);
@@ -1402,26 +1407,26 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _context.RehearsalAttendances.Add(attendance);
         }
 
-        // Create December 2025 events (2nd, 4th, 11th)
-        foreach (var date in new[] { new DateTime(2025, 12, 2), new DateTime(2025, 12, 4), new DateTime(2025, 12, 11) })
+        // M-2: events on 2nd, 4th, 11th
+        foreach (var day in new[] { 2, 4, Math.Min(11, DateTime.DaysInMonth(twoMonthsAgo.Year, twoMonthsAgo.Month)) })
         {
-            var evt = Event.Create($"December Event {date:dd}", date, "Location", EventType.Atuacao);
+            var date = new DateTime(twoMonthsAgo.Year, twoMonthsAgo.Month, day);
+            var evt = Event.Create($"Month-2 Event {day}", date, "Location", EventType.Atuacao);
             _context.Events.Add(evt);
             await _context.SaveChangesAsync();
 
-            var enrollment = new Enrollment
+            _context.Enrollments.Add(new Enrollment
             {
                 EventId = evt.Id,
                 UserId = userId,
                 WillAttend = true,
                 EnrolledAt = DateTime.UtcNow
-            };
-            _context.Enrollments.Add(enrollment);
+            });
         }
 
         await _context.SaveChangesAsync();
 
-        // NO activities in November 2025 or earlier - intentionally empty
+        // NO activities in M-3 or earlier — intentionally empty
 
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
@@ -1433,8 +1438,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // The member should still be retired because 2 < 3 consecutive months required
         result.IsRetired.Should().BeTrue("member should still be retired with only 2 consecutive months");
 
-        // Progress should show 2/3 (Jan + Dec only)
-        result.ProgressMonths.Should().Be(2, "only January and December have activity, not November");
+        // Progress should show 2/3 (M-1 + M-2 only)
+        result.ProgressMonths.Should().Be(2, "only the previous two months have activity, not the third");
         result.ProgressTotalMonths.Should().Be(3);
         result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
     }

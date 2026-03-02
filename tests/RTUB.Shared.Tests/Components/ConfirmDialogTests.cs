@@ -10,6 +10,13 @@ namespace RTUB.Shared.Tests.Components;
 /// </summary>
 public class ConfirmDialogTests : TestContext
 {
+    public ConfirmDialogTests()
+    {
+        // Modal (used by ConfirmDialog) injects IJSRuntime for scroll-lock
+        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
+        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+    }
+
     [Fact]
     public void ConfirmDialog_WhenShowIsFalse_DoesNotRender()
     {
@@ -272,14 +279,14 @@ public class ConfirmDialogTests : TestContext
     }
 
     [Fact]
-    public void ConfirmDialog_ShowsCloseButton_ByDefault()
+    public void ConfirmDialog_DoesNotShowCloseButton_ByDefault()
     {
         // Arrange & Act
         var cut = RenderComponent<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
-        // Assert
-        cut.Markup.Should().Contain("btn-close", "close button should be shown by default");
+        // Assert — ConfirmDialog defaults ShowCloseButton to false
+        cut.Markup.Should().NotContain("modal-close-arrow", "close button should not be shown by default");
     }
 
     [Fact]
@@ -291,7 +298,7 @@ public class ConfirmDialogTests : TestContext
             .Add(p => p.ShowCloseButton, false));
 
         // Assert
-        cut.Markup.Should().NotContain("btn-close", "close button should be hidden when ShowCloseButton is false");
+        cut.Markup.Should().NotContain("modal-close-arrow", "close button should be hidden when ShowCloseButton is false");
     }
 
     [Fact]

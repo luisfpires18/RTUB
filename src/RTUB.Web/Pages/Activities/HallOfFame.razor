@@ -760,7 +760,7 @@ else
         var now = DateTime.UtcNow;
 
         // Build efficient query using repository - single database roundtrip
-        var rehearsalCounts = await RehearsalAttendanceRepository.Query()
+        var rehearsalCounts = await RehearsalAttendanceRepository.QueryAsync(q => q
             .Include(ra => ra.Rehearsal)
             .Include(ra => ra.User)
             .Where(ra => ra.Rehearsal != null
@@ -773,7 +773,7 @@ else
                 UserId = g.Key,
                 Count = g.Count()
             })
-            .ToListAsync();
+            .ToListAsync());
 
         // If no data at all, leave mostRehearsals empty
         if (!rehearsalCounts.Any())

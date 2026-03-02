@@ -13,22 +13,22 @@ public class PortalContentStyleTests
 
     /// <summary>
     /// Tests that verify CSS file organization for portal sections.
-    /// Each portal section should have its own dedicated CSS file in the 4-pages directory.
+    /// Each portal section should have its own dedicated scoped CSS file in the Components/Portal directory.
     /// </summary>
     [Theory]
-    [InlineData("about-us.css")]
-    [InlineData("join-us.css")]
-    [InlineData("history.css")]
-    [InlineData("hierarchy.css")]
-    [InlineData("fitab.css")]
+    [InlineData("AboutUsContent.razor.css")]
+    [InlineData("JoinUsContent.razor.css")]
+    [InlineData("HistoryContent.razor.css")]
+    [InlineData("HierarchyContent.razor.css")]
+    [InlineData("FitabContent.razor.css")]
     public void PortalSection_HasDedicatedCSSFile(string cssFileName)
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "Components", "Portal", cssFileName);
 
         // Act & Assert
-        File.Exists(cssFilePath).Should().BeTrue($"{cssFileName} should exist for isolated portal section styles in 4-pages directory");
+        File.Exists(cssFilePath).Should().BeTrue($"{cssFileName} should exist as a scoped CSS file for the portal section component");
     }
 
     /// <summary>
@@ -60,16 +60,15 @@ public class PortalContentStyleTests
     /// Tests that verify text alignment is properly configured in CSS files.
     /// </summary>
     [Theory]
-    [InlineData("about-us.css", ".about-us-content")]
-    [InlineData("join-us.css", ".join-us-intro-text")]
-    [InlineData("history.css", ".history-intro-text")]
-    [InlineData("hierarchy.css", ".hierarchy-intro-text")]
-    [InlineData("fitab.css", ".fitab-intro-text")]
+    [InlineData("AboutUsContent.razor.css", ".about-us-content")]
+    [InlineData("HistoryContent.razor.css", ".closing-text")]
+    [InlineData("HierarchyContent.razor.css", ".hierarchy-card-description")]
+    [InlineData("FitabContent.razor.css", ".fitab-features-list")]
     public void PortalSection_ContentHasLeftAlignmentInCSS(string cssFileName, string cssClass)
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "Components", "Portal", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -83,13 +82,13 @@ public class PortalContentStyleTests
     /// Tests that verify intro sections do not have text-center class for proper left alignment.
     /// </summary>
     [Theory]
-    [InlineData("hierarchy.css", ".hierarchy-intro")]
-    [InlineData("fitab.css", ".fitab-intro")]
+    [InlineData("HierarchyContent.razor.css", ".hierarchy-card-description")]
+    [InlineData("FitabContent.razor.css", ".fitab-features-list")]
     public void PortalSection_IntroDoesNotHaveTextCenterInCSS(string cssFileName, string introClass)
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "Components", "Portal", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -111,16 +110,15 @@ public class PortalContentStyleTests
     /// Tests responsive breakpoints exist for mobile layouts.
     /// </summary>
     [Theory]
-    [InlineData("about-us.css")]
-    [InlineData("join-us.css")]
-    [InlineData("history.css")]
-    [InlineData("hierarchy.css")]
-    [InlineData("fitab.css")]
+    [InlineData("AboutUsContent.razor.css")]
+    [InlineData("JoinUsContent.razor.css")]
+    [InlineData("HistoryContent.razor.css")]
+    [InlineData("HierarchyContent.razor.css")]
     public void PortalSection_HasResponsiveBreakpoints(string cssFileName)
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "Components", "Portal", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -133,16 +131,16 @@ public class PortalContentStyleTests
     /// Tests that dedicated CSS files do not contain generic site-wide styles.
     /// </summary>
     [Theory]
-    [InlineData("about-us.css", "about-us")]
-    [InlineData("join-us.css", "join-us")]
-    [InlineData("history.css", "history")]
-    [InlineData("hierarchy.css", "hierarchy")]
-    [InlineData("fitab.css", "fitab")]
+    [InlineData("AboutUsContent.razor.css", "about-us")]
+    [InlineData("JoinUsContent.razor.css", "motivation")]
+    [InlineData("HistoryContent.razor.css", "history")]
+    [InlineData("HierarchyContent.razor.css", "hierarchy")]
+    [InlineData("FitabContent.razor.css", "fitab")]
     public void PortalSection_CSSIsProperlyScoped(string cssFileName, string expectedPrefix)
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "Components", "Portal", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);

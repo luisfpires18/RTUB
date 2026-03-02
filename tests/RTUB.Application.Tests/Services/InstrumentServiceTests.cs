@@ -165,6 +165,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _context.SaveChangesAsync();
 
         await _service.DeleteAsync(instrument.Id);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
     }
@@ -187,6 +188,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _service.DeleteAsync(instrument.Id);
 
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/guitar.jpg"), Times.Once);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
     }
@@ -201,6 +203,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _service.DeleteAsync(instrument.Id);
 
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
     }

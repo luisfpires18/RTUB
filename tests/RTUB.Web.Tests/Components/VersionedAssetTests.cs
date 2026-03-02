@@ -154,8 +154,6 @@ public class VersionedAssetTests : TestContext
     /// </summary>
     [Theory]
     [InlineData("/css/site.css")]
-    [InlineData("/css/rank-card.css")]
-    [InlineData("/css/leaderboard.css")]
     [InlineData("/RTUB.styles.css")]
     [InlineData("/lib/bootstrap/bootstrap.min.css")]
     [InlineData("/lib/bootstrap-icons/bootstrap-icons.min.css")]

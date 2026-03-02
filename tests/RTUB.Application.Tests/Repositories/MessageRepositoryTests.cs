@@ -300,9 +300,9 @@ public class MessageRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Act
         await _repository.MarkConversationAsReadAsync(conversation.Id, user1.Id);
-        await _context.SaveChangesAsync();
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updatedMessage1 = await _context.Messages.FindAsync(message1.Id);
         var updatedMessage2 = await _context.Messages.FindAsync(message2.Id);
         updatedMessage1!.ReadBy.Should().Contain(user1.Id);

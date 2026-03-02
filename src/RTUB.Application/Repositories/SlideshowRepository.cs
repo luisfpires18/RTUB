@@ -16,7 +16,8 @@ public class SlideshowRepository : Repository<Slideshow>, ISlideshowRepository
 
     public async Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Slideshow>()
             .AsNoTracking()
             .Where(s => s.IsActive)
             .OrderBy(s => s.Order)
@@ -25,7 +26,8 @@ public class SlideshowRepository : Repository<Slideshow>, ISlideshowRepository
 
     public async Task<IEnumerable<Slideshow>> GetActivePublicSlideshowsAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Slideshow>()
             .AsNoTracking()
             .Where(s => s.IsActive && !s.IsExclusive)
             .OrderBy(s => s.Order)

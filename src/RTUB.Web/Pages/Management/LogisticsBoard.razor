@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Hosting
+@using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
@@ -25,6 +26,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@implements IAsyncDisposable
 
 <PageTitle>@(board?.Name ?? "Logística")</PageTitle>
 
@@ -868,6 +870,7 @@
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
     private bool isMod = false;
     private bool isAdmin = false;
+    private DotNetObjectReference<LogisticsBoard>? _kanbanDotNetRef;
 
     // Mobile bottom nav
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
@@ -958,7 +961,12 @@
     {
         if (firstRender && lists.Any())
         {
-            await JSRuntime.InvokeVoidAsync("initializeKanbanDragDrop", DotNetObjectReference.Create(this));
+            try
+            {
+                _kanbanDotNetRef ??= DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("initializeKanbanDragDrop", _kanbanDotNetRef);
+            }
+            catch (JSDisconnectedException) { }
         }
     }
 
@@ -1858,5 +1866,10 @@
         {
             reminderErrorMessage = $"Erro ao criar lembrete: {ex.Message}";
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _kanbanDotNetRef?.Dispose();
     }
 }

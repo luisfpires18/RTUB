@@ -16,7 +16,8 @@ public class TrophyRepository : Repository<Trophy>, ITrophyRepository
 
     public async Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Trophy>()
             .AsNoTracking()
             .Where(t => t.EventId == eventId)
             .ToListAsync();
@@ -24,7 +25,9 @@ public class TrophyRepository : Repository<Trophy>, ITrophyRepository
 
     public async Task<IEnumerable<Trophy>> GetAllWithEventAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Trophy>()
+            .AsNoTracking()
             .Include(t => t.Event)
             .OrderByDescending(t => t.Event!.Date)
             .ToListAsync();

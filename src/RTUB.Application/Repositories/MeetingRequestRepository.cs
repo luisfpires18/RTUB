@@ -18,7 +18,9 @@ public class MeetingRequestRepository : Repository<MeetingRequest>, IMeetingRequ
 
     public async Task<IEnumerable<MeetingRequest>> GetAllWithAuthorAsync(RequestStatus? status = null)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MeetingRequest>()
+            .AsNoTracking()
             .Include(mr => mr.Author)
             .AsQueryable()
             .WhereIf(status.HasValue, mr => mr.Status == status!.Value)
@@ -28,7 +30,9 @@ public class MeetingRequestRepository : Repository<MeetingRequest>, IMeetingRequ
 
     public async Task<IEnumerable<MeetingRequest>> GetPagedWithAuthorAsync(int page, int pageSize, RequestStatus? status = null)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MeetingRequest>()
+            .AsNoTracking()
             .Include(mr => mr.Author)
             .AsQueryable()
             .WhereIf(status.HasValue, mr => mr.Status == status!.Value)
@@ -38,14 +42,18 @@ public class MeetingRequestRepository : Repository<MeetingRequest>, IMeetingRequ
 
     public async Task<MeetingRequest?> GetByIdWithAuthorAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MeetingRequest>()
+            .AsNoTracking()
             .Include(mr => mr.Author)
             .FirstOrDefaultAsync(mr => mr.Id == id);
     }
 
     public async Task<int> GetCountAsync(RequestStatus? status = null)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MeetingRequest>()
+            .AsNoTracking()
             .AsQueryable()
             .WhereIf(status.HasValue, mr => mr.Status == status!.Value)
             .CountAsync();
@@ -53,11 +61,12 @@ public class MeetingRequestRepository : Repository<MeetingRequest>, IMeetingRequ
 
     public async Task<IEnumerable<MeetingRequest>> GetPendingWithAuthorAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MeetingRequest>()
+            .AsNoTracking()
             .Include(r => r.Author)
             .Where(r => r.Status == RequestStatus.Pending)
             .OrderBy(r => r.CreatedAt)
-            .AsNoTracking()
             .ToListAsync();
     }
 }

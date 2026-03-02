@@ -329,6 +329,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.UpdateAsync(post.Id, "Updated Title", "Updated Body");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.Title.Should().Be("Updated Title");
         updated.Body.Should().Be("Updated Body");
@@ -366,6 +367,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.PinAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.IsPinned.Should().BeTrue();
     }
@@ -395,6 +397,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.UnpinAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.IsPinned.Should().BeFalse();
     }
@@ -423,6 +426,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.LockAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.IsLocked.Should().BeTrue();
     }
@@ -452,6 +456,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.UnlockAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.IsLocked.Should().BeFalse();
     }
@@ -480,6 +485,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.SoftDeleteAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.IsDeleted.Should().BeTrue();
     }
@@ -511,6 +517,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.UpdateLastActivityAsync(post.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Posts.FindAsync(post.Id);
         updated!.LastActivityAt.Should().BeAfter(originalTime);
     }

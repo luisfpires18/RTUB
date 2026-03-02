@@ -16,7 +16,9 @@ public class LogisticsListRepository : Repository<LogisticsList>, ILogisticsList
 
     public async Task<IEnumerable<LogisticsList>> GetListsByBoardIdAsync(int boardId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsList>()
+            .AsNoTracking()
             .Where(l => l.BoardId == boardId)
             .OrderBy(l => l.Position)
             .ToListAsync();
@@ -24,7 +26,9 @@ public class LogisticsListRepository : Repository<LogisticsList>, ILogisticsList
 
     public async Task<LogisticsList?> GetListWithCardsAsync(int id)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<LogisticsList>()
+            .AsNoTracking()
             .Include(l => l.Cards.OrderBy(c => c.Position))
             .ThenInclude(c => c.AssignedToUser)
             .Include(l => l.Cards)

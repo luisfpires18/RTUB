@@ -16,7 +16,9 @@ public class MemberInstrumentRepository : Repository<MemberInstrument>, IMemberI
 
     public async Task<IEnumerable<MemberInstrument>> GetByMemberIdAsync(string memberId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MemberInstrument>()
+            .AsNoTracking()
             .Where(mi => mi.MemberId == memberId)
             .OrderByDescending(mi => mi.IsPrimary)
             .ThenBy(mi => mi.InstrumentType)
@@ -25,7 +27,9 @@ public class MemberInstrumentRepository : Repository<MemberInstrument>, IMemberI
 
     public async Task<MemberInstrument?> GetPrimaryInstrumentAsync(string memberId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MemberInstrument>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(mi => mi.MemberId == memberId && mi.IsPrimary);
     }
 }

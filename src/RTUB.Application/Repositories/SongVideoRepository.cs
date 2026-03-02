@@ -16,7 +16,8 @@ public class SongVideoRepository : Repository<SongVideo>, ISongVideoRepository
 
     public async Task<IEnumerable<SongVideo>> GetBySongIdAsync(int songId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<SongVideo>()
             .AsNoTracking()
             .Include(sv => sv.CreatedByUser)
             .Where(sv => sv.SongId == songId)
@@ -27,7 +28,9 @@ public class SongVideoRepository : Repository<SongVideo>, ISongVideoRepository
 
     public async Task<int> GetCountBySongIdAsync(int songId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<SongVideo>()
+            .AsNoTracking()
             .Where(sv => sv.SongId == songId)
             .CountAsync();
     }

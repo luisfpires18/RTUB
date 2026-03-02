@@ -299,6 +299,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _naipeService.UpdateContentAsync(content.Id, newTitle, newDescription, newSortOrder, _testUser1.Id, false);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updatedContent = await _context.NaipeContents.FindAsync(content.Id);
         updatedContent.Should().NotBeNull();
         updatedContent!.Title.Should().Be(newTitle);
@@ -322,6 +323,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _naipeService.UpdateContentAsync(content.Id, newTitle, null, 1.0m, _adminUser.Id, true);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updatedContent = await _context.NaipeContents.FindAsync(content.Id);
         updatedContent.Should().NotBeNull();
         updatedContent!.Title.Should().Be(newTitle);
@@ -360,6 +362,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _naipeService.DeleteContentAsync(content.Id, _testUser1.Id, false);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deletedContent = await _context.NaipeContents.FindAsync(content.Id);
         deletedContent.Should().BeNull();
         _mockMediaStorageService.Verify(m => m.DeleteMediaAsync(mediaUrl), Times.Once);
@@ -383,6 +386,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _naipeService.DeleteContentAsync(content.Id, _adminUser.Id, true);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deletedContent = await _context.NaipeContents.FindAsync(content.Id);
         deletedContent.Should().BeNull();
         _mockMediaStorageService.Verify(m => m.DeleteMediaAsync(mediaUrl), Times.Once);

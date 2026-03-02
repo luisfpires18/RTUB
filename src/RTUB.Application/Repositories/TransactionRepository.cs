@@ -16,7 +16,8 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
 
     public async Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Transaction>()
             .AsNoTracking()
             .Include(t => t.Activity)
             .Where(t => t.ActivityId == activityId)
@@ -32,7 +33,8 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             return Enumerable.Empty<Transaction>();
         }
 
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Transaction>()
             .AsNoTracking()
             .Include(t => t.Activity)
             .Where(t => activityIdsList.Contains(t.ActivityId ?? 0))
@@ -42,7 +44,8 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
 
     public async Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Transaction>()
             .AsNoTracking()
             .Where(t => t.Type == type)
             .OrderBy(t => t.Date)
@@ -51,7 +54,8 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
 
     public async Task<IEnumerable<Transaction>> GetTransactionsByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<Transaction>()
             .AsNoTracking()
             .Include(t => t.Activity)
             .Include(t => t.User)

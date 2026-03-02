@@ -129,11 +129,10 @@ public class ProductService : IProductService
     /// <returns>Dictionary mapping product types to their counts</returns>
     public async Task<Dictionary<string, int>> GetTypeStatsAsync()
     {
-        return await _productRepository.Query()
-            .AsNoTracking()
+        return await _productRepository.QueryAsync(q => q
             .GroupBy(p => p.Type)
             .Select(g => new { Type = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Type, x => x.Count);
+            .ToDictionaryAsync(x => x.Type, x => x.Count));
     }
 
     /// <summary>
@@ -142,8 +141,7 @@ public class ProductService : IProductService
     /// <returns>The total inventory value</returns>
     public async Task<decimal> GetTotalInventoryValueAsync()
     {
-        return await _productRepository.Query()
-            .AsNoTracking()
-            .SumAsync(p => p.Price * p.Stock);
+        return await _productRepository.QueryAsync(q => q
+            .SumAsync(p => p.Price * p.Stock));
     }
 }

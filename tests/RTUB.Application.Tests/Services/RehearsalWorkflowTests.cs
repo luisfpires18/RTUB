@@ -34,8 +34,9 @@ public class RehearsalWorkflowTests : IDisposable
     {
         var services = new ServiceCollection();
 
+        var dbName = $"TestDb_{Guid.NewGuid()}";
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
+            options.UseInMemoryDatabase(dbName));
 
         // Register required dependencies for ApplicationDbContext
         services.AddScoped<IHttpContextAccessor>(_ => Mock.Of<IHttpContextAccessor>());
@@ -101,6 +102,7 @@ public class RehearsalWorkflowTests : IDisposable
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updatedAttendance = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
         updatedAttendance!.Attended.Should().BeTrue("admin has approved the attendance");
     }
@@ -139,6 +141,7 @@ public class RehearsalWorkflowTests : IDisposable
         await _rehearsalService.CreateRehearsalAsync(tuesday, "Location 1");
 
         // Act - try to create same date again
+        _context.ChangeTracker.Clear();
         var existingCount = (await _rehearsalService.GetRehearsalsAsync(tuesday, tuesday)).Count();
 
         // Creating duplicate should be prevented at application level
@@ -169,6 +172,7 @@ public class RehearsalWorkflowTests : IDisposable
         // Leave as pending (Attended = false)
 
         // Act
+        _context.ChangeTracker.Clear();
         var stats = await _attendanceService.GetAttendanceStatsAsync(
             DateTime.Today.AddDays(-30),
             DateTime.Today);
@@ -225,6 +229,7 @@ public class RehearsalWorkflowTests : IDisposable
         await _attendanceService.DeleteAttendanceAsync(attendance.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var statsAfter = await _attendanceService.GetAttendanceStatsAsync(
             DateTime.Today.AddDays(-30),
             DateTime.Today);
@@ -256,6 +261,7 @@ public class RehearsalWorkflowTests : IDisposable
 
         // Act - try to enroll again
         // In the actual implementation, the service handles duplicates gracefully
+        _context.ChangeTracker.Clear();
         var attendances = await _attendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id);
         var userAttendances = attendances.Where(a => a.UserId == "user1").ToList();
 

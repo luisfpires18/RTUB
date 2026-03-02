@@ -222,6 +222,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.UpdateAsync(comment.Id, "Updated body");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.Comments.FindAsync(comment.Id);
         updated!.Body.Should().Be("Updated body");
         updated.IsEdited.Should().BeTrue();
@@ -256,6 +257,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _service.SoftDeleteAsync(comment.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deleted = await _context.Comments.FindAsync(comment.Id);
         deleted!.IsDeleted.Should().BeTrue();
     }

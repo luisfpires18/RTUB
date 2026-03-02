@@ -30,7 +30,13 @@ public class MemberInstrumentServiceTests
         var expectedInstrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
         var emptyList = new List<MemberInstrument>();
         var mockQueryable = emptyList.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<MemberInstrument>()))
             .ReturnsAsync(expectedInstrument);
         _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
@@ -69,7 +75,13 @@ public class MemberInstrumentServiceTests
         _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
             .ReturnsAsync(false);
         var mockQueryable = instruments.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<MemberInstrument>()))
             .ReturnsAsync(MemberInstrument.Create(_testMemberId, InstrumentType.Bandolim, true));
 
@@ -169,7 +181,13 @@ public class MemberInstrumentServiceTests
         var instruments = new List<MemberInstrument> { instrument1, instrument2 };
 
         var mockQueryable = instruments.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         await _service.SetPrimaryInstrumentAsync(instrument2.Id, _testMemberId);
@@ -278,7 +296,13 @@ public class MemberInstrumentServiceTests
             MemberInstrument.Create(user2, InstrumentType.Cavaquinho, true)
         };
         var mockQueryable = allInstruments.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new[] { user1, user2 });
@@ -298,7 +322,13 @@ public class MemberInstrumentServiceTests
         // Arrange
         var emptyList = new List<MemberInstrument>();
         var mockQueryable = emptyList.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new string[] { });
@@ -313,7 +343,13 @@ public class MemberInstrumentServiceTests
         // Arrange
         var emptyList = new List<MemberInstrument>();
         var mockQueryable = emptyList.BuildMockDbSet().Object;
-        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<MemberInstrument>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockQueryable)!;
+            }));
 
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new[] { "non-existing-1", "non-existing-2" });

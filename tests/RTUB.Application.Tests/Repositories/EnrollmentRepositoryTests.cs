@@ -61,6 +61,7 @@ public class EnrollmentRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         await _repository.DeleteByEventIdAsync(eventEntity.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingEnrollments = await _context.Enrollments
             .Where(e => e.EventId == eventEntity.Id)
             .ToListAsync();
@@ -85,6 +86,7 @@ public class EnrollmentRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         await _repository.DeleteByEventIdAsync(eventEntity.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingEnrollments = await _context.Enrollments
             .Where(e => e.EventId == eventEntity.Id)
             .ToListAsync();
@@ -110,6 +112,7 @@ public class EnrollmentRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         await _repository.DeleteByEventIdAsync(event1.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var event1Enrollments = await _context.Enrollments
             .Where(e => e.EventId == event1.Id)
             .ToListAsync();
@@ -159,6 +162,7 @@ public class EnrollmentRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         await _repository.DeleteByEventIdAsync(event1.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var remainingEnrollment = await _context.Enrollments.FirstOrDefaultAsync(e => e.EventId == event2.Id);
         remainingEnrollment.Should().NotBeNull();
         remainingEnrollment!.Instrument.Should().Be(InstrumentType.Bandolim);

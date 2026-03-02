@@ -1173,52 +1173,94 @@ public class InventoryService : IInventoryService
     };
 
     /// <summary>
-    /// Calculates ALL drink requirements for a WEAPON upgrade at a given level.
-    /// Weapons now require ALL drink tiers from tier 0 through the current tier (cumulative).
-    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
+    /// Number of free levels before any drink is required for weapon/equipment upgrades.
     /// </summary>
-    public List<(InventoryItemType DrinkType, int Quantity)> GetUpgradeDrinkRequirement(int currentLevel)
-    {
-        var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
-        if (perTier < 1) perTier = 5;
-        var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
-        var currentTierQty = (currentLevel % perTier) + 1;
-        if (currentLevel / perTier >= DrinkTierOrder.Length)
-            currentTierQty = perTier;
+    private const int DrinkFreeLevels = 100;
 
-        var requirements = new List<(InventoryItemType DrinkType, int Quantity)>();
-        for (int i = 0; i <= tierIndex; i++)
-        {
-            // Previous tiers locked at perTier, current tier scales 1→perTier
-            var qty = i < tierIndex ? perTier : currentTierQty;
-            requirements.Add((DrinkTierOrder[i], qty));
-        }
-        return requirements;
+    /// <summary>
+    /// Number of upgrade levels per drink tier (e.g. 100 levels = one drink type).
+    /// </summary>
+    private const int DrinkLevelsPerTier = 100;
+
+    /// <summary>
+    /// Maximum drink quantity within a tier (scales from 1 to this value).
+    /// </summary>
+    private const int DrinkMaxQtyPerTier = 50;
+
+    /// <summary>
+    /// Core algorithm for the new drink requirement system.
+    /// Each tier requires only ONE drink type (not cumulative). Piggies (Leitão) only start
+    /// from level 1001+, crescendo starting at 1 and increasing by 1 every 250 levels.
+    /// <para>
+    /// Level 1-100: no drinks. 101-200: Cerveja 1→50. 201-300: Vinho 1→50.
+    /// 301-400: Licor 1→50. … 901-1000: Absinto 1→50.
+    /// 1001+: Aguardente cycling + piggies (1001-1250→1, 1251-1500→2, 1501-1750→3, …).
+    /// </para>
+    /// </summary>
+    private static (List<(InventoryItemType DrinkType, int Quantity)> Drinks, int LeitaoCost) CalculateDrinkTierRequirements(int currentLevel)
+    {
+        const int PiggyStartLevel = 1000;
+        const int PiggyStepSize = 250;
+
+        var drinks = new List<(InventoryItemType DrinkType, int Quantity)>();
+
+        if (currentLevel < DrinkFreeLevels)
+            return (drinks, 0);
+
+        var effectiveLevel = currentLevel - DrinkFreeLevels;
+        var tierIndex = effectiveLevel / DrinkLevelsPerTier;
+
+        // Drink type: cap at Aguardente (last tier), then Aguardente continues cycling
+        var drinkIndex = Math.Min(tierIndex, DrinkTierOrder.Length - 1);
+
+        // Drink quantity scales 1→50 across the 100 levels of this tier
+        var levelInTier = effectiveLevel % DrinkLevelsPerTier;
+        var drinkQty = Math.Min(DrinkMaxQtyPerTier, levelInTier / 2 + 1);
+        drinks.Add((DrinkTierOrder[drinkIndex], drinkQty));
+
+        // Piggies: 0 for levels 1-1000, then crescendo +1 every 250 levels starting at 1001.
+        // 1001-1250→1, 1251-1500→2, 1501-1750→3, 1751-2000→4, …
+        var leitaoCost = currentLevel < PiggyStartLevel
+            ? 0
+            : (currentLevel - PiggyStartLevel) / PiggyStepSize + 1;
+
+        return (drinks, leitaoCost);
     }
 
     /// <summary>
-    /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.
-    /// Equipment requires ALL drink tiers from tier 0 through the current tier (cumulative).
-    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
-    /// Example at level 102 (tier 2, perTier=50): Cerveja ×50, Vinho ×50, Licor ×3.
+    /// Calculates drink requirements for a WEAPON upgrade at a given level.
+    /// Returns only the single drink type for the current tier (not cumulative).
+    /// </summary>
+    public List<(InventoryItemType DrinkType, int Quantity)> GetUpgradeDrinkRequirement(int currentLevel)
+    {
+        return CalculateDrinkTierRequirements(currentLevel).Drinks;
+    }
+
+    /// <summary>
+    /// Calculates the Leitão cost for a WEAPON upgrade at a given level.
+    /// Leitão is required starting from the Licor tier (level 301+).
+    /// </summary>
+    public int GetUpgradeLeitaoCost(int currentLevel)
+    {
+        return CalculateDrinkTierRequirements(currentLevel).LeitaoCost;
+    }
+
+    /// <summary>
+    /// Calculates drink requirements for an EQUIPMENT upgrade at a given level.
+    /// Returns only the single drink type for the current tier (not cumulative).
     /// </summary>
     public List<(InventoryItemType DrinkType, int Quantity)> GetEquipmentUpgradeDrinkRequirements(int currentLevel)
     {
-        var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
-        if (perTier < 1) perTier = 5;
-        var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
-        var currentTierQty = (currentLevel % perTier) + 1;
-        if (currentLevel / perTier >= DrinkTierOrder.Length)
-            currentTierQty = perTier;
+        return CalculateDrinkTierRequirements(currentLevel).Drinks;
+    }
 
-        var requirements = new List<(InventoryItemType DrinkType, int Quantity)>();
-        for (int i = 0; i <= tierIndex; i++)
-        {
-            // Previous tiers locked at perTier, current tier scales 1→perTier
-            var qty = i < tierIndex ? perTier : currentTierQty;
-            requirements.Add((DrinkTierOrder[i], qty));
-        }
-        return requirements;
+    /// <summary>
+    /// Calculates the Leitão cost for an EQUIPMENT upgrade at a given level.
+    /// Leitão is required starting from the Licor tier (level 301+).
+    /// </summary>
+    public int GetEquipmentUpgradeLeitaoCost(int currentLevel)
+    {
+        return CalculateDrinkTierRequirements(currentLevel).LeitaoCost;
     }
 
     public async Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
@@ -1238,7 +1280,7 @@ public class InventoryService : IInventoryService
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
-        // Require ALL drinks from tier 0 through current tier (cumulative)
+        // Require the single drink type for the current tier
         var drinkRequirements = GetUpgradeDrinkRequirement(weapon.Level);
 
         // Validate all drinks are available before consuming any (fail-fast)
@@ -1251,11 +1293,8 @@ public class InventoryService : IInventoryService
                 return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
         }
 
-        // Check Leitão cost (mid-game currency from Boss Mode)
-        var piggies = _scalingConfig.BossMode.Piggies;
-        var leitaoCost = PiggiesCostConfig.CalculateCost(
-            weapon.Level, piggies.WeaponUpgradeStartLevel,
-            piggies.WeaponUpgradeBaseCost, piggies.WeaponUpgradeCostEveryNLevels);
+        // Check Leitão cost (integrated into drink tier system)
+        var leitaoCost = GetUpgradeLeitaoCost(weapon.Level);
 
         if (leitaoCost > 0)
         {
@@ -1367,7 +1406,7 @@ public class InventoryService : IInventoryService
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
-        // Require ALL drinks from tier 0 through current tier (cumulative)
+        // Require the single drink type for the current tier
         var drinkRequirements = GetEquipmentUpgradeDrinkRequirements(currentSlotLevel);
 
         // Validate all drinks are available before consuming any (fail-fast)
@@ -1380,11 +1419,8 @@ public class InventoryService : IInventoryService
                 return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
         }
 
-        // Check Leitão cost (mid-game currency from Boss Mode)
-        var piggies = _scalingConfig.BossMode.Piggies;
-        var leitaoCost = PiggiesCostConfig.CalculateCost(
-            currentSlotLevel, piggies.EquipmentUpgradeStartLevel,
-            piggies.EquipmentUpgradeBaseCost, piggies.EquipmentUpgradeCostEveryNLevels);
+        // Check Leitão cost (integrated into drink tier system)
+        var leitaoCost = GetEquipmentUpgradeLeitaoCost(currentSlotLevel);
 
         if (leitaoCost > 0)
         {

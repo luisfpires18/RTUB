@@ -17,7 +17,8 @@ public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeType
 
     public async Task<List<NaipeTypeConfig>> GetAllOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<NaipeTypeConfig>()
             .AsNoTracking()
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.InstrumentType)
@@ -26,7 +27,8 @@ public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeType
 
     public async Task<List<NaipeTypeConfig>> GetVisibleOrderedAsync()
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<NaipeTypeConfig>()
             .AsNoTracking()
             .Where(c => c.IsVisible)
             .OrderBy(c => c.SortOrder)
@@ -36,7 +38,9 @@ public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeType
 
     public async Task<NaipeTypeConfig?> GetByInstrumentTypeAsync(InstrumentType type)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<NaipeTypeConfig>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.InstrumentType == type);
     }
 }

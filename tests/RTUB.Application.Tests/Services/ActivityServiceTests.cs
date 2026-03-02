@@ -90,7 +90,13 @@ public class ActivityServiceTests
         };
 
         var mockDbSet = activities.BuildMockDbSet();
-        _mockActivityRepository.Setup(r => r.Query()).Returns(mockDbSet.Object);
+        _mockActivityRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Activity>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockDbSet.Object)!;
+            }));
 
         // Act
         var result = await _service.GetAllActivitiesAsync();
@@ -112,7 +118,13 @@ public class ActivityServiceTests
         };
 
         var mockDbSet = allActivities.BuildMockDbSet();
-        _mockActivityRepository.Setup(r => r.Query()).Returns(mockDbSet.Object);
+        _mockActivityRepository
+            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Activity>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
+            .Returns(new InvocationFunc(invocation =>
+            {
+                var queryFunc = (Delegate)invocation.Arguments[0];
+                return queryFunc.DynamicInvoke(mockDbSet.Object)!;
+            }));
 
         // Act
         var result = await _service.GetActivitiesByReportIdAsync(reportId);

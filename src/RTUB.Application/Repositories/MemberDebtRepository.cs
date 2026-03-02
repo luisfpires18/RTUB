@@ -16,7 +16,8 @@ public class MemberDebtRepository : Repository<MemberDebt>, IMemberDebtRepositor
 
     public async Task<IEnumerable<MemberDebt>> GetByFiscalYearIdAsync(int fiscalYearId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MemberDebt>()
             .AsNoTracking()
             .Include(md => md.User)
             .Include(md => md.FiscalYear)
@@ -28,7 +29,8 @@ public class MemberDebtRepository : Repository<MemberDebt>, IMemberDebtRepositor
 
     public async Task<IEnumerable<MemberDebt>> GetByUserIdAsync(string userId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MemberDebt>()
             .AsNoTracking()
             .Include(md => md.User)
             .Include(md => md.FiscalYear)
@@ -39,7 +41,9 @@ public class MemberDebtRepository : Repository<MemberDebt>, IMemberDebtRepositor
 
     public async Task<MemberDebt?> GetByUserIdAndFiscalYearIdAsync(string userId, int fiscalYearId)
     {
-        return await _dbSet
+        using var context = CreateContext();
+        return await context.Set<MemberDebt>()
+            .AsNoTracking()
             .Include(md => md.User)
             .Include(md => md.FiscalYear)
             .FirstOrDefaultAsync(md => md.UserId == userId && md.FiscalYearId == fiscalYearId);

@@ -146,6 +146,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.UpdateCardAsync(card.Id, "Updated Title", "Updated Description");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.Title.Should().Be("Updated Title");
         updated.Description.Should().Be("Updated Description");
@@ -180,6 +181,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.MoveCardAsync(card.Id, list2.Id, 5);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var moved = await _context.LogisticsCards.FindAsync(card.Id);
         moved!.ListId.Should().Be(list2.Id);
         moved.Position.Should().Be(5);
@@ -205,6 +207,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.UpdateCardPositionAsync(card.Id, 10);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.Position.Should().Be(10);
     }
@@ -232,6 +235,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.AssociateCardWithEventAsync(card.Id, eventEntity.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.EventId.Should().Be(eventEntity.Id);
     }
@@ -261,6 +265,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.AssociateCardWithEventAsync(card.Id, null);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.EventId.Should().BeNull();
     }
@@ -310,6 +315,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.AssignCardToUserAsync(card.Id, user.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.AssignedToUserId.Should().Be(user.Id);
     }
@@ -339,6 +345,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.AssignCardToUserAsync(card.Id, null);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.AssignedToUserId.Should().BeNull();
     }
@@ -363,6 +370,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.DeleteCardAsync(card.Id);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var deleted = await _context.LogisticsCards.FindAsync(card.Id);
         deleted.Should().BeNull();
     }
@@ -387,6 +395,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.SetCardStatusAsync(card.Id, CardStatus.InProgress);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.Status.Should().Be(CardStatus.InProgress);
     }
@@ -411,6 +420,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.SetCardLabelsAsync(card.Id, "urgent,important");
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.Labels.Should().Be("urgent,important");
     }
@@ -439,6 +449,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.SetCardDatesAsync(card.Id, startDate, dueDate, reminderDate);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.StartDate.Should().BeCloseTo(startDate, TimeSpan.FromSeconds(1));
         updated.DueDate.Should().BeCloseTo(dueDate, TimeSpan.FromSeconds(1));
@@ -467,6 +478,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.SetCardChecklistAsync(card.Id, checklistJson);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.ChecklistJson.Should().Be(checklistJson);
     }
@@ -493,6 +505,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         await _service.SetCardAttachmentsAsync(card.Id, attachmentsJson);
 
         // Assert
+        _context.ChangeTracker.Clear();
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.AttachmentsJson.Should().Be(attachmentsJson);
     }

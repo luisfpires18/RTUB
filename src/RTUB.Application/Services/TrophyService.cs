@@ -30,10 +30,9 @@ public class TrophyService : ITrophyService
     /// <returns>The trophy if found, null otherwise</returns>
     public async Task<Trophy?> GetByIdAsync(int id)
     {
-        return await _trophyRepository.Query()
-            .AsNoTracking()
+        return await _trophyRepository.QueryAsync(q => q
             .Include(t => t.Event)
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id));
     }
 
     /// <summary>
@@ -42,11 +41,10 @@ public class TrophyService : ITrophyService
     /// <returns>Collection of all trophies with event information</returns>
     public async Task<IEnumerable<Trophy>> GetAllAsync()
     {
-        return await _trophyRepository.Query()
-            .AsNoTracking()
+        return await _trophyRepository.QueryAsync(q => q
             .Include(t => t.Event)
             .OrderByDescending(t => t.CreatedAt)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -56,11 +54,10 @@ public class TrophyService : ITrophyService
     /// <returns>Collection of trophies for the specified event</returns>
     public async Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId)
     {
-        return await _trophyRepository.Query()
-            .AsNoTracking()
+        return await _trophyRepository.QueryAsync(q => q
             .Where(t => t.EventId == eventId)
             .OrderBy(t => t.Name)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
