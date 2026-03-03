@@ -1158,6 +1158,8 @@ public class InventoryService : IInventoryService
     public decimal GetWeaponUpgradeCost(int currentLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
+        if (forging.WeaponUpgradeCostScale > 0)
+            return Math.Round(forging.WeaponUpgradeBaseCost + (decimal)((long)currentLevel * currentLevel) * forging.WeaponUpgradeCostScale, 2);
         return forging.WeaponUpgradeBaseCost + currentLevel * forging.WeaponUpgradeCostPerLevel;
     }
 
@@ -1175,32 +1177,31 @@ public class InventoryService : IInventoryService
     /// <summary>
     /// Number of free levels before any drink is required for weapon/equipment upgrades.
     /// </summary>
-    private const int DrinkFreeLevels = 100;
+    private const int DrinkFreeLevels = 50;
 
     /// <summary>
-    /// Number of upgrade levels per drink tier (e.g. 100 levels = one drink type).
+    /// Number of upgrade levels per drink tier (e.g. 10 levels = one drink type).
     /// </summary>
-    private const int DrinkLevelsPerTier = 100;
+    private const int DrinkLevelsPerTier = 50;
 
     /// <summary>
     /// Maximum drink quantity within a tier (scales from 1 to this value).
     /// </summary>
-    private const int DrinkMaxQtyPerTier = 50;
+    private const int DrinkMaxQtyPerTier = 25;
 
     /// <summary>
     /// Core algorithm for the new drink requirement system.
-    /// Each tier requires only ONE drink type (not cumulative). Piggies (Leitão) only start
-    /// from level 1001+, crescendo starting at 1 and increasing by 1 every 250 levels.
+    /// Each tier requires only ONE drink type (not cumulative). Piggies (Leitão) start
+    /// from a configurable threshold, crescendo starting at 1 and increasing every few levels.
     /// <para>
-    /// Level 1-100: no drinks. 101-200: Cerveja 1→50. 201-300: Vinho 1→50.
-    /// 301-400: Licor 1→50. … 901-1000: Absinto 1→50.
-    /// 1001+: Aguardente cycling + piggies (1001-1250→1, 1251-1500→2, 1501-1750→3, …).
+    /// Level 1-5: no drinks. 6-15: Cerveja 1→5. 16-25: Vinho 1→5.
+    /// 26-35: Licor 1→5. … 96+: Aguardente cycling + piggies.
     /// </para>
     /// </summary>
     private static (List<(InventoryItemType DrinkType, int Quantity)> Drinks, int LeitaoCost) CalculateDrinkTierRequirements(int currentLevel)
     {
-        const int PiggyStartLevel = 1000;
-        const int PiggyStepSize = 250;
+        const int PiggyStartLevel = 500;
+        const int PiggyStepSize = 125;
 
         var drinks = new List<(InventoryItemType DrinkType, int Quantity)>();
 
@@ -1260,12 +1261,24 @@ public class InventoryService : IInventoryService
         if (currentWeaponLevel <= 0) return 0m;
 
         // Half the total Fidelis cost from level 0 → current level.
-        // Total cost = Σ (baseCost + i × costPerLevel) for i=0..L-1
-        //            = L × baseCost + costPerLevel × L×(L-1)/2
-        // Half cost  = L × baseCost / 2 + costPerLevel × L×(L-1) / 4
         var forging = _scalingConfig.StageMode.Forging;
         var L = (decimal)currentWeaponLevel;
-        var totalCost = L * forging.WeaponUpgradeBaseCost + forging.WeaponUpgradeCostPerLevel * L * (L - 1) / 2m;
+
+        decimal totalCost;
+        if (forging.WeaponUpgradeCostScale > 0)
+        {
+            // Quadratic: Σ (baseCost + i² × costScale) for i=0..L-1
+            // = L × baseCost + costScale × L×(L-1)×(2L-1)/6
+            var n = (long)currentWeaponLevel;
+            var sumOfSquares = (decimal)(n * (n - 1) * (2 * n - 1)) / 6m;
+            totalCost = L * forging.WeaponUpgradeBaseCost + forging.WeaponUpgradeCostScale * sumOfSquares;
+        }
+        else
+        {
+            // Linear: Σ (baseCost + i × costPerLevel) for i=0..L-1
+            totalCost = L * forging.WeaponUpgradeBaseCost + forging.WeaponUpgradeCostPerLevel * L * (L - 1) / 2m;
+        }
+
         return Math.Round(totalCost / 2m, 2);
     }
 
@@ -1365,6 +1378,11 @@ public class InventoryService : IInventoryService
         var weapon = await ctx.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
         if (weapon == null)
             return (false, "Arma não encontrada");
+
+        // Check max weapon level
+        var maxLevel = _scalingConfig.StageMode.Forging.MaxWeaponLevel;
+        if (maxLevel > 0 && weapon.Level >= maxLevel)
+            return (false, $"Nível máximo da arma alcançado ({maxLevel}).");
 
         var cost = GetWeaponUpgradeCost(weapon.Level);
 
@@ -1475,11 +1493,14 @@ public class InventoryService : IInventoryService
 
     /// <summary>
     /// Gets the Fidelis cost to upgrade equipment enhancement to the next level.
-    /// Formula: baseCost + currentBonusLevel * costPerLevel
+    /// Uses quadratic formula when CostScale > 0: baseCost + n² × costScale.
+    /// Otherwise linear: baseCost + n × costPerLevel.
     /// </summary>
     public decimal GetEquipmentUpgradeCost(int currentBonusLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
+        if (forging.EquipmentUpgradeCostScale > 0)
+            return Math.Round(forging.EquipmentUpgradeBaseCost + (decimal)((long)currentBonusLevel * currentBonusLevel) * forging.EquipmentUpgradeCostScale, 2);
         return Math.Round(forging.EquipmentUpgradeBaseCost + currentBonusLevel * forging.EquipmentUpgradeCostPerLevel, 2);
     }
 
@@ -1496,6 +1517,12 @@ public class InventoryService : IInventoryService
             return (false, "Personagem não encontrado");
 
         var currentSlotLevel = character.GetSlotBonusLevel(slot);
+
+        // Check max equipment enhancement level
+        var maxEnhancement = _scalingConfig.StageMode.MaxEquipmentEnhancement;
+        if (maxEnhancement > 0 && currentSlotLevel >= maxEnhancement)
+            return (false, $"Nível máximo de equipamento alcançado ({maxEnhancement}).");
+
         var cost = GetEquipmentUpgradeCost(currentSlotLevel);
 
         var user = await ctx.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);

@@ -35,10 +35,10 @@ public static class MyTunoScaling
     // ── Upgrade flat bonuses: TotalStat = (base + flatBonus × n) × levelFactor ──
 
     /// <summary>Flat HP added per upgrade. TotalHP = (BaseHP + HpFlatBonus × n) × LevelFactor.</summary>
-    public static double HpFlatBonus { get; private set; } = 100;
+    public static double HpFlatBonus { get; private set; } = 200;
 
     /// <summary>Flat Power added per upgrade.</summary>
-    public static double PowerFlatBonus { get; private set; } = 15;
+    public static double PowerFlatBonus { get; private set; } = 30;
 
     /// <summary>Flat speed bonus per upgrade (additive). ActionTime = 5 - n × flatBonus × 0.065.</summary>
     public static double SpeedFlatBonus { get; private set; } = 1.5;
@@ -47,7 +47,7 @@ public static class MyTunoScaling
     public static double CriticalChancePerUpgrade { get; private set; } = 0.005;
 
     /// <summary>Flat Defense added per upgrade.</summary>
-    public static double DefenseFlatBonus { get; private set; } = 12;
+    public static double DefenseFlatBonus { get; private set; } = 24;
 
     // ── Combat ──
 

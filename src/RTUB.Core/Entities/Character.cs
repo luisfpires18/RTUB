@@ -409,6 +409,20 @@ public class Character : BaseEntity
         ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor()),
         EquipmentDefenseBonus);
 
+    // Per-upgrade bonus preview — computed as a single rounded value to avoid
+    // the ±1 jitter that occurs when subtracting two independently-rounded totals.
+    /// <summary>HP gained per single upgrade at the current level.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public long HpUpgradeBonus => ClampToLong(MyTunoScaling.HpFlatBonus * LevelScaleFactor());
+
+    /// <summary>Power gained per single upgrade at the current level.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public long PowerUpgradeBonus => ClampToLong(MyTunoScaling.PowerFlatBonus * LevelScaleFactor());
+
+    /// <summary>Defense gained per single upgrade at the current level.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public long DefenseUpgradeBonus => ClampToLong(MyTunoScaling.DefenseFlatBonus * LevelScaleFactor());
+
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance
     {

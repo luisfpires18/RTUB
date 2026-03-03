@@ -16,17 +16,19 @@
 
 ## Stat Upgrades (Fidelis)
 
-| Stat | Bonus/Lvl | Fidelis Formula | Max Lvl | Leitão Starts |
-|------|----------:|-----------------|--------:|--------------:|
-| HP | +100 | 80 + n×80 | ∞ | **300** |
-| Power | +15 | 80 + n×80 | ∞ | **300** |
-| Defense | +12 | 80 + n×80 | ∞ | **300** |
+| Stat | Bonus/Lvl | Fidelis Formula (Quadratic) | Max Lvl | Leitão Starts |
+|------|----------:|-----------------------------|--------:|--------------:|
+| HP | +8,000 | 80 + n² × 1,000 | ∞ | **10** |
+| Power | +1,200 | 80 + n² × 1,000 | ∞ | **10** |
+| Defense | +960 | 80 + n² × 1,000 | ∞ | **10** |
 | Speed | +1.5 | 175 + n×175 | 41 | 20 |
 | Crit | +0.5% | 140 + n×140 | 100 (cap 50%) | 50 |
 
-**Leitão formula:** `1 + (n - startLevel) / 5` piggies (integer division). Leitão earned from Boss Mode.
+**Cost model (HP/Power/Defense):** Quadratic — `Cost(n) = baseCost + n² × costScale`. Each level costs significantly more than the last.
 
-> HP/Power/Defense stats are free (Fidelis only) until upgrade level 300. Above 300 they cost Leitões — a significant mid/late-game gating mechanism.
+**Leitão formula:** `1 + (n - startLevel) / 5` piggies (integer division). Leitão earned from Boss Mode. Starts at level **10** (every 5 levels adds +1 piggy).
+
+> Stat upgrades are **compressed 20×** compared to the legacy system. Each level gives a very noticeable boost (+8,000 HP, +1,200 Power, +960 Defense) but costs grow quadratically. Leitão gating starts early (level 10) to preserve the mid-game economy.
 
 ---
 
@@ -44,21 +46,27 @@
 
 **Enhancement:** `stat × quality × (1 + effectiveLevel × 0.05)` where `effectiveLevel = floor(highestStage/100) + purchasedBonusLevel`.
 
-**Upgrade costs:** Fidelis (40 + n×40) + Drink (tiered, every 50 levels) + Leitão (from level **500**).
+**Upgrade costs (Quadratic):** Fidelis `240 + n² × 3,000` + Drink (tiered, every **10 levels**) + Leitão (from level **8**, every 3 levels).
 
-**Drink tier schedule (50 levels each):**
+**Flat bonus per enhancement level:** HP: +1,000, Power: +150, Defense: +120
+
+**Drink tier schedule (10 levels each):**
 Cerveja → Vinho → Licor → Rum → Tequilla → Vodka → Gin → Whisky → Absinto → Aguardente
+
+**Max per-slot enhancement level: 100** (`maxEquipmentEnhancement: 100`)
 
 ---
 
 ## Weapons (Forged)
 
-- Max weapon level: **20** (upgrade: 50 + n×50 Fidelis + Leitão from level 12)
+- Max weapon level: **100** (upgrade: quadratic Fidelis `50 + n² × 3,000` + Leitão from level 8)
 - Stat formula: `InstrumentBase × drinkTierMult × qualityRoll × handedMult`
   - `drinkTierMult = 1.0 + (energyCost − 1) × 0.25` → Cerveja = 1.0×, Vinho = 1.25×, … Aguardente = 3.25×
 - Two-handed: **2× base stats** (balanced with dual-wielding two 1H of same drink)
 - Quality: 0.85–1.15 for instruments
 - Upgrade recalc: `(InstrumentBase + level × statPerLevel) × drinkTierMult × handedMult`
+  - **statPerLevel:** HP: +1,000, Power: +150, Defense: +120
+- Drink tiers advance every **10** weapon levels (was 100)
 
 ---
 

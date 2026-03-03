@@ -66,8 +66,8 @@ public class UpgradeService : IUpgradeService
 
         var upgradeStat = GetUpgradeCostConfig(statType);
 
-        // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
-        var cost = upgradeStat.BaseCost + upgradeCount * upgradeStat.CostPerLevel;
+        // Use quadratic or linear cost formula depending on CostScale
+        var cost = CalculateUpgradeCost(upgradeCount, upgradeStat);
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -93,7 +93,7 @@ public class UpgradeService : IUpgradeService
             };
 
             var upgradeStat = GetUpgradeCostConfig(statType);
-            var cost = upgradeStat.BaseCost + upgradeCount * upgradeStat.CostPerLevel;
+            var cost = CalculateUpgradeCost(upgradeCount, upgradeStat);
             result[statType] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -183,8 +183,8 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
                     }
 
-                    // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
-                    var cost = upgradeStat.BaseCost + currentUpgradeCount * upgradeStat.CostPerLevel;
+                    // Use quadratic or linear cost formula depending on CostScale
+                    var cost = CalculateUpgradeCost(currentUpgradeCount, upgradeStat);
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     // Validate sufficient balance
@@ -296,19 +296,30 @@ public class UpgradeService : IUpgradeService
     }
 
     /// <summary>
-    /// Gets the upgrade cost configuration for a stat type (baseCost, costPerLevel, maxUpgrades).
+    /// Gets the upgrade cost configuration for a stat type (baseCost, costPerLevel, maxUpgrades, costScale).
     /// </summary>
-    private (decimal BaseCost, decimal CostPerLevel, int MaxUpgrades) GetUpgradeCostConfig(StatType statType)
+    private (decimal BaseCost, decimal CostPerLevel, int MaxUpgrades, decimal CostScale) GetUpgradeCostConfig(StatType statType)
     {
         return statType switch
         {
-            StatType.HP => (_config.Upgrades.HP.BaseCost, _config.Upgrades.HP.CostPerLevel, _config.Upgrades.HP.MaxUpgrades),
-            StatType.Power => (_config.Upgrades.Power.BaseCost, _config.Upgrades.Power.CostPerLevel, _config.Upgrades.Power.MaxUpgrades),
-            StatType.Speed => (_config.Upgrades.Speed.BaseCost, _config.Upgrades.Speed.CostPerLevel, _config.Upgrades.Speed.MaxUpgrades),
-            StatType.CriticalChance => (_config.Upgrades.CriticalChance.BaseCost, _config.Upgrades.CriticalChance.CostPerLevel, _config.Upgrades.CriticalChance.MaxUpgrades),
-            StatType.Defense => (_config.Upgrades.Defense.BaseCost, _config.Upgrades.Defense.CostPerLevel, _config.Upgrades.Defense.MaxUpgrades),
+            StatType.HP => (_config.Upgrades.HP.BaseCost, _config.Upgrades.HP.CostPerLevel, _config.Upgrades.HP.MaxUpgrades, _config.Upgrades.HP.CostScale),
+            StatType.Power => (_config.Upgrades.Power.BaseCost, _config.Upgrades.Power.CostPerLevel, _config.Upgrades.Power.MaxUpgrades, _config.Upgrades.Power.CostScale),
+            StatType.Speed => (_config.Upgrades.Speed.BaseCost, _config.Upgrades.Speed.CostPerLevel, _config.Upgrades.Speed.MaxUpgrades, 0),
+            StatType.CriticalChance => (_config.Upgrades.CriticalChance.BaseCost, _config.Upgrades.CriticalChance.CostPerLevel, _config.Upgrades.CriticalChance.MaxUpgrades, 0),
+            StatType.Defense => (_config.Upgrades.Defense.BaseCost, _config.Upgrades.Defense.CostPerLevel, _config.Upgrades.Defense.MaxUpgrades, _config.Upgrades.Defense.CostScale),
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
+    }
+
+    /// <summary>
+    /// Calculates the Fidelis cost for a stat upgrade at the given level.
+    /// Uses quadratic formula when CostScale > 0, otherwise linear.
+    /// </summary>
+    private static decimal CalculateUpgradeCost(int currentLevel, (decimal BaseCost, decimal CostPerLevel, int MaxUpgrades, decimal CostScale) config)
+    {
+        if (config.CostScale > 0)
+            return config.BaseCost + (decimal)((long)currentLevel * currentLevel) * config.CostScale;
+        return config.BaseCost + currentLevel * config.CostPerLevel;
     }
 
     /// <summary>
@@ -355,8 +366,8 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
             }
 
-            // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
-            var cost = upgradeStat.BaseCost + currentUpgradeCount * upgradeStat.CostPerLevel;
+            // Use quadratic or linear cost formula depending on CostScale
+            var cost = CalculateUpgradeCost(currentUpgradeCount, upgradeStat);
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

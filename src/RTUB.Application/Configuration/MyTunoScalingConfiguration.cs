@@ -146,11 +146,11 @@ public class MyTunoLevelScaling
 
 public class MyTunoUpgrades
 {
-    public UpgradeLogStat HP { get; set; } = new() { FlatBonus = 100, BaseCost = 50, CostPerLevel = 50 };
-    public UpgradeLogStat Power { get; set; } = new() { FlatBonus = 15, BaseCost = 50, CostPerLevel = 50 };
+    public UpgradeLogStat HP { get; set; } = new() { FlatBonus = 200, BaseCost = 80, CostPerLevel = 160, MaxUpgrades = 9999 };
+    public UpgradeLogStat Power { get; set; } = new() { FlatBonus = 30, BaseCost = 80, CostPerLevel = 160, MaxUpgrades = 9999 };
     public UpgradeFlatStat Speed { get; set; } = new() { FlatBonus = 1.5, BaseCost = 150, CostPerLevel = 150, MaxUpgrades = 41 };
     public UpgradeFlatStat CriticalChance { get; set; } = new() { FlatBonus = 0.005, BaseCost = 120, CostPerLevel = 120, MaxUpgrades = 80 };
-    public UpgradeLogStat Defense { get; set; } = new() { FlatBonus = 12, BaseCost = 50, CostPerLevel = 50 };
+    public UpgradeLogStat Defense { get; set; } = new() { FlatBonus = 24, BaseCost = 80, CostPerLevel = 160, MaxUpgrades = 9999 };
 }
 
 /// <summary>
@@ -165,11 +165,28 @@ public class UpgradeLogStat
     /// <summary>Base Fidelis cost for the first upgrade.</summary>
     public decimal BaseCost { get; set; }
 
-    /// <summary>Cost increment per level: cost(n) = baseCost + n * costPerLevel.</summary>
+    /// <summary>Linear cost increment per level: cost(n) = baseCost + n * costPerLevel. Used when CostScale is 0.</summary>
     public decimal CostPerLevel { get; set; }
+
+    /// <summary>
+    /// Quadratic cost scale: cost(n) = baseCost + n² × costScale.
+    /// When > 0, overrides CostPerLevel with a quadratic curve. 0 = use linear formula.
+    /// </summary>
+    public decimal CostScale { get; set; } = 0;
 
     /// <summary>Maximum upgrades allowed. 0 = unlimited.</summary>
     public int MaxUpgrades { get; set; } = 0;
+
+    /// <summary>
+    /// Calculates the Fidelis cost for an upgrade at the given level.
+    /// Uses quadratic formula when CostScale > 0, otherwise linear.
+    /// </summary>
+    public decimal CalculateCost(int currentLevel)
+    {
+        if (CostScale > 0)
+            return Math.Round(BaseCost + (decimal)((long)currentLevel * currentLevel) * CostScale, 2, MidpointRounding.AwayFromZero);
+        return Math.Round(BaseCost + currentLevel * CostPerLevel, 2, MidpointRounding.AwayFromZero);
+    }
 }
 
 /// <summary>
@@ -254,17 +271,17 @@ public class StageModeConfig
     /// <summary>
     /// Flat HP bonus per equipment enhancement level (matches stat upgrade flatBonus).
     /// </summary>
-    public int EquipmentHpPerLevel { get; set; } = 100;
+    public int EquipmentHpPerLevel { get; set; } = 200;
 
     /// <summary>
     /// Flat Power bonus per equipment enhancement level (matches stat upgrade flatBonus).
     /// </summary>
-    public int EquipmentPowerPerLevel { get; set; } = 15;
+    public int EquipmentPowerPerLevel { get; set; } = 30;
 
     /// <summary>
     /// Flat Defense bonus per equipment enhancement level (matches stat upgrade flatBonus).
     /// </summary>
-    public int EquipmentDefensePerLevel { get; set; } = 12;
+    public int EquipmentDefensePerLevel { get; set; } = 24;
 
     /// <summary>
     /// Minimum quality multiplier for equipment pieces.
@@ -499,8 +516,14 @@ public class ForgingConfig
     /// <summary>Base Fidelis cost to upgrade a weapon.</summary>
     public decimal WeaponUpgradeBaseCost { get; set; } = 50m;
 
-    /// <summary>Cost increment per weapon level: cost = baseCost + level * costPerLevel.</summary>
-    public decimal WeaponUpgradeCostPerLevel { get; set; } = 50m;
+    /// <summary>Linear cost increment per weapon level (used when CostScale is 0).</summary>
+    public decimal WeaponUpgradeCostPerLevel { get; set; } = 100m;
+
+    /// <summary>
+    /// Quadratic cost scale for weapon upgrades: cost(n) = baseCost + n² × costScale.
+    /// When > 0, overrides CostPerLevel. 0 = use linear formula.
+    /// </summary>
+    public decimal WeaponUpgradeCostScale { get; set; } = 0m;
 
     /// <summary>Maximum weapon upgrade level.</summary>
     public int MaxWeaponLevel { get; set; } = 9999;
@@ -509,10 +532,16 @@ public class ForgingConfig
     public double WeaponUpgradeStatBonus { get; set; } = 0.05;
 
     /// <summary>Base Fidelis cost to upgrade equipment enhancement.</summary>
-    public decimal EquipmentUpgradeBaseCost { get; set; } = 40m;
+    public decimal EquipmentUpgradeBaseCost { get; set; } = 240m;
 
-    /// <summary>Cost increment per equipment upgrade level.</summary>
-    public decimal EquipmentUpgradeCostPerLevel { get; set; } = 40m;
+    /// <summary>Linear cost increment per equipment upgrade level (used when CostScale is 0).</summary>
+    public decimal EquipmentUpgradeCostPerLevel { get; set; } = 480m;
+
+    /// <summary>
+    /// Quadratic cost scale for equipment upgrades: cost(n) = baseCost + n² × costScale.
+    /// When > 0, overrides CostPerLevel. 0 = use linear formula.
+    /// </summary>
+    public decimal EquipmentUpgradeCostScale { get; set; } = 0m;
 
     /// <summary>
     /// Stat multiplier for two-handed weapons.
@@ -881,8 +910,8 @@ public class BossModeFidelisRewards
 /// </summary>
 public class PiggiesCostConfig
 {
-    /// <summary>Stat upgrade: level at which Leitão cost kicks in (stage ~10k).</summary>
-    public int StatUpgradeStartLevel { get; set; } = 601;
+    /// <summary>Stat upgrade: level at which Leitão cost kicks in.</summary>
+    public int StatUpgradeStartLevel { get; set; } = 301;
     /// <summary>Speed upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
     public int SpeedUpgradeStartLevel { get; set; } = 20;
     /// <summary>Crit upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
@@ -890,7 +919,7 @@ public class PiggiesCostConfig
     /// <summary>Base Leitão cost for stat upgrades.</summary>
     public int StatUpgradeBaseCost { get; set; } = 1;
     /// <summary>Every N upgrade levels, add +1 Leitão cost.</summary>
-    public int StatUpgradeCostEveryNLevels { get; set; } = 100;
+    public int StatUpgradeCostEveryNLevels { get; set; } = 50;
 
     /// <summary>Improvement upgrade: level at which Leitão cost kicks in.</summary>
     public int ImprovementStartLevel { get; set; } = 20;
@@ -903,14 +932,14 @@ public class PiggiesCostConfig
     public int PowerCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Weapon upgrade: level at which Leitão cost kicks in.</summary>
-    public int WeaponUpgradeStartLevel { get; set; } = 601;
+    public int WeaponUpgradeStartLevel { get; set; } = 500;
     public int WeaponUpgradeBaseCost { get; set; } = 1;
-    public int WeaponUpgradeCostEveryNLevels { get; set; } = 100;
+    public int WeaponUpgradeCostEveryNLevels { get; set; } = 125;
 
     /// <summary>Equipment slot upgrade: level at which Leitão cost kicks in.</summary>
-    public int EquipmentUpgradeStartLevel { get; set; } = 601;
+    public int EquipmentUpgradeStartLevel { get; set; } = 500;
     public int EquipmentUpgradeBaseCost { get; set; } = 1;
-    public int EquipmentUpgradeCostEveryNLevels { get; set; } = 100;
+    public int EquipmentUpgradeCostEveryNLevels { get; set; } = 125;
 
     /// <summary>
     /// Calculates the Leitão cost for a given upgrade level.
