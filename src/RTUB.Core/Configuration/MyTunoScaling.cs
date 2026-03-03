@@ -90,7 +90,7 @@ public static class MyTunoScaling
     public static int CigarroBuffRuns { get; private set; } = 5;
 
     /// <summary>Dodge chance granted by Cigarro buff (0.10 = 10%).</summary>
-    public static double CigarroDodgeChance { get; private set; } = 0.10;
+    public static double CigarroDodgeChance { get; private set; } = 0.05;
 
     /// <summary>Duration in minutes for the Canhão AOE buff.</summary>
     public static int CanhaoBuffMinutes { get; private set; } = 6;
@@ -103,11 +103,11 @@ public static class MyTunoScaling
 
     // ── Consumable Upgrades (rank-based improvements to consumable effects) ──
 
-    /// <summary>Cigarro dodge chance increase per upgrade (0.08 = +8% per rank).</summary>
-    public static double CigarroDodgePerUpgrade { get; private set; } = 0.08;
+    /// <summary>Cigarro dodge chance increase per upgrade (0.04 = +4% per rank).</summary>
+    public static double CigarroDodgePerUpgrade { get; private set; } = 0.04;
 
-    /// <summary>Maximum Cigarro dodge chance after upgrades (0.50 = 50%).</summary>
-    public static double MaxCigarroDodge { get; private set; } = 0.50;
+    /// <summary>Maximum Cigarro dodge chance after upgrades (0.25 = 25%).</summary>
+    public static double MaxCigarroDodge { get; private set; } = 0.25;
 
     /// <summary>Shot buff multiplier increase per upgrade (0.05 = +5% per rank).</summary>
     public static double ShotBuffPerUpgrade { get; private set; } = 0.05;
@@ -218,7 +218,7 @@ public static class MyTunoScaling
         int shotBuffRuns = 5,
         double shotBuffMultiplierConsumable = 1.05,
         int cigarroBuffRuns = 5,
-        double cigarroDodgeChance = 0.10,
+        double cigarroDodgeChance = 0.05,
         int canhaoBuffMinutes = 6,
         int penaltyBuffMinutes = 3,
         double penaltyLifestealPercent = 0.005,
@@ -229,8 +229,8 @@ public static class MyTunoScaling
         double rareSetBonusSpeedReduction = 0.5,
         double doubleGatheringChancePerUpgrade = 0.02,
         double maxDoubleGatheringChance = 0.50,
-        double cigarroDodgePerUpgrade = 0.08,
-        double maxCigarroDodge = 0.50,
+        double cigarroDodgePerUpgrade = 0.04,
+        double maxCigarroDodge = 0.25,
         double shotBuffPerUpgrade = 0.05,
         double maxShotBuffMultiplier = 1.30,
         int canhaoMinutesPerUpgrade = 1,

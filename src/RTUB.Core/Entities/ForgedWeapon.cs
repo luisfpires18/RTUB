@@ -50,6 +50,21 @@ public class ForgedWeapon : BaseEntity
     private ForgedWeapon() { }
 
     /// <summary>
+    /// Renames the weapon, applying the same validation as forging.
+    /// </summary>
+    /// <param name="newName">The new weapon name (1–100 characters, not whitespace).</param>
+    /// <exception cref="ArgumentException">Thrown when the name is empty, whitespace-only, or exceeds 100 characters.</exception>
+    public void Rename(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+            throw new ArgumentException("Nome da arma é obrigatório", nameof(newName));
+        if (newName.Length > 100)
+            throw new ArgumentException("Nome da arma não pode exceder 100 caracteres", nameof(newName));
+
+        Name = newName.Trim();
+    }
+
+    /// <summary>
     /// Factory method to create a new forged weapon
     /// </summary>
     public static ForgedWeapon Create(

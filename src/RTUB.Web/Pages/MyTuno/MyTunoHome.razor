@@ -1462,7 +1462,27 @@
                         }
                     </div>
                     <h5 class="item-detail-name">
-                        @pendingWeapon.Name
+                        @if (renamingWeapon)
+                        {
+                            <div class="weapon-rename-row">
+                                <input type="text" class="weapon-rename-input" maxlength="100"
+                                       @bind="renameWeaponText" @bind:event="oninput"
+                                       @onkeydown="OnRenameKeyDown" />
+                                <button class="btn btn-sm btn-outline-success weapon-rename-btn" @onclick="ConfirmWeaponRename" disabled="@(weaponActioning || string.IsNullOrWhiteSpace(renameWeaponText))">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary weapon-rename-btn" @onclick="CancelWeaponRename">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            @pendingWeapon.Name
+                            <button class="btn btn-sm weapon-rename-pencil" @onclick="StartWeaponRename" title="Renomear arma">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                        }
                         @if (pendingWeapon.Level > 0)
                         {
                             <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@pendingWeapon.Level</span>
@@ -2345,6 +2365,8 @@
     private bool weaponActioning = false;
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
+    private bool renamingWeapon = false;
+    private string renameWeaponText = "";
     
     // Stage modal state
     private bool showStageModal = false;
@@ -3697,6 +3719,7 @@
         if (weapon == null) return;
 
         pendingWeapon = weapon;
+        renamingWeapon = false;
         showWeaponActionModal = true;
     }
 
@@ -3704,7 +3727,67 @@
     {
         if (weaponActioning) return;
         pendingWeapon = weapon;
+        renamingWeapon = false;
         showWeaponActionModal = true;
+    }
+
+    private void StartWeaponRename()
+    {
+        if (pendingWeapon == null) return;
+        renameWeaponText = pendingWeapon.Name;
+        renamingWeapon = true;
+    }
+
+    private void CancelWeaponRename()
+    {
+        renamingWeapon = false;
+    }
+
+    private async Task OnRenameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ConfirmWeaponRename();
+        else if (e.Key == "Escape")
+            CancelWeaponRename();
+    }
+
+    private async Task ConfirmWeaponRename()
+    {
+        if (pendingWeapon == null || currentUser == null || weaponActioning) return;
+        if (string.IsNullOrWhiteSpace(renameWeaponText)) return;
+
+        var trimmed = renameWeaponText.Trim();
+        if (trimmed == pendingWeapon.Name)
+        {
+            renamingWeapon = false;
+            return;
+        }
+
+        try
+        {
+            weaponActioning = true;
+            StateHasChanged();
+
+            var (success, message) = await InventoryService.RenameWeaponAsync(currentUser.Id, pendingWeapon.Id, trimmed);
+
+            if (success)
+            {
+                pendingWeapon.Name = trimmed;
+                // Update the weapon in the local list as well
+                var localWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
+                if (localWeapon != null) localWeapon.Name = trimmed;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to rename weapon {WeaponId}", pendingWeapon.Id);
+        }
+        finally
+        {
+            weaponActioning = false;
+            renamingWeapon = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ConfirmWeaponEquip(int slot)

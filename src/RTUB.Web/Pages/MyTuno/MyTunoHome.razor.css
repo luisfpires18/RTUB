@@ -582,6 +582,49 @@
   font-size: 1.1rem;
 }
 
+/* Weapon rename */
+.weapon-rename-pencil {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  padding: 0 0.25rem;
+  vertical-align: middle;
+  transition: color 0.15s;
+}
+
+.weapon-rename-pencil:hover {
+  color: var(--bs-warning);
+}
+
+.weapon-rename-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.weapon-rename-input {
+  background: rgba(15, 15, 28, 0.8);
+  border: 1px solid rgba(111, 66, 193, 0.4);
+  border-radius: 4px;
+  color: #e2e2e2;
+  font-size: 0.95rem;
+  padding: 0.15rem 0.4rem;
+  width: 160px;
+  outline: none;
+}
+
+.weapon-rename-input:focus {
+  border-color: var(--bs-warning);
+  box-shadow: 0 0 4px rgba(255, 193, 7, 0.3);
+}
+
+.weapon-rename-btn {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
 .item-detail-tags {
   display: flex;
   flex-wrap: wrap;

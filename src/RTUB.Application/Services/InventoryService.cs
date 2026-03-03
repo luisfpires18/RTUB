@@ -32,6 +32,13 @@ public class InventoryService : IInventoryService
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _userEnergyLocks = new();
     private static SemaphoreSlim GetUserEnergyLock(string userId) => _userEnergyLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
 
+    /// <summary>
+    /// Per-user timestamp of the last successful gather.
+    /// Enforces a server-side cooldown equal to the character's effective cast time,
+    /// preventing browser-console loops from bypassing the UI cast bar.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _userLastGatherTime = new();
+
     // Fino heals 25% of total HP
     private const double FinoHealPercentage = 0.25;
     // Caneca heals 50% of total HP
@@ -429,7 +436,8 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
-    /// Gathers a resource by spending energy
+    /// Gathers a resource by spending energy.
+    /// Enforces a server-side cooldown to prevent browser-console abuse.
     /// </summary>
     public async Task<(bool Success, int Gathered, int RemainingEnergy, string Message)> GatherResourceAsync(string userId, InventoryItemType resourceType, CancellationToken cancellationToken = default)
     {
@@ -458,6 +466,22 @@ public class InventoryService : IInventoryService
                 return (false, 0, 0, "Personagem não encontrado");
             }
 
+            // ── Server-side cooldown: enforce the character's effective cast time ──
+            // This prevents browser-console loops from bypassing the UI cast bar.
+            // Uses EffectiveCastTime which accounts for Destilaria cast speed upgrades.
+            var now = DateTime.UtcNow;
+            var cooldown = Math.Max(character.EffectiveCastTime, 0.1);
+            if (_userLastGatherTime.TryGetValue(userId, out var lastGather))
+            {
+                var elapsed = (now - lastGather).TotalSeconds;
+                if (elapsed < cooldown)
+                {
+                    _logger.LogWarning("User {UserId} gather rejected: cooldown ({Elapsed:F2}s < {Cooldown:F2}s)",
+                        userId, elapsed, cooldown);
+                    return (false, 0, 0, "Aguarda antes de destilar novamente");
+                }
+            }
+
             // Apply passive energy regen first
             ApplyEnergyRegen(character);
 
@@ -478,6 +502,9 @@ public class InventoryService : IInventoryService
 
             // Add resource to inventory
             await _inventoryRepository.AddItemAsync(userId, resourceType, gatherAmount, cancellationToken);
+
+            // Record successful gather time for cooldown enforcement
+            _userLastGatherTime[userId] = DateTime.UtcNow;
 
             var resourceName = resourceType switch
             {
@@ -1663,6 +1690,25 @@ public class InventoryService : IInventoryService
         await ctx.SaveChangesAsync(cancellationToken);
 
         return (true, fidelisValue, $"{weaponName} descartada por {fidelisValue:F2} Fidelis!");
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> RenameWeaponAsync(string userId, int weaponId, string newName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(newName) || newName.Length > 100)
+            return (false, "Nome da arma inválido (máx 100 caracteres)");
+
+        var ctx = _contextFactory.CreateDbContext();
+        var weapon = await ctx.ForgedWeapons
+            .FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+
+        if (weapon == null)
+            return (false, "Arma não encontrada");
+
+        weapon.Rename(newName);
+        await ctx.SaveChangesAsync(cancellationToken);
+
+        return (true, "Arma renomeada com sucesso!");
     }
 
     /// <inheritdoc />

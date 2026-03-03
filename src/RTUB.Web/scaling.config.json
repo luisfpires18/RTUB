@@ -91,7 +91,7 @@
       "shotBuffRuns": 5,
       "shotBuffMultiplier": 1.05,
       "cigarroBuffRuns": 5,
-      "cigarroDodgeChance": 0.10,
+      "cigarroDodgeChance": 0.05,
       "canhaoBuffMinutes": 2,
       "penaltyBuffMinutes": 2,
       "penaltyLifestealPercent": 0.005

@@ -263,4 +263,13 @@ public interface IInventoryService
     /// <param name="rareItemType">The rare set piece InventoryItemType (300–305)</param>
     /// <returns>Success flag and message</returns>
     Task<(bool Success, string Message)> ApplyRareSetUpgradeAsync(string userId, InventoryItemType rareItemType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Renames a forged weapon owned by the specified user.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="weaponId">The ID of the weapon to rename</param>
+    /// <param name="newName">The new weapon name (1–100 characters)</param>
+    /// <returns>Success flag and message</returns>
+    Task<(bool Success, string Message)> RenameWeaponAsync(string userId, int weaponId, string newName, CancellationToken cancellationToken = default);
 }

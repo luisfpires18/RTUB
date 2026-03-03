@@ -477,7 +477,7 @@ public class Character : BaseEntity
 
     /// <summary>
     /// Effective Cigarro dodge chance including upgrades.
-    /// Base 10%, each upgrade adds +8%, max 50% at 5 upgrades.
+    /// Base 5%, each upgrade adds +4%, max 25% at 5 upgrades.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double EffectiveCigarroDodgeChance => Math.Min(
