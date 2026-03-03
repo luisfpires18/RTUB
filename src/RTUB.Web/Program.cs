@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -617,6 +619,8 @@ public class Program
                     bool hadMemberStatusMigration = pendingMigrations.Any(m =>
                         m.Contains("AddMemberStatusTable") ||
                         m.Contains("AddTotalActivitiesCountToMemberStatus"));
+                    bool hadCompressUpgradeLevels = pendingMigrations.Any(m =>
+                        m.Contains("CompressUpgradeLevels"));
 
                     if (pendingMigrations.Any())
                     {
@@ -650,6 +654,53 @@ public class Program
                         {
                             // Log error but don't fail startup - scheduled update will populate later
                             logger.LogError(ex, "Failed to populate MemberStatus table on startup. Data will be populated during next scheduled update.");
+                        }
+                    }
+
+                    // Recalculate weapon and equipment stats after upgrade level compression
+                    if (hadCompressUpgradeLevels)
+                    {
+                        try
+                        {
+                            logger.LogInformation("CompressUpgradeLevels migration detected. Recalculating weapon and equipment stats...");
+                            var inventoryService = sp.GetRequiredService<IInventoryService>();
+                            var scalingConfig = sp.GetRequiredService<IOptions<MyTunoScalingConfiguration>>().Value;
+
+                            // Recalculate all forged weapon stats with new per-level bonuses
+                            var weapons = await db.ForgedWeapons.Where(w => w.Level > 0).ToListAsync();
+                            var hpPerLvl = scalingConfig.StageMode.EquipmentHpPerLevel;
+                            var powPerLvl = scalingConfig.StageMode.EquipmentPowerPerLevel;
+                            var defPerLvl = scalingConfig.StageMode.EquipmentDefensePerLevel;
+                            var forging = scalingConfig.StageMode.Forging;
+
+                            foreach (var weapon in weapons)
+                            {
+                                var baseStats = scalingConfig.StageMode.EquipmentStats.Instrument;
+                                var drinkResource = scalingConfig.Gathering.Resources
+                                    .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
+                                var drinkEnergyCost = drinkResource?.EnergyCost ?? 1;
+                                var drinkTierMult = 1.0 + (drinkEnergyCost - 1) * forging.DrinkStatBonusPerTier;
+                                var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
+                                var scaleMult = drinkTierMult * handedMult;
+
+                                weapon.BonusHP = (int)Math.Round((baseStats.HP + weapon.Level * hpPerLvl) * scaleMult);
+                                weapon.BonusPower = (int)Math.Round((baseStats.Power + weapon.Level * powPerLvl) * scaleMult);
+                                weapon.BonusDefense = (int)Math.Round((baseStats.Defense + weapon.Level * defPerLvl) * scaleMult);
+                            }
+                            await db.SaveChangesAsync();
+                            logger.LogInformation("Recalculated stats for {Count} weapons", weapons.Count);
+
+                            // Recalculate equipment bonuses for all characters
+                            var userIds = await db.Characters.Select(c => c.UserId).ToListAsync();
+                            foreach (var userId in userIds)
+                            {
+                                await inventoryService.RecalculateEquipmentBonusesForUserAsync(userId);
+                            }
+                            logger.LogInformation("Recalculated equipment bonuses for {Count} characters", userIds.Count);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Failed to recalculate weapon/equipment stats after migration. Stats may be stale until next equipment change.");
                         }
                     }
                 }

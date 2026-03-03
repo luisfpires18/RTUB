@@ -31,7 +31,7 @@ Each slot's contribution to a stat (HP, Power, or Defense) is:
 $$\text{SlotBonus} = (\text{BaseStat} + \text{bonusLevel} \times \text{flatPerLevel}) \times Q \times L$$
 
 Where:
-- **flatPerLevel** = HP: 100, Power: 15, Defense: 12
+- **flatPerLevel** = HP: 1,000, Power: 150, Defense: 120
 - **Q** (Quality) = 1.0 for new characters (legacy characters may have randomized values 0.7–1.3)
 - **L** (Level Scale) = `1.0 + characterLevel × equipmentLevelScale` (`equipmentLevelScale = 0.005`)
   - At level 170: L = **1.85×**
@@ -40,49 +40,48 @@ Where:
 
 ### Upgrading Equipment
 
-Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (from level 1001).
+Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (from level **8**).
 
-**Fidelis Cost Formula:** `Cost(n) = 240 + n × 240` Fidelis (where `n` = current slot bonus level)
+**Fidelis Cost Formula (Quadratic):** `Cost(n) = 240 + n² × 3,000` Fidelis (where `n` = current slot bonus level)
 
-**Drink Requirement:** Uses tiered drinks. Every **100 levels** advances to the next drink tier:
-- Levels 0–99: No drinks required
-- Levels 100–199: Cerveja (qty 1→50)
-- Levels 200–299: Vinho (qty 1→50)
-- Levels 300–399: Licor (qty 1→50)
-- Levels 400–499: Rum (qty 1→50)
-- Levels 500–599: Tequilla (qty 1→50)
-- Levels 600–699: Vodka (qty 1→50)
-- Levels 700–799: Gin (qty 1→50)
-- Levels 800–899: Whisky (qty 1→50)
-- Levels 900–999: Absinto (qty 1→50)
-- Levels 1000+: Aguardente (qty cycles 1→50)
+**Drink Requirement:** Uses tiered drinks. Every **10 levels** advances to the next drink tier:
+- Levels 0–4: No drinks required (free levels)
+- Levels 5–14: Cerveja (qty 1→5)
+- Levels 15–24: Vinho (qty 1→5)
+- Levels 25–34: Licor (qty 1→5)
+- Levels 35–44: Rum (qty 1→5)
+- Levels 45–54: Tequilla (qty 1→5)
+- Levels 55–64: Vodka (qty 1→5)
+- Levels 65–74: Gin (qty 1→5)
+- Levels 75–84: Whisky (qty 1→5)
+- Levels 85–94: Absinto (qty 1→5)
+- Levels 95+: Aguardente (qty cycles 1→5)
 
-**Leitão Cost:** 0 for levels 0–999. From level 1000+: crescendo starting at 1 piggy, +1 every 250 levels.
+**Leitão Cost:** 0 for levels 0–7. From level 8+: crescendo starting at 1 piggy, +1 every 3 levels.
 
 | Level Range | Leitão Cost |
 |-------------|------------:|
-| 0–999 | 0 |
-| 1000–1249 | 1 |
-| 1250–1499 | 2 |
-| 1500–1749 | 3 |
-| 1750–1999 | 4 |
-| 2000–2249 | 5 |
-| … | +1 per 250 |
+| 0–7 | 0 |
+| 8–10 | 1 |
+| 11–13 | 2 |
+| 14–16 | 3 |
+| 17–19 | 4 |
+| 20–22 | 5 |
+| … | +1 per 3 |
 
-**Max per-slot enhancement level: 9999** (`maxEquipmentEnhancement: 9999`).
+**Max per-slot enhancement level: 100** (`maxEquipmentEnhancement: 100`).
 
 ### Equipment Upgrade Cost Table (sample levels)
 
 | Level | Fidelis Cost | Drink | Qty | Leitão |
 |------:|-----------:|-------|----:|-------:|
-| 1 | 480 | — | — | 0 |
-| 50 | 12,240 | — | — | 0 |
-| 100 | 24,240 | Cerveja | 1 | 0 |
-| 200 | 48,240 | Vinho | 1 | 0 |
-| 500 | 120,240 | Tequilla | 1 | 0 |
-| 1000 | 240,240 | Aguardente | 1 | 1 |
-| 1250 | 300,240 | Aguardente | 26 | 2 |
-| 1500 | 360,240 | Aguardente | 1 | 3 |
+| 1 | 3,240 | — | — | 0 |
+| 5 | 75,240 | Cerveja | 1 | 0 |
+| 10 | 300,240 | Cerveja | 5 | 1 |
+| 15 | 675,240 | Vinho | 1 | 3 |
+| 20 | 1,200,240 | Vinho | 5 | 5 |
+| 50 | 7,500,240 | Tequilla | 5 | 15 |
+| 100 | 30,000,240 | Aguardente | 5 | 31 |
 
 ---
 
@@ -174,17 +173,17 @@ $$\text{EffectiveStat} = \text{WeaponStat} \times (1.0 + \text{characterLevel} \
 
 ### Weapon Upgrading
 
-Weapons can be upgraded using **Fidelis + Drinks + Leitões** (from level **12**).
+Weapons can be upgraded using **Fidelis + Drinks + Leitões** (from level **8**).
 
-**Fidelis Cost Formula:** `Cost(n) = 50 + n × 50` Fidelis (where `n` = current weapon level)
+**Fidelis Cost Formula (Quadratic):** `Cost(n) = 50 + n² × 3,000` Fidelis (where `n` = current weapon level)
 
-**Drink Requirement:** Same tier system as equipment (100 levels per tier, see above).
+**Drink Requirement:** Same tier system as equipment (10 levels per tier, max qty 5 per tier).
 
-**Leitão Cost:** Same crescendo as equipment — 0 for levels 0–999, then +1 every 250 levels from 1000.
+**Leitão Cost:** Same as equipment — 0 below level 8, then crescendo +1 every 3 levels.
 
-**Stat bonus per level:** +5% of base stats per level (`weaponUpgradeStatBonus = 0.05`)
+**Stat bonus per level:** HP: +1,000, Power: +150, Defense: +120 (flat per level, replaces legacy +5%)
 
-**Max Weapon Level:** 9999
+**Max Weapon Level:** 100
 
 ### Weapon Equipping
 
@@ -222,23 +221,25 @@ All values are defined in `scaling.config.json` under `stageMode`:
 |-----|-------|-------------|
 | `equipmentStats.*` | per-slot HP/Power/Def | Base armor stats |
 | `equipmentEnhancementBonus` | 0.05 | +5% per enhancement level |
-| `maxEquipmentEnhancement` | 9999 | Cap per slot |
+| `maxEquipmentEnhancement` | 100 | Cap per slot |
 | `equipmentLevelScale` | 0.005 | Character level → equipment multiplier |
 | `weaponCharacterLevelScale` | 0.005 | Character level → weapon multiplier |
 | `forging.weaponUpgradeBaseCost` | 50 | Base Fidelis for weapon upgrade |
-| `forging.weaponUpgradeCostPerLevel` | 50 | Per-level Fidelis increment |
+| `forging.weaponUpgradeCostPerLevel` | 50 | Per-level Fidelis increment (linear part) |
+| `forging.weaponUpgradeCostScale` | 3,000 | Quadratic cost scale for weapon upgrades |
 | `forging.equipmentUpgradeBaseCost` | 240 | Base Fidelis for armor upgrade |
-| `forging.equipmentUpgradeCostPerLevel` | 240 | Per-level Fidelis increment |
+| `forging.equipmentUpgradeCostPerLevel` | 240 | Per-level Fidelis increment (linear part) |
+| `forging.equipmentUpgradeCostScale` | 3,000 | Quadratic cost scale for equipment upgrades |
 | `forging.twoHandedMultiplier` | 2.0 | 2H weapon stat multiplier |
-| `forging.weaponUpgradeStatBonus` | 0.05 | +5% per weapon level |
-| `forging.maxWeaponLevel` | 9999 | Weapon level cap |
-| `forging.upgradeLevelsPerDrinkTier` | 100 | Levels before next drink tier |
+| `forging.weaponUpgradeStatBonus` | 0.05 | Legacy +5% per weapon level (flat bonuses used instead) |
+| `forging.maxWeaponLevel` | 100 | Weapon level cap |
+| `forging.upgradeLevelsPerDrinkTier` | 10 | Levels before next drink tier |
 | `forging.drinkStatBonusPerTier` | 0.25 | +25% stats per drink tier above Cerveja |
 
 ### Piggies (Leitão) Cost Config
 
 | Key | Value | Description |
 |-----|------:|-------------|
-| Weapon/Equipment Leitão | Starts at 1000 | Crescendo: 0 below 1000, then +1 every 250 levels |
+| Weapon/Equipment Leitão | Starts at 8 | Crescendo: 0 below 8, then +1 every 3 levels |
 
 Leitões are earned exclusively from **Boss Mode** victories.

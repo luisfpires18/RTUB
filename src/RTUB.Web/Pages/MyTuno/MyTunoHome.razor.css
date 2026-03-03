@@ -566,6 +566,185 @@
 }
 
 /* ==========================================
+   Item Detail Modal (Weapon & Equipment)
+   ========================================== */
+.item-detail-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.item-detail-name {
+  margin: 0;
+  color: #e2e2e2;
+  font-size: 1.1rem;
+}
+
+.item-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.item-detail-tags .badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.item-detail-section {
+  background: rgba(15, 15, 28, 0.6);
+  border: 1px solid rgba(111, 66, 193, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.item-detail-section__label {
+  font-size: 0.72rem;
+  color: #aaa;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+
+/* Stat rows — compact horizontal layout */
+.item-detail-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.82rem;
+}
+
+.item-stat-row--preview {
+  background: rgba(76, 175, 80, 0.06);
+  border: 1px solid rgba(76, 175, 80, 0.15);
+}
+
+.item-stat-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.item-stat-row__icon--hp { background: rgba(220, 53, 69, 0.2); color: #ff6b7a; }
+.item-stat-row__icon--pow { background: rgba(76, 175, 80, 0.2); color: #81c784; }
+.item-stat-row__icon--def { background: rgba(158, 158, 158, 0.2); color: #bdbdbd; }
+.item-stat-row__icon--spd { background: rgba(33, 150, 243, 0.2); color: #64b5f6; }
+.item-stat-row__icon--crit { background: rgba(255, 193, 7, 0.2); color: #ffd54f; }
+
+.item-stat-row__label {
+  color: #ccc;
+  min-width: 55px;
+}
+
+.item-stat-row__value {
+  color: #e2e2e2;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.item-stat-row__delta {
+  color: #4caf50;
+  font-size: 0.72rem;
+  font-weight: 500;
+  min-width: 55px;
+  text-align: right;
+}
+
+.item-stat-row__delta:empty {
+  display: none;
+}
+
+/* Upgrade button inside section */
+.item-detail-upgrade-btn {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.15));
+  border: 1px solid rgba(111, 66, 193, 0.4);
+  color: #e2e2e2;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  transition: all 0.2s;
+}
+
+.item-detail-upgrade-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.5), rgba(111, 66, 193, 0.3));
+  border-color: rgba(111, 66, 193, 0.6);
+  color: #fff;
+}
+
+.item-detail-upgrade-btn:disabled {
+  opacity: 0.5;
+  color: #999;
+}
+
+.item-detail-upgrade-btn--drink {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.08));
+  border-color: rgba(255, 193, 7, 0.35);
+}
+
+.item-detail-upgrade-btn--drink:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.35), rgba(255, 193, 7, 0.15));
+  border-color: rgba(255, 193, 7, 0.55);
+}
+
+/* Footer action buttons */
+.item-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .item-stat-row {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.3rem;
+  }
+
+  .item-stat-row__icon {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .item-stat-row__label {
+    min-width: 45px;
+  }
+
+  .item-stat-row__delta {
+    min-width: 45px;
+    font-size: 0.68rem;
+  }
+
+  .item-detail-section {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .item-detail-name {
+    font-size: 1rem;
+  }
+}
+
+/* ==========================================
    Fidelis Balance Bar (top currency display)
    ========================================== */
 .fidelis-bar {

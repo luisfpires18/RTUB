@@ -19,14 +19,16 @@
 
     "upgrades": {
       "hp": {
-        "flatBonus": 100,
+        "flatBonus": 200,
         "baseCost": 80,
-        "costPerLevel": 80
+        "costPerLevel": 160,
+        "maxUpgrades": 9999
       },
       "power": {
-        "flatBonus": 15,
+        "flatBonus": 30,
         "baseCost": 80,
-        "costPerLevel": 80
+        "costPerLevel": 160,
+        "maxUpgrades": 9999
       },
       "speed": {
         "flatBonus": 1.5,
@@ -41,9 +43,10 @@
         "maxUpgrades": 100
       },
       "defense": {
-        "flatBonus": 12,
+        "flatBonus": 24,
         "baseCost": 80,
-        "costPerLevel": 80
+        "costPerLevel": 160,
+        "maxUpgrades": 9999
       }
     },
 
@@ -153,9 +156,9 @@
         "boots": { "hp": 40, "power": 6, "defense": 13 },
         "instrument": { "hp": 10, "power": 16, "defense": 7 }
       },
-      "equipmentHpPerLevel": 100,
-      "equipmentPowerPerLevel": 15,
-      "equipmentDefensePerLevel": 12,
+      "equipmentHpPerLevel": 200,
+      "equipmentPowerPerLevel": 30,
+      "equipmentDefensePerLevel": 24,
       "equipmentQualityMin": 0.7,
       "equipmentQualityMax": 1.3,
       "equipmentEnhancementBonus": 0.05,
@@ -172,11 +175,11 @@
       "forging": {
         "castTimeSeconds": 5,
         "weaponUpgradeBaseCost": 50,
-        "weaponUpgradeCostPerLevel": 50,
+        "weaponUpgradeCostPerLevel": 100,
         "maxWeaponLevel": 9999,
         "weaponUpgradeStatBonus": 0.05,
         "equipmentUpgradeBaseCost": 240,
-        "equipmentUpgradeCostPerLevel": 240,
+        "equipmentUpgradeCostPerLevel": 480,
         "twoHandedMultiplier": 2.0,
         "instrumentQualityMin": 0.85,
         "instrumentQualityMax": 1.15,
@@ -300,9 +303,9 @@
       },
 
       "piggies": {
-        "statUpgradeStartLevel": 601,
+        "statUpgradeStartLevel": 301,
         "statUpgradeBaseCost": 1,
-        "statUpgradeCostEveryNLevels": 100,
+        "statUpgradeCostEveryNLevels": 50,
         "speedUpgradeStartLevel": 20,
         "critUpgradeStartLevel": 50,
         "improvementStartLevel": 20,
@@ -311,12 +314,12 @@
         "powerStartLevel": 20,
         "powerBaseCost": 1,
         "powerCostEveryNLevels": 5,
-        "weaponUpgradeStartLevel": 601,
+        "weaponUpgradeStartLevel": 500,
         "weaponUpgradeBaseCost": 1,
-        "weaponUpgradeCostEveryNLevels": 100,
-        "equipmentUpgradeStartLevel": 601,
+        "weaponUpgradeCostEveryNLevels": 125,
+        "equipmentUpgradeStartLevel": 500,
         "equipmentUpgradeBaseCost": 1,
-        "equipmentUpgradeCostEveryNLevels": 100
+        "equipmentUpgradeCostEveryNLevels": 125
       },
 
       "fitabDropChanceStage": 0.002,

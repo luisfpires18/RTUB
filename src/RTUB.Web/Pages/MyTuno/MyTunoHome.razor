@@ -1424,13 +1424,33 @@
         var nextDrinkRes = nextDrinkTier != null ? activeResources.FirstOrDefault(r => r.Type == nextDrinkTier.Value.ToString()) : null;
         var nextDrinkUnlocked = nextDrinkRes != null && (stageProgress?.HighestStage ?? 0) >= nextDrinkRes.UnlockStage;
         var currentDrinkRes = activeResources.FirstOrDefault(r => r.Type == pendingWeapon.SourceDrink.ToString());
+
+        // Pre-compute projected stats after level upgrade (+1)
+        var _wForging = MyTunoConfig.Value.StageMode.Forging;
+        var _wBaseStats = MyTunoConfig.Value.StageMode.EquipmentStats.Instrument;
+        var _wDrinkResource = MyTunoConfig.Value.Gathering.Resources.FirstOrDefault(r => r.Type == pendingWeapon.SourceDrink.ToString());
+        var _wDrinkEnergyCost = _wDrinkResource?.EnergyCost ?? 1;
+        var _wDrinkMult = 1.0 + (_wDrinkEnergyCost - 1) * _wForging.DrinkStatBonusPerTier;
+        var _wHandedMult = pendingWeapon.IsTwoHanded ? _wForging.TwoHandedMultiplier : 1.0;
+        var _wScale = _wDrinkMult * _wHandedMult;
+        var _wHpPerLvl = MyTunoConfig.Value.StageMode.EquipmentHpPerLevel;
+        var _wPowPerLvl = MyTunoConfig.Value.StageMode.EquipmentPowerPerLevel;
+        var _wDefPerLvl = MyTunoConfig.Value.StageMode.EquipmentDefensePerLevel;
+        var nextHP = (int)Math.Round((_wBaseStats.HP + (pendingWeapon.Level + 1) * _wHpPerLvl) * _wScale);
+        var nextPow = (int)Math.Round((_wBaseStats.Power + (pendingWeapon.Level + 1) * _wPowPerLvl) * _wScale);
+        var nextDef = (int)Math.Round((_wBaseStats.Defense + (pendingWeapon.Level + 1) * _wDefPerLvl) * _wScale);
+        var lvlDeltaHP = nextHP - pendingWeapon.BonusHP;
+        var lvlDeltaPow = nextPow - pendingWeapon.BonusPower;
+        var lvlDeltaDef = nextDef - pendingWeapon.BonusDefense;
+
         <Modal Show="@showWeaponActionModal"
                ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
                Title="@pendingWeapon.Name"
                Size="Modal.ModalSize.Default"
                Centered="true">
             <BodyContent>
-                <div class="text-center mb-3">
+                <!-- Header: icon + name + level + type + drink -->
+                <div class="item-detail-header">
                     <div class="equip-confirm-icon">
                         @if (GetForgedWeaponPictureUrl(pendingWeapon) is string pendingWpnImg)
                         {
@@ -1441,89 +1461,83 @@
                             <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
                         }
                     </div>
-                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">
+                    <h5 class="item-detail-name">
                         @pendingWeapon.Name
                         @if (pendingWeapon.Level > 0)
                         {
                             <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@pendingWeapon.Level</span>
                         }
                     </h5>
-                    <span class="badge bg-info bg-opacity-25 text-info">
-                        @WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)
-                    </span>
-                </div>
-
-                <!-- Bonus Stats -->
-                <div class="equip-confirm-stats mb-3">
-                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
-                    <div class="ftile-grid ftile-grid--bonus">
-                        @if (pendingWeapon.BonusHP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(pendingWeapon.BonusHP)}")" Color="red" Size="sm" /> }
-                        @if (pendingWeapon.BonusPower > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(pendingWeapon.BonusPower)}")" Color="green" Size="sm" /> }
-                        @if (pendingWeapon.BonusSpeed > 0) { <FantasyTile Icon="bi-speedometer2" Label="Vel" Value="@($"+{Fmt(pendingWeapon.BonusSpeed)}")" Color="blue" Size="sm" /> }
-                        @if (pendingWeapon.BonusDefense > 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(pendingWeapon.BonusDefense)}")" Color="gray" Size="sm" /> }
-                        @if (pendingWeapon.BonusCriticalChance > 0) { <FantasyTile Icon="bi-bullseye" Label="Crit" Value="@($"+{pendingWeapon.BonusCriticalChance * 100:F1}%")" Color="yellow" Size="sm" /> }
+                    <div class="item-detail-tags">
+                        <span class="badge bg-info bg-opacity-25 text-info">@WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)</span>
+                        @if (currentDrinkRes != null)
+                        {
+                            <span class="badge bg-purple bg-opacity-25 text-purple">
+                                @if (!string.IsNullOrEmpty(GetDrinkPictureUrl(pendingWeapon.SourceDrink)))
+                                {
+                                    <img src="@CacheBuster.Bust(GetDrinkPictureUrl(pendingWeapon.SourceDrink))" alt="" style="width: 14px; height: 14px; vertical-align: -2px;" />
+                                }
+                                @(currentDrinkRes.Name ?? pendingWeapon.SourceDrink.ToString())
+                            </span>
+                        }
                     </div>
                 </div>
 
-                <!-- Base Drink -->
-                <div class="mb-3">
-                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
-                        <i class="bi bi-cup-straw me-1"></i>Bebida Base:
-                    </small>
-                    <div class="ftile-grid ftile-grid--2col">
-                        <FantasyTile ImageUrl="@(GetDrinkPictureUrl(pendingWeapon.SourceDrink))" Icon="@(currentDrinkRes?.Icon ?? "bi-cup-straw")" Label="@(currentDrinkRes?.Name ?? pendingWeapon.SourceDrink.ToString())"
-                                     Value="" Color="purple" Size="md" />
+                <!-- Current Stats with next-level preview -->
+                <div class="item-detail-section">
+                    <div class="item-detail-section__label"><i class="bi bi-bar-chart-fill me-1"></i>Bónus Atuais</div>
+                    <div class="item-detail-stats">
+                        @if (pendingWeapon.BonusHP > 0)
+                        {
+                            <div class="item-stat-row">
+                                <span class="item-stat-row__icon item-stat-row__icon--hp"><i class="bi bi-heart-fill"></i></span>
+                                <span class="item-stat-row__label">HP</span>
+                                <span class="item-stat-row__value">+@Fmt(pendingWeapon.BonusHP)</span>
+                                <span class="item-stat-row__delta">+@Fmt(lvlDeltaHP)</span>
+                            </div>
+                        }
+                        @if (pendingWeapon.BonusPower > 0)
+                        {
+                            <div class="item-stat-row">
+                                <span class="item-stat-row__icon item-stat-row__icon--pow"><i class="bi bi-lightning-fill"></i></span>
+                                <span class="item-stat-row__label">Poder</span>
+                                <span class="item-stat-row__value">+@Fmt(pendingWeapon.BonusPower)</span>
+                                <span class="item-stat-row__delta">+@Fmt(lvlDeltaPow)</span>
+                            </div>
+                        }
+                        @if (pendingWeapon.BonusDefense > 0)
+                        {
+                            <div class="item-stat-row">
+                                <span class="item-stat-row__icon item-stat-row__icon--def"><i class="bi bi-shield-fill"></i></span>
+                                <span class="item-stat-row__label">Defesa</span>
+                                <span class="item-stat-row__value">+@Fmt(pendingWeapon.BonusDefense)</span>
+                                <span class="item-stat-row__delta">+@Fmt(lvlDeltaDef)</span>
+                            </div>
+                        }
+                        @if (pendingWeapon.BonusSpeed > 0)
+                        {
+                            <div class="item-stat-row">
+                                <span class="item-stat-row__icon item-stat-row__icon--spd"><i class="bi bi-speedometer2"></i></span>
+                                <span class="item-stat-row__label">Velocidade</span>
+                                <span class="item-stat-row__value">+@Fmt(pendingWeapon.BonusSpeed)</span>
+                                <span class="item-stat-row__delta"></span>
+                            </div>
+                        }
+                        @if (pendingWeapon.BonusCriticalChance > 0)
+                        {
+                            <div class="item-stat-row">
+                                <span class="item-stat-row__icon item-stat-row__icon--crit"><i class="bi bi-bullseye"></i></span>
+                                <span class="item-stat-row__label">Crítico</span>
+                                <span class="item-stat-row__value">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%")</span>
+                                <span class="item-stat-row__delta"></span>
+                            </div>
+                        }
                     </div>
                 </div>
 
-                @if (nextDrinkTier != null && nextDrinkUnlocked)
-                {
-                    // Pre-compute projected stats after drink tier upgrade
-                    var _forging = MyTunoConfig.Value.StageMode.Forging;
-                    var _baseStats = MyTunoConfig.Value.StageMode.EquipmentStats.Instrument;
-                    var _nextEnergyCost = nextDrinkRes?.EnergyCost ?? 1;
-                    var _nextDrinkMult = 1.0 + (_nextEnergyCost - 1) * _forging.DrinkStatBonusPerTier;
-                    var _handedMult = pendingWeapon.IsTwoHanded ? _forging.TwoHandedMultiplier : 1.0;
-                    var _nextScale = _nextDrinkMult * _handedMult;
-                    var _hpPerLvl = MyTunoConfig.Value.StageMode.EquipmentHpPerLevel;
-                    var _powPerLvl = MyTunoConfig.Value.StageMode.EquipmentPowerPerLevel;
-                    var _defPerLvl = MyTunoConfig.Value.StageMode.EquipmentDefensePerLevel;
-                    var projHP = (int)Math.Round((_baseStats.HP + pendingWeapon.Level * _hpPerLvl) * _nextScale);
-                    var projPow = (int)Math.Round((_baseStats.Power + pendingWeapon.Level * _powPerLvl) * _nextScale);
-                    var projDef = (int)Math.Round((_baseStats.Defense + pendingWeapon.Level * _defPerLvl) * _nextScale);
-                    var deltaHP = projHP - pendingWeapon.BonusHP;
-                    var deltaPow = projPow - pendingWeapon.BonusPower;
-                    var deltaDef = projDef - pendingWeapon.BonusDefense;
-
-                    <!-- Drink Tier Upgrade -->
-                    <div class="wpn-upgrade-section mb-3">
-                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
-                            <i class="bi bi-arrow-up-circle me-1"></i>Upgrade Bebida para @(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString()):
-                        </small>
-                        <div class="ftile-grid ftile-grid--2col">
-                            <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(drinkUpgradeCost)"
-                                         Color="gold" Size="md" Insufficient="@(!canAffordDrinkUpgrade)">
-                                <span class="ftile-stock @(canAffordDrinkUpgrade ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
-                            </FantasyTile>
-                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(nextDrinkTier.Value))" Icon="@(nextDrinkRes?.Icon ?? "bi-cup-straw")" Label="@(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())"
-                                         Value="" Color="purple" Size="md" />
-                        </div>
-                        <div class="ftile-grid ftile-grid--bonus mt-2">
-                            @if (deltaHP != 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(projHP)}")"
-                                Color="red" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaHP)</span></FantasyTile> }
-                            @if (deltaPow != 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(projPow)}")"
-                                Color="green" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaPow)</span></FantasyTile> }
-                            @if (deltaDef != 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(projDef)}")"
-                                Color="gray" Size="sm"><span style="color: #4caf50; font-size: 0.65rem;">+@Fmt(deltaDef)</span></FantasyTile> }
-                        </div>
-                    </div>
-                }
-
-                <!-- Upgrade Requirements Section -->
-                <div class="wpn-upgrade-section">
-                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
-                        <i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(pendingWeapon.Level + 1):
-                    </small>
+                <!-- Level Upgrade Cost -->
+                <div class="item-detail-section">
+                    <div class="item-detail-section__label"><i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(pendingWeapon.Level + 1)</div>
                     <div class="ftile-grid ftile-grid--2col">
                         <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(upgradeCost)"
                                      Color="gold" Size="md" Insufficient="@(!hasFidelis)">
@@ -1548,42 +1562,105 @@
                             </FantasyTile>
                         }
                     </div>
-                </div>
-            </BodyContent>
-            <FooterContent>
-                <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
-                    <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
+                    <div class="text-center mt-2">
+                    <button class="btn item-detail-upgrade-btn" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
+                        @if (weaponActioning)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
                     </button>
-                    @if (nextDrinkTier != null && nextDrinkUnlocked)
-                    {
-                        <button class="btn btn-outline-warning btn-sm" @onclick="() => ConfirmWeaponDrinkUpgrade()" disabled="@(weaponActioning || !canAffordDrinkUpgrade)">
+                    </div>
+                </div>
+
+                @if (nextDrinkTier != null && nextDrinkUnlocked)
+                {
+                    // Pre-compute projected stats after drink tier upgrade
+                    var _forging = MyTunoConfig.Value.StageMode.Forging;
+                    var _baseStats = MyTunoConfig.Value.StageMode.EquipmentStats.Instrument;
+                    var _nextEnergyCost = nextDrinkRes?.EnergyCost ?? 1;
+                    var _nextDrinkMult = 1.0 + (_nextEnergyCost - 1) * _forging.DrinkStatBonusPerTier;
+                    var _handedMult = pendingWeapon.IsTwoHanded ? _forging.TwoHandedMultiplier : 1.0;
+                    var _nextScale = _nextDrinkMult * _handedMult;
+                    var _hpPerLvl = MyTunoConfig.Value.StageMode.EquipmentHpPerLevel;
+                    var _powPerLvl = MyTunoConfig.Value.StageMode.EquipmentPowerPerLevel;
+                    var _defPerLvl = MyTunoConfig.Value.StageMode.EquipmentDefensePerLevel;
+                    var projHP = (int)Math.Round((_baseStats.HP + pendingWeapon.Level * _hpPerLvl) * _nextScale);
+                    var projPow = (int)Math.Round((_baseStats.Power + pendingWeapon.Level * _powPerLvl) * _nextScale);
+                    var projDef = (int)Math.Round((_baseStats.Defense + pendingWeapon.Level * _defPerLvl) * _nextScale);
+                    var deltaHP = projHP - pendingWeapon.BonusHP;
+                    var deltaPow = projPow - pendingWeapon.BonusPower;
+                    var deltaDef = projDef - pendingWeapon.BonusDefense;
+
+                    <!-- Drink Tier Upgrade -->
+                    <div class="item-detail-section">
+                        <div class="item-detail-section__label"><i class="bi bi-cup-straw me-1"></i>Upgrade Bebida para @(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())</div>
+                        <div class="item-detail-stats mb-2">
+                            @if (deltaHP != 0)
+                            {
+                                <div class="item-stat-row item-stat-row--preview">
+                                    <span class="item-stat-row__icon item-stat-row__icon--hp"><i class="bi bi-heart-fill"></i></span>
+                                    <span class="item-stat-row__label">HP</span>
+                                    <span class="item-stat-row__value">+@Fmt(projHP)</span>
+                                    <span class="item-stat-row__delta">+@Fmt(deltaHP)</span>
+                                </div>
+                            }
+                            @if (deltaPow != 0)
+                            {
+                                <div class="item-stat-row item-stat-row--preview">
+                                    <span class="item-stat-row__icon item-stat-row__icon--pow"><i class="bi bi-lightning-fill"></i></span>
+                                    <span class="item-stat-row__label">Poder</span>
+                                    <span class="item-stat-row__value">+@Fmt(projPow)</span>
+                                    <span class="item-stat-row__delta">+@Fmt(deltaPow)</span>
+                                </div>
+                            }
+                            @if (deltaDef != 0)
+                            {
+                                <div class="item-stat-row item-stat-row--preview">
+                                    <span class="item-stat-row__icon item-stat-row__icon--def"><i class="bi bi-shield-fill"></i></span>
+                                    <span class="item-stat-row__label">Defesa</span>
+                                    <span class="item-stat-row__value">+@Fmt(projDef)</span>
+                                    <span class="item-stat-row__delta">+@Fmt(deltaDef)</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="ftile-grid ftile-grid--2col">
+                            <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(drinkUpgradeCost)"
+                                         Color="gold" Size="md" Insufficient="@(!canAffordDrinkUpgrade)">
+                                <span class="ftile-stock @(canAffordDrinkUpgrade ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
+                            </FantasyTile>
+                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(nextDrinkTier.Value))" Icon="@(nextDrinkRes?.Icon ?? "bi-cup-straw")" Label="@(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())"
+                                         Value="" Color="purple" Size="md" />
+                        </div>
+                        <div class="text-center mt-2">
+                        <button class="btn item-detail-upgrade-btn item-detail-upgrade-btn--drink" @onclick="() => ConfirmWeaponDrinkUpgrade()" disabled="@(weaponActioning || !canAffordDrinkUpgrade)">
                             <i class="bi bi-cup-straw me-1"></i>Upgrade para @(nextDrinkRes?.Name ?? nextDrinkTier.Value.ToString())
                         </button>
-                    }
-                </div>
-                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                        </div>
+                    </div>
+                }
+            </BodyContent>
+            <FooterContent>
+                <div class="item-detail-actions">
                     @if (pendingWeapon.IsEquipped)
                     {
-                        <button class="btn btn-purple" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
-                            <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                        <button class="btn btn-purple btn-sm" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
+                            <i class="bi bi-box-arrow-down me-1"></i>Desequipar
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-purple" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
-                            <i class="bi bi-box-arrow-in-up me-2"></i>Equipar Slot 1
+                        <button class="btn btn-purple btn-sm" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
+                            <i class="bi bi-box-arrow-in-up me-1"></i>Equipar Slot 1
                         </button>
                         @if (!pendingWeapon.IsTwoHanded)
                         {
-                            <button class="btn btn-purple opacity-75" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
-                                <i class="bi bi-box-arrow-in-up me-2"></i>Slot 2
+                            <button class="btn btn-purple btn-sm opacity-75" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
+                                <i class="bi bi-box-arrow-in-up me-1"></i>Slot 2
                             </button>
                         }
                     }
-                </div>
-                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    <button class="btn btn-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
+                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
                         <i class="bi bi-trash me-1"></i>Descartar
                         <small class="opacity-75">(@Fmt(weaponDiscardValue) <i class="bi bi-coin"></i>)</small>
                     </button>
@@ -1693,13 +1770,48 @@
             _ => 0.0
         };
         var actionQualityPct = pendingActionIsEquipped && actionStoredQuality > 0 ? (int)Math.Round(actionStoredQuality * 100) : 0;
+
+        // Pre-compute next-level stats for equipment
+        EquipmentPieceStats? eqNextStats = null;
+        if (actionIsEquip && actionSlot.HasValue && actionItemStats != null)
+        {
+            var _eqStageConfig = MyTunoConfig.Value.StageMode;
+            var _eqLevelScale = 1.0 + (character?.Level ?? 1) * _eqStageConfig.EquipmentLevelScale;
+            var _eqBaseStatsCfg = actionSlot.Value switch
+            {
+                EquipmentSlot.Head => _eqStageConfig.EquipmentStats.Head,
+                EquipmentSlot.Shoulders => _eqStageConfig.EquipmentStats.Shoulders,
+                EquipmentSlot.Chest => _eqStageConfig.EquipmentStats.Chest,
+                EquipmentSlot.Gloves => _eqStageConfig.EquipmentStats.Gloves,
+                EquipmentSlot.Legs => _eqStageConfig.EquipmentStats.Legs,
+                EquipmentSlot.Boots => _eqStageConfig.EquipmentStats.Boots,
+                _ => null
+            };
+            if (_eqBaseStatsCfg != null)
+            {
+                var _eqHpPerLvl = _eqStageConfig.EquipmentHpPerLevel;
+                var _eqPowPerLvl = _eqStageConfig.EquipmentPowerPerLevel;
+                var _eqDefPerLvl = _eqStageConfig.EquipmentDefensePerLevel;
+                var _eqQualityAvg = (_eqStageConfig.EquipmentQualityMin + _eqStageConfig.EquipmentQualityMax) / 2.0;
+                var _eqQuality = pendingActionIsEquipped && actionStoredQuality > 0 ? actionStoredQuality : _eqQualityAvg;
+                var _eqNextLevel = actionSlotLevel + 1;
+                eqNextStats = new EquipmentPieceStats
+                {
+                    HP = (int)Math.Round((_eqBaseStatsCfg.HP + _eqNextLevel * _eqHpPerLvl) * _eqQuality * _eqLevelScale),
+                    Power = (int)Math.Round((_eqBaseStatsCfg.Power + _eqNextLevel * _eqPowPerLvl) * _eqQuality * _eqLevelScale),
+                    Defense = (int)Math.Round((_eqBaseStatsCfg.Defense + _eqNextLevel * _eqDefPerLvl) * _eqQuality * _eqLevelScale),
+                };
+            }
+        }
+
         <Modal Show="@showItemActionModal"
                ShowChanged="@((bool show) => { if (!show) CloseItemActionModal(); })"
                Title="@actionItemName"
                Size="Modal.ModalSize.Default"
                Centered="true">
             <BodyContent>
-                <div class="text-center mb-3">
+                <!-- Header -->
+                <div class="item-detail-header">
                     <div class="equip-confirm-icon">
                         @if (!string.IsNullOrEmpty(actionItemImgUrl))
                         {
@@ -1710,7 +1822,7 @@
                             <i class="bi @actionItemIcon" style="font-size: 2.5rem; color: var(--bs-primary);"></i>
                         }
                     </div>
-                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">
+                    <h5 class="item-detail-name">
                         @actionItemName
                         @if (actionIsEquip && actionSlotLevel > 0)
                         {
@@ -1719,21 +1831,109 @@
                     </h5>
                     @if (actionIsInstr)
                     {
-                        <span class="badge bg-info bg-opacity-25 text-info mt-1"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
+                        <div class="item-detail-tags">
+                            <span class="badge bg-info bg-opacity-25 text-info"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
+                        </div>
                     }
-
                 </div>
+
                 @if (actionItemStats != null && actionIsEquip)
                 {
-                    <div class="equip-confirm-stats mb-3">
-                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
-                        <div class="ftile-grid ftile-grid--bonus">
-                            @if (actionItemStats.HP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(actionItemStats.HP)}")" Color="red" Size="sm" /> }
-                            @if (actionItemStats.Power > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(actionItemStats.Power)}")" Color="green" Size="sm" /> }
-                            @if (actionItemStats.Defense > 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(actionItemStats.Defense)}")" Color="gray" Size="sm" /> }
+                    <!-- Current Stats with next-level preview -->
+                    <div class="item-detail-section">
+                        <div class="item-detail-section__label"><i class="bi bi-bar-chart-fill me-1"></i>Bónus Atuais</div>
+                        <div class="item-detail-stats">
+                            @if (actionItemStats.HP > 0)
+                            {
+                                <div class="item-stat-row">
+                                    <span class="item-stat-row__icon item-stat-row__icon--hp"><i class="bi bi-heart-fill"></i></span>
+                                    <span class="item-stat-row__label">HP</span>
+                                    <span class="item-stat-row__value">+@Fmt(actionItemStats.HP)</span>
+                                    @if (eqNextStats != null)
+                                    {
+                                        <span class="item-stat-row__delta">+@Fmt(eqNextStats.HP - actionItemStats.HP)</span>
+                                    }
+                                </div>
+                            }
+                            @if (actionItemStats.Power > 0)
+                            {
+                                <div class="item-stat-row">
+                                    <span class="item-stat-row__icon item-stat-row__icon--pow"><i class="bi bi-lightning-fill"></i></span>
+                                    <span class="item-stat-row__label">Poder</span>
+                                    <span class="item-stat-row__value">+@Fmt(actionItemStats.Power)</span>
+                                    @if (eqNextStats != null)
+                                    {
+                                        <span class="item-stat-row__delta">+@Fmt(eqNextStats.Power - actionItemStats.Power)</span>
+                                    }
+                                </div>
+                            }
+                            @if (actionItemStats.Defense > 0)
+                            {
+                                <div class="item-stat-row">
+                                    <span class="item-stat-row__icon item-stat-row__icon--def"><i class="bi bi-shield-fill"></i></span>
+                                    <span class="item-stat-row__label">Defesa</span>
+                                    <span class="item-stat-row__value">+@Fmt(actionItemStats.Defense)</span>
+                                    @if (eqNextStats != null)
+                                    {
+                                        <span class="item-stat-row__delta">+@Fmt(eqNextStats.Defense - actionItemStats.Defense)</span>
+                                    }
+                                </div>
+                            }
                         </div>
                     </div>
+
+                    <!-- Upgrade Cost (moved from footer) -->
+                    @if (actionSlot.HasValue)
+                    {
+                        var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
+                        var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
+                        var eqDrinkReqs = InventoryService.GetEquipmentUpgradeDrinkRequirements(eqSlotBonusLevel);
+                        var eqLeitaoCost = InventoryService.GetEquipmentUpgradeLeitaoCost(eqSlotBonusLevel);
+                        var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
+                        var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
+                        var hasDrinksEq = eqDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
+                        var canAffordEqUpgrade = hasFidelisEq && hasDrinksEq && hasLeitaoEq;
+                        var upgradeSlot = actionSlot.Value;
+
+                        <div class="item-detail-section">
+                            <div class="item-detail-section__label"><i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(actionSlotLevel + 1)</div>
+                            <div class="ftile-grid ftile-grid--2col">
+                                <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(eqUpgradeCost)"
+                                             Color="gold" Size="md" Insufficient="@(!hasFidelisEq)">
+                                    <span class="ftile-stock @(hasFidelisEq ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
+                                </FantasyTile>
+                                @foreach (var (drinkType, drinkQty) in eqDrinkReqs)
+                                {
+                                    var drinkName = GetResourceName(drinkType);
+                                    var drinkHave = GetResourceQuantity(drinkType);
+                                    var drinkRes = activeResources.FirstOrDefault(r => r.Type == drinkType.ToString());
+                                    var hasDrink = drinkHave >= drinkQty;
+                                    <FantasyTile ImageUrl="@(GetDrinkPictureUrl(drinkType))" Icon="@(drinkRes?.Icon ?? "bi-cup-straw")" Label="@drinkName" Value="@($"×{drinkQty}")"
+                                                 Color="purple" Size="md" Insufficient="@(!hasDrink)">
+                                        <span class="ftile-stock @(hasDrink ? "ftile-stock--ok" : "ftile-stock--low")">@drinkHave</span>
+                                    </FantasyTile>
+                                }
+                                @if (eqLeitaoCost > 0)
+                                {
+                                    <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{eqLeitaoCost}")"
+                                                 Color="pink" Size="md" Insufficient="@(!hasLeitaoEq)">
+                                        <span class="ftile-stock @(hasLeitaoEq ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
+                                    </FantasyTile>
+                                }
+                            </div>
+                            <div class="text-center mt-2">
+                            <button class="btn item-detail-upgrade-btn" @onclick="() => ConfirmEquipmentSlotUpgrade(upgradeSlot)" disabled="@(itemActioning || !canAffordEqUpgrade)">
+                                @if (itemActioning)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(actionSlotLevel + 1)
+                            </button>
+                            </div>
+                        </div>
+                    }
                 }
+
                 @if (!actionIsEquip)
                 {
                     <div class="discard-fidelis-reward">
@@ -1743,59 +1943,22 @@
                 }
             </BodyContent>
             <FooterContent>
-                @if (actionIsEquip && actionSlot.HasValue)
-                {
-                    var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
-                    var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
-                    var eqDrinkReqs = InventoryService.GetEquipmentUpgradeDrinkRequirements(eqSlotBonusLevel);
-                    var eqLeitaoCost = InventoryService.GetEquipmentUpgradeLeitaoCost(eqSlotBonusLevel);
-                    var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
-                    var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
-                    var hasDrinksEq = eqDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
-                    var canAffordEqUpgrade = hasFidelisEq && hasDrinksEq && hasLeitaoEq;
-                    var upgradeSlot = actionSlot.Value;
-                    <div class="wpn-upgrade-section mb-2">
-                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(actionSlotLevel + 1):</small>
-                        <div class="ftile-grid ftile-grid--2col">
-                            <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(eqUpgradeCost)"
-                                         Color="gold" Size="md" Insufficient="@(!hasFidelisEq)">
-                                <span class="ftile-stock @(hasFidelisEq ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
-                            </FantasyTile>
-                            @foreach (var (drinkType, drinkQty) in eqDrinkReqs)
-                            {
-                                var drinkName = GetResourceName(drinkType);
-                                var drinkHave = GetResourceQuantity(drinkType);
-                                var drinkRes = activeResources.FirstOrDefault(r => r.Type == drinkType.ToString());
-                                var hasDrink = drinkHave >= drinkQty;
-                                <FantasyTile ImageUrl="@(GetDrinkPictureUrl(drinkType))" Icon="@(drinkRes?.Icon ?? "bi-cup-straw")" Label="@drinkName" Value="@($"×{drinkQty}")"
-                                             Color="purple" Size="md" Insufficient="@(!hasDrink)">
-                                    <span class="ftile-stock @(hasDrink ? "ftile-stock--ok" : "ftile-stock--low")">@drinkHave</span>
-                                </FantasyTile>
-                            }
-                            @if (eqLeitaoCost > 0)
-                            {
-                                <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{eqLeitaoCost}")"
-                                             Color="pink" Size="md" Insufficient="@(!hasLeitaoEq)">
-                                    <span class="ftile-stock @(hasLeitaoEq ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
-                                </FantasyTile>
-                            }
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-center w-100">
-                        <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmEquipmentSlotUpgrade(upgradeSlot)" disabled="@(itemActioning || !canAffordEqUpgrade)">
-                            <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(actionSlotLevel + 1)
+                <div class="item-detail-actions">
+                    @if (actionIsEquip)
+                    {
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                            <i class="bi bi-trash me-1"></i>Descartar
+                            <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
                         </button>
-                    </div>
-                }
-                @if (!actionIsEquip)
-                {
-                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                    }
+                    else
+                    {
                         <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
                             <i class="bi bi-trash me-1"></i>Descartar
                             <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
                         </button>
-                    </div>
-                }
+                    }
+                </div>
             </FooterContent>
         </Modal>
     }

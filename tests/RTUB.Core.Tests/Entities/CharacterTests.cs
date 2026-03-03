@@ -66,8 +66,8 @@ public class CharacterTests
         character.HpUpgrades = 5;
 
         // Act & Assert
-        // Flat bonus: (200 + 100*5) * 1.0 = 700
-        character.TotalHP.Should().Be(700);
+        // Flat bonus: (200 + 200*5) * 1.0 = 1200
+        character.TotalHP.Should().Be(1200);
     }
 
     [Fact]
@@ -88,8 +88,8 @@ public class CharacterTests
         character.PowerUpgrades = 3;
 
         // Act & Assert
-        // Flat bonus: (25 + 15*3) * 1.0 = 70
-        character.TotalPower.Should().Be(70);
+        // Flat bonus: (25 + 30*3) * 1.0 = 115
+        character.TotalPower.Should().Be(115);
     }
 
     [Fact]
@@ -219,8 +219,8 @@ public class CharacterTests
 
         // Assert
         character.HpUpgrades.Should().Be(1);
-        // (200 + 100*1) * 1.0 = 300
-        character.TotalHP.Should().Be(300);
+        // (200 + 200*1) * 1.0 = 400
+        character.TotalHP.Should().Be(400);
     }
 
     [Fact]
@@ -234,8 +234,8 @@ public class CharacterTests
 
         // Assert
         character.PowerUpgrades.Should().Be(1);
-        // (25 + 15*1) * 1.0 = 40
-        character.TotalPower.Should().Be(40);
+        // (25 + 30*1) * 1.0 = 55
+        character.TotalPower.Should().Be(55);
     }
 
     [Fact]
@@ -271,10 +271,10 @@ public class CharacterTests
         character.HpUpgrades.Should().Be(2);
         character.PowerUpgrades.Should().Be(1);
         character.SpeedUpgrades.Should().Be(3);
-        // (200 + 100*2) * 1.0 = 400
-        character.TotalHP.Should().Be(400);
-        // (25 + 15*1) * 1.0 = 40
-        character.TotalPower.Should().Be(40);
+        // (200 + 200*2) * 1.0 = 600
+        character.TotalHP.Should().Be(600);
+        // (25 + 30*1) * 1.0 = 55
+        character.TotalPower.Should().Be(55);
         // Round(10 * 1.0) + Round(3 * 1.5) = 10 + Round(4.5) = 10 + 4 = 14
         character.TotalSpeed.Should().Be(14);
     }

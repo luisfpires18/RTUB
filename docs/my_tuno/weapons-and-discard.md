@@ -35,7 +35,7 @@ Each forged weapon (`ForgedWeapon`) stores:
 | **BonusDefense** | Base formula | Yes (recalculated) |
 | **BonusSpeed** | Bonus roll (≥ Gin tier) | No |
 | **BonusCriticalChance** | Bonus roll (≥ Gin tier) | No |
-| **Level** | Starts at 0, max 20 | — |
+| **Level** | Starts at 0, max 100 | — |
 
 ---
 
@@ -128,32 +128,28 @@ Def   = 7  × 1.00 × Q  →   6 –   8 (avg 7)
 
 ## 4. Weapon Upgrades
 
-### Cost Formula
+### Cost Formula (Quadratic)
 
 ```
-Fidelis = 50 + currentLevel × 50
+Fidelis = 50 + currentLevel² × 3,000
 Drink   = tier drink, quantity = (currentLevel % 5) + 1
-Leitão  = 0 if currentLevel < 12, else 1 + (currentLevel - 12) / 5
+Leitão  = 0 if currentLevel < 8, else 1 + (currentLevel - 8) / 3
 ```
 
-Drink tier advances every 5 levels (`upgradeLevelsPerDrinkTier = 5`). Leitão cost starts at level **12**.
+Drink tier advances every **10** levels (`upgradeLevelsPerDrinkTier = 10`). Leitão cost starts at level **8** (+1 every 3 levels).
 
 | Level | Fidelis | Drink | Qty | Leitão |
 |------:|--------:|-------|----:|-------:|
-| 0 → 1 | 50 | Cerveja | 1 | 0 |
-| 1 → 2 | 100 | Cerveja | 2 | 0 |
-| 2 → 3 | 150 | Cerveja | 3 | 0 |
-| 3 → 4 | 200 | Cerveja | 4 | 0 |
-| 4 → 5 | 250 | Cerveja | 5 | 0 |
-| 5 → 6 | 300 | Vinho | 1 | 0 |
-| 9 → 10 | 500 | Vinho | 5 | 0 |
-| 10 → 11 | 550 | Licor | 1 | 0 |
-| 12 → 13 | 650 | Licor | 3 | 1 |
-| 14 → 15 | 750 | Licor | 5 | 1 |
-| 15 → 16 | 800 | Rum | 1 | 1 |
-| 19 → 20 | 1,000 | Rum | 5 | 2 |
+| 0 → 1 | 3,050 | Cerveja | 1 | 0 |
+| 1 → 2 | 12,050 | Cerveja | 2 | 0 |
+| 4 → 5 | 75,050 | Cerveja | 5 | 0 |
+| 9 → 10 | 243,050 | Cerveja | 5 | 1 |
+| 10 → 11 | 300,050 | Vinho | 1 | 1 |
+| 19 → 20 | 1,083,050 | Vinho | 5 | 4 |
+| 49 → 50 | 7,203,050 | Tequilla | 5 | 14 |
+| 99 → 100 | 29,403,050 | Aguardente | 5 | 31 |
 
-**Max level: 20**
+**Max level: 100**
 
 ### Stat Recalculation on Upgrade
 
@@ -168,32 +164,32 @@ drinkTierMult = 1.0 + (energyCost − 1) × drinkStatBonusPerTier
 
 Upgrades **recalculate** HP, Power, and Defense from base values. The original quality roll is replaced by the level-based formula. Speed and Critical Chance bonuses are **never modified** by upgrades.
 
-**Stat per level:** HP = +100, Power = +15, Defense = +12 (from `equipmentHpPerLevel`, `equipmentPowerPerLevel`, `equipmentDefensePerLevel`).
+**Stat per level:** HP = +1,000, Power = +150, Defense = +120 (from `equipmentHpPerLevel`, `equipmentPowerPerLevel`, `equipmentDefensePerLevel`).
 
 ---
 
 ## 5. Equipment Upgrades
 
-### Cost Formula
+### Cost Formula (Quadratic)
 
 ```
-Fidelis = 40 + currentSlotLevel × 40
+Fidelis = 240 + currentSlotLevel² × 3,000
 Drink   = tier drink, quantity = (currentSlotLevel % 5) + 1
-Leitão  = 0 if currentSlotLevel < 500, else 1 + (currentSlotLevel - 500) / 5
+Leitão  = 0 if currentSlotLevel < 8, else 1 + (currentSlotLevel - 8) / 3
 ```
 
-Same drink tier progression as weapons (every 5 levels). Leitão cost starts at level **500** — effectively never required since max enhancement is 15.
+Drink tier advances every **10** levels. Leitão cost starts at level **8** (+1 every 3 levels).
 
-| Slot Level | Fidelis | Leitão |
-|-----------:|--------:|-------:|
-| 0 → 1 | 40 | 0 |
-| 1 → 2 | 80 | 0 |
-| 2 → 3 | 120 | 0 |
-| 4 → 5 | 200 | 0 |
-| 9 → 10 | 400 | 0 |
-| 14 → 15 | 600 | 0 |
+| Slot Level | Fidelis | Drink | Qty | Leitão |
+|-----------:|--------:|-------|----:|-------:|
+| 0 → 1 | 3,240 | Cerveja | 1 | 0 |
+| 4 → 5 | 75,240 | Cerveja | 5 | 0 |
+| 9 → 10 | 243,240 | Cerveja | 5 | 1 |
+| 19 → 20 | 1,083,240 | Vinho | 5 | 4 |
+| 49 → 50 | 7,203,240 | Tequilla | 5 | 14 |
+| 99 → 100 | 29,403,240 | Aguardente | 5 | 31 |
 
-**Max enhancement: 15 per slot** (Leitão never required; equipment upgrades are Fidelis + Drinks only)
+**Max enhancement: 100 per slot**
 
 ### Effect
 
@@ -256,17 +252,19 @@ All values live in `scaling.config.json` with defaults in `MyTunoScalingConfigur
 |-----|------:|-------------|
 | `castTimeSeconds` | 5 | Forge animation duration |
 | `weaponUpgradeBaseCost` | 50 | Base Fidelis for weapon upgrade |
-| `weaponUpgradeCostPerLevel` | 50 | Fidelis increment per level |
-| `maxWeaponLevel` | 20 | Weapon level cap |
-| `weaponUpgradeStatBonus` | 0.05 | +5% stats per weapon level |
-| `equipmentUpgradeBaseCost` | 40 | Base Fidelis for equipment upgrade |
-| `equipmentUpgradeCostPerLevel` | 40 | Fidelis increment per level |
-| `maxEquipmentEnhancement` | 15 | Equipment slot level cap |
+| `weaponUpgradeCostPerLevel` | 50 | Fidelis increment per level (linear part) |
+| `weaponUpgradeCostScale` | 3,000 | Quadratic cost scale for weapon upgrades |
+| `maxWeaponLevel` | 100 | Weapon level cap |
+| `weaponUpgradeStatBonus` | 0.05 | Legacy +5% (flat bonuses used instead) |
+| `equipmentUpgradeBaseCost` | 240 | Base Fidelis for equipment upgrade |
+| `equipmentUpgradeCostPerLevel` | 240 | Fidelis increment per level (linear part) |
+| `equipmentUpgradeCostScale` | 3,000 | Quadratic cost scale for equipment upgrades |
+| `maxEquipmentEnhancement` | 100 | Equipment slot level cap |
 | `equipmentEnhancementBonus` | 0.05 | +5% per slot enhancement level |
 | `twoHandedMultiplier` | 2.0 | 2H weapon stat multiplier |
 | `instrumentQualityMin` | 0.85 | Min quality roll |
 | `instrumentQualityMax` | 1.15 | Max quality roll |
-| `upgradeLevelsPerDrinkTier` | 5 | Levels per drink tier |
+| `upgradeLevelsPerDrinkTier` | 10 | Levels per drink tier |
 | `drinkStatBonusPerTier` | 0.25 | +25% stats per drink tier above Cerveja |
 
 ### Bonus Rolls
@@ -297,13 +295,13 @@ All upgrades require Leitões (🐷) once above a threshold level. Leitões are 
 
 | Upgrade Type | Start Level | Base Cost | +1 Every N Levels |
 |-------------|------------:|----------:|------------------:|
-| HP / Power / Defense | 300 | 1 | 5 |
+| HP / Power / Defense | 10 | 1 | 5 |
 | Speed | 20 | 1 | 5 |
 | Crit | 50 | 1 | 5 |
 | Improvement (Energy) | 20 | 1 | 5 |
 | Power (Heavy/Special) | 20 | 1 | 5 |
-| Weapon | 12 | 1 | 5 |
-| Equipment slot | 500 | 1 | 5 |
+| Weapon | 8 | 1 | 3 |
+| Equipment slot | 8 | 1 | 3 |
 
 **Formula:** `PiggiesCostConfig.CalculateCost(currentLevel, startLevel, baseCost, costEveryNLevels)`
 - Returns `0` below start level
