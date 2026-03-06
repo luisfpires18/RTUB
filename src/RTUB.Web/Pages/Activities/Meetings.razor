@@ -3287,17 +3287,23 @@ else
         {
             return type == MeetingType.ConselhoVeteranos;
         }
-        
+
+        // Direcao members can create Reunião de Direção meetings
+        if (currentUser.Positions.Any(p =>
+            p == Position.Magister || p == Position.ViceMagister ||
+            p == Position.Secretario || p == Position.PrimeiroTesoureiro ||
+            p == Position.SegundoTesoureiro))
+        {
+            return type == MeetingType.ReuniaoDirecao;
+        }
+
         return false;
     }
     
     private bool CanCreateAtaForMeeting(Meeting meeting)
     {
         if (currentUser == null) return false;
-        
-        // Reunião de Direção should not have atas
-        if (meeting.Type == MeetingType.ReuniaoDirecao) return false;
-        
+
         var userRoles = new List<string>();
         if (isOwner) userRoles.Add("Owner");
         

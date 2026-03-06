@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 
@@ -84,6 +86,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
         var memberDebtService = scope.ServiceProvider.GetRequiredService<IMemberDebtService>();
         var pushNotificationService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
         var pushNotificationFactory = scope.ServiceProvider.GetRequiredService<IPushNotificationFactory>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         try
         {
@@ -128,7 +131,9 @@ public class CalotesNotificationBackgroundService : BackgroundService
                 await pushNotificationService.SendToUserAsync(userId, notification);
                 notificationsSent++;
 
-                _logger.LogDebug("Sent calotes notification to user {UserId} for amount {Amount:N2}€", userId, amount);
+                var user = await userManager.FindByIdAsync(userId);
+                var userName = user?.UserName ?? userId;
+                _logger.LogDebug("Sent calotes notification to user {UserName} for amount {Amount:N2}€", userName, amount);
             }
 
             _logger.LogInformation("Sent {Count} calotes notifications", notificationsSent);

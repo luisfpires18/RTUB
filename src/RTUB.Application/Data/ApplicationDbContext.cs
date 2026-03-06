@@ -46,6 +46,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<FiscalYear> FiscalYears { get; set; }
     public DbSet<MemberDebt> MemberDebts { get; set; }
+    public DbSet<MbwayTransfer> MbwayTransfers { get; set; } = null!;
+    public DbSet<NerbaOrder> NerbaOrders { get; set; } = null!;
     public DbSet<Slideshow> Slideshows { get; set; }
     public DbSet<Label> Labels { get; set; }
     public DbSet<Request> Requests { get; set; }

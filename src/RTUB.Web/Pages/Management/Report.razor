@@ -56,6 +56,12 @@ else
             <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
                 <i class="bi bi-cash-coin"></i> Ver Calotes
             </button>
+            <button class="btn btn-info" @onclick="ViewMbway" title="Ver MBWAY">
+                <i class="bi bi-phone"></i> Ver MBWAY
+            </button>
+            <button class="btn btn-warning" @onclick="ViewNerba" title="Ver Nerba">
+                <i class="bi bi-basket"></i> Nerba
+            </button>
         </div>
     </div>
 
@@ -1043,6 +1049,18 @@ state.CurrentPage = newPage;
         // Navigate to calotes page with the fiscal year from this report
         var fiscalYear = $"{report!.Year}-{report.Year + 1}";
         NavigationManager.NavigateTo($"/calotes?fy={fiscalYear}&reportId={ReportId}");
+    }
+
+    private void ViewMbway()
+    {
+        // Navigate to MBWAY transfers page with report ID
+        NavigationManager.NavigateTo($"/mbway?reportId={ReportId}");
+    }
+
+    private void ViewNerba()
+    {
+        // Navigate to Nerba orders page with report ID
+        NavigationManager.NavigateTo($"/nerba/{ReportId}");
     }
 
     // Activity CRUD

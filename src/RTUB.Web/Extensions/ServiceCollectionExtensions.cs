@@ -134,6 +134,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IMemberDebtService, MemberDebtService>();
+        services.AddScoped<IMbwayTransferService, MbwayTransferService>();
+        services.AddScoped<INerbaOrderService, NerbaOrderService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
         services.AddScoped<IMemberInstrumentService, MemberInstrumentService>();

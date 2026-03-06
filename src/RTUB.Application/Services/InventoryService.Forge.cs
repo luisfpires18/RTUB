@@ -752,25 +752,16 @@ public partial class InventoryService
 
     /// <summary>
     /// Calculates the Fidelis value for discarding a forged weapon.
-    /// Formula: weaponDiscardBase × (1 + weaponLevel × 0.5) × drinkCostMultiplier × (1 + charLevel × discardLevelScale)
+    /// Formula: Equal to the cumulative cost spent on leveling (GetDrinkUpgradeCost × 2).
     /// </summary>
     public decimal GetWeaponDiscardValue(ForgedWeapon weapon, int characterLevel)
     {
-        var discardBase = _scalingConfig.StageMode.DiscardValues.Weapon;
-        var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
+        if (weapon.Level == 0)
+            return _scalingConfig.StageMode.DiscardValues.Weapon;
 
-        // Scale with weapon enhancement level
-        var weaponLevelMult = 1.0 + weapon.Level * 0.5;
-
-        // Scale with drink rarity (higher tier drinks = more valuable weapons)
-        var drinkResource = _scalingConfig.Gathering.Resources
-            .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
-        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
-
-        // Scale with character level
-        var charLevelMult = 1.0 + characterLevel * (double)discardLevelScale;
-
-        return Math.Round(discardBase * (decimal)(weaponLevelMult * drinkCostMultiplier * charLevelMult), 2);
+        // Total Fidelis spent on level-ups = GetDrinkUpgradeCost(L) × 2
+        // (GetDrinkUpgradeCost already computes half the total)
+        return GetDrinkUpgradeCost(weapon.Level) * 2m;
     }
 
     /// <summary>

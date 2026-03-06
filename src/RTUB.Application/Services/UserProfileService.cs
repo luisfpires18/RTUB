@@ -232,7 +232,7 @@ public class UserProfileService : IUserProfileService
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
         {
-            _logger.LogWarning("Cannot delete member: User {UserId} not found", userId);
+            _logger.LogWarning("Cannot delete member: User {UserName} not found", userId);
             return false;
         }
 
@@ -448,7 +448,7 @@ public class UserProfileService : IUserProfileService
             if (!result.Succeeded)
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                _logger.LogError("Failed to delete user {UserId}: {Errors}", userId, errors);
+                _logger.LogError("Failed to delete user {UserName}: {Errors}", user.UserName ?? userId, errors);
                 return false;
             }
 
@@ -456,7 +456,7 @@ public class UserProfileService : IUserProfileService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting member {UserId}", userId);
+            _logger.LogError(ex, "Error deleting member {UserName}", user.UserName ?? userId);
             return false;
         }
     }

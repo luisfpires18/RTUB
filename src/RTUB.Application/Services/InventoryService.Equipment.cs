@@ -174,14 +174,13 @@ public partial class InventoryService
     }
 
     /// <summary>
-    /// Discards an inventory item in exchange for Fidelis currency.
+    /// Discards an inventory item (instrument parts only) in exchange for Fidelis currency.
     /// Consumes 1 from inventory and credits the Fidelis value to the user.
     /// </summary>
     public async Task<(bool Success, decimal FidelisGained, string Message)> DiscardItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default)
     {
-        var isEquipment = EquipmentDropHelper.IsEquipment(itemType);
         var isInstrument = InstrumentTypeHelper.IsInstrumentPart(itemType);
-        if (!isEquipment && !isInstrument)
+        if (!isInstrument)
             return (false, 0, "Este item não pode ser descartado");
 
         // Check inventory
@@ -189,9 +188,9 @@ public partial class InventoryService
         if (item == null || item.Quantity <= 0)
             return (false, 0, "Não tens este item no inventário");
 
-        // Determine Fidelis value (scales with player level and enhancement)
+        // Determine Fidelis value (scales with player level)
         var discardValues = _scalingConfig.StageMode.DiscardValues;
-        var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
+        var baseValue = discardValues.InstrumentPart;
 
         // Apply level scaling to discard value — use fresh context per operation
         var ctx = _contextFactory.CreateDbContext();
@@ -199,19 +198,7 @@ public partial class InventoryService
         var level = character?.Level ?? 1;
         var discardScale = 1.0 + level * _scalingConfig.StageMode.DiscardLevelScale;
 
-        // Apply enhancement multiplier for equipment (per-slot level)
-        var enhancementMult = 1.0;
-        if (isEquipment && character != null)
-        {
-            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
-            if (slot.HasValue)
-            {
-                var slotBonus = character.GetSlotBonusLevel(slot.Value);
-                enhancementMult = 1.0 + slotBonus * _scalingConfig.StageMode.EquipmentEnhancementBonus;
-            }
-        }
-
-        var fidelisValue = Math.Round(baseValue * (decimal)(discardScale * enhancementMult), 2);
+        var fidelisValue = Math.Round(baseValue * (decimal)discardScale, 2);
 
         // Consume 1 from inventory
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
@@ -227,15 +214,13 @@ public partial class InventoryService
             await ctx.SaveChangesAsync(cancellationToken);
         }
 
-        var displayName = isEquipment
-            ? EquipmentDropHelper.GetDisplayName(EquipmentDropHelper.FromInventoryItemType(itemType)!.Value)
-            : InstrumentTypeHelper.GetDisplayName(InstrumentTypeHelper.FromInventoryPartType(itemType)!.Value);
+        var displayName = InstrumentTypeHelper.GetDisplayName(InstrumentTypeHelper.FromInventoryPartType(itemType)!.Value);
 
         return (true, fidelisValue, $"{displayName} descartado por {fidelisValue:F2} Fidelis!");
     }
 
     /// <summary>
-    /// Discards ALL discardable items (equipment, instrument parts, and unequipped weapons) in one batch.
+    /// Discards ALL discardable items (instrument parts and unequipped weapons) in one batch.
     /// Returns the total Fidelis gained and a summary of items discarded.
     /// </summary>
     public async Task<(bool Success, decimal TotalFidelis, int ItemsDiscarded, string Message)> DiscardAllItemsAsync(string userId, CancellationToken cancellationToken = default)
@@ -247,50 +232,21 @@ public partial class InventoryService
         var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
         var charLevelMult = 1.0 + charLevel * discardLevelScale;
 
-        // Per-slot enhancement multipliers for equipment (manual upgrades only)
-        double GetSlotEnhMult(InventoryItemType itemType)
-        {
-            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
-            if (slot.HasValue && character != null)
-            {
-                var slotLevel = character.GetSlotBonusLevel(slot.Value);
-                return 1.0 + slotLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
-            }
-            return 1.0;
-        }
-
-        // Build set of currently equipped item types so we never discard gear that is worn
-        var equippedTypes = new HashSet<InventoryItemType>();
-        if (character != null)
-        {
-            if (character.EquippedHead.HasValue) equippedTypes.Add(character.EquippedHead.Value);
-            if (character.EquippedShoulders.HasValue) equippedTypes.Add(character.EquippedShoulders.Value);
-            if (character.EquippedChest.HasValue) equippedTypes.Add(character.EquippedChest.Value);
-            if (character.EquippedGloves.HasValue) equippedTypes.Add(character.EquippedGloves.Value);
-            if (character.EquippedLegs.HasValue) equippedTypes.Add(character.EquippedLegs.Value);
-            if (character.EquippedBoots.HasValue) equippedTypes.Add(character.EquippedBoots.Value);
-        }
-
         decimal totalFidelis = 0;
         int totalItems = 0;
 
-        // 1. Discard all equipment / instrument items (skip currently equipped types)
-        var equipmentInventory = await ctx.InventoryItems
+        // 1. Discard all instrument items
+        var instrumentInventory = await ctx.InventoryItems
             .Where(i => i.UserId == userId && i.Quantity > 0)
             .ToListAsync(cancellationToken);
 
-        foreach (var item in equipmentInventory)
+        foreach (var item in instrumentInventory)
         {
-            var isEquipment = EquipmentDropHelper.IsEquipment(item.Type);
             var isInstrument = InstrumentTypeHelper.IsInstrumentPart(item.Type);
-            if (!isEquipment && !isInstrument) continue;
+            if (!isInstrument) continue;
 
-            // Never discard equipment that is currently equipped on the character
-            if (isEquipment && equippedTypes.Contains(item.Type)) continue;
-
-            var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
-            var itemEnhMult = isEquipment ? GetSlotEnhMult(item.Type) : 1.0;
-            var perUnitValue = Math.Round(baseValue * (decimal)(charLevelMult * itemEnhMult), 2);
+            var baseValue = discardValues.InstrumentPart;
+            var perUnitValue = Math.Round(baseValue * (decimal)charLevelMult, 2);
             var quantity = item.Quantity;
 
             var consumed = await _inventoryRepository.ConsumeItemAsync(userId, item.Type, quantity, cancellationToken);

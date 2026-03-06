@@ -161,6 +161,19 @@ public class MeetingAtaService : IMeetingAtaService
             }
         }
 
+        // For Direcao meetings
+        if (meeting.Type == MeetingType.ReuniaoDirecao)
+        {
+            // Magister can create/edit ATAs (equivalent to PresidenteMesaAssembleia for AG)
+            if (userPositions.Contains(Position.Magister))
+                return true;
+
+            // Secretario can edit existing ATAs
+            if (existingAta != null && !string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                existingAta.FirstSecretaryUserId == userId)
+                return true;
+        }
+
         return false;
     }
 

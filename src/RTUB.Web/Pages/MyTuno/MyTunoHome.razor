@@ -1963,22 +1963,15 @@
                 }
             </BodyContent>
             <FooterContent>
-                <div class="item-detail-actions">
-                    @if (actionIsEquip)
-                    {
-                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                            <i class="bi bi-trash me-1"></i>Descartar
-                            <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
-                        </button>
-                    }
-                    else
-                    {
+                @if (!actionIsEquip)
+                {
+                    <div class="item-detail-actions">
                         <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
                             <i class="bi bi-trash me-1"></i>Descartar
                             <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
                         </button>
-                    }
-                </div>
+                    </div>
+                }
             </FooterContent>
         </Modal>
     }

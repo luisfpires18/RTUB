@@ -191,6 +191,16 @@ public partial class ApplicationDbContext
                         return report.Title;
                     break;
 
+                case "MbwayTransfer":
+                    if (entry.Entity is MbwayTransfer mbwayTransfer)
+                        return $"MBWAY - {mbwayTransfer.Date:dd/MM/yyyy} €{mbwayTransfer.Amount:F2}";
+                    break;
+
+                case "NerbaOrder":
+                    if (entry.Entity is NerbaOrder nerbaOrder)
+                        return $"Nerba - {nerbaOrder.Item} (x{nerbaOrder.Stock})";
+                    break;
+
                 case "Request":
                     // Request doesn't have a specific name field, use ID
                     return null;

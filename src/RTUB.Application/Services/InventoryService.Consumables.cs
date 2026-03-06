@@ -44,7 +44,9 @@ public partial class InventoryService
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use {Item} but has no character", userId, itemName);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning("User {UserName} attempted to use {Item} but has no character", userName, itemName);
             return (false, 0, "Personagem não encontrado");
         }
 
@@ -84,7 +86,9 @@ public partial class InventoryService
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use cigarro but has no character", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning("User {UserName} attempted to use cigarro but has no character", userName);
             return (false, "Personagem não encontrado");
         }
 
@@ -122,7 +126,9 @@ public partial class InventoryService
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use canhão but has no character", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning("User {UserName} attempted to use canhão but has no character", userName);
             return (false, "Personagem não encontrado");
         }
 
@@ -164,7 +170,9 @@ public partial class InventoryService
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use penalty but has no character", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning("User {UserName} attempted to use penalty but has no character", userName);
             return (false, "Personagem não encontrado");
         }
 
@@ -266,7 +274,9 @@ public partial class InventoryService
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use shot but has no character", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning("User {UserName} attempted to use shot but has no character", userName);
             return (false, 0, "Personagem não encontrado");
         }
 
