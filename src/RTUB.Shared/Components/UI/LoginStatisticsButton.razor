@@ -1,8 +1,7 @@
 @namespace RTUB.Shared
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Helpers
-@inject UserManager<ApplicationUser> UserManager
+@using RTUB.Application.Interfaces
+@inject IUserProfileService UserProfileService
 
 @if (!HideButton)
 {
@@ -54,7 +53,7 @@
                 <div class="member-card-lite-grid">
                     @foreach (var record in paginatedRecords)
                     {
-                        <MemberCardLite AvatarUrl="@record.AvatarUrl"
+                        <MemberCardLite @key="record.UserId" AvatarUrl="@record.AvatarUrl"
                                         AltText="@record.DisplayNickname"
                                         Nickname="@record.DisplayNickname"
                                         FullName="@record.DisplayFullName"
@@ -110,10 +109,7 @@
         var start = startDate.Date;
         var end = endDate.Date.AddDays(1).AddTicks(-1);
 
-        var users = await UserManager.Users
-            .AsNoTracking()
-            .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
-            .ToListAsync();
+        var users = await UserProfileService.GetUsersWithLoginBetweenAsync(start, end);
 
         loginRecords = users
             .Select(u => new LoginRecord

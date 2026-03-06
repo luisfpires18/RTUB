@@ -8,7 +8,7 @@
 <nav class="mobile-bottom-nav" aria-label="Navegação do portal">
     @foreach (var item in Items)
     {
-        <button type="button"
+        <button type="button" @key="item.Key"
                 class="mobile-bottom-nav__btn @(item.Key == ActiveKey ? "mobile-bottom-nav__btn--active" : "")"
                 @onclick="() => OnSelect.InvokeAsync(item.Key)"
                 aria-selected="@(item.Key == ActiveKey)">

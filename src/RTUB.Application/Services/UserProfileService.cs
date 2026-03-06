@@ -84,6 +84,26 @@ public class UserProfileService : IUserProfileService
         }
     }
 
+    public async Task<IEnumerable<ApplicationUser>> GetUsersWithLoginBetweenAsync(DateTime start, DateTime end)
+    {
+        try
+        {
+            return await _userManager.Users
+                .AsNoTracking()
+                .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
+                .OrderByDescending(u => u.LastLoginDate)
+                .ToListAsync();
+        }
+        catch (InvalidOperationException)
+        {
+            return _userManager.Users
+                .AsNoTracking()
+                .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
+                .OrderByDescending(u => u.LastLoginDate)
+                .ToList();
+        }
+    }
+
     public async Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType)
     {
         var user = await _userManager.FindByIdAsync(userId);

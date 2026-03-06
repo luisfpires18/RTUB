@@ -29,6 +29,12 @@ public class Question : BaseEntity
     public QuestionStatus Status { get; set; } = QuestionStatus.Unanswered;
 
     /// <summary>
+    /// Denormalized timestamp: set to CreatedAt on creation, updated on every new reply.
+    /// Used for server-side ORDER BY to avoid loading all records for pagination.
+    /// </summary>
+    public DateTime LastActivityAt { get; set; }
+
+    /// <summary>
     /// Timestamp of the last notification sent for this question
     /// </summary>
     public DateTime? LastNotificationSent { get; set; }
@@ -70,6 +76,7 @@ public class Question : BaseEntity
         if (string.IsNullOrWhiteSpace(assignedMemberId))
             throw new ArgumentException("Assigned member ID is required", nameof(assignedMemberId));
 
+        var now = DateTime.UtcNow;
         return new Question
         {
             Title = title,
@@ -79,8 +86,17 @@ public class Question : BaseEntity
             AssignedMemberId = assignedMemberId,
             Status = QuestionStatus.Unanswered,
             IsAwaitingUserReply = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            LastActivityAt = now
         };
+    }
+
+    /// <summary>
+    /// Updates LastActivityAt to now (call whenever a reply is added).
+    /// </summary>
+    public void TouchLastActivity()
+    {
+        LastActivityAt = DateTime.UtcNow;
     }
 
     /// <summary>

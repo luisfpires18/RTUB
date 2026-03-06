@@ -71,7 +71,7 @@ else
             var userRoles = userRolesDict.ContainsKey(user.Id) ? userRolesDict[user.Id] : new List<string>();
             var currentRole = GetPrimaryRole(userRoles);
 
-            <UserCard User="@user"
+            <UserCard @key="user.Id" User="@user"
                       CurrentRole="@currentRole"
                       IsOwner="@isCurrentUserOwner"
                       OnViewDetails="@(() => OpenUserDetailsModal(user))"

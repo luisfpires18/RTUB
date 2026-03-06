@@ -60,7 +60,7 @@ else
                                         {
                                             @foreach (var member in cityGroup.Members.OrderBy(m => m.Nickname))
                                             {
-                                                <li class="member-list-item">
+                                                <li @key="member.Id" class="member-list-item">
                                                     <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
                                                     <div class="member-info">
                                                         <p class="member-nickname">@member.Nickname</p>
@@ -73,7 +73,7 @@ else
                                         {
                                             @foreach (var member in membersWithoutCityList.OrderBy(m => m.Nickname))
                                             {
-                                                <li class="member-list-item">
+                                                <li @key="member.Id" class="member-list-item">
                                                     <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
                                                     <div class="member-info">
                                                         <p class="member-nickname">@member.Nickname</p>
@@ -102,7 +102,7 @@ else
                                     <ul class="member-list">
                                         @foreach (var cityGroup in cityGroups.OrderByDescending(c => c.MemberCount))
                                         {
-                                            <li class="city-list-item">
+                                            <li @key="cityGroup.CityName" class="city-list-item">
                                                 <span class="city-name">@cityGroup.CityName</span>
                                                 <span class="city-count">@cityGroup.MemberCount</span>
                                             </li>
@@ -127,7 +127,7 @@ else
                                     <ul class="member-list">
                                         @foreach (var member in membersWithoutCityList.OrderBy(m => m.Nickname))
                                         {
-                                            <li class="member-list-item">
+                                            <li @key="member.Id" class="member-list-item">
                                                 <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
                                                 <div class="member-info">
                                                     <p class="member-nickname">@member.Nickname</p>
@@ -156,7 +156,7 @@ else
                                         <ul class="member-list">
                                             @foreach (var city in pendingGeocodingCities.OrderBy(c => c))
                                             {
-                                                <li class="city-list-item">
+                                                <li @key="city" class="city-list-item">
                                                     <span class="city-name">@city</span>
                                                 </li>
                                             }

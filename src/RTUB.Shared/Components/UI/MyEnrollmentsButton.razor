@@ -62,7 +62,7 @@
                 <div class="activity-card-lite-grid">
                     @foreach (var item in paginatedEventEnrollments)
                     {
-                        <ActivityCardLite>
+                        <ActivityCardLite @key="item.Event.Id">
                             <div class="activity-card-lite-row">
                                 <span class="activity-card-lite-value w-100 text-center">@item.Event.Date.ToString("dd MMM yyyy")</span>
                             </div>

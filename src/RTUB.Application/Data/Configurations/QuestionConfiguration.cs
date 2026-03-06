@@ -76,5 +76,8 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
         builder.HasIndex(q => q.IsDeleted);
 
         builder.HasIndex(q => q.CreatedAt);
+
+        builder.HasIndex(q => q.LastActivityAt)
+            .HasDatabaseName("IX_Question_LastActivityAt");
     }
 }

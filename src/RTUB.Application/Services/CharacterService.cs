@@ -292,6 +292,6 @@ public class CharacterService : ICharacterService
             .AsNoTracking()
             .ToDictionaryAsync(b => b.UserId, b => b.HighestBossStage, cancellationToken);
         await Task.WhenAll(stageTask, bossTask);
-        return (stageTask.Result, bossTask.Result);
+        return (await stageTask, await bossTask);
     }
 }

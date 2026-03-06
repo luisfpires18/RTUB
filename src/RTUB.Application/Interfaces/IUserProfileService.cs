@@ -36,4 +36,9 @@ public interface IUserProfileService
     /// <param name="userId">The user ID to get categories for</param>
     /// <returns>The user's categories, or empty collection if user not found</returns>
     Task<IEnumerable<Core.Enums.MemberCategory>> GetUserCategoriesAsync(string userId);
+
+    /// <summary>
+    /// Gets users whose last login falls within the specified date range, ordered by last login descending.
+    /// </summary>
+    Task<IEnumerable<ApplicationUser>> GetUsersWithLoginBetweenAsync(DateTime start, DateTime end);
 }

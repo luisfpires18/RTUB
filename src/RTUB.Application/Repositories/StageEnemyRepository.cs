@@ -151,9 +151,18 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
 
     /// <summary>
     /// Invalidates the in-memory cache (call after re-seeding).
+    /// Uses the same lock as the loader to ensure memory visibility and prevent torn reads.
     /// </summary>
     public static void InvalidateCache()
     {
-        _allEnemiesCache = null;
+        _cacheLock.Wait();
+        try
+        {
+            _allEnemiesCache = null;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
     }
 }

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -55,7 +56,8 @@ public class AdminNotificationSkipTests : IDisposable
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
             _mockHttpContextAccessor.Object,
-            _mockUserManager.Object);
+            _mockUserManager.Object,
+            Mock.Of<ILogger<RehearsalAttendanceService>>());
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 
@@ -10,6 +11,13 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class AuditLogDisplayService : IAuditLogDisplayService
 {
+    private readonly ILogger<AuditLogDisplayService> _logger;
+
+    public AuditLogDisplayService(ILogger<AuditLogDisplayService> logger)
+    {
+        _logger = logger;
+    }
+
     /// <summary>
     /// Gets the CSS class for an action badge
     /// </summary>
@@ -48,7 +56,7 @@ public class AuditLogDisplayService : IAuditLogDisplayService
         }
         catch (JsonException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to format JSON changes: {ex.Message}");
+            _logger.LogWarning(ex, "Failed to format JSON changes for audit log display");
             return changes;
         }
     }

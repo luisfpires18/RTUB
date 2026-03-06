@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Data;
@@ -53,7 +54,8 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
             _mockHttpContextAccessor.Object,
-            _mockUserManager.Object);
+            _mockUserManager.Object,
+            Mock.Of<ILogger<RehearsalAttendanceService>>());
     }
 
     [Fact]
