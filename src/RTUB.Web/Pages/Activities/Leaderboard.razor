@@ -737,7 +737,6 @@ else
     {
         viewingItem = item;
         modals.Open(ModalType.Details);
-        isActivitiesExpanded = false; // Reset to collapsed when opening modal
         
         // Load comments and XP breakdown for this user
         await Task.WhenAll(
@@ -754,7 +753,6 @@ else
         newCommentText = string.Empty;
         xpBreakdown = null;
         attendedActivities = null;
-        isActivitiesExpanded = false;
     }
     
     private async Task LoadComments()

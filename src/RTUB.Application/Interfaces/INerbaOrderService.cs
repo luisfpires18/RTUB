@@ -18,6 +18,16 @@ public interface INerbaOrderService
     Task<List<NerbaOrder>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a single Nerba order by its identifier
+    /// </summary>
+    Task<NerbaOrder?> GetByIdAsync(int orderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all Nerba orders for a specific event
+    /// </summary>
+    Task<List<NerbaOrder>> GetByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new Nerba order
     /// </summary>
     Task<(bool Success, string Message)> AddOrderAsync(NerbaOrder order, CancellationToken cancellationToken = default);

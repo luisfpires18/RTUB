@@ -25,12 +25,15 @@ public class NerbaOrderConfiguration : IEntityTypeConfiguration<NerbaOrder>
         builder.HasIndex(no => no.ReportId)
             .HasDatabaseName("IX_NerbaOrders_ReportId");
 
-        // Index for filtering orders by date
-        builder.HasIndex(no => no.Date)
-            .HasDatabaseName("IX_NerbaOrders_Date");
+        // Configure foreign key relationship to Event (required - all orders belong to a NERBA event)
+        builder.HasOne(no => no.Event)
+            .WithMany()
+            .HasForeignKey(no => no.EventId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
-        // Composite index for report and date queries
-        builder.HasIndex(no => new { no.ReportId, no.Date })
-            .HasDatabaseName("IX_NerbaOrders_ReportId_Date");
+        // Index for filtering orders by event
+        builder.HasIndex(no => no.EventId)
+            .HasDatabaseName("IX_NerbaOrders_EventId");
     }
 }

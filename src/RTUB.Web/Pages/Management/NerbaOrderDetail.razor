@@ -1,0 +1,451 @@
+@page "/nerba/event/{EventId:int}"
+@rendermode InteractiveServer
+@using RTUB.Application.Data
+@using RTUB.Application.Helpers
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Shared
+@attribute [Authorize]
+@inject INerbaOrderService NerbaOrderService
+@inject IDbContextFactory<ApplicationDbContext> ContextFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="page-header-centered mb-4">
+    <div class="page-header-left d-none d-xl-flex">
+        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-basket"></i> @(eventEntity?.Name ?? "Encomendas")</h1>
+        <p class="page-header-subtitle">
+            @if (eventEntity != null)
+            {
+                <span>@eventEntity.Date.ToString("dd/MM/yyyy")</span>
+                @if (eventEntity.EndDate.HasValue)
+                {
+                    <span> — @eventEntity.EndDate.Value.ToString("dd/MM/yyyy")</span>
+                }
+                @if (!string.IsNullOrEmpty(eventEntity.Location))
+                {
+                    <span> · @eventEntity.Location</span>
+                }
+            }
+        </p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
+        <AuthorizeView Roles="Mod,Admin">
+            <Authorized>
+                <button class="btn btn-purple" @onclick="OpenAddModal" title="Adicionar Item">
+                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Item</span>
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = "")"></button>
+    </div>
+}
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="A carregar encomendas..." />
+}
+else if (!allOrders.Any())
+{
+    <EmptyState Title="Nenhum item registado"
+                Message="Este evento ainda não tem encomendas."
+                Icon="bi-inbox" />
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <SortableTableHeader HeaderText="Item"
+                                         SortColumn="item"
+                                         CurrentSortColumn="@sortHelper.SortColumn"
+                                         IsSortAscending="@sortHelper.SortAscending"
+                                         OnSortChanged="@SortBy" />
+                    <SortableTableHeader HeaderText="Tipo"
+                                         SortColumn="type"
+                                         CurrentSortColumn="@sortHelper.SortColumn"
+                                         IsSortAscending="@sortHelper.SortAscending"
+                                         OnSortChanged="@SortBy" />
+                    <SortableTableHeader HeaderText="Qtd."
+                                         SortColumn="stock"
+                                         CurrentSortColumn="@sortHelper.SortColumn"
+                                         IsSortAscending="@sortHelper.SortAscending"
+                                         OnSortChanged="@SortBy"
+                                         class="text-center" />
+                    <SortableTableHeader HeaderText="Preço/Un."
+                                         SortColumn="price"
+                                         CurrentSortColumn="@sortHelper.SortColumn"
+                                         IsSortAscending="@sortHelper.SortAscending"
+                                         OnSortChanged="@SortBy"
+                                         class="text-end" />
+                    <SortableTableHeader HeaderText="Total"
+                                         SortColumn="total"
+                                         CurrentSortColumn="@sortHelper.SortColumn"
+                                         IsSortAscending="@sortHelper.SortAscending"
+                                         OnSortChanged="@SortBy"
+                                         class="text-end" />
+                    @if (canEdit)
+                    {
+                        <th class="text-end" style="width: 120px;">Ações</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in paginatedOrders)
+                {
+                    <tr @key="order.Id">
+                        <td>@order.Item</td>
+                        <td class="text-muted">@(order.Type ?? "—")</td>
+                        <td class="text-center">@order.Stock</td>
+                        <td class="text-end">€@order.PricePerUnit.ToString("F2")</td>
+                        <td class="text-end fw-semibold">€@((order.Stock * order.PricePerUnit).ToString("F2"))</td>
+                        @if (canEdit)
+                        {
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-light me-1" @onclick="@(() => OpenEditModal(order))" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="@(() => ConfirmDelete(order))" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr class="fw-bold">
+                    <td>Total</td>
+                    <td></td>
+                    <td class="text-center">@allOrders.Sum(o => o.Stock)</td>
+                    <td></td>
+                    <td class="text-end text-primary">€@allOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")</td>
+                    @if (canEdit)
+                    {
+                        <td></td>
+                    }
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <TablePagination CurrentPage="@currentPage"
+                     PageSize="@pageSize"
+                     TotalItems="@sortedOrders.Count"
+                     ItemLabel="itens"
+                     PageSizeOptions="@(new[] { 10, 20, 50 })"
+                     OnPageChanged="ChangePage"
+                     OnPageSizeChanged="ChangePageSize" />
+}
+
+<!-- Add/Edit Order Item Modal -->
+@if (showModal && editingOrder != null)
+{
+    <Modal Show="@showModal"
+           ShowChanged="@((bool show) => { if (!show) showModal = false; })"
+           Title="@(editingOrder.Id > 0 ? "Editar Item" : "Adicionar Item")"
+           Size="Modal.ModalSize.Default">
+        <BodyContent>
+            <div class="form-group mb-3">
+                <label for="orderItem" class="form-label">Item <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="orderItem"
+                       @bind="editingOrder!.Item" />
+            </div>
+            <div class="form-group mb-3">
+                <label for="orderType" class="form-label">Tipo</label>
+                <input type="text" class="form-control" id="orderType"
+                       @bind="editingOrder!.Type" />
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="orderStock" class="form-label">Quantidade <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="orderStock"
+                               min="1" @bind="editingOrder!.Stock" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="orderPrice" class="form-label">Preço/Unidade (€) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="orderPrice"
+                               step="0.01" min="0" @bind="editingOrder!.PricePerUnit" />
+                    </div>
+                </div>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
+            <button type="button" class="btn btn-primary" @onclick="SaveOrder" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Guardar
+            </button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Delete Confirmation -->
+@if (showDeleteConfirm)
+{
+    <ConfirmDialog Show="@showDeleteConfirm"
+                   ShowChanged="@((bool v) => showDeleteConfirm = v)"
+                   Title="Eliminar Item"
+                   Message="Tem a certeza que deseja eliminar este item? Esta ação é irreversível."
+                   ConfirmText="Eliminar"
+                   CancelText="Cancelar"
+                   ConfirmButtonClass="btn-danger"
+                   OnConfirm="ConfirmDeleteOrder"
+                   OnCancel="@(() => showDeleteConfirm = false)" />
+}
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private Event? eventEntity;
+    private List<NerbaOrder> allOrders = new();
+    private List<NerbaOrder> sortedOrders = new();
+    private List<NerbaOrder> paginatedOrders = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showDeleteConfirm = false;
+    private bool canEdit = false;
+    private NerbaOrder? editingOrder;
+    private NerbaOrder? deleteTarget;
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private readonly SortableTableHelper<NerbaOrder> sortHelper = new() { SortColumn = "item", SortAscending = true };
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
+    private static readonly Dictionary<string, Func<NerbaOrder, IComparable>> SortSelectors = new()
+    {
+        ["item"] = o => o.Item,
+        ["type"] = o => o.Type ?? "",
+        ["stock"] = o => o.Stock,
+        ["price"] = o => o.PricePerUnit,
+        ["total"] = o => o.Stock * o.PricePerUnit
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadEvent(), LoadOrders(), CheckAuthorization());
+        BuildMobileNavItems();
+    }
+
+    private void SortBy(string column)
+    {
+        sortHelper.ChangeSortColumn(column);
+        ApplySortAndPagination();
+    }
+
+    private void ApplySortAndPagination()
+    {
+        sortedOrders = sortHelper.ApplySort(allOrders, SortSelectors);
+        paginatedOrders = sortedOrders
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private async Task LoadEvent()
+    {
+        try
+        {
+            using var context = ContextFactory.CreateDbContext();
+            eventEntity = await context.Events
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == EventId);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar evento: {ex.Message}";
+        }
+    }
+
+    private async Task LoadOrders()
+    {
+        isLoading = true;
+        try
+        {
+            allOrders = await NerbaOrderService.GetByEventIdAsync(EventId);
+            ApplySortAndPagination();
+            errorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar encomendas: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CheckAuthorization()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            canEdit = user.IsInRole("Mod") || user.IsInRole("Admin");
+        }
+        catch
+        {
+            canEdit = false;
+        }
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canEdit)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add":
+                OpenAddModal();
+                break;
+            case "action-back":
+                GoBack();
+                break;
+        }
+    }
+
+    private void OpenAddModal()
+    {
+        editingOrder = new NerbaOrder
+        {
+            EventId = EventId
+        };
+        showModal = true;
+    }
+
+    private void OpenEditModal(NerbaOrder order)
+    {
+        editingOrder = new NerbaOrder
+        {
+            Id = order.Id,
+            EventId = order.EventId,
+            Item = order.Item,
+            Type = order.Type,
+            Stock = order.Stock,
+            PricePerUnit = order.PricePerUnit,
+            ReportId = order.ReportId
+        };
+        showModal = true;
+    }
+
+    private async Task SaveOrder()
+    {
+        if (editingOrder == null || string.IsNullOrWhiteSpace(editingOrder.Item) || editingOrder.Stock <= 0 || editingOrder.PricePerUnit < 0)
+        {
+            errorMessage = "Preencha todos os campos obrigatórios.";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var result = editingOrder.Id > 0
+                ? await NerbaOrderService.UpdateOrderAsync(editingOrder)
+                : await NerbaOrderService.AddOrderAsync(editingOrder);
+
+            if (result.Success)
+            {
+                showModal = false;
+                await LoadOrders();
+                errorMessage = string.Empty;
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao guardar: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ConfirmDelete(NerbaOrder order)
+    {
+        deleteTarget = order;
+        showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteOrder()
+    {
+        if (deleteTarget == null) return;
+
+        showDeleteConfirm = false;
+        try
+        {
+            var result = await NerbaOrderService.DeleteOrderAsync(deleteTarget.Id);
+            if (result.Success)
+            {
+                await LoadOrders();
+                errorMessage = string.Empty;
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar: {ex.Message}";
+        }
+    }
+
+    private void ChangePage(int newPage)
+    {
+        currentPage = newPage;
+        ApplySortAndPagination();
+    }
+
+    private void ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        ApplySortAndPagination();
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/nerba");
+    }
+}

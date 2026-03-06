@@ -18,12 +18,13 @@ public class MbwayTransfer : BaseEntity
     public string? Description { get; set; }
 
     /// <summary>
-    /// The member who made the transfer (optional, for manual or untracked transfers)
+    /// The member who made the transfer
     /// </summary>
-    public string? MemberUserId { get; set; }
+    [Required(ErrorMessage = "O membro é obrigatório.")]
+    public string MemberUserId { get; set; } = string.Empty;
 
     [ForeignKey(nameof(MemberUserId))]
-    public virtual ApplicationUser? Member { get; set; }
+    public virtual ApplicationUser Member { get; set; } = null!;
 
     /// <summary>
     /// Phone number associated with the transfer (for reference)

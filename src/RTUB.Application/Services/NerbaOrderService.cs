@@ -23,7 +23,8 @@ public class NerbaOrderService : INerbaOrderService
         using var context = _contextFactory.CreateDbContext();
         return await context.NerbaOrders
             .Where(no => no.ReportId == reportId)
-            .OrderByDescending(no => no.Date)
+            .Include(no => no.Event)
+            .OrderByDescending(no => no.Id)
             .ToListAsync(cancellationToken);
     }
 
@@ -32,13 +33,37 @@ public class NerbaOrderService : INerbaOrderService
     {
         using var context = _contextFactory.CreateDbContext();
         return await context.NerbaOrders
-            .OrderByDescending(no => no.Date)
+            .Include(no => no.Event)
+            .OrderByDescending(no => no.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<NerbaOrder?> GetByIdAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        using var context = _contextFactory.CreateDbContext();
+        return await context.NerbaOrders
+            .Include(no => no.Event)
+            .FirstOrDefaultAsync(no => no.Id == orderId, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<NerbaOrder>> GetByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
+    {
+        using var context = _contextFactory.CreateDbContext();
+        return await context.NerbaOrders
+            .Where(no => no.EventId == eventId)
+            .Include(no => no.Event)
+            .OrderByDescending(no => no.Id)
             .ToListAsync(cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<(bool Success, string Message)> AddOrderAsync(NerbaOrder order, CancellationToken cancellationToken = default)
     {
+        if (order.EventId <= 0)
+            return (false, "Evento é obrigatório.");
+
         try
         {
             using var context = _contextFactory.CreateDbContext();

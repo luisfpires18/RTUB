@@ -1894,7 +1894,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return weapon.def.levels[weapon.level - 1];
     }
     _findNearestEnemies(x, y, range, count) {
-      const enemies = this.enemyManager.enemies.filter((e) => e.alive).map((e) => ({ enemy: e, dist: dist({ x, y }, { x: e.x, y: e.y }) })).filter((e) => e.dist < range).sort((a, b) => a.dist - b.dist);
+      const enemies = this.enemyManager.enemies.filter((e) => e.alive).map((e) => ({ enemy: e, dist: dist({ x, y }, { x: e.x, y: e.y }) })).filter((e) => e.dist < range + e.enemy.hitRadius).sort((a, b) => a.dist - b.dist);
       return enemies.slice(0, count).map((e) => e.enemy);
     }
     // ─── Cleanup ────────────────────────────────────────────────

@@ -1,0 +1,137 @@
+/* Scoped styles for NerbaOrderCard component */
+
+.order-card {
+    --order-accent: #f5576c;
+    --order-accent-rgb: 245, 87, 108;
+    background-color: #151516;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.order-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--bs-primary-rgb), 0.6);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.order-card__top {
+    position: relative;
+}
+
+.order-card__header-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.35rem;
+    z-index: 2;
+}
+
+.order-card__header-button {
+    --bs-btn-padding-y: 0.15rem;
+    --bs-btn-padding-x: 0.35rem;
+    --bs-btn-font-size: 0.75rem;
+    --bs-btn-line-height: 1.05;
+    padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
+    line-height: var(--bs-btn-line-height);
+    font-size: var(--bs-btn-font-size);
+    border-radius: 0.375rem;
+}
+
+.order-card__header-button i {
+    font-size: 0.9rem;
+}
+
+.order-icon-header {
+    width: 100%;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(var(--order-accent-rgb), 0.25) 0%, rgba(240, 147, 251, 0.12) 100%);
+    border-bottom: 2px solid rgba(var(--order-accent-rgb), 0.3);
+}
+
+.order-icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: rgba(var(--order-accent-rgb), 0.2);
+    border: 2px solid var(--order-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.order-card:hover .order-icon-circle {
+    background-color: rgba(var(--order-accent-rgb), 0.3);
+    transform: scale(1.05);
+}
+
+.order-icon-circle i {
+    font-size: 1.6rem;
+    color: var(--order-accent);
+}
+
+.order-date-hint {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.order-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.order-notes {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.order-actions {
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(var(--order-accent-rgb), 0.2);
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .order-icon-header {
+        height: 80px;
+    }
+
+    .order-icon-circle {
+        width: 48px;
+        height: 48px;
+    }
+
+    .order-icon-circle i {
+        font-size: 1.35rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .order-icon-header {
+        height: 70px;
+    }
+
+    .order-icon-circle {
+        width: 42px;
+        height: 42px;
+    }
+
+    .order-icon-circle i {
+        font-size: 1.2rem;
+    }
+}
