@@ -1,0 +1,39 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace RTUB.Core.Entities;
+
+/// <summary>
+/// Represents an MBWAY transfer transaction record
+/// </summary>
+public class MbwayTransfer : BaseEntity
+{
+    [Required]
+    public DateTime Date { get; set; }
+
+    [Required]
+    public decimal Amount { get; set; }
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// The member who made the transfer
+    /// </summary>
+    [Required(ErrorMessage = "O membro é obrigatório.")]
+    public string MemberUserId { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(MemberUserId))]
+    public virtual ApplicationUser Member { get; set; } = null!;
+
+    /// <summary>
+    /// Phone number associated with the transfer (for reference)
+    /// </summary>
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
+    public int? FiscalYearId { get; set; }
+
+    [ForeignKey(nameof(FiscalYearId))]
+    public virtual FiscalYear? FiscalYear { get; set; }
+}

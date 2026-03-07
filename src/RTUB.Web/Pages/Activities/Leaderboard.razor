@@ -226,7 +226,6 @@ else
            Title="Detalhes da Classificação"
            Size="Modal.ModalSize.Large"
            Centered="true"
-           ShowCloseButton="false"
            OnClose="CloseDetailsModal">
         <BodyContent>
             <!-- Centered Header Section -->
@@ -531,7 +530,7 @@ else
     // XP breakdown and attended activities state
     private UserXpBreakdownDto? xpBreakdown;
     private List<AttendedActivityDto>? attendedActivities;
-    private bool isActivitiesExpanded = false;
+    private bool isActivitiesExpanded = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -738,7 +737,6 @@ else
     {
         viewingItem = item;
         modals.Open(ModalType.Details);
-        isActivitiesExpanded = false; // Reset to collapsed when opening modal
         
         // Load comments and XP breakdown for this user
         await Task.WhenAll(
@@ -755,7 +753,6 @@ else
         newCommentText = string.Empty;
         xpBreakdown = null;
         attendedActivities = null;
-        isActivitiesExpanded = false;
     }
     
     private async Task LoadComments()

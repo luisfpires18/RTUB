@@ -157,7 +157,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to send weekly notification to user {UserId}", user.Id);
+                    _logger.LogWarning(ex, "Failed to send weekly notification to user {UserName}", user.UserName ?? user.Id);
                 }
             }
 

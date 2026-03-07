@@ -1,0 +1,105 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="card mbway-card h-100">
+    <div class="mbway-card__top">
+        @if (CanEdit)
+        {
+            <div class="mbway-card__header-actions">
+                <button class="btn btn-sm btn-light mbway-card__header-button"
+                        @onclick="HandleEdit"
+                        title="Editar transferência">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger mbway-card__header-button"
+                        @onclick="HandleDelete"
+                        title="Eliminar transferência">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+        <div class="mbway-icon-header">
+            <div class="mbway-icon-circle">
+                <i class="bi bi-phone"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="mbway-info">
+            <div class="mbway-info-row">
+                <i class="bi bi-calendar3 mbway-icon"></i>
+                <span class="mbway-label">Data</span>
+                <span class="mbway-text">@Transfer.Date.ToString("dd MMM yyyy")</span>
+            </div>
+            <div class="mbway-info-row">
+                <i class="bi bi-person mbway-icon"></i>
+                <span class="mbway-label">Membro</span>
+                <span class="mbway-text">@FormatField(MemberDisplayName)</span>
+            </div>
+            @if (!string.IsNullOrEmpty(Transfer.Phone))
+            {
+                <div class="mbway-info-row">
+                    <i class="bi bi-telephone mbway-icon"></i>
+                    <span class="mbway-label">Telefone</span>
+                    <span class="mbway-text">@Transfer.Phone</span>
+                </div>
+            }
+            <div class="mbway-info-row">
+                <i class="bi bi-currency-euro mbway-icon"></i>
+                <span class="mbway-label">Valor</span>
+                <span class="mbway-amount text-success">+€@Transfer.Amount.ToString("N2")</span>
+            </div>
+            @if (!string.IsNullOrEmpty(Transfer.Description))
+            {
+                <div class="mbway-info-row">
+                    <i class="bi bi-card-text mbway-icon"></i>
+                    <span class="mbway-label">Descrição</span>
+                    <span class="mbway-text">@Transfer.Description</span>
+                </div>
+            }
+            <div class="mbway-info-row">
+                <i class="bi bi-person-check mbway-icon"></i>
+                <span class="mbway-label">Criado por</span>
+                <span class="mbway-text">@FormatField(Transfer.CreatedBy)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MbwayTransfer Transfer { get; set; } = null!;
+
+    [Parameter]
+    public string MemberDisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<MbwayTransfer> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<MbwayTransfer> OnDelete { get; set; }
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync(Transfer);
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Transfer);
+        }
+    }
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "—" : value;
+    }
+}

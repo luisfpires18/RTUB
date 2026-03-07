@@ -53,8 +53,14 @@ else
                     </button>
                 </Authorized>
             </AuthorizeView>
-            <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
+            <button class="btn btn-purple" @onclick="ViewCalotes" title="Ver Calotes">
                 <i class="bi bi-cash-coin"></i> Ver Calotes
+            </button>
+            <button class="btn btn-purple" @onclick="ViewMbway" title="Ver MBWAY">
+                <i class="bi bi-phone"></i> Ver MBWAY
+            </button>
+            <button class="btn btn-purple" @onclick="ViewNerba" title="Ver Nerba">
+                <i class="bi bi-basket"></i> Nerba
             </button>
         </div>
     </div>
@@ -784,7 +790,9 @@ else
         var items = new List<MobileBottomNav.MobileNavItem>
         {
             new("action-back", "Voltar", "bi-arrow-left"),
-            new("action-calotes", "Calotes", "bi-cash-coin")
+            new("action-calotes", "Calotes", "bi-cash-coin"),
+            new("action-mbway", "MBWAY", "bi-phone"),
+            new("action-nerba", "Nerba", "bi-basket")
         };
 
         if (isAdmin)
@@ -804,6 +812,14 @@ else
         else if (key == "action-calotes")
         {
             ViewCalotes();
+        }
+        else if (key == "action-mbway")
+        {
+            ViewMbway();
+        }
+        else if (key == "action-nerba")
+        {
+            ViewNerba();
         }
         else if (key == "action-history")
         {
@@ -1043,6 +1059,18 @@ state.CurrentPage = newPage;
         // Navigate to calotes page with the fiscal year from this report
         var fiscalYear = $"{report!.Year}-{report.Year + 1}";
         NavigationManager.NavigateTo($"/calotes?fy={fiscalYear}&reportId={ReportId}");
+    }
+
+    private void ViewMbway()
+    {
+        // Navigate to MBWAY transfers page with report ID
+        NavigationManager.NavigateTo($"/mbway/{ReportId}");
+    }
+
+    private void ViewNerba()
+    {
+        // Navigate to Nerba orders page with report ID
+        NavigationManager.NavigateTo($"/nerba/{ReportId}");
     }
 
     // Activity CRUD

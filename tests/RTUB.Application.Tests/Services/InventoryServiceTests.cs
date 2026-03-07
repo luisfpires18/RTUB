@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -52,7 +53,8 @@ public class InventoryServiceTests : IDisposable
             userManagerMock.Object,
             _loggerMock.Object,
             config.Object,
-            WrapInFactory(_dbContext));
+            WrapInFactory(_dbContext),
+            Mock.Of<IMemoryCache>());
     }
 
     public void Dispose()

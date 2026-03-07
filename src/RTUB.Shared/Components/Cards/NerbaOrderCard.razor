@@ -1,0 +1,84 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="card order-card h-100">
+    <div class="order-card__top">
+        @if (CanEdit)
+        {
+            <div class="order-card__header-actions">
+                <button class="btn btn-sm btn-danger order-card__header-button"
+                        @onclick="HandleDelete"
+                        title="Eliminar encomendas">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+        <div class="order-icon-header">
+            <div class="order-icon-circle">
+                <i class="bi bi-basket"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title mb-1 fw-semibold">@Event.Name</h5>
+        <p class="card-text text-muted small mb-2">
+            <i class="bi bi-calendar3 me-1"></i>@Event.Date.ToString("dd MMM yyyy")@(Event.EndDate.HasValue ? $" — {Event.EndDate.Value:dd MMM yyyy}" : "")
+        </p>
+
+        <div class="order-badges mb-2">
+            <span class="badge bg-primary d-inline-flex align-items-center gap-1">
+                <i class="bi bi-box"></i> @OrderCount @(OrderCount == 1 ? "item" : "itens")
+            </span>
+            <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                <i class="bi bi-calculator"></i> €@TotalAmount.ToString("F2")
+            </span>
+        </div>
+
+        <div class="order-actions mt-auto">
+            <div class="d-flex gap-2 w-100 justify-content-center">
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                        @onclick="HandleViewDetails"
+                        title="Ver encomendas">
+                    <i class="bi bi-basket"></i>
+                    <span>Ir para Encomendas</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Event Event { get; set; } = null!;
+
+    [Parameter]
+    public int OrderCount { get; set; }
+
+    [Parameter]
+    public decimal TotalAmount { get; set; }
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Event> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<Event> OnViewDetails { get; set; }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Event);
+        }
+    }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync(Event);
+        }
+    }
+}

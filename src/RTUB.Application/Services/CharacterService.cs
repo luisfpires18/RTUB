@@ -146,7 +146,8 @@ public class CharacterService : ICharacterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error claiming daily reward for user {UserId}", userId);
+            var userName = (await _userManager.FindByIdAsync(userId))?.UserName ?? userId;
+            _logger.LogError(ex, "Error claiming daily reward for user {UserName}", userName);
             return (false, "Erro ao receber Daily Reward.", 0);
         }
     }
@@ -185,12 +186,16 @@ public class CharacterService : ICharacterService
 
             await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Owner deleted character and all game data for user {UserId}", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogInformation("Owner deleted character and all game data for user {UserName}", userName);
             return (true, "Personagem e dados de jogo eliminados com sucesso.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting character for user {UserId}", userId);
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.UserName ?? userId;
+            _logger.LogError(ex, "Error deleting character for user {UserName}", userName);
             return (false, "Erro ao eliminar personagem.");
         }
     }
@@ -247,7 +252,9 @@ public class CharacterService : ICharacterService
         character.CustomSpritePath = spritePath;
         await _characterRepository.UpdateAsync(character);
 
-        _logger.LogInformation("Auto-assigned custom sprite for user {UserId}: {SpritePath}", userId, spritePath);
+        var user = await _userManager.FindByIdAsync(userId);
+        var userName = user?.UserName ?? userId;
+        _logger.LogInformation("Auto-assigned custom sprite for user {UserName}: {SpritePath}", userName, spritePath);
     }
 
     /// <summary>
@@ -276,7 +283,9 @@ public class CharacterService : ICharacterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error searching for custom sprite for user {UserId}", userId);
+            var user = _userManager.FindByIdAsync(userId).GetAwaiter().GetResult();
+            var userName = user?.UserName ?? userId;
+            _logger.LogWarning(ex, "Error searching for custom sprite for user {UserName}", userName);
             return null;
         }
     }
@@ -292,6 +301,6 @@ public class CharacterService : ICharacterService
             .AsNoTracking()
             .ToDictionaryAsync(b => b.UserId, b => b.HighestBossStage, cancellationToken);
         await Task.WhenAll(stageTask, bossTask);
-        return (stageTask.Result, bossTask.Result);
+        return (await stageTask, await bossTask);
     }
 }

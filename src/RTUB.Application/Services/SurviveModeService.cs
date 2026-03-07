@@ -141,18 +141,18 @@ public class SurviveModeService : ISurviveModeService
             throw new InvalidOperationException("Character is dead â€” cannot start a survive run");
 
         var progress = await GetOrCreateProgressAsync(character.UserId, cancellationToken);
+        var user = await _userManager.FindByIdAsync(character.UserId);
 
         if (progress.IsRunActive)
         {
-            _logger.LogWarning("User {UserId} tried to start survive run while one is active. Cancelling old run.",
-                character.UserId);
+            _logger.LogWarning("User {UserName} tried to start survive run while one is active. Cancelling old run.",
+                user?.UserName ?? character.UserId);
             progress.CancelRun();
         }
 
         progress.StartRun();
         await _progressRepository.UpdateAsync(progress);
 
-        var user = await _userManager.FindByIdAsync(character.UserId);
         _logger.LogInformation(
             "User {UserName} started Survive Mode run #{Run} on level {Level}",
             user?.UserName ?? character.UserId, progress.TotalRunsAttempted, progress.CurrentLevel);
@@ -271,9 +271,10 @@ public class SurviveModeService : ISurviveModeService
             var elapsed = (DateTime.UtcNow - progress.RunStartedAt.Value).TotalSeconds;
             if (survivalTimeSeconds > elapsed + 2.0)
             {
-                _logger.LogWarning("Survive mode timing validation failed for user {UserId}. " +
+                var user = await _userManager.FindByIdAsync(character.UserId);
+                _logger.LogWarning("Survive mode timing validation failed for user {UserName}. " +
                     "Claimed {ClaimedTime}s but only {ElapsedTime}s elapsed.",
-                    character.UserId, survivalTimeSeconds, elapsed);
+                    user?.UserName ?? character.UserId, survivalTimeSeconds, elapsed);
                 survivalTimeSeconds = elapsed;
             }
         }

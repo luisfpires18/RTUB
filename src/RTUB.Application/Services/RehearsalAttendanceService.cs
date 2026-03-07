@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Extensions;
@@ -23,6 +24,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<RehearsalAttendanceService> _logger;
 
     public RehearsalAttendanceService(
         IRehearsalAttendanceRepository attendanceRepository,
@@ -30,7 +32,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         IHttpContextAccessor httpContextAccessor,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ILogger<RehearsalAttendanceService> logger)
     {
         _attendanceRepository = attendanceRepository;
         _retirementStatusService = retirementStatusService;
@@ -38,6 +41,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         _pushNotificationFactory = pushNotificationFactory;
         _httpContextAccessor = httpContextAccessor;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
@@ -365,7 +369,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         catch (Exception ex)
         {
             // Notifications are non-critical; log but don't fail the operation
-            Console.WriteLine($"Failed to send rehearsal attendance notification: {ex.Message}");
+            _logger.LogError(ex, "Failed to send rehearsal attendance notification");
         }
     }
 
@@ -418,7 +422,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         catch (Exception ex)
         {
             // Notifications are non-critical; log but don't fail the operation
-            Console.WriteLine($"Failed to send rehearsal cancellation notification: {ex.Message}");
+            _logger.LogError(ex, "Failed to send rehearsal cancellation notification");
         }
     }
 
@@ -471,7 +475,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         catch (Exception ex)
         {
             // Notifications are non-critical; log but don't fail the operation
-            Console.WriteLine($"Failed to send rehearsal non-attendance notification: {ex.Message}");
+            _logger.LogError(ex, "Failed to send rehearsal non-attendance notification");
         }
     }
 

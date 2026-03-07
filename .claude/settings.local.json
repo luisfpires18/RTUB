@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Bash(dotnet ef migrations add AddMbwayTransfersAndNerbaOrders --project \"src/RTUB.Application\" --startup-project \"src/RTUB.Web\")",
+      "Bash(dotnet build)",
+      "Bash(dotnet ef migrations add AddMbwayTransfersAndNerbaOrders --project \"src/RTUB.Web\")",
+      "Bash(dotnet ef database update --project \"src/RTUB.Web\")",
+      "Bash(dotnet build --no-restore)",
+      "Bash(dotnet clean)",
+      "Bash(taskkill /PID 53916 /F)"
+    ]
+  }
+}

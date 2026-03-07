@@ -80,6 +80,13 @@ public class EventService : IEventService
         return await _eventRepository.GetEventsByTypeAsync(type);
     }
 
+    /// <inheritdoc />
+    public async Task<IEnumerable<Event>> GetActiveEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default)
+    {
+        var events = await _eventRepository.GetEventsByTypeAsync(type);
+        return events.Where(e => !e.IsCancelled).OrderByDescending(e => e.Date);
+    }
+
     public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, CancellationToken cancellationToken = default)
     {
         var eventEntity = Event.Create(name, date, location, type, description);

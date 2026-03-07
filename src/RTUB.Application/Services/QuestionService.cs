@@ -172,6 +172,7 @@ public class QuestionService : IQuestionService
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
+        question.TouchLastActivity();
         await _questionRepository.UpdateAsync(question);
         return reply;
     }
@@ -306,8 +307,19 @@ public class QuestionService : IQuestionService
 
     public async Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync()
     {
+        // Project only fields needed for member selection — avoids loading PasswordHash,
+        // SecurityStamp, ConcurrencyStamp, and other identity fields irrelevant to this query.
         var allUsers = await _userManager.Users
             .AsNoTracking()
+            .Select(u => new ApplicationUser
+            {
+                Id = u.Id,
+                UserName = u.UserName,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Nickname = u.Nickname,
+                Positions = u.Positions,
+            })
             .ToListAsync();
 
         var result = new List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>();

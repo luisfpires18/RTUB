@@ -119,8 +119,8 @@ public class MeetingAtaService : IMeetingAtaService
 
     public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions, MeetingAta? existingAta = null)
     {
-        // Owner role can create/edit any ata
-        if (userRoles.Contains("Owner"))
+        // Owner and Admin roles can create/edit any ata
+        if (userRoles.Contains("Owner") || userRoles.Contains("Admin"))
             return true;
 
         // For CV meetings
@@ -159,6 +159,19 @@ public class MeetingAtaService : IMeetingAtaService
                     existingAta.SecondSecretaryUserId == userId)
                     return true;
             }
+        }
+
+        // For Direcao meetings
+        if (meeting.Type == MeetingType.ReuniaoDirecao)
+        {
+            // Magister can create/edit ATAs (equivalent to PresidenteMesaAssembleia for AG)
+            if (userPositions.Contains(Position.Magister))
+                return true;
+
+            // Secretario can edit existing ATAs
+            if (existingAta != null && !string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                existingAta.FirstSecretaryUserId == userId)
+                return true;
         }
 
         return false;

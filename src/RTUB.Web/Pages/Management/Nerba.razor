@@ -1,0 +1,351 @@
+@page "/nerba"
+@page "/nerba/{ReportId:int}"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.Cards
+@inject INerbaOrderService NerbaOrderService
+@inject IEventService EventService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Nerba> Logger
+
+<div class="page-header-centered mb-4">
+    <div class="page-header-left d-none d-xl-flex">
+        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-basket"></i> Encomendas Nerba</h1>
+        <p class="page-header-subtitle">Registo de encomendas de material por evento.</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
+        <AuthorizeView Roles="Mod,Admin">
+            <Authorized>
+                <button class="btn btn-purple"
+                        @onclick="OpenAddModal"
+                        title="Adicionar Encomenda Nerba">
+                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Encomenda</span>
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = "")"></button>
+    </div>
+}
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="A carregar encomendas..." />
+}
+else if (hasError)
+{
+    @* Error already shown in the alert above — don't also show empty state *@
+}
+else if (!eventGroups.Any())
+{
+    <EmptyState Title="Nenhuma encomenda registada"
+                Message="Não existem encomendas Nerba."
+                Icon="bi-inbox" />
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+        @foreach (var group in pagedEventGroups)
+        {
+            <div class="col" @key="group.Event.Id">
+                <NerbaOrderCard Event="@group.Event"
+                                OrderCount="@group.OrderCount"
+                                TotalAmount="@group.TotalAmount"
+                                CanEdit="@canEdit"
+                                OnDelete="@((Event e) => ConfirmDeleteEventOrders(e))"
+                                OnViewDetails="@((Event e) => NavigateToDetail(e))" />
+            </div>
+        }
+    </div>
+
+    @if (eventGroups.Count > pageSize)
+    {
+        <TablePagination
+            CurrentPage="@currentPage"
+            PageSize="@pageSize"
+            TotalItems="@eventGroups.Count"
+            ItemLabel="eventos"
+            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+            OnPageChanged="ChangePage"
+            OnPageSizeChanged="ChangePageSize" />
+    }
+
+
+}
+
+<!-- Add Order Modal (select event, then navigate to detail) -->
+@if (showModal)
+{
+    <Modal Show="@showModal"
+           ShowChanged="@((bool show) => { if (!show) showModal = false; })"
+           Title="Selecionar Evento"
+           Size="Modal.ModalSize.Default">
+        <BodyContent>
+            <div class="form-group mb-3">
+                <label for="orderEvent" class="form-label">Evento <span class="text-danger">*</span></label>
+                <select class="form-select" id="orderEvent" @bind="selectedEventId">
+                    <option value="0">Selecionar evento...</option>
+                    @foreach (var ev in nerbaEvents)
+                    {
+                        <option value="@ev.Id">@ev.Name — @ev.Date.ToString("dd/MM/yyyy")</option>
+                    }
+                </select>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
+            <button type="button" class="btn btn-primary" @onclick="GoToEventDetail">
+                <i class="bi bi-plus-lg me-1"></i> Criar
+            </button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Delete Confirmation -->
+@if (showDeleteConfirm)
+{
+    <ConfirmDialog Show="@showDeleteConfirm"
+                   ShowChanged="@((bool v) => showDeleteConfirm = v)"
+                   Title="Eliminar Encomendas"
+                   Message="@deleteConfirmMessage"
+                   ConfirmText="Eliminar"
+                   CancelText="Cancelar"
+                   ConfirmButtonClass="btn-danger"
+                   OnConfirm="ConfirmDeleteOrder"
+                   OnCancel="@(() => showDeleteConfirm = false)" />
+}
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
+@code {
+    [Parameter]
+    public int? ReportId { get; set; }
+
+    private List<NerbaOrder> orders = new();
+    private List<EventOrderGroup> eventGroups = new();
+    private List<Event> nerbaEvents = new();
+    private string errorMessage = string.Empty;
+    private string deleteConfirmMessage = "Tem a certeza que deseja eliminar esta encomenda? Esta ação é irreversível.";
+    private bool isLoading = false;
+    private bool hasError = false;
+    private bool showModal = false;
+    private bool showDeleteConfirm = false;
+    private bool canEdit = false;
+    private int selectedEventId;
+    private Event? deleteTargetEvent;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
+    private record EventOrderGroup(Event Event, int OrderCount, decimal TotalAmount);
+
+    private List<EventOrderGroup> pagedEventGroups => eventGroups
+        .Skip((currentPage - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadOrders(), LoadNerbaEvents(), CheckAuthorization());
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canEdit)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add":
+                OpenAddModal();
+                break;
+            case "action-back":
+                GoBack();
+                break;
+        }
+    }
+
+    private void NavigateToDetail(Event ev)
+    {
+        NavigationManager.NavigateTo($"/nerba/event/{ev.Id}");
+    }
+
+    private async Task LoadOrders()
+    {
+        isLoading = true;
+        try
+        {
+            // Always load all orders — ReportId is only used for GoBack navigation
+            orders = await NerbaOrderService.GetAllAsync();
+
+            Logger.LogInformation("LoadOrders: fetched {Count} orders (ReportId={ReportId})", orders.Count, ReportId);
+
+            if (orders.Count > 0)
+            {
+                // Group by event — orders already have Event loaded via Include
+                var withEvent = orders.Where(o => o.Event != null).ToList();
+                var withoutEvent = orders.Where(o => o.Event == null).ToList();
+
+                if (withoutEvent.Count > 0)
+                {
+                    Logger.LogWarning(
+                        "LoadOrders: {Count} orders have null Event navigation. EventIds: {Ids}",
+                        withoutEvent.Count,
+                        string.Join(", ", withoutEvent.Select(o => o.EventId)));
+                }
+
+                eventGroups = withEvent
+                    .GroupBy(o => o.EventId)
+                    .Select(g => new EventOrderGroup(
+                        g.First().Event!,
+                        g.Count(),
+                        g.Sum(o => o.Stock * o.PricePerUnit)))
+                    .OrderByDescending(g => g.Event.Date)
+                    .ToList();
+
+                Logger.LogInformation("LoadOrders: built {Count} event groups", eventGroups.Count);
+            }
+            else
+            {
+                eventGroups = new();
+            }
+
+            errorMessage = string.Empty;
+            hasError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "LoadOrders failed");
+            errorMessage = "Erro ao carregar encomendas. Tente novamente.";
+            hasError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadNerbaEvents()
+    {
+        try
+        {
+            nerbaEvents = (await EventService.GetActiveEventsByTypeAsync(EventType.Nerba)).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar eventos: {ex.Message}";
+        }
+    }
+
+    private async Task CheckAuthorization()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            canEdit = user.IsInRole("Mod") || user.IsInRole("Admin");
+        }
+        catch
+        {
+            canEdit = false;
+        }
+    }
+
+    private void OpenAddModal()
+    {
+        selectedEventId = 0;
+        showModal = true;
+    }
+
+    private void GoToEventDetail()
+    {
+        if (selectedEventId <= 0)
+        {
+            errorMessage = "Selecione um evento.";
+            return;
+        }
+
+        showModal = false;
+        NavigationManager.NavigateTo($"/nerba/event/{selectedEventId}");
+    }
+
+    private void ConfirmDeleteEventOrders(Event ev)
+    {
+        deleteTargetEvent = ev;
+        deleteConfirmMessage = $"Tem a certeza que deseja eliminar todas as encomendas do evento \"{ev.Name}\"? Esta ação é irreversível.";
+        showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteOrder()
+    {
+        if (deleteTargetEvent == null) return;
+
+        showDeleteConfirm = false;
+        try
+        {
+            var result = await NerbaOrderService.DeleteByEventIdAsync(deleteTargetEvent.Id);
+            if (result.Success)
+            {
+                await LoadOrders();
+                errorMessage = string.Empty;
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar: {ex.Message}";
+        }
+    }
+
+    private void ChangePage(int newPage)
+    {
+        currentPage = newPage;
+    }
+
+    private void ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+    }
+
+    private void GoBack()
+    {
+        if (ReportId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/finance/report/{ReportId}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}

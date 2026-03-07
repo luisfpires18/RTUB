@@ -617,16 +617,8 @@
                                          Clickable="true" OnClick="@OpenStageModal" />
                             <FantasyTile Icon="bi-lightning-fill" Label="Boss Mode" Color="gold" Size="lg"
                                          Clickable="true" OnClick="@OpenBossModeModal" />
-                            <AuthorizeView Roles="Owner">
-                                <Authorized>
-                                    <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
-                                                 Clickable="true" OnClick="@OpenSurviveModeModal" />
-                                </Authorized>
-                                <NotAuthorized>
-                                    <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
-                                                 Disabled="true" Tooltip="Soon..." />
-                                </NotAuthorized>
-                            </AuthorizeView>
+                            <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
+                                         Clickable="true" OnClick="@OpenSurviveModeModal" />
                         </div>
                     </div>
                 </div>
@@ -1710,7 +1702,7 @@
                         @foreach (var weapon in forgedWeapons)
                         {
                             var isEquippedW = weapon.IsEquipped;
-                            <div class="stats-card @(isEquippedW ? "border-success" : "")" style="cursor: pointer;" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
+                            <div @key="weapon.Id" class="stats-card @(isEquippedW ? "border-success" : "")" style="cursor: pointer;" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
                                 <div class="stats-card-position" style="width: 40px;">
                                     @if (GetForgedWeaponPictureUrl(weapon) is string listWpnImg)
                                     {
@@ -1963,22 +1955,15 @@
                 }
             </BodyContent>
             <FooterContent>
-                <div class="item-detail-actions">
-                    @if (actionIsEquip)
-                    {
-                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                            <i class="bi bi-trash me-1"></i>Descartar
-                            <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
-                        </button>
-                    }
-                    else
-                    {
+                @if (!actionIsEquip)
+                {
+                    <div class="item-detail-actions">
                         <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
                             <i class="bi bi-trash me-1"></i>Descartar
                             <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
                         </button>
-                    }
-                </div>
+                    </div>
+                }
             </FooterContent>
         </Modal>
     }
@@ -2017,7 +2002,7 @@
                             var rangeText = biome.StageMax >= 999999 ? $"{biome.StageMin}+" : $"{biome.StageMin}–{biome.StageMax}";
                             var isExpanded = expandedBiomes.Contains(biome.Name);
 
-                            <div class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
+                            <div @key="biome.Name" class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
                                  style="--bc: @color;">
                                 <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
                                      @onclick="() => { if (isUnlocked) ToggleBiomeExpanded(biome.Name); }">
@@ -2049,7 +2034,7 @@
                                         @foreach (var cp in biomeCheckpoints)
                                         {
                                             var isHighest = cp >= highestStage - 9 && cp <= highestStage;
-                                            <button class="biome-cp @(isHighest ? "biome-cp-active" : "")"
+                                            <button @key="cp" class="biome-cp @(isHighest ? "biome-cp-active" : "")"
                                                     style="--bc: @color;"
                                                     @onclick="() => StartFromStage(cp)">
                                                 @cp
@@ -2186,7 +2171,7 @@
                             var timer = config.TimerDurationSeconds;
                             var timerStr = timer >= 60 ? $"{(int)(timer / 60)}:{((int)(timer % 60)):D2}" : $"0:{(int)timer:D2}";
 
-                            <div class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
+                            <div @key="name" class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
                                  style="--bc: @color;">
                                 <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
                                      @onclick="async () => { if (isUnlocked) await StartSurviveLevel(level); }">

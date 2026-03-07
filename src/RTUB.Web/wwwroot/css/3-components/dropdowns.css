@@ -193,7 +193,6 @@ th:hover {
 
 .search-bar:focus-within {
     border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
     background-color: #202331;
 }
 

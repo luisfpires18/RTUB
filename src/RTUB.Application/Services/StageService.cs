@@ -359,13 +359,13 @@ public class StageService : IStageService
                 {
                     _logger.LogWarning(
                         ex,
-                        "ReturnToCheckpointAsync: Concurrency conflict for user {UserId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        "ReturnToCheckpointAsync: Concurrency conflict for user {UserName}, retrying (attempt {Attempt}/{MaxRetries})...",
                         userId, attempt + 1, maxRetries);
                     await Task.Delay(100 * (attempt + 1), cancellationToken);
                     continue;
                 }
 
-                _logger.LogError(ex, "ReturnToCheckpointAsync: Failed after {MaxRetries} retries for user {UserId}", maxRetries, userId);
+                _logger.LogError(ex, "ReturnToCheckpointAsync: Failed after {MaxRetries} retries for user {UserName}", maxRetries, userId);
                 throw;
             }
         }
@@ -396,7 +396,7 @@ public class StageService : IStageService
                 var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
                 if (stageProgress == null)
                 {
-                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found", character.UserId);
+                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserName} not found", character.UserId);
                     return false;
                 }
 
@@ -417,7 +417,7 @@ public class StageService : IStageService
                 stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
                 if (stageProgress == null)
                 {
-                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found after re-fetch", character.UserId);
+                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserName} not found after re-fetch", character.UserId);
                     return false;
                 }
 
@@ -808,13 +808,13 @@ public class StageService : IStageService
                 {
                     _logger.LogWarning(
                         ex,
-                        "EndRunAsync: Concurrency conflict for character {CharacterId}/user {UserId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        "EndRunAsync: Concurrency conflict for character {CharacterId}/user {UserName}, retrying (attempt {Attempt}/{MaxRetries})...",
                         characterId, userId, attempt + 1, maxRetries);
                     await Task.Delay(100 * (attempt + 1), cancellationToken);
                     continue;
                 }
 
-                _logger.LogError(ex, "EndRunAsync: Failed after {MaxRetries} retries for character {CharacterId}/user {UserId}", maxRetries, characterId, userId);
+                _logger.LogError(ex, "EndRunAsync: Failed after {MaxRetries} retries for character {CharacterId}/user {UserName}", maxRetries, characterId, userId);
                 throw;
             }
         }

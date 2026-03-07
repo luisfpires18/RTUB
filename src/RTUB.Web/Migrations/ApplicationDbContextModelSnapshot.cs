@@ -2345,6 +2345,61 @@ namespace RTUB.Migrations
                     b.ToTable("LogisticsLists");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.MbwayTransfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FiscalYearId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MemberUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date")
+                        .HasDatabaseName("IX_MbwayTransfers_Date");
+
+                    b.HasIndex("FiscalYearId")
+                        .HasDatabaseName("IX_MbwayTransfers_FiscalYearId");
+
+                    b.HasIndex("MemberUserId");
+
+                    b.HasIndex("FiscalYearId", "Date")
+                        .HasDatabaseName("IX_MbwayTransfers_FiscalYearId_Date");
+
+                    b.ToTable("MbwayTransfers", (string)null);
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Meeting", b =>
                 {
                     b.Property<int>("Id")
@@ -3165,6 +3220,56 @@ namespace RTUB.Migrations
                     b.ToTable("NaipeTypeConfigs", (string)null);
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.NerbaOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Item")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PricePerUnit")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ReportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("IX_NerbaOrders_EventId");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("IX_NerbaOrders_ReportId");
+
+                    b.ToTable("NerbaOrders", (string)null);
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -3491,6 +3596,9 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("LastNotificationSent")
                         .HasColumnType("TEXT");
 
@@ -3523,6 +3631,9 @@ namespace RTUB.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("IsDeleted");
+
+                    b.HasIndex("LastActivityAt")
+                        .HasDatabaseName("IX_Question_LastActivityAt");
 
                     b.HasIndex("Status", "IsAwaitingUserReply")
                         .HasDatabaseName("IX_Question_Status_AwaitingReply");
@@ -4896,6 +5007,24 @@ namespace RTUB.Migrations
                     b.Navigation("Board");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.MbwayTransfer", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.FiscalYear", "FiscalYear")
+                        .WithMany()
+                        .HasForeignKey("FiscalYearId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FiscalYear");
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Meeting", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "DelegatedAtaWriterMember")
@@ -5129,6 +5258,24 @@ namespace RTUB.Migrations
                     b.Navigation("NaipeContent");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.NerbaOrder", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Report");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>

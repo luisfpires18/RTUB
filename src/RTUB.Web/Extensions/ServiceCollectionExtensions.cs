@@ -1,9 +1,21 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
+using RTUB.Application.Services.Geocoding;
 using RTUB.Application.Services.Retirement;
+using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 using RTUB.Web.Services;
 
 namespace RTUB.Web.Extensions;
@@ -122,6 +134,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IMemberDebtService, MemberDebtService>();
+        services.AddScoped<IMbwayTransferService, MbwayTransferService>();
+        services.AddScoped<INerbaOrderService, NerbaOrderService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
         services.AddScoped<IMemberInstrumentService, MemberInstrumentService>();
@@ -380,6 +394,354 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
         services.AddScoped<IMessagingDisplayService, MessagingDisplayService>();
         services.AddScoped<IMessagingSortService, MessagingSortService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings / scaling.config.json
+    /// </summary>
+    public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<RTUB.Application.Configuration.RankingConfiguration>(
+            configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.XpSettings>(
+            configuration.GetSection(RTUB.Application.Configuration.XpSettings.SectionName));
+        services.Configure<RTUB.Application.Configuration.Toggles>(
+            configuration.GetSection(RTUB.Application.Configuration.Toggles.SectionName));
+        services.Configure<RTUB.Application.Configuration.WebPushOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.WebPushOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.BirthdayEmailSchedulerOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.BirthdayEmailSchedulerOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.MemberStatusUpdateOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.LoginPopupOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.LoginPopupOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.RehearsalApprovalReminderOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.RehearsalApprovalReminderOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.QuestionNotificationOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.WeeklyNotificationOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.WeeklyNotificationOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.CalotesNotificationOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
+            configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
+            configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.FidelisRewardsConfiguration>(
+            configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
+            configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Configures SQLite DbContextFactory and registers ApplicationDbContext for Identity
+    /// </summary>
+    public static IServiceCollection AddDatabaseServices(this IServiceCollection services, string connectionString)
+    {
+        services.AddScoped<IAuditLogAppender, AuditLogAppender>();
+
+        services.AddDbContextFactory<ApplicationDbContext>(o =>
+        {
+            o.UseSqlite(connectionString, b =>
+            {
+                b.MigrationsAssembly("RTUB");
+                b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            })
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+            .AddInterceptors(new SqliteConnectionInterceptor());
+        }, ServiceLifetime.Scoped);
+
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers ASP.NET Core Identity with simplified password requirements
+    /// </summary>
+    public static IServiceCollection AddIdentityServices(this IServiceCollection services)
+    {
+        services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+        {
+            options.SignIn.RequireConfirmedAccount = true;
+            options.User.RequireUniqueEmail = true;
+            options.Password.RequiredLength = 4;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireDigit = false;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.AllowedForNewUsers = true;
+        })
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Configures cookie authentication events: security-stamp validation, role-change logout,
+    /// expulsion check, and session logging
+    /// </summary>
+    public static IServiceCollection AddCookieAuthenticationServices(this IServiceCollection services)
+    {
+        services.ConfigureApplicationCookie(options =>
+        {
+            options.LoginPath = "/login";
+            options.AccessDeniedPath = "/login";
+            options.Events = new CookieAuthenticationEvents
+            {
+                OnValidatePrincipal = async context =>
+                {
+                    var logger = context.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>();
+                    var cache = context.HttpContext?.RequestServices?.GetService<IMemoryCache>();
+                    var userManager = context.HttpContext?.RequestServices?.GetService<UserManager<ApplicationUser>>();
+                    var signInManager = context.HttpContext?.RequestServices?.GetService<SignInManager<ApplicationUser>>();
+
+                    if (logger == null || cache == null || userManager == null || signInManager == null)
+                        return;
+
+                    var userName = context.Principal?.Identity?.Name;
+                    if (string.IsNullOrWhiteSpace(userName))
+                        return;
+
+                    var validatedUser = await signInManager.ValidateSecurityStampAsync(context.Principal);
+                    if (validatedUser == null)
+                    {
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        return;
+                    }
+
+                    if (validatedUser.IsExpelled)
+                    {
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        logger.LogInformation("User {UserName} forced to logout due to expulsion.", userName);
+                        return;
+                    }
+
+                    var hasAdminClaim = context.Principal?.IsInRole("Admin") ?? false;
+                    var isAdminInDatabase = await userManager.IsInRoleAsync(validatedUser, "Admin");
+                    if (hasAdminClaim && !isAdminInDatabase)
+                    {
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        logger.LogInformation("User {UserName} forced to logout due to role change.", userName);
+                        return;
+                    }
+
+                    var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
+                    var cookieUserAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
+                    var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
+                    if (!cache.TryGetValue(logCacheKey, out _))
+                    {
+                        logger.LogInformation(
+                            "User {UserName} authenticated via cookie validation at {LoginTime} ({Device})",
+                            userName, DateTime.UtcNow,
+                            UserAgentHelper.GetShortUserAgent(cookieUserAgent));
+                        cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+                        });
+                    }
+
+                    try
+                    {
+                        var db = context.HttpContext?.RequestServices?.GetService<ApplicationDbContext>();
+                        if (db is null)
+                        {
+                            logger.LogWarning("ApplicationDbContext not available in OnValidatePrincipal");
+                            return;
+                        }
+
+                        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                        if (string.IsNullOrWhiteSpace(userId))
+                            return;
+
+                        var now = DateTime.UtcNow;
+                        for (int attempt = 1; ; attempt++)
+                        {
+                            try
+                            {
+                                await db.Database.ExecuteSqlInterpolatedAsync($@"
+                                    UPDATE AspNetUsers
+                                    SET LastLoginDate = {now}
+                                    WHERE Id = {userId};");
+                                break;
+                            }
+                            catch (Microsoft.Data.Sqlite.SqliteException ex) when (attempt < 3 && ex.SqliteErrorCode == 6)
+                            {
+                                await Task.Delay(50 * (int)Math.Pow(2, attempt - 1));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error while initializing LastLoginDate for {UserName}", userName);
+                    }
+                }
+            };
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers infrastructure services: email, PDF, MVC, SQL validation, database viewer, S3/R2
+    /// </summary>
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<ReportPdfService>();
+        services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
+        services.AddControllersWithViews();
+        services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+        services.AddScoped<IEmailTemplateRenderer, RazorEmailTemplateRenderer>();
+        services.AddScoped<ISqlValidationService, SqlValidationService>();
+        services.AddScoped<IDatabaseViewerService, DatabaseViewerService>();
+
+        // Cloudflare R2 S3 client (singleton - shared across all requests)
+        services.AddSingleton<Amazon.S3.IAmazonS3>(serviceProvider =>
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+            var accessKey = configuration["Cloudflare:R2:AccessKeyId"];
+            var secretKey = configuration["Cloudflare:R2:SecretAccessKey"];
+            var accountId = configuration["Cloudflare:R2:AccountId"];
+
+            if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
+            {
+                var errorMsg = "Cloudflare R2 credentials not configured. Set Cloudflare:R2:AccessKeyId and Cloudflare:R2:SecretAccessKey.";
+                logger.LogError(errorMsg);
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            if (string.IsNullOrEmpty(accountId))
+            {
+                var errorMsg = "Cloudflare R2 account ID not configured. Set Cloudflare:R2:AccountId.";
+                logger.LogError(errorMsg);
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            var credentials = new Amazon.Runtime.BasicAWSCredentials(accessKey, secretKey);
+            var config = new Amazon.S3.AmazonS3Config
+            {
+                ServiceURL = $"https://{accountId}.r2.cloudflarestorage.com",
+                ForcePathStyle = true,
+                AuthenticationRegion = "auto"
+            };
+            return new Amazon.S3.AmazonS3Client(credentials, config);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers geocoding services and HTTP clients
+    /// </summary>
+    public static IServiceCollection AddGeocodingServices(this IServiceCollection services)
+    {
+        services.AddHttpClient("Nominatim")
+            .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(10); });
+        services.AddHttpClient("CdnProxy")
+            .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(15); });
+
+        services.AddSingleton<IGeocodingQueue, InMemoryGeocodingQueue>();
+        services.AddScoped<NominatimGeocodingService>();
+        services.AddScoped<IGeocodingService, CachedGeocodingService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers all background hosted services (schedulers, workers)
+    /// </summary>
+    public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
+    {
+        services.AddHostedService<BackgroundGeocodingWorker>();
+        services.AddHostedService<BirthdayEmailSchedulerService>();
+        services.AddHostedService<MemberStatusUpdateBackgroundService>();
+        services.AddHostedService<PendingRequestReminderService>();
+        services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
+        services.AddHostedService<QuestionNotificationBackgroundService>();
+        services.AddHostedService<WeeklyNotificationBackgroundService>();
+        services.AddHostedService<CalotesNotificationBackgroundService>();
+        services.AddHostedService<ActivityReminderBackgroundService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers UI state services, interop services, and Blazor-specific singletons
+    /// </summary>
+    public static IServiceCollection AddWebUiServices(this IServiceCollection services)
+    {
+        services.AddScoped<ProfilePictureUpdateService>();
+        services.AddSingleton<MessagesNotificationService>();
+        services.AddSingleton<AdminRefreshService>();
+        services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
+        services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
+        services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
+        services.AddScoped<MediaQueueService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Configures Blazor Interactive Server, SignalR hub options, authorization, antiforgery,
+    /// response compression and caching
+    /// </summary>
+    public static IServiceCollection AddBlazorAndWebServices(this IServiceCollection services, IHostEnvironment environment)
+    {
+        services.AddRazorComponents()
+            .AddInteractiveServerComponents(options =>
+            {
+                options.DetailedErrors = environment.IsDevelopment();
+                options.MaxBufferedUnacknowledgedRenderBatches = 20;
+                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
+            });
+
+        services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
+        {
+            options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+            options.EnableDetailedErrors = environment.IsDevelopment();
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
+        });
+
+        services.AddCascadingAuthenticationState();
+        services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
+        services.AddAuthorization(o =>
+        {
+            o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
+        });
+        services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
+
+        if (!environment.IsDevelopment())
+        {
+            services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+                options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+                options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+            });
+        }
+
+        services.AddResponseCaching();
+        services.AddMemoryCache();
+        services.AddMetrics();
+        services.AddControllers();
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>("database");
 
         return services;
     }

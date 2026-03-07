@@ -1,0 +1,481 @@
+@page "/mbway"
+@page "/mbway/{ReportId:int}"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Core.Entities
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.Cards
+@inject IMbwayTransferService MbwayTransferService
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="page-header-centered mb-4">
+    <div class="page-header-left d-none d-xl-flex">
+        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-phone"></i> MBWAY</h1>
+        <p class="page-header-subtitle">Registo de transferências MBWAY.</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
+        <AuthorizeView Roles="Mod,Admin">
+            <Authorized>
+                <button class="btn btn-purple"
+                        @onclick="OpenAddModal"
+                        title="Adicionar Transferência MBWAY">
+                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Transferência</span>
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+<div class="mb-3 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.12); border: 1px solid rgba(168, 142, 229, 0.35);">
+    <i class="bi bi-info-circle text-purple me-1"></i>
+    <span class="text-purple">As transferências MBWAY não são contabilizadas nos totais dos relatórios.</span>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = "")"></button>
+    </div>
+}
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="A carregar transferências..." />
+}
+else if (!transfers.Any())
+{
+    <EmptyState Title="Nenhuma transferência registada"
+                Message="Não existem transferências MBWAY."
+                Icon="bi-inbox" />
+}
+else
+{
+    <div class="mb-4">
+        <div class="card summary-card">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted d-block mb-1">Total de Transferências</small>
+                        <h4 class="text-success mb-0">€@transfers.Sum(t => t.Amount).ToString("F2")</h4>
+                    </div>
+                    <div class="text-muted">
+                        <i class="bi bi-phone fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+        @foreach (var transfer in pagedTransfers)
+        {
+            <div class="col" @key="transfer.Id">
+                <MbwayTransferCard Transfer="@transfer"
+                                   MemberDisplayName="@GetMemberDisplayName(transfer)"
+                                   CanEdit="@canEdit"
+                                   OnEdit="@((MbwayTransfer t) => OpenEditModal(t))"
+                                   OnDelete="@((MbwayTransfer t) => ConfirmDelete(t))" />
+            </div>
+        }
+    </div>
+
+    @if (transfers.Count > pageSize)
+    {
+        <TablePagination
+            CurrentPage="@currentPage"
+            PageSize="@pageSize"
+            TotalItems="@transfers.Count"
+            ItemLabel="transferências"
+            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+            OnPageChanged="ChangePage"
+            OnPageSizeChanged="ChangePageSize" />
+    }
+}
+
+<!-- Add/Edit Modal -->
+@if (showModal && editingTransfer != null)
+{
+    <Modal Show="@showModal"
+           ShowChanged="@((bool show) => { if (!show) showModal = false; })"
+           Title="@(editingTransfer.Id > 0 ? "Editar Transferência MBWAY" : "Adicionar Transferência MBWAY")"
+           Size="Modal.ModalSize.Large">
+        <BodyContent>
+            <div class="form-group mb-3">
+                <label for="transferDate" class="form-label">Data</label>
+                <input type="date" class="form-control" id="transferDate"
+                       @bind="editingTransfer!.Date" />
+            </div>
+            <div class="form-group mb-3">
+                <label for="transferAmount" class="form-label">Montante (€)</label>
+                <input type="number" class="form-control" id="transferAmount"
+                       step="0.01" min="0" @bind="editingTransfer!.Amount" />
+            </div>
+            <div class="form-group mb-3">
+                <label for="memberSearch" class="form-label">Membro <span class="text-danger">*</span></label>
+                <SearchBar @bind-Value="memberSearchTerm"
+                           Placeholder="Pesquisar membro por nome ou alcunha..."
+                           OnSearch="OnMemberSearch"
+                           OnClear="ClearMemberSearch"
+                           Compact="true" />
+                @if (filteredMembers.Any())
+                {
+                    <div class="list-group mt-2" style="max-height: 250px; overflow-y: auto; background-color: #1e2030; border-color: rgba(var(--bs-primary-rgb), 0.3);">
+                        @foreach (var member in filteredMembers.Take(10))
+                        {
+                            <button type="button" class="list-group-item list-group-item-action"
+                                    style="background-color: #1e2030; color: #fff; border-color: rgba(255,255,255,0.08);"
+                                    @onclick="@(() => SelectMember(member))">
+                                <div class="d-flex align-items-center">
+                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" />
+                                    <div>
+                                        <strong>@(member.Nickname ?? member.UserName)</strong>
+                                        @if (!string.IsNullOrEmpty(member.FirstName))
+                                        {
+                                            <br />
+                                            <small class="text-muted">@member.FirstName @member.LastName</small>
+                                        }
+                                    </div>
+                                </div>
+                            </button>
+                        }
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(editingTransfer?.MemberUserId))
+                {
+                    <div class="mt-2 mb-0 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.15); border: 1px solid rgba(168, 142, 229, 0.4);">
+                        <i class="bi bi-person-check text-purple me-1"></i>
+                        <strong class="text-purple">Membro selecionado:</strong>
+                        <span>@GetMemberName(editingTransfer.MemberUserId)</span>
+                    </div>
+                }
+            </div>
+            <div class="form-group mb-3">
+                <label for="transferPhone" class="form-label">Telefone</label>
+                <input type="text" class="form-control" id="transferPhone"
+                       @bind="editingTransfer!.Phone" />
+            </div>
+            <div class="form-group mb-3">
+                <label for="transferDescription" class="form-label">Descrição</label>
+                <textarea class="form-control" id="transferDescription" rows="3"
+                          placeholder="Notas opcionais..." @bind="editingTransfer!.Description"></textarea>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
+            <button type="button" class="btn btn-primary" @onclick="SaveTransfer" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Guardar
+            </button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Delete Confirmation -->
+@if (showDeleteConfirm)
+{
+    <ConfirmDialog Show="@showDeleteConfirm"
+                   ShowChanged="@((bool v) => showDeleteConfirm = v)"
+                   Title="Eliminar Transferência MBWAY"
+                   Message="Tem a certeza que deseja eliminar esta transferência? Esta ação é irreversível."
+                   ConfirmText="Eliminar"
+                   CancelText="Cancelar"
+                   ConfirmButtonClass="btn-danger"
+                   OnConfirm="ConfirmDeleteTransfer"
+                   OnCancel="@(() => showDeleteConfirm = false)" />
+}
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
+@code {
+    [Parameter]
+    public int? ReportId { get; set; }
+
+    private List<MbwayTransfer> transfers = new();
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredMembers = new();
+    private string memberSearchTerm = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showDeleteConfirm = false;
+    private bool canEdit = false;
+    private MbwayTransfer? editingTransfer;
+    private MbwayTransfer? deleteTarget;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
+    private List<MbwayTransfer> pagedTransfers => transfers
+        .Skip((currentPage - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadTransfers(), LoadMembers(), CheckAuthorization());
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canEdit)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add":
+                OpenAddModal();
+                break;
+            case "action-back":
+                GoBack();
+                break;
+        }
+    }
+
+    private async Task LoadTransfers()
+    {
+        isLoading = true;
+        try
+        {
+            transfers = await MbwayTransferService.GetAllAsync();
+            errorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar transferências: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadMembers()
+    {
+        try
+        {
+            allMembers = (await UserManager.Users.ToListAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+    }
+
+    private async Task CheckAuthorization()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            canEdit = user.IsInRole("Mod") || user.IsInRole("Admin");
+        }
+        catch
+        {
+            canEdit = false;
+        }
+    }
+
+    /// <summary>
+    /// Gets the display name from a loaded transfer's Member navigation property.
+    /// </summary>
+    private static string GetMemberDisplayName(MbwayTransfer transfer)
+    {
+        if (transfer.Member is null)
+            return "\u2014";
+        return transfer.Member.Nickname ?? transfer.Member.UserName ?? "\u2014";
+    }
+
+    /// <summary>
+    /// Gets a member display name by user ID (used in the modal for selected member).
+    /// </summary>
+    private string GetMemberName(string? memberId)
+    {
+        if (string.IsNullOrEmpty(memberId)) return "\u2014";
+        var member = allMembers.FirstOrDefault(m => m.Id == memberId);
+        return member?.Nickname ?? member?.UserName ?? "\u2014";
+    }
+
+    private void OnMemberSearch(string searchTerm)
+    {
+        memberSearchTerm = searchTerm;
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredMembers = new();
+        }
+        else
+        {
+            filteredMembers = allMembers
+                .Where(m => (m.Nickname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                            (m.UserName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                            (m.FirstName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                            (m.LastName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+        }
+    }
+
+    private void ClearMemberSearch()
+    {
+        memberSearchTerm = string.Empty;
+        filteredMembers = new();
+    }
+
+    private void SelectMember(ApplicationUser member)
+    {
+        if (editingTransfer != null)
+        {
+            editingTransfer.MemberUserId = member.Id;
+            memberSearchTerm = string.Empty;
+            filteredMembers = new();
+        }
+    }
+
+    private void OpenAddModal()
+    {
+        editingTransfer = new MbwayTransfer
+        {
+            Date = DateTime.UtcNow
+        };
+        memberSearchTerm = string.Empty;
+        filteredMembers = new();
+        showModal = true;
+    }
+
+    private void OpenEditModal(MbwayTransfer transfer)
+    {
+        editingTransfer = new MbwayTransfer
+        {
+            Id = transfer.Id,
+            Date = transfer.Date,
+            Amount = transfer.Amount,
+            Phone = transfer.Phone,
+            Description = transfer.Description,
+            MemberUserId = transfer.MemberUserId,
+            FiscalYearId = transfer.FiscalYearId
+        };
+        memberSearchTerm = string.Empty;
+        filteredMembers = new();
+        showModal = true;
+    }
+
+    private async Task SaveTransfer()
+    {
+        if (editingTransfer == null || editingTransfer.Amount <= 0)
+        {
+            errorMessage = "Preencha todos os campos obrigatórios.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(editingTransfer.MemberUserId))
+        {
+            errorMessage = "Selecione um membro.";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var result = editingTransfer.Id > 0
+                ? await MbwayTransferService.UpdateTransferAsync(editingTransfer)
+                : await MbwayTransferService.AddTransferAsync(editingTransfer);
+
+            if (result.Success)
+            {
+                showModal = false;
+                await LoadTransfers();
+                errorMessage = string.Empty;
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao guardar: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ConfirmDelete(MbwayTransfer transfer)
+    {
+        deleteTarget = transfer;
+        showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteTransfer()
+    {
+        if (deleteTarget == null) return;
+
+        showDeleteConfirm = false;
+        try
+        {
+            var result = await MbwayTransferService.DeleteTransferAsync(deleteTarget.Id);
+            if (result.Success)
+            {
+                await LoadTransfers();
+                errorMessage = string.Empty;
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar: {ex.Message}";
+        }
+    }
+
+    private void ChangePage(int newPage)
+    {
+        currentPage = newPage;
+    }
+
+    private void ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+    }
+
+    private void GoBack()
+    {
+        if (ReportId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/finance/report/{ReportId}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}

@@ -13,6 +13,7 @@ namespace RTUB.Application.Services;
 public class DatabaseViewerService : IDatabaseViewerService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly ISqlValidationService _sqlValidationService;
 
     /// <summary>
     /// Validates that a table name contains only safe characters to prevent SQL injection.
@@ -20,14 +21,15 @@ public class DatabaseViewerService : IDatabaseViewerService
     /// </summary>
     private static readonly Regex SafeTableNamePattern = new(@"^\w+$", RegexOptions.Compiled);
 
-    public DatabaseViewerService(IDbContextFactory<ApplicationDbContext> contextFactory)
+    public DatabaseViewerService(IDbContextFactory<ApplicationDbContext> contextFactory, ISqlValidationService sqlValidationService)
     {
         _contextFactory = contextFactory;
+        _sqlValidationService = sqlValidationService;
     }
 
     public async Task<List<string>> GetTableNamesAsync(CancellationToken cancellationToken = default)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        using var ctx = _contextFactory.CreateDbContext();
         return await Task.FromResult(
             ctx.Model.GetEntityTypes()
                 .Select(e => e.GetTableName() ?? e.ClrType.Name)
@@ -44,7 +46,7 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var ctx = _contextFactory.CreateDbContext();
+        using var ctx = _contextFactory.CreateDbContext();
         var entityType = ctx.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 
@@ -67,7 +69,7 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var ctx2 = _contextFactory.CreateDbContext();
+        using var ctx2 = _contextFactory.CreateDbContext();
         var entityType2 = ctx2.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 
@@ -95,13 +97,14 @@ public class DatabaseViewerService : IDatabaseViewerService
     {
         var results = new List<Dictionary<string, object?>>();
 
-        var ctx = _contextFactory.CreateDbContext();
-        using var command = ctx.Database.GetDbConnection().CreateCommand();
+        using var ctx = _contextFactory.CreateDbContext();
+        var connection = ctx.Database.GetDbConnection(); // owned by ctx; do not dispose separately
+        using var command = connection.CreateCommand();
         command.CommandText = query;
 
-        if (command.Connection?.State != ConnectionState.Open)
+        if (connection.State != ConnectionState.Open)
         {
-            await command.Connection!.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken);
         }
 
         using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -129,7 +132,13 @@ public class DatabaseViewerService : IDatabaseViewerService
 
     public async Task<int> ExecuteModifyQueryAsync(string query, CancellationToken cancellationToken = default)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        var validation = _sqlValidationService.ValidateModifyQuery(query);
+        if (!validation.IsValid)
+        {
+            throw new ArgumentException(validation.ErrorMessage, nameof(query));
+        }
+
+        using var ctx = _contextFactory.CreateDbContext();
         return await ctx.Database.ExecuteSqlRawAsync(query, cancellationToken);
     }
 
@@ -140,7 +149,7 @@ public class DatabaseViewerService : IDatabaseViewerService
             throw new ArgumentException("Invalid table name.", nameof(tableName));
         }
 
-        var ctx = _contextFactory.CreateDbContext();
+        using var ctx = _contextFactory.CreateDbContext();
         var entityType = ctx.Model.GetEntityTypes()
             .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == tableName);
 

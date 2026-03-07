@@ -25,15 +25,8 @@ public class QuestionRepository : IQuestionRepository
         using var context = CreateContext();
         var query = BuildBaseQuery(context, searchTerm, isClosedFilter, assignedMemberIdFilter, includeReplies: true);
 
-        // For non-closed questions, order by latest reply or creation date
-        // Note: Fetch to client-side first to avoid expensive SQL subquery
-        if (isClosedFilter == false)
-        {
-            return await ApplyClientSideSortingAndPagination(query, page, pageSize);
-        }
-
         return await query
-            .OrderByDescending(q => q.CreatedAt)
+            .OrderByDescending(q => q.LastActivityAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -44,15 +37,8 @@ public class QuestionRepository : IQuestionRepository
         using var context = CreateContext();
         var query = BuildBaseQueryWithReplies(context, searchTerm, isClosedFilter, assignedMemberIdFilter);
 
-        // For non-closed questions, order by latest reply or creation date
-        // Note: Fetch to client-side first to avoid expensive SQL subquery
-        if (isClosedFilter == false)
-        {
-            return await ApplyClientSideSortingAndPagination(query, page, pageSize);
-        }
-
         return await query
-            .OrderByDescending(q => q.CreatedAt)
+            .OrderByDescending(q => q.LastActivityAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -122,18 +108,6 @@ public class QuestionRepository : IQuestionRepository
         }
 
         return query;
-    }
-
-    private static async Task<List<Question>> ApplyClientSideSortingAndPagination(IQueryable<Question> query, int page, int pageSize)
-    {
-        // Note: This approach loads all matching records to avoid complex SQL.
-        // For very large datasets (>1000 records), consider database-level sorting with computed columns.
-        var results = await query.ToListAsync();
-        return results
-            .OrderByDescending(q => q.Replies.Any() ? q.Replies.Max(r => r.CreatedAt) : q.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
     }
 
     public async Task<int> GetCountAsync(string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)

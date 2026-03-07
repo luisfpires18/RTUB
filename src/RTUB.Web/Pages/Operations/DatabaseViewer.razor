@@ -4,7 +4,6 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
 @using RTUB.Web.Services
-@using System.Text.RegularExpressions
 @attribute [Authorize(Roles = "Owner")]
 @inject IDatabaseViewerService DatabaseViewerService
 @inject IJSRuntime JSRuntime
@@ -525,62 +524,6 @@
         successMessage = string.Empty;
     }
 
-    /// <summary>
-    /// Allowed DML keywords for modification queries.
-    /// </summary>
-    private static readonly string[] AllowedDmlKeywords = new[] { "INSERT", "UPDATE", "DELETE" };
-
-    /// <summary>
-    /// Forbidden keywords that should be rejected in modification queries.
-    /// Includes DDL operations and SELECT (which belongs in the SELECT tab).
-    /// </summary>
-    private static readonly string[] ForbiddenKeywords = new[]
-    {
-        "DROP", "ALTER", "TRUNCATE", "CREATE", "GRANT", "REVOKE", 
-        "EXEC", "EXECUTE", "MERGE", "SELECT"
-    };
-
-    /// <summary>
-    /// Pre-compiled regex patterns for forbidden keywords (word boundary matching).
-    /// Static readonly ensures patterns are compiled once per class load and reused.
-    /// </summary>
-    private static readonly Regex[] ForbiddenKeywordPatterns = ForbiddenKeywords
-        .Select(keyword => new Regex($@"\b{keyword}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-        .ToArray();
-
-    /// <summary>
-    /// Validates that a modification query only contains INSERT, UPDATE, or DELETE operations.
-    /// </summary>
-    private static (bool IsValid, string ErrorMessage) ValidateModifyQuery(string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return (false, "Query cannot be empty.");
-        }
-
-        var normalizedQuery = query.Trim();
-        
-        // Check if query starts with one of the allowed DML keywords
-        var startsWithAllowed = AllowedDmlKeywords.Any(keyword => 
-            normalizedQuery.StartsWith(keyword, StringComparison.OrdinalIgnoreCase));
-        
-        if (!startsWithAllowed)
-        {
-            return (false, "Only INSERT, UPDATE, and DELETE queries are allowed. Query must start with INSERT, UPDATE, or DELETE.");
-        }
-
-        // Check for forbidden keywords - return on first match for efficiency
-        for (int i = 0; i < ForbiddenKeywordPatterns.Length; i++)
-        {
-            if (ForbiddenKeywordPatterns[i].IsMatch(normalizedQuery))
-            {
-                return (false, $"Query contains forbidden keyword: {ForbiddenKeywords[i]}. Only INSERT, UPDATE, and DELETE queries are allowed.");
-            }
-        }
-
-        return (true, string.Empty);
-    }
-
     private async Task ExecuteModifyQuery()
     {
         if (string.IsNullOrWhiteSpace(modifyQuery))
@@ -588,8 +531,8 @@
             return;
         }
 
-        // Validate the modification query
-        var validationResult = ValidateModifyQuery(modifyQuery);
+        // Validate the modification query using the injected service
+        var validationResult = SqlValidationService.ValidateModifyQuery(modifyQuery);
         if (!validationResult.IsValid)
         {
             errorMessage = validationResult.ErrorMessage;

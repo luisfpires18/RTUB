@@ -74,8 +74,8 @@
         <div class="finance-report-grid">
             @foreach (var report in PaginatedItems)
             {
-                <div>
-                    <ReportCard 
+                <div @key="report.Id">
+                    <ReportCard
                         Report="@report"
                         CanPublish="@canPublishReports"
                         OnCardClick="@(() => ViewReport(report.Id))"

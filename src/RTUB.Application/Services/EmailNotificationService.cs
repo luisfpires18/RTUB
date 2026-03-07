@@ -234,7 +234,7 @@ public class EmailNotificationService : IEmailNotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending birthday notification email for user {UserId}", birthdayPersonId);
+            _logger.LogError(ex, "Error sending birthday notification email for user {UserName}", birthdayPersonId);
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }

@@ -1806,6 +1806,7 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
+    private bool isAdmin = false;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Ata modal variables
@@ -1990,9 +1991,10 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        
-        // Cache owner role to avoid synchronous I/O in rendering methods
+
+        // Cache authentication state to avoid synchronous I/O in rendering methods
         isOwner = user.IsInRole("Owner");
+        isAdmin = user.IsInRole("Admin");
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -3269,35 +3271,44 @@ else
     private bool CanCreateMeetingType(MeetingType type)
     {
         if (currentUser == null) return false;
-        
+
         // Owner can create all types (use cached value)
         if (isOwner) return true;
-        
+
+        // Admin can create ReuniaoDirecao meetings
+        if (isAdmin && type == MeetingType.ReuniaoDirecao) return true;
+
         if (currentUser.Positions == null) return false;
-        
+
         // PresidenteMesaAssembleia can only create Assembleia meetings
         if (currentUser.Positions.Contains(Position.PresidenteMesaAssembleia))
         {
-            return type == MeetingType.AssembleiaGeralOrdinaria || 
+            return type == MeetingType.AssembleiaGeralOrdinaria ||
                    type == MeetingType.AssembleiaGeralExtraordinaria;
         }
-        
+
         // PresidenteConselhoVeteranos can only create CV meetings
         if (currentUser.Positions.Contains(Position.PresidenteConselhoVeteranos))
         {
             return type == MeetingType.ConselhoVeteranos;
         }
-        
+
+        // Direcao members can create Reunião de Direção meetings
+        if (currentUser.Positions.Any(p =>
+            p == Position.Magister || p == Position.ViceMagister ||
+            p == Position.Secretario || p == Position.PrimeiroTesoureiro ||
+            p == Position.SegundoTesoureiro))
+        {
+            return type == MeetingType.ReuniaoDirecao;
+        }
+
         return false;
     }
     
     private bool CanCreateAtaForMeeting(Meeting meeting)
     {
         if (currentUser == null) return false;
-        
-        // Reunião de Direção should not have atas
-        if (meeting.Type == MeetingType.ReuniaoDirecao) return false;
-        
+
         var userRoles = new List<string>();
         if (isOwner) userRoles.Add("Owner");
         
@@ -3959,10 +3970,13 @@ else
     private bool IsDirecaoMember()
     {
         if (currentUser == null) return false;
-        
+
         // Owner can also access Direção functions
         if (isOwner) return true;
-        
+
+        // Admin can also access Direção functions
+        if (isAdmin) return true;
+
         if (currentUser.Positions == null) return false;
         
         // Direção members: Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro
