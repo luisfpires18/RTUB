@@ -140,11 +140,21 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
     }
 
     /// <summary>
-    /// Minimum fraction of ActionTime that must elapse between auto-attacks.
-    /// Set to 0.3 (30%) to allow for network jitter and battle-speed multiplier (up to ~3x)
-    /// while still blocking extreme speed hacks (e.g., 9999x).
+    /// Base fraction of ActionTime that must elapse between auto-attacks at 1x speed.
+    /// At higher battle speeds, this is divided by <see cref="CombatSession.BattleSpeed"/>
+    /// so that fast-forward modes are not bottlenecked by the rate limiter.
+    /// The minimum effective fraction is clamped to 0.003 (~333x cap) to prevent exploits.
     /// </summary>
     private const double ActionTimeToleranceFraction = 0.3;
+
+    /// <summary>
+    /// Returns the effective tolerance fraction adjusted for the session's battle speed.
+    /// </summary>
+    private static double GetEffectiveTolerance(CombatSession session)
+    {
+        var speed = Math.Max(1.0, session.BattleSpeed);
+        return Math.Max(0.003, ActionTimeToleranceFraction / speed);
+    }
 
     /// <inheritdoc />
     public CombatActionResult ProcessPlayerAutoAttack(CombatSession session)
@@ -154,7 +164,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         // Anti-exploit: reject if not enough real time has elapsed since last player action
         var now = DateTime.UtcNow;
         var elapsed = (now - session.LastPlayerActionAt).TotalSeconds;
-        var minRequired = session.Player.ActionTimeSeconds * ActionTimeToleranceFraction;
+        var minRequired = session.Player.ActionTimeSeconds * GetEffectiveTolerance(session);
         if (elapsed < minRequired)
             return new CombatActionResult(); // silently ignore — speed bar hasn't truly filled
 
@@ -242,7 +252,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         {
             var enemyElapsed = (now - session.LastEnemyActionAt[enemyIndex]).TotalSeconds;
             var enemy2 = session.Enemies[enemyIndex];
-            var minEnemyRequired = enemy2.ActionTimeSeconds * ActionTimeToleranceFraction;
+            var minEnemyRequired = enemy2.ActionTimeSeconds * GetEffectiveTolerance(session);
             if (enemyElapsed < minEnemyRequired)
                 return new CombatActionResult(); // silently ignore
         }

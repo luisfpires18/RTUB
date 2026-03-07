@@ -1875,6 +1875,18 @@ export class StageBattleScene implements VfxOwner {
     }
   }
 
+  /** Resets the JS battle watchdog timer — called on every successful server response. */
+  private resetJsBattleWatchdog(): void {
+    if (this._destroyed || this.battleFinished || !this.isPlaying) return;
+    this.clearJsBattleWatchdog();
+    this._jsBattleWatchdogId = setTimeout(() => {
+      if (!this._destroyed && !this.battleFinished && this.isPlaying) {
+        console.warn(`JS battle watchdog: no server response for ${StageBattleScene.JS_BATTLE_WATCHDOG_MS}ms, forcing finish`);
+        this.finishBattle();
+      }
+    }, StageBattleScene.JS_BATTLE_WATCHDOG_MS);
+  }
+
   /**
    * Wraps a dotNetRef.invokeMethodAsync call with a timeout.
    * If the promise doesn't resolve/reject within `timeoutMs`, the returned
@@ -1946,6 +1958,10 @@ export class StageBattleScene implements VfxOwner {
 
   private processServerResult(result: CombatActionResult): void {
     if (this._destroyed || this.battleFinished) return;
+
+    // Reset watchdog on every successful server response — the battle is alive
+    this.resetJsBattleWatchdog();
+
     const events = (result.events ?? result.Events ?? []) as BattleEvent[];
     for (const evt of events) {
       this.processInteractiveEvent(evt);

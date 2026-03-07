@@ -699,6 +699,7 @@
                 enemyStates,
                 currentBattle.Seed,
                 "stage");
+            _combatSession.BattleSpeed = battleSpeed;
 
             // Restore consumable cooldowns (persist across entire run)
             foreach (var kvp in _consumableCooldowns)
@@ -1263,6 +1264,8 @@
             _ => 1.0
         };
         battleSpeed = speed;
+        if (_combatSession is not null)
+            _combatSession.BattleSpeed = speed;
         try
         {
             await JSRuntime.InvokeVoidAsync("stageBattleGame.setSpeed", speed);

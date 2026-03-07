@@ -297,8 +297,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     textPool.pool = [];
   }
   const MIN_FLOAT_MS = 350;
+  const MIN_TEXT_INTERVAL_MS = 50;
+  let _lastDamageTextTime = 0;
   function showDamageText(owner, damage, isCritical, x, y) {
     if (!owner.stage || !owner.app) return;
+    const now = performance.now();
+    if (owner.battleSpeed > 1 && now - _lastDamageTextTime < MIN_TEXT_INTERVAL_MS) return;
+    _lastDamageTextTime = now;
     const text = isCritical ? `CRIT! -${formatNum(Math.abs(damage))}` : `-${formatNum(Math.abs(damage))}`;
     const fontSize = isCritical ? 28 : 24;
     const fillColor = isCritical ? 16776960 : 16729156;

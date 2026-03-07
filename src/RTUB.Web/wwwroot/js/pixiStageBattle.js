@@ -293,8 +293,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     textPool.pool = [];
   }
   const MIN_FLOAT_MS = 350;
+  const MIN_TEXT_INTERVAL_MS = 50;
+  let _lastFloatingTextTime = 0;
+  let _lastDamageTextTime = 0;
   function showFloatingText(owner, text, x, y, color) {
     if (!owner.stage || !owner.app) return;
+    const now = performance.now();
+    if (owner.battleSpeed > 1 && now - _lastFloatingTextTime < MIN_TEXT_INTERVAL_MS) return;
+    _lastFloatingTextTime = now;
     const floatText = getPooledText(owner._textPool, text, {
       fontFamily: "Arial",
       fontSize: 26,
@@ -315,6 +321,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function showDamageText(owner, damage, isCritical, x, y) {
     if (!owner.stage || !owner.app) return;
+    const now = performance.now();
+    if (owner.battleSpeed > 1 && now - _lastDamageTextTime < MIN_TEXT_INTERVAL_MS) return;
+    _lastDamageTextTime = now;
     const text = isCritical ? `CRIT! -${formatNum(Math.abs(damage))}` : `-${formatNum(Math.abs(damage))}`;
     const fontSize = isCritical ? 28 : 24;
     const fillColor = isCritical ? 16776960 : 16729156;
@@ -1852,6 +1861,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this._jsBattleWatchdogId = null;
       }
     }
+    /** Resets the JS battle watchdog timer — called on every successful server response. */
+    resetJsBattleWatchdog() {
+      if (this._destroyed || this.battleFinished || !this.isPlaying) return;
+      this.clearJsBattleWatchdog();
+      this._jsBattleWatchdogId = setTimeout(() => {
+        if (!this._destroyed && !this.battleFinished && this.isPlaying) {
+          console.warn(`JS battle watchdog: no server response for ${_StageBattleScene.JS_BATTLE_WATCHDOG_MS}ms, forcing finish`);
+          this.finishBattle();
+        }
+      }, _StageBattleScene.JS_BATTLE_WATCHDOG_MS);
+    }
     /**
      * Wraps a dotNetRef.invokeMethodAsync call with a timeout.
      * If the promise doesn't resolve/reject within `timeoutMs`, the returned
@@ -1916,6 +1936,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ──────────────── Server Result Processing ─────────────────────── */
     processServerResult(result) {
       if (this._destroyed || this.battleFinished) return;
+      this.resetJsBattleWatchdog();
       const events = result.events ?? result.Events ?? [];
       for (const evt of events) {
         this.processInteractiveEvent(evt);

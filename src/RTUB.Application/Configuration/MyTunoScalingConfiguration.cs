@@ -911,7 +911,7 @@ public class BossModeFidelisRewards
 public class PiggiesCostConfig
 {
     /// <summary>Stat upgrade: level at which Leitão cost kicks in.</summary>
-    public int StatUpgradeStartLevel { get; set; } = 301;
+    public int StatUpgradeStartLevel { get; set; } = 1000;
     /// <summary>Speed upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
     public int SpeedUpgradeStartLevel { get; set; } = 20;
     /// <summary>Crit upgrade: level at which Leitão cost kicks in (mid-cap).</summary>

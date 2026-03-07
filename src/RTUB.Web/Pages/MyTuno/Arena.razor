@@ -561,6 +561,7 @@
                 new List<Character> { opponentSnapshot },
                 currentBattle.Seed,
                 "arena");
+            _combatSession.BattleSpeed = battleSpeed;
 
             // Start live battle animation via pixiBattle.js (interactive mode)
             if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
@@ -735,6 +736,8 @@
         // Clamp to allowed values to prevent exploit via tampered calls
         speed = speed switch { 5.0 => 5.0, _ => 1.0 };
         battleSpeed = speed;
+        if (_combatSession is not null)
+            _combatSession.BattleSpeed = speed;
         try
         {
             await JSRuntime.InvokeVoidAsync("myTunoGame.setSpeed", speed);

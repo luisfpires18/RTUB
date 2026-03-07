@@ -59,6 +59,13 @@ public class CombatSession
 
     // ── Timing (for server-side validation) ──
 
+    /// <summary>
+    /// Client-side battle speed multiplier (e.g. 1, 5, 100).
+    /// Used to scale the anti-exploit action-time tolerance so high-speed modes
+    /// are not bottlenecked by the rate limiter. Defaults to 1.0 (normal speed).
+    /// </summary>
+    public double BattleSpeed { get; set; } = 1.0;
+
     /// <summary>When the battle started (UTC).</summary>
     public DateTime BattleStartedAt { get; set; }
 

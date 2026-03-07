@@ -906,6 +906,7 @@
                     // would cause the session to start with post-battle HP instead of pre-battle.
                     _combatSession = CombatActionService.CreateSession(
                         sessionChar, enemyStates, currentBattle.Seed, "boss");
+                    _combatSession.BattleSpeed = battleSpeed;
 
                     character.CurrentHP = savedHp; // Restore post-battle HP on the tracked entity
 
@@ -1290,6 +1291,8 @@
             _ => 1.0
         };
         battleSpeed = speed;
+        if (_combatSession is not null)
+            _combatSession.BattleSpeed = speed;
         if (hasRendered)
         {
             try { await JSRuntime.InvokeVoidAsync("stageBattleGame.setSpeed", speed); }

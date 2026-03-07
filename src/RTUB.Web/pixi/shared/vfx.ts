@@ -54,6 +54,15 @@ const STATUS_COLORS: Record<string, number> = {
  */
 const MIN_FLOAT_MS = 350;
 
+/**
+ * Minimum real-time interval (ms) between rendered floating/damage texts.
+ * At high battle speeds attacks fire far faster than the eye can track.
+ * Throttling to ~20 texts/second avoids screen flooding while still conveying action.
+ */
+const MIN_TEXT_INTERVAL_MS = 50;
+let _lastFloatingTextTime = 0;
+let _lastDamageTextTime = 0;
+
 /** Show floating text that drifts up and fades. */
 export function showFloatingText(
   owner: VfxOwner,
@@ -63,6 +72,10 @@ export function showFloatingText(
   color: number,
 ): void {
   if (!owner.stage || !owner.app) return;
+  // Throttle at high speeds to prevent screen flooding
+  const now = performance.now();
+  if (owner.battleSpeed > 1 && now - _lastFloatingTextTime < MIN_TEXT_INTERVAL_MS) return;
+  _lastFloatingTextTime = now;
   const floatText = getPooledText(owner._textPool, text, {
     fontFamily: 'Arial',
     fontSize: 26,
@@ -92,6 +105,10 @@ export function showDamageText(
   y: number,
 ): void {
   if (!owner.stage || !owner.app) return;
+  // Throttle at high speeds to prevent screen flooding
+  const now = performance.now();
+  if (owner.battleSpeed > 1 && now - _lastDamageTextTime < MIN_TEXT_INTERVAL_MS) return;
+  _lastDamageTextTime = now;
   const text = isCritical
     ? `CRIT! -${formatNum(Math.abs(damage))}`
     : `-${formatNum(Math.abs(damage))}`;

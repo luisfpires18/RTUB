@@ -303,7 +303,7 @@
       },
 
       "piggies": {
-        "statUpgradeStartLevel": 301,
+        "statUpgradeStartLevel": 1000,
         "statUpgradeBaseCost": 1,
         "statUpgradeCostEveryNLevels": 50,
         "speedUpgradeStartLevel": 20,
