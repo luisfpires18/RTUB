@@ -333,18 +333,18 @@ public class Character : BaseEntity
     // Stats scale with level (linear) + upgrades (flat additive):
     // stat = (base + flatBonus × n) × levelFactor + equipment
     // When _appliedShotMultiplier > 1.0 (combat copies), the final total is scaled.
-    // Linear per-upgrade growth with level amplification.
+    // Per-upgrade growth compounds mildly via UpgradeGrowthRate.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalHP => ClampToLong(
         SafeAdd(
-            ClampToLong((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor()),
+            ClampToLong((HP + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.HpFlatBonus, HpUpgrades)) * LevelScaleFactor()),
             EquipmentHPBonus)
         * _appliedShotMultiplier);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalPower => ClampToLong(
         SafeAdd(
-            ClampToLong((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor()),
+            ClampToLong((Power + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.PowerFlatBonus, PowerUpgrades)) * LevelScaleFactor()),
             EquipmentPowerBonus)
         * _appliedShotMultiplier);
 
@@ -389,39 +389,39 @@ public class Character : BaseEntity
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalDefense => ClampToLong(
         SafeAdd(
-            ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor()),
+            ClampToLong((EffectiveDefense + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.DefenseFlatBonus, DefenseUpgrades)) * LevelScaleFactor()),
             EquipmentDefenseBonus)
         * _appliedShotMultiplier);
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long NextTotalHP => SafeAdd(
-        ClampToLong((HP + MyTunoScaling.HpFlatBonus * (HpUpgrades + 1)) * LevelScaleFactor()),
+        ClampToLong((HP + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.HpFlatBonus, HpUpgrades + 1)) * LevelScaleFactor()),
         EquipmentHPBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long NextTotalPower => SafeAdd(
-        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * (PowerUpgrades + 1)) * LevelScaleFactor()),
+        ClampToLong((Power + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.PowerFlatBonus, PowerUpgrades + 1)) * LevelScaleFactor()),
         EquipmentPowerBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long NextTotalDefense => SafeAdd(
-        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor()),
+        ClampToLong((EffectiveDefense + MyTunoScaling.CumulativeUpgradeBonus(MyTunoScaling.DefenseFlatBonus, DefenseUpgrades + 1)) * LevelScaleFactor()),
         EquipmentDefenseBonus);
 
-    // Per-upgrade bonus preview — computed as a single rounded value to avoid
-    // the ±1 jitter that occurs when subtracting two independently-rounded totals.
+    // Per-upgrade bonus preview — shows the marginal gain of the NEXT upgrade,
+    // which grows with each purchased upgrade due to compound growth.
     /// <summary>HP gained per single upgrade at the current level.</summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long HpUpgradeBonus => ClampToLong(MyTunoScaling.HpFlatBonus * LevelScaleFactor());
+    public long HpUpgradeBonus => ClampToLong(MyTunoScaling.MarginalUpgradeBonus(MyTunoScaling.HpFlatBonus, HpUpgrades) * LevelScaleFactor());
 
     /// <summary>Power gained per single upgrade at the current level.</summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long PowerUpgradeBonus => ClampToLong(MyTunoScaling.PowerFlatBonus * LevelScaleFactor());
+    public long PowerUpgradeBonus => ClampToLong(MyTunoScaling.MarginalUpgradeBonus(MyTunoScaling.PowerFlatBonus, PowerUpgrades) * LevelScaleFactor());
 
     /// <summary>Defense gained per single upgrade at the current level.</summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long DefenseUpgradeBonus => ClampToLong(MyTunoScaling.DefenseFlatBonus * LevelScaleFactor());
+    public long DefenseUpgradeBonus => ClampToLong(MyTunoScaling.MarginalUpgradeBonus(MyTunoScaling.DefenseFlatBonus, DefenseUpgrades) * LevelScaleFactor());
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance
@@ -512,15 +512,25 @@ public class Character : BaseEntity
         MyTunoScaling.PenaltyLifestealPercent + PenaltyTimerUpgrades * MyTunoScaling.PenaltyLifestealPerUpgrade);
 
     /// <summary>
-    /// Computes the level-based stat multiplier using linear growth.
-    /// Formula: 1 + BonusPerLevel × (Level - 1).
-    /// At level 100: 1 + 0.008 × 99 = 1.792.
+    /// Computes the level-based stat multiplier using two-rate linear growth.
+    /// Before <see cref="MyTunoScaling.PostPiggiesStartLevel"/>: 1 + BonusPerLevel × (Level - 1).
+    /// From that level onward: base factor at threshold + PostPiggiesBonusPerLevel × extra levels.
     /// </summary>
     private double LevelScaleFactor()
     {
         var levelsGained = Level - 1;
         if (levelsGained <= 0) return 1.0;
-        return 1.0 + levelsGained * MyTunoScaling.BonusPerLevel;
+
+        var threshold = MyTunoScaling.PostPiggiesStartLevel;
+        if (Level < threshold)
+            return 1.0 + levelsGained * MyTunoScaling.BonusPerLevel;
+
+        // Levels before threshold use base rate, levels from threshold onward use enhanced rate
+        var preLevels = threshold - 1;
+        var postLevels = Level - threshold;
+        return 1.0
+            + preLevels * MyTunoScaling.BonusPerLevel
+            + postLevels * MyTunoScaling.PostPiggiesBonusPerLevel;
     }
 
     // ── Overflow-safe arithmetic helpers ──

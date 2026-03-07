@@ -13,11 +13,14 @@
     "levelScaling": {
       "maxLevel": 1000,
       "bonusPerLevel": 0.008,
+      "postPiggiesStartLevel": 1000,
+      "postPiggiesBonusPerLevel": 0.016,
       "xpPerLevelBase": 100,
       "xpGrowthExponent": 1.85
     },
 
     "upgrades": {
+      "upgradeGrowthRate": 0.001,
       "hp": {
         "flatBonus": 200,
         "baseCost": 80,

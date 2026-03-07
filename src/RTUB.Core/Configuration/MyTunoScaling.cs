@@ -24,6 +24,19 @@ public static class MyTunoScaling
     /// </summary>
     public static double BonusPerLevel { get; private set; } = 0.008;
 
+    /// <summary>
+    /// Character level at which the enhanced post-piggies bonus per level kicks in.
+    /// Before this level the base <see cref="BonusPerLevel"/> is used; from this level
+    /// onward <see cref="PostPiggiesBonusPerLevel"/> applies instead.
+    /// </summary>
+    public static int PostPiggiesStartLevel { get; private set; } = 1000;
+
+    /// <summary>
+    /// Enhanced bonus per level applied from <see cref="PostPiggiesStartLevel"/> onward.
+    /// Default 0.016 (double the base 0.008) to make stat upgrades more rewarding once piggies are required.
+    /// </summary>
+    public static double PostPiggiesBonusPerLevel { get; private set; } = 0.016;
+
     public static int XpPerLevelBase { get; private set; } = 100;
 
     /// <summary>
@@ -48,6 +61,34 @@ public static class MyTunoScaling
 
     /// <summary>Flat Defense added per upgrade.</summary>
     public static double DefenseFlatBonus { get; private set; } = 24;
+
+    /// <summary>
+    /// Compound growth rate per upgrade level for HP/Power/Defense.
+    /// Each successive upgrade gives (1 + growthRate × upgradeIndex) × flatBonus.
+    /// Total from N upgrades = flatBonus × N × (1 + growthRate × (N-1)/2).
+    /// At 0.001, upgrade #1000 gives twice as much as upgrade #1.
+    /// </summary>
+    public static double UpgradeGrowthRate { get; private set; } = 0.001;
+
+    /// <summary>
+    /// Computes the cumulative stat bonus from N upgrades with compound growth.
+    /// Sum of flatBonus × (1 + growthRate × i) for i = 0..N-1
+    /// = flatBonus × N × (1 + growthRate × (N - 1) / 2)
+    /// </summary>
+    public static double CumulativeUpgradeBonus(double flatBonus, int upgrades)
+    {
+        if (upgrades <= 0) return 0;
+        return flatBonus * upgrades * (1.0 + UpgradeGrowthRate * (upgrades - 1) / 2.0);
+    }
+
+    /// <summary>
+    /// Computes the marginal stat bonus for the Nth upgrade (0-indexed).
+    /// = flatBonus × (1 + growthRate × N)
+    /// </summary>
+    public static double MarginalUpgradeBonus(double flatBonus, int upgradeIndex)
+    {
+        return flatBonus * (1.0 + UpgradeGrowthRate * Math.Max(0, upgradeIndex));
+    }
 
     // ── Combat ──
 
@@ -192,6 +233,8 @@ public static class MyTunoScaling
         double baseCriticalChance,
         int maxLevel,
         double bonusPerLevel,
+        int postPiggiesStartLevel,
+        double postPiggiesBonusPerLevel,
         int xpPerLevelBase,
         double xpGrowthExponent,
         double hpFlatBonus,
@@ -238,7 +281,8 @@ public static class MyTunoScaling
         int penaltyMinutesPerUpgrade = 1,
         int maxPenaltyMinutes = 5,
         double penaltyLifestealPerUpgrade = 0.003333,
-        double maxPenaltyLifesteal = 0.015)
+        double maxPenaltyLifesteal = 0.015,
+        double upgradeGrowthRate = 0.001)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -249,6 +293,8 @@ public static class MyTunoScaling
         BaseCriticalChance = baseCriticalChance;
         MaxLevel = maxLevel;
         BonusPerLevel = bonusPerLevel;
+        PostPiggiesStartLevel = postPiggiesStartLevel;
+        PostPiggiesBonusPerLevel = postPiggiesBonusPerLevel;
         XpPerLevelBase = xpPerLevelBase;
         XpGrowthExponent = xpGrowthExponent;
         HpFlatBonus = hpFlatBonus;
@@ -296,5 +342,6 @@ public static class MyTunoScaling
         MaxPenaltyMinutes = maxPenaltyMinutes;
         PenaltyLifestealPerUpgrade = penaltyLifestealPerUpgrade;
         MaxPenaltyLifesteal = maxPenaltyLifesteal;
+        UpgradeGrowthRate = upgradeGrowthRate;
     }
 }

@@ -71,6 +71,8 @@ public class Program
                 myTunoScaling.BaseStats.CriticalChance,
                 myTunoScaling.LevelScaling.MaxLevel,
                 myTunoScaling.LevelScaling.BonusPerLevel,
+                myTunoScaling.LevelScaling.PostPiggiesStartLevel,
+                myTunoScaling.LevelScaling.PostPiggiesBonusPerLevel,
                 myTunoScaling.LevelScaling.XpPerLevelBase,
                 myTunoScaling.LevelScaling.XpGrowthExponent,
                 myTunoScaling.Upgrades.HP.FlatBonus,
@@ -117,7 +119,8 @@ public class Program
                 penaltyMinutesPerUpgrade: 1,
                 maxPenaltyMinutes: 5,
                 penaltyLifestealPerUpgrade: 0.003333,
-                maxPenaltyLifesteal: 0.015);
+                maxPenaltyLifesteal: 0.015,
+                upgradeGrowthRate: myTunoScaling.Upgrades.UpgradeGrowthRate);
         }
 
         // ---------- DB: SQLite only ----------

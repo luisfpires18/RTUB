@@ -135,6 +135,17 @@ public class MyTunoLevelScaling
     /// </summary>
     public double BonusPerLevel { get; set; } = 0.008;
 
+    /// <summary>
+    /// Character level at which the enhanced post-piggies bonus per level kicks in.
+    /// </summary>
+    public int PostPiggiesStartLevel { get; set; } = 1000;
+
+    /// <summary>
+    /// Enhanced bonus per level applied from <see cref="PostPiggiesStartLevel"/> onward.
+    /// Default is double the base rate (0.016 vs 0.008) to make piggies upgrades more rewarding.
+    /// </summary>
+    public double PostPiggiesBonusPerLevel { get; set; } = 0.016;
+
     public int XpPerLevelBase { get; set; } = 100;
 
     /// <summary>
@@ -146,6 +157,13 @@ public class MyTunoLevelScaling
 
 public class MyTunoUpgrades
 {
+    /// <summary>
+    /// Compound growth rate per upgrade level for HP/Power/Defense.
+    /// Each successive upgrade gives (1 + growthRate × upgradeIndex) × flatBonus.
+    /// At 0.001, upgrade #1000 gives +100% more per upgrade than #1.
+    /// </summary>
+    public double UpgradeGrowthRate { get; set; } = 0.001;
+
     public UpgradeLogStat HP { get; set; } = new() { FlatBonus = 200, BaseCost = 80, CostPerLevel = 160, MaxUpgrades = 9999 };
     public UpgradeLogStat Power { get; set; } = new() { FlatBonus = 30, BaseCost = 80, CostPerLevel = 160, MaxUpgrades = 9999 };
     public UpgradeFlatStat Speed { get; set; } = new() { FlatBonus = 1.5, BaseCost = 150, CostPerLevel = 150, MaxUpgrades = 41 };

@@ -66,8 +66,8 @@ public class CharacterTests
         character.HpUpgrades = 5;
 
         // Act & Assert
-        // Flat bonus: (200 + 200*5) * 1.0 = 1200
-        character.TotalHP.Should().Be(1200);
+        // Compound bonus: 200 + CumulativeUpgradeBonus(200, 5) = 200 + 200*5*(1+0.001*4/2) = 1202
+        character.TotalHP.Should().Be(1202);
     }
 
     [Fact]
