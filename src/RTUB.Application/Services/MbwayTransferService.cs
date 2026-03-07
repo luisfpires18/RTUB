@@ -32,6 +32,7 @@ public class MbwayTransferService : IMbwayTransferService
     {
         using var context = _contextFactory.CreateDbContext();
         return await context.MbwayTransfers
+            .Include(mt => mt.Member)
             .OrderByDescending(mt => mt.Date)
             .ToListAsync(cancellationToken);
     }
@@ -64,7 +65,11 @@ public class MbwayTransferService : IMbwayTransferService
         try
         {
             using var context = _contextFactory.CreateDbContext();
-            context.MbwayTransfers.Update(transfer);
+            var tracked = await context.MbwayTransfers.FindAsync(new object[] { transfer.Id }, cancellationToken);
+            if (tracked == null)
+                return (false, "Transferência não encontrada.");
+
+            context.Entry(tracked).CurrentValues.SetValues(transfer);
             await context.SaveChangesAsync(cancellationToken);
             return (true, "Transferência MBWAY atualizada com sucesso.");
         }

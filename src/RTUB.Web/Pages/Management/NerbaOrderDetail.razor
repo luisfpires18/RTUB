@@ -1,17 +1,15 @@
 @page "/nerba/event/{EventId:int}"
 @rendermode InteractiveServer
-@using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Shared
 @attribute [Authorize]
 @inject INerbaOrderService NerbaOrderService
-@inject IDbContextFactory<ApplicationDbContext> ContextFactory
+@inject IEventService EventService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -69,6 +67,28 @@ else if (!allOrders.Any())
 }
 else
 {
+    <div class="mb-4">
+        <div class="card summary-card">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted d-block mb-1">Total da Encomenda</small>
+                        <h4 class="text-success mb-0">€@allOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")</h4>
+                    </div>
+                    <div class="text-muted">
+                        <i class="bi bi-basket fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <SearchBar @bind-Value="searchTerm"
+               Placeholder="Pesquisar por item ou tipo..."
+               OnSearch="OnSearch"
+               OnClear="OnSearchClear"
+               Compact="true" />
+
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
@@ -130,19 +150,6 @@ else
                     </tr>
                 }
             </tbody>
-            <tfoot>
-                <tr class="fw-bold">
-                    <td>Total</td>
-                    <td></td>
-                    <td class="text-center">@allOrders.Sum(o => o.Stock)</td>
-                    <td></td>
-                    <td class="text-end text-primary">€@allOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")</td>
-                    @if (canEdit)
-                    {
-                        <td></td>
-                    }
-                </tr>
-            </tfoot>
         </table>
     </div>
 
@@ -236,6 +243,7 @@ else
     private bool canEdit = false;
     private NerbaOrder? editingOrder;
     private NerbaOrder? deleteTarget;
+    private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 20;
     private readonly SortableTableHelper<NerbaOrder> sortHelper = new() { SortColumn = "item", SortAscending = true };
@@ -264,21 +272,39 @@ else
 
     private void ApplySortAndPagination()
     {
-        sortedOrders = sortHelper.ApplySort(allOrders, SortSelectors);
+        var filtered = string.IsNullOrWhiteSpace(searchTerm)
+            ? allOrders
+            : allOrders.Where(o =>
+                o.Item.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (o.Type?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+
+        sortedOrders = sortHelper.ApplySort(filtered, SortSelectors);
         paginatedOrders = sortedOrders
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
     }
 
+    private void OnSearch(string term)
+    {
+        searchTerm = term;
+        currentPage = 1;
+        ApplySortAndPagination();
+    }
+
+    private void OnSearchClear()
+    {
+        searchTerm = string.Empty;
+        currentPage = 1;
+        ApplySortAndPagination();
+    }
+
     private async Task LoadEvent()
     {
         try
         {
-            using var context = ContextFactory.CreateDbContext();
-            eventEntity = await context.Events
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == EventId);
+            eventEntity = await EventService.GetEventByIdAsync(EventId);
         }
         catch (Exception ex)
         {

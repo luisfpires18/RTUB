@@ -38,6 +38,11 @@ public interface INerbaOrderService
     Task<(bool Success, string Message)> UpdateOrderAsync(NerbaOrder order, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Deletes all Nerba orders for a specific event
+    /// </summary>
+    Task<(bool Success, string Message)> DeleteByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes a Nerba order
     /// </summary>
     Task<(bool Success, string Message)> DeleteOrderAsync(int orderId, CancellationToken cancellationToken = default);

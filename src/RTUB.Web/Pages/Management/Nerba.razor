@@ -1,19 +1,16 @@
 @page "/nerba"
 @page "/nerba/{ReportId:int}"
 @rendermode InteractiveServer
-@using RTUB.Application.Data
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
 @inject INerbaOrderService NerbaOrderService
-@inject IDbContextFactory<ApplicationDbContext> ContextFactory
+@inject IEventService EventService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Nerba> Logger
@@ -53,7 +50,7 @@
 {
     <LoadingSpinner Message="A carregar encomendas..." />
 }
-else if (!string.IsNullOrEmpty(errorMessage))
+else if (hasError)
 {
     @* Error already shown in the alert above — don't also show empty state *@
 }
@@ -73,7 +70,6 @@ else
                                 OrderCount="@group.OrderCount"
                                 TotalAmount="@group.TotalAmount"
                                 CanEdit="@canEdit"
-                                OnEdit="@((Event e) => NavigateToDetail(e))"
                                 OnDelete="@((Event e) => ConfirmDeleteEventOrders(e))"
                                 OnViewDetails="@((Event e) => NavigateToDetail(e))" />
             </div>
@@ -150,6 +146,7 @@ else
     private string errorMessage = string.Empty;
     private string deleteConfirmMessage = "Tem a certeza que deseja eliminar esta encomenda? Esta ação é irreversível.";
     private bool isLoading = false;
+    private bool hasError = false;
     private bool showModal = false;
     private bool showDeleteConfirm = false;
     private bool canEdit = false;
@@ -221,21 +218,6 @@ else
                         "LoadOrders: {Count} orders have null Event navigation. EventIds: {Ids}",
                         withoutEvent.Count,
                         string.Join(", ", withoutEvent.Select(o => o.EventId)));
-
-                    // Fallback: load missing events explicitly
-                    using var context = ContextFactory.CreateDbContext();
-                    var missingIds = withoutEvent.Select(o => o.EventId).Distinct().ToList();
-                    var fallbackEvents = await context.Events
-                        .Where(e => missingIds.Contains(e.Id))
-                        .ToDictionaryAsync(e => e.Id);
-
-                    foreach (var order in withoutEvent)
-                    {
-                        if (fallbackEvents.TryGetValue(order.EventId, out var ev))
-                            order.Event = ev;
-                    }
-
-                    withEvent = orders.Where(o => o.Event != null).ToList();
                 }
 
                 eventGroups = withEvent
@@ -255,13 +237,13 @@ else
             }
 
             errorMessage = string.Empty;
+            hasError = false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "LoadOrders failed");
-            errorMessage = $"Erro ao carregar encomendas: {ex.Message}";
-            if (ex.InnerException != null)
-                errorMessage += $" → {ex.InnerException.Message}";
+            errorMessage = "Erro ao carregar encomendas. Tente novamente.";
+            hasError = true;
         }
         finally
         {
@@ -273,11 +255,7 @@ else
     {
         try
         {
-            using var context = ContextFactory.CreateDbContext();
-            nerbaEvents = await context.Events
-                .Where(e => e.Type == EventType.Nerba && !e.IsCancelled)
-                .OrderByDescending(e => e.Date)
-                .ToListAsync();
+            nerbaEvents = (await EventService.GetActiveEventsByTypeAsync(EventType.Nerba)).ToList();
         }
         catch (Exception ex)
         {
@@ -331,18 +309,16 @@ else
         showDeleteConfirm = false;
         try
         {
-            var eventOrders = orders.Where(o => o.EventId == deleteTargetEvent.Id).ToList();
-            foreach (var order in eventOrders)
+            var result = await NerbaOrderService.DeleteByEventIdAsync(deleteTargetEvent.Id);
+            if (result.Success)
             {
-                var result = await NerbaOrderService.DeleteOrderAsync(order.Id);
-                if (!result.Success)
-                {
-                    errorMessage = result.Message;
-                    return;
-                }
+                await LoadOrders();
+                errorMessage = string.Empty;
             }
-            await LoadOrders();
-            errorMessage = string.Empty;
+            else
+            {
+                errorMessage = result.Message;
+            }
         }
         catch (Exception ex)
         {

@@ -85,7 +85,7 @@ else
         {
             <div class="col" @key="transfer.Id">
                 <MbwayTransferCard Transfer="@transfer"
-                                   MemberDisplayName="@GetMemberName(transfer.MemberUserId)"
+                                   MemberDisplayName="@GetMemberDisplayName(transfer)"
                                    CanEdit="@canEdit"
                                    OnEdit="@((MbwayTransfer t) => OpenEditModal(t))"
                                    OnDelete="@((MbwayTransfer t) => ConfirmDelete(t))" />
@@ -212,7 +212,6 @@ else
     private List<MbwayTransfer> transfers = new();
     private List<ApplicationUser> allMembers = new();
     private List<ApplicationUser> filteredMembers = new();
-    private Dictionary<string, string> memberNameMap = new();
     private string memberSearchTerm = string.Empty;
     private string errorMessage = string.Empty;
     private bool isLoading = false;
@@ -282,10 +281,6 @@ else
         try
         {
             allMembers = (await UserManager.Users.ToListAsync()).ToList();
-            memberNameMap = allMembers.ToDictionary(
-                u => u.Id,
-                u => u.Nickname ?? u.UserName ?? u.Id
-            );
         }
         catch (Exception ex)
         {
@@ -307,10 +302,24 @@ else
         }
     }
 
+    /// <summary>
+    /// Gets the display name from a loaded transfer's Member navigation property.
+    /// </summary>
+    private static string GetMemberDisplayName(MbwayTransfer transfer)
+    {
+        if (transfer.Member is null)
+            return "\u2014";
+        return transfer.Member.Nickname ?? transfer.Member.UserName ?? "\u2014";
+    }
+
+    /// <summary>
+    /// Gets a member display name by user ID (used in the modal for selected member).
+    /// </summary>
     private string GetMemberName(string? memberId)
     {
-        if (string.IsNullOrEmpty(memberId)) return "—";
-        return memberNameMap.TryGetValue(memberId, out var name) ? name : "—";
+        if (string.IsNullOrEmpty(memberId)) return "\u2014";
+        var member = allMembers.FirstOrDefault(m => m.Id == memberId);
+        return member?.Nickname ?? member?.UserName ?? "\u2014";
     }
 
     private void OnMemberSearch(string searchTerm)

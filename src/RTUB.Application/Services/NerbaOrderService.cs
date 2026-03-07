@@ -83,13 +83,36 @@ public class NerbaOrderService : INerbaOrderService
         try
         {
             using var context = _contextFactory.CreateDbContext();
-            context.NerbaOrders.Update(order);
+            var tracked = await context.NerbaOrders.FindAsync(new object[] { order.Id }, cancellationToken);
+            if (tracked == null)
+                return (false, "Encomenda não encontrada.");
+
+            context.Entry(tracked).CurrentValues.SetValues(order);
             await context.SaveChangesAsync(cancellationToken);
             return (true, "Encomenda Nerba atualizada com sucesso.");
         }
         catch (Exception ex)
         {
             return (false, $"Erro ao atualizar encomenda: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> DeleteByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var context = _contextFactory.CreateDbContext();
+            var orders = await context.NerbaOrders
+                .Where(o => o.EventId == eventId)
+                .ToListAsync(cancellationToken);
+            context.NerbaOrders.RemoveRange(orders);
+            await context.SaveChangesAsync(cancellationToken);
+            return (true, $"{orders.Count} encomenda(s) removida(s) com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Erro ao remover encomendas: {ex.Message}");
         }
     }
 

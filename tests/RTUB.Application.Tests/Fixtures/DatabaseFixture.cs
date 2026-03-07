@@ -96,6 +96,8 @@ public class DatabaseFixture : IDisposable
         context.UserBets.RemoveRange(context.UserBets);
         context.BetOptions.RemoveRange(context.BetOptions);
         context.Bets.RemoveRange(context.Bets);
+        context.NerbaOrders.RemoveRange(context.NerbaOrders);
+        context.MbwayTransfers.RemoveRange(context.MbwayTransfers);
         context.Characters.RemoveRange(context.Characters);
         context.QuestionReplies.RemoveRange(context.QuestionReplies);
         context.Questions.RemoveRange(context.Questions);

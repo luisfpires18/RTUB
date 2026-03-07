@@ -6,11 +6,6 @@
         @if (CanEdit)
         {
             <div class="order-card__header-actions">
-                <button class="btn btn-sm btn-light order-card__header-button"
-                        @onclick="HandleEdit"
-                        title="Editar evento">
-                    <i class="bi bi-pencil"></i>
-                </button>
                 <button class="btn btn-sm btn-danger order-card__header-button"
                         @onclick="HandleDelete"
                         title="Eliminar encomendas">
@@ -66,21 +61,10 @@
     public bool CanEdit { get; set; }
 
     [Parameter]
-    public EventCallback<Event> OnEdit { get; set; }
-
-    [Parameter]
     public EventCallback<Event> OnDelete { get; set; }
 
     [Parameter]
     public EventCallback<Event> OnViewDetails { get; set; }
-
-    private async Task HandleEdit()
-    {
-        if (OnEdit.HasDelegate)
-        {
-            await OnEdit.InvokeAsync(Event);
-        }
-    }
 
     private async Task HandleDelete()
     {
