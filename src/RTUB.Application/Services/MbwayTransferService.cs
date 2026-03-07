@@ -69,7 +69,12 @@ public class MbwayTransferService : IMbwayTransferService
             if (tracked == null)
                 return (false, "Transferência não encontrada.");
 
+            // Preserve audit fields that SetValues would overwrite with defaults
+            var originalCreatedAt = tracked.CreatedAt;
+            var originalCreatedBy = tracked.CreatedBy;
             context.Entry(tracked).CurrentValues.SetValues(transfer);
+            tracked.CreatedAt = originalCreatedAt;
+            tracked.CreatedBy = originalCreatedBy;
             await context.SaveChangesAsync(cancellationToken);
             return (true, "Transferência MBWAY atualizada com sucesso.");
         }

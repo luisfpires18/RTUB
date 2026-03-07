@@ -87,7 +87,12 @@ public class NerbaOrderService : INerbaOrderService
             if (tracked == null)
                 return (false, "Encomenda não encontrada.");
 
+            // Preserve audit fields that SetValues would overwrite with defaults
+            var originalCreatedAt = tracked.CreatedAt;
+            var originalCreatedBy = tracked.CreatedBy;
             context.Entry(tracked).CurrentValues.SetValues(order);
+            tracked.CreatedAt = originalCreatedAt;
+            tracked.CreatedBy = originalCreatedBy;
             await context.SaveChangesAsync(cancellationToken);
             return (true, "Encomenda Nerba atualizada com sucesso.");
         }

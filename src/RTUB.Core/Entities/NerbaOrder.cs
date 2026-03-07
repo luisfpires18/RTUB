@@ -26,6 +26,12 @@ public class NerbaOrder : BaseEntity
     [ForeignKey(nameof(ReportId))]
     public virtual Report? Report { get; set; }
 
+    /// <summary>
+    /// The specific day within the event's date range this order belongs to.
+    /// Null for single-day events or items not assigned to a specific day.
+    /// </summary>
+    public DateTime? OrderDate { get; set; }
+
     [Required(ErrorMessage = "O evento é obrigatório.")]
     public int EventId { get; set; }
 

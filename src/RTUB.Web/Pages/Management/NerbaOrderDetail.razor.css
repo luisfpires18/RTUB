@@ -1,0 +1,63 @@
+.day-cards-row {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.5rem;
+}
+
+.day-card {
+    flex: 0 0 180px;
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    text-align: center;
+}
+
+.day-card--active {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.day-card__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.day-card__number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.day-card__month {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    margin-top: 0.15rem;
+}
+
+.day-card__badges {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+    width: 100%;
+}
+
+.day-card__badges .badge {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+}

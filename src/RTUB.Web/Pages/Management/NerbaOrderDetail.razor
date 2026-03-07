@@ -59,107 +59,158 @@
 {
     <LoadingSpinner Message="A carregar encomendas..." />
 }
-else if (!allOrders.Any())
-{
-    <EmptyState Title="Nenhum item registado"
-                Message="Este evento ainda não tem encomendas."
-                Icon="bi-inbox" />
-}
 else
 {
-    <div class="mb-4">
-        <div class="card summary-card">
-            <div class="card-body py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-muted d-block mb-1">Total da Encomenda</small>
-                        <h4 class="text-success mb-0">€@allOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")</h4>
+    @if (dayTabs.Count > 1)
+    {
+        <div class="day-cards-row mb-4">
+            @foreach (var day in dayTabs)
+            {
+                var dayOrders = GetDayOrders(day);
+                var isActive = selectedDate?.Date == day.Date;
+                <div class="day-card @(isActive ? "day-card--active" : "")">
+                    <div class="day-card__date">
+                        <span class="day-card__number">@day.Day</span>
+                        <span class="day-card__month">@day.ToString("MMM")</span>
                     </div>
-                    <div class="text-muted">
-                        <i class="bi bi-basket fs-1"></i>
+                    <div class="day-card__badges">
+                        <span class="badge bg-primary d-flex align-items-center justify-content-center gap-1">
+                            <i class="bi bi-box"></i>@dayOrders.Count @(dayOrders.Count == 1 ? "item" : "itens")
+                        </span>
+                        <span class="badge bg-success d-flex align-items-center justify-content-center gap-1">
+                            <i class="bi bi-calculator"></i>€@dayOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")
+                        </span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm @(isActive ? "btn-outline-secondary" : "btn-purple") w-100 mt-1"
+                            @onclick="@(() => SelectDay(isActive ? (DateTime?)null : day))">
+                        @(isActive ? "Fechar" : "Ver")
+                    </button>
+                </div>
+            }
+        </div>
+    }
+
+    @if (dayTabs.Count <= 1 || selectedDate.HasValue)
+    {
+        @if (!allOrders.Any() && dayTabs.Count <= 1)
+        {
+            <EmptyState Title="Nenhum item registado"
+                        Message="Este evento ainda não tem encomendas."
+                        Icon="bi-inbox" />
+        }
+        else if (!filteredOrders.Any() && dayTabs.Count > 1)
+        {
+            <EmptyState Title="Nenhum item neste dia"
+                        Message="Adicione itens para este dia usando o botão &quot;Adicionar Item&quot;."
+                        Icon="bi-inbox" />
+        }
+        else
+        {
+            <div class="mb-4">
+                <div class="card summary-card">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block mb-1">
+                                    @if (selectedDate.HasValue)
+                                    {
+                                        @($"Total — {selectedDate.Value:dd/MM/yyyy}")
+                                    }
+                                    else
+                                    {
+                                        <text>Total da Encomenda</text>
+                                    }
+                                </small>
+                                <h4 class="text-success mb-0">€@filteredOrders.Sum(o => o.Stock * o.PricePerUnit).ToString("F2")</h4>
+                            </div>
+                            <div class="text-muted">
+                                <i class="bi bi-basket fs-1"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <SearchBar @bind-Value="searchTerm"
-               Placeholder="Pesquisar por item ou tipo..."
-               OnSearch="OnSearch"
-               OnClear="OnSearchClear"
-               Compact="true" />
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar por item ou tipo..."
+                       OnSearch="OnSearch"
+                       OnClear="OnSearchClear"
+                       Compact="true" />
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead>
-                <tr>
-                    <SortableTableHeader HeaderText="Item"
-                                         SortColumn="item"
-                                         CurrentSortColumn="@sortHelper.SortColumn"
-                                         IsSortAscending="@sortHelper.SortAscending"
-                                         OnSortChanged="@SortBy" />
-                    <SortableTableHeader HeaderText="Tipo"
-                                         SortColumn="type"
-                                         CurrentSortColumn="@sortHelper.SortColumn"
-                                         IsSortAscending="@sortHelper.SortAscending"
-                                         OnSortChanged="@SortBy" />
-                    <SortableTableHeader HeaderText="Qtd."
-                                         SortColumn="stock"
-                                         CurrentSortColumn="@sortHelper.SortColumn"
-                                         IsSortAscending="@sortHelper.SortAscending"
-                                         OnSortChanged="@SortBy"
-                                         class="text-center" />
-                    <SortableTableHeader HeaderText="Preço/Un."
-                                         SortColumn="price"
-                                         CurrentSortColumn="@sortHelper.SortColumn"
-                                         IsSortAscending="@sortHelper.SortAscending"
-                                         OnSortChanged="@SortBy"
-                                         class="text-end" />
-                    <SortableTableHeader HeaderText="Total"
-                                         SortColumn="total"
-                                         CurrentSortColumn="@sortHelper.SortColumn"
-                                         IsSortAscending="@sortHelper.SortAscending"
-                                         OnSortChanged="@SortBy"
-                                         class="text-end" />
-                    @if (canEdit)
-                    {
-                        <th class="text-end" style="width: 120px;">Ações</th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var order in paginatedOrders)
-                {
-                    <tr @key="order.Id">
-                        <td>@order.Item</td>
-                        <td class="text-muted">@(order.Type ?? "—")</td>
-                        <td class="text-center">@order.Stock</td>
-                        <td class="text-end">€@order.PricePerUnit.ToString("F2")</td>
-                        <td class="text-end fw-semibold">€@((order.Stock * order.PricePerUnit).ToString("F2"))</td>
-                        @if (canEdit)
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <SortableTableHeader HeaderText="Item"
+                                                 SortColumn="item"
+                                                 CurrentSortColumn="@sortHelper.SortColumn"
+                                                 IsSortAscending="@sortHelper.SortAscending"
+                                                 OnSortChanged="@SortBy" />
+                            <SortableTableHeader HeaderText="Tipo"
+                                                 SortColumn="type"
+                                                 CurrentSortColumn="@sortHelper.SortColumn"
+                                                 IsSortAscending="@sortHelper.SortAscending"
+                                                 OnSortChanged="@SortBy" />
+                            <SortableTableHeader HeaderText="Qtd."
+                                                 SortColumn="stock"
+                                                 CurrentSortColumn="@sortHelper.SortColumn"
+                                                 IsSortAscending="@sortHelper.SortAscending"
+                                                 OnSortChanged="@SortBy"
+                                                 class="text-center" />
+                            <SortableTableHeader HeaderText="Preço/Un."
+                                                 SortColumn="price"
+                                                 CurrentSortColumn="@sortHelper.SortColumn"
+                                                 IsSortAscending="@sortHelper.SortAscending"
+                                                 OnSortChanged="@SortBy"
+                                                 class="text-end" />
+                            <SortableTableHeader HeaderText="Total"
+                                                 SortColumn="total"
+                                                 CurrentSortColumn="@sortHelper.SortColumn"
+                                                 IsSortAscending="@sortHelper.SortAscending"
+                                                 OnSortChanged="@SortBy"
+                                                 class="text-end" />
+                            @if (canEdit)
+                            {
+                                <th class="text-end" style="width: 120px;">Ações</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in paginatedOrders)
                         {
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-light me-1" @onclick="@(() => OpenEditModal(order))" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" @onclick="@(() => ConfirmDelete(order))" title="Eliminar">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
+                            <tr @key="order.Id">
+                                <td>@order.Item</td>
+                                <td class="text-muted">@(order.Type ?? "—")</td>
+                                <td class="text-center">@order.Stock</td>
+                                <td class="text-end">€@order.PricePerUnit.ToString("F2")</td>
+                                <td class="text-end fw-semibold">€@((order.Stock * order.PricePerUnit).ToString("F2"))</td>
+                                @if (canEdit)
+                                {
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light me-1" @onclick="@(() => OpenEditModal(order))" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="@(() => ConfirmDelete(order))" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                }
+                            </tr>
                         }
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                    </tbody>
+                </table>
+            </div>
 
-    <TablePagination CurrentPage="@currentPage"
-                     PageSize="@pageSize"
-                     TotalItems="@sortedOrders.Count"
-                     ItemLabel="itens"
-                     PageSizeOptions="@(new[] { 10, 20, 50 })"
-                     OnPageChanged="ChangePage"
-                     OnPageSizeChanged="ChangePageSize" />
+            <TablePagination CurrentPage="@currentPage"
+                             PageSize="@pageSize"
+                             TotalItems="@sortedOrders.Count"
+                             ItemLabel="itens"
+                             PageSizeOptions="@(new[] { 10, 20, 50 })"
+                             OnPageChanged="ChangePage"
+                             OnPageSizeChanged="ChangePageSize" />
+        }
+    }
 }
 
 <!-- Add/Edit Order Item Modal -->
@@ -170,6 +221,18 @@ else
            Title="@(editingOrder.Id > 0 ? "Editar Item" : "Adicionar Item")"
            Size="Modal.ModalSize.Default">
         <BodyContent>
+            @if (dayTabs.Count > 1)
+            {
+                <div class="form-group mb-3">
+                    <label for="orderDate" class="form-label">Dia <span class="text-danger">*</span></label>
+                    <select class="form-select" id="orderDate" @bind="editingOrderDate">
+                        @foreach (var day in dayTabs)
+                        {
+                            <option value="@day.ToString("yyyy-MM-dd")">@day.ToString("dd/MM/yyyy (dddd)")</option>
+                        }
+                    </select>
+                </div>
+            }
             <div class="form-group mb-3">
                 <label for="orderItem" class="form-label">Item <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="orderItem"
@@ -233,6 +296,7 @@ else
 
     private Event? eventEntity;
     private List<NerbaOrder> allOrders = new();
+    private List<NerbaOrder> filteredOrders = new();
     private List<NerbaOrder> sortedOrders = new();
     private List<NerbaOrder> paginatedOrders = new();
     private string errorMessage = string.Empty;
@@ -246,8 +310,23 @@ else
     private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 20;
+    private DateTime? selectedDate;
+    private List<DateTime> dayTabs = new();
     private readonly SortableTableHelper<NerbaOrder> sortHelper = new() { SortColumn = "item", SortAscending = true };
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
+    /// <summary>
+    /// Bridges the day select string value to editingOrder.OrderDate
+    /// </summary>
+    private string editingOrderDate
+    {
+        get => editingOrder?.OrderDate?.ToString("yyyy-MM-dd") ?? dayTabs.FirstOrDefault().ToString("yyyy-MM-dd");
+        set
+        {
+            if (editingOrder != null && DateTime.TryParse(value, out var parsed))
+                editingOrder.OrderDate = parsed;
+        }
+    }
 
     private static readonly Dictionary<string, Func<NerbaOrder, IComparable>> SortSelectors = new()
     {
@@ -272,18 +351,49 @@ else
 
     private void ApplySortAndPagination()
     {
-        var filtered = string.IsNullOrWhiteSpace(searchTerm)
-            ? allOrders
-            : allOrders.Where(o =>
+        // Filter by selected day tab
+        filteredOrders = selectedDate.HasValue
+            ? allOrders.Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Date == selectedDate.Value.Date).ToList()
+            : allOrders;
+
+        // Filter by search term
+        var searched = string.IsNullOrWhiteSpace(searchTerm)
+            ? filteredOrders
+            : filteredOrders.Where(o =>
                 o.Item.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 (o.Type?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
                 .ToList();
 
-        sortedOrders = sortHelper.ApplySort(filtered, SortSelectors);
+        sortedOrders = sortHelper.ApplySort(searched, SortSelectors);
         paginatedOrders = sortedOrders
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
+    }
+
+    private void SelectDay(DateTime? day)
+    {
+        selectedDate = day;
+        currentPage = 1;
+        ApplySortAndPagination();
+    }
+
+    private List<NerbaOrder> GetDayOrders(DateTime day) =>
+        allOrders.Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Date == day.Date).ToList();
+
+    private void BuildDayTabs()
+    {
+        dayTabs = new List<DateTime>();
+        if (eventEntity?.EndDate != null && eventEntity.EndDate.Value.Date > eventEntity.Date.Date)
+        {
+            var current = eventEntity.Date.Date;
+            var end = eventEntity.EndDate.Value.Date;
+            while (current <= end)
+            {
+                dayTabs.Add(current);
+                current = current.AddDays(1);
+            }
+        }
     }
 
     private void OnSearch(string term)
@@ -305,6 +415,7 @@ else
         try
         {
             eventEntity = await EventService.GetEventByIdAsync(EventId);
+            BuildDayTabs();
         }
         catch (Exception ex)
         {
@@ -371,7 +482,8 @@ else
     {
         editingOrder = new NerbaOrder
         {
-            EventId = EventId
+            EventId = EventId,
+            OrderDate = selectedDate ?? (dayTabs.Count > 0 ? dayTabs[0] : null)
         };
         showModal = true;
     }
@@ -386,7 +498,8 @@ else
             Type = order.Type,
             Stock = order.Stock,
             PricePerUnit = order.PricePerUnit,
-            ReportId = order.ReportId
+            ReportId = order.ReportId,
+            OrderDate = order.OrderDate
         };
         showModal = true;
     }

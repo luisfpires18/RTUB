@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260307004740_AddOrderDateToNerbaOrders")]
+    partial class AddOrderDateToNerbaOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -189,7 +192,7 @@ namespace RTUB.Migrations
                     b.HasIndex("ReportId")
                         .HasDatabaseName("IX_Activities_ReportId");
 
-                    b.ToTable("Activities", (string)null);
+                    b.ToTable("Activities");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -236,7 +239,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Albums", (string)null);
+                    b.ToTable("Albums");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AlbumAccess", b =>
@@ -280,7 +283,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_AlbumAccesses_AlbumId_UserId");
 
-                    b.ToTable("AlbumAccesses", (string)null);
+                    b.ToTable("AlbumAccesses");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ApplicationUser", b =>
@@ -490,7 +493,7 @@ namespace RTUB.Migrations
                     b.HasIndex("EntityType", "EntityId")
                         .HasDatabaseName("IX_AuditLogs_EntityType_EntityId");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Bet", b =>
@@ -561,7 +564,7 @@ namespace RTUB.Migrations
                     b.HasIndex("IsCancelled")
                         .HasDatabaseName("IX_Bets_IsCancelled");
 
-                    b.ToTable("Bets", (string)null);
+                    b.ToTable("Bets");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.BetComment", b =>
@@ -661,7 +664,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("MemberBId");
 
-                    b.ToTable("BetOptions", (string)null);
+                    b.ToTable("BetOptions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.BossModeProgress", b =>
@@ -727,7 +730,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_BossModeProgresses_UserId");
 
-                    b.ToTable("BossModeProgresses", (string)null);
+                    b.ToTable("BossModeProgresses");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Character", b =>
@@ -972,7 +975,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Characters_UserId");
 
-                    b.ToTable("Characters", (string)null);
+                    b.ToTable("Characters");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
@@ -1033,7 +1036,7 @@ namespace RTUB.Migrations
                     b.HasIndex("PostId", "CreatedAt")
                         .HasDatabaseName("IX_Comment_PostId_CreatedAt");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.CommentImage", b =>
@@ -1144,7 +1147,7 @@ namespace RTUB.Migrations
                     b.HasIndex("LastMessageAt", "IsArchived")
                         .HasDatabaseName("IX_Conversation_LastMessageAt_IsArchived");
 
-                    b.ToTable("Conversations", (string)null);
+                    b.ToTable("Conversations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ConversationUserSettings", b =>
@@ -1192,7 +1195,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_ConversationUserSettings_ConversationId_UserId");
 
-                    b.ToTable("ConversationUserSettings", (string)null);
+                    b.ToTable("ConversationUserSettings");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
@@ -1221,7 +1224,7 @@ namespace RTUB.Migrations
                     b.HasIndex("EventId")
                         .IsUnique();
 
-                    b.ToTable("Discussions", (string)null);
+                    b.ToTable("Discussions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Enrollment", b =>
@@ -1276,7 +1279,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Enrollments_EventId_UserId");
 
-                    b.ToTable("Enrollments", (string)null);
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Event", b =>
@@ -1337,7 +1340,7 @@ namespace RTUB.Migrations
                     b.HasIndex("Date")
                         .HasDatabaseName("IX_Events_Date");
 
-                    b.ToTable("Events", (string)null);
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.EventRepertoire", b =>
@@ -1382,7 +1385,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_EventRepertoires_EventId_SongId_Unique");
 
-                    b.ToTable("EventRepertoires", (string)null);
+                    b.ToTable("EventRepertoires");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.EventVideo", b =>
@@ -1469,7 +1472,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FiscalYears", (string)null);
+                    b.ToTable("FiscalYears");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ForgeComboConfig", b =>
@@ -1501,7 +1504,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ForgeComboConfigs", (string)null);
+                    b.ToTable("ForgeComboConfigs");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ForgedWeapon", b =>
@@ -1572,7 +1575,7 @@ namespace RTUB.Migrations
                     b.HasIndex("UserId", "IsEquipped")
                         .HasDatabaseName("IX_ForgedWeapons_UserId_IsEquipped");
 
-                    b.ToTable("ForgedWeapons", (string)null);
+                    b.ToTable("ForgedWeapons");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>
@@ -1739,7 +1742,7 @@ namespace RTUB.Migrations
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.ToTable("Games", (string)null);
+                    b.ToTable("Games");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
@@ -1787,7 +1790,7 @@ namespace RTUB.Migrations
                     b.HasIndex("GameKey", "Points", "MaxLevel")
                         .HasDatabaseName("IX_GameScores_GameKey_Points_MaxLevel");
 
-                    b.ToTable("GameScores", (string)null);
+                    b.ToTable("GameScores");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GeocodingCache", b =>
@@ -1837,7 +1840,7 @@ namespace RTUB.Migrations
                     b.HasIndex("CityName", "CountryCode")
                         .IsUnique();
 
-                    b.ToTable("GeocodingCaches", (string)null);
+                    b.ToTable("GeocodingCaches");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Instrument", b =>
@@ -1898,7 +1901,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Instruments", (string)null);
+                    b.ToTable("Instruments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
@@ -1939,7 +1942,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_InventoryItems_UserId_Type");
 
-                    b.ToTable("InventoryItems", (string)null);
+                    b.ToTable("InventoryItems");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ItemTypeConfig", b =>
@@ -1986,7 +1989,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ItemTypeConfigs", (string)null);
+                    b.ToTable("ItemTypeConfigs");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Label", b =>
@@ -2027,7 +2030,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Labels", (string)null);
+                    b.ToTable("Labels");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
@@ -2074,7 +2077,7 @@ namespace RTUB.Migrations
                     b.HasIndex("TargetUserId", "DeletedAt", "CreatedAt")
                         .HasDatabaseName("IX_LeaderboardComment_TargetUserId_DeletedAt_CreatedAt");
 
-                    b.ToTable("LeaderboardComments", (string)null);
+                    b.ToTable("LeaderboardComments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LeaderboardCommentLike", b =>
@@ -2112,7 +2115,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_LeaderboardCommentLike_CommentId_UserId_Unique");
 
-                    b.ToTable("LeaderboardCommentLikes", (string)null);
+                    b.ToTable("LeaderboardCommentLikes");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
@@ -2156,7 +2159,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.ToTable("LogisticsBoards", (string)null);
+                    b.ToTable("LogisticsBoards");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
@@ -2228,7 +2231,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("ListId");
 
-                    b.ToTable("LogisticsCards", (string)null);
+                    b.ToTable("LogisticsCards");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAssignment", b =>
@@ -2262,7 +2265,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("LogisticsCardAssignments", (string)null);
+                    b.ToTable("LogisticsCardAssignments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
@@ -2306,7 +2309,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("CardId");
 
-                    b.ToTable("LogisticsCardReminders", (string)null);
+                    b.ToTable("LogisticsCardReminders");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
@@ -2342,7 +2345,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("BoardId");
 
-                    b.ToTable("LogisticsLists", (string)null);
+                    b.ToTable("LogisticsLists");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MbwayTransfer", b =>
@@ -2465,7 +2468,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("TunoRepresentativeUserId");
 
-                    b.ToTable("Meetings", (string)null);
+                    b.ToTable("Meetings");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingAta", b =>
@@ -2553,7 +2556,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("SecondSecretaryUserId");
 
-                    b.ToTable("MeetingAtas", (string)null);
+                    b.ToTable("MeetingAtas");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingAtaAgendaPoint", b =>
@@ -2611,7 +2614,7 @@ namespace RTUB.Migrations
                     b.HasIndex("MeetingAtaId")
                         .HasDatabaseName("IX_MeetingAtaAgendaPoints_MeetingAtaId");
 
-                    b.ToTable("MeetingAtaAgendaPoints", (string)null);
+                    b.ToTable("MeetingAtaAgendaPoints");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingAtaAttachment", b =>
@@ -2661,7 +2664,7 @@ namespace RTUB.Migrations
                     b.HasIndex("MeetingAtaId")
                         .HasDatabaseName("IX_MeetingAtaAttachments_MeetingAtaId");
 
-                    b.ToTable("MeetingAtaAttachments", (string)null);
+                    b.ToTable("MeetingAtaAttachments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingAtaConfirmation", b =>
@@ -2707,7 +2710,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_MeetingAtaConfirmations_AtaId_UserId");
 
-                    b.ToTable("MeetingAtaConfirmations", (string)null);
+                    b.ToTable("MeetingAtaConfirmations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
@@ -2757,7 +2760,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_MeetingParticipations_MeetingId_UserId");
 
-                    b.ToTable("MeetingParticipations", (string)null);
+                    b.ToTable("MeetingParticipations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
@@ -2809,7 +2812,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("AuthorUserId");
 
-                    b.ToTable("MeetingRequests", (string)null);
+                    b.ToTable("MeetingRequests");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MemberDebt", b =>
@@ -2893,7 +2896,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("MemberId");
 
-                    b.ToTable("MemberInstruments", (string)null);
+                    b.ToTable("MemberInstruments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MemberStatus", b =>
@@ -2966,7 +2969,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_MemberStatus_UserId");
 
-                    b.ToTable("MemberStatuses", (string)null);
+                    b.ToTable("MemberStatuses");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Message", b =>
@@ -3023,7 +3026,7 @@ namespace RTUB.Migrations
                     b.HasIndex("ConversationId", "CreatedAt")
                         .HasDatabaseName("IX_Message_ConversationId_CreatedAt");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.NaipeComment", b =>
@@ -3068,7 +3071,7 @@ namespace RTUB.Migrations
                     b.HasIndex("NaipeContentId", "DeletedAt", "CreatedAt")
                         .HasDatabaseName("IX_NaipeComment_NaipeContentId_DeletedAt_CreatedAt");
 
-                    b.ToTable("NaipeComments", (string)null);
+                    b.ToTable("NaipeComments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.NaipeContent", b =>
@@ -3172,7 +3175,7 @@ namespace RTUB.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_NaipePlayCount_UserId");
 
-                    b.ToTable("NaipePlayCounts", (string)null);
+                    b.ToTable("NaipePlayCounts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.NaipeTypeConfig", b =>
@@ -3351,7 +3354,7 @@ namespace RTUB.Migrations
                     b.HasIndex("DiscussionId", "LastActivityAt")
                         .HasDatabaseName("IX_Post_DiscussionId_LastActivity");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.PostMedia", b =>
@@ -3456,7 +3459,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
@@ -3508,7 +3511,7 @@ namespace RTUB.Migrations
                     b.HasIndex("ProductId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ProductReservations", (string)null);
+                    b.ToTable("ProductReservations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.PushSubscription", b =>
@@ -3555,7 +3558,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PushSubscriptions", (string)null);
+                    b.ToTable("PushSubscriptions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Question", b =>
@@ -3641,7 +3644,7 @@ namespace RTUB.Migrations
                     b.HasIndex("Status", "IsAwaitingUserReply")
                         .HasDatabaseName("IX_Question_Status_AwaitingReply");
 
-                    b.ToTable("Questions", (string)null);
+                    b.ToTable("Questions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.QuestionReply", b =>
@@ -3696,7 +3699,7 @@ namespace RTUB.Migrations
                     b.HasIndex("QuestionId")
                         .HasDatabaseName("IX_QuestionReply_QuestionId");
 
-                    b.ToTable("QuestionReplies", (string)null);
+                    b.ToTable("QuestionReplies");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Rehearsal", b =>
@@ -3754,7 +3757,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("Date");
 
-                    b.ToTable("Rehearsals", (string)null);
+                    b.ToTable("Rehearsals");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.RehearsalAttendance", b =>
@@ -3809,7 +3812,7 @@ namespace RTUB.Migrations
                     b.HasIndex("RehearsalId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("RehearsalAttendances", (string)null);
+                    b.ToTable("RehearsalAttendances");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Report", b =>
@@ -3851,7 +3854,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Reports", (string)null);
+                    b.ToTable("Reports");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Request", b =>
@@ -3916,7 +3919,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Requests", (string)null);
+                    b.ToTable("Requests");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.RoleAssignment", b =>
@@ -3968,7 +3971,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_RoleAssignments_UserId_Position_Years_Unique");
 
-                    b.ToTable("RoleAssignments", (string)null);
+                    b.ToTable("RoleAssignments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Slideshow", b =>
@@ -4017,7 +4020,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Slideshows", (string)null);
+                    b.ToTable("Slideshows");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
@@ -4083,7 +4086,7 @@ namespace RTUB.Migrations
                     b.HasIndex("AlbumId", "TrackNumber")
                         .HasDatabaseName("IX_Songs_AlbumId_TrackNumber");
 
-                    b.ToTable("Songs", (string)null);
+                    b.ToTable("Songs");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SongPlayCount", b =>
@@ -4120,7 +4123,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SongPlayCounts", (string)null);
+                    b.ToTable("SongPlayCounts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SongVideo", b =>
@@ -4268,7 +4271,7 @@ namespace RTUB.Migrations
                     b.HasIndex("Type", "Region")
                         .HasDatabaseName("IX_StageEnemies_Type_Region");
 
-                    b.ToTable("StageEnemies", (string)null);
+                    b.ToTable("StageEnemies");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.StageProgress", b =>
@@ -4327,7 +4330,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_StageProgresses_UserId");
 
-                    b.ToTable("StageProgresses", (string)null);
+                    b.ToTable("StageProgresses");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SurviveModeProgress", b =>
@@ -4408,7 +4411,7 @@ namespace RTUB.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_SurviveModeProgresses_UserId");
 
-                    b.ToTable("SurviveModeProgresses", (string)null);
+                    b.ToTable("SurviveModeProgresses");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>
@@ -4470,7 +4473,7 @@ namespace RTUB.Migrations
                     b.HasIndex("ActivityId", "Type")
                         .HasDatabaseName("IX_Transactions_ActivityId_Type");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Trophy", b =>
@@ -4503,7 +4506,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.ToTable("Trophies", (string)null);
+                    b.ToTable("Trophies");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.UserBet", b =>
@@ -4559,7 +4562,7 @@ namespace RTUB.Migrations
                     b.HasIndex("UserId", "BetId")
                         .HasDatabaseName("IX_UserBets_UserId_BetId");
 
-                    b.ToTable("UserBets", (string)null);
+                    b.ToTable("UserBets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

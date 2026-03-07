@@ -62,6 +62,14 @@
                 <span class="mbway-label">Criado por</span>
                 <span class="mbway-text">@FormatField(Transfer.CreatedBy)</span>
             </div>
+            @if (!string.IsNullOrEmpty(Transfer.UpdatedBy))
+            {
+                <div class="mbway-info-row">
+                    <i class="bi bi-pencil-square mbway-icon"></i>
+                    <span class="mbway-label">Editado por</span>
+                    <span class="mbway-text">@Transfer.UpdatedBy@(Transfer.UpdatedAt.HasValue ? $" · {Transfer.UpdatedAt.Value:dd MMM yyyy HH:mm}" : "")</span>
+                </div>
+            }
         </div>
     </div>
 </div>

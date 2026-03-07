@@ -208,6 +208,53 @@ public class NerbaOrderServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
+    public async Task AddOrderAsync_WithOrderDate_PersistsDate()
+    {
+        // Arrange
+        var ev = await CreateTestEvent();
+        var orderDate = new DateTime(2025, 4, 25, 0, 0, 0, DateTimeKind.Utc);
+        var order = new NerbaOrder
+        {
+            Item = "Dated Item",
+            Stock = 3,
+            PricePerUnit = 1.00m,
+            EventId = ev.Id,
+            OrderDate = orderDate
+        };
+
+        // Act
+        var (success, _) = await _service.AddOrderAsync(order);
+
+        // Assert
+        success.Should().BeTrue();
+        var fetched = await _service.GetByIdAsync(order.Id);
+        fetched!.OrderDate.Should().Be(orderDate);
+    }
+
+    [Fact]
+    public async Task AddOrderAsync_WithNullOrderDate_PersistsNull()
+    {
+        // Arrange
+        var ev = await CreateTestEvent();
+        var order = new NerbaOrder
+        {
+            Item = "No Date Item",
+            Stock = 1,
+            PricePerUnit = 1.00m,
+            EventId = ev.Id,
+            OrderDate = null
+        };
+
+        // Act
+        var (success, _) = await _service.AddOrderAsync(order);
+
+        // Assert
+        success.Should().BeTrue();
+        var fetched = await _service.GetByIdAsync(order.Id);
+        fetched!.OrderDate.Should().BeNull();
+    }
+
+    [Fact]
     public async Task AddOrderAsync_WithZeroEventId_ReturnsFailure()
     {
         var order = new NerbaOrder
@@ -287,6 +334,33 @@ public class NerbaOrderServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var (success, _) = await _service.UpdateOrderAsync(order);
 
         success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateOrderAsync_WithOrderDate_UpdatesDate()
+    {
+        // Arrange
+        var ev = await CreateTestEvent();
+        var order = await CreateTestOrder(ev.Id, "Dated Item");
+        var newDate = new DateTime(2025, 4, 26, 0, 0, 0, DateTimeKind.Utc);
+
+        var updated = new NerbaOrder
+        {
+            Id = order.Id,
+            Item = order.Item,
+            Stock = order.Stock,
+            PricePerUnit = order.PricePerUnit,
+            EventId = ev.Id,
+            OrderDate = newDate
+        };
+
+        // Act
+        var (success, _) = await _service.UpdateOrderAsync(updated);
+
+        // Assert
+        success.Should().BeTrue();
+        var fetched = await _service.GetByIdAsync(order.Id);
+        fetched!.OrderDate.Should().Be(newDate);
     }
 
     #endregion
