@@ -39,7 +39,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsEnergyAmountMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.EnergyAmount)"
-                        disabled="@(Purchasing || energyAmountCostLoading || IsEnergyAmountMaxed || FidelisBalance < energyAmountCost || (energyAmountLeitaoCost > 0 && LeitaoBalance < energyAmountLeitaoCost))">
+                        disabled="@(Purchasing || energyAmountCostLoading || IsEnergyAmountMaxed || FidelisBalance < energyAmountCost)">
                     @if (Purchasing && PurchasingType == ImprovementType.EnergyAmount)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -61,10 +61,6 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(energyAmountCost)</span>
-                        @if (energyAmountLeitaoCost > 0)
-                        {
-                            <br /><span class="@(LeitaoBalance < energyAmountLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @energyAmountLeitaoCost</span>
-                        }
                     }
                 </div>
             </div>
@@ -93,7 +89,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsEnergyRegenMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.EnergyRegen)"
-                        disabled="@(Purchasing || energyRegenCostLoading || IsEnergyRegenMaxed || FidelisBalance < energyRegenCost || (energyRegenLeitaoCost > 0 && LeitaoBalance < energyRegenLeitaoCost))">
+                        disabled="@(Purchasing || energyRegenCostLoading || IsEnergyRegenMaxed || FidelisBalance < energyRegenCost)">
                     @if (Purchasing && PurchasingType == ImprovementType.EnergyRegen)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -115,10 +111,6 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(energyRegenCost)</span>
-                        @if (energyRegenLeitaoCost > 0)
-                        {
-                            <br /><span class="@(LeitaoBalance < energyRegenLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @energyRegenLeitaoCost</span>
-                        }
                     }
                 </div>
             </div>
@@ -147,7 +139,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsCastSpeedMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.CastSpeed)"
-                        disabled="@(Purchasing || castSpeedCostLoading || IsCastSpeedMaxed || FidelisBalance < castSpeedCost || (castSpeedLeitaoCost > 0 && LeitaoBalance < castSpeedLeitaoCost))">
+                        disabled="@(Purchasing || castSpeedCostLoading || IsCastSpeedMaxed || FidelisBalance < castSpeedCost)">
                     @if (Purchasing && PurchasingType == ImprovementType.CastSpeed)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -169,10 +161,6 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(castSpeedCost)</span>
-                        @if (castSpeedLeitaoCost > 0)
-                        {
-                            <br /><span class="@(LeitaoBalance < castSpeedLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @castSpeedLeitaoCost</span>
-                        }
                     }
                 </div>
             </div>
@@ -201,7 +189,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsDoubleGatheringMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.DoubleGathering)"
-                        disabled="@(Purchasing || doubleGatheringCostLoading || IsDoubleGatheringMaxed || FidelisBalance < doubleGatheringCost || (doubleGatheringLeitaoCost > 0 && LeitaoBalance < doubleGatheringLeitaoCost))">
+                        disabled="@(Purchasing || doubleGatheringCostLoading || IsDoubleGatheringMaxed || FidelisBalance < doubleGatheringCost)">
                     @if (Purchasing && PurchasingType == ImprovementType.DoubleGathering)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -223,10 +211,6 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(doubleGatheringCost)</span>
-                        @if (doubleGatheringLeitaoCost > 0)
-                        {
-                            <br /><span class="@(LeitaoBalance < doubleGatheringLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @doubleGatheringLeitaoCost</span>
-                        }
                     }
                 </div>
             </div>
@@ -474,7 +458,6 @@
 @code {
     [Parameter, EditorRequired] public Character Character { get; set; } = default!;
     [Parameter] public decimal FidelisBalance { get; set; }
-    [Parameter] public int LeitaoBalance { get; set; }
     [Parameter] public bool Purchasing { get; set; }
     [Parameter] public ImprovementType? PurchasingType { get; set; }
     [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
@@ -484,7 +467,6 @@
     [Parameter] public Dictionary<string, string>? ConsumableImageUrls { get; set; }
 
     private decimal energyAmountCost, energyRegenCost, castSpeedCost, doubleGatheringCost;
-    private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost, doubleGatheringLeitaoCost;
     private bool energyAmountCostLoading = true, energyRegenCostLoading = true, castSpeedCostLoading = true, doubleGatheringCostLoading = true;
 
     // Consumable upgrade costs
@@ -524,13 +506,6 @@
             energyRegenCost = costs.GetValueOrDefault(ImprovementType.EnergyRegen);
             castSpeedCost = costs.GetValueOrDefault(ImprovementType.CastSpeed);
             doubleGatheringCost = costs.GetValueOrDefault(ImprovementType.DoubleGathering);
-
-            // Leitão costs
-            var p = MyTunoConfig.Value.BossMode.Piggies;
-            energyAmountLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyAmountUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
-            energyRegenLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyRegenUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
-            castSpeedLeitaoCost = PiggiesCostConfig.CalculateCost(Character.CastSpeedUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
-            doubleGatheringLeitaoCost = PiggiesCostConfig.CalculateCost(Character.DoubleGatheringUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
 
             // Consumable upgrade costs
             var consumableCosts = ConsumableUpgradeService.GetAllConsumableUpgradeCosts(Character);

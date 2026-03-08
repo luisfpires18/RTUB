@@ -134,30 +134,6 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
                         return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:N0}, Disponível: {user.FidelisBalance:N0}");
                     }
 
-                    // Check Leitão cost
-                    var piggies = _config.BossMode.Piggies;
-                    var leitaoCost = PiggiesCostConfig.CalculateCost(
-                        currentRank, piggies.ImprovementStartLevel,
-                        piggies.ImprovementBaseCost, piggies.ImprovementCostEveryNLevels);
-
-                    if (leitaoCost > 0)
-                    {
-                        var leitaoItem = await ctx.Set<InventoryItem>()
-                            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == InventoryItemType.Leitao, cancellationToken);
-
-                        if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
-                        {
-                            await transaction.RollbackAsync();
-                            return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
-                        }
-
-                        if (!leitaoItem.ConsumeQuantity(leitaoCost))
-                        {
-                            await transaction.RollbackAsync();
-                            return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
-                        }
-                    }
-
                     user.FidelisBalance -= cost;
                     user.ConcurrencyStamp = Guid.NewGuid().ToString();
                     ApplyUpgrade(character, upgradeType);
@@ -271,23 +247,6 @@ public class ConsumableUpgradeService : IConsumableUpgradeService
 
             if (user.FidelisBalance < cost)
                 return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:N0}, Disponível: {user.FidelisBalance:N0}");
-
-            // Check Leitão cost
-            var piggies = _config.BossMode.Piggies;
-            var leitaoCost = PiggiesCostConfig.CalculateCost(
-                currentRank, piggies.ImprovementStartLevel,
-                piggies.ImprovementBaseCost, piggies.ImprovementCostEveryNLevels);
-
-            if (leitaoCost > 0)
-            {
-                var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
-                if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
-                    return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
-
-                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
-                if (!consumed)
-                    return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
-            }
 
             user.FidelisBalance -= cost;
             ApplyUpgrade(character, upgradeType);

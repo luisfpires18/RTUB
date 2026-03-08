@@ -939,11 +939,6 @@ public class PiggiesCostConfig
     /// <summary>Every N upgrade levels, add +1 Leitão cost.</summary>
     public int StatUpgradeCostEveryNLevels { get; set; } = 50;
 
-    /// <summary>Improvement upgrade: level at which Leitão cost kicks in.</summary>
-    public int ImprovementStartLevel { get; set; } = 20;
-    public int ImprovementBaseCost { get; set; } = 1;
-    public int ImprovementCostEveryNLevels { get; set; } = 5;
-
     /// <summary>Power upgrade: level at which Leitão cost kicks in.</summary>
     public int PowerStartLevel { get; set; } = 20;
     public int PowerBaseCost { get; set; } = 1;
