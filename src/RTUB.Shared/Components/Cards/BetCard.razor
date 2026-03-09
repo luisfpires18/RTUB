@@ -78,37 +78,35 @@
             </div>
         }
 
-        @if (IsAdmin || IsCreator)
-        {
-            @* Resolve button in bottom-right corner for resolvable unresolved bets *@
-            @if (IsResolvable && !Bet.IsResolved() && !Bet.IsCancelled)
+        <div class="position-absolute bottom-0 end-0 p-2 d-flex gap-1 align-items-end">
+            @if (IsAdmin && IsResolvable && !Bet.IsApproved && !Bet.IsResolved() && !Bet.IsCancelled)
             {
-                <div class="position-absolute bottom-0 end-0 p-2">
-                    <button class="btn btn-sm btn-warning music-btn-resolve" 
-                            @onclick="OnResolve" 
-                            title="Resolver aposta"
-                            aria-label="Resolver aposta">
-                        <i class="bi bi-trophy-fill"></i>
-                    </button>
-                </div>
+                <button class="btn btn-sm btn-success"
+                        @onclick="OnApprove"
+                        title="Aprovar aposta para resolução"
+                        aria-label="Aprovar">
+                    <i class="bi bi-check-lg"></i>
+                </button>
             }
-        }
-
-        @if (IsAdmin)
-        {
-            @* Push notification button in bottom-right corner for future bets *@
-            @if (!IsPastBet && !Bet.IsCancelled)
+            @if (IsResolvable && !Bet.IsResolved() && !Bet.IsCancelled && (IsAdmin || (IsCreator && Bet.IsApproved)))
             {
-                <div class="position-absolute bottom-0 end-0 p-2">
-                    <button class="btn btn-sm btn-admin-notification" 
-                            @onclick="OnSendPushNotification" 
-                            title="Notificar por push"
-                            aria-label="Notificar por push">
-                        <i class="bi bi-bell-fill"></i>
-                    </button>
-                </div>
+                <button class="btn btn-sm btn-warning music-btn-resolve"
+                        @onclick="OnResolve"
+                        title="Resolver aposta"
+                        aria-label="Resolver aposta">
+                    <i class="bi bi-trophy-fill"></i>
+                </button>
             }
-        }
+            @if (IsAdmin && !IsPastBet && !Bet.IsCancelled)
+            {
+                <button class="btn btn-sm btn-admin-notification"
+                        @onclick="OnSendPushNotification"
+                        title="Notificar por push"
+                        aria-label="Notificar por push">
+                    <i class="bi bi-bell-fill"></i>
+                </button>
+            }
+        </div>
     </div>
     <div class="card-body d-flex flex-column p-3">
         <h5 class="card-title mb-2">@Bet.Title</h5>
@@ -345,6 +343,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResolve { get; set; }
+
+    /// <summary>
+    /// Callback when the approve button is clicked (admin only, approves bet for creator resolution)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnApprove { get; set; }
 
     /// <summary>
     /// Callback when the push notification button is clicked (admin only)

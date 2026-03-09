@@ -2,7 +2,7 @@
 
 A modern **Blazor Web Application** for managing and promoting the Real Tuna Universitária de Bragança, a traditional Portuguese university music group ("tuna" in Portuguese).
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [About](#about)
 - [Architecture](#architecture)
@@ -18,13 +18,13 @@ A modern **Blazor Web Application** for managing and promoting the Real Tuna Uni
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🎵 About
+## About
 
 RTUB (Real Tuna Universitária de Bragança) is a comprehensive web platform built with **Blazor Interactive Server** that serves as the digital hub for the university's traditional tuna music group. A "tuna" is a traditional Portuguese university music ensemble with deep cultural roots.
 
-This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, inventory, and financial operations while engaging with the community through a modern, responsive interface.
+This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, meetings, finances, internal communication, media, and an RPG-style gamification system — all through a modern, responsive, installable PWA interface.
 
-## 🏗️ Architecture
+## Architecture
 
 The project follows a **Clean Architecture** pattern with clear separation of concerns:
 
@@ -33,7 +33,7 @@ RTUB/
 ├── src/
 │   ├── RTUB.Core/          # Domain entities and business logic
 │   ├── RTUB.Application/   # Application services and use cases
-│   ├── RTUB.Shared/        # Shared utilities and common code
+│   ├── RTUB.Shared/        # Shared Razor components library
 │   └── RTUB.Web/           # Blazor Web App (Interactive Server)
 └── tests/                  # Unit and integration tests
 ```
@@ -41,11 +41,11 @@ RTUB/
 ### Architecture Layers
 
 - **RTUB.Core**: Contains domain models, entities, enums, and core business rules
-- **RTUB.Application**: Implements application services, DTOs, interfaces, and business logic orchestration
-- **RTUB.Shared**: Houses shared resources, constants, helpers, and utilities used across projects
-- **RTUB.Web**: **Blazor Web App** with Interactive Server components providing the user interface
+- **RTUB.Application**: Implements application services, repositories, DTOs, interfaces, and business logic orchestration
+- **RTUB.Shared**: Houses 90+ reusable Razor components (cards, badges, modals, forms, tables, uploads)
+- **RTUB.Web**: **Blazor Web App** with Interactive Server components, pages, SignalR hubs, API controllers, and PixiJS game engine
 
-## 🛠️ Technologies
+## Technologies
 
 ### Core Framework
 - **Blazor Web App (Interactive Server)** - Modern web UI framework with C#
@@ -56,24 +56,37 @@ RTUB/
 
 ### Language Composition
 - **C#** - Backend development, Blazor components, and business logic
-- **HTML** - Razor markup in Blazor components
-- **CSS** - Styling and visual design
-- **JavaScript** - Minimal JS for specific client-side features
+- **TypeScript** - PixiJS game engine (battle scenes, survive mode, arena)
+- **JavaScript** - Client-side features, mini-games, audio playback, maps
+- **HTML/CSS** - Razor markup and ITCSS-organized styling
 
 ### Key Technologies & Libraries
 
 #### Frontend
 - **Blazor Interactive Server** - Real-time UI updates via SignalR
-- **Razor Components** - Component-based UI architecture
-- **Bootstrap** - Responsive CSS framework
-- **SignalR** - Real-time communication between server and client
+- **Razor Components** - Component-based UI architecture (90+ shared components)
+- **Bootstrap 5** - Responsive CSS framework
+- **PixiJS 8** - 2D WebGL game engine for battle animations
+- **Leaflet** - Interactive member map with geocoding
+- **Cropper.js** - Image cropping and upload
+- **Vite** - TypeScript build tooling for PixiJS bundles
+- **Web Audio API** - Audio playback for music and game sounds
+- **Media Session API** - Lockscreen music controls
 
 #### Backend & Services
 - **ASP.NET Core Identity** - Authentication and authorization
-- **QuestPDF** - PDF report generation
+- **SignalR** - Real-time messaging and chat
+- **QuestPDF** - PDF generation for meeting minutes and reports
 - **Response Compression** (Brotli/Gzip) - Performance optimization
-- **Response Caching** - Server-side caching for better performance
-- **Memory Cache** - In-memory caching to reduce database queries
+- **Memory Cache** - In-memory caching for high-traffic data
+- **Background Services** - 7 scheduled notification/reminder services
+
+#### Storage & Integrations
+- **Cloudflare R2** - Primary cloud storage (images, audio, videos, documents)
+- **Google Drive** - Secondary storage for audio and documents
+- **Nominatim** - OpenStreetMap geocoding for member locations
+- **SMTP** - Email notifications with rate limiting
+- **Web Push API** - Browser push notifications
 
 #### Database & Migrations
 - **SQLite** - Primary database
@@ -88,110 +101,303 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - **Offline Support**: Service Worker caches core assets for offline functionality
 - **App-like Experience**: Runs in standalone mode without browser UI
 - **Push Notifications**: Native push notification support
-- **Mobile App Ready**: 
-  - 🤖 **Android**: Packaged via Trusted Web Activities (TWA) → [Android Guide](docs/android-twa-checklist.md)
-  - 🍎 **iOS**: Packaged via PWABuilder or Xcode → [iOS Guide](docs/ios-app-store-guide.md)
+- **Mobile App Ready**:
+  - Android: Packaged via Trusted Web Activities (TWA) → [Android Guide](docs/android-twa-checklist.md)
+  - iOS: Packaged via PWABuilder or Xcode → [iOS Guide](docs/ios-app-store-guide.md)
 
 **PWA Features**:
-- ✅ Web App Manifest with TWA-compatible `id` field
-- ✅ Service Worker with intelligent caching strategies
-- ✅ Automatic service worker registration and updates
-- ✅ iOS-optimized with Apple touch icons and web app meta tags
-- ✅ 192x192 and 512x512 app icons (maskable)
-- ✅ HTTPS-ready for production deployment
-- ✅ Media Session API with lockscreen controls (PWA-only Next/Previous)
+- Web App Manifest with TWA-compatible `id` field
+- Service Worker with intelligent caching strategies
+- Automatic service worker registration and updates
+- iOS-optimized with Apple touch icons and web app meta tags
+- 192x192 and 512x512 app icons (maskable)
+- HTTPS-ready for production deployment
+- Media Session API with lockscreen controls (PWA-only Next/Previous)
+- 4 shortcuts: Events, Rehearsals, Messages, Gallery
 
 **Documentation**:
-- 📖 [PWA Setup Guide](docs/pwa-setup.md) - Testing, development, and deployment
-- 🤖 [Android TWA Packaging](docs/android-twa-checklist.md) - Google Play Store submission
-- 🔧 [TWA Configuration Guide](docs/twa-configuration-guide.md) - Digital Asset Links setup for standalone mode
-- 📋 [TWA Release Runbook](docs/twa-release-runbook.md) - Maintenance and troubleshooting
-- 🍎 [iOS App Store Guide](docs/ios-app-store-guide.md) - Apple App Store submission
-- 🎵 [PWA Media Session](docs/pwa-media-session.md) - Lockscreen music controls implementation
+- [PWA Setup Guide](docs/pwa-setup.md) - Testing, development, and deployment
+- [Android TWA Packaging](docs/android-twa-checklist.md) - Google Play Store submission
+- [TWA Configuration Guide](docs/twa-configuration-guide.md) - Digital Asset Links setup
+- [TWA Release Runbook](docs/twa-release-runbook.md) - Maintenance and troubleshooting
+- [iOS App Store Guide](docs/ios-app-store-guide.md) - Apple App Store submission
+- [PWA Media Session](docs/pwa-media-session.md) - Lockscreen music controls
 
-## ✨ Features
+## Features
 
-### Core Functionalities
+### Event Management
 
-#### 🎭 Event Management
 - Create, schedule, and manage performances and events
-- Track event details, locations, and attendance
-- Event repertoire assignment
-- Event status tracking
+- 11 event types: Festival, Atuacao, Casamento, Serenata, Arraial, Convivio, Nerba, Missa, Batizado, Arruada, Aniversario
+- Member enrollment with instrument selection (primary + additional instruments)
+- Event repertoire planning — assign songs from the library to events
+- Event discussion threads with posts, comments, and @mentions
+- Event video uploads and management
+- Attendance tracking and enrollment statistics
+- Cancellation workflow with reason tracking
+- Event filtering and search
 
-#### 👥 Member Management
-- Member registration and profile management
-- Role assignment (Admin, Member, Visitor)
-- User profiles with photos and contact information
-- Last login tracking
+### Rehearsal Management
 
-#### 🎼 Music & Repertoire
-- Song library management
-- Event repertoire planning
-- Music categorization and organization
+- Schedule rehearsals with date, location, theme, and time range
+- Attendance tracking with instrument selection per rehearsal
+- Approval reminder background service for pending attendances
+- Rehearsal statistics and participation analytics
+- Cancellation support with reason
 
-#### 📅 Rehearsal Management
-- Schedule rehearsals
-- Track rehearsal attendance
-- Monitor member participation
+### Member Management
 
-#### 📸 Media & Gallery
-- Album management with photo galleries
-- Image upload and optimization
-- Slideshow capabilities for public display
+- Full member profiles: first name, last name, nickname (nome de tuna), email, phone, city, date of birth, degree
+- Profile pictures with image upload and cropping
+- Member categories with automatic progression:
+  - **Leitao** — Not yet an official member
+  - **Caloiro** — New member
+  - **Tuno** — Active member
+  - **Veterano** — 2+ years of membership
+  - **Tunossauro** — 4+ years of membership
+  - **Tuno Honorario** — Honorary member
+  - **Fundador** — Founding member
+- Organizational positions (governance roles):
+  - **Direcao**: Magister, Vice-Magister, Secretario, Primeiro Tesoureiro, Segundo Tesoureiro
+  - **Mesa da Assembleia**: Presidente, Primeiro Secretario, Segundo Secretario
+  - **Conselho Fiscal**: Presidente, Primeiro Relator, Segundo Relator
+  - **Conselho de Veteranos**: Presidente
+  - **Ensaiador** (Rehearsal conductor)
+- Member map — geographic visualization of member locations using Leaflet with Nominatim geocoding (background queue for batch processing, caching)
+- Hierarchy visualization — organizational structure display
+- Mentor/mentee relationships
+- Musical instrument assignments (13 instrument types: Guitarra, Bandolim, Cavaquinho, Acordeao, Fagote, Flauta, Baixo, Contrabaixo, Percussao, Pandeireta, Estandarte, Violino, Saxofone)
+- Retirement tracking with automatic status updates (background service)
+- Expulsion system with forced logout
+- Member statistics and filtering
+- XP and level system tied to gamification
 
-#### 📊 Financial Management
-- Transaction tracking (income/expenses)
-- Fiscal year management
-- Financial reports and summaries
-- Budget monitoring
+### Meeting & Governance
 
-#### 🎺 Inventory Management
-- Musical instrument tracking
-- Product/merchandise inventory
-- Trophy and award management
-- Equipment status monitoring
+- 4 meeting types: Assembleia Geral Ordinaria, Assembleia Geral Extraordinaria, Conselho de Veteranos, Reuniao de Direcao
+- Meeting request and scheduling workflow
+- Participation tracking with attendance records
+- Ata (minutes) system with full workflow:
+  - Draft creation with agenda points
+  - President, first secretary, and second secretary assignment
+  - Quorum tracking (basis, present, absent)
+  - File attachments
+  - Publish and digital confirmation by participants
+  - PDF generation and cloud storage (QuestPDF)
+  - Status workflow: Draft → Published → Confirmed
+- Meeting cancellation with reason
 
-#### 📋 Request System
-- Member request submission
-- Request approval workflow
-- Status tracking
+### Music & Repertoire
 
-#### 📧 Communication
-- Email notification system
-- Automated email for account management
-- Event notifications
+- Song library with comprehensive metadata: title, track number, lyric author, music author, adaptation notes, full lyrics, duration
+- Album management with privacy controls (public, private, exclusive with access control)
+- Spotify URL integration per song
+- YouTube video links per song
+- Song video uploads to cloud storage
+- Play count tracking and statistics
+- Audio playback using Web Audio API with HTML audio fallback
+- Media Session API integration — lockscreen controls (play/pause, next/previous) in PWA mode
+- Song content serving from Cloudflare R2 or Google Drive
 
-#### 📄 Reports
-- PDF report generation (QuestPDF)
-- Custom report templates
-- Event summaries and financial reports
+### Media & Gallery
 
-#### 🔐 Security & Authentication
+- Photo and media gallery with album organization
+- Person tagging on gallery media (tag members in photos)
+- Image upload with cropping (Cropper.js integration)
+- Slideshow management for public display on homepage
+- Event video uploads and playback
+- Document storage and management (meeting documents, reports)
+- Cloud storage via Cloudflare R2 with CDN proxy
+- Download support for photos and documents
+
+### Financial Management
+
+- Transaction tracking with income and expense categorization
+- Activity-based financial grouping (each event/activity tracks its own budget)
+- Fiscal year management (academic year periods)
+- Member debts (calotes) system:
+  - Track individual member debts with descriptions
+  - Compromise dates to delay notifications
+  - Automated calotes notification background service
+  - Public calotes page for transparency
+- MBWAY transfer tracking — record mobile payment transfers for reconciliation
+- Nerba supply orders — manage daily supply orders for multi-day events:
+  - Item, stock quantity, price per unit
+  - Auto-calculated total price (stock x price per unit)
+  - Organized by event and order date
+- Financial reports with PDF export
+- Receipt uploads to cloud storage
+
+### MyTuno — RPG & Gamification System
+
+A full RPG-style character system integrated into the platform:
+
+#### Character System
+- Each member has a character with stats: HP, Power, Speed, Defense, Critical Chance
+- XP-based leveling system with configurable scaling
+- Multi-character support
+- Daily reward claims
+- Fidelis currency (earned through gameplay and betting)
+
+#### Game Modes
+- **Stage Mode** — PvE campaign with 20,000 floors across 20 biomes (Forest, Swamp, Mountain, Desert, Tundra, Volcano, Ocean, Jungle, Cavern, Ruins, Skylands, Underworld, Crystal, Shadow, Storm, Celestial, Inferno, Void, Nexus, Abyss), checkpoints every 10 stages, boss fights
+- **Arena Mode** — PvP battles between player characters, rating system, unlocked after completing Stage mode
+- **Boss Mode** — Endless boss progression, costs Fitab currency to enter, daily boss with persistent HP, tracks total runs and stages cleared
+- **Survive Mode** — Endless survival gameplay
+
+#### Battle Engine
+- Deterministic combat engine with seeded RNG for fair, reproducible battles
+- PixiJS 2D WebGL rendering with sprite animations, projectile system, particle effects, and VFX
+- Audio system with sound effects (Web Audio API)
+- Real-time combat action service for interactive battles
+- Weapon-specific attack animations and visual effects
+
+#### Inventory System
+- **Consumables**: Fino (25% HP heal), Caneca (50% HP heal), Shot (+5% all stats buff), Cigarro (+10% dodge shield), Canhao (AOE damage), Penalty (0.5% lifesteal)
+- **Equipment**: 6 armor slots (Head, Shoulders, Chest, Gloves, Legs, Boots) with normal and rare set variants
+- **Weapons**: 11 types across one-handed (Sword, Axe, Mace, Shield, Dagger) and two-handed (Staff, Bow, Greatsword, Spear, Greataxe, Hammer)
+- **Instrument Parts**: 13 types (one per musical instrument) — dropped from stage enemies
+- **Drinks**: 10 tiers (Cerveja through Aguardente) — used for forging
+- **Currencies**: Leitao (Boss Mode), Fitab (Boss Mode entry)
+
+#### Forge System
+- Combine instrument parts + drinks to create weapons via forge combos
+- Weapon leveling and upgrading
+- Player-named weapons with stat bonuses
+- Configurable forge combo recipes
+
+#### Upgrades & Improvements
+- Character stat upgrades (cast speed, energy capacity, energy regeneration, double gathering chance)
+- Consumable upgrades (improve effectiveness)
+- Upgrade shop interface
+
+#### Configuration
+- Full game balance configurable via `scaling.config.json` — base stats, level scaling, combat mechanics, consumable values, equipment effects, gathering system
+
+### Mini-Games
+
+4 browser-based mini-games with leaderboards:
+- **Avoid Questions** — Dodge-style game
+- **BMR (Bebe Mais Rui)** — Themed mini-game
+- **Passaro Maluco** — Bird-style game
+- **Tomato Thrower** — Throwing game
+
+Each game tracks high scores with the GameScore system, ranks players on leaderboards, and awards Fidelis currency.
+
+### Betting System
+
+- Create bets with multiple options and configurable odds
+- Bet categories: Match and Decision
+- Wager Fidelis currency on outcomes
+- Result settlement with automatic Fidelis payouts based on odds
+- Bet commenting for discussion
+- Bet cancellation support
+- Image/thumbnail support for bets
+
+### Internal Messaging
+
+- Real-time chat powered by SignalR WebSocket hub
+- 1-on-1 and group conversations
+- Typing indicators (started/stopped)
+- Unread message tracking and badge counter
+- Message editing and soft deletion
+- Announcement-only channels (restrict who can post)
+- Conversation archiving
+- Group conversation sync
+- Message composer with @mention support
+- Auto-scroll to latest messages
+
+### Questions (Q&A for Orgaos Sociais)
+
+- Members submit questions directed to governance bodies (Direcao, Mesa da Assembleia, Conselho Fiscal, Conselho de Veteranos)
+- Assign questions to specific positions or individual members
+- Status workflow: Unanswered → In Discussion → Answered → Closed
+- Threaded replies with editing support
+- Server-side pagination with denormalized LastActivityAt for performance
+- Background notification service for unanswered questions
+- Soft delete support
+
+### Naipes (Sub-Organizations)
+
+- Configurable naipe types with custom settings
+- Content management per naipe (text, media)
+- Media uploads (images, audio) to cloud storage
+- Comments on naipe content
+- Play count tracking
+- Authorization control per naipe
+- Content filtering
+
+### Logistics & Task Management
+
+- Kanban-style boards with drag-and-drop (JavaScript integration)
+- Multiple lists per board
+- Task cards with:
+  - Assignments to specific members
+  - Status tracking
+  - Reminders with configurable frequency
+- Board and list management
+
+### Discussion Forums
+
+- Discussion threads attached to events
+- Posts with titles, rich text body, and media attachments
+- Comments with image attachments
+- @mention detection with notification delivery
+- Post pinning and locking (moderation)
+- Soft delete for posts and comments
+- Last activity tracking for ordering
+
+### Leaderboard & Rankings
+
+- Member rankings with customizable scoring
+- Comments on leaderboard entries with like system
+- Hall of Fame page for notable achievements
+- Trophy management for events
+
+### Notifications
+
+Multi-channel notification system:
+
+- **Email** (SMTP): Configurable templates, rate limiting, Gmail App Password support
+- **Web Push**: Browser push notifications via Web Push API with subscription management
+- **7 Background Notification Services**:
+  1. Birthday email reminders
+  2. Calotes (debt) notifications
+  3. Weekly digest emails
+  4. Rehearsal approval reminders
+  5. Question notification reminders
+  6. Activity engagement reminders
+  7. Member status update notifications
+
+### Audit & Administration
+
+- Comprehensive audit logging — tracks all entity changes with before/after values
+- Critical action flagging (role changes, user modifications, deletions)
+- User-friendly change descriptions (binary data summarized, user IDs resolved to nicknames)
+- Database viewer for debugging and data inspection
+- Role management UI — assign/remove roles per user
+- Label/tag system for content organization
+
+### Security & Authentication
+
 - ASP.NET Core Identity integration
-- Role-based authorization (Admin/Member/Visitor)
-- Email confirmation required
-- Secure password requirements
+- Role-based authorization: Owner, Admin, Member, Visitor
+- Cookie authentication with security stamp validation
+- Automatic logout on role change or expulsion
+- Email confirmation required for account activation
+- Simple password policy (min 4 characters)
+- Account lockout after 5 failed attempts (5-minute lockdown)
 - Anti-forgery protection
-- Cascading authentication state
-
-#### 📱 Labels & Organization
-- Custom labeling system
-- Categorization and filtering
-
-#### 🔍 Audit Logging
-- Track user actions and changes
-- System activity monitoring
-- Compliance and accountability
+- Cascading authentication state in Blazor
 
 ### User Roles
 
-- **Owner**: Full system access, audit logging, and user role management
-- **Administrator**: Full entity management, configuration, and operational control
-- **Member**: Access to member features, event participation, rehearsals, and discussions
+- **Owner**: Full system access, audit logging, user role management, database viewer
+- **Admin**: Full entity management, configuration, operational control
+- **Member**: Access to member features, event participation, rehearsals, discussions, messaging, games
 - **Visitor**: Public access to general information, events, and media gallery
 
-For detailed information about roles, categories (Tuno, Caloiro, Veterano, etc.), and positions (Magister, Secretário, etc.), see [Authentication & Business Rules](docs/auth-and-rules.md).
+For detailed information about roles, categories, and positions, see [Authentication & Business Rules](docs/auth-and-rules.md).
 
 ### .NET 10 Blazor Enhancements
 
@@ -204,42 +410,81 @@ This application leverages the latest .NET 10 and Blazor features:
 
 For complete details on the .NET 10 upgrade, see [BLAZOR-NET10-CHANGELOG.md](BLAZOR-NET10-CHANGELOG.md).
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 RTUB/
 ├── src/
 │   ├── RTUB.Core/
-│   │   ├── Entities/          # Domain models
-│   │   └── Enums/             # Enumerations
+│   │   ├── Entities/            # 85+ domain models
+│   │   ├── Enums/               # 24 enumeration types
+│   │   ├── Constants/           # Application constants
+│   │   ├── Exceptions/          # Custom exception types
+│   │   └── Helpers/             # Domain helpers
 │   │
 │   ├── RTUB.Application/
-│   │   ├── Data/              # DbContext and data access
-│   │   ├── Interfaces/        # Service contracts
-│   │   └── Services/          # Business logic implementation
+│   │   ├── Data/                # DbContext, configurations, seed data
+│   │   ├── Interfaces/          # 198+ service and repository contracts
+│   │   ├── Services/            # 136 business logic services
+│   │   └── Repositories/        # 63 data access repositories
 │   │
 │   ├── RTUB.Shared/
-│   │   └── [Common utilities and helpers]
+│   │   └── Components/          # 90+ reusable Razor components
+│   │       ├── Badges/          # Category, position, role, status badges
+│   │       ├── Cards/           # 30+ card components for all entities
+│   │       ├── Common/          # Empty state, error display, pagination
+│   │       ├── Discussion/      # Post and comment components
+│   │       ├── Forms/           # Form inputs, selects, date pickers
+│   │       ├── Game/            # Fantasy tiles, game UI elements
+│   │       ├── Modals/          # Modal dialogs and confirm dialogs
+│   │       ├── Profile/         # Profile fields, headers, timelines
+│   │       ├── Ranking/         # Leaderboard and rank display
+│   │       ├── Tables/          # Search bars, sortable headers, pagination
+│   │       ├── UI/              # Filters, spinners, navigation, popups
+│   │       └── Uploads/         # Image cropper, media upload managers
 │   │
 │   └── RTUB.Web/
-│       ├── Components/        # Blazor components
-│       ├── Pages/             # Blazor pages/routes
-│       ├── Controllers/       # API controllers
-│       ├── Shared/            # Shared Blazor components
-│       ├── wwwroot/           # Static files (CSS, JS, images)
-│       ├── App.razor          # Root component
-│       ├── _Imports.razor     # Global using statements
-│       ├── Program.cs         # Application entry point
-│       └── appsettings.json   # Configuration
+│       ├── Pages/               # 65+ Blazor pages across 12 sections
+│       │   ├── Activities/      # Events, rehearsals, meetings, leaderboard, naipes
+│       │   ├── Games/           # Mini-games (Avoid Questions, BMR, etc.)
+│       │   ├── MyTuno/          # RPG system (Stage, Arena, Boss, Survive, Shop)
+│       │   ├── Management/      # Finance, questions, logistics, roles, reports
+│       │   ├── Members/         # Member list, profiles, map, hierarchy
+│       │   ├── Media/           # Gallery, albums, songs, slideshows, documents
+│       │   ├── Messages/        # Internal messaging inbox
+│       │   └── Operations/      # Audit logs, database viewer, notifications
+│       ├── Hubs/                # SignalR hub (MessagesHub)
+│       ├── Controllers/         # API controllers (CDN proxy, downloads, push)
+│       ├── Extensions/          # Service registration extensions
+│       ├── pixi/                # TypeScript source for PixiJS game engine
+│       │   ├── scenes/          # Battle, arena, survive scenes
+│       │   ├── managers/        # Audio, input, particles, projectiles, UI
+│       │   └── weapons/         # Weapon system and definitions
+│       ├── wwwroot/             # Static files
+│       │   ├── css/             # ITCSS-organized stylesheets
+│       │   ├── js/              # 31 JavaScript files (games, audio, maps, UI)
+│       │   ├── sprites/         # Game sprite sheets
+│       │   ├── sound/           # Audio files
+│       │   └── icons/           # PWA app icons
+│       ├── App.razor            # Root component
+│       └── Program.cs           # Application entry point
 │
-└── tests/                     # Test projects
+├── tests/
+│   ├── RTUB.Core.Tests/         # Domain entity and business rule tests
+│   ├── RTUB.Application.Tests/  # Service and repository tests
+│   ├── RTUB.Shared.Tests/       # Shared component tests (bUnit)
+│   ├── RTUB.Web.Tests/          # Page and integration tests (bUnit)
+│   └── RTUB.Integration.Tests/  # End-to-end integration tests
+│
+└── docs/                        # Project documentation
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
+- [Node.js](https://nodejs.org/) (for PixiJS TypeScript build, optional)
 - Visual Studio 2022 / Visual Studio Code / Rider
 - Git
 
@@ -340,7 +585,7 @@ The database is automatically:
 - Migrated to the latest schema
 - Seeded with initial data
 
-## 💻 Development
+## Development
 
 ### Building the Solution
 
@@ -364,6 +609,16 @@ dotnet watch run
 
 This enables hot reload for Blazor components and C# code during development.
 
+### Building PixiJS Game Engine
+
+```bash
+cd src/RTUB.Web/pixi
+npm install
+npm run build
+```
+
+This compiles TypeScript battle scenes into IIFE bundles using Vite.
+
 ### Development Features
 
 - **Detailed Errors**: Enabled in development mode
@@ -380,24 +635,30 @@ The project follows standard C# coding conventions:
 - XML documentation for public APIs
 - Clean code principles
 
-## 🧪 Testing
+## Testing
 
-Run all tests:
+The project includes **5 test projects** with **4,500+ tests**:
+
+| Project | Scope | Framework |
+|---------|-------|-----------|
+| `RTUB.Core.Tests` | Domain entities, business rules, enums | xUnit, FluentAssertions |
+| `RTUB.Application.Tests` | Services, repositories, audit logging | xUnit, Moq, FluentAssertions |
+| `RTUB.Shared.Tests` | Shared Razor components | xUnit, bUnit, FluentAssertions |
+| `RTUB.Web.Tests` | Pages, page components | xUnit, bUnit, Moq |
+| `RTUB.Integration.Tests` | End-to-end with EF Core InMemory | xUnit, FluentAssertions |
+
 ```bash
+# Run all tests
 dotnet test
-```
 
-Run tests with coverage:
-```bash
+# Run tests with coverage
 dotnet test /p:CollectCoverage=true
+
+# Run specific test project
+dotnet test tests/RTUB.Application.Tests
 ```
 
-Run specific test project:
-```bash
-dotnet test tests/[YourTestProject]
-```
-
-## 🚀 Deployment
+## Deployment
 
 ### Azure Deployment
 
@@ -444,11 +705,13 @@ Update `appsettings.Production.json`:
 The application includes:
 - **Response Compression** (Brotli/Gzip)
 - **Response Caching** for static files (30 days in production)
-- **Memory Caching** for frequently accessed data
+- **Memory Caching** for frequently accessed data (IMemoryCache)
 - **SignalR optimization** for Blazor Interactive Server
-- **Static file caching** with cache headers
+- **Static file caching** with content-based versioning
+- **Server-side pagination** with denormalized columns for high-traffic queries
+- **Read projections** to minimize data transfer
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -469,7 +732,7 @@ For detailed guidelines on coding style, adding components, creating pages, test
 - Update documentation in `/docs` as needed
 - Ensure all tests pass before submitting PR
 
-## 📚 Documentation
+## Documentation
 
 Comprehensive documentation is available in the `/docs` folder and root directory:
 
@@ -479,27 +742,28 @@ Comprehensive documentation is available in the `/docs` folder and root director
 - **[Work Log](docs/work-log.md)** - Detailed chronological development log
 
 ### Technical Documentation
-- **[Frontend Performance Optimizations](FRONTEND-PERFORMANCE-OPTIMIZATIONS.md)** - Performance improvements and optimizations
+- **[Backend Practices](docs/backend-practices.md)** - Backend coding guidelines
+- **[Frontend Practices](docs/frontend-practices.md)** - Frontend best practices
+- **[PWA Practices](docs/pwa-practices.md)** - Progressive Web App best practices
+- **[Frontend Performance Optimizations](FRONTEND-PERFORMANCE-OPTIMIZATIONS.md)** - Performance improvements
 - **[.NET 10 Upgrade Changelog](BLAZOR-NET10-CHANGELOG.md)** - Complete .NET 10 upgrade details
 - **[Static Assets Decision](STATIC-ASSETS-DECISION.md)** - Asset management strategy
-- **[Upgrade Summary](UPGRADE-SUMMARY.md)** - Migration and upgrade notes
+
+### Game System Documentation
+- **[MyTuno Equipment](docs/my_tuno/)** - Equipment, weapons, scaling, and survive mode docs
 
 ### Architecture & Decisions
 - **[Architectural Decision Records (ADRs)](docs/decisions/)** - Technical decisions and rationale
-  - [ADR 001: ShouldRender Optimization](docs/decisions/001-shouldrender-optimization.md)
 
 ### Developer Guides
-- **[Documentation Index](docs/index.md)** - Overview and quick links _(if exists)_
-- **[Components Guide](docs/components.md)** - All reusable components in RTUB.Shared _(if exists)_
-- **[Pages Reference](docs/pages.md)** - All Razor pages with routes and permissions _(if exists)_
-- **[Authentication & Business Rules](docs/auth-and-rules.md)** - Roles, categories, positions _(if exists)_
-- **[Contributing Guide](docs/contributing.md)** - Guidelines for developers and agents _(if exists)_
+- **[Authentication & Business Rules](docs/auth-and-rules.md)** - Roles, categories, positions
+- **[Contributing Guide](docs/contributing.md)** - Guidelines for developers
 
-## 📝 License
+## License
 
 This project is developed for the Real Tuna Universitária de Bragança.
 
-## 👥 Contact
+## Contact
 
 **Real Tuna Universitária de Bragança**
 
@@ -511,4 +775,4 @@ Project Live: [https://rtub.azurewebsites.net/](https://rtub.azurewebsites.net/)
 
 ---
 
-**Built with Blazor** 🚀 | Made for the Real Tuna Universitária de Bragança 🎵
+**Built with Blazor** | Made for the Real Tuna Universitaria de Braganca

@@ -96,4 +96,10 @@ public interface IBetService
     /// </summary>
     /// <param name="betId">Bet ID to uncancel</param>
     Task UncancelBetAsync(int betId);
+
+    /// <summary>
+    /// Approves a bet for resolution by the creator. Only admins can approve.
+    /// </summary>
+    /// <param name="betId">Bet ID to approve</param>
+    Task ApproveBetAsync(int betId);
 }

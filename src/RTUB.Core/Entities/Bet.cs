@@ -44,6 +44,9 @@ public class Bet : BaseEntity
     // Resolution tracking - set by admin after event is past
     public int? WinningOptionId { get; set; }
 
+    // Approval tracking - admin must approve before creator can resolve
+    public bool IsApproved { get; set; }
+
     // Navigation properties
     public virtual ICollection<BetOption> Options { get; set; } = new List<BetOption>();
     public virtual ICollection<UserBet> UserBets { get; set; } = new List<UserBet>();
@@ -122,6 +125,15 @@ public class Bet : BaseEntity
 
         IsCancelled = false;
         CancellationReason = null;
+    }
+
+    public void Approve()
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("Não é possível aprovar uma aposta cancelada");
+        if (IsResolved())
+            throw new InvalidOperationException("Não é possível aprovar uma aposta já resolvida");
+        IsApproved = true;
     }
 
     public void Resolve(int winningOptionId)

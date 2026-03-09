@@ -414,4 +414,11 @@ public class BetService : IBetService
         bet.Uncancel();
         await _betRepository.UpdateAsync(bet);
     }
+
+    public async Task ApproveBetAsync(int betId)
+    {
+        var bet = await _betRepository.GetByIdOrThrowAsync(betId);
+        bet.Approve();
+        await _betRepository.UpdateAsync(bet);
+    }
 }

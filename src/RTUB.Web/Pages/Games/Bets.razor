@@ -94,6 +94,7 @@
                                      OnEdit="@(() => OpenEditModal(bet))"
                                      OnDelete="@(() => OpenDeleteModal(bet))"
                                      OnResolve="@(() => OpenResolveModal(bet))"
+                                     OnApprove="@(() => ApproveBet(bet))"
                                      OnSendPushNotification="@(() => OpenPushNotificationModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
                                      OnViewDetails="@(() => OpenBetDetailsModal(bet))"
@@ -154,6 +155,7 @@
                                  OnEdit="@(() => OpenEditModal(bet))"
                                  OnDelete="@(() => OpenDeleteModal(bet))"
                                  OnResolve="@(() => OpenResolveModal(bet))"
+                                 OnApprove="@(() => ApproveBet(bet))"
                                  OnViewDetails="@(() => OpenBetDetailsModal(bet))"
                                  OnViewAllBets="@(() => OpenAllBetsModal(bet))" />
                     </div>
@@ -1835,6 +1837,19 @@
     {
         selectedMatchMembers.Remove(member);
         memberOdds.Remove(member.Id);
+    }
+
+    private async Task ApproveBet(Bet bet)
+    {
+        try
+        {
+            await BetService.ApproveBetAsync(bet.Id);
+            await LoadBets();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Erro ao aprovar aposta: {ex.Message}");
+        }
     }
 
     private void OpenResolveModal(Bet bet)
