@@ -58,37 +58,4 @@ public static class QueryableExtensions
         return condition ? query.Where(predicate) : query;
     }
 
-    /// <summary>
-    /// Applies ordering only if the condition is true
-    /// </summary>
-    /// <typeparam name="T">The entity type</typeparam>
-    /// <typeparam name="TKey">The key type for ordering</typeparam>
-    /// <param name="query">The source query</param>
-    /// <param name="condition">Condition to check before applying ordering</param>
-    /// <param name="keySelector">Key selector for ordering</param>
-    /// <returns>Ordered query if condition is true, otherwise original query</returns>
-    public static IQueryable<T> OrderByIf<T, TKey>(
-        this IQueryable<T> query,
-        bool condition,
-        System.Linq.Expressions.Expression<Func<T, TKey>> keySelector)
-    {
-        return condition ? query.OrderBy(keySelector) : query;
-    }
-
-    /// <summary>
-    /// Applies descending ordering only if the condition is true
-    /// </summary>
-    /// <typeparam name="T">The entity type</typeparam>
-    /// <typeparam name="TKey">The key type for ordering</typeparam>
-    /// <param name="query">The source query</param>
-    /// <param name="condition">Condition to check before applying ordering</param>
-    /// <param name="keySelector">Key selector for ordering</param>
-    /// <returns>Ordered query if condition is true, otherwise original query</returns>
-    public static IQueryable<T> OrderByDescendingIf<T, TKey>(
-        this IQueryable<T> query,
-        bool condition,
-        System.Linq.Expressions.Expression<Func<T, TKey>> keySelector)
-    {
-        return condition ? query.OrderByDescending(keySelector) : query;
-    }
 }

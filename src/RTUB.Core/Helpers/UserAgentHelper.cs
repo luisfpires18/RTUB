@@ -6,17 +6,6 @@ namespace RTUB.Core.Helpers;
 public static class UserAgentHelper
 {
     /// <summary>
-    /// Returns true if the User-Agent string indicates an Android device.
-    /// </summary>
-    public static bool IsAndroid(string? userAgent)
-    {
-        if (string.IsNullOrWhiteSpace(userAgent))
-            return false;
-
-        return userAgent.Contains("android", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
     /// Returns a short, human-readable device/platform label from a raw User-Agent string.
     /// Examples: "Android", "iPhone", "Windows", "macOS".
     /// </summary>

@@ -67,23 +67,6 @@ public static class ApplicationUserExtensions
         return user.Categories.Contains(MemberCategory.Fundador);
     }
 
-    /// <summary>
-    /// Checks if the user is marked as retired (reformed/inactive)
-    /// This can be set automatically by the retirement logic or manually by OWNER role
-    /// </summary>
-    public static bool IsRetiredMember(this ApplicationUser user)
-    {
-        return user.IsRetired;
-    }
-
-    /// <summary>
-    /// Checks if the user is active (not retired)
-    /// </summary>
-    public static bool IsActiveMember(this ApplicationUser user)
-    {
-        return !user.IsRetired;
-    }
-
     #endregion
 
     #region Position Checkers
@@ -147,23 +130,6 @@ public static class ApplicationUserExtensions
     public static bool CanBeMentor(this ApplicationUser user)
     {
         return user.IsTunoOrHigher();
-    }
-
-    /// <summary>
-    /// Checks if the user can hold president position (not Leitao or Caloiro)
-    /// Requires Tuno or higher category
-    /// </summary>
-    public static bool CanHoldPresidentPosition(this ApplicationUser user)
-    {
-        return user.IsTunoOrHigher();
-    }
-
-    /// <summary>
-    /// Checks if the user is not just a Leitao (has progressed to Caloiro or beyond)
-    /// </summary>
-    public static bool IsNotOnlyLeitao(this ApplicationUser user)
-    {
-        return !user.IsOnlyLeitao();
     }
 
     #endregion

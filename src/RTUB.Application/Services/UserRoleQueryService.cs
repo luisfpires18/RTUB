@@ -31,12 +31,6 @@ public class UserRoleQueryService : IUserRoleQueryService
         }
 
         // Query: Join UserRoles and Roles tables, filter by user IDs, select user ID and role name
-        // Original query from Members.razor:
-        // var userRolesQuery = await DbContext.UserRoles
-        //     .Where(ur => userIdList.Contains(ur.UserId))
-        //     .Join(DbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-        //     .ToListAsync();
-
         var ctx = _contextFactory.CreateDbContext();
         var userRoles = await ctx.UserRoles
             .Where(ur => userIds.Contains(ur.UserId))

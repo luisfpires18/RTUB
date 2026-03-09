@@ -1,8 +1,10 @@
 using Bunit;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Web.Services;
 using RTUB.Web.Tests.Pages.Base;
 using AuditLogPage = RTUB.Pages.Operations.AuditLog;
 
@@ -18,6 +20,7 @@ public class AuditLogPageTests : PageTestBase
     {
         _mockAuditLogService = SetupService<IAuditLogService>();
         _mockUserManager = SetupUserManager();
+        Services.AddSingleton(new AnnouncementService());
     }
 
     #region Page Rendering Tests

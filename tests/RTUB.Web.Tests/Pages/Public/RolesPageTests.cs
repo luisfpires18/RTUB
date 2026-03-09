@@ -37,17 +37,6 @@ public class RolesPageTests : PageTestBase
         _auditContext = new AuditContext();
         Services.AddSingleton(_auditContext);
 
-        // Setup DriveDocumentStorageService (concrete class)
-        // The page injects both IDocumentStorageService and DriveDocumentStorageService
-        var mockConfig = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-        var mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<RTUB.Application.Services.DriveDocumentStorageService>>();
-        var mockStorageOptions = Microsoft.Extensions.Options.Options.Create(new RTUB.Application.Configuration.StorageOptions());
-        var driveService = new RTUB.Application.Services.DriveDocumentStorageService(
-            mockConfig.Object,
-            mockLogger.Object,
-            mockStorageOptions);
-        Services.AddSingleton(driveService);
-
         var fiscalYears = new List<FiscalYear>
         {
             FiscalYear.Create(2024, 2025),

@@ -304,48 +304,6 @@ public class ApplicationUserExtensionsTests
         leitaoUser.CanBeMentor().Should().BeFalse();
     }
 
-    [Fact]
-    public void CanHoldPresidentPosition_WithTunoOrHigher_ReturnsTrue()
-    {
-        // Arrange
-        var user = CreateUserWithCategories(MemberCategory.Tuno);
-
-        // Act & Assert
-        user.CanHoldPresidentPosition().Should().BeTrue();
-    }
-
-    [Fact]
-    public void CanHoldPresidentPosition_WithCaloiroOrLeitao_ReturnsFalse()
-    {
-        // Arrange
-        var caloiroUser = CreateUserWithCategories(MemberCategory.Caloiro);
-        var leitaoUser = CreateUserWithCategories(MemberCategory.Leitao);
-
-        // Act & Assert
-        caloiroUser.CanHoldPresidentPosition().Should().BeFalse();
-        leitaoUser.CanHoldPresidentPosition().Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsNotOnlyLeitao_WithCaloiro_ReturnsTrue()
-    {
-        // Arrange
-        var user = CreateUserWithCategories(MemberCategory.Caloiro);
-
-        // Act & Assert
-        user.IsNotOnlyLeitao().Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsNotOnlyLeitao_WithOnlyLeitao_ReturnsFalse()
-    {
-        // Arrange
-        var user = CreateUserWithCategories(MemberCategory.Leitao);
-
-        // Act & Assert
-        user.IsNotOnlyLeitao().Should().BeFalse();
-    }
-
     #endregion
 
     #region Years Calculation Tests

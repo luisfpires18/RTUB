@@ -9,25 +9,9 @@ namespace RTUB.Core.Helpers;
 public static class PositionHelper
 {
     /// <summary>
-    /// Cached mapping from display name (lowercase) to Position for O(1) lookup
-    /// </summary>
-    private static readonly Dictionary<string, Position> DisplayNameToPosition = BuildDisplayNameLookup();
-
-    /// <summary>
     /// Cached mapping from Position to display name for O(1) lookup
     /// </summary>
     private static readonly Dictionary<Position, string> PositionToDisplayName = BuildPositionLookup();
-
-    private static Dictionary<string, Position> BuildDisplayNameLookup()
-    {
-        var lookup = new Dictionary<string, Position>(StringComparer.OrdinalIgnoreCase);
-        foreach (Position position in Enum.GetValues<Position>())
-        {
-            var displayName = GetDisplayNameInternal(position);
-            lookup[displayName] = position;
-        }
-        return lookup;
-    }
 
     private static Dictionary<Position, string> BuildPositionLookup()
     {
@@ -82,16 +66,4 @@ public static class PositionHelper
             : position.ToString();
     }
 
-    /// <summary>
-    /// Gets the Position enum value from a localized display name.
-    /// Returns null if the display name is not recognized.
-    /// Uses cached dictionary for O(1) lookup performance.
-    /// </summary>
-    public static Position? ParseDisplayName(string displayName)
-    {
-        if (string.IsNullOrWhiteSpace(displayName))
-            return null;
-
-        return DisplayNameToPosition.TryGetValue(displayName, out var position) ? position : null;
-    }
 }

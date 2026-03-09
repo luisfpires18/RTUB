@@ -62,19 +62,6 @@ public class DateTimeExtensionsTests
     }
 
     [Fact]
-    public void ToPortugueseFullDateTime_FormatsCorrectly()
-    {
-        // Arrange
-        var date = new DateTime(2024, 3, 15, 14, 30, 45);
-
-        // Act
-        var result = date.ToPortugueseFullDateTime();
-
-        // Assert
-        result.Should().Be("15/03/2024 14:30:45");
-    }
-
-    [Fact]
     public void ToPortugueseShortDate_Nullable_WithValue_FormatsCorrectly()
     {
         // Arrange
@@ -177,18 +164,5 @@ public class DateTimeExtensionsTests
 
         // Assert
         result.Should().Be(expected);
-    }
-
-    [Fact]
-    public void ToPortugueseFullDateTime_WithSeconds_FormatsCorrectly()
-    {
-        // Arrange
-        var date = new DateTime(2024, 3, 15, 23, 59, 59);
-
-        // Act
-        var result = date.ToPortugueseFullDateTime();
-
-        // Assert
-        result.Should().Be("15/03/2024 23:59:59");
     }
 }

@@ -101,41 +101,6 @@ public class SearchHelper<T>
     }
 
     /// <summary>
-    /// Filters a list of items where ALL search terms must match
-    /// Search term is split by spaces and all parts must be found
-    /// Note: This method does not normalize accents/diacritics (preserves original behavior)
-    /// </summary>
-    /// <param name="items">List of items to filter</param>
-    /// <param name="selector">Function to extract the searchable string from each item</param>
-    /// <param name="caseSensitive">Whether the search should be case-sensitive (default: false)</param>
-    /// <returns>Filtered list of items</returns>
-    public List<T> FilterAllTerms(List<T> items, Func<T, string> selector, bool caseSensitive = false)
-    {
-        if (items == null || items.Count == 0)
-        {
-            return new List<T>();
-        }
-
-        if (string.IsNullOrWhiteSpace(SearchTerm))
-        {
-            return items;
-        }
-
-        // Cache normalized search terms to avoid repeated allocations
-        // accentSensitive: true means don't remove diacritics (preserves original behavior)
-        var searchTerms = GetNormalizedSearchTerms(caseSensitive, accentSensitive: true);
-        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-        return items.Where(item =>
-        {
-            var value = selector(item);
-            if (string.IsNullOrEmpty(value)) return false;
-
-            return searchTerms.All(term => value.Contains(term, comparison));
-        }).ToList();
-    }
-
-    /// <summary>
     /// Gets normalized search terms with caching to avoid repeated allocations
     /// </summary>
     private string[] GetNormalizedSearchTerms(bool caseSensitive, bool accentSensitive)

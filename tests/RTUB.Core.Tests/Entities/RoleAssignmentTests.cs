@@ -143,19 +143,6 @@ public class RoleAssignmentTests
         result.Should().Be("2023-2024");
     }
 
-    [Fact]
-    public void FiscalYear_Property_ReturnsCorrectFormat()
-    {
-        // Arrange
-        var roleAssignment = RoleAssignment.Create("user123", Position.Magister, 2023, 2024);
-
-        // Act
-        var result = roleAssignment.FiscalYear;
-
-        // Assert
-        result.Should().Be("2023-2024");
-    }
-
     [Theory]
     [InlineData(2020, 2021, "2020-2021")]
     [InlineData(2021, 2022, "2021-2022")]

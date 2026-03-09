@@ -63,19 +63,11 @@ public static class OrgaoSocialHelper
     }
 
     /// <summary>
-    /// Gets all Orgão Social groups as an enumerable
-    /// </summary>
-    public static IEnumerable<OrgaoSocialGroup> GetAllGroups()
-    {
-        return Enum.GetValues<OrgaoSocialGroup>();
-    }
-
-    /// <summary>
     /// Gets the Orgão Social group for a given position
     /// </summary>
     public static OrgaoSocialGroup? GetGroupForPosition(Position position)
     {
-        foreach (var group in GetAllGroups())
+        foreach (var group in Enum.GetValues<OrgaoSocialGroup>())
         {
             if (GetPositionsForGroup(group).Contains(position))
             {
@@ -90,6 +82,6 @@ public static class OrgaoSocialHelper
     /// </summary>
     public static IEnumerable<Position> GetAllOrgaoSocialPositions()
     {
-        return GetAllGroups().SelectMany(GetPositionsForGroup).Distinct();
+        return Enum.GetValues<OrgaoSocialGroup>().SelectMany(GetPositionsForGroup).Distinct();
     }
 }

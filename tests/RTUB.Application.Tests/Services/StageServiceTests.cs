@@ -893,7 +893,7 @@ public class StageServiceTests : IDisposable
     [InlineData(20000, false)] // Last Light stage
     [InlineData(20001, true)]  // Arena starts at 20001
     [InlineData(99999, true)]
-    public void IsInVoid_ShouldReturnCorrectValue(int stage, bool expected)
+    public void IsInArena_ShouldReturnCorrectValue(int stage, bool expected)
     {
         // Arrange
         var progress = StageProgress.Create("user1");
@@ -902,8 +902,8 @@ public class StageServiceTests : IDisposable
             progress.AdvanceStage();
         }
 
-        // Act — IsInVoid() is now an alias for IsInArena()
-        var result = progress.IsInVoid();
+        // Act
+        var result = progress.IsInArena();
 
         // Assert
         result.Should().Be(expected);

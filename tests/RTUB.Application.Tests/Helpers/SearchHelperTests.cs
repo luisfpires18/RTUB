@@ -155,46 +155,6 @@ public class SearchHelperTests
     }
 
     [Fact]
-    public void FilterAllTerms_WithMultipleWords_RequiresAllInSameField()
-    {
-        // Arrange
-        var helper = new SearchHelper<TestItem> { SearchTerm = "test item" };
-        var items = new List<TestItem>
-        {
-            new() { Name = "Test Item Name" },
-            new() { Name = "Test Something" },
-            new() { Name = "Item Test" }
-        };
-
-        // Act
-        var result = helper.FilterAllTerms(items, x => x.Name);
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(x => x.Name == "Test Item Name");
-        result.Should().Contain(x => x.Name == "Item Test");
-    }
-
-    [Fact]
-    public void FilterAllTerms_WithSingleWord_WorksLikeFilter()
-    {
-        // Arrange
-        var helper = new SearchHelper<TestItem> { SearchTerm = "test" };
-        var items = new List<TestItem>
-        {
-            new() { Name = "Test Item" },
-            new() { Name = "Another Test" },
-            new() { Name = "Something" }
-        };
-
-        // Act
-        var result = helper.FilterAllTerms(items, x => x.Name);
-
-        // Assert
-        result.Should().HaveCount(2);
-    }
-
-    [Fact]
     public void Clear_RemovesSearchTerm()
     {
         // Arrange

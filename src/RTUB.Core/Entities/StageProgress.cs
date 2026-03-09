@@ -200,8 +200,4 @@ public class StageProgress : BaseEntity
         return CurrentStage > 20000;
     }
 
-    /// <summary>
-    /// Legacy alias for IsInArena — kept for compatibility.
-    /// </summary>
-    public bool IsInVoid() => IsInArena();
 }

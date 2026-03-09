@@ -41,23 +41,6 @@ public static class StatusHelper
     }
 
     /// <summary>
-    /// Gets the lowercase Portuguese translation for filtering text
-    /// </summary>
-    public static string GetFilterStatusText(RequestStatus? status)
-    {
-        if (status == null) return "";
-
-        return status switch
-        {
-            RequestStatus.Pending => "pendente",
-            RequestStatus.Analysing => "em análise",
-            RequestStatus.Confirmed => "confirmado",
-            RequestStatus.Rejected => "rejeitado",
-            _ => ""
-        };
-    }
-
-    /// <summary>
     /// Gets a localized display name for an instrument type.
     /// Delegates to InstrumentTypeHelper in Core layer.
     /// </summary>
@@ -67,13 +50,12 @@ public static class StatusHelper
     }
 
     /// <summary>
-    /// Gets the InstrumentType enum value from a localized display name.
-    /// Returns null if the display name is not recognized.
-    /// Delegates to InstrumentTypeHelper in Core layer.
+    /// Gets the Portuguese display name for an event type.
+    /// Delegates to EventTypeExtensions in Application layer.
     /// </summary>
-    public static InstrumentType? GetInstrumentTypeFromDisplay(string displayName)
+    public static string GetEventTypeDisplay(EventType eventType)
     {
-        return InstrumentTypeHelper.ParseDisplayName(displayName);
+        return eventType.GetDisplayName();
     }
 
     /// <summary>
@@ -171,37 +153,4 @@ public static class StatusHelper
         return displayCategories.Distinct().ToList();
     }
 
-    /// <summary>
-    /// Gets the display categories for a user, automatically adding Veterano/Tunossauro based on years as Tuno
-    /// Legacy overload for backward compatibility
-    /// </summary>
-    public static List<MemberCategory> GetDisplayCategories(List<MemberCategory> categories, int? yearTuno)
-    {
-        var user = new ApplicationUser
-        {
-            YearTuno = yearTuno,
-            Categories = categories
-        };
-        return GetDisplayCategories(user);
-    }
-
-    /// <summary>
-    /// Gets the Portuguese display name for an event type
-    /// </summary>
-    public static string GetEventTypeDisplay(EventType eventType)
-    {
-        return eventType switch
-        {
-            EventType.Festival => "Festival",
-            EventType.Atuacao => "Atuação",
-            EventType.Casamento => "Casamento",
-            EventType.Serenata => "Serenata",
-            EventType.Arraial => "Arraial",
-            EventType.Convivio => "Convívio",
-            EventType.Nerba => "Nerba",
-            EventType.Missa => "Missa",
-            EventType.Batizado => "Batizado",
-            _ => eventType.ToString()
-        };
-    }
 }

@@ -54,7 +54,4 @@ public class RoleAssignment : BaseEntity
     {
         return $"{StartYear}-{EndYear}";
     }
-
-    // Property alias for backward compatibility
-    public string FiscalYear => GetFiscalYear();
 }

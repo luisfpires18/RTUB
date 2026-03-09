@@ -88,7 +88,7 @@ public class MediaQueueServiceTests
     public void GetNextTrack_ShouldReturnNextTrackWhenNotAtEnd()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" },
@@ -108,7 +108,7 @@ public class MediaQueueServiceTests
     public void GetNextTrack_ShouldReturnNullWhenAtEnd()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" }
@@ -125,7 +125,7 @@ public class MediaQueueServiceTests
     public void GetPreviousTrackOrRestart_ShouldRestartWhenOverThreshold()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" },
@@ -148,7 +148,7 @@ public class MediaQueueServiceTests
     public void GetPreviousTrackOrRestart_ShouldGoToPreviousWhenUnderThreshold()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" },
@@ -171,7 +171,7 @@ public class MediaQueueServiceTests
     public void GetPreviousTrackOrRestart_ShouldRestartWhenAtStartAndUnderThreshold()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" }
@@ -192,7 +192,7 @@ public class MediaQueueServiceTests
     public void GetPreviousTrackOrRestart_ShouldUseExactThreshold()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" }
@@ -212,7 +212,7 @@ public class MediaQueueServiceTests
     public void GetPreviousTrackOrRestart_ShouldRespectCustomThreshold()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" }
@@ -234,7 +234,7 @@ public class MediaQueueServiceTests
     public void FindSongIndex_ShouldReturnCorrectIndex()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 10, Title = "Track 1" },
             new() { Id = 20, Title = "Track 2" },
@@ -252,7 +252,7 @@ public class MediaQueueServiceTests
     public void FindSongIndex_ShouldReturnNegativeOneWhenNotFound()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 10, Title = "Track 1" },
             new() { Id = 20, Title = "Track 2" }
@@ -269,7 +269,7 @@ public class MediaQueueServiceTests
     public void FindSongIndex_ShouldReturnZeroForFirstTrack()
     {
         // Arrange
-        var queue = new List<MediaQueueService.QueueTrack>
+        var queue = new List<QueueTrack>
         {
             new() { Id = 1, Title = "Track 1" },
             new() { Id = 2, Title = "Track 2" }

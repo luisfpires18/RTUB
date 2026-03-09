@@ -9,20 +9,6 @@ namespace RTUB.Web.Services;
 public class MediaQueueService
 {
     /// <summary>
-    /// Represents a track in the playback queue
-    /// </summary>
-    public class QueueTrack
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Artist { get; set; } = string.Empty;
-        public string Album { get; set; } = string.Empty;
-        public string AudioUrl { get; set; } = string.Empty;
-        public string? ArtworkUrl { get; set; }
-        public int TrackNumber { get; set; }
-    }
-
-    /// <summary>
     /// Build a queue from a list of songs, ordered by track number
     /// </summary>
     /// <param name="songs">List of songs in the album</param>

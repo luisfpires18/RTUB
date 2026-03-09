@@ -173,60 +173,6 @@ public class QueryableExtensionsTests
     }
 
     [Fact]
-    public void OrderByIf_ConditionTrue_AppliesOrdering()
-    {
-        // Arrange
-        var data = CreateTestData(10).AsQueryable();
-
-        // Act
-        var result = data.OrderByIf(true, x => x.Name).ToList();
-
-        // Assert
-        result.Select(x => x.Name).Should().BeInAscendingOrder();
-    }
-
-    [Fact]
-    public void OrderByIf_ConditionFalse_ReturnsOriginalOrder()
-    {
-        // Arrange
-        var data = CreateTestData(10).AsQueryable();
-        var originalOrder = data.Select(x => x.Id).ToList();
-
-        // Act
-        var result = data.OrderByIf(false, x => x.Name).ToList();
-
-        // Assert
-        result.Select(x => x.Id).Should().BeEquivalentTo(originalOrder, o => o.WithStrictOrdering());
-    }
-
-    [Fact]
-    public void OrderByDescendingIf_ConditionTrue_AppliesDescendingOrdering()
-    {
-        // Arrange
-        var data = CreateTestData(10).AsQueryable();
-
-        // Act
-        var result = data.OrderByDescendingIf(true, x => x.Id).ToList();
-
-        // Assert
-        result.Select(x => x.Id).Should().BeInDescendingOrder();
-    }
-
-    [Fact]
-    public void OrderByDescendingIf_ConditionFalse_ReturnsOriginalOrder()
-    {
-        // Arrange
-        var data = CreateTestData(10).AsQueryable();
-        var originalOrder = data.Select(x => x.Id).ToList();
-
-        // Act
-        var result = data.OrderByDescendingIf(false, x => x.Id).ToList();
-
-        // Assert
-        result.Select(x => x.Id).Should().BeEquivalentTo(originalOrder, o => o.WithStrictOrdering());
-    }
-
-    [Fact]
     public void Paginate_EmptyCollection_ReturnsEmpty()
     {
         // Arrange
@@ -274,7 +220,7 @@ public class QueryableExtensionsTests
         // Act
         var result = data
             .WhereIf(true, x => x.IsActive)
-            .OrderByIf(true, x => x.Id)
+            .OrderBy(x => x.Id)
             .Paginate(1, 5)
             .ToList();
 
