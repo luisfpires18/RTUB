@@ -18,7 +18,7 @@ public class UserBet : BaseEntity
     public int BetOptionId { get; set; }
 
     [Required(ErrorMessage = "O montante de Fidelis é obrigatório")]
-    [Range(0.01, 1000000, ErrorMessage = "O montante de Fidelis deve estar entre 0.01 e 1,000,000")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "O montante de Fidelis deve ser pelo menos 0.01")]
     public decimal FidelisAmount { get; set; }
 
     // Set after bet resolution - null means bet not yet resolved
@@ -41,8 +41,8 @@ public class UserBet : BaseEntity
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("O ID do utilizador é obrigatório", nameof(userId));
 
-        if (fidelisAmount < 0.01m || fidelisAmount > 1000000m)
-            throw new ArgumentException("O montante de Fidelis deve estar entre 0.01 e 1,000,000", nameof(fidelisAmount));
+        if (fidelisAmount < 0.01m)
+            throw new ArgumentException("O montante de Fidelis deve ser pelo menos 0.01", nameof(fidelisAmount));
 
         return new UserBet
         {

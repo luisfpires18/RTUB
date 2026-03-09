@@ -1,5 +1,6 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Enums
+@using RTUB.Core.Helpers
 @*
     BetCard Component
     Reusable card for displaying bet information with betting actions
@@ -56,7 +57,7 @@
             }
         </div>
         
-        @if (IsAdmin)
+        @if (IsAdmin || IsCreator)
         {
             <div class="admin-overlay">
                 <button class="btn btn-sm music-btn-edit" 
@@ -75,9 +76,12 @@
                     </button>
                 }
             </div>
-            
-            @* Resolve button in bottom-right corner for past unresolved bets *@
-            @if (IsPastBet && !Bet.IsResolved() && !Bet.IsCancelled)
+        }
+
+        @if (IsAdmin || IsCreator)
+        {
+            @* Resolve button in bottom-right corner for resolvable unresolved bets *@
+            @if (IsResolvable && !Bet.IsResolved() && !Bet.IsCancelled)
             {
                 <div class="position-absolute bottom-0 end-0 p-2">
                     <button class="btn btn-sm btn-warning music-btn-resolve" 
@@ -88,7 +92,10 @@
                     </button>
                 </div>
             }
-            
+        }
+
+        @if (IsAdmin)
+        {
             @* Push notification button in bottom-right corner for future bets *@
             @if (!IsPastBet && !Bet.IsCancelled)
             {
@@ -160,7 +167,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-white">
                         <i class="bi bi-coin me-1"></i>
-                        <strong>@UserBet.FidelisAmount.ToString("F2")</strong> Fidelis
+                        <strong>@NumberFormatter.Compact(UserBet.FidelisAmount)</strong> Fidelis
                     </span>
                     @if (UserBet.IsWon.HasValue)
                     {
@@ -168,7 +175,7 @@
                         {
                             <span class="badge bg-success">
                                 <i class="bi bi-trophy-fill me-1"></i>
-                                Ganhou @UserBet.FidelisWinnings.ToString("F2")
+                                Ganhou @NumberFormatter.Compact(UserBet.FidelisWinnings)
                             </span>
                         }
                         else
@@ -381,4 +388,16 @@
     /// </summary>
     [Parameter]
     public bool ShowDeleteButton { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user is the creator of this bet (can edit/delete own bets)
+    /// </summary>
+    [Parameter]
+    public bool IsCreator { get; set; }
+
+    /// <summary>
+    /// Whether this bet can be resolved (admin only, same-day or past bets)
+    /// </summary>
+    [Parameter]
+    public bool IsResolvable { get; set; }
 }

@@ -360,6 +360,20 @@ public partial class ApplicationDbContext
                         return bet.Title;
                     break;
 
+                case "UserBet":
+                    if (entry.Entity is UserBet userBet)
+                    {
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var betEntity2 = userBet.Bet
+                            ?? Bets.Local.FirstOrDefault(b => b.Id == userBet.BetId);
+                        var betOptionEntity = userBet.BetOption
+                            ?? BetOptions.Local.FirstOrDefault(o => o.Id == userBet.BetOptionId);
+                        var betName2 = betEntity2?.Title ?? $"Aposta #{userBet.BetId}";
+                        var optionName = betOptionEntity?.Title ?? $"Opção #{userBet.BetOptionId}";
+                        return $"{betName2} - {optionName}";
+                    }
+                    break;
+
                 case "BetComment":
                     if (entry.Entity is BetComment betComment)
                     {
