@@ -132,7 +132,8 @@
     function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js', {
-                scope: '/'
+                scope: '/',
+                updateViaCache: 'none'
             })
                 .then(function(registration) {
                     console.log('Service Worker registered successfully:', registration.scope);

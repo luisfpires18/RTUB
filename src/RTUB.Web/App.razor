@@ -30,7 +30,7 @@
         (function() {
             if ('serviceWorker' in navigator) {
                 // Register immediately without waiting for page load
-                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
                     .then(function(registration) {
                         console.log('[SW] Service Worker registered:', registration.scope);
                     })

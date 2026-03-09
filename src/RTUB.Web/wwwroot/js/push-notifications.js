@@ -460,32 +460,6 @@ class PushNotificationsManager {
     }
 
     /**
-     * Sends a test notification
-     */
-    async sendTestNotification(title = 'Test Notification', body = 'This is a test notification from RTUB') {
-        const response = await fetch('/api/push/send-test', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                title: title,
-                body: body,
-                icon: '/icons/rtub-logo-192.png',
-                url: '/'
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to send test notification');
-        }
-
-        return await response.json();
-    }
-
-    /**
      * Converts URL-safe base64 string to Uint8Array
      */
     urlBase64ToUint8Array(base64String) {
