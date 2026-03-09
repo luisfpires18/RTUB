@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -10,6 +11,7 @@ namespace RTUB.Application.Services;
 public class ShopService : IShopService
 {
     private const int FitabPerLeitao = 25;
+    private const int InstrumentPartsPerLeitao = 1;
 
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<ShopService> _logger;
@@ -46,5 +48,45 @@ public class ShopService : IShopService
         var newFitab = currentFitab - FitabPerLeitao;
 
         return (true, "Trocaste 25 FITAB por 1 Leitão! 🐷", newFitab);
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message, int NewInstrumentPartsBalance)> ExchangeInstrumentPartsForLeitaoAsync(
+        string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return (false, "Utilizador inválido.", 0);
+
+        var instrumentPartTypes = InstrumentTypeHelper.AllInstrumentPartTypes;
+        var partItems = await _inventoryRepository.GetItemsByTypesAsync(userId, instrumentPartTypes, cancellationToken);
+        var currentParts = partItems.Sum(item => item.Quantity);
+
+        if (currentParts < InstrumentPartsPerLeitao)
+            return (false, $"Peças de instrumento insuficientes. Precisas de {InstrumentPartsPerLeitao} (tens {currentParts}).", currentParts);
+
+        var remainingToConsume = InstrumentPartsPerLeitao;
+        foreach (var partItem in partItems.OrderBy(item => item.Type))
+        {
+            if (remainingToConsume <= 0)
+                break;
+
+            var quantityToConsume = Math.Min(partItem.Quantity, remainingToConsume);
+            if (quantityToConsume <= 0)
+                continue;
+
+            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, partItem.Type, quantityToConsume, cancellationToken);
+            if (!consumed)
+                return (false, "Erro ao consumir peças de instrumento.", currentParts);
+
+            remainingToConsume -= quantityToConsume;
+        }
+
+        if (remainingToConsume > 0)
+            return (false, "Erro ao consumir peças de instrumento.", currentParts);
+
+        await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Leitao, 1, cancellationToken);
+
+        var newPartsBalance = currentParts - InstrumentPartsPerLeitao;
+        return (true, "Trocaste 1 peça de instrumento por 1 Leitão! 🐷", newPartsBalance);
     }
 }

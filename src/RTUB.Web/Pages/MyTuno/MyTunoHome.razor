@@ -1245,6 +1245,38 @@
                                 </div>
                             </div>
 
+                            <div class="enhance-row">
+                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #8e44ad, #6f42c1); color: #fff;">
+                                    <i class="bi bi-music-note-beamed"></i>
+                                </div>
+                                <div class="enhance-row__info">
+                                    <div class="enhance-row__title">Leitão</div>
+                                    <div class="enhance-row__desc">Troca 1 peça de instrumento por 1 Leitão</div>
+                                    <div class="enhance-row__stat">
+                                        Peças: <span class="@(TotalInstrumentParts >= 1 ? "text-success" : "text-danger")">@TotalInstrumentParts</span>
+                                        &nbsp;|&nbsp; 🐷 @leitaoQuantity
+                                    </div>
+                                </div>
+                                <div class="enhance-row__action">
+                                    <button class="btn enhance-row__btn"
+                                            style="background: linear-gradient(180deg, #8e44ad, #6f42c1, #5a32a3); border-color: rgba(142, 68, 173, 0.4);"
+                                            @onclick="BuyLeitaoWithInstrumentParts"
+                                            disabled="@(buyingLeitaoWithInstrumentParts || TotalInstrumentParts < 1)">
+                                        @if (buyingLeitaoWithInstrumentParts)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <text>Trocar</text>
+                                        }
+                                    </button>
+                                    <div class="enhance-row__cost">
+                                        <span style="font-size: 0.7rem;">1 peça</span>
+                                    </div>
+                                </div>
+                            </div>
+
 
                         </div>
                         }
@@ -2376,6 +2408,7 @@
 
     // Shop state (Forge & Shop section)
     private bool buyingLeitao = false;
+    private bool buyingLeitaoWithInstrumentParts = false;
     private int forgeShopTab = 0; // 0 = Forja, 1 = Loja
 
     private string toastMessage = string.Empty;
@@ -2815,6 +2848,45 @@
         finally
         {
             buyingLeitao = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuyLeitaoWithInstrumentParts()
+    {
+        if (currentUser == null) return;
+        buyingLeitaoWithInstrumentParts = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, message, _) = await ShopService.ExchangeInstrumentPartsForLeitaoAsync(currentUser.Id);
+            if (success)
+            {
+                var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                fitabQuantity = inv.GetValueOrDefault(InventoryItemType.Fitab);
+                instrumentParts = inv
+                    .Where(kv => Core.Helpers.InstrumentTypeHelper.IsInstrumentPart(kv.Key) && kv.Value > 0)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exchanging instrument parts for Leitão");
+            toastMessage = "Erro ao trocar peças de instrumento. Tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            buyingLeitaoWithInstrumentParts = false;
             StateHasChanged();
         }
     }
@@ -3268,6 +3340,8 @@
     {
         return instrumentParts.Any(kvp => kvp.Value > 0);
     }
+
+    private int TotalInstrumentParts => instrumentParts.Sum(kvp => kvp.Value);
 
     // Opens the unified item action modal from inventory card click
     private void OnInventoryItemClick(InventoryItemType itemType)
