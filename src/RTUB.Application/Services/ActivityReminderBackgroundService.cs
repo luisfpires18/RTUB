@@ -265,6 +265,19 @@ public class ActivityReminderBackgroundService : BackgroundService
             return;
         }
 
+        // Pre-load Admin user IDs for Direção meeting visibility check
+        var adminRoleId = await context.Roles
+            .Where(r => r.Name == "Admin")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        var adminUserIds = adminRoleId != null
+            ? (await context.UserRoles
+                .Where(ur => ur.RoleId == adminRoleId)
+                .Select(ur => ur.UserId)
+                .ToListAsync(cancellationToken))
+                .ToHashSet()
+            : new HashSet<string>();
+
         foreach (var meeting in upcomingMeetings)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -283,7 +296,7 @@ public class ActivityReminderBackgroundService : BackgroundService
 
             // Use WeeklyNotificationBackgroundService visibility logic to determine eligibility
             var eligibleRecipientIds = activeUsers
-                .Where(u => WeeklyNotificationBackgroundService.CanUserSeeMeeting(meeting, u))
+                .Where(u => WeeklyNotificationBackgroundService.CanUserSeeMeeting(meeting, u, adminUserIds.Contains(u.Id)))
                 .Select(u => u.Id)
                 .ToList();
 

@@ -135,6 +135,19 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
+            // Pre-load Admin user IDs for Direção meeting visibility check
+            var adminRoleId = await context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            var adminUserIds = adminRoleId != null
+                ? (await context.UserRoles
+                    .Where(ur => ur.RoleId == adminRoleId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet()
+                : new HashSet<string>();
+
             var baseUrl = "/";
             var sentCount = 0;
 
@@ -146,7 +159,8 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 try
                 {
                     // Calculate meeting count visible to this user based on their role/positions
-                    var userMeetingCount = GetVisibleMeetingCount(meetings, user);
+                    var userIsAdmin = adminUserIds.Contains(user.Id);
+                    var userMeetingCount = GetVisibleMeetingCount(meetings, user, userIsAdmin);
 
                     // Create personalized notification with user-specific meeting count
                     var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
@@ -176,16 +190,16 @@ public class WeeklyNotificationBackgroundService : BackgroundService
     /// <summary>
     /// Gets the count of meetings visible to a specific user based on their role and positions.
     /// - ConselhoVeteranos (CV): Only for VETERANO/TUNOSSAURO roles or Magister position
-    /// - ReuniaoDirecao: Only for Direção members (Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro)
+    /// - ReuniaoDirecao: Only for Direção members (Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro) + Admin with Tuno category
     /// - AssembleiaGeral (AG): Not for Leitão users (non-associated members)
     /// </summary>
-    internal static int GetVisibleMeetingCount(List<Meeting> meetings, ApplicationUser user)
+    internal static int GetVisibleMeetingCount(List<Meeting> meetings, ApplicationUser user, bool isAdmin = false)
     {
         var count = 0;
 
         foreach (var meeting in meetings)
         {
-            if (CanUserSeeMeeting(meeting, user))
+            if (CanUserSeeMeeting(meeting, user, isAdmin))
             {
                 count++;
             }
@@ -197,7 +211,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
     /// <summary>
     /// Determines if a user can see a specific meeting based on meeting type and user role/positions.
     /// </summary>
-    internal static bool CanUserSeeMeeting(Meeting meeting, ApplicationUser user)
+    internal static bool CanUserSeeMeeting(Meeting meeting, ApplicationUser user, bool isAdmin = false)
     {
         switch (meeting.Type)
         {
@@ -208,13 +222,15 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 return role == "VETERANO" || role == "TUNOSSAURO" || hasMagisterPosition;
 
             case MeetingType.ReuniaoDirecao:
-                // Direção meetings: Only for Direção members
-                return user.Positions != null &&
+                // Direção meetings: Only for current fiscal year Direção members + Admin with Tuno category
+                var hasDirecaoPosition = user.Positions != null &&
                        (user.Positions.Contains(Position.Magister) ||
                         user.Positions.Contains(Position.ViceMagister) ||
                         user.Positions.Contains(Position.Secretario) ||
                         user.Positions.Contains(Position.PrimeiroTesoureiro) ||
                         user.Positions.Contains(Position.SegundoTesoureiro));
+                var isAdminTuno = isAdmin && user.IsTuno();
+                return hasDirecaoPosition || isAdminTuno;
 
             case MeetingType.AssembleiaGeralOrdinaria:
             case MeetingType.AssembleiaGeralExtraordinaria:

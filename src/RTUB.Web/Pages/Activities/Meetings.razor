@@ -2432,6 +2432,37 @@ else
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
             }
+            else if (meeting.Type == MeetingType.ReuniaoDirecao)
+            {
+                // Direção meetings: Direção position holders + Admin with Tuno category
+                var adminUsers = (await UserManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id).ToHashSet();
+                subscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && 
+                        ((u.Positions != null && 
+                            (u.Positions.Contains(Position.Magister) ||
+                             u.Positions.Contains(Position.ViceMagister) ||
+                             u.Positions.Contains(Position.Secretario) ||
+                             u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                             u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                        (adminUsers.Contains(u.Id) && u.IsTuno())))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                emailTunoUsers = null;
+                
+                // Non-subscribers: Direção-eligible users who are not subscribed
+                nonSubscribedUsers = allUsers
+                    .Where(u => u.EmailConfirmed && !u.Subscribed &&
+                        ((u.Positions != null && 
+                            (u.Positions.Contains(Position.Magister) ||
+                             u.Positions.Contains(Position.ViceMagister) ||
+                             u.Positions.Contains(Position.Secretario) ||
+                             u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                             u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                        (adminUsers.Contains(u.Id) && u.IsTuno())))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+            }
             else
             {
                 // AGO/AGE meetings: All members EXCEPT Leitão
@@ -2719,6 +2750,36 @@ else
                 
                 cancelMeetingTotalCount = cancelMeetingSubscribedUsers.Count + cancelMeetingNonSubscribedUsers.Count;
             }
+            else if (meeting.Type == MeetingType.ReuniaoDirecao)
+            {
+                // Direção meetings: Direção position holders + Admin with Tuno category
+                var adminUsers = (await UserManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id).ToHashSet();
+                cancelMeetingSubscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && 
+                        ((u.Positions != null && 
+                            (u.Positions.Contains(Position.Magister) ||
+                             u.Positions.Contains(Position.ViceMagister) ||
+                             u.Positions.Contains(Position.Secretario) ||
+                             u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                             u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                        (adminUsers.Contains(u.Id) && u.IsTuno())))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                cancelMeetingNonSubscribedUsers = allUsers
+                    .Where(u => u.EmailConfirmed && !u.Subscribed &&
+                        ((u.Positions != null && 
+                            (u.Positions.Contains(Position.Magister) ||
+                             u.Positions.Contains(Position.ViceMagister) ||
+                             u.Positions.Contains(Position.Secretario) ||
+                             u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                             u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                        (adminUsers.Contains(u.Id) && u.IsTuno())))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                cancelMeetingTotalCount = cancelMeetingSubscribedUsers.Count + cancelMeetingNonSubscribedUsers.Count;
+            }
             else
             {
                 // AGO/AGE meetings: All members EXCEPT Leitão
@@ -2952,14 +3013,17 @@ else
             }
             else if (meeting.Type == MeetingType.ReuniaoDirecao)
             {
-                // Direção meetings: Only Direção members
+                // Direção meetings: Direção position holders + Admin with Tuno category
+                var adminUsers = (await UserManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id).ToHashSet();
                 eligibleUsers = allUsers
-                    .Where(u => u.Positions != null && 
-                               (u.Positions.Contains(Position.Magister) ||
-                                u.Positions.Contains(Position.ViceMagister) ||
-                                u.Positions.Contains(Position.Secretario) ||
-                                u.Positions.Contains(Position.PrimeiroTesoureiro) ||
-                                u.Positions.Contains(Position.SegundoTesoureiro)))
+                    .Where(u => 
+                        (u.Positions != null && 
+                            (u.Positions.Contains(Position.Magister) ||
+                             u.Positions.Contains(Position.ViceMagister) ||
+                             u.Positions.Contains(Position.Secretario) ||
+                             u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                             u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                        (adminUsers.Contains(u.Id) && u.IsTuno()))
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
                 
@@ -3228,8 +3292,8 @@ else
         // Owner can create all types (use cached value)
         if (isOwner) return true;
 
-        // Admin can create ReuniaoDirecao meetings
-        if (isAdmin && type == MeetingType.ReuniaoDirecao) return true;
+        // Admin with Tuno category can create ReuniaoDirecao meetings
+        if (isAdmin && currentUser.IsTuno() && type == MeetingType.ReuniaoDirecao) return true;
 
         if (currentUser.Positions == null) return false;
 
@@ -3927,12 +3991,12 @@ else
         // Owner can also access Direção functions
         if (isOwner) return true;
 
-        // Admin can also access Direção functions
-        if (isAdmin) return true;
+        // Admin with Tuno category can access Direção functions
+        if (isAdmin && currentUser.IsTuno()) return true;
 
         if (currentUser.Positions == null) return false;
         
-        // Direção members: Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro
+        // Direção members (current fiscal year): Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro
         return currentUser.Positions.Contains(Position.Magister) ||
                currentUser.Positions.Contains(Position.ViceMagister) ||
                currentUser.Positions.Contains(Position.Secretario) ||
@@ -3943,7 +4007,7 @@ else
     /// <summary>
     /// Gets the list of eligible recipients for a meeting based on its type
     /// </summary>
-    private List<ApplicationUser> GetEligibleMeetingRecipients(Meeting meeting, List<ApplicationUser> allUsers)
+    private List<ApplicationUser> GetEligibleMeetingRecipients(Meeting meeting, List<ApplicationUser> allUsers, HashSet<string>? adminUserIds = null)
     {
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
@@ -3961,14 +4025,16 @@ else
         }
         else if (meeting.Type == MeetingType.ReuniaoDirecao)
         {
-            // Direção meetings: Only Direção members (Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro)
+            // Direção meetings: Direção position holders + Admin with Tuno category
             return allUsers
-                .Where(u => u.Positions != null && 
-                           (u.Positions.Contains(Position.Magister) ||
-                            u.Positions.Contains(Position.ViceMagister) ||
-                            u.Positions.Contains(Position.Secretario) ||
-                            u.Positions.Contains(Position.PrimeiroTesoureiro) ||
-                            u.Positions.Contains(Position.SegundoTesoureiro)))
+                .Where(u => 
+                    (u.Positions != null && 
+                        (u.Positions.Contains(Position.Magister) ||
+                         u.Positions.Contains(Position.ViceMagister) ||
+                         u.Positions.Contains(Position.Secretario) ||
+                         u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                         u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                    (adminUserIds != null && adminUserIds.Contains(u.Id) && u.IsTuno()))
                 .ToList();
         }
         else

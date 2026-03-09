@@ -175,6 +175,54 @@ public class WeeklyNotificationBackgroundServiceTests
     }
 
     [Fact]
+    public void CanUserSeeMeeting_ReuniaoDirecao_AdminWithTunoCategory_ReturnsTrue()
+    {
+        // Arrange
+        var meeting = new Meeting { Type = MeetingType.ReuniaoDirecao };
+        var user = CreateUserWithRole("TUNO");
+        user.Categories = new List<MemberCategory> { MemberCategory.Tuno };
+        user.Positions = new List<Position>();
+
+        // Act
+        var result = WeeklyNotificationBackgroundService.CanUserSeeMeeting(meeting, user, isAdmin: true);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanUserSeeMeeting_ReuniaoDirecao_AdminWithoutTunoCategory_ReturnsFalse()
+    {
+        // Arrange
+        var meeting = new Meeting { Type = MeetingType.ReuniaoDirecao };
+        var user = CreateUserWithRole("TUNO");
+        user.Categories = new List<MemberCategory> { MemberCategory.Caloiro };
+        user.Positions = new List<Position>();
+
+        // Act
+        var result = WeeklyNotificationBackgroundService.CanUserSeeMeeting(meeting, user, isAdmin: true);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void CanUserSeeMeeting_ReuniaoDirecao_NonAdminTuno_ReturnsFalse()
+    {
+        // Arrange
+        var meeting = new Meeting { Type = MeetingType.ReuniaoDirecao };
+        var user = CreateUserWithRole("TUNO");
+        user.Categories = new List<MemberCategory> { MemberCategory.Tuno };
+        user.Positions = new List<Position>();
+
+        // Act — isAdmin defaults to false
+        var result = WeeklyNotificationBackgroundService.CanUserSeeMeeting(meeting, user);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
     public void CanUserSeeMeeting_AssembleiaGeralOrdinaria_LeitaoUser_ReturnsFalse()
     {
         // Arrange

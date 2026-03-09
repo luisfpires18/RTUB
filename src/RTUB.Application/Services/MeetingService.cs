@@ -117,6 +117,49 @@ public class MeetingService : IMeetingService
                 return null;
         }
 
+        // Check if user has permission to view Direção meetings
+        if (meeting.Type == MeetingType.ReuniaoDirecao)
+        {
+            if (user == null)
+            {
+                user = await ctx.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (user == null)
+                return null;
+
+            var hasDirecaoPosition = user.Positions != null &&
+                (user.Positions.Contains(Position.Magister) ||
+                 user.Positions.Contains(Position.ViceMagister) ||
+                 user.Positions.Contains(Position.Secretario) ||
+                 user.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                 user.Positions.Contains(Position.SegundoTesoureiro));
+
+            if (!hasDirecaoPosition)
+            {
+                // Check if user is Admin with Tuno category
+                var isAdminTuno = false;
+                if (user.IsTuno())
+                {
+                    var adminRoleId = await ctx.Roles
+                        .Where(r => r.Name == "Admin")
+                        .Select(r => r.Id)
+                        .FirstOrDefaultAsync();
+                    if (adminRoleId != null)
+                    {
+                        isAdminTuno = await ctx.UserRoles
+                            .AnyAsync(ur => ur.UserId == userId && ur.RoleId == adminRoleId);
+                    }
+                }
+
+                if (!isAdminTuno)
+                    return null;
+            }
+        }
+
         return meeting;
     }
 
@@ -195,8 +238,8 @@ public class MeetingService : IMeetingService
     }
 
     /// <summary>
-    /// Applies Veterano visibility filtering to the query
-    /// Filters out CV meetings if user is not Veterano or Tunossauro
+    /// Applies visibility filtering to the meeting query based on user role/positions.
+    /// Filters out CV, Direção, and AG meetings based on user permissions.
     /// </summary>
     private async Task<IQueryable<Meeting>> ApplyVeteranoFilterAsync(ApplicationDbContext ctx, IQueryable<Meeting> query, string userId)
     {
@@ -205,11 +248,10 @@ public class MeetingService : IMeetingService
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
 
-        // If user is not found, filter out CV meetings
-        // If user is Veterano/Tunossauro OR has Magister position, they can see CV meetings
+        // If user is not found, filter out restricted meetings
         if (user == null)
         {
-            query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
+            query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos && m.Type != MeetingType.ReuniaoDirecao);
         }
         else
         {
@@ -224,6 +266,37 @@ public class MeetingService : IMeetingService
                 // is designated as the Tuno Representative (e.g., a TUNO member chosen to
                 // attend and participate in a particular CV meeting)
                 query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos || m.TunoRepresentativeUserId == userId);
+            }
+
+            // Filter Direção meetings: only Direção members + Admin with Tuno category
+            var hasDirecaoPosition = user.Positions != null &&
+                (user.Positions.Contains(Position.Magister) ||
+                 user.Positions.Contains(Position.ViceMagister) ||
+                 user.Positions.Contains(Position.Secretario) ||
+                 user.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                 user.Positions.Contains(Position.SegundoTesoureiro));
+
+            if (!hasDirecaoPosition)
+            {
+                // Check if user is Admin with Tuno category
+                var isAdminTuno = false;
+                if (user.IsTuno())
+                {
+                    var adminRoleId = await ctx.Roles
+                        .Where(r => r.Name == "Admin")
+                        .Select(r => r.Id)
+                        .FirstOrDefaultAsync();
+                    if (adminRoleId != null)
+                    {
+                        isAdminTuno = await ctx.UserRoles
+                            .AnyAsync(ur => ur.UserId == userId && ur.RoleId == adminRoleId);
+                    }
+                }
+
+                if (!isAdminTuno)
+                {
+                    query = query.Where(m => m.Type != MeetingType.ReuniaoDirecao);
+                }
             }
 
             // Filter out Assembleia Geral meetings if user is Leitão (not an associated member)
@@ -259,6 +332,39 @@ public class MeetingService : IMeetingService
                     (u.Positions != null && u.Positions.Contains(Position.Magister)))
                 .Select(u => u.Id)
                 .ToList(); // sync, in-memory
+        }
+
+        // Special case: ReuniaoDirecao - only Direção members + Admin with Tuno category
+        if (meetingType == MeetingType.ReuniaoDirecao)
+        {
+            var ctx = _contextFactory.CreateDbContext();
+            var users = await ctx.Users.AsNoTracking().ToListAsync();
+
+            // Get Admin role user IDs
+            var adminRoleId = await ctx.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+            var adminUserIds = adminRoleId != null
+                ? (await ctx.UserRoles
+                    .Where(ur => ur.RoleId == adminRoleId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync())
+                    .ToHashSet()
+                : new HashSet<string>();
+
+            // Filter to Direção position holders (current fiscal year) + Admin with Tuno category
+            return users
+                .Where(u =>
+                    (u.Positions != null &&
+                        (u.Positions.Contains(Position.Magister) ||
+                         u.Positions.Contains(Position.ViceMagister) ||
+                         u.Positions.Contains(Position.Secretario) ||
+                         u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                         u.Positions.Contains(Position.SegundoTesoureiro))) ||
+                    (adminUserIds.Contains(u.Id) && u.IsTuno()))
+                .Select(u => u.Id)
+                .ToList();
         }
 
         // All other meeting types can stay as EF queries

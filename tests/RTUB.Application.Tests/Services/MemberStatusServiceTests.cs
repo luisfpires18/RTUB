@@ -636,6 +636,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             PushNotificationsEnabled = true
         });
 
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateMemberReactivatedNotification(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string nickname, string baseUrl) => new RTUB.Application.DTOs.SendPushNotificationDto
+            {
+                Title = $"Membro Reativado",
+                Body = $"{nickname} voltou à atividade!"
+            });
+
         var serviceWithNotifications = new MemberStatusService(
             _mockContextFactory.Object,
             _mockUserManager.Object,
@@ -652,10 +660,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse(); // Should transition to active
 
-        // Verify push notification was sent (broadcast to all users)
+        // Verify factory was called and push notification was broadcast
+        _mockPushNotificationFactory.Verify(
+            f => f.CreateMemberReactivatedNotification("TestTuno", It.IsAny<string>()),
+            Times.Once);
         _mockPushNotificationService.Verify(
-            pns => pns.BroadcastAsync(It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
-                dto => dto.Title.Contains("Reativado") && dto.Body.Contains("TestTuno"))),
+            pns => pns.BroadcastAsync(It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
             Times.Once);
     }
 
@@ -967,6 +977,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             PushNotificationsEnabled = true
         });
 
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateMemberRetirementWarningNotification(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string nickname, string baseUrl) => new RTUB.Application.DTOs.SendPushNotificationDto
+            {
+                Title = "1 mês até reforma",
+                Body = $"{nickname}, falta 1 mês para a reforma!"
+            });
+
         var serviceWithNotifications = new MemberStatusService(
             _mockContextFactory.Object,
             _mockUserManager.Object,
@@ -984,10 +1002,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.IsRetired.Should().BeFalse();
         result.ProgressMonths.Should().Be(1);
 
-        // Verify warning notification was sent to the user
+        // Verify factory was called and warning notification was sent to the user
+        _mockPushNotificationFactory.Verify(
+            f => f.CreateMemberRetirementWarningNotification("TestTuno", It.IsAny<string>()),
+            Times.Once);
         _mockPushNotificationService.Verify(
-            pns => pns.SendToUserAsync(userId, It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
-                dto => dto.Title.Contains("1 mês até reforma"))),
+            pns => pns.SendToUserAsync(userId, It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
             Times.Once);
     }
 

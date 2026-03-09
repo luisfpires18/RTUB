@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
@@ -38,6 +39,10 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _context = _fixture.CreateContext();
         _mockUserManager = MockHelpers.CreateMockUserManager();
         _mockLogger = new Mock<ILogger<RankingService>>();
+
+        // Default empty Users queryable for async operations (FirstOrDefaultAsync in UpdateUserRankingAsync)
+        var emptyUsers = new List<ApplicationUser>().BuildMockDbSet();
+        _mockUserManager.Setup(x => x.Users).Returns(emptyUsers.Object);
 
         // Setup test configuration
         _config = new RankingConfiguration
@@ -824,12 +829,12 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         };
 
         // Setup UserManager.Users to return previous leader as first place
-        var usersQueryable = new[] { previousLeader, newLeader }.AsQueryable();
+        var usersDbSet = new List<ApplicationUser> { previousLeader, newLeader }.BuildMockDbSet();
         var mockUserManager = MockHelpers.CreateMockUserManager();
         mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(newLeader);
         mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-        mockUserManager.Setup(x => x.Users).Returns(usersQueryable);
+        mockUserManager.Setup(x => x.Users).Returns(usersDbSet.Object);
 
         // Create enough attendances to surpass previous leader (need 11 rehearsals = 110 XP > 100)
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };

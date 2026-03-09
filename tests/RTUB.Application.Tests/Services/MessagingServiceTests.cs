@@ -124,6 +124,15 @@ public class MessagingServiceTests
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
             .ReturnsAsync(sender);
 
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateDirectMessageNotification(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string senderName, string convId, string baseUrl) => new SendPushNotificationDto
+            {
+                Title = $"Nova mensagem de {senderName}",
+                Body = "Tens uma nova mensagem direta",
+                Url = $"{baseUrl}/mensagens/{convId}"
+            });
+
         var messageDto = new SendMessageDto
         {
             ReceiverId = receiverId,
@@ -633,6 +642,15 @@ public class MessagingServiceTests
         // Setup GetMutedUserIdsAsync to return empty set (no one muted)
         _mockSettingsRepository.Setup(r => r.GetMutedUserIdsAsync(conversationId, It.IsAny<IEnumerable<string>>()))
             .ReturnsAsync(new HashSet<string>());
+
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateGroupMessageNotification(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string groupName, string convId, string baseUrl) => new SendPushNotificationDto
+            {
+                Title = groupName,
+                Body = "Nova mensagem no grupo",
+                Url = $"{baseUrl}/mensagens/{convId}"
+            });
 
         // Act
         var result = await _service.SendGroupMessageAsync(senderId, conversationId, messageBody);
