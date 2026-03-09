@@ -145,7 +145,6 @@ public class AuditLogDisplayNameTests : IDisposable
 
         auditLog.Should().NotBeNull();
         auditLog!.EntityDisplayName.Should().Be("JDoe - Workshop 2024 - Vai", "should show user nickname, event name, and attendance status");
-        auditLog.TargetMemberName.Should().Be("JDoe", "should use the user's nickname");
     }
 
     [Fact]
@@ -187,7 +186,6 @@ public class AuditLogDisplayNameTests : IDisposable
 
         auditLog.Should().NotBeNull();
         auditLog!.EntityDisplayName.Should().StartWith("JaneDoe - ").And.EndWith(" - Vai");
-        auditLog.TargetMemberName.Should().Be("JaneDoe", "should use the user's nickname");
     }
 
     [Fact]
@@ -233,7 +231,6 @@ public class AuditLogDisplayNameTests : IDisposable
         auditLog.Should().NotBeNull();
         auditLog!.EntityDisplayName.Should().StartWith("BobS - ").And.EndWith(" - Vai");
         auditLog.EntityDisplayName.Should().NotContain(user.Id, "Display name should not contain user ID");
-        auditLog.TargetMemberName.Should().Be("BobS", "should use the user's nickname");
     }
 
     [Fact]

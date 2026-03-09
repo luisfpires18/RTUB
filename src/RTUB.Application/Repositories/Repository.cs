@@ -152,17 +152,6 @@ public class Repository<T> : IRepository<T> where T : class
     }
 
     /// <summary>
-    /// This method is a no-op in the context-per-operation pattern.
-    /// Each CRUD method creates its own context and saves within that scope.
-    /// Callers should use UpdateAsync(entity) instead of modifying and calling SaveChangesAsync().
-    /// TODO: Remove from IRepository<T> once all callers are migrated.
-    /// </summary>
-    public virtual Task<int> SaveChangesAsync()
-    {
-        return Task.FromResult(0);
-    }
-
-    /// <summary>
     /// Reloads an entity from the database by re-fetching it with a fresh context
     /// and copying the current database values onto the provided entity instance.
     /// </summary>

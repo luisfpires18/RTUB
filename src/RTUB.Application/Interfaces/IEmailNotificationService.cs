@@ -9,25 +9,6 @@ namespace RTUB.Application.Interfaces;
 public interface IEmailNotificationService
 {
     /// <summary>
-    /// Sends a notification email when a request status changes
-    /// </summary>
-    /// <param name="requestId">The request ID</param>
-    /// <param name="requestName">The name of the requester</param>
-    /// <param name="requestEmail">The email of the requester</param>
-    /// <param name="oldStatus">The previous status</param>
-    /// <param name="newStatus">The new status</param>
-    Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail, RequestStatus oldStatus, RequestStatus newStatus);
-
-    /// <summary>
-    /// Sends a notification email when a new request is submitted
-    /// </summary>
-    /// <param name="requestId">The request ID</param>
-    /// <param name="requestName">The name of the requester</param>
-    /// <param name="requestEmail">The email of the requester</param>
-    /// <param name="eventType">The type of event</param>
-    Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string eventType);
-
-    /// <summary>
     /// Sends a notification email when a new request is submitted (full details)
     /// </summary>
     /// <param name="requestId">The request ID</param>

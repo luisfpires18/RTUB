@@ -52,9 +52,6 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.MentionsJson)
             .HasMaxLength(2000);
 
-        builder.Property(p => p.RowVersion)
-            .IsRowVersion();
-
         // Relationships
         builder.HasOne(p => p.Discussion)
             .WithMany(d => d.Posts)

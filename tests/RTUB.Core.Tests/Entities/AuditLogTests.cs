@@ -31,7 +31,6 @@ public class AuditLogTests
             Action = "Create",
             UserId = "user-id-123",
             UserName = "John Doe",
-            TargetMemberName = "Jane Doe",
             Changes = "{\"Name\": \"New Value\"}",
             EntityDisplayName = "User John",
             IsCriticalAction = true
@@ -44,7 +43,6 @@ public class AuditLogTests
         auditLog.Action.Should().Be("Create");
         auditLog.UserId.Should().Be("user-id-123");
         auditLog.UserName.Should().Be("John Doe");
-        auditLog.TargetMemberName.Should().Be("Jane Doe");
         auditLog.Changes.Should().Be("{\"Name\": \"New Value\"}");
         auditLog.EntityDisplayName.Should().Be("User John");
         auditLog.IsCriticalAction.Should().BeTrue();
@@ -77,7 +75,6 @@ public class AuditLogTests
         // Assert
         auditLog.UserId.Should().BeNull();
         auditLog.UserName.Should().BeNull();
-        auditLog.TargetMemberName.Should().BeNull();
         auditLog.Changes.Should().BeNull();
         auditLog.EntityDisplayName.Should().BeNull();
         auditLog.EntityId.Should().BeNull();

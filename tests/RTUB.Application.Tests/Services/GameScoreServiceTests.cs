@@ -151,25 +151,13 @@ public class GameScoreServiceTests
         var maxLevel = 3;
         var timeSurvived = TimeSpan.FromMinutes(2);
 
-        // No existing score
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync((GameScore?)null);
 
-        GameScore? capturedScore = null;
-        // AddAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .Callback<GameScore>(s => capturedScore = s)
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-                return s;
-            });
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .ReturnsAsync(1);
+            .ReturnsAsync((GameScore s) => s);
 
         // Act
         var result = await _service.SubmitScoreAsync(userId, gameKey, points, maxLevel, timeSurvived);
@@ -183,7 +171,6 @@ public class GameScoreServiceTests
         result.TimeSurvived.Should().Be(timeSurvived);
 
         _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Once);
-        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -197,17 +184,9 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
-        // UpdateAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-            });
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .ReturnsAsync(1);
+            .Returns(Task.CompletedTask);
 
         // Act - submit a better score (more points)
         var result = await _service.SubmitScoreAsync(userId, gameKey, 100, 5, TimeSpan.FromMinutes(3));
@@ -216,7 +195,6 @@ public class GameScoreServiceTests
         result.Points.Should().Be(100);
         result.MaxLevel.Should().Be(5);
         _mockGameScoreRepository.Verify(r => r.UpdateAsync(existingScore), Times.Once);
-        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Never);
     }
 
@@ -239,7 +217,6 @@ public class GameScoreServiceTests
         result.Points.Should().Be(100);
         result.MaxLevel.Should().Be(5);
         _mockGameScoreRepository.Verify(r => r.UpdateAsync(It.IsAny<GameScore>()), Times.Never);
-        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Never);
         _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Never);
     }
 
@@ -254,17 +231,9 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
-        // UpdateAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-            });
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .ReturnsAsync(1);
+            .Returns(Task.CompletedTask);
 
         // Act - same points but higher level
         var result = await _service.SubmitScoreAsync(userId, gameKey, 100, 7, TimeSpan.FromMinutes(2));
@@ -273,7 +242,6 @@ public class GameScoreServiceTests
         result.Points.Should().Be(100);
         result.MaxLevel.Should().Be(7);
         _mockGameScoreRepository.Verify(r => r.UpdateAsync(existingScore), Times.Once);
-        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -289,20 +257,9 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync((GameScore?)null);
-        // AddAsync internally calls SaveChangesAsync, so we need to set up both
-        // AddAsync internally calls SaveChangesAsync, so we need to set up both
-        // The mock should return the score and call SaveChangesAsync internally
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-                return s;
-            });
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .ReturnsAsync(1);
+            .ReturnsAsync((GameScore s) => s);
 
         // Act
         await _service.SubmitScoreAsync(userId, gameKey, points, maxLevel, timeSurvived);
@@ -315,7 +272,6 @@ public class GameScoreServiceTests
             s.MaxLevel == maxLevel &&
             s.TimeSurvived == timeSurvived
         )), Times.Once);
-        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -415,48 +371,17 @@ public class GameScoreServiceTests
             .ReturnsAsync(() =>
             {
                 callCount++;
-                // First call: no existing score (triggers insert attempt)
-                // Second call: return the concurrently inserted score
                 return callCount == 1 ? null : existingScore;
             });
 
-        // AddAsync internally calls SaveChangesAsync, so we need to set up both
-        var addCallCount = 0;
+        // AddAsync throws DbUpdateException to simulate race condition
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                addCallCount++;
-                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
-                // On first call, SaveChangesAsync throws DbUpdateException
-                if (addCallCount == 1)
-                {
-                    await _mockGameScoreRepository.Object.SaveChangesAsync();
-                }
-                return s;
-            });
+            .ThrowsAsync(new DbUpdateException("UNIQUE constraint failed"));
 
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-            });
-
-        // Setup SaveChangesAsync to fail on first call (insert) and succeed on second call (update)
-        var saveCallCount = 0;
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .Returns(() =>
-            {
-                saveCallCount++;
-                if (saveCallCount == 1)
-                {
-                    throw new DbUpdateException("UNIQUE constraint failed");
-                }
-                return Task.FromResult(1);
-            });
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _service.SubmitScoreAsync(userId, gameKey, points, maxLevel, timeSurvived);
@@ -490,42 +415,10 @@ public class GameScoreServiceTests
                 return callCount == 1 ? null : existingScore;
             });
 
-        // AddAsync internally calls SaveChangesAsync, so we need to set up both
-        var addCallCount = 0;
+        // AddAsync throws DbUpdateException to simulate race condition
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                addCallCount++;
-                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
-                // On first call, SaveChangesAsync throws DbUpdateException
-                if (addCallCount == 1)
-                {
-                    await _mockGameScoreRepository.Object.SaveChangesAsync();
-                }
-                return s;
-            });
-
-        _mockGameScoreRepository
-            .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(async (GameScore s) =>
-            {
-                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
-                await _mockGameScoreRepository.Object.SaveChangesAsync();
-            });
-
-        var saveCallCount = 0;
-        _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .Returns(() =>
-            {
-                saveCallCount++;
-                if (saveCallCount == 1)
-                {
-                    throw new DbUpdateException("UNIQUE constraint failed");
-                }
-                return Task.FromResult(1);
-            });
+            .ThrowsAsync(new DbUpdateException("UNIQUE constraint failed"));
 
         // Act
         var result = await _service.SubmitScoreAsync(userId, gameKey, newPoints, newMaxLevel, newTimeSurvived);

@@ -37,9 +37,6 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Property(c => c.MentionsJson)
             .HasMaxLength(2000);
 
-        builder.Property(c => c.RowVersion)
-            .IsRowVersion();
-
         // Relationships
         builder.HasOne(c => c.Post)
             .WithMany(p => p.Comments)

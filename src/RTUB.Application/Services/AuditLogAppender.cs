@@ -137,26 +137,6 @@ public class AuditLogAppender : IAuditLogAppender
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = getEntityDisplayName(entry);
 
-        // Determine target member for Enrollment, RehearsalAttendance, and MeetingParticipation
-        string? targetMemberId = null;
-        string? targetMemberName = null;
-
-        if (entityType == "Enrollment" && entry.Entity is Enrollment enrollment)
-        {
-            targetMemberId = enrollment.UserId;
-            targetMemberName = resolveUserIdToNickname(enrollment.UserId);
-        }
-        else if (entityType == "RehearsalAttendance" && entry.Entity is RehearsalAttendance attendance)
-        {
-            targetMemberId = attendance.UserId;
-            targetMemberName = resolveUserIdToNickname(attendance.UserId);
-        }
-        else if (entityType == "MeetingParticipation" && entry.Entity is MeetingParticipation meetingParticipation)
-        {
-            targetMemberId = meetingParticipation.UserId;
-            targetMemberName = resolveUserIdToNickname(meetingParticipation.UserId);
-        }
-
         return new AuditLog
         {
             EntityType = entityType,
@@ -164,7 +144,6 @@ public class AuditLogAppender : IAuditLogAppender
             Action = action,
             UserId = userId,
             UserName = username,
-            TargetMemberName = targetMemberName,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCritical,

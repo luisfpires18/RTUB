@@ -25,9 +25,6 @@ public class AuditLog
     [MaxLength(256)]
     public string? UserName { get; set; }
 
-    [MaxLength(256)]
-    public string? TargetMemberName { get; set; }
-
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public string? Changes { get; set; }

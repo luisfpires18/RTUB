@@ -19,7 +19,6 @@ namespace RTUB.Application.Services;
 public class RequestService : IRequestService
 {
     private readonly IRequestRepository _requestRepository;
-    private readonly IEmailNotificationService _emailNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -27,14 +26,12 @@ public class RequestService : IRequestService
 
     public RequestService(
         IRequestRepository requestRepository,
-        IEmailNotificationService emailNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
         IHttpContextAccessor httpContextAccessor)
     {
         _requestRepository = requestRepository;
-        _emailNotificationService = emailNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
@@ -60,9 +57,6 @@ public class RequestService : IRequestService
     {
         var request = Request.Create(name, email, phone, eventType, preferredDate, location, message);
         var createdRequest = await _requestRepository.AddAsync(request);
-
-        // Send email notification for new request
-        await _emailNotificationService.SendNewRequestNotificationAsync(createdRequest.Id, name, email, eventType);
 
         // Send push notification to admins
         try
@@ -102,16 +96,8 @@ public class RequestService : IRequestService
     {
         var request = await _requestRepository.GetByIdOrThrowAsync(id);
 
-        var oldStatus = request.Status;
         request.UpdateStatus(status);
         await _requestRepository.UpdateAsync(request);
-
-        // Send notification when status changes
-        if (oldStatus != status)
-        {
-            await _emailNotificationService.SendRequestStatusChangedAsync(
-                request.Id, request.Name, request.Email, oldStatus, status);
-        }
     }
 
     public async Task DeleteRequestAsync(int id)

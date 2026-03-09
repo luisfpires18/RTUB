@@ -24,9 +24,6 @@ public class Comment : BaseEntity
 
     public string? MentionsJson { get; set; }
 
-    [Timestamp]
-    public byte[]? RowVersion { get; set; }
-
     // Navigation properties
     public virtual Post Post { get; set; } = null!;
     public virtual ApplicationUser Author { get; set; } = null!;

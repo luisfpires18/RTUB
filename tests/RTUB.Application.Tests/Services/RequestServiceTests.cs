@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -18,13 +17,11 @@ namespace RTUB.Application.Tests.Services;
 public class RequestServiceTests
 {
     private readonly Mock<IRequestRepository> _mockRequestRepository;
-    private readonly Mock<IEmailNotificationService> _emailServiceMock;
     private readonly RequestService _requestService;
 
     public RequestServiceTests()
     {
         _mockRequestRepository = new Mock<IRequestRepository>();
-        _emailServiceMock = new Mock<IEmailNotificationService>();
 
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
@@ -35,7 +32,6 @@ public class RequestServiceTests
 
         _requestService = new RequestService(
             _mockRequestRepository.Object,
-            _emailServiceMock.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
@@ -66,10 +62,6 @@ public class RequestServiceTests
         result.Name.Should().Be(name);
         result.Email.Should().Be(email);
         result.Status.Should().Be(RequestStatus.Pending);
-
-        _emailServiceMock.Verify(
-            x => x.SendNewRequestNotificationAsync(It.IsAny<int>(), name, email, eventType),
-            Times.Once);
     }
 
     [Fact]
@@ -214,25 +206,6 @@ public class RequestServiceTests
     }
 
     [Fact]
-    public async Task UpdateRequestStatusAsync_SendsNotificationOnStatusChange()
-    {
-        // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
-        var oldStatus = request.Status;
-        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
-            .ReturnsAsync(request);
-
-        // Act
-        await _requestService.UpdateRequestStatusAsync(request.Id, RequestStatus.Confirmed);
-
-        // Assert
-        _emailServiceMock.Verify(
-            x => x.SendRequestStatusChangedAsync(
-                request.Id, request.Name, request.Email, oldStatus, RequestStatus.Confirmed),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task UpdateRequestStatusAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
@@ -271,26 +244,6 @@ public class RequestServiceTests
         var act = async () => await _requestService.DeleteRequestAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
-    }
-
-    [Fact]
-    public async Task UpdateRequestStatusAsync_WhenStatusUnchanged_DoesNotSendNotification()
-    {
-        // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
-        var currentStatus = request.Status;
-        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
-            .ReturnsAsync(request);
-
-        // Act
-        await _requestService.UpdateRequestStatusAsync(request.Id, currentStatus);
-
-        // Assert
-        _emailServiceMock.Verify(
-            x => x.SendRequestStatusChangedAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RequestStatus>(), It.IsAny<RequestStatus>()),
-            Times.Never,
-            "Should not send notification when status hasn't changed");
     }
 
     [Fact]

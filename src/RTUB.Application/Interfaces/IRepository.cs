@@ -93,12 +93,6 @@ public interface IRepository<T> where T : class
     Task<TResult> QueryAsync<TResult>(Func<IQueryable<T>, Task<TResult>> queryFunc, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Saves all pending changes to the database
-    /// </summary>
-    /// <returns>Number of state entries written to the database</returns>
-    Task<int> SaveChangesAsync();
-
-    /// <summary>
     /// Reloads an entity from the database, overwriting any local changes
     /// and resetting the change tracker state for this entity.
     /// </summary>
