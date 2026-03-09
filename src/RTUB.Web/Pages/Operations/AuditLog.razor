@@ -12,6 +12,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject RTUB.Web.Services.AnnouncementService AnnouncementService
 
 <PageTitle>Audit Logs</PageTitle>
 
@@ -35,6 +36,35 @@
 
     @* Ref-only instance for mobile nav — button hidden, modal renders at page level *@
     <LoginStatisticsButton @ref="loginStatsButton" HideButton="true" />
+
+    @* System Announcement Broadcast *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-megaphone-fill me-2"></i>Anúncio de Sistema
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2 align-items-start flex-column">
+                <textarea class="form-control" rows="2" maxlength="500"
+                          placeholder="Ex: O servidor vai ser reiniciado para atualização. Por favor, aguarda."
+                          @bind="announcementMessage"></textarea>
+                <div class="w-100 d-flex justify-content-center">
+                    <button class="btn btn-primary"
+                            @onclick="BroadcastAnnouncement"
+                            disabled="@(string.IsNullOrWhiteSpace(announcementMessage) || isBroadcasting)">
+                        <i class="bi bi-megaphone-fill me-1"></i>
+                        @(isBroadcasting ? "A enviar..." : "Transmitir a todos")
+                    </button>
+                </div>
+            </div>
+            @if (broadcastConfirmed)
+            {
+                <Alert Type="Alert.AlertType.Success"
+                       Icon="bi-check-circle-fill"
+                       Message="Anúncio transmitido com sucesso a todos os utilizadores ligados."
+                       AdditionalClasses="mt-2 mb-0" />
+            }
+        </div>
+    </div>
 
     @if (isLoading)
     {
@@ -379,6 +409,11 @@
     private RTUB.Core.Entities.AuditLog? selectedLog;
     private RTUB.Core.Entities.AuditLog? logToDelete;
 
+    // Announcement broadcast
+    private string? announcementMessage;
+    private bool isBroadcasting;
+    private bool broadcastConfirmed;
+
     // Filter variables
     private string selectedUser = "";
     private string excludedUser = "";
@@ -660,6 +695,23 @@
         {
             System.Diagnostics.Debug.WriteLine($"Failed to format JSON changes: {ex.Message}");
             return changes;
+        }
+    }
+
+    private async Task BroadcastAnnouncement()
+    {
+        if (string.IsNullOrWhiteSpace(announcementMessage)) return;
+        isBroadcasting = true;
+        broadcastConfirmed = false;
+        try
+        {
+            await AnnouncementService.BroadcastAsync(announcementMessage.Trim());
+            broadcastConfirmed = true;
+            announcementMessage = null;
+        }
+        finally
+        {
+            isBroadcasting = false;
         }
     }
 }

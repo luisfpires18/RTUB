@@ -688,6 +688,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ProfilePictureUpdateService>();
         services.AddSingleton<MessagesNotificationService>();
         services.AddSingleton<AdminRefreshService>();
+        services.AddSingleton<AnnouncementService>();
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
         services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
         services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();

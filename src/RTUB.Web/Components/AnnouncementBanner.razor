@@ -1,0 +1,72 @@
+@namespace RTUB.Components
+@rendermode InteractiveServer
+@using RTUB.Shared
+@inject RTUB.Web.Services.AnnouncementService AnnouncementService
+@implements IAsyncDisposable
+
+<Modal Show="@(message is not null)"
+       Title="Aviso do Sistema"
+       Centered="true"
+       Size="Modal.ModalSize.Small"
+       ShowCloseButton="false">
+    <BodyContent>
+        <div class="text-center">
+            <i class="bi bi-megaphone-fill fs-1 mb-3 d-block"></i>
+            <p class="mb-0">@message</p>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <div class="w-100 d-flex justify-content-center">
+            <button type="button" class="btn btn-primary" @onclick="Dismiss">
+                <i class="bi bi-check2 me-1"></i>OK, entendido
+            </button>
+        </div>
+    </FooterContent>
+</Modal>
+
+@code {
+    private string? message;
+    private bool _isDisposed;
+
+    protected override void OnInitialized()
+    {
+        AnnouncementService.OnAnnouncement += HandleAnnouncementAsync;
+    }
+
+    private async Task HandleAnnouncementAsync(string text)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+
+                message = text;
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private void Dismiss()
+    {
+        message = null;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _isDisposed = true;
+        AnnouncementService.OnAnnouncement -= HandleAnnouncementAsync;
+        return ValueTask.CompletedTask;
+    }
+}
