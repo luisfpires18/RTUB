@@ -15,7 +15,7 @@ public interface IShopService
         string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Exchange 1 instrument part for 1 Leitão. Unlimited purchases.
+    /// Exchange 2 instrument parts for 1 Leitão. Unlimited purchases.
     /// </summary>
     Task<(bool Success, string Message, int NewInstrumentPartsBalance)> ExchangeInstrumentPartsForLeitaoAsync(
         string userId, CancellationToken cancellationToken = default);

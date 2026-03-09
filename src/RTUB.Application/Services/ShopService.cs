@@ -11,7 +11,7 @@ namespace RTUB.Application.Services;
 public class ShopService : IShopService
 {
     private const int FitabPerLeitao = 25;
-    private const int InstrumentPartsPerLeitao = 1;
+    private const int InstrumentPartsPerLeitao = 2;
 
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ILogger<ShopService> _logger;
@@ -87,6 +87,6 @@ public class ShopService : IShopService
         await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Leitao, 1, cancellationToken);
 
         var newPartsBalance = currentParts - InstrumentPartsPerLeitao;
-        return (true, "Trocaste 1 peça de instrumento por 1 Leitão! 🐷", newPartsBalance);
+        return (true, "Trocaste 2 peças de instrumento por 1 Leitão! 🐷", newPartsBalance);
     }
 }

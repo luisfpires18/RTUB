@@ -64,7 +64,7 @@ public class ShopServiceTests
             .Setup(repo => repo.GetItemsByTypesAsync("user-1", It.IsAny<IEnumerable<InventoryItemType>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(partItems);
         inventoryRepository
-            .Setup(repo => repo.ConsumeItemAsync("user-1", InventoryItemType.GuitarraPart, 1, It.IsAny<CancellationToken>()))
+            .Setup(repo => repo.ConsumeItemAsync("user-1", InventoryItemType.GuitarraPart, 2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var service = new ShopService(inventoryRepository.Object, Mock.Of<ILogger<ShopService>>());
@@ -72,10 +72,10 @@ public class ShopServiceTests
         var result = await service.ExchangeInstrumentPartsForLeitaoAsync("user-1");
 
         result.Success.Should().BeTrue();
-        result.NewInstrumentPartsBalance.Should().Be(2);
-        result.Message.Should().Contain("peça");
+        result.NewInstrumentPartsBalance.Should().Be(1);
+        result.Message.Should().Contain("2 peças");
 
-        inventoryRepository.Verify(repo => repo.ConsumeItemAsync("user-1", InventoryItemType.GuitarraPart, 1, It.IsAny<CancellationToken>()), Times.Once);
+        inventoryRepository.Verify(repo => repo.ConsumeItemAsync("user-1", InventoryItemType.GuitarraPart, 2, It.IsAny<CancellationToken>()), Times.Once);
         inventoryRepository.Verify(repo => repo.AddItemAsync("user-1", InventoryItemType.Leitao, 1, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -83,7 +83,10 @@ public class ShopServiceTests
     public async Task ExchangeInstrumentPartsForLeitaoAsync_WithInsufficientParts_ShouldFail()
     {
         var inventoryRepository = new Mock<IInventoryRepository>();
-        var partItems = new List<InventoryItem>();
+        var partItems = new List<InventoryItem>
+        {
+            InventoryItem.Create("user-1", InventoryItemType.GuitarraPart, 1)
+        };
 
         inventoryRepository
             .Setup(repo => repo.GetItemsByTypesAsync("user-1", It.IsAny<IEnumerable<InventoryItemType>>(), It.IsAny<CancellationToken>()))
@@ -94,7 +97,7 @@ public class ShopServiceTests
         var result = await service.ExchangeInstrumentPartsForLeitaoAsync("user-1");
 
         result.Success.Should().BeFalse();
-        result.NewInstrumentPartsBalance.Should().Be(0);
+        result.NewInstrumentPartsBalance.Should().Be(1);
         result.Message.Should().Contain("Peças de instrumento insuficientes");
 
         inventoryRepository.Verify(repo => repo.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);

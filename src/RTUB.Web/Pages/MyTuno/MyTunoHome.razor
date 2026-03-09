@@ -1251,9 +1251,9 @@
                                 </div>
                                 <div class="enhance-row__info">
                                     <div class="enhance-row__title">Leitão</div>
-                                    <div class="enhance-row__desc">Troca 1 peça de instrumento por 1 Leitão</div>
+                                    <div class="enhance-row__desc">Troca 2 peças de instrumento por 1 Leitão</div>
                                     <div class="enhance-row__stat">
-                                        Peças: <span class="@(TotalInstrumentParts >= 1 ? "text-success" : "text-danger")">@TotalInstrumentParts</span>
+                                        Peças: <span class="@(TotalInstrumentParts >= 2 ? "text-success" : "text-danger")">@TotalInstrumentParts</span> / 2
                                         &nbsp;|&nbsp; 🐷 @leitaoQuantity
                                     </div>
                                 </div>
@@ -1261,7 +1261,7 @@
                                     <button class="btn enhance-row__btn"
                                             style="background: linear-gradient(180deg, #8e44ad, #6f42c1, #5a32a3); border-color: rgba(142, 68, 173, 0.4);"
                                             @onclick="BuyLeitaoWithInstrumentParts"
-                                            disabled="@(buyingLeitaoWithInstrumentParts || TotalInstrumentParts < 1)">
+                                            disabled="@(buyingLeitaoWithInstrumentParts || TotalInstrumentParts < 2)">
                                         @if (buyingLeitaoWithInstrumentParts)
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
@@ -1272,7 +1272,7 @@
                                         }
                                     </button>
                                     <div class="enhance-row__cost">
-                                        <span style="font-size: 0.7rem;">1 peça</span>
+                                        <span style="font-size: 0.7rem;">2 peças</span>
                                     </div>
                                 </div>
                             </div>
