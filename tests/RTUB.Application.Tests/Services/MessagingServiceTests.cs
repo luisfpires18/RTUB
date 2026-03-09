@@ -24,6 +24,7 @@ public class MessagingServiceTests
     private readonly Mock<IConversationUserSettingsRepository> _mockSettingsRepository;
     private readonly Mock<IRoleAssignmentRepository> _mockRoleAssignmentRepository;
     private readonly Mock<IPushNotificationService> _mockPushService;
+    private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<ILogger<MessagingService>> _mockLogger;
     private readonly MessagingService _service;
@@ -35,6 +36,7 @@ public class MessagingServiceTests
         _mockSettingsRepository = new Mock<IConversationUserSettingsRepository>();
         _mockRoleAssignmentRepository = new Mock<IRoleAssignmentRepository>();
         _mockPushService = new Mock<IPushNotificationService>();
+        _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockLogger = new Mock<ILogger<MessagingService>>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
@@ -44,6 +46,7 @@ public class MessagingServiceTests
             _mockSettingsRepository.Object,
             _mockRoleAssignmentRepository.Object,
             _mockPushService.Object,
+            _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object);
     }
@@ -1599,6 +1602,7 @@ public class MessagingServiceTests
             _mockSettingsRepository.Object,
             _mockRoleAssignmentRepository.Object,
             _mockPushService.Object,
+            _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
             mockHubService.Object);
@@ -1664,6 +1668,7 @@ public class MessagingServiceTests
             _mockSettingsRepository.Object,
             _mockRoleAssignmentRepository.Object,
             _mockPushService.Object,
+            _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
             mockHubService.Object);
@@ -1725,6 +1730,7 @@ public class MessagingServiceTests
             _mockSettingsRepository.Object,
             _mockRoleAssignmentRepository.Object,
             _mockPushService.Object,
+            _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
             mockHubService.Object);

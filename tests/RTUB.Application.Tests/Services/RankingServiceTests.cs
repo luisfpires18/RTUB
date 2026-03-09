@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
@@ -21,6 +22,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<ILogger<RankingService>> _mockLogger;
     private readonly RankingConfiguration _config;
     private readonly RankingService _service;
 
@@ -35,6 +37,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockUserManager = MockHelpers.CreateMockUserManager();
+        _mockLogger = new Mock<ILogger<RankingService>>();
 
         // Setup test configuration
         _config = new RankingConfiguration
@@ -71,7 +74,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            _mockLogger.Object);
     }
 
     [Fact]
@@ -843,6 +847,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(_config);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -854,7 +859,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            mockLogger.Object);
 
         mockPushNotificationFactory
             .Setup(x => x.CreateLeaderboardFirstPlaceNotification(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
@@ -902,6 +908,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(emptyConfig);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -913,7 +920,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            mockLogger.Object);
 
         // Act
         var result = serviceWithEmptyConfig.GetLevelFromXp(1000);
@@ -937,6 +945,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(nullConfig);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -948,7 +957,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            mockLogger.Object);
 
         // Act
         var result = serviceWithNullConfig.GetLevelFromXp(1000);

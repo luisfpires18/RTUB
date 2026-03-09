@@ -35,6 +35,7 @@ public class MessagingService : IMessagingService
     private readonly IConversationUserSettingsRepository _settingsRepository;
     private readonly IRoleAssignmentRepository _roleAssignmentRepository;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IMessagesHubService? _messagesHubService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<MessagingService> _logger;
@@ -45,6 +46,7 @@ public class MessagingService : IMessagingService
         IConversationUserSettingsRepository settingsRepository,
         IRoleAssignmentRepository roleAssignmentRepository,
         IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
         ILogger<MessagingService> logger,
         IMessagesHubService? messagesHubService = null)
@@ -54,6 +56,7 @@ public class MessagingService : IMessagingService
         _settingsRepository = settingsRepository;
         _roleAssignmentRepository = roleAssignmentRepository;
         _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
         _logger = logger;
         _messagesHubService = messagesHubService;
@@ -176,16 +179,8 @@ public class MessagingService : IMessagingService
             if (!isReceiverMuted)
             {
                 var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-                var messagePreview = messageDto.Body.Length > MessagePreviewMaxLength ? $"{messageDto.Body[..MessagePreviewMaxLength]}..." : messageDto.Body;
-
-                await _pushNotificationService.SendPushOnlyAsync(messageDto.ReceiverId, new SendPushNotificationDto
-                {
-                    Title = $"Nova mensagem de {senderName}",
-                    Body = messagePreview,
-                    Icon = "/icons/rtub-logo-192.png",
-                    Url = "/messages",
-                    Tag = $"message-{conversation.Id}"
-                });
+                var notification = _pushNotificationFactory.CreateDirectMessageNotification(senderName, conversation.Id.ToString(), "/");
+                await _pushNotificationService.SendPushOnlyAsync(messageDto.ReceiverId, notification);
             }
         }
 
@@ -402,22 +397,13 @@ public class MessagingService : IMessagingService
         // Send push notifications to all other participants (unless they have muted)
         if (sender != null && !string.IsNullOrEmpty(body))
         {
-            var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-            var messagePreview = body.Length > MessagePreviewMaxLength ? $"{body[..MessagePreviewMaxLength]}..." : body;
             var groupName = conversation.Title ?? "Grupo";
 
             // Batch fetch muted status for all recipients in one query
             var mutedUserIds = await _settingsRepository.GetMutedUserIdsAsync(conversationId, recipientIds);
 
             // Send push notifications in parallel to non-muted recipients
-            var notification = new SendPushNotificationDto
-            {
-                Title = $"Nova mensagem no grupo {groupName}",
-                Body = $"{senderName}: {messagePreview}",
-                Icon = "/icons/rtub-logo-192.png",
-                Url = "/messages",
-                Tag = $"message-{conversationId}"
-            };
+            var notification = _pushNotificationFactory.CreateGroupMessageNotification(groupName, conversationId.ToString(), "/");
 
             var pushTasks = recipientIds
                 .Where(participantId => !mutedUserIds.Contains(participantId))

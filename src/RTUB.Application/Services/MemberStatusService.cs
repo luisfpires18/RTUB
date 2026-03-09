@@ -21,6 +21,7 @@ public class MemberStatusService : IMemberStatusService
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<MemberStatusService> _logger;
     private readonly MemberStatusUpdateOptions _options;
@@ -29,6 +30,7 @@ public class MemberStatusService : IMemberStatusService
         IDbContextFactory<ApplicationDbContext> contextFactory,
         UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
         IAuditLogService auditLogService,
         ILogger<MemberStatusService> logger,
         IOptions<MemberStatusUpdateOptions> options)
@@ -36,6 +38,7 @@ public class MemberStatusService : IMemberStatusService
         _contextFactory = contextFactory;
         _userManager = userManager;
         _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
         _auditLogService = auditLogService;
         _logger = logger;
         _options = options.Value;
@@ -164,21 +167,17 @@ public class MemberStatusService : IMemberStatusService
         // Notifications (only on transition retired -> active)
         if (_options.PushNotificationsEnabled && beforeIsRetired && !computed.IsRetired)
         {
-            await _pushNotificationService.BroadcastAsync(new SendPushNotificationDto
-            {
-                Title = "Reativado",
-                Body = $"{user.Nickname ?? user.UserName ?? "Membro"} foi reativado"
-            });
+            var userNickname = user.Nickname ?? user.UserName ?? "Membro";
+            var notification = _pushNotificationFactory.CreateMemberReactivatedNotification(userNickname, "/");
+            await _pushNotificationService.BroadcastAsync(notification);
         }
 
         // Warning (active member is close to retirement)
         if (_options.PushNotificationsEnabled && !computed.IsRetired && computed.ProgressMonths == 1)
         {
-            await _pushNotificationService.SendToUserAsync(userId, new SendPushNotificationDto
-            {
-                Title = "1 mês até reforma",
-                Body = $"{user.Nickname ?? user.UserName ?? "Membro"}: falta 1 mês para a reforma"
-            });
+            var userNickname = user.Nickname ?? user.UserName ?? "Membro";
+            var notification = _pushNotificationFactory.CreateMemberRetirementWarningNotification(userNickname, "/");
+            await _pushNotificationService.SendToUserAsync(userId, notification);
         }
 
         // Audit logging is intentionally lightweight here (tests mock but don't assert).

@@ -18,6 +18,7 @@ public class QuestionService : IQuestionService
     private readonly IQuestionRepository _questionRepository;
     private readonly IQuestionReplyRepository _replyRepository;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<QuestionService> _logger;
 
@@ -25,12 +26,14 @@ public class QuestionService : IQuestionService
         IQuestionRepository questionRepository,
         IQuestionReplyRepository replyRepository,
         IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
         ILogger<QuestionService> logger)
     {
         _questionRepository = questionRepository;
         _replyRepository = replyRepository;
         _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
         _logger = logger;
     }
@@ -75,16 +78,8 @@ public class QuestionService : IQuestionService
 
         await _questionRepository.AddAsync(question);
 
-        // Send notification to assigned member - use simple relative URL like MessagingService does
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Nova Pergunta",
-            Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = "/questions",
-            Tag = $"question-{question.Id}"
-        };
-
+        // Send notification to assigned member
+        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, "/");
         await _pushNotificationService.SendToUserAsync(assignedMemberId, notification);
         question.UpdateLastNotificationSent();
         await _questionRepository.UpdateAsync(question);
@@ -137,15 +132,8 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' answered by assigned member {MemberName}",
                 question.Title, memberName);
 
-            // Notify the question author - use simple relative URL like MessagingService
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Pergunta Respondida",
-                Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
-                Icon = "/icons/rtub-logo-192.png",
-                Url = "/questions",
-                Tag = $"question-reply-{reply.Id}"
-            };
+            // Notify the question author
+            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, "/");
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
         }
         else if (authorId == question.AuthorId)
@@ -160,15 +148,8 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
                 question.Title, authorName);
 
-            // Notify assigned member - use simple relative URL like MessagingService
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Nova Resposta à Pergunta",
-                Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
-                Icon = "/icons/rtub-logo-192.png",
-                Url = "/questions",
-                Tag = $"question-reply-{reply.Id}"
-            };
+            // Notify assigned member
+            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(content, reply.Id, "/");
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
@@ -224,16 +205,8 @@ public class QuestionService : IQuestionService
         var author = await _userManager.FindByIdAsync(requestingUserId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
-        // Send notification - use simple relative URL like MessagingService
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Lembrete: Pergunta Pendente",
-            Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = "/questions",
-            Tag = $"question-reminder-{questionId}"
-        };
-
+        // Send notification
+        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, "/");
         await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         question.UpdateLastNotificationSent();
         await _questionRepository.UpdateAsync(question);
@@ -341,14 +314,5 @@ public class QuestionService : IQuestionService
         }
 
         return result;
-    }
-
-    private static string TruncateContent(string content, int maxLength)
-    {
-        if (string.IsNullOrEmpty(content) || content.Length <= maxLength)
-        {
-            return content;
-        }
-        return content[..(maxLength - 3)] + "...";
     }
 }

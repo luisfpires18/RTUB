@@ -14,9 +14,9 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Background service that sends scheduled reminders for events, rehearsals and meetings.
-/// - Events: daily reminders from 7 days before through the event day, for non-retired users.
-/// - Rehearsals: reminder 1 day before and on the same day, for non-retired users.
-/// - Meetings: reminder 5 days before, for eligible non-retired users only (CV, AG, Direção rules).
+/// - Events: day-before and day-of reminders for non-retired users. Festival events also remind 15 days and 7 days before.
+/// - Rehearsals: same-day reminders only, for non-retired users.
+/// - Meetings: day-before and day-of reminders at 11:30 UTC, for eligible non-retired users only (CV, AG, Direção rules).
 /// </summary>
 public class ActivityReminderBackgroundService : BackgroundService
 {
@@ -126,24 +126,48 @@ public class ActivityReminderBackgroundService : BackgroundService
         DateTime today,
         CancellationToken cancellationToken)
     {
+        // Load all events in a wider window to filter for Festival-specific reminders
         var startDate = today;
-        var endDate = today.AddDays(7);
+        var endDate = today.AddDays(16); // Up to 15 days ahead for Festival reminders
 
-        var upcomingEvents = await context.Events
+        var allUpcomingEvents = await context.Events
             .AsNoTracking()
             .Where(e => !e.IsCancelled && e.Date.Date >= startDate && e.Date.Date <= endDate)
             .ToListAsync(cancellationToken);
 
-        if (!upcomingEvents.Any())
+        if (!allUpcomingEvents.Any())
         {
             _logger.LogInformation(
-                "No events found that require daily reminders between {StartDate} and {EndDate}",
+                "No events found that require reminders between {StartDate} and {EndDate}",
                 startDate.ToString("yyyy-MM-dd"),
                 endDate.ToString("yyyy-MM-dd"));
             return;
         }
 
-        foreach (var @event in upcomingEvents)
+        // Filter events: only those matching today/tomorrow for non-Festival, or special Festival dates
+        var eventsToRemind = allUpcomingEvents.Where(@event =>
+        {
+            var daysUntilEvent = (@event.Date.Date - today).Days;
+
+            if (@event.Type == EventType.Festival)
+            {
+                // Festival: remind on days 15, 7, 1 (day-before), and 0 (day-of)
+                return daysUntilEvent == 15 || daysUntilEvent == 7 || daysUntilEvent == 1 || daysUntilEvent == 0;
+            }
+            else
+            {
+                // Non-Festival: remind on day-before (1) and day-of (0)
+                return daysUntilEvent == 1 || daysUntilEvent == 0;
+            }
+        }).ToList();
+
+        if (!eventsToRemind.Any())
+        {
+            _logger.LogInformation("No events found that require reminders for today {Today}", today.ToString("yyyy-MM-dd"));
+            return;
+        }
+
+        foreach (var @event in eventsToRemind)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -179,7 +203,7 @@ public class ActivityReminderBackgroundService : BackgroundService
         DateTime today,
         CancellationToken cancellationToken)
     {
-        var targetDates = new[] { today, today.AddDays(1) };
+        var targetDates = new[] { today };
 
         var upcomingRehearsals = await context.Rehearsals
             .AsNoTracking()
@@ -188,7 +212,7 @@ public class ActivityReminderBackgroundService : BackgroundService
 
         if (!upcomingRehearsals.Any())
         {
-            _logger.LogInformation("No rehearsals found that require 0/1-day reminders on {Today}", today.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("No rehearsals found that require same-day reminders on {Today}", today.ToString("yyyy-MM-dd"));
             return;
         }
 
@@ -228,16 +252,16 @@ public class ActivityReminderBackgroundService : BackgroundService
         DateTime today,
         CancellationToken cancellationToken)
     {
-        var targetDate = today.AddDays(5);
+        var targetDates = new[] { today, today.AddDays(1) };
 
         var upcomingMeetings = await context.Meetings
             .AsNoTracking()
-            .Where(m => !m.IsCancelled && m.Date.Date == targetDate)
+            .Where(m => !m.IsCancelled && targetDates.Contains(m.Date.Date))
             .ToListAsync(cancellationToken);
 
         if (!upcomingMeetings.Any())
         {
-            _logger.LogInformation("No meetings found that require 5-day reminders on {Date}", targetDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("No meetings found that require day-before/day-of reminders on {Today}", today.ToString("yyyy-MM-dd"));
             return;
         }
 

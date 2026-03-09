@@ -422,7 +422,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         {
             < 0 => null, // Past meeting
             0 => "hoje",
-            1 => "1 dia",
+            1 => "amanhã",
             _ => $"{daysUntil} dias"
         };
     }
@@ -1086,6 +1086,107 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = eventsUrl,
             Tag = $"member-reminder-{userId}-{DateTime.UtcNow.Ticks}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when a member is reactivated.
+    /// </summary>
+    public SendPushNotificationDto CreateMemberReactivatedNotification(string userNickname, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Membro Reativado",
+            Body = $"{userNickname} está de volta!",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = leaderboardUrl,
+            Tag = $"member-reactivated-{userNickname}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification warning a member that retirement is approaching (1 month away).
+    /// </summary>
+    public SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+
+        return new SendPushNotificationDto
+        {
+            Title = "1 mês até reforma",
+            Body = $"A tua reforma está a chegar, {userNickname}!",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = leaderboardUrl,
+            Tag = $"member-retirement-{userNickname}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification for a direct message (1-on-1 conversation).
+    /// </summary>
+    public SendPushNotificationDto CreateDirectMessageNotification(string senderName, string conversationId, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(senderName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Nova mensagem de {senderName}",
+            Body = "Tens uma nova mensagem direta",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = messageUrl,
+            Tag = $"message-{conversationId}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification for a group message.
+    /// </summary>
+    public SendPushNotificationDto CreateGroupMessageNotification(string groupName, string conversationId, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(groupName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Nova mensagem no grupo {groupName}",
+            Body = "Há uma nova mensagem no teu grupo",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = messageUrl,
+            Tag = $"message-{conversationId}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when a user is tagged in a gallery media item.
+    /// </summary>
+    public SendPushNotificationDto CreateGalleryTagNotification(string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var galleryUrl = $"{baseUrl.TrimEnd('/')}/gallery";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova media na Galeria",
+            Body = "Foste marcado numa nova foto ou vídeo.",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = galleryUrl,
+            Tag = "gallery-tag"
         };
     }
 

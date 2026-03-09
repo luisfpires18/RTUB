@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
@@ -23,6 +24,7 @@ public class RankingService : IRankingService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<RankingService> _logger;
 
     public RankingService(
         IRehearsalAttendanceRepository attendanceRepository,
@@ -31,7 +33,8 @@ public class RankingService : IRankingService
         IOptions<RankingConfiguration> config,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<RankingService> logger)
     {
         _attendanceRepository = attendanceRepository;
         _enrollmentRepository = enrollmentRepository;
@@ -40,6 +43,7 @@ public class RankingService : IRankingService
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     public async Task<int> CalculateTotalXpAsync(string userId, CancellationToken cancellationToken = default)
@@ -127,14 +131,11 @@ public class RankingService : IRankingService
         if (user == null)
             return;
 
-        // Optimize: Query only the current first place user with Take(1) for better performance
-        // This avoids loading all users into memory while maintaining test compatibility
-        var currentFirstPlace = _userManager.Users
+        // Query the current first place user asynchronously
+        var currentFirstPlace = await _userManager.Users
             .OrderByDescending(u => u.ExperiencePoints)
             .ThenByDescending(u => u.Level)
-            .Take(1)
-            .AsEnumerable()
-            .FirstOrDefault();
+            .FirstOrDefaultAsync(cancellationToken);
 
         var totalXp = await CalculateTotalXpAsync(userId, cancellationToken);
         var level = GetLevelFromXp(totalXp);
@@ -165,9 +166,10 @@ public class RankingService : IRankingService
                 // Broadcast to all users
                 await _pushNotificationService.BroadcastAsync(notification);
             }
-            catch
+            catch (Exception ex)
             {
                 // Log error but don't fail the ranking update
+                _logger.LogError(ex, "Failed to send leaderboard first place notification for user {UserId}", userId);
             }
         }
     }

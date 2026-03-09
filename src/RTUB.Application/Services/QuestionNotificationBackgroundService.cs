@@ -70,6 +70,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
         using var scope = _serviceScopeFactory.CreateScope();
         var questionRepository = scope.ServiceProvider.GetRequiredService<IQuestionRepository>();
         var pushNotificationService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
+        var pushNotificationFactory = scope.ServiceProvider.GetRequiredService<IPushNotificationFactory>();
 
         try
         {
@@ -95,18 +96,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
                 var questionCount = memberGroup.Count();
                 var firstAuthorNickname = memberGroup.First().Author?.Nickname ?? "um membro";
 
-                // Use simple relative URL like MessagingService does
-                var notification = new SendPushNotificationDto
-                {
-                    Title = questionCount == 1 ? "Pergunta Pendente" : $"{questionCount} Perguntas Pendentes",
-                    Body = questionCount == 1
-                        ? $"Tem uma pergunta à espera da sua resposta de {firstAuthorNickname}"
-                        : $"Tem {questionCount} perguntas à espera da sua resposta",
-                    Icon = "/icons/rtub-logo-192.png",
-                    Url = "/questions",
-                    Tag = "question-reminder"
-                };
-
+                var notification = pushNotificationFactory.CreatePendingQuestionsNotification(questionCount, firstAuthorNickname, "/");
                 await pushNotificationService.SendToUserAsync(memberId, notification);
 
                 // Update last notification timestamp for each question

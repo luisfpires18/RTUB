@@ -17,6 +17,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IConfiguration Configuration
 @inject IPushNotificationService PushNotificationService
+@inject IPushNotificationFactory PushNotificationFactory
 @inject IUserProfileRepository UserProfileRepository
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -1215,13 +1216,7 @@ else
             }
             
             // Send notification only to tagged users
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Nova media na Galeria",
-                Body = $"Foste marcado em \"{reloadedMedia.Title}\"",
-                Url = "/gallery"
-            };
-            
+            var notification = PushNotificationFactory.CreateGalleryTagNotification("/");
             await PushNotificationService.SendToSelectedUsersAsync(taggedUserIds, notification);
             Logger.LogInformation("Sent gallery notification to {Count} tagged users for media ID {MediaId}", taggedUserIds.Count, media.Id);
         }

@@ -27,6 +27,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly Mock<IDbContextFactory<ApplicationDbContext>> _mockContextFactory;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<MemberStatusService>> _mockLogger;
     private readonly Mock<IOptions<MemberStatusUpdateOptions>> _mockOptions;
@@ -53,6 +54,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create mock push notification service
         _mockPushNotificationService = new Mock<IPushNotificationService>();
 
+        // Create mock push notification factory
+        _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+
         // Create mock audit log service
         _mockAuditLogService = new Mock<IAuditLogService>();
 
@@ -72,6 +76,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _mockContextFactory.Object,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
+            _mockPushNotificationFactory.Object,
             _mockAuditLogService.Object,
             _mockLogger.Object,
             _mockOptions.Object);
@@ -635,6 +640,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _mockContextFactory.Object,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
+            _mockPushNotificationFactory.Object,
             _mockAuditLogService.Object,
             _mockLogger.Object,
             optionsWithNotifications.Object);
@@ -965,6 +971,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _mockContextFactory.Object,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
+            _mockPushNotificationFactory.Object,
             _mockAuditLogService.Object,
             _mockLogger.Object,
             optionsWithNotifications.Object);

@@ -192,7 +192,7 @@
                         <span>Ver Ata</span>
                     </button>
                 }
-                @if (IsAdmin && !Meeting.IsCancelled && !IsMeetingCompleted())
+                @if (IsAdmin && !Meeting.IsCancelled && Meeting.Date.Date >= DateTime.Today)
                 {
                     <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                             @onclick="HandleSendEmail"

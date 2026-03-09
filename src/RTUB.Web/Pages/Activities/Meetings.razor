@@ -914,27 +914,6 @@ else
                     </small>
                 </div>
 
-                <!-- Filter Option -->
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="meetingFilterLeitaoCaloiro"
-                               @bind="filterOnlyLeitaoAndCaloiro"
-                               @bind:after="OnMeetingFilterChanged" />
-                        <label class="form-check-label text-white-full" for="meetingFilterLeitaoCaloiro">
-                            Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
-                        </label>
-                    </div>
-                    @if (filterOnlyLeitaoAndCaloiro)
-                    {
-                        <small class="text-warning d-block mt-1">
-                            <i class="bi bi-info-circle me-1"></i>
-                            As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
-                        </small>
-                    }
-                </div>
-
                 <EmailRecipientsPreview 
                     SubscribedUsers="@(pushFilteredRecipients ?? new List<ApplicationUser>())"
                     NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
@@ -1879,8 +1858,7 @@ else
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
     private string? customNotificationBody;
-    private bool filterOnlyLeitaoAndCaloiro = false;
-    
+
     // Meeting participation modal variables
     private bool isEditingParticipation = false;
     private bool isParticipationPreSelected = false;
@@ -2935,7 +2913,6 @@ else
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
         customNotificationBody = string.Empty;
-        filterOnlyLeitaoAndCaloiro = false;
         modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
@@ -3006,8 +2983,12 @@ else
             pushNonSubscribedUsers = eligibleUsers
                 .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
                 .ToList();
-            
-            ApplyMeetingPushFilter();
+
+            // Set filtered recipients (no filtering applied - same as unfiltered)
+            pushFilteredRecipients = pushRecipients;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
+            pushRecipientCount = pushFilteredRecipients?.Count ?? 0;
+            pushTotalUsersCount = (pushFilteredRecipients?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
         }
         catch (Exception ex)
         {
@@ -3035,7 +3016,6 @@ else
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
         customNotificationBody = string.Empty;
-        filterOnlyLeitaoAndCaloiro = false;
     }
 
     private async Task SendMeetingPushNotification()
@@ -3156,33 +3136,6 @@ else
         }
     }
 
-    private void ApplyMeetingPushFilter()
-    {
-        if (filterOnlyLeitaoAndCaloiro)
-        {
-            pushFilteredRecipients = pushRecipients?
-                .Where(u => u.IsLeitao() || u.IsCaloiro())
-                .ToList();
-
-            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
-                .Where(u => u.IsLeitao() || u.IsCaloiro())
-                .ToList();
-        }
-        else
-        {
-            pushFilteredRecipients = pushRecipients;
-            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
-        }
-
-        pushRecipientCount = pushFilteredRecipients?.Count ?? 0;
-        pushTotalUsersCount = (pushFilteredRecipients?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
-    }
-
-    private void OnMeetingFilterChanged()
-    {
-        ApplyMeetingPushFilter();
-    }
-    
     private string GetYearsAsTunoDisplay(ApplicationUser user)
     {
         if (user.YearTuno == null) return "< 1 ano de Tuno";
