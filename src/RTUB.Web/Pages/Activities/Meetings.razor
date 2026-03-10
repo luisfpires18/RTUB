@@ -1364,7 +1364,7 @@ else
                     {
                         @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2" @key="point.Id">
+                            <div class="card mb-2" @key="point.PointNumber">
                                 <div class="card-body p-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong>@point.PointNumber. @point.Title</strong>
@@ -1682,7 +1682,7 @@ else
                     <div class="modal-section-body">
                         @foreach (var point in viewingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2" @key="point.Id">
+                            <div class="card mb-2" @key="point.PointNumber">
                                 <div class="card-body p-3">
                                     <h6 class="mb-2">@point.PointNumber. @point.Title</h6>
                                     @if (!string.IsNullOrEmpty(point.DiscussionSummary))
