@@ -40,20 +40,24 @@
 
         try
         {
-            await JS.InvokeVoidAsync("rtubAudioPlayer.playAnnouncementSound");
-        }
-        catch
-        {
-            // Sound is best-effort — don't block the announcement
-        }
-
-        try
-        {
-            await InvokeAsync(() =>
+            await InvokeAsync(async () =>
             {
                 if (_isDisposed) return;
                 message = text;
                 StateHasChanged();
+
+                // Play sound inside InvokeAsync so it runs on this circuit's sync context.
+                // Use a timeout to prevent hanging on disconnected circuits — a hung JS call
+                // blocks the singleton BroadcastAsync and causes Kestrel "application never completed".
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                try
+                {
+                    await JS.InvokeVoidAsync("rtubAudioPlayer.playAnnouncementSound", cts.Token);
+                }
+                catch
+                {
+                    // Sound is best-effort — don't block the announcement
+                }
             });
         }
         catch (ObjectDisposedException)
@@ -64,13 +68,15 @@
     private async Task Dismiss()
     {
         message = null;
-        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound"); } catch { }
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound", cts.Token); } catch { }
     }
 
     public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
         AnnouncementService.OnAnnouncement -= HandleAnnouncementAsync;
-        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound"); } catch { }
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound", cts.Token); } catch { }
     }
 }
