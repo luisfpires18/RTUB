@@ -62,13 +62,15 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         string memberUserId,
         decimal amount = 25.00m,
         string? description = null,
-        string? phone = null)
+        string? phone = null,
+        string transferTo = "Test Recipient")
     {
         var transfer = new MbwayTransfer
         {
             Date = DateTime.UtcNow,
             Amount = amount,
             MemberUserId = memberUserId,
+            TransferTo = transferTo,
             Description = description,
             Phone = phone
         };
@@ -114,13 +116,15 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         {
             Date = DateTime.UtcNow.AddDays(-5),
             Amount = 10.00m,
-            MemberUserId = user.Id
+            MemberUserId = user.Id,
+            TransferTo = "Recipient A"
         };
         var newer = new MbwayTransfer
         {
             Date = DateTime.UtcNow,
             Amount = 20.00m,
-            MemberUserId = user.Id
+            MemberUserId = user.Id,
+            TransferTo = "Recipient B"
         };
         _context.MbwayTransfers.AddRange(older, newer);
         await _context.SaveChangesAsync();
@@ -151,13 +155,15 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
             Date = DateTime.UtcNow,
             Amount = 50.00m,
             MemberUserId = user.Id,
+            TransferTo = "FY Recipient",
             FiscalYearId = fy.Id
         };
         var withoutFy = new MbwayTransfer
         {
             Date = DateTime.UtcNow,
             Amount = 30.00m,
-            MemberUserId = user.Id
+            MemberUserId = user.Id,
+            TransferTo = "No FY Recipient"
         };
         _context.MbwayTransfers.AddRange(withFy, withoutFy);
         await _context.SaveChangesAsync();
@@ -184,6 +190,7 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
             Date = DateTime.UtcNow,
             Amount = 100.00m,
             MemberUserId = user.Id,
+            TransferTo = "Valid Recipient",
             Phone = "912345678"
         };
 
@@ -203,7 +210,8 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         {
             Date = DateTime.UtcNow,
             Amount = 50.00m,
-            MemberUserId = ""
+            MemberUserId = "",
+            TransferTo = "Some Recipient"
         };
 
         var (success, message) = await _service.AddTransferAsync(transfer);
@@ -219,7 +227,8 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         {
             Date = DateTime.UtcNow,
             Amount = 50.00m,
-            MemberUserId = null!
+            MemberUserId = null!,
+            TransferTo = "Some Recipient"
         };
 
         var (success, message) = await _service.AddTransferAsync(transfer);
@@ -244,6 +253,7 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
             Date = transfer.Date,
             Amount = 75.00m,
             MemberUserId = user.Id,
+            TransferTo = "Updated Recipient",
             Description = "Updated description",
             Phone = "961234567"
         };
@@ -269,7 +279,8 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
             Id = 1,
             Date = DateTime.UtcNow,
             Amount = 50.00m,
-            MemberUserId = ""
+            MemberUserId = "",
+            TransferTo = "Some Recipient"
         };
 
         var (success, message) = await _service.UpdateTransferAsync(transfer);
@@ -286,7 +297,8 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
             Id = 999,
             Date = DateTime.UtcNow,
             Amount = 50.00m,
-            MemberUserId = "some-user"
+            MemberUserId = "some-user",
+            TransferTo = "Some Recipient"
         };
 
         var (success, _) = await _service.UpdateTransferAsync(transfer);

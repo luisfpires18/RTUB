@@ -33,9 +33,17 @@
             </div>
             <div class="mbway-info-row">
                 <i class="bi bi-person mbway-icon"></i>
-                <span class="mbway-label">Remetente</span>
-                <span class="mbway-text">@FormatField(MemberDisplayName)</span>
+                <span class="mbway-label">Para</span>
+                <span class="mbway-text">@FormatField(Transfer.TransferTo)</span>
             </div>
+            @if (!string.IsNullOrEmpty(Transfer.TransferFrom))
+            {
+                <div class="mbway-info-row">
+                    <i class="bi bi-person-fill mbway-icon"></i>
+                    <span class="mbway-label">De</span>
+                    <span class="mbway-text">@Transfer.TransferFrom</span>
+                </div>
+            }
             @if (!string.IsNullOrEmpty(Transfer.Phone))
             {
                 <div class="mbway-info-row">
@@ -77,9 +85,6 @@
 @code {
     [Parameter]
     public MbwayTransfer Transfer { get; set; } = null!;
-
-    [Parameter]
-    public string MemberDisplayName { get; set; } = string.Empty;
 
     [Parameter]
     public bool CanEdit { get; set; }

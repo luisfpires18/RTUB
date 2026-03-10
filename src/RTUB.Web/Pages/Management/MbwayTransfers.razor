@@ -101,7 +101,6 @@ else
             {
                 <div class="col" @key="transfer.Id">
                     <MbwayTransferCard Transfer="@transfer"
-                                       MemberDisplayName="@GetMemberDisplayName(transfer)"
                                        CanEdit="@canEdit"
                                        OnEdit="@((MbwayTransfer t) => OpenEditModal(t))"
                                        OnDelete="@((MbwayTransfer t) => ConfirmDelete(t))" />
@@ -145,19 +144,20 @@ else
                     <ValidationMessage For="@(() => editingTransfer!.Amount)" />
                 </div>
                 <div class="form-group mb-3">
-                    <label class="form-label">Remetente</label>
+                    <label class="form-label">Transferir para <span class="text-danger">*</span></label>
                     <div class="form-check form-switch mb-2">
-                        <input class="form-check-input clickable-row" type="checkbox" id="senderModeToggle"
-                               @bind="isMember" @bind:after="OnSenderModeToggled" />
-                        <label class="form-check-label form-check-label-white-clickable" for="senderModeToggle">
+                        <input class="form-check-input clickable-row" type="checkbox" id="transferToMemberToggle"
+                               @bind="isTransferToMember" @bind:after="OnTransferToModeToggled" />
+                        <label class="form-check-label form-check-label-white-clickable" for="transferToMemberToggle">
                             Membro da Tuna
                         </label>
                     </div>
-                    @if (!isMember)
+                    @if (!isTransferToMember)
                     {
-                        <InputText class="form-control" id="transferPersonName"
-                                   placeholder="Nome do remetente..."
-                                   @bind-Value="editingTransfer!.PersonName" />
+                        <InputText class="form-control" id="transferTo"
+                                   placeholder="Nome do destinatário..."
+                                   @bind-Value="editingTransfer!.TransferTo" />
+                        <ValidationMessage For="@(() => editingTransfer!.TransferTo)" />
                     }
                     else
                     {
@@ -199,6 +199,12 @@ else
                             </div>
                         }
                     }
+                </div>
+                <div class="form-group mb-3">
+                    <label for="transferFrom" class="form-label">Transferido por</label>
+                    <InputText class="form-control" id="transferFrom"
+                               placeholder="Remetente (opcional)..."
+                               @bind-Value="editingTransfer!.TransferFrom" />
                 </div>
                 <div class="form-group mb-3">
                     <label for="transferPhone" class="form-label">Telefone</label>
@@ -254,7 +260,7 @@ else
     private bool isSaving = false;
     private bool showModal = false;
     private bool showDeleteConfirm = false;
-    private bool isMember = false;
+    private bool isTransferToMember = false;
     private bool canEdit = false;
     private MbwayTransfer? editingTransfer;
     private MbwayTransfer? deleteTarget;
@@ -268,7 +274,8 @@ else
     private List<MbwayTransfer> filteredTransfers => string.IsNullOrWhiteSpace(transferSearchTerm)
         ? transfers
         : transfers.Where(t =>
-            (t.PersonName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.TransferTo.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+            (t.TransferFrom?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (t.Member?.Nickname?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (t.Member?.UserName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (t.Member?.FirstName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -354,21 +361,13 @@ else
         }
     }
 
-    /// <summary>
-    /// Gets the display name from a loaded transfer's Member navigation property.
-    /// </summary>
-    private static string GetMemberDisplayName(MbwayTransfer transfer)
+    private string GetMemberDisplayName(MbwayTransfer transfer)
     {
         if (transfer.Member is not null)
             return transfer.Member.Nickname ?? transfer.Member.UserName ?? "\u2014";
-        if (!string.IsNullOrWhiteSpace(transfer.PersonName))
-            return transfer.PersonName;
-        return "\u2014";
+        return transfer.TransferTo;
     }
 
-    /// <summary>
-    /// Gets a member display name by user ID (used in the modal for selected member).
-    /// </summary>
     private string GetMemberName(string? memberId)
     {
         if (string.IsNullOrEmpty(memberId)) return "\u2014";
@@ -405,23 +404,25 @@ else
         if (editingTransfer != null)
         {
             editingTransfer.MemberUserId = member.Id;
+            editingTransfer.TransferTo = member.Nickname ?? member.UserName ?? string.Empty;
             memberSearchTerm = string.Empty;
             filteredMembers = new();
         }
     }
 
-    private void OnSenderModeToggled()
+    private void OnTransferToModeToggled()
     {
         if (editingTransfer == null) return;
-        if (!isMember)
+        if (!isTransferToMember)
         {
             editingTransfer.MemberUserId = null;
+            editingTransfer.TransferTo = string.Empty;
             memberSearchTerm = string.Empty;
             filteredMembers = new();
         }
         else
         {
-            editingTransfer.PersonName = null;
+            editingTransfer.TransferTo = string.Empty;
         }
     }
 
@@ -431,7 +432,7 @@ else
         {
             Date = DateTime.UtcNow
         };
-        isMember = false;
+        isTransferToMember = false;
         memberSearchTerm = string.Empty;
         filteredMembers = new();
         showModal = true;
@@ -446,11 +447,12 @@ else
             Amount = transfer.Amount,
             Phone = transfer.Phone,
             Description = transfer.Description,
+            TransferTo = transfer.TransferTo,
+            TransferFrom = transfer.TransferFrom,
             MemberUserId = transfer.MemberUserId,
-            PersonName = transfer.PersonName,
             FiscalYearId = transfer.FiscalYearId
         };
-        isMember = !string.IsNullOrEmpty(transfer.MemberUserId);
+        isTransferToMember = !string.IsNullOrEmpty(transfer.MemberUserId);
         memberSearchTerm = string.Empty;
         filteredMembers = new();
         showModal = true;

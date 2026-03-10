@@ -19,11 +19,17 @@ public class MbwayTransfer : BaseEntity
     public string? Description { get; set; }
 
     /// <summary>
-    /// Free-text name when the sender is not a tuna member.
-    /// Mutually exclusive with MemberUserId.
+    /// Who the transfer is sent to (mandatory).
+    /// </summary>
+    [Required(ErrorMessage = "O destinatário é obrigatório.")]
+    [MaxLength(200)]
+    public string TransferTo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Who the transfer is from (optional).
     /// </summary>
     [MaxLength(200)]
-    public string? PersonName { get; set; }
+    public string? TransferFrom { get; set; }
 
     /// <summary>
     /// The member who made the transfer (null when PersonName is used instead).
