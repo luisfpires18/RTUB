@@ -14,38 +14,39 @@ public class RoleManagementService : IRoleManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager;
 
-    /// <summary>
-    /// Initializes a new instance of the RoleManagementService
-    /// </summary>
-    /// <param name="userManager">User manager for role operations</param>
+    // Positions that always grant Admin regardless of member category
+    private static readonly HashSet<Position> AlwaysAdminPositions =
+    [
+        Position.PresidenteMesaAssembleia,
+        Position.PresidenteConselhoFiscal,
+        Position.PresidenteConselhoVeteranos,
+        Position.Ensaiador,
+    ];
+
+    // Positions that grant no role (position tracking only)
+    private static readonly HashSet<Position> NoRolePositions =
+    [
+        Position.PrimeiroSecretarioMesaAssembleia,
+        Position.SegundoSecretarioMesaAssembleia,
+        Position.PrimeiroRelatorConselhoFiscal,
+        Position.SegundoRelatorConselhoFiscal,
+    ];
+
     public RoleManagementService(UserManager<ApplicationUser> userManager)
     {
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
     }
 
-    /// <summary>
-    /// Promotes a user to appropriate role based on position assignment
-    /// Caloiro members get Mod role, others get Admin role
-    /// </summary>
-    /// <param name="user">The user to promote</param>
-    /// <param name="position">The position being assigned</param>
-    /// <param name="fiscalStartYear">The fiscal year start year (to determine if current year)</param>
-    /// <param name="currentFiscalStartYear">The current fiscal year start year</param>
-    /// <returns>True if promotion occurred, false otherwise</returns>
     public async Task<bool> PromoteUserForPositionAsync(
         ApplicationUser user,
         Position position,
         int fiscalStartYear,
         int currentFiscalStartYear)
     {
-        // Only promote if fiscal year is current
-        bool isFiscalYearCurrent = (fiscalStartYear == currentFiscalStartYear);
-        if (!isFiscalYearCurrent)
-        {
+        if (fiscalStartYear != currentFiscalStartYear)
             return false;
-        }
 
-        // Update user's current Positions property
+        // Update user's Positions property
         var positions = user.Positions.ToList();
         if (!positions.Contains(position))
         {
@@ -54,49 +55,46 @@ public class RoleManagementService : IRoleManagementService
             await _userManager.UpdateAsync(user);
         }
 
-        // Promote user from Member to Admin or Mod role
-        // CALOIRO members get Mod role, others get Admin role
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        var isCaloiro = user.Categories.Contains(MemberCategory.Caloiro);
-        var targetRole = isCaloiro ? "Mod" : "Admin";
+        // Positions that carry no role — skip role assignment
+        if (NoRolePositions.Contains(position))
+            return false;
 
-        if (!currentRoles.Contains("Admin") && !currentRoles.Contains("Mod"))
+        var currentRoles = await _userManager.GetRolesAsync(user);
+
+        // Already has a non-Member role — no further promotion needed
+        if (currentRoles.Contains("Admin") || currentRoles.Contains("Mod"))
+            return false;
+
+        // Determine target role:
+        // - AlwaysAdmin positions → Admin regardless of category
+        // - Direção positions → Admin for Tuno, Mod for Caloiro
+        string targetRole;
+        if (AlwaysAdminPositions.Contains(position))
         {
-            // Remove Member role if present
-            if (currentRoles.Contains("Member"))
-            {
-                await _userManager.RemoveFromRoleAsync(user, "Member");
-            }
-            // Add appropriate role (Mod for Caloiro, Admin for others)
-            await _userManager.AddToRoleAsync(user, targetRole);
-            return true;
+            targetRole = "Admin";
+        }
+        else
+        {
+            targetRole = user.Categories.Contains(MemberCategory.Caloiro) ? "Mod" : "Admin";
         }
 
-        return false;
+        if (currentRoles.Contains("Member"))
+            await _userManager.RemoveFromRoleAsync(user, "Member");
+
+        await _userManager.AddToRoleAsync(user, targetRole);
+        return true;
     }
 
-    /// <summary>
-    /// Demotes a user by removing Admin/Mod role and position when role assignment is removed
-    /// </summary>
-    /// <param name="user">The user to demote</param>
-    /// <param name="position">The position being removed</param>
-    /// <param name="fiscalStartYear">The fiscal year start year (to determine if current year)</param>
-    /// <param name="currentFiscalStartYear">The current fiscal year start year</param>
-    /// <returns>True if demotion occurred, false otherwise</returns>
     public async Task<bool> DemoteUserForPositionAsync(
         ApplicationUser user,
         Position position,
         int fiscalStartYear,
         int currentFiscalStartYear)
     {
-        // Only demote if fiscal year is current
-        bool isFiscalYearCurrent = (fiscalStartYear == currentFiscalStartYear);
-        if (!isFiscalYearCurrent)
-        {
+        if (fiscalStartYear != currentFiscalStartYear)
             return false;
-        }
 
-        // Remove from user's current Positions property
+        // Remove from user's Positions property
         var positions = user.Positions.ToList();
         if (positions.Contains(position))
         {
@@ -105,28 +103,22 @@ public class RoleManagementService : IRoleManagementService
             await _userManager.UpdateAsync(user);
         }
 
-        // Check if user has no more positions - if so, demote from Admin/Mod to Member
+        // Check if any remaining positions still grant a role
+        bool hasRoleGrantingPosition = positions.Any(p => !NoRolePositions.Contains(p));
+        if (hasRoleGrantingPosition)
+            return false;
+
         var userRoles = await _userManager.GetRolesAsync(user);
-        if (!positions.Any() && (userRoles.Contains("Admin") || userRoles.Contains("Mod")) && !userRoles.Contains("Owner"))
-        {
-            // Remove Admin or Mod role
-            if (userRoles.Contains("Admin"))
-            {
-                await _userManager.RemoveFromRoleAsync(user, "Admin");
-            }
-            if (userRoles.Contains("Mod"))
-            {
-                await _userManager.RemoveFromRoleAsync(user, "Mod");
-            }
+        if (!(userRoles.Contains("Admin") || userRoles.Contains("Mod")) || userRoles.Contains("Owner"))
+            return false;
 
-            // Add Member role
-            await _userManager.AddToRoleAsync(user, "Member");
+        if (userRoles.Contains("Admin"))
+            await _userManager.RemoveFromRoleAsync(user, "Admin");
+        if (userRoles.Contains("Mod"))
+            await _userManager.RemoveFromRoleAsync(user, "Mod");
 
-            // Invalidate security stamp to force fresh cookies and token refresh
-            await _userManager.UpdateSecurityStampAsync(user);
-            return true;
-        }
-
-        return false;
+        await _userManager.AddToRoleAsync(user, "Member");
+        await _userManager.UpdateSecurityStampAsync(user);
+        return true;
     }
 }

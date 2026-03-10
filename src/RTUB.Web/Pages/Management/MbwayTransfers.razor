@@ -261,7 +261,9 @@ else
     private bool showModal = false;
     private bool showDeleteConfirm = false;
     private bool isTransferToMember = false;
+    private bool canAdd = false;
     private bool canEdit = false;
+    private List<string> debugRoles = new();
     private MbwayTransfer? editingTransfer;
     private MbwayTransfer? deleteTarget;
     private EditForm? editForm;
@@ -298,7 +300,7 @@ else
     private void BuildMobileNavItems()
     {
         var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canEdit)
+        if (canAdd)
             items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
         items.Add(new("action-back", "Voltar", "bi-arrow-left"));
         mobileNavItems = items;
@@ -353,7 +355,9 @@ else
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            canEdit = user.IsInRole("Mod") || user.IsInRole("Admin");
+            debugRoles = new[] { "Owner", "Admin", "Mod", "Member" }.Where(user.IsInRole).ToList();
+            canAdd = user.IsInRole("Mod") || user.IsInRole("Admin");
+            canEdit = user.IsInRole("Owner");
         }
         catch
         {
