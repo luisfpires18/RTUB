@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using RTUB.Shared
 @inject RTUB.Web.Services.AnnouncementService AnnouncementService
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <Modal Show="@(message is not null)"
@@ -35,20 +36,22 @@
 
     private async Task HandleAnnouncementAsync(string text)
     {
-        if (_isDisposed)
+        if (_isDisposed) return;
+
+        try
         {
-            return;
+            await JS.InvokeVoidAsync("rtubAudioPlayer.playAnnouncementSound");
+        }
+        catch
+        {
+            // Sound is best-effort — don't block the announcement
         }
 
         try
         {
             await InvokeAsync(() =>
             {
-                if (_isDisposed)
-                {
-                    return;
-                }
-
+                if (_isDisposed) return;
                 message = text;
                 StateHasChanged();
             });
@@ -58,15 +61,16 @@
         }
     }
 
-    private void Dismiss()
+    private async Task Dismiss()
     {
         message = null;
+        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound"); } catch { }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
         AnnouncementService.OnAnnouncement -= HandleAnnouncementAsync;
-        return ValueTask.CompletedTask;
+        try { await JS.InvokeVoidAsync("rtubAudioPlayer.stopAnnouncementSound"); } catch { }
     }
 }

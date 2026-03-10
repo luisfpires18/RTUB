@@ -15,11 +15,11 @@ public class MbwayTransferConfiguration : IEntityTypeConfiguration<MbwayTransfer
         // Configure table name
         builder.ToTable("MbwayTransfers");
 
-        // Configure foreign key relationship to ApplicationUser (required)
+        // Configure foreign key relationship to ApplicationUser (optional — PersonName used instead for non-members)
         builder.HasOne(mt => mt.Member)
             .WithMany()
             .HasForeignKey(mt => mt.MemberUserId)
-            .IsRequired()
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure foreign key relationship to FiscalYear

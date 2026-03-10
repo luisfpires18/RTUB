@@ -11,6 +11,7 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
+@using Microsoft.AspNetCore.Components.Forms
 @inject IMbwayTransferService MbwayTransferService
 @inject NavigationManager NavigationManager
 @inject UserManager<ApplicationUser> UserManager
@@ -80,29 +81,45 @@ else
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
-        @foreach (var transfer in pagedTransfers)
-        {
-            <div class="col" @key="transfer.Id">
-                <MbwayTransferCard Transfer="@transfer"
-                                   MemberDisplayName="@GetMemberDisplayName(transfer)"
-                                   CanEdit="@canEdit"
-                                   OnEdit="@((MbwayTransfer t) => OpenEditModal(t))"
-                                   OnDelete="@((MbwayTransfer t) => ConfirmDelete(t))" />
-            </div>
-        }
+    <div class="mb-3">
+        <SearchBar @bind-Value="transferSearchTerm"
+                   Placeholder="Pesquisar por nome, telefone, descrição..."
+                   OnSearch="OnTransferSearch"
+                   OnClear="OnTransferSearchClear" />
     </div>
 
-    @if (transfers.Count > pageSize)
+    @if (!filteredTransfers.Any())
     {
-        <TablePagination
-            CurrentPage="@currentPage"
-            PageSize="@pageSize"
-            TotalItems="@transfers.Count"
-            ItemLabel="transferências"
-            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-            OnPageChanged="ChangePage"
-            OnPageSizeChanged="ChangePageSize" />
+        <EmptyState Title="Nenhum resultado"
+                    Message="Nenhuma transferência corresponde à pesquisa."
+                    Icon="bi-search" />
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+            @foreach (var transfer in pagedTransfers)
+            {
+                <div class="col" @key="transfer.Id">
+                    <MbwayTransferCard Transfer="@transfer"
+                                       MemberDisplayName="@GetMemberDisplayName(transfer)"
+                                       CanEdit="@canEdit"
+                                       OnEdit="@((MbwayTransfer t) => OpenEditModal(t))"
+                                       OnDelete="@((MbwayTransfer t) => ConfirmDelete(t))" />
+                </div>
+            }
+        </div>
+
+        @if (filteredTransfers.Count > pageSize)
+        {
+            <TablePagination
+                CurrentPage="@currentPage"
+                PageSize="@pageSize"
+                TotalItems="@filteredTransfers.Count"
+                ItemLabel="transferências"
+                PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                OnPageChanged="ChangePage"
+                OnPageSizeChanged="ChangePageSize" />
+        }
     }
 }
 
@@ -114,66 +131,85 @@ else
            Title="@(editingTransfer.Id > 0 ? "Editar Transferência MBWAY" : "Adicionar Transferência MBWAY")"
            Size="Modal.ModalSize.Large">
         <BodyContent>
-            <div class="form-group mb-3">
-                <label for="transferDate" class="form-label">Data</label>
-                <input type="date" class="form-control" id="transferDate"
-                       @bind="editingTransfer!.Date" />
-            </div>
-            <div class="form-group mb-3">
-                <label for="transferAmount" class="form-label">Montante (€)</label>
-                <input type="number" class="form-control" id="transferAmount"
-                       step="0.01" min="0" @bind="editingTransfer!.Amount" />
-            </div>
-            <div class="form-group mb-3">
-                <label for="memberSearch" class="form-label">Membro <span class="text-danger">*</span></label>
-                <SearchBar @bind-Value="memberSearchTerm"
-                           Placeholder="Pesquisar membro por nome ou alcunha..."
-                           OnSearch="OnMemberSearch"
-                           OnClear="ClearMemberSearch"
-                           Compact="true" />
-                @if (filteredMembers.Any())
-                {
-                    <div class="list-group mt-2" style="max-height: 250px; overflow-y: auto; background-color: #1e2030; border-color: rgba(var(--bs-primary-rgb), 0.3);">
-                        @foreach (var member in filteredMembers.Take(10))
+            <EditForm @ref="editForm" Model="editingTransfer">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+                <div class="form-group mb-3">
+                    <label for="transferDate" class="form-label">Data</label>
+                    <InputDate class="form-control" id="transferDate" @bind-Value="editingTransfer!.Date" />
+                    <ValidationMessage For="@(() => editingTransfer!.Date)" />
+                </div>
+                <div class="form-group mb-3">
+                    <label for="transferAmount" class="form-label">Montante (€)</label>
+                    <InputNumber class="form-control" id="transferAmount" @bind-Value="editingTransfer!.Amount" />
+                    <ValidationMessage For="@(() => editingTransfer!.Amount)" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Remetente</label>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input clickable-row" type="checkbox" id="senderModeToggle"
+                               @bind="isMember" @bind:after="OnSenderModeToggled" />
+                        <label class="form-check-label form-check-label-white-clickable" for="senderModeToggle">
+                            Membro da Tuna
+                        </label>
+                    </div>
+                    @if (!isMember)
+                    {
+                        <InputText class="form-control" id="transferPersonName"
+                                   placeholder="Nome do remetente..."
+                                   @bind-Value="editingTransfer!.PersonName" />
+                    }
+                    else
+                    {
+                        <SearchBar @bind-Value="memberSearchTerm"
+                                   Placeholder="Pesquisar membro por nome ou alcunha..."
+                                   OnSearch="OnMemberSearch"
+                                   OnClear="ClearMemberSearch"
+                                   Compact="true" />
+                        @if (filteredMembers.Any())
                         {
-                            <button type="button" class="list-group-item list-group-item-action"
-                                    style="background-color: #1e2030; color: #fff; border-color: rgba(255,255,255,0.08);"
-                                    @onclick="@(() => SelectMember(member))">
-                                <div class="d-flex align-items-center">
-                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" />
-                                    <div>
-                                        <strong>@(member.Nickname ?? member.UserName)</strong>
-                                        @if (!string.IsNullOrEmpty(member.FirstName))
-                                        {
-                                            <br />
-                                            <small class="text-muted">@member.FirstName @member.LastName</small>
-                                        }
-                                    </div>
-                                </div>
-                            </button>
+                            <div class="list-group mt-2" style="max-height: 250px; overflow-y: auto; background-color: #1e2030; border-color: rgba(var(--bs-primary-rgb), 0.3);">
+                                @foreach (var member in filteredMembers.Take(10))
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action"
+                                            style="background-color: #1e2030; color: #fff; border-color: rgba(255,255,255,0.08);"
+                                            @onclick="@(() => SelectMember(member))">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" />
+                                            <div>
+                                                <strong>@(member.Nickname ?? member.UserName)</strong>
+                                                @if (!string.IsNullOrEmpty(member.FirstName))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">@member.FirstName @member.LastName</small>
+                                                }
+                                            </div>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
                         }
-                    </div>
-                }
-                @if (!string.IsNullOrEmpty(editingTransfer?.MemberUserId))
-                {
-                    <div class="mt-2 mb-0 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.15); border: 1px solid rgba(168, 142, 229, 0.4);">
-                        <i class="bi bi-person-check text-purple me-1"></i>
-                        <strong class="text-purple">Membro selecionado:</strong>
-                        <span>@GetMemberName(editingTransfer.MemberUserId)</span>
-                    </div>
-                }
-            </div>
-            <div class="form-group mb-3">
-                <label for="transferPhone" class="form-label">Telefone</label>
-                <input type="text" class="form-control" id="transferPhone"
-                       @bind="editingTransfer!.Phone" />
-            </div>
-            <div class="form-group mb-3">
-                <label for="transferDescription" class="form-label">Descrição</label>
-                <textarea class="form-control" id="transferDescription" rows="3"
-                          placeholder="Notas opcionais..." @bind="editingTransfer!.Description"></textarea>
-            </div>
+                        @if (!string.IsNullOrEmpty(editingTransfer?.MemberUserId))
+                        {
+                            <div class="mt-2 mb-0 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.15); border: 1px solid rgba(168, 142, 229, 0.4);">
+                                <i class="bi bi-person-check text-purple me-1"></i>
+                                <strong class="text-purple">Membro selecionado:</strong>
+                                <span>@GetMemberName(editingTransfer.MemberUserId)</span>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="form-group mb-3">
+                    <label for="transferPhone" class="form-label">Telefone</label>
+                    <InputText class="form-control" id="transferPhone" @bind-Value="editingTransfer!.Phone" />
+                </div>
+                <div class="form-group mb-3">
+                    <label for="transferDescription" class="form-label">Descrição</label>
+                    <InputTextArea class="form-control" id="transferDescription" rows="3"
+                                   placeholder="Notas opcionais..." @bind-Value="editingTransfer!.Description" />
+                </div>
+            </EditForm>
         </BodyContent>
         <FooterContent>
             <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
@@ -218,14 +254,30 @@ else
     private bool isSaving = false;
     private bool showModal = false;
     private bool showDeleteConfirm = false;
+    private bool isMember = false;
     private bool canEdit = false;
     private MbwayTransfer? editingTransfer;
     private MbwayTransfer? deleteTarget;
+    private EditForm? editForm;
     private int currentPage = 1;
     private int pageSize = 12;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
-    private List<MbwayTransfer> pagedTransfers => transfers
+    private string transferSearchTerm = string.Empty;
+
+    private List<MbwayTransfer> filteredTransfers => string.IsNullOrWhiteSpace(transferSearchTerm)
+        ? transfers
+        : transfers.Where(t =>
+            (t.PersonName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Member?.Nickname?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Member?.UserName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Member?.FirstName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Member?.LastName?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Phone?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (t.Description?.Contains(transferSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+        .ToList();
+
+    private List<MbwayTransfer> pagedTransfers => filteredTransfers
         .Skip((currentPage - 1) * pageSize)
         .Take(pageSize)
         .ToList();
@@ -307,9 +359,11 @@ else
     /// </summary>
     private static string GetMemberDisplayName(MbwayTransfer transfer)
     {
-        if (transfer.Member is null)
-            return "\u2014";
-        return transfer.Member.Nickname ?? transfer.Member.UserName ?? "\u2014";
+        if (transfer.Member is not null)
+            return transfer.Member.Nickname ?? transfer.Member.UserName ?? "\u2014";
+        if (!string.IsNullOrWhiteSpace(transfer.PersonName))
+            return transfer.PersonName;
+        return "\u2014";
     }
 
     /// <summary>
@@ -356,12 +410,28 @@ else
         }
     }
 
+    private void OnSenderModeToggled()
+    {
+        if (editingTransfer == null) return;
+        if (!isMember)
+        {
+            editingTransfer.MemberUserId = null;
+            memberSearchTerm = string.Empty;
+            filteredMembers = new();
+        }
+        else
+        {
+            editingTransfer.PersonName = null;
+        }
+    }
+
     private void OpenAddModal()
     {
         editingTransfer = new MbwayTransfer
         {
             Date = DateTime.UtcNow
         };
+        isMember = false;
         memberSearchTerm = string.Empty;
         filteredMembers = new();
         showModal = true;
@@ -377,8 +447,10 @@ else
             Phone = transfer.Phone,
             Description = transfer.Description,
             MemberUserId = transfer.MemberUserId,
+            PersonName = transfer.PersonName,
             FiscalYearId = transfer.FiscalYearId
         };
+        isMember = !string.IsNullOrEmpty(transfer.MemberUserId);
         memberSearchTerm = string.Empty;
         filteredMembers = new();
         showModal = true;
@@ -386,17 +458,8 @@ else
 
     private async Task SaveTransfer()
     {
-        if (editingTransfer == null || editingTransfer.Amount <= 0)
-        {
-            errorMessage = "Preencha todos os campos obrigatórios.";
-            return;
-        }
-
-        if (string.IsNullOrEmpty(editingTransfer.MemberUserId))
-        {
-            errorMessage = "Selecione um membro.";
-            return;
-        }
+        if (editingTransfer == null) return;
+        if (editForm?.EditContext?.Validate() != true) return;
 
         isSaving = true;
         try
@@ -454,6 +517,18 @@ else
         {
             errorMessage = $"Erro ao eliminar: {ex.Message}";
         }
+    }
+
+    private void OnTransferSearch(string term)
+    {
+        transferSearchTerm = term;
+        currentPage = 1;
+    }
+
+    private void OnTransferSearchClear()
+    {
+        transferSearchTerm = string.Empty;
+        currentPage = 1;
     }
 
     private void ChangePage(int newPage)

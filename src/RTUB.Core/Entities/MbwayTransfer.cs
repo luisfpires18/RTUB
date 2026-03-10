@@ -12,19 +12,26 @@ public class MbwayTransfer : BaseEntity
     public DateTime Date { get; set; }
 
     [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "O montante deve ser superior a 0€.")]
     public decimal Amount { get; set; }
 
     [MaxLength(500)]
     public string? Description { get; set; }
 
     /// <summary>
-    /// The member who made the transfer
+    /// Free-text name when the sender is not a tuna member.
+    /// Mutually exclusive with MemberUserId.
     /// </summary>
-    [Required(ErrorMessage = "O membro é obrigatório.")]
-    public string MemberUserId { get; set; } = string.Empty;
+    [MaxLength(200)]
+    public string? PersonName { get; set; }
+
+    /// <summary>
+    /// The member who made the transfer (null when PersonName is used instead).
+    /// </summary>
+    public string? MemberUserId { get; set; }
 
     [ForeignKey(nameof(MemberUserId))]
-    public virtual ApplicationUser Member { get; set; } = null!;
+    public virtual ApplicationUser? Member { get; set; }
 
     /// <summary>
     /// Phone number associated with the transfer (for reference)

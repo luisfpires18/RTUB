@@ -135,6 +135,11 @@ public class MeetingAtaService : IMeetingAtaService
                 meeting.DelegatedAtaWriterMemberId == userId)
                 return true;
 
+            // Tuno representative can create/edit ATA
+            if (!string.IsNullOrEmpty(meeting.TunoRepresentativeUserId) &&
+                meeting.TunoRepresentativeUserId == userId)
+                return true;
+
             // If ATA exists, check if user is the secretary (FirstSecretaryUserId)
             if (existingAta != null && !string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
                 existingAta.FirstSecretaryUserId == userId)
