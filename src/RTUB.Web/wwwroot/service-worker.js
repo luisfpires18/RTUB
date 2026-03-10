@@ -7,7 +7,7 @@
 
 // Cache version - increment when updating service worker
 // Bumping this forces old caches to be deleted and new assets to be fetched
-const CACHE_VERSION = 'rtub-v2.3.1';
+const CACHE_VERSION = 'rtub-v2.4.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
