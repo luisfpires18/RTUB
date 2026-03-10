@@ -1,0 +1,93 @@
+@using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JSRuntime
+@inject ILogger<PlayStorePrompt> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (ShowPopup)
+{
+    <div class="login-popup-overlay">
+        <div class="login-popup-card" @onclick:stopPropagation="true">
+            <div class="login-popup-icon">
+                <i class="bi bi-download" aria-hidden="true"></i>
+            </div>
+            <h3 class="login-popup-title">Descarrega a App!</h3>
+            <p class="login-popup-message">
+                Para uma melhor experiência, descarrega a aplicação RTUB na Play Store.
+            </p>
+            <div class="login-popup-buttons d-flex gap-2 justify-content-center">
+                <button class="btn btn-outline-secondary" @onclick="HandleDismiss" aria-label="Agora não">
+                    Agora não
+                </button>
+                <button class="btn btn-primary btn-primary-purple" @onclick="HandleDownload" aria-label="Descarregar">
+                    <i class="bi bi-google-play me-1"></i>Descarregar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private const string PlayStoreUrl = "https://play.google.com/store/apps/details?id=ipb.pt.rtub.app";
+
+    private bool ShowPopup { get; set; } = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                if (!(authState.User.Identity?.IsAuthenticated ?? false))
+                {
+                    return;
+                }
+
+                var shouldShow = await JSRuntime.InvokeAsync<bool>("pwaHelper.shouldShowPlayStorePrompt");
+                if (shouldShow)
+                {
+                    ShowPopup = true;
+                    StateHasChanged();
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking if Play Store prompt should be shown");
+            }
+        }
+    }
+
+    private async Task HandleDownload()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("pwaHelper.dismissPlayStorePrompt");
+            await JSRuntime.InvokeVoidAsync("open", PlayStoreUrl, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening Play Store link");
+        }
+
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleDismiss()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("pwaHelper.dismissPlayStorePrompt");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error dismissing Play Store prompt");
+        }
+
+        ShowPopup = false;
+        StateHasChanged();
+    }
+}

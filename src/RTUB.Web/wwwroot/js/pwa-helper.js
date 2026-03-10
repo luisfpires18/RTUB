@@ -311,6 +311,41 @@ window.pwaHelper = {
     },
 
     /**
+     * Returns the Android client mode: "TWA", "PWA", or "Browser".
+     * Returns null if not an Android device.
+     */
+    getAndroidClientMode: function() {
+        var ua = navigator.userAgent || '';
+        if (!ua.includes('Android')) return null;
+        if (this.isTwaMode()) return 'TWA';
+        if (this.isPwaMode()) return 'PWA';
+        return 'Browser';
+    },
+
+    /**
+     * Checks if a Play Store download prompt should be shown.
+     * Returns true only for Android users NOT in TWA mode who haven't dismissed it.
+     */
+    shouldShowPlayStorePrompt: function() {
+        var ua = navigator.userAgent || '';
+        if (!ua.includes('Android')) return false;
+        if (this.isTwaMode()) return false;
+        try {
+            if (localStorage.getItem('rtub-playstore-prompt-dismissed') === 'true') return false;
+        } catch (e) { }
+        return true;
+    },
+
+    /**
+     * Marks the Play Store prompt as dismissed in localStorage
+     */
+    dismissPlayStorePrompt: function() {
+        try {
+            localStorage.setItem('rtub-playstore-prompt-dismissed', 'true');
+        } catch (e) { }
+    },
+
+    /**
      * Applies a CSS class on the document element to allow PWA-specific styling
      */
     applyPwaModeClass: function() {

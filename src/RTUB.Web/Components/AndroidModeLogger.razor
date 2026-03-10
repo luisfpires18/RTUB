@@ -1,0 +1,47 @@
+@namespace RTUB.Components
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Caching.Memory
+@using Microsoft.Extensions.Logging
+@inject RTUB.Web.Interop.PwaHelperInterop PwaHelper
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IMemoryCache Cache
+@inject ILogger<AndroidModeLogger> Logger
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userName = authState.User?.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(userName) || !(authState.User?.Identity?.IsAuthenticated ?? false))
+                return;
+
+            var cacheKey = $"android-mode-log:{userName}";
+            if (Cache.TryGetValue(cacheKey, out _))
+                return;
+
+            var mode = await PwaHelper.GetAndroidClientModeAsync();
+            if (mode == null)
+                return; // Not Android
+
+            Logger.LogInformation(
+                "User {UserName} connected from Android - {ClientMode}",
+                userName, mode);
+
+            Cache.Set(cacheKey, true, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+            });
+        }
+        catch (TaskCanceledException) { }
+        catch (Microsoft.JSInterop.JSDisconnectedException) { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error detecting Android client mode");
+        }
+    }
+}

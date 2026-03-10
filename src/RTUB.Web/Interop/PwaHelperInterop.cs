@@ -32,6 +32,22 @@ public class PwaHelperInterop
     }
 
     /// <summary>
+    /// Returns the Android client mode: "TWA", "PWA", or "Browser".
+    /// Returns null if not an Android device.
+    /// </summary>
+    public async Task<string?> GetAndroidClientModeAsync()
+    {
+        try
+        {
+            return await _jsRuntime.InvokeAsync<string?>("pwaHelper.getAndroidClientMode");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Checks if the app should use mobile behavior (PWA or mobile browser)
     /// </summary>
     /// <returns>True if running as PWA or on mobile browser, false for desktop web</returns>
