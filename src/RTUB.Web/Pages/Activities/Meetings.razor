@@ -4059,11 +4059,12 @@ else
         // Owners can view all atas
         if (isOwner) return true;
         
-        // For CV meetings, only Veteranos, Tunossauros, and Magisters can view
+        // For CV meetings, only Veteranos, Tunossauros, Magisters, and the meeting's Tuno Representative can view
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
             var role = currentUser.CurrentRole;
-            return role == "VETERANO" || role == "TUNOSSAURO" || (currentUser.Positions?.Contains(Position.Magister) ?? false);
+            return role == "VETERANO" || role == "TUNOSSAURO" || (currentUser.Positions?.Contains(Position.Magister) ?? false)
+                || meeting.TunoRepresentativeUserId == currentUser.Id;
         }
         
         // For AG meetings, all except Leitão can view
