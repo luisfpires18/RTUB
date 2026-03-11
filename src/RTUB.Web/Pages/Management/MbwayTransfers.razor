@@ -65,19 +65,17 @@ else if (!transfers.Any())
 }
 else
 {
-    <div class="mb-4">
-        <div class="card summary-card">
-            <div class="card-body py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-muted d-block mb-1">Total de Transferências</small>
-                        <h4 class="text-success mb-0">€@transfers.Sum(t => t.Amount).ToString("F2")</h4>
-                    </div>
-                    <div class="text-muted">
-                        <i class="bi bi-phone fs-1"></i>
+    <div class="d-flex justify-content-center mb-4">
+        <div class="stats-grid">
+            @foreach (var group in transfers.GroupBy(t => t.TransferTo).OrderBy(g => g.Key))
+            {
+                <div class="card" @key="group.Key">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">@group.Key</h6>
+                        <h3 class="card-title text-success">€@group.Sum(t => t.Amount).ToString("F2")</h3>
                     </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 
