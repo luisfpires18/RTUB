@@ -164,8 +164,9 @@
          * @returns {boolean} True if the notification matches the tag
          */
         _matchesTag(notification, tag) {
-            return notification.tag === tag || 
-                   (notification.data && notification.data.tag === tag);
+            return notification.tag === tag ||
+                   (notification.data && notification.data.tag === tag) ||
+                   (notification.data && notification.data.baseTag === tag);
         },
 
         /**
@@ -176,7 +177,8 @@
          */
         _matchesTagPrefix(notification, prefix) {
             return (notification.tag && notification.tag.startsWith(prefix)) ||
-                   (notification.data && notification.data.tag && notification.data.tag.startsWith(prefix));
+                   (notification.data && notification.data.tag && notification.data.tag.startsWith(prefix)) ||
+                   (notification.data && notification.data.baseTag && notification.data.baseTag.startsWith(prefix));
         }
     };
 })();

@@ -48,6 +48,7 @@ public static class AuditConfiguration
         "MemberStatus",
         "BetOption",
         "MeetingAtaAgendaPoint",
+        "MeetingAtaConfirmation",
         "InventoryItem",
         "Character",
         "StageProgress",
