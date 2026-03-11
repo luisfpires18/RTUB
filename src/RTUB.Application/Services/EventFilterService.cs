@@ -53,14 +53,15 @@ public class EventFilterService : IEventFilterService
         var filteredList = filtered.ToList();
 
         // Split into future and past events
+        // For date-range events, use EndDate as the effective end; event is past only after the last day
         var today = DateTime.Today;
         var futureEvents = filteredList
-            .Where(e => e.Date >= today)
+            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) >= today)
             .OrderBy(e => e.Date)
             .ToList();
 
         // Filter previous events (also apply search)
-        var previousFiltered = filteredList.Where(e => e.Date < today);
+        var previousFiltered = filteredList.Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < today);
 
         // Apply search filter to previous events
         if (!string.IsNullOrWhiteSpace(previousEventsSearch))

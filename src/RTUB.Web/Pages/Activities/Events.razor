@@ -2004,7 +2004,7 @@ else
         
         if (allEvents != null)
         {
-            var pastEvents = allEvents.Where(e => e.Date < DateTime.Today).ToList();
+            var pastEvents = allEvents.Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < DateTime.Today).ToList();
             var tasks = pastEvents.Select(async evt =>
             {
                 var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
@@ -2028,7 +2028,7 @@ else
         
         if (allEvents != null)
         {
-            var pastFestivalEvents = allEvents.Where(e => e.Date < DateTime.Today && e.Type == EventType.Festival).ToList();
+            var pastFestivalEvents = allEvents.Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < DateTime.Today && e.Type == EventType.Festival).ToList();
             var tasks = pastFestivalEvents.Select(async evt =>
             {
                 var trophies = await TrophyService.GetByEventIdAsync(evt.Id);

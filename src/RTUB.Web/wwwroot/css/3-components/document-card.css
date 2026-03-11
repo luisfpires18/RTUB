@@ -69,6 +69,8 @@
   -webkit-box-orient: vertical;
   line-height: 1.4;
   min-height: 2.8em; /* Reserve space for 2 lines */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .document-details {
