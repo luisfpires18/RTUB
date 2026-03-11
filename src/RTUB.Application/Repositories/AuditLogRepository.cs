@@ -57,16 +57,14 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
     public async Task DeleteAllAsync()
     {
         using var context = CreateContext();
-        var allLogs = await context.Set<AuditLog>().ToListAsync();
-        context.Set<AuditLog>().RemoveRange(allLogs);
-        await context.SaveChangesAsync();
+        await context.Set<AuditLog>().ExecuteDeleteAsync();
     }
 
     public async Task DeleteByUserAsync(string userName)
     {
         using var context = CreateContext();
-        var userLogs = await context.Set<AuditLog>().Where(a => a.UserName == userName).ToListAsync();
-        context.Set<AuditLog>().RemoveRange(userLogs);
-        await context.SaveChangesAsync();
+        await context.Set<AuditLog>()
+            .Where(a => a.UserName == userName)
+            .ExecuteDeleteAsync();
     }
 }

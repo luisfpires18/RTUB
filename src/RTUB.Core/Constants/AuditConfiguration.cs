@@ -32,6 +32,15 @@ public static class AuditConfiguration
     /// Entity types excluded from Modified audit logging only.
     /// Created and Deleted actions are still logged.
     /// </summary>
+    /// <summary>
+    /// Entity types that mark an audit log entry as a critical action.
+    /// Deletions of any entity are also critical regardless of this list.
+    /// </summary>
+    public static readonly HashSet<string> CriticalEntityTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "RoleAssignment", "Report", "ApplicationUser"
+    };
+
     public static readonly HashSet<string> ModifiedExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "ForgedWeapon",

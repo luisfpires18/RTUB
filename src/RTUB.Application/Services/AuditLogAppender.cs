@@ -2,140 +2,120 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for creating audit log entries from entity changes
-/// Extracted from ApplicationDbContext to follow Single Responsibility Principle
+/// Service for creating audit log entries from entity changes.
+/// Extracted from ApplicationDbContext to follow Single Responsibility Principle.
 /// </summary>
 public class AuditLogAppender : IAuditLogAppender
 {
-    // Critical entities that should always be flagged in audit logs
-    private static readonly string[] CriticalEntities = { "RoleAssignment", "Report", "ApplicationUser", "FiscalYear" };
+    // Typed change record — replaces anonymous types, eliminates reflection in ResolveUserIdsToNicknames.
+    // Serializes identically to the previous anonymous { Old, New } shape.
+    private record ChangeEntry(object? Old, object? New);
 
-    // Constants for audit logging
-    private const int BinaryDataTruncateThreshold = 100;
+    // --- Static readonly config (allocated once, not per SaveChangesAsync call) ---
+
+    private static readonly HashSet<string> ExcludedBaseFields = new(StringComparer.Ordinal)
+    {
+        "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
+        "LastNotificationSent", // Question notification tracking — not business data
+        "IsAwaitingUserReply",  // Question workflow state — not business data
+        "Status"                // Question status changes handled via entity display name
+    };
+
+    // Same as above plus "DeletedAt" — used for soft-delete Modified entries
+    private static readonly HashSet<string> SoftDeleteExcludedFields = new(ExcludedBaseFields, StringComparer.Ordinal)
+    {
+        "DeletedAt"
+    };
+
+    private static readonly HashSet<string> ExcludedUserFields = new(StringComparer.Ordinal)
+    {
+        "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
+        "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
+        "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
+        "LastLoginDate",  // Exclude login tracking — already logged separately
+        "FidelisBalance"  // High-frequency balance updates — not business-critical
+    };
+
+    private static readonly HashSet<string> CriticalUserFields = new(StringComparer.Ordinal)
+    {
+        "PasswordHash", "SecurityStamp", "Email", "UserName", "PhoneNumber"
+    };
+
+    // Entity types and their UserId fields that should be resolved to nicknames
+    private static readonly Dictionary<string, string[]> EntityUserIdFields =
+        new(StringComparer.Ordinal)
+        {
+            ["LeaderboardComment"]     = ["AuthorId", "TargetUserId"],
+            ["LeaderboardCommentLike"] = ["UserId"],
+            ["Post"]                   = ["AuthorId"],
+            ["Comment"]                = ["AuthorId"],
+            ["PushSubscription"]       = ["UserId"],
+            ["Question"]               = ["AuthorId", "AssignedMemberId"]
+        };
+
+    // ---------------------------------------------------------------------------
 
     public AuditLog? CreateAuditLog(EntityEntry<BaseEntity> entry, string action, string? username, string? userId, Func<string?, string?> resolveUserIdToNickname, Func<EntityEntry<BaseEntity>, string?> getEntityDisplayName)
     {
         var entityType = entry.Entity.GetType().Name;
-        // For created entities, EntityId will be 0 and will be updated after SaveChanges
         var entityId = entry.Entity.Id == 0 ? (int?)null : entry.Entity.Id;
         var changes = new Dictionary<string, object?>();
 
-        // Fields to exclude from logging (metadata fields)
-        var excludedFields = new HashSet<string>
-        {
-            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
-            "LastNotificationSent", // Question notification tracking - not business data
-            "IsAwaitingUserReply", // Question workflow state - not business data
-            "Status" // Question status changes are handled via entity display name
-        };
-
-        // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
-        if (action == "Deleted" && entry.State == EntityState.Modified)
-        {
-            excludedFields.Add("DeletedAt");
-        }
+        var excludedFields = action == "Deleted" && entry.State == EntityState.Modified
+            ? SoftDeleteExcludedFields
+            : ExcludedBaseFields;
 
         if (action == "Modified")
         {
-            // Only log properties that actually changed
             foreach (var property in entry.Properties)
             {
-                if (property.IsModified && !excludedFields.Contains(property.Metadata.Name))
-                {
-                    var oldValue = property.OriginalValue;
-                    var newValue = property.CurrentValue;
+                if (!property.IsModified || excludedFields.Contains(property.Metadata.Name))
+                    continue;
 
-                    // Only include if values are actually different
-                    if (!AreValuesEqual(oldValue, newValue))
-                    {
-                        // Handle all binary data generically (not just large ones)
-                        if (newValue is byte[] newBytes)
-                        {
-                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0
-                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length)
-                                : null;
-                            var newDescription = GetBinaryDataDescription(property.Metadata.Name, newBytes.Length);
-
-                            changes[property.Metadata.Name] = new
-                            {
-                                Old = oldDescription,
-                                New = newDescription
-                            };
-                        }
-                        else
-                        {
-                            changes[property.Metadata.Name] = new
-                            {
-                                Old = oldValue,
-                                New = newValue
-                            };
-                        }
-                    }
-                }
+                if (!AreValuesEqual(property.OriginalValue, property.CurrentValue))
+                    changes[property.Metadata.Name] = BuildPropertyChange(property.Metadata.Name, property.OriginalValue, property.CurrentValue);
             }
 
-            // Skip audit log creation if there are no meaningful changes for Modified actions
-            if (!changes.Any())
-            {
+            if (changes.Count == 0)
                 return null;
-            }
         }
         else if (action == "Deleted")
         {
-            // For deletions (both hard and soft), log all non-excluded fields for context
             foreach (var property in entry.Properties)
             {
-                if (!excludedFields.Contains(property.Metadata.Name))
-                {
-                    // For soft deletes, use CurrentValue; for hard deletes, use OriginalValue
-                    var value = entry.State == EntityState.Modified ? property.CurrentValue : property.OriginalValue;
-                    // Skip null and binary data
-                    if (value != null && !(value is byte[]))
-                    {
-                        changes[property.Metadata.Name] = value;
-                    }
-                }
+                if (excludedFields.Contains(property.Metadata.Name))
+                    continue;
+
+                // For soft deletes use CurrentValue; for hard deletes use OriginalValue
+                var value = entry.State == EntityState.Modified ? property.CurrentValue : property.OriginalValue;
+                if (value != null && value is not byte[])
+                    changes[property.Metadata.Name] = value;
             }
         }
         else // Created
         {
-            // For created entities, log all non-excluded fields
             foreach (var property in entry.Properties)
             {
-                if (!excludedFields.Contains(property.Metadata.Name))
-                {
-                    var value = property.CurrentValue;
+                if (excludedFields.Contains(property.Metadata.Name))
+                    continue;
 
-                    // Skip empty strings and null values
-                    if (value != null)
-                    {
-                        if (value is string str && string.IsNullOrWhiteSpace(str))
-                            continue;
+                var value = property.CurrentValue;
+                if (value == null) continue;
+                if (value is string str && string.IsNullOrWhiteSpace(str)) continue;
 
-                        // Truncate binary data with descriptive message
-                        if (value is byte[] bytes && bytes.Length > 0)
-                        {
-                            changes[property.Metadata.Name] = GetBinaryDataDescription(property.Metadata.Name, bytes.Length);
-                        }
-                        else
-                        {
-                            changes[property.Metadata.Name] = value;
-                        }
-                    }
-                }
+                changes[property.Metadata.Name] = value is byte[] bytes && bytes.Length > 0
+                    ? GetBinaryDataDescription(property.Metadata.Name, bytes.Length)
+                    : value;
             }
         }
 
-        // Replace UserId with Nickname for specific entity types
-        ResolveUserIdsToNicknames(entry, changes, entityType, action, resolveUserIdToNickname);
-
-        var isCritical = IsCriticalAction(entityType, action);
-        var displayName = getEntityDisplayName(entry);
+        ResolveUserIdsToNicknames(changes, entityType, action, resolveUserIdToNickname);
 
         return new AuditLog
         {
@@ -145,156 +125,83 @@ public class AuditLogAppender : IAuditLogAppender
             UserId = userId,
             UserName = username,
             Timestamp = DateTime.UtcNow,
-            Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
-            IsCriticalAction = isCritical,
-            EntityDisplayName = displayName
+            Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
+            IsCriticalAction = IsCriticalAction(entityType, action),
+            EntityDisplayName = getEntityDisplayName(entry)
         };
     }
 
     public AuditLog? CreateAuditLogForUser(EntityEntry<ApplicationUser> entry, string action, string? username, string? userId)
     {
+        var modifiedUser = entry.Entity;
         var changes = new Dictionary<string, object?>();
         var isCriticalChange = false;
 
-        // Get the modified user's information for identification
-        var modifiedUser = entry.Entity;
-        var modifiedUserId = modifiedUser.Id;
-        var modifiedUserName = modifiedUser.UserName;
-        var modifiedUserEmail = modifiedUser.Email;
-
-        // Fields to exclude from logging (sensitive or infrastructure fields)
-        var excludedFields = new HashSet<string>
-        {
-            "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
-            "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
-            "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
-            "LastLoginDate", // Exclude login tracking - already logged separately
-            "FidelisBalance" // High-frequency balance updates - not business-critical
-        };
-
-        // Critical fields that should mark the action as critical (even if not logged)
-        var criticalFields = new HashSet<string>
-        {
-            "PasswordHash", "SecurityStamp", "Email", "UserName", "PhoneNumber"
-        };
-
         if (action == "Modified")
         {
-            // Add target user identification at the beginning for easy reference
-            changes["_TargetUser"] = $"{modifiedUserName}";
+            changes["_TargetUser"] = modifiedUser.UserName;
 
-            // Track which critical fields were modified (for transparency without exposing values)
             var criticalFieldsModified = new List<string>();
-
-            // First pass: Check if any modified property is a critical field
             foreach (var property in entry.Properties)
             {
-                if (property.IsModified && criticalFields.Contains(property.Metadata.Name))
-                {
-                    var oldValue = property.OriginalValue;
-                    var newValue = property.CurrentValue;
+                if (!property.IsModified) continue;
 
-                    // Only mark as critical if values actually changed
-                    if (!AreValuesEqual(oldValue, newValue))
-                    {
-                        isCriticalChange = true;
-                        criticalFieldsModified.Add(property.Metadata.Name);
-                    }
+                if (CriticalUserFields.Contains(property.Metadata.Name) &&
+                    !AreValuesEqual(property.OriginalValue, property.CurrentValue))
+                {
+                    isCriticalChange = true;
+                    criticalFieldsModified.Add(property.Metadata.Name);
                 }
             }
 
-            // Add critical fields metadata if any were modified
-            if (criticalFieldsModified.Any())
-            {
+            if (criticalFieldsModified.Count > 0)
                 changes["_CriticalFieldsModified"] = criticalFieldsModified;
-            }
 
-            // Second pass: Log properties that actually changed (excluding sensitive fields)
             foreach (var property in entry.Properties)
             {
-                if (property.IsModified && !excludedFields.Contains(property.Metadata.Name))
-                {
-                    var oldValue = property.OriginalValue;
-                    var newValue = property.CurrentValue;
+                if (!property.IsModified || ExcludedUserFields.Contains(property.Metadata.Name))
+                    continue;
 
-                    // Only include if values are actually different
-                    if (!AreValuesEqual(oldValue, newValue))
-                    {
-                        // Handle binary data (e.g., ProfilePictureData)
-                        if (newValue is byte[] newBytes)
-                        {
-                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0
-                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length)
-                                : null;
-                            var newDescription = GetBinaryDataDescription(property.Metadata.Name, newBytes.Length);
-
-                            changes[property.Metadata.Name] = new
-                            {
-                                Old = oldDescription,
-                                New = newDescription
-                            };
-                        }
-                        else
-                        {
-                            changes[property.Metadata.Name] = new
-                            {
-                                Old = oldValue,
-                                New = newValue
-                            };
-                        }
-                    }
-                }
+                if (!AreValuesEqual(property.OriginalValue, property.CurrentValue))
+                    changes[property.Metadata.Name] = BuildPropertyChange(property.Metadata.Name, property.OriginalValue, property.CurrentValue);
             }
+
+            // _TargetUser is always present (count == 1); skip if nothing else meaningful logged
+            if (changes.Count <= 1 && !isCriticalChange)
+                return null;
         }
         else if (action == "Deleted")
         {
-            // Add target user identification for deletions
+            isCriticalChange = true;
             changes["_TargetUser"] = new
             {
-                UserId = modifiedUserId,
-                UserName = modifiedUserName,
-                Email = modifiedUserEmail
+                UserId = modifiedUser.Id,
+                UserName = modifiedUser.UserName,
+                Email = modifiedUser.Email
             };
 
-            // For deletions, log all non-excluded fields for context
-            // User deletions are always critical
-            isCriticalChange = true;
             foreach (var property in entry.Properties)
             {
-                if (!excludedFields.Contains(property.Metadata.Name))
-                {
-                    var value = property.CurrentValue;
-                    // Skip null and binary data
-                    if (value != null && !(value is byte[]))
-                    {
-                        changes[property.Metadata.Name] = value;
-                    }
-                }
+                if (ExcludedUserFields.Contains(property.Metadata.Name))
+                    continue;
+
+                var value = property.CurrentValue;
+                if (value != null && value is not byte[])
+                    changes[property.Metadata.Name] = value;
             }
         }
-
-        // Skip audit log if there are no meaningful changes to log (for Modified actions only)
-        // Note: changes.Count > 1 because _TargetUser is always added
-        // However, we still create an audit log if it's a critical change even if no values are logged
-        if (action == "Modified" && changes.Count <= 1 && !isCriticalChange)
-        {
-            return null;
-        }
-
-        // Use the modified user's username as the display name
-        var displayName = modifiedUserName;
 
         return new AuditLog
         {
             EntityType = "ApplicationUser",
-            EntityId = null, // ApplicationUser uses string IDs (GUID), EntityId is int? for BaseEntity only
+            EntityId = null,
             Action = action,
             UserId = userId,
             UserName = username,
             Timestamp = DateTime.UtcNow,
-            Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
+            Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCriticalChange,
-            EntityDisplayName = displayName
+            EntityDisplayName = modifiedUser.UserName
         };
     }
 
@@ -318,192 +225,120 @@ public class AuditLogAppender : IAuditLogAppender
         };
     }
 
+    // --- Private helpers ---
+
+    /// <summary>
+    /// Builds a ChangeEntry for a modified property, with special handling for binary data.
+    /// </summary>
+    private ChangeEntry BuildPropertyChange(string fieldName, object? oldValue, object? newValue)
+    {
+        if (newValue is byte[] newBytes)
+        {
+            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0
+                ? GetBinaryDataDescription(fieldName, oldBytes.Length)
+                : null;
+            return new ChangeEntry(oldDescription, GetBinaryDataDescription(fieldName, newBytes.Length));
+        }
+        return new ChangeEntry(oldValue, newValue);
+    }
+
     /// <summary>
     /// Replaces UserId fields with user nicknames for better readability in audit logs.
-    /// Applies to LeaderboardComment, Post, Comment, and PushSubscription entities.
     /// </summary>
-    private void ResolveUserIdsToNicknames(
-        EntityEntry entry,
+    private static void ResolveUserIdsToNicknames(
         Dictionary<string, object?> changes,
         string entityType,
         string action,
         Func<string?, string?> resolveUserIdToNickname)
     {
-        // List of entity types and their UserId fields that should be resolved to nicknames
-        var entityUserIdFields = new Dictionary<string, List<string>>
-        {
-            ["LeaderboardComment"] = new List<string> { "AuthorId", "TargetUserId" },
-            ["LeaderboardCommentLike"] = new List<string> { "UserId" },
-            ["Post"] = new List<string> { "AuthorId" },
-            ["Comment"] = new List<string> { "AuthorId" },
-            ["PushSubscription"] = new List<string> { "UserId" },
-            ["Question"] = new List<string> { "AuthorId", "AssignedMemberId" }
-        };
-
-        if (!entityUserIdFields.ContainsKey(entityType))
+        if (!EntityUserIdFields.TryGetValue(entityType, out var fieldsToResolve))
             return;
-
-        var fieldsToResolve = entityUserIdFields[entityType];
 
         foreach (var fieldName in fieldsToResolve)
         {
-            if (!changes.ContainsKey(fieldName))
+            if (!changes.TryGetValue(fieldName, out var changeValue))
                 continue;
 
-            var changeValue = changes[fieldName];
-
-            if (action == "Modified")
+            if (action == "Modified" && changeValue is ChangeEntry entry)
             {
-                // For modified entities, changeValue is an object with Old and New properties
-                if (changeValue is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
-                {
-                    var oldUserId = jsonElement.GetProperty("Old").GetString();
-                    var newUserId = jsonElement.GetProperty("New").GetString();
-
-                    var oldNickname = resolveUserIdToNickname(oldUserId);
-                    var newNickname = resolveUserIdToNickname(newUserId);
-
-                    changes[fieldName] = new
-                    {
-                        Old = oldNickname ?? oldUserId,
-                        New = newNickname ?? newUserId
-                    };
-                }
-                else
-                {
-                    // Handle as anonymous type (most common case)
-                    try
-                    {
-                        var oldProp = changeValue?.GetType().GetProperty("Old");
-                        var newProp = changeValue?.GetType().GetProperty("New");
-
-                        if (oldProp != null && newProp != null)
-                        {
-                            var oldUserId = oldProp.GetValue(changeValue)?.ToString();
-                            var newUserId = newProp.GetValue(changeValue)?.ToString();
-
-                            var oldNickname = resolveUserIdToNickname(oldUserId);
-                            var newNickname = resolveUserIdToNickname(newUserId);
-
-                            changes[fieldName] = new
-                            {
-                                Old = oldNickname ?? oldUserId,
-                                New = newNickname ?? newUserId
-                            };
-                        }
-                    }
-                    catch
-                    {
-                        // If we can't parse it, leave as is
-                    }
-                }
+                changes[fieldName] = new ChangeEntry(
+                    resolveUserIdToNickname(entry.Old?.ToString()) ?? entry.Old?.ToString(),
+                    resolveUserIdToNickname(entry.New?.ToString()) ?? entry.New?.ToString()
+                );
             }
             else
             {
-                // For created/deleted entities, changeValue is a string (the UserId)
-                var userId = changeValue?.ToString();
-                var nickname = resolveUserIdToNickname(userId);
-                changes[fieldName] = nickname ?? userId;
+                var id = changeValue?.ToString();
+                changes[fieldName] = resolveUserIdToNickname(id) ?? id;
             }
         }
     }
 
-    private string GetBinaryDataDescription(string fieldName, int byteCount)
+    private static string GetBinaryDataDescription(string? fieldName, int byteCount)
     {
-        // Provide user-friendly descriptions for common binary field types
-        var lowerFieldName = fieldName.ToLowerInvariant();
+        var lower = fieldName?.ToLowerInvariant() ?? string.Empty;
 
-        if (lowerFieldName.Contains("picture") || lowerFieldName.Contains("photo") || lowerFieldName.Contains("avatar"))
-        {
-            return $"[Picture uploaded: {FormatBytes(byteCount)}]";
-        }
-        else if (lowerFieldName.Contains("image"))
-        {
-            return $"[Image uploaded: {FormatBytes(byteCount)}]";
-        }
-        else if (lowerFieldName.Contains("file") || lowerFieldName.Contains("document") || lowerFieldName.Contains("pdf"))
-        {
-            return $"[File uploaded: {FormatBytes(byteCount)}]";
-        }
-        else
-        {
-            return $"[Binary data: {FormatBytes(byteCount)}]";
-        }
+        var label = (lower.Contains("picture") || lower.Contains("photo") || lower.Contains("avatar")) ? "Picture" :
+                    lower.Contains("image") ? "Image" :
+                    (lower.Contains("file") || lower.Contains("document") || lower.Contains("pdf")) ? "File" :
+                    "Binary data";
+
+        return $"[{label} uploaded: {FormatBytes(byteCount)}]";
     }
 
-    private string FormatBytes(int bytes)
+    private static string FormatBytes(int bytes) => bytes switch
     {
-        if (bytes < 1024)
-            return $"{bytes} bytes";
-        else if (bytes < 1024 * 1024)
-            return $"{bytes / 1024} KB";
-        else
-            return $"{bytes / (1024 * 1024)} MB";
-    }
+        < 1024 => $"{bytes} bytes",
+        < 1024 * 1024 => $"{bytes / 1024} KB",
+        _ => $"{bytes / (1024 * 1024)} MB"
+    };
 
     /// <summary>
-    /// Compares two values for semantic equality, properly handling collections
+    /// Compares two values for semantic equality, handling collections and JSON strings.
     /// </summary>
-    private bool AreValuesEqual(object? oldValue, object? newValue)
+    private static bool AreValuesEqual(object? oldValue, object? newValue)
     {
-        // Both null or same reference
-        if (ReferenceEquals(oldValue, newValue))
-            return true;
+        if (ReferenceEquals(oldValue, newValue)) return true;
+        if (oldValue is null || newValue is null) return false;
 
-        // Handle collection comparisons (e.g., List<T> for primitive collections)
-        if (oldValue is System.Collections.IEnumerable oldEnumerable &&
-            newValue is System.Collections.IEnumerable newEnumerable &&
-            !(oldValue is string) && !(newValue is string))
+        // Collection comparison (e.g. List<T> for primitive collections)
+        if (oldValue is System.Collections.IEnumerable oldEnum &&
+            newValue is System.Collections.IEnumerable newEnum &&
+            oldValue is not string && newValue is not string)
         {
-            var oldList = oldEnumerable.Cast<object>().ToList();
-            var newList = newEnumerable.Cast<object>().ToList();
-
-            // Compare counts first
-            if (oldList.Count != newList.Count)
-                return false;
-
-            // Compare elements
-            return oldList.SequenceEqual(newList);
+            var oldList = oldEnum.Cast<object>().ToList();
+            var newList = newEnum.Cast<object>().ToList();
+            return oldList.Count == newList.Count && oldList.SequenceEqual(newList);
         }
 
-        // Special handling for strings that might be JSON
-        if (oldValue is string || newValue is string)
+        // String comparison — only attempt JSON parse if both look like JSON objects/arrays
+        if (oldValue is string oldStr && newValue is string newStr)
         {
-            // Convert null to empty string for comparison
-            var oldStr = oldValue as string ?? string.Empty;
-            var newStr = newValue as string ?? string.Empty;
+            if (oldStr == newStr) return true;
 
-            // Standard string equality first
-            if (oldStr == newStr)
-                return true;
+            var oldIsJson = oldStr.Length > 0 && (oldStr[0] == '{' || oldStr[0] == '[');
+            var newIsJson = newStr.Length > 0 && (newStr[0] == '{' || newStr[0] == '[');
 
-            // Try to parse as JSON and compare the deserialized objects
-            try
+            if (oldIsJson && newIsJson)
             {
-                // Handle the case where one is null/empty and the other is an empty JSON array/object
-                var oldIsEmpty = string.IsNullOrEmpty(oldStr);
-                var newIsEmpty = string.IsNullOrEmpty(newStr);
-                if (oldIsEmpty && newIsEmpty)
-                    return true;
+                try
+                {
+                    var o = JsonSerializer.Deserialize<object>(oldStr);
+                    var n = JsonSerializer.Deserialize<object>(newStr);
+                    return JsonSerializer.Serialize(o) == JsonSerializer.Serialize(n);
+                }
+                catch
+                {
+                    // Fall through to false
+                }
+            }
 
-                var oldJson = JsonSerializer.Deserialize<object>(oldStr);
-                var newJson = JsonSerializer.Deserialize<object>(newStr);
-                return JsonSerializer.Serialize(oldJson) == JsonSerializer.Serialize(newJson);
-            }
-            catch
-            {
-                // If JSON parsing fails, fall back to string comparison
-                return false;
-            }
+            return false;
         }
 
-        // Default equality comparison
         return Equals(oldValue, newValue);
     }
 
     private static bool IsCriticalAction(string entityType, string action)
-    {
-        return CriticalEntities.Contains(entityType) || action == "Deleted";
-    }
-
+        => AuditConfiguration.CriticalEntityTypes.Contains(entityType) || action == "Deleted";
 }
