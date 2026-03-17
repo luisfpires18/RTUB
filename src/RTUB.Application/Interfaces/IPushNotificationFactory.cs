@@ -69,6 +69,12 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification for new discussion comments.
+    /// Sent to the post owner and any previous commenters.
+    /// </summary>
+    SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification when someone enrolls in an event.
     /// Sent to all users enrolled in the event (WillAttend = true).
     /// </summary>

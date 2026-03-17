@@ -23,6 +23,7 @@ public class PostService : IPostService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IUserProfileService _userProfileService;
 
     public PostService(
         IPostRepository postRepository,
@@ -32,7 +33,8 @@ public class PostService : IPostService
         IEventMediaStorageService eventMediaStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IUserProfileService userProfileService)
     {
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
@@ -42,6 +44,7 @@ public class PostService : IPostService
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
+        _userProfileService = userProfileService;
     }
 
     public async Task<Post?> GetByIdAsync(int id)
@@ -88,11 +91,7 @@ public class PostService : IPostService
         {
             if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
             {
-                // Load author to get nickname (use Query to include navigation properties)
-                var authorUser = await _enrollmentRepository.QueryAsync(q => q
-                    .Where(e => e.UserId == authorId)
-                    .Select(e => e.User)
-                    .FirstOrDefaultAsync());
+                var authorUser = await _userProfileService.GetUserByIdAsync(authorId);
 
                 if (authorUser != null)
                 {

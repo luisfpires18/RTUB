@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -18,6 +20,11 @@ public class CommentService : ICommentService
     private readonly IPostRepository _postRepository;
     private readonly IDiscussionRepository _discussionRepository;
     private readonly IPostService _postService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IUserProfileService _userProfileService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CommentService(
         ICommentRepository commentRepository,
@@ -25,7 +32,12 @@ public class CommentService : ICommentService
         IEventMediaStorageService eventMediaStorageService,
         IPostRepository postRepository,
         IDiscussionRepository discussionRepository,
-        IPostService postService)
+        IPostService postService,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IEnrollmentRepository enrollmentRepository,
+        IUserProfileService userProfileService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _commentRepository = commentRepository;
         _commentImageRepository = commentImageRepository;
@@ -33,6 +45,11 @@ public class CommentService : ICommentService
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
         _postService = postService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _enrollmentRepository = enrollmentRepository;
+        _userProfileService = userProfileService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Comment?> GetByIdAsync(int id)
@@ -80,7 +97,57 @@ public class CommentService : ICommentService
         // Update post's last activity timestamp
         await _postService.UpdateLastActivityAsync(postId);
 
+        // Send push notifications to post owner + previous commenters
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId);
+            if (post != null)
+            {
+                var discussion = await _discussionRepository.GetByIdAsync(post.DiscussionId);
+                if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
+                {
+                    var authorUser = await _userProfileService.GetUserByIdAsync(authorId);
+                    if (authorUser != null)
+                    {
+                        var baseUrl = GetBaseUrl();
+                        var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
+                        var notification = _pushNotificationFactory.CreateDiscussionCommentNotification(
+                            discussion.Event, authorNickname, post.Title, baseUrl);
+
+                        var previousCommenterIds = await _commentRepository.QueryAsync(q => q
+                            .Where(c => c.PostId == postId && !c.IsDeleted && c.AuthorId != authorId)
+                            .Select(c => c.AuthorId)
+                            .Distinct()
+                            .ToListAsync());
+
+                        var recipientIds = new HashSet<string>(previousCommenterIds);
+                        if (post.AuthorId != authorId)
+                            recipientIds.Add(post.AuthorId);
+
+                        foreach (var userId in recipientIds)
+                        {
+                            await _pushNotificationService.SendToUserAsync(userId, notification);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Notification failure must not fail the operation
+        }
+
         return createdComment;
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 
     private async Task UploadCommentImagesAsync(int commentId, IReadOnlyList<IBrowserFile> files, int eventId)

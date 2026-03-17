@@ -61,8 +61,7 @@ public class EventStatisticsService : IEventStatisticsService
                     Trophies = eventTrophies
                 };
             })
-            .OrderByDescending(s => s.TrophyCount)
-            .ThenByDescending(s => s.EventDate)
+            .OrderByDescending(s => s.EventDate)
             .ToList();
 
         return groupedByEvent;

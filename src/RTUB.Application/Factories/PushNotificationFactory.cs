@@ -258,6 +258,28 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for new discussion comments.
+    /// </summary>
+    public SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(authorNickname);
+        ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventUrl = BuildEventUrl(baseUrl);
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Novo comentário de {authorNickname}",
+            Body = $"{postTitle} - {@event.Name}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventUrl,
+            Tag = $"event-discussion-{@event.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification when someone enrolls in an event.
     /// </summary>
     public SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName, string baseUrl)

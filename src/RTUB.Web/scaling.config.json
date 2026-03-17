@@ -308,7 +308,7 @@
       "piggies": {
         "statUpgradeStartLevel": 1000,
         "statUpgradeBaseCost": 1,
-        "statUpgradeCostEveryNLevels": 50,
+        "statUpgradeCostEveryNLevels": 500,
         "speedUpgradeStartLevel": 20,
         "critUpgradeStartLevel": 50,
         "powerStartLevel": 20,
