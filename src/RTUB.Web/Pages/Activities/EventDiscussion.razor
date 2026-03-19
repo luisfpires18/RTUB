@@ -16,6 +16,7 @@
 @inject IEventDiscussionService EventDiscussionService
 @inject IEventAuthorizationService EventAuthorizationService
 @inject ITransportationService TransportationService
+@inject IMentionService MentionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -579,7 +580,8 @@
             discussion = await DiscussionService.CreateForEventAsync(EventId);
         }
 
-        await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body, null, null, videos);
+        var postMentionsJson = await MentionService.ParseAndResolveAsync(body);
+        await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body, postMentionsJson, null, videos);
         await LoadPostsAsync();
         modals.Close(ModalType.CreatePost);
         StateHasChanged();
@@ -589,7 +591,8 @@
     {
         if (currentUser == null) return;
 
-        await CommentService.CreateAsync(postId, currentUser.Id, body, null, null);
+        var commentMentionsJson = await MentionService.ParseAndResolveAsync(body);
+        await CommentService.CreateAsync(postId, currentUser.Id, body, commentMentionsJson, null);
         await LoadCommentsForPost(postId);
 
         var count = await CommentService.GetCountByPostIdAsync(postId);

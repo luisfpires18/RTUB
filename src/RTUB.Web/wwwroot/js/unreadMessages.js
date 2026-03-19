@@ -7,6 +7,7 @@
     let isRegistered = false;
     let storedDotNetRef = null;
     let messageHandler = null;
+    let visibilityHandler = null;
 
     function attachHandler(dotNetRef) {
         // OPTIMIZATION: Check service worker support early
@@ -54,6 +55,16 @@
             } else {
                 attachHandler(dotNetRef);
             }
+
+            // Refresh badge when app becomes visible (user switches back from another app).
+            // This corrects any stale badge the service worker may have set while the app was backgrounded.
+            visibilityHandler = () => {
+                if (!document.hidden && storedDotNetRef) {
+                    storedDotNetRef.invokeMethodAsync('RefreshUnreadMessages')
+                        .catch(() => {}); // Silently ignore if circuit is gone
+                }
+            };
+            document.addEventListener('visibilitychange', visibilityHandler);
         },
 
         // Called from Inbox page when messages are marked as read
@@ -72,9 +83,13 @@
             if (messageHandler && navigator.serviceWorker) {
                 navigator.serviceWorker.removeEventListener('message', messageHandler);
             }
+            if (visibilityHandler) {
+                document.removeEventListener('visibilitychange', visibilityHandler);
+            }
             isRegistered = false;
             storedDotNetRef = null;
             messageHandler = null;
+            visibilityHandler = null;
         },
 
         /**

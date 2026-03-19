@@ -203,7 +203,8 @@ self.addEventListener('push', (event) => {
         icon: '/icons/rtub-logo-192.png',
         badge: '/icons/rtub-badge-96.png',
         url: '/',
-        tag: null
+        tag: null,
+        unreadCount: null
     };
 
     if (event.data) {
@@ -215,7 +216,8 @@ self.addEventListener('push', (event) => {
                 icon: data.icon || notificationData.icon,
                 badge: data.badge || notificationData.badge,
                 url: data.url || notificationData.url,
-                tag: data.tag || null
+                tag: data.tag || null,
+                unreadCount: data.unreadCount != null ? data.unreadCount : null
             };
         } catch (e) {
             console.error('[Service Worker] Error parsing push data:', e);
@@ -277,12 +279,22 @@ self.addEventListener('push', (event) => {
                 tag: baseTag
             });
         });
-    }).then(() => {
-        // Update app badge count with number of active notifications
-        if ('setAppBadge' in self.navigator) {
+        // Thread clientList into the next step to decide whether to update the badge.
+        return clientList;
+    }).then((clientList) => {
+        // Only update the app badge from the service worker when the app is NOT open.
+        // When the app is open, it will update the badge itself via RefreshUnreadMessages
+        // (triggered by the rtub:push-received postMessage above), which uses the real DB count.
+        // Using notifications.length here would set the badge to the OS notification tray count,
+        // which diverges from the actual unread message count when notifications pile up.
+        if ('setAppBadge' in self.navigator && clientList.length === 0) {
+            // App is closed — use unreadCount from payload if available (accurate),
+            // otherwise fall back to notification tray count (best available proxy).
+            if (notificationData.unreadCount != null) {
+                return self.navigator.setAppBadge(notificationData.unreadCount).catch(() => {});
+            }
             return self.registration.getNotifications().then((notifications) => {
-                const count = notifications.length;
-                return self.navigator.setAppBadge(count).catch(() => {});
+                return self.navigator.setAppBadge(notifications.length).catch(() => {});
             }).catch(() => {});
         }
     }).catch((error) => {
@@ -304,15 +316,12 @@ self.addEventListener('notificationclick', (event) => {
     
     event.notification.close();
 
-    // Update app badge: decrement or clear based on remaining notifications
-    if ('setAppBadge' in self.navigator) {
-        self.registration.getNotifications().then((notifications) => {
-            if (notifications.length === 0) {
-                self.navigator.clearAppBadge().catch(() => {});
-            } else {
-                self.navigator.setAppBadge(notifications.length).catch(() => {});
-            }
-        }).catch(() => {});
+    // Clear the app badge when the user taps a notification.
+    // The Blazor app will re-set it to the accurate DB unread count once it opens.
+    // Do NOT use notifications.length here — that counts OS notification tray items,
+    // which diverges from the actual unread message count.
+    if ('clearAppBadge' in self.navigator) {
+        self.navigator.clearAppBadge().catch(() => {});
     }
 
     // Get the URL and tag from notification data

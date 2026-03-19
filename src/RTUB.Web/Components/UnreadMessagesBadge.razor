@@ -71,6 +71,10 @@
             // Register with service worker to receive push notifications
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("rtubUnreadMessages.register", _dotNetRef);
+            // Sync OS app icon badge with the current DB unread count on startup.
+            // Without this, the badge stays at whatever the service worker last set it to
+            // (notification count), even after messages are read in-app.
+            _ = UpdateAppBadge();
         }
     }
 

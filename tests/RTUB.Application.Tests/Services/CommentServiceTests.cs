@@ -39,6 +39,11 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventMediaStorageService = new Mock<IEventMediaStorageService>();
         var mockPostRepository = new Mock<IPostRepository>();
         var mockDiscussionRepository = new Mock<IDiscussionRepository>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
+        var mockUserProfileService = new Mock<IUserProfileService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _service = new CommentService(
             new CommentRepository(_fixture.CreateContextFactory()),
@@ -46,7 +51,12 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockEventMediaStorageService.Object,
             mockPostRepository.Object,
             mockDiscussionRepository.Object,
-            _postServiceMock.Object);
+            _postServiceMock.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockEnrollmentRepository.Object,
+            mockUserProfileService.Object,
+            mockHttpContextAccessor.Object);
     }
 
     [Fact]

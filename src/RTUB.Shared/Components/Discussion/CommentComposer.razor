@@ -1,18 +1,43 @@
 @namespace RTUB.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@inject IMentionService MentionService
 
 <div class="comment-composer">
     <EditForm Model="@model" OnValidSubmit="HandleSubmit">
         <DataAnnotationsValidator />
         <ErrorDisplay />
 
-        <div class="mb-3">
-            <InputTextArea class="form-control" 
-                          rows="3" 
-                          @bind-Value="model.Body" 
-                          placeholder="Escreva um comentário..." />
+        <div class="mb-3 mention-wrapper">
+            <textarea class="form-control"
+                      rows="3"
+                      placeholder="Escreva um comentário... Use @@alcunha para mencionar alguém"
+                      value="@model.Body"
+                      @oninput="HandleBodyInput"></textarea>
             <ValidationMessage For="@(() => model.Body)" />
+
+            @if (mentionSuggestions.Count > 0)
+            {
+                <div class="mention-dropdown member-list-scrollable">
+                    @foreach (var s in mentionSuggestions)
+                    {
+                        var suggestion = s;
+                        <div class="member-item p-2 mb-1 border rounded" @onclick="() => SelectMention(suggestion)" @key="suggestion.userId" style="cursor:pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="@suggestion.avatarUrl" alt="@suggestion.displayName" class="member-avatar-small me-2" width="50" height="50" onerror="this.onerror=null;this.src='/images/default-avatar.webp';" />
+                                <div>
+                                    <div><strong>@suggestion.displayName</strong></div>
+                                    @if (!string.IsNullOrWhiteSpace(suggestion.fullName))
+                                    {
+                                        <div class="text-muted small">@suggestion.fullName</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
 
         <div class="d-flex justify-content-end">
@@ -33,6 +58,41 @@
 
     private CommentComposerModel model = new();
     private bool isSubmitting = false;
+    private List<(string userId, string username, string displayName, string fullName, string avatarUrl)> mentionSuggestions = new();
+
+    private async Task HandleBodyInput(ChangeEventArgs e)
+    {
+        model.Body = e.Value?.ToString() ?? string.Empty;
+        await UpdateMentionSuggestions(model.Body);
+    }
+
+    private async Task UpdateMentionSuggestions(string text)
+    {
+        var atIndex = text.LastIndexOf('@');
+        if (atIndex >= 0)
+        {
+            var query = text[(atIndex + 1)..];
+            // Only show if no space after @ (still typing the mention)
+            if (query.Length >= 1 && !query.Contains(' '))
+            {
+                var results = await MentionService.GetSuggestionsAsync(query, maxResults: 6);
+                mentionSuggestions = results.ToList();
+                return;
+            }
+        }
+        mentionSuggestions.Clear();
+    }
+
+    private void SelectMention((string userId, string username, string displayName, string fullName, string avatarUrl) suggestion)
+    {
+        var text = model.Body;
+        var atIndex = text.LastIndexOf('@');
+        if (atIndex >= 0)
+        {
+            model.Body = text[..atIndex] + $"@{suggestion.username} ";
+        }
+        mentionSuggestions.Clear();
+    }
 
     private async Task HandleSubmit()
     {
@@ -42,7 +102,8 @@
         try
         {
             await OnSubmit.InvokeAsync(model.Body);
-            model = new CommentComposerModel(); // Reset form
+            model = new CommentComposerModel();
+            mentionSuggestions.Clear();
         }
         finally
         {

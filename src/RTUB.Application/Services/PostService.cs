@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -86,10 +87,10 @@ public class PostService : IPostService
             await UploadPostMediaAsync(createdPost.Id, videoFiles, "Video", eventId);
         }
 
-        // Send push notification to enrolled users (only for future events)
+        // Send push notifications
         try
         {
-            if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
+            if (discussion?.Event != null)
             {
                 var authorUser = await _userProfileService.GetUserByIdAsync(authorId);
 
@@ -97,30 +98,47 @@ public class PostService : IPostService
                 {
                     var baseUrl = GetBaseUrl();
                     var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
-                    var notification = _pushNotificationFactory.CreateDiscussionPostNotification(
-                        discussion.Event,
-                        authorNickname,
-                        title,
-                        baseUrl);
 
-                    // Get enrolled users with WillAttend=true (excluding the author)
-                    var enrolledUserIds = await _enrollmentRepository.QueryAsync(q => q
-                        .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId && e.WillAttend)
-                        .Select(e => e.UserId)
-                        .ToListAsync());
-
-                    // Send to each enrolled user
-                    foreach (var userId in enrolledUserIds)
+                    // Send post notification to enrolled users (only for future events)
+                    if (discussion.Event.Date >= DateTime.UtcNow)
                     {
-                        await _pushNotificationService.SendToUserAsync(userId, notification);
+                        var notification = _pushNotificationFactory.CreateDiscussionPostNotification(
+                            discussion.Event,
+                            authorNickname,
+                            title,
+                            baseUrl);
+
+                        var enrolledUserIds = await _enrollmentRepository.QueryAsync(q => q
+                            .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId && e.WillAttend)
+                            .Select(e => e.UserId)
+                            .ToListAsync());
+
+                        foreach (var userId in enrolledUserIds)
+                        {
+                            await _pushNotificationService.SendToUserAsync(userId, notification);
+                        }
+                    }
+
+                    // Send mention notifications (always, regardless of event date)
+                    if (!string.IsNullOrWhiteSpace(mentionsJson))
+                    {
+                        var mentions = JsonSerializer.Deserialize<Dictionary<string, string>>(mentionsJson);
+                        if (mentions != null)
+                        {
+                            var mentionNotification = _pushNotificationFactory.CreateMentionNotification(
+                                discussion.Event, authorNickname, title, isComment: false, baseUrl);
+                            foreach (var mentionedUserId in mentions.Values.Where(id => id != authorId))
+                            {
+                                await _pushNotificationService.SendToUserAsync(mentionedUserId, mentionNotification);
+                            }
+                        }
                     }
                 }
             }
         }
         catch
         {
-            // Log error but don't fail the operation
-            // Notification is secondary to the main operation
+            // Notification failure must not fail the operation
         }
 
         return createdPost;

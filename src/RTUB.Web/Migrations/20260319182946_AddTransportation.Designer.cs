@@ -11,7 +11,7 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260319165336_AddTransportation")]
+    [Migration("20260319182946_AddTransportation")]
     partial class AddTransportation
     {
         /// <inheritdoc />

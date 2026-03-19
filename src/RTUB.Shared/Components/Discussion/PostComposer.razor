@@ -1,6 +1,8 @@
 @namespace RTUB.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@inject IMentionService MentionService
 
 <div class="post-composer">
     <EditForm Model="@model" OnValidSubmit="HandleSubmit">
@@ -11,9 +13,9 @@
             <label class="form-label fw-semibold">
                 <i class="bi bi-card-text text-primary me-2"></i>Título
             </label>
-            <InputText class="form-control" 
-                       @bind-Value="model.Title" 
-                       placeholder="Título do post (3-120 caracteres)" 
+            <InputText class="form-control"
+                       @bind-Value="model.Title"
+                       placeholder="Título do post (3-120 caracteres)"
                        maxlength="120" />
             <ValidationMessage For="@(() => model.Title)" />
         </div>
@@ -22,11 +24,36 @@
             <label class="form-label fw-semibold">
                 <i class="bi bi-text-paragraph text-primary me-2"></i>Conteúdo
             </label>
-            <InputTextArea class="form-control" 
-                          rows="5" 
-                          @bind-Value="model.Body" 
-                          placeholder="Escreva o post..." />
-            <ValidationMessage For="@(() => model.Body)" />
+            <div class="mention-wrapper">
+                <textarea class="form-control"
+                          rows="5"
+                          placeholder="Escreva o post... Use @@alcunha para mencionar alguém"
+                          value="@model.Body"
+                          @oninput="HandleBodyInput"></textarea>
+                <ValidationMessage For="@(() => model.Body)" />
+
+                @if (mentionSuggestions.Count > 0)
+                {
+                    <div class="mention-dropdown member-list-scrollable">
+                        @foreach (var s in mentionSuggestions)
+                        {
+                            var suggestion = s;
+                            <div class="member-item p-2 mb-1 border rounded" @onclick="() => SelectMention(suggestion)" @key="suggestion.userId" style="cursor:pointer;">
+                                <div class="d-flex align-items-center">
+                                    <img src="@suggestion.avatarUrl" alt="@suggestion.displayName" class="member-avatar-small me-2" width="50" height="50" onerror="this.onerror=null;this.src='/images/default-avatar.webp';" />
+                                    <div>
+                                        <div><strong>@suggestion.displayName</strong></div>
+                                        @if (!string.IsNullOrWhiteSpace(suggestion.fullName))
+                                        {
+                                            <div class="text-muted small">@suggestion.fullName</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
         </div>
 
         <!-- Video Upload Section -->
@@ -35,11 +62,11 @@
                 <i class="bi bi-camera-video text-primary me-2"></i>Vídeos
             </label>
             <div class="localized-file-picker">
-                <InputFile id="@videoInputId" 
-                           class="d-none" 
-                           OnChange="@HandleVideoSelection" 
-                           accept="video/*" 
-                           multiple 
+                <InputFile id="@videoInputId"
+                           class="d-none"
+                           OnChange="@HandleVideoSelection"
+                           accept="video/*"
+                           multiple
                            aria-label="Escolher vídeos" />
                 <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
                     <i class="bi bi-upload me-2"></i>Escolher vídeos
@@ -72,10 +99,10 @@
 @code {
     [Parameter]
     public EventCallback<(string title, string body, IReadOnlyList<IBrowserFile> videos)> OnSubmit { get; set; }
-    
+
     [Parameter]
     public string? Title { get; set; }
-    
+
     [Parameter]
     public string? Body { get; set; }
 
@@ -83,7 +110,8 @@
     private bool isSubmitting = false;
     private List<IBrowserFile> selectedVideos = new();
     private string videoInputId = $"post-videos-{Guid.NewGuid():N}";
-    
+    private List<(string userId, string username, string displayName, string fullName, string avatarUrl)> mentionSuggestions = new();
+
     protected override void OnParametersSet()
     {
         if (!string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Body))
@@ -98,6 +126,39 @@
         selectedVideos = e.GetMultipleFiles(3).ToList(); // Max 3 videos
     }
 
+    private async Task HandleBodyInput(ChangeEventArgs e)
+    {
+        model.Body = e.Value?.ToString() ?? string.Empty;
+        await UpdateMentionSuggestions(model.Body);
+    }
+
+    private async Task UpdateMentionSuggestions(string text)
+    {
+        var atIndex = text.LastIndexOf('@');
+        if (atIndex >= 0)
+        {
+            var query = text[(atIndex + 1)..];
+            if (query.Length >= 1 && !query.Contains(' '))
+            {
+                var results = await MentionService.GetSuggestionsAsync(query, maxResults: 6);
+                mentionSuggestions = results.ToList();
+                return;
+            }
+        }
+        mentionSuggestions.Clear();
+    }
+
+    private void SelectMention((string userId, string username, string displayName, string fullName, string avatarUrl) suggestion)
+    {
+        var text = model.Body;
+        var atIndex = text.LastIndexOf('@');
+        if (atIndex >= 0)
+        {
+            model.Body = text[..atIndex] + $"@{suggestion.username} ";
+        }
+        mentionSuggestions.Clear();
+    }
+
     private async Task HandleSubmit()
     {
         if (isSubmitting) return;
@@ -106,8 +167,9 @@
         try
         {
             await OnSubmit.InvokeAsync((model.Title, model.Body, selectedVideos));
-            model = new PostComposerModel(); // Reset form
+            model = new PostComposerModel();
             selectedVideos.Clear();
+            mentionSuggestions.Clear();
         }
         finally
         {

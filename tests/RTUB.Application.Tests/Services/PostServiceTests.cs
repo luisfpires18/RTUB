@@ -42,6 +42,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var mockUserProfileService = new Mock<IUserProfileService>();
 
         _service = new PostService(
             new PostRepository(_fixture.CreateContextFactory()),
@@ -51,7 +52,8 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockEventMediaStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            mockUserProfileService.Object);
     }
 
     [Fact]

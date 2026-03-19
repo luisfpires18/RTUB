@@ -1212,4 +1212,27 @@ public class PushNotificationFactory : IPushNotificationFactory
         };
     }
 
+    /// <summary>
+    /// Creates a push notification when a user is @mentioned in a discussion post or comment.
+    /// </summary>
+    public SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mentionerNickname);
+        ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var discussionUrl = $"{baseUrl.TrimEnd('/')}/events/{@event.Id}/discussion";
+        var context = isComment ? $"num comentário sobre: {postTitle}" : $"num post: {postTitle}";
+
+        return new SendPushNotificationDto
+        {
+            Title = $"{mentionerNickname} mencionou-te",
+            Body = $"{@event.Name} - {context}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = discussionUrl,
+            Tag = $"mention-{@event.Id}"
+        };
+    }
+
 }

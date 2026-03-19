@@ -37,7 +37,7 @@ else
             </div>
 
             <p class="post-card-body">
-                @Post.Body
+                @RenderMentions(Post.Body)
             </p>
 
             @* Video button if videos are present *@
@@ -243,6 +243,18 @@ else
     [Parameter]
     public string? EventName { get; set; }
     
+    private static readonly System.Text.RegularExpressions.Regex MentionRegex =
+        new(@"@(\w+)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static MarkupString RenderMentions(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return new MarkupString(string.Empty);
+        var encoded = System.Net.WebUtility.HtmlEncode(text);
+        var result = MentionRegex.Replace(encoded,
+            m => $"<span class=\"mention-tag\">@{m.Groups[1].Value}</span>");
+        return new MarkupString(result);
+    }
+
     private bool showVideoModal = false;
     private int selectedVideoIndex = 0;
 

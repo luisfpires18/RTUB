@@ -275,7 +275,8 @@ public class PushNotificationService : IPushNotificationService
             body = notification.Body,
             icon = notification.Icon ?? "/icons/rtub-logo-192.png",
             url = notification.Url ?? "/",
-            tag = notification.Tag
+            tag = notification.Tag,
+            unreadCount = notification.UnreadCount
         });
 
         // Set TTL (Time-To-Live) and Urgency headers

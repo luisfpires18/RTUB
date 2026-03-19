@@ -431,4 +431,16 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateGalleryTagNotification(string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when a user is @mentioned in a post or comment.
+    /// Sent only to the mentioned user.
+    /// </summary>
+    /// <param name="event">The event the discussion belongs to</param>
+    /// <param name="mentionerNickname">The nickname of the user who wrote the mention</param>
+    /// <param name="postTitle">The title of the post where the mention occurred</param>
+    /// <param name="isComment">True if the mention is in a comment; false if in a post body</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment, string baseUrl);
 }

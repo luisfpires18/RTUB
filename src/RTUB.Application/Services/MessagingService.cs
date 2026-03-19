@@ -180,6 +180,9 @@ public class MessagingService : IMessagingService
             {
                 var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
                 var notification = _pushNotificationFactory.CreateDirectMessageNotification(senderName, conversation.Id.ToString(), "/");
+                // Include the receiver's current unread count so the service worker can set an accurate badge.
+                // Queried after the message is saved, so it already includes the new message.
+                notification.UnreadCount = await _messageRepository.GetUnreadCountForUserAsync(messageDto.ReceiverId);
                 await _pushNotificationService.SendPushOnlyAsync(messageDto.ReceiverId, notification);
             }
         }

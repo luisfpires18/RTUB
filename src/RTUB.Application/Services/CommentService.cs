@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -88,7 +89,7 @@ public class CommentService : ICommentService
             var post = await _postRepository.GetByIdAsync(postId);
             if (post != null)
             {
-                var discussion = await _discussionRepository.GetByIdAsync(post.DiscussionId);
+                var discussion = await _discussionRepository.GetByIdWithEventAsync(post.DiscussionId);
                 var eventId = discussion?.EventId ?? 0;
                 await UploadCommentImagesAsync(createdComment.Id, imageFiles, eventId);
             }
@@ -103,30 +104,50 @@ public class CommentService : ICommentService
             var post = await _postRepository.GetByIdAsync(postId);
             if (post != null)
             {
-                var discussion = await _discussionRepository.GetByIdAsync(post.DiscussionId);
-                if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
+                var discussion = await _discussionRepository.GetByIdWithEventAsync(post.DiscussionId);
+                if (discussion?.Event != null)
                 {
                     var authorUser = await _userProfileService.GetUserByIdAsync(authorId);
                     if (authorUser != null)
                     {
                         var baseUrl = GetBaseUrl();
                         var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
-                        var notification = _pushNotificationFactory.CreateDiscussionCommentNotification(
-                            discussion.Event, authorNickname, post.Title, baseUrl);
 
-                        var previousCommenterIds = await _commentRepository.QueryAsync(q => q
-                            .Where(c => c.PostId == postId && !c.IsDeleted && c.AuthorId != authorId)
-                            .Select(c => c.AuthorId)
-                            .Distinct()
-                            .ToListAsync());
-
-                        var recipientIds = new HashSet<string>(previousCommenterIds);
-                        if (post.AuthorId != authorId)
-                            recipientIds.Add(post.AuthorId);
-
-                        foreach (var userId in recipientIds)
+                        // Send comment notification to post owner + previous commenters (only for future events)
+                        if (discussion.Event.Date >= DateTime.UtcNow)
                         {
-                            await _pushNotificationService.SendToUserAsync(userId, notification);
+                            var notification = _pushNotificationFactory.CreateDiscussionCommentNotification(
+                                discussion.Event, authorNickname, post.Title, baseUrl);
+
+                            var previousCommenterIds = await _commentRepository.QueryAsync(q => q
+                                .Where(c => c.PostId == postId && !c.IsDeleted && c.AuthorId != authorId)
+                                .Select(c => c.AuthorId)
+                                .Distinct()
+                                .ToListAsync());
+
+                            var recipientIds = new HashSet<string>(previousCommenterIds);
+                            if (post.AuthorId != authorId)
+                                recipientIds.Add(post.AuthorId);
+
+                            foreach (var userId in recipientIds)
+                            {
+                                await _pushNotificationService.SendToUserAsync(userId, notification);
+                            }
+                        }
+
+                        // Send mention notifications (always, regardless of event date)
+                        if (!string.IsNullOrWhiteSpace(mentionsJson))
+                        {
+                            var mentions = JsonSerializer.Deserialize<Dictionary<string, string>>(mentionsJson);
+                            if (mentions != null)
+                            {
+                                var mentionNotification = _pushNotificationFactory.CreateMentionNotification(
+                                    discussion.Event, authorNickname, post.Title, isComment: true, baseUrl);
+                                foreach (var mentionedUserId in mentions.Values.Where(id => id != authorId))
+                                {
+                                    await _pushNotificationService.SendToUserAsync(mentionedUserId, mentionNotification);
+                                }
+                            }
                         }
                     }
                 }

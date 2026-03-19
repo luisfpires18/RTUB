@@ -52,13 +52,11 @@ public partial class MentionService : IMentionService
         return JsonSerializer.Serialize(mentionedUsers);
     }
 
-    public async Task<IEnumerable<(string userId, string username, string displayName)>> GetSuggestionsAsync(string query, int maxResults = 10)
+    public async Task<IEnumerable<(string userId, string username, string displayName, string fullName, string avatarUrl)>> GetSuggestionsAsync(string query, int maxResults = 10)
     {
         if (string.IsNullOrWhiteSpace(query))
-            return Array.Empty<(string, string, string)>();
+            return Array.Empty<(string, string, string, string, string)>();
 
-        // Use case-insensitive string comparison with StringComparison.OrdinalIgnoreCase
-        // Note: EF.Functions.Like provides SQL LIKE pattern matching which is case-insensitive by default in most DBs
         try
         {
             var users = await _userManager.Users
@@ -71,12 +69,13 @@ public partial class MentionService : IMentionService
             return users.Select(u => (
                 u.Id,
                 u.UserName ?? string.Empty,
-                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim()
+                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim(),
+                $"{u.FirstName} {u.LastName}".Trim(),
+                u.ProfilePictureSrc
             ));
         }
         catch (InvalidOperationException)
         {
-            // Fallback for non-EF scenarios (mocked UserManager in tests)
             var users = _userManager.Users
                 .Where(u => (u.UserName != null && u.UserName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
                            (u.Nickname != null && u.Nickname.Contains(query, StringComparison.OrdinalIgnoreCase)))
@@ -86,7 +85,9 @@ public partial class MentionService : IMentionService
             return users.Select(u => (
                 u.Id,
                 u.UserName ?? string.Empty,
-                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim()
+                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim(),
+                $"{u.FirstName} {u.LastName}".Trim(),
+                u.ProfilePictureSrc
             ));
         }
     }
