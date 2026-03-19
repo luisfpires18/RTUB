@@ -413,6 +413,25 @@ public partial class ApplicationDbContext
                         return $"Character - {userName} (Level {character.Level})";
                     }
                     break;
+
+                case "Transportation":
+                    if (entry.Entity is Transportation transportation)
+                    {
+                        var postTitle = transportation.Post?.Title ?? $"Post #{transportation.PostId}";
+                        return $"{transportation.VehicleDescription} ({postTitle})";
+                    }
+                    break;
+
+                case "TransportationPassenger":
+                    if (entry.Entity is TransportationPassenger transportationPassenger)
+                    {
+                        var passengerName = transportationPassenger.Passenger?.Nickname
+                            ?? transportationPassenger.Passenger?.UserName
+                            ?? ResolveUserIdToNickname(transportationPassenger.PassengerId)
+                            ?? transportationPassenger.PassengerId;
+                        return $"Passageiro: {passengerName}";
+                    }
+                    break;
             }
         }
         catch (InvalidOperationException)

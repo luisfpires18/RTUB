@@ -40,6 +40,8 @@ public class Post : BaseEntity
     public virtual ApplicationUser Author { get; set; } = null!;
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public virtual ICollection<PostMedia> Media { get; set; } = new List<PostMedia>();
+    /// <summary>Non-null when this post is a transport offer.</summary>
+    public virtual Transportation? Transportation { get; set; }
 
     // Private constructor for EF Core
     private Post() { }

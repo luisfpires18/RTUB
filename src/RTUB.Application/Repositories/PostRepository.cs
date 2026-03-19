@@ -21,6 +21,9 @@ public class PostRepository : Repository<Post>, IPostRepository
         return await context.Set<Post>()
             .Include(p => p.Author)
             .Include(p => p.Media)
+            .Include(p => p.Transportation)
+                .ThenInclude(t => t!.Passengers)
+                .ThenInclude(p => p.Passenger)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -32,6 +35,9 @@ public class PostRepository : Repository<Post>, IPostRepository
             .Include(p => p.Author)
             .Include(p => p.Comments)
             .Include(p => p.Media)
+            .Include(p => p.Transportation)
+                .ThenInclude(t => t!.Passengers)
+                .ThenInclude(p => p.Passenger)
             .Where(p => p.DiscussionId == discussionId && !p.IsDeleted)
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
                 p => p.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) ||

@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using RTUB.Application.Extensions
 @using RTUB.Core.Entities
 
 @if (Post == null || Post.Author == null)
@@ -55,6 +56,25 @@ else
                             <text>Ver Vídeos (@videoCount)</text>
                         }
                     </button>
+                </div>
+            }
+
+            @* Transport offer summary strip *@
+            @if (Post.Transportation != null)
+            {
+                var t = Post.Transportation;
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge @(t.AvailableSeats > 0 ? "bg-success" : "bg-secondary")">
+                        <i class="bi bi-car-front me-1"></i>@t.VehicleDescription — @t.OccupiedSeats/@t.TotalSeats lugares
+                    </span>
+                    @foreach (var p in t.Passengers)
+                    {
+                        <img src="@p.Passenger.ProfilePictureSrc"
+                             alt="@p.Passenger.GetDisplayName()"
+                             class="rounded-circle"
+                             style="width:22px;height:22px;object-fit:cover;"
+                             title="@p.Passenger.GetDisplayName()" @key="p.Id" />
+                    }
                 </div>
             }
 

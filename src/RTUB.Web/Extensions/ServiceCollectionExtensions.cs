@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IMemberDebtRepository, MemberDebtRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();
+        services.AddScoped<ITransportationRepository, TransportationRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
@@ -119,6 +120,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventUrlService, EventUrlService>();
         services.AddScoped<IEventStatisticsService, EventStatisticsService>();
         services.AddScoped<IEventDiscussionService, EventDiscussionService>();
+        services.AddScoped<ITransportationService, TransportationService>();
         services.AddScoped<IEventAuthorizationService, EventAuthorizationService>();
         services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
         services.AddScoped<IEnrollmentStatisticsService, EnrollmentStatisticsService>();

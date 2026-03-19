@@ -71,6 +71,10 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
 
+    // Transportation DbSets
+    public DbSet<Transportation> Transportations { get; set; } = null!;
+    public DbSet<TransportationPassenger> TransportationPassengers { get; set; } = null!;
+
     // Discussion DbSets
     public DbSet<Discussion> Discussions { get; set; }
     public DbSet<Post> Posts { get; set; }
