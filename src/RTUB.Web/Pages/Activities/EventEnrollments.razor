@@ -48,6 +48,9 @@
                 <div class="page-header-right d-none d-xl-flex">
                     @if (isUserAdmin)
                     {
+                        <button class="btn btn-outline-primary btn-sm me-2" @onclick="NavigateToContacts" title="Contactos">
+                            <i class="bi bi-telephone"></i>
+                        </button>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="CopyLinkToClipboard" title="Copiar link">
                             <i class="bi bi-link-45deg"></i>
                         </button>
@@ -501,6 +504,7 @@
 
         if (isUserAdmin)
         {
+            items.Add(new("action-contacts", "Contactos", "bi-telephone"));
             items.Add(new("action-copy", "Copiar Link", "bi-link-45deg"));
         }
 
@@ -512,6 +516,10 @@
         if (key == "action-back")
         {
             NavigateBack();
+        }
+        else if (key == "action-contacts")
+        {
+            NavigateToContacts();
         }
         else if (key == "action-copy")
         {
@@ -1052,6 +1060,11 @@
     private void NavigateBack()
     {
         Navigation.NavigateTo("/events");
+    }
+
+    private void NavigateToContacts()
+    {
+        Navigation.NavigateTo($"/events/{EventId}/contacts");
     }
     
     private async Task CopyLinkToClipboard()

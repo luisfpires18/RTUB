@@ -34,7 +34,7 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Atuação de Natal", notification.Title);
-        Assert.Equal("Nova atuação: Atuação de Natal em 25 de dezembro de 2024 no Centro Cultural", notification.Body);
+        Assert.Equal("Nova atuação do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
         Assert.Equal("https://rtub.example.com/events", notification.Url);
         Assert.Equal("event-123", notification.Tag);
@@ -197,7 +197,8 @@ public class PushNotificationFactoryTests
         var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
 
         // Assert
-        Assert.Contains("15 de janeiro de 2025", notification.Body);
+        Assert.Contains("Nova atuação do tipo", notification.Body);
+        Assert.Contains("Test Event", notification.Body);
     }
 
     [Fact]

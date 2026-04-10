@@ -160,6 +160,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ItemTypeConfig> ItemTypeConfigs { get; set; }
     public DbSet<ForgeComboConfig> ForgeComboConfigs { get; set; }
 
+    // Event Contact DbSet
+    public DbSet<EventContact> EventContacts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

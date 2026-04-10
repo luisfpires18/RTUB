@@ -2280,7 +2280,7 @@ else
                 imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "events", normalizedName);
             }
 
-            await EventService.CreateEventAsync(
+            var createdEvent = await EventService.CreateEventAsync(
                 editingEvent.Name,
                 editingEvent.Date,
                 editingEvent.Location,
@@ -2289,6 +2289,18 @@ else
                 editingEvent.EndDate,
                 imageUrl
             );
+
+            // Broadcast push notification for new event
+            try
+            {
+                var baseUri = Navigation.BaseUri.TrimEnd('/');
+                var notification = PushNotificationFactory.CreateEventNotification(createdEvent, isReminder: false, baseUri);
+                await PushNotificationService.BroadcastAsync(notification);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to broadcast push notification for new event {EventId}", createdEvent.Id);
+            }
         }
         else
         {
@@ -3792,6 +3804,20 @@ else
         }
         
         Navigation.NavigateTo($"/events/{eventId}/enrollments");
+    }
+
+    private async Task NavigateToContactsPage(int eventId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
+        }
+        catch
+        {
+            // Ignore errors if scrollToTop is not available
+        }
+
+        Navigation.NavigateTo($"/events/{eventId}/contacts");
     }
 
     private string FormatEventDateRange(Event eventItem)

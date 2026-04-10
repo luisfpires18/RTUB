@@ -1,0 +1,451 @@
+@page "/events/{eventId:int}/contacts"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Helpers
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.UI
+@using RTUB.Shared.Components.Cards
+@attribute [Authorize]
+@inject IEventService EventService
+@inject IEventContactService EventContactService
+@inject IEnrollmentService EnrollmentService
+@inject IMemberInstrumentService MemberInstrumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject ILogger<EventContacts> Logger
+
+<PageTitle>Contactos - @(selectedEvent?.Name ?? "Evento")</PageTitle>
+
+<div class="contacts-page-wrapper">
+    @if (selectedEvent == null)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        <div class="contacts-inner">
+            <!-- Page Header -->
+            <div class="page-header-centered">
+                <div class="page-header-left d-none d-xl-flex">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                </div>
+                <div class="page-header-center">
+                    <h1><i class="bi bi-telephone"></i> Contactos</h1>
+                    <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
+                </div>
+                <div class="page-header-right d-none d-xl-flex">
+                </div>
+            </div>
+
+            @* Feedback Alert *@
+            @if (!string.IsNullOrEmpty(feedbackMessage))
+            {
+                <Alert Type="@(feedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+                       Message="@feedbackMessage"
+                       Dismissible="true"
+                       OnDismiss="ClearFeedback"
+                       AdditionalClasses="mb-3" />
+            }
+
+            @if (allMembers == null)
+            {
+                <LoadingSpinner />
+            }
+            else
+            {
+                @* Contacted members section *@
+                @if (contactedMembers.Any())
+                {
+                    <h6 class="mb-3 heading-purple">
+                        <i class="bi bi-check-circle me-1"></i>Contactados (@contactedMembers.Count)
+                    </h6>
+                    <div class="contact-card-grid mb-4">
+                        @foreach (var member in contactedMembers)
+                        {
+                            var contact = contactMap.GetValueOrDefault(member.Id);
+                            <div class="contact-card contacted">
+                                <div class="contact-card-avatar">
+                                    <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" loading="lazy" />
+                                </div>
+                                <div class="contact-card-info">
+                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                    {
+                                        <div class="contact-card-tuna-name">@member.Nickname</div>
+                                    }
+                                    <div class="contact-card-full-name">@($"{member.FirstName} {member.LastName}".Trim())</div>
+                                    @if (!string.IsNullOrEmpty(member.PhoneNumber))
+                                    {
+                                        <a href="tel:@member.PhoneNumber" class="contact-card-phone">
+                                            <i class="bi bi-telephone-fill me-1"></i>@member.PhoneNumber
+                                        </a>
+                                    }
+                                    @if (contact != null)
+                                    {
+                                        <div class="contact-card-status mt-1">
+                                            @if (contact.WillAttend == true)
+                                            {
+                                                <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Vai</span>
+                                            }
+                                            else if (contact.WillAttend == false)
+                                            {
+                                                <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Não vai</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary"><i class="bi bi-question-lg me-1"></i>Indeciso</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(contact.Notes))
+                                        {
+                                            <div class="contact-card-notes mt-1">
+                                                <small class="text-light-theme"><i class="bi bi-chat-text me-1"></i>@contact.Notes</small>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                <div class="contact-card-actions">
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => OpenContactModal(member, contact)" title="Editar contacto">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ResetContact(member)" title="Repor">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Not contacted members section *@
+                @if (notContactedMembers.Any())
+                {
+                    <h6 class="mb-3 heading-purple">
+                        <i class="bi bi-person me-1"></i>Por Contactar (@notContactedMembers.Count)
+                    </h6>
+                    <div class="contact-card-grid mb-4">
+                        @foreach (var member in notContactedMembers)
+                        {
+                            <div class="contact-card">
+                                <div class="contact-card-avatar">
+                                    <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" loading="lazy" />
+                                </div>
+                                <div class="contact-card-info">
+                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                    {
+                                        <div class="contact-card-tuna-name">@member.Nickname</div>
+                                    }
+                                    <div class="contact-card-full-name">@($"{member.FirstName} {member.LastName}".Trim())</div>
+                                    @if (!string.IsNullOrEmpty(member.PhoneNumber))
+                                    {
+                                        <a href="tel:@member.PhoneNumber" class="contact-card-phone">
+                                            <i class="bi bi-telephone-fill me-1"></i>@member.PhoneNumber
+                                        </a>
+                                    }
+                                </div>
+                                <div class="contact-card-actions">
+                                    <button class="btn btn-sm btn-primary btn-primary-purple" @onclick="() => OpenContactModal(member, null)" title="Contactado">
+                                        <i class="bi bi-telephone-outbound me-1"></i>Contactado
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (!contactedMembers.Any() && !notContactedMembers.Any())
+                {
+                    <EmptyState Icon="bi-people" Message="Nenhum membro encontrado." />
+                }
+            }
+        </div>
+    }
+</div>
+
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+
+<!-- Contact Modal -->
+<Modal Show="@modals.IsOpen(ModalType.Contact)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Contact, show))"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <HeaderActions>
+        <h5 class="modal-title mb-0">
+            <i class="bi bi-telephone-outbound me-2"></i>Registar Contacto
+        </h5>
+    </HeaderActions>
+    <BodyContent>
+        @if (contactingMember != null)
+        {
+            <div class="mb-3">
+                <strong>@(contactingMember.Nickname ?? $"{contactingMember.FirstName} {contactingMember.LastName}".Trim())</strong>
+                @if (!string.IsNullOrEmpty(contactingMember.PhoneNumber))
+                {
+                    <br /><a href="tel:@contactingMember.PhoneNumber"><i class="bi bi-telephone me-1"></i>@contactingMember.PhoneNumber</a>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Vai ao evento?</label>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm @(contactFormWillAttend == true ? "btn-success" : "btn-outline-success")" @onclick='() => contactFormWillAttend = true'>
+                        <i class="bi bi-check-lg me-1"></i>Sim
+                    </button>
+                    <button class="btn btn-sm @(contactFormWillAttend == false ? "btn-danger" : "btn-outline-danger")" @onclick='() => contactFormWillAttend = false'>
+                        <i class="bi bi-x-lg me-1"></i>Não
+                    </button>
+                    <button class="btn btn-sm @(contactFormWillAttend == null ? "btn-secondary" : "btn-outline-secondary")" @onclick='() => contactFormWillAttend = null'>
+                        <i class="bi bi-question-lg me-1"></i>Indeciso
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" rows="3" placeholder="Notas sobre a conversa..." @bind="contactFormNotes" maxlength="500"></textarea>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseContactModal" disabled="@isSaving">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveContact" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Guardar
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private Event? selectedEvent;
+    private string? currentUserId;
+    private bool isUserAdmin;
+
+    // All active members
+    private List<ApplicationUser>? allMembers;
+    private Dictionary<string, EventContact> contactMap = new();
+    private List<ApplicationUser> contactedMembers = new();
+    private List<ApplicationUser> notContactedMembers = new();
+
+    // Modal state
+    private enum ModalType { Contact }
+    private readonly MultiModalState<ModalType> modals = new();
+    private ApplicationUser? contactingMember;
+    private bool? contactFormWillAttend;
+    private string? contactFormNotes;
+    private bool isSaving;
+
+    // Feedback
+    private string feedbackMessage = string.Empty;
+    private bool feedbackIsError;
+
+    // Mobile nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            isUserAdmin = user.IsInRole("Admin");
+        }
+
+        await LoadData();
+        BuildMobileNavItems();
+    }
+
+    private void BuildMobileNavItems()
+    {
+        mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+    }
+
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            NavigateBack();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        selectedEvent = await EventService.GetEventByIdAsync(EventId);
+        if (selectedEvent == null)
+        {
+            Navigation.NavigateTo("/events");
+            return;
+        }
+
+        // Load all members
+        allMembers = await UserManager.Users
+            .Select(u => new ApplicationUser
+            {
+                Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Nickname = u.Nickname,
+                PhoneNumber = u.PhoneNumber,
+                ImageUrl = u.ImageUrl
+            })
+            .OrderBy(u => u.Nickname ?? u.FirstName)
+            .ToListAsync();
+
+        // Load existing contacts for this event
+        var contacts = await EventContactService.GetContactsByEventIdAsync(EventId);
+        contactMap = contacts
+            .Where(c => c.UserId != null)
+            .ToDictionary(c => c.UserId, c => c);
+
+        SplitMembers();
+    }
+
+    private void SplitMembers()
+    {
+        if (allMembers == null) return;
+
+        contactedMembers = allMembers
+            .Where(m => contactMap.TryGetValue(m.Id, out var c) && c.IsContacted)
+            .OrderByDescending(m => contactMap[m.Id].ContactedAt)
+            .ToList();
+
+        notContactedMembers = allMembers
+            .Where(m => !contactMap.TryGetValue(m.Id, out var c) || !c.IsContacted)
+            .ToList();
+    }
+
+    private void OpenContactModal(ApplicationUser member, EventContact? existingContact)
+    {
+        contactingMember = member;
+        contactFormWillAttend = existingContact?.WillAttend;
+        contactFormNotes = existingContact?.Notes;
+        modals.Open(ModalType.Contact);
+    }
+
+    private void CloseContactModal()
+    {
+        modals.Close(ModalType.Contact);
+        contactingMember = null;
+        contactFormWillAttend = null;
+        contactFormNotes = null;
+    }
+
+    private async Task SaveContact()
+    {
+        if (contactingMember == null || string.IsNullOrEmpty(currentUserId)) return;
+
+        isSaving = true;
+        try
+        {
+            var contact = await EventContactService.MarkAsContactedAsync(
+                EventId,
+                contactingMember.Id,
+                contactFormWillAttend,
+                contactFormNotes,
+                currentUserId);
+
+            // Update local contact map
+            contactMap[contactingMember.Id] = contact;
+            SplitMembers();
+
+            // If willAttend is decided, create/update enrollment
+            if (contactFormWillAttend.HasValue)
+            {
+                try
+                {
+                    var primaryInstrument = await MemberInstrumentService.GetPrimaryInstrumentAsync(contactingMember.Id);
+                    var instrument = primaryInstrument?.InstrumentType;
+
+                    var existingEnrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(EventId, contactingMember.Id);
+                    if (existingEnrollment == null)
+                    {
+                        await EnrollmentService.CreateEnrollmentAsync(
+                            contactingMember.Id,
+                            EventId,
+                            instrument: instrument,
+                            willAttend: contactFormWillAttend.Value,
+                            notes: contactFormNotes,
+                            skipNotification: true);
+                    }
+                    else if (existingEnrollment.WillAttend != contactFormWillAttend.Value)
+                    {
+                        await EnrollmentService.UpdateEnrollmentAsync(
+                            existingEnrollment.Id,
+                            contactFormWillAttend.Value,
+                            existingEnrollment.Instrument ?? instrument,
+                            contactFormNotes ?? existingEnrollment.Notes,
+                            existingEnrollment.OtherInstruments);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to sync enrollment for user {UserId} on event {EventId}", contactingMember.Id, EventId);
+                }
+            }
+
+            feedbackMessage = $"Contacto de {contactingMember.Nickname ?? contactingMember.FirstName} registado.";
+            feedbackIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving contact for user {UserId}", contactingMember.Id);
+            feedbackMessage = "Erro ao guardar contacto.";
+            feedbackIsError = true;
+        }
+        finally
+        {
+            isSaving = false;
+            CloseContactModal();
+        }
+    }
+
+    private async Task ResetContact(ApplicationUser member)
+    {
+        try
+        {
+            await EventContactService.ResetContactAsync(EventId, member.Id);
+            if (contactMap.ContainsKey(member.Id))
+            {
+                contactMap[member.Id].IsContacted = false;
+            }
+            SplitMembers();
+            feedbackMessage = $"Contacto de {member.Nickname ?? member.FirstName} reposto.";
+            feedbackIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error resetting contact for user {UserId}", member.Id);
+            feedbackMessage = "Erro ao repor contacto.";
+            feedbackIsError = true;
+        }
+    }
+
+    private void ClearFeedback()
+    {
+        feedbackMessage = string.Empty;
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/events");
+    }
+}

@@ -124,6 +124,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventAuthorizationService, EventAuthorizationService>();
         services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
         services.AddScoped<IEnrollmentStatisticsService, EnrollmentStatisticsService>();
+        services.AddScoped<IEventContactService, EventContactService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
         services.AddScoped<ISongContentService, SongContentService>();
