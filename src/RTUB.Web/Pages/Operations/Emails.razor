@@ -382,9 +382,11 @@
     {
         try
         {
-            // Toggle the Subscribed property to false
-            user.Subscribed = false;
-            var result = await UserManager.UpdateAsync(user);
+            // Re-fetch tracked entity to avoid AsNoTracking conflict
+            var trackedUser = await UserManager.FindByIdAsync(user.Id);
+            if (trackedUser == null) return;
+            trackedUser.Subscribed = false;
+            var result = await UserManager.UpdateAsync(trackedUser);
 
             if (result.Succeeded)
             {
@@ -424,9 +426,11 @@
     {
         try
         {
-            // Toggle the Subscribed property to true
-            user.Subscribed = true;
-            var result = await UserManager.UpdateAsync(user);
+            // Re-fetch tracked entity to avoid AsNoTracking conflict
+            var trackedUser = await UserManager.FindByIdAsync(user.Id);
+            if (trackedUser == null) return;
+            trackedUser.Subscribed = true;
+            var result = await UserManager.UpdateAsync(trackedUser);
 
             if (result.Succeeded)
             {
@@ -480,9 +484,11 @@
 
             foreach (var user in users)
             {
-                // Toggle the Subscribed property to false
-                user.Subscribed = false;
-                var result = await UserManager.UpdateAsync(user);
+                // Re-fetch tracked entity to avoid AsNoTracking conflict
+                var trackedUser = await UserManager.FindByIdAsync(user.Id);
+                if (trackedUser == null) continue;
+                trackedUser.Subscribed = false;
+                var result = await UserManager.UpdateAsync(trackedUser);
 
                 if (result.Succeeded)
                 {
@@ -560,9 +566,11 @@
 
             foreach (var user in users)
             {
-                // Toggle the Subscribed property to true
-                user.Subscribed = true;
-                var result = await UserManager.UpdateAsync(user);
+                // Re-fetch tracked entity to avoid AsNoTracking conflict
+                var trackedUser = await UserManager.FindByIdAsync(user.Id);
+                if (trackedUser == null) continue;
+                trackedUser.Subscribed = true;
+                var result = await UserManager.UpdateAsync(trackedUser);
 
                 if (result.Succeeded)
                 {

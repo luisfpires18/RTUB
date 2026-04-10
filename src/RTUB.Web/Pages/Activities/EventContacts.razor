@@ -113,12 +113,15 @@
                                     }
                                 </div>
                                 <div class="contact-card-actions">
-                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => OpenContactModal(member, contact)" title="Editar contacto">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ResetContact(member)" title="Repor">
-                                        <i class="bi bi-arrow-counterclockwise"></i>
-                                    </button>
+                                    @if (isUserEditor)
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning" @onclick="() => OpenContactModal(member, contact)" title="Editar contacto">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => ResetContact(member)" title="Repor">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    }
                                 </div>
                             </div>
                         }
@@ -151,11 +154,14 @@
                                         </a>
                                     }
                                 </div>
-                                <div class="contact-card-actions">
-                                    <button class="btn btn-sm btn-primary btn-primary-purple" @onclick="() => OpenContactModal(member, null)" title="Contactado">
-                                        <i class="bi bi-telephone-outbound me-1"></i>Contactado
-                                    </button>
-                                </div>
+                                @if (isUserEditor)
+                                {
+                                    <div class="contact-card-actions">
+                                        <button class="btn btn-sm btn-primary btn-primary-purple" @onclick="() => OpenContactModal(member, null)" title="Contactado">
+                                            <i class="bi bi-telephone-outbound me-1"></i>Contactado
+                                        </button>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
@@ -217,13 +223,16 @@
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseContactModal" disabled="@isSaving">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveContact" disabled="@isSaving">
-            @if (isSaving)
-            {
-                <span class="spinner-border spinner-border-sm me-1"></span>
-            }
-            Guardar
-        </button>
+        @if (isUserEditor)
+        {
+            <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveContact" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Guardar
+            </button>
+        }
     </FooterContent>
 </Modal>
 
@@ -233,7 +242,7 @@
 
     private Event? selectedEvent;
     private string? currentUserId;
-    private bool isUserAdmin;
+    private bool isUserEditor;
 
     // All active members
     private List<ApplicationUser>? allMembers;
@@ -264,7 +273,7 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            isUserAdmin = user.IsInRole("Admin");
+            isUserEditor = user.IsInRole("Admin") || user.IsInRole("Mod");
         }
 
         await LoadData();
@@ -423,6 +432,21 @@
         try
         {
             await EventContactService.ResetContactAsync(EventId, member.Id);
+
+            // Delete the enrollment created from this contact
+            try
+            {
+                var enrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(EventId, member.Id);
+                if (enrollment != null)
+                {
+                    await EnrollmentService.DeleteEnrollmentAsync(enrollment.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to delete enrollment when resetting contact for user {UserId} on event {EventId}", member.Id, EventId);
+            }
+
             if (contactMap.ContainsKey(member.Id))
             {
                 contactMap[member.Id].IsContacted = false;

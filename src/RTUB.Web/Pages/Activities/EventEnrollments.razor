@@ -46,11 +46,11 @@
                     <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
                 </div>
                 <div class="page-header-right d-none d-xl-flex">
+                    <button class="btn btn-outline-primary btn-sm me-2" @onclick="NavigateToContacts" title="Contactos">
+                        <i class="bi bi-telephone"></i>
+                    </button>
                     @if (isUserAdmin)
                     {
-                        <button class="btn btn-outline-primary btn-sm me-2" @onclick="NavigateToContacts" title="Contactos">
-                            <i class="bi bi-telephone"></i>
-                        </button>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="CopyLinkToClipboard" title="Copiar link">
                             <i class="bi bi-link-45deg"></i>
                         </button>
@@ -502,9 +502,9 @@
             new("action-back", "Voltar", "bi-arrow-left")
         };
 
+        items.Add(new("action-contacts", "Contactos", "bi-telephone"));
         if (isUserAdmin)
         {
-            items.Add(new("action-contacts", "Contactos", "bi-telephone"));
             items.Add(new("action-copy", "Copiar Link", "bi-link-45deg"));
         }
 
