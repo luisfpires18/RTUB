@@ -17,4 +17,6 @@ public class SendMessageDto
     public bool IsSystem { get; set; }
 
     public string? Link { get; set; }
+
+    public int? ReplyToMessageId { get; set; }
 }

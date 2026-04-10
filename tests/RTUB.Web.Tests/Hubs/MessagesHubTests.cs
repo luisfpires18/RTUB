@@ -14,6 +14,7 @@ public class MessagesHubTests
 {
     private readonly Mock<IConversationRepository> _mockConversationRepository;
     private readonly MessagesNotificationService _notificationService;
+    private readonly Mock<IMessagingService> _mockMessagingService;
     private readonly Mock<ILogger<MessagesHub>> _mockLogger;
     private readonly Mock<IHubCallerClients<IMessagesHubClient>> _mockClients;
     private readonly Mock<IGroupManager> _mockGroups;
@@ -28,6 +29,7 @@ public class MessagesHubTests
     {
         _mockConversationRepository = new Mock<IConversationRepository>();
         _notificationService = new MessagesNotificationService();
+        _mockMessagingService = new Mock<IMessagingService>();
         _mockLogger = new Mock<ILogger<MessagesHub>>();
         _mockClients = new Mock<IHubCallerClients<IMessagesHubClient>>();
         _mockGroups = new Mock<IGroupManager>();
@@ -47,6 +49,7 @@ public class MessagesHubTests
 
         _hub = new TestableMessagesHub(
             _mockConversationRepository.Object,
+            _mockMessagingService.Object,
             _notificationService,
             _mockLogger.Object,
             _mockClients.Object,
@@ -474,12 +477,13 @@ internal class TestableMessagesHub : MessagesHub
 
     public TestableMessagesHub(
         IConversationRepository conversationRepository,
+        IMessagingService messagingService,
         MessagesNotificationService notificationService,
         ILogger<MessagesHub> logger,
         IHubCallerClients<IMessagesHubClient> clients,
         IGroupManager groups,
         HubCallerContext context)
-        : base(conversationRepository, notificationService, logger)
+        : base(conversationRepository, messagingService, notificationService, logger)
     {
         SetClients(clients);
         SetGroups(groups);

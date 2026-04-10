@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MockQueryable.Moq;
 using Moq;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -27,6 +28,7 @@ public class MessagingServiceTests
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<ILogger<MessagingService>> _mockLogger;
+    private readonly Mock<IDbContextFactory<ApplicationDbContext>> _mockContextFactory;
     private readonly MessagingService _service;
 
     public MessagingServiceTests()
@@ -38,6 +40,7 @@ public class MessagingServiceTests
         _mockPushService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockLogger = new Mock<ILogger<MessagingService>>();
+        _mockContextFactory = new Mock<IDbContextFactory<ApplicationDbContext>>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _service = new MessagingService(
@@ -48,7 +51,8 @@ public class MessagingServiceTests
             _mockPushService.Object,
             _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockContextFactory.Object);
     }
 
     /// <summary>
@@ -1623,6 +1627,7 @@ public class MessagingServiceTests
             _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
+            _mockContextFactory.Object,
             mockHubService.Object);
 
         var conversation = new Conversation
@@ -1652,6 +1657,9 @@ public class MessagingServiceTests
             .ReturnsAsync(sender);
         _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(receiverId, conversationId))
             .ReturnsAsync(false);
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateDirectMessageNotification(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new SendPushNotificationDto { Title = "test", Body = "test", Url = "/" });
 
         var messageDto = new SendMessageDto
         {
@@ -1689,6 +1697,7 @@ public class MessagingServiceTests
             _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
+            _mockContextFactory.Object,
             mockHubService.Object);
 
         var conversation = new Conversation
@@ -1751,6 +1760,7 @@ public class MessagingServiceTests
             _mockPushNotificationFactory.Object,
             _mockUserManager.Object,
             _mockLogger.Object,
+            _mockContextFactory.Object,
             mockHubService.Object);
 
         _mockMessageRepository.Setup(r => r.MarkConversationAsReadAsync(conversationId, userId))
@@ -1802,6 +1812,9 @@ public class MessagingServiceTests
             .ReturnsAsync(sender);
         _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(receiverId, conversationId))
             .ReturnsAsync(false);
+        _mockPushNotificationFactory
+            .Setup(f => f.CreateDirectMessageNotification(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new SendPushNotificationDto { Title = "test", Body = "test", Url = "/" });
 
         var messageDto = new SendMessageDto
         {

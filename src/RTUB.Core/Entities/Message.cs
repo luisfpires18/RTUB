@@ -36,6 +36,21 @@ public class Message : BaseEntity
     public string? Link { get; set; }
 
     /// <summary>
+    /// ID of the message being replied to (null if not a reply)
+    /// </summary>
+    public int? ReplyToMessageId { get; set; }
+
+    /// <summary>
+    /// Denormalized snippet of the replied-to message body (max 200 chars)
+    /// </summary>
+    public string? ReplyToBody { get; set; }
+
+    /// <summary>
+    /// Denormalized name of the replied-to message sender
+    /// </summary>
+    public string? ReplyToSenderName { get; set; }
+
+    /// <summary>
     /// Navigation property to the conversation
     /// </summary>
     public Conversation? Conversation { get; set; }
@@ -44,6 +59,11 @@ public class Message : BaseEntity
     /// Navigation property to the sender
     /// </summary>
     public ApplicationUser? Sender { get; set; }
+
+    /// <summary>
+    /// Navigation property to reactions on this message
+    /// </summary>
+    public ICollection<MessageReaction> Reactions { get; set; } = new List<MessageReaction>();
 
     /// <summary>
     /// Gets the list of user IDs who have read this message

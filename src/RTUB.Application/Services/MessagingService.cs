@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -39,6 +40,7 @@ public class MessagingService : IMessagingService
     private readonly IMessagesHubService? _messagesHubService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<MessagingService> _logger;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     public MessagingService(
         IConversationRepository conversationRepository,
@@ -49,6 +51,7 @@ public class MessagingService : IMessagingService
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
         ILogger<MessagingService> logger,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IMessagesHubService? messagesHubService = null)
     {
         _conversationRepository = conversationRepository;
@@ -59,6 +62,7 @@ public class MessagingService : IMessagingService
         _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
         _logger = logger;
+        _contextFactory = contextFactory;
         _messagesHubService = messagesHubService;
     }
 
@@ -138,6 +142,9 @@ public class MessagingService : IMessagingService
         // Get or create conversation
         var conversation = await _conversationRepository.GetOrCreateOneToOneAsync(senderId, messageDto.ReceiverId);
 
+        // Resolve reply-to fields (denormalized for performance)
+        var (replyToBody, replyToSenderName) = await ResolveReplyFieldsAsync(messageDto.ReplyToMessageId);
+
         // Create message
         var message = new Message
         {
@@ -145,7 +152,10 @@ public class MessagingService : IMessagingService
             SenderId = senderId,
             Body = messageDto.Body,
             IsSystem = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ReplyToMessageId = messageDto.ReplyToMessageId,
+            ReplyToBody = replyToBody,
+            ReplyToSenderName = replyToSenderName
         };
 
         await _messageRepository.AddAsync(message);
@@ -341,7 +351,7 @@ public class MessagingService : IMessagingService
         return await MapConversationToDtoAsync(conversation, creatorUserId, new Dictionary<int, ConversationUserSettings>());
     }
 
-    public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body)
+    public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body, int? replyToMessageId = null)
     {
         var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
 
@@ -365,6 +375,9 @@ public class MessagingService : IMessagingService
             }
         }
 
+        // Resolve reply-to fields (denormalized for performance)
+        var (replyToBody, replyToSenderName) = await ResolveReplyFieldsAsync(replyToMessageId);
+
         // Create message
         var message = new Message
         {
@@ -372,7 +385,10 @@ public class MessagingService : IMessagingService
             SenderId = senderId,
             Body = body,
             IsSystem = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ReplyToMessageId = replyToMessageId,
+            ReplyToBody = replyToBody,
+            ReplyToSenderName = replyToSenderName
         };
 
         await _messageRepository.AddAsync(message);
@@ -616,7 +632,11 @@ public class MessagingService : IMessagingService
             IsRead = isRead,
             Link = message.Link,
             ReadBy = message.ReadBy,
-            RecipientIds = recipientIds ?? []
+            RecipientIds = recipientIds ?? [],
+            ReplyToMessageId = message.ReplyToMessageId,
+            ReplyToBody = message.ReplyToBody,
+            ReplyToSenderName = message.ReplyToSenderName,
+            Reactions = MapReactions(message.Reactions, currentUserId)
         };
 
         // Use senderOverride if provided, otherwise fall back to message.Sender navigation property
@@ -629,6 +649,84 @@ public class MessagingService : IMessagingService
         }
 
         return dto;
+    }
+
+    private static List<MessageReactionSummaryDto> MapReactions(IEnumerable<MessageReaction>? reactions, string currentUserId)
+    {
+        if (reactions == null) return [];
+        return reactions
+            .GroupBy(r => r.Emoji)
+            .Select(g => new MessageReactionSummaryDto
+            {
+                Emoji = g.Key,
+                Count = g.Count(),
+                ReactedByCurrentUser = g.Any(r => r.UserId == currentUserId),
+                UserIds = g.Select(r => r.UserId).ToList()
+            })
+            .OrderByDescending(r => r.Count)
+            .ToList();
+    }
+
+    private async Task<(string? replyToBody, string? replyToSenderName)> ResolveReplyFieldsAsync(int? replyToMessageId)
+    {
+        if (!replyToMessageId.HasValue) return (null, null);
+
+        var original = await _messageRepository.GetByIdAsync(replyToMessageId.Value);
+        if (original == null) return (null, null);
+
+        var body = original.Body.Length > 200 ? original.Body[..200] : original.Body;
+
+        string? senderName = null;
+        if (!string.IsNullOrEmpty(original.SenderId))
+        {
+            var sender = await _userManager.FindByIdAsync(original.SenderId);
+            if (sender != null)
+                senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
+        }
+
+        return (body, senderName);
+    }
+
+    public async Task<List<MessageReactionSummaryDto>> ToggleReactionAsync(int messageId, string userId, string emoji)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var existing = await context.MessageReactions
+            .FirstOrDefaultAsync(r => r.MessageId == messageId && r.UserId == userId);
+
+        if (existing != null)
+        {
+            if (existing.Emoji == emoji)
+            {
+                // Same emoji — remove it (toggle off)
+                context.MessageReactions.Remove(existing);
+            }
+            else
+            {
+                // Different emoji — replace
+                existing.Emoji = emoji;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+        else
+        {
+            context.MessageReactions.Add(new MessageReaction
+            {
+                MessageId = messageId,
+                UserId = userId,
+                Emoji = emoji,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await context.SaveChangesAsync();
+
+        // Return updated summaries
+        var reactions = await context.MessageReactions
+            .Where(r => r.MessageId == messageId)
+            .ToListAsync();
+
+        return MapReactions(reactions, userId);
     }
 
     public async Task<bool> CanUserSendMessageAsync(int conversationId, string userId)

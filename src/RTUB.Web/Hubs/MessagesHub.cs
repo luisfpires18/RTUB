@@ -15,6 +15,7 @@ namespace RTUB.Web.Hubs;
 public class MessagesHub : Hub<IMessagesHubClient>
 {
     private readonly IConversationRepository _conversationRepository;
+    private readonly IMessagingService _messagingService;
     private readonly MessagesNotificationService _notificationService;
     private readonly ILogger<MessagesHub> _logger;
 
@@ -25,10 +26,12 @@ public class MessagesHub : Hub<IMessagesHubClient>
 
     public MessagesHub(
         IConversationRepository conversationRepository,
+        IMessagingService messagingService,
         MessagesNotificationService notificationService,
         ILogger<MessagesHub> logger)
     {
         _conversationRepository = conversationRepository;
+        _messagingService = messagingService;
         _notificationService = notificationService;
         _logger = logger;
     }
@@ -145,6 +148,39 @@ public class MessagesHub : Hub<IMessagesHubClient>
 
         // Also notify server-side Blazor components
         await _notificationService.NotifyTypingStoppedAsync(conversationId, userId);
+    }
+
+    /// <summary>
+    /// Toggles an emoji reaction on a message and broadcasts the update to all participants
+    /// </summary>
+    public async Task SendReaction(int conversationId, int messageId, string emoji)
+    {
+        var userId = GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId)) return;
+
+        // Validate participation via cache or DB
+        if (!_participantCache.TryGetValue(conversationId, out var participants) || !participants.ContainsKey(userId))
+        {
+            var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+            if (conversation == null || !conversation.HasParticipant(userId)) return;
+        }
+
+        try
+        {
+            var updatedReactions = await _messagingService.ToggleReactionAsync(messageId, userId, emoji);
+
+            // Broadcast to all in the conversation group (including sender)
+            var groupName = $"conversation-{conversationId}";
+            await Clients.Group(groupName).ReactionUpdated(conversationId, messageId, updatedReactions);
+
+            // Notify server-side Blazor components
+            await _notificationService.NotifyReactionUpdatedAsync(conversationId, messageId, updatedReactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing reaction for message {MessageId} in conversation {ConversationId}",
+                messageId, conversationId);
+        }
     }
 
     public override async Task OnConnectedAsync()

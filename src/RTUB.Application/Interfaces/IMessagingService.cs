@@ -68,7 +68,7 @@ public interface IMessagingService
     /// <summary>
     /// Sends a message to a group conversation
     /// </summary>
-    Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body);
+    Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body, int? replyToMessageId = null);
 
     /// <summary>
     /// Gets or creates a system group conversation by title
@@ -119,4 +119,12 @@ public interface IMessagingService
     /// <param name="participantIds">The list of participant IDs</param>
     /// <returns>The conversation DTO</returns>
     Task<ConversationDto> GetOrCreateAnnouncementGroupAsync(string groupTitle, List<string> participantIds);
+
+    /// <summary>
+    /// Toggles an emoji reaction on a message for a user.
+    /// If the user already reacted with the same emoji, it is removed.
+    /// If the user reacted with a different emoji, the old one is replaced.
+    /// </summary>
+    /// <returns>Updated reaction summaries for the message</returns>
+    Task<List<MessageReactionSummaryDto>> ToggleReactionAsync(int messageId, string userId, string emoji);
 }

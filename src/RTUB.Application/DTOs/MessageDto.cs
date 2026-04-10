@@ -28,4 +28,14 @@ public class MessageDto
     /// Used for real-time notification filtering to ensure only actual recipients receive updates.
     /// </summary>
     public List<string> RecipientIds { get; set; } = [];
+
+    // Reply fields
+    public int? ReplyToMessageId { get; set; }
+    public string? ReplyToBody { get; set; }
+    public string? ReplyToSenderName { get; set; }
+
+    /// <summary>
+    /// Emoji reactions grouped by emoji character
+    /// </summary>
+    public List<MessageReactionSummaryDto> Reactions { get; set; } = [];
 }

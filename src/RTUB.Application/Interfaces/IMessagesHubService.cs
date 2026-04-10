@@ -36,4 +36,9 @@ public interface IMessagesHubService
     /// <param name="conversationId">The conversation ID</param>
     /// <param name="userId">The user who stopped typing</param>
     Task NotifyTypingStoppedAsync(int conversationId, string userId);
+
+    /// <summary>
+    /// Broadcasts updated reaction data for a message to all participants in a conversation
+    /// </summary>
+    Task BroadcastReactionAsync(int conversationId, int messageId, List<MessageReactionSummaryDto> reactions);
 }

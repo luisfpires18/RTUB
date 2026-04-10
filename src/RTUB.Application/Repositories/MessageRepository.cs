@@ -21,6 +21,7 @@ public class MessageRepository : Repository<Message>, IMessageRepository
             .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .Include(m => m.Sender)
+            .Include(m => m.Reactions)
             .OrderByDescending(m => m.CreatedAt);
 
         if (offset.HasValue)

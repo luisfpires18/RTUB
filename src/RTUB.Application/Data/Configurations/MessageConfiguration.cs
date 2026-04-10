@@ -34,6 +34,14 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.Link)
             .HasMaxLength(500);
 
+        builder.Property(m => m.ReplyToMessageId);
+
+        builder.Property(m => m.ReplyToBody)
+            .HasMaxLength(200);
+
+        builder.Property(m => m.ReplyToSenderName)
+            .HasMaxLength(100);
+
         builder.Property(m => m.CreatedAt)
             .IsRequired();
 

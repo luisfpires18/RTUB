@@ -19,8 +19,10 @@ window.messageComposer = {
     /** @private */ _textarea: null,
     /** @private */ _isTyping: false,
     /** @private */ _typingTimer: null,
+    /** @private */ _mentionTimer: null,
     /** @private */ _handlers: null,
     /** @private */ _TYPING_TIMEOUT: 3000,
+    /** @private */ _MENTION_DEBOUNCE: 150,
 
     /**
      * Attach the composer to a textarea element.
@@ -61,6 +63,7 @@ window.messageComposer = {
                 var text = self._textarea.value.trim();
                 if (!text) {
                     self._stopTyping();
+                    self._clearMention();
                     return;
                 }
 
@@ -75,6 +78,23 @@ window.messageComposer = {
                 self._typingTimer = setTimeout(function () {
                     self._stopTyping();
                 }, self._TYPING_TIMEOUT);
+
+                // Mention detection — scan backward from cursor for @word (no whitespace after @)
+                var pos = self._textarea.selectionStart;
+                var before = self._textarea.value.slice(0, pos);
+                var atIdx = before.lastIndexOf('@');
+                if (atIdx >= 0) {
+                    var query = before.slice(atIdx + 1);
+                    if (query.length >= 1 && !/\s/.test(query)) {
+                        clearTimeout(self._mentionTimer);
+                        self._mentionTimer = setTimeout(function () {
+                            self._dotNetRef.invokeMethodAsync('JsMentionQuery', query);
+                        }, self._MENTION_DEBOUNCE);
+                        return;
+                    }
+                }
+                // No active mention — clear dropdown
+                self._clearMention();
             },
 
             blur: function () {
@@ -109,6 +129,55 @@ window.messageComposer = {
     _stopTypingQuiet: function () {
         this._isTyping = false;
         clearTimeout(this._typingTimer);
+    },
+
+    /**
+     * Clear the mention timer and notify .NET to hide the dropdown.
+     * @private
+     */
+    _clearMention: function () {
+        clearTimeout(this._mentionTimer);
+        if (this._dotNetRef) {
+            this._dotNetRef.invokeMethodAsync('JsMentionQuery', '');
+        }
+    },
+
+    /**
+     * Insert a mention at the current cursor position, replacing the @partial text.
+     * @param {string} username
+     */
+    insertMention: function (username) {
+        var ta = this._textarea;
+        if (!ta) return;
+        var pos = ta.selectionStart;
+        var text = ta.value;
+        var before = text.slice(0, pos);
+        var atIdx = before.lastIndexOf('@');
+        if (atIdx >= 0) {
+            var after = text.slice(pos);
+            ta.value = text.slice(0, atIdx) + '@' + username + ' ' + after;
+            var newPos = atIdx + username.length + 2;
+            ta.selectionStart = ta.selectionEnd = newPos;
+        }
+        ta.focus();
+    },
+
+    /**
+     * Insert an emoji at the current cursor position.
+     * @param {string} emoji
+     */
+    insertEmoji: function (emoji) {
+        var ta = this._textarea;
+        if (!ta) return;
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        var text = ta.value;
+        ta.value = text.slice(0, start) + emoji + text.slice(end);
+        var newPos = start + emoji.length;
+        ta.selectionStart = ta.selectionEnd = newPos;
+        ta.focus();
+        // Trigger input event so the typing indicator logic fires
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
     /**
@@ -172,6 +241,7 @@ window.messageComposer = {
             this._textarea.removeEventListener('blur', this._handlers.blur);
         }
         clearTimeout(this._typingTimer);
+        clearTimeout(this._mentionTimer);
         this._dotNetRef = null;
         this._textarea = null;
         this._handlers = null;

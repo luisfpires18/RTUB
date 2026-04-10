@@ -85,4 +85,21 @@ public class MessagesHubService : IMessagesHubService
                 conversationId);
         }
     }
+
+    public async Task BroadcastReactionAsync(int conversationId, int messageId, List<MessageReactionSummaryDto> reactions)
+    {
+        try
+        {
+            var groupName = $"conversation-{conversationId}";
+            await _hubContext.Clients.Group(groupName).ReactionUpdated(conversationId, messageId, reactions);
+
+            // Also notify server-side Blazor components
+            await _notificationService.NotifyReactionUpdatedAsync(conversationId, messageId, reactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error broadcasting reaction update for message {MessageId} in conversation {ConversationId}",
+                messageId, conversationId);
+        }
+    }
 }

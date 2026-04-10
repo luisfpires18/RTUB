@@ -15,6 +15,7 @@
 @using RTUB.Components
 @attribute [Authorize]
 @inject IMessagingService MessagingService
+@inject IMentionService MentionService
 @inject IMessagingDisplayService MessagingDisplayService
 @inject IMessagingSortService MessagingSortService
 @inject UserManager<ApplicationUser> UserManager
@@ -248,7 +249,7 @@
                             </div>
                         </div>
 
-                        <div class="rtub-messages__thread-body" @ref="messageThreadBody">
+                        <div class="rtub-messages__thread-body" @ref="messageThreadBody" @onclick="CloseAllOverlays">
                             <div class="rtub-messages__thread-wrapper">
                                 @if (isLoadingMessages)
                                 {
@@ -264,14 +265,16 @@
                                         var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
                                         var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
                                         
-                                        <div class="rtub-messages__bubble @(message.SenderId == currentUserId ? "rtub-messages__bubble--sent" : "rtub-messages__bubble--received") @(message.IsSystem ? "rtub-messages__bubble--system" : string.Empty) @GetMessageGroupClass(groupPosition)">
+                                        <div class="rtub-messages__bubble @(message.SenderId == currentUserId ? "rtub-messages__bubble--sent" : "rtub-messages__bubble--received") @(message.IsSystem ? "rtub-messages__bubble--system" : string.Empty) @GetMessageGroupClass(groupPosition)"
+                                             @onmouseenter="() => hoveredMessageId = message.Id"
+                                             @onmouseleave="() => hoveredMessageId = null">
                                             @if (message.SenderId != currentUserId && !message.IsSystem)
                                             {
                                                 @if (showAvatar)
                                                 {
                                                     <div class="rtub-messages__bubble-avatar">
-                                                        <img src="@GetAvatarUrl(message.SenderAvatar)" 
-                                                             alt="@(message.SenderNickname ?? message.SenderName)" 
+                                                        <img src="@GetAvatarUrl(message.SenderAvatar)"
+                                                             alt="@(message.SenderNickname ?? message.SenderName)"
                                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                                     </div>
                                                 }
@@ -301,7 +304,16 @@
                                                     </div>
                                                 }
                                                 <div class="rtub-messages__bubble-body @(message.IsSystem ? "rtub-messages__bubble-body--system" : string.Empty)">
-                                                    <p class="rtub-messages__bubble-text">@message.Body</p>
+                                                    @* Reply-to quoted preview *@
+                                                    @if (message.ReplyToMessageId.HasValue && !string.IsNullOrEmpty(message.ReplyToBody))
+                                                    {
+                                                        <div class="rtub-messages__reply-preview">
+                                                            <div class="rtub-messages__reply-preview-sender">@message.ReplyToSenderName</div>
+                                                            <div class="rtub-messages__reply-preview-body">@message.ReplyToBody</div>
+                                                        </div>
+                                                    }
+
+                                                    <p class="rtub-messages__bubble-text">@RenderMentionHighlighted(message.Body)</p>
 
                                                     @if (!string.IsNullOrEmpty(message.Link))
                                                     {
@@ -313,6 +325,24 @@
                                                         </div>
                                                     }
                                                 </div>
+
+                                                @* Reaction summary pills *@
+                                                @if (message.Reactions.Any())
+                                                {
+                                                    <div class="rtub-messages__reactions">
+                                                        @foreach (var reaction in message.Reactions)
+                                                        {
+                                                            var r = reaction;
+                                                            var msgForReact = message;
+                                                            <button class="rtub-messages__reaction-pill @(r.ReactedByCurrentUser ? "is-active" : "")"
+                                                                    @onclick="() => SendReaction(msgForReact, r.Emoji)"
+                                                                    title="@r.Count pessoa(s)">
+                                                                @r.Emoji @r.Count
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                }
+
                                                 @if (showTimestamp)
                                                 {
                                                     <div class="rtub-messages__bubble-time">
@@ -331,6 +361,35 @@
                                                     </div>
                                                 }
                                             </div>
+
+                                            @* Hover action bar — reply + reaction *@
+                                            @if (!message.IsSystem && hoveredMessageId == message.Id)
+                                            {
+                                                var hovMsg = message;
+                                                <div class="rtub-messages__bubble-actions-bar @(message.SenderId == currentUserId ? "rtub-messages__bubble-actions-bar--sent" : "rtub-messages__bubble-actions-bar--received")">
+                                                    <button class="rtub-messages__action-btn" @onclick="() => SetReply(hovMsg)" @onclick:stopPropagation="true" title="Responder">
+                                                        <i class="bi bi-reply"></i>
+                                                    </button>
+                                                    <button class="rtub-messages__action-btn" @onclick="() => ToggleReactionPicker(hovMsg.Id)" @onclick:stopPropagation="true" title="Reagir">
+                                                        <i class="bi bi-emoji-smile"></i>
+                                                    </button>
+                                                </div>
+                                            }
+
+                                            @* Reaction picker mini panel *@
+                                            @if (reactionPickerOpenForMessageId == message.Id)
+                                            {
+                                                var rMsg = message;
+                                                <div class="rtub-messages__reaction-picker @(message.SenderId == currentUserId ? "rtub-messages__reaction-picker--sent" : "rtub-messages__reaction-picker--received")"
+                                                     @onclick:stopPropagation="true">
+                                                    @foreach (var e in new[] { "👍", "❤️", "😂", "😮", "😢", "🙏" })
+                                                    {
+                                                        var emoji = e;
+                                                        <button class="rtub-messages__reaction-picker-btn @(rMsg.Reactions.Any(rx => rx.Emoji == emoji && rx.ReactedByCurrentUser) ? "is-active" : "")"
+                                                                @onclick="() => SendReaction(rMsg, emoji)">@emoji</button>
+                                                    }
+                                                </div>
+                                            }
                                         </div>
                                     }
                                     
@@ -356,8 +415,65 @@
 
                         @if (!selectedConversation.IsSystemConversation && selectedConversation.CanSendMessage)
                         {
-                            <div class="rtub-messages__thread-footer">
+                            <div class="rtub-messages__thread-footer" @onclick="CloseAllOverlays">
+                                @* Reply strip — shows above composer when replying *@
+                                @if (replyingToMessage != null)
+                                {
+                                    <div class="rtub-messages__reply-strip" @onclick:stopPropagation="true">
+                                        <div class="rtub-messages__reply-strip-content">
+                                            <div class="rtub-messages__reply-strip-sender">@(replyingToMessage.SenderNickname ?? replyingToMessage.SenderName ?? "Sistema")</div>
+                                            <div class="rtub-messages__reply-strip-body">@(replyingToMessage.Body.Length > 80 ? replyingToMessage.Body[..80] + "…" : replyingToMessage.Body)</div>
+                                        </div>
+                                        <button class="rtub-messages__reply-strip-cancel" @onclick="CancelReply" @onclick:stopPropagation="true" title="Cancelar resposta">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                }
+
+                                @* Mention suggestions dropdown *@
+                                @if (isMentionDropdownOpen && mentionSuggestions.Any())
+                                {
+                                    <div class="rtub-messages__mention-dropdown" @onclick:stopPropagation="true">
+                                        @foreach (var s in mentionSuggestions)
+                                        {
+                                            var suggestion = s;
+                                            <div class="rtub-messages__mention-item" @onclick="() => SelectMentionInChat(suggestion)" @key="suggestion.userId">
+                                                <img class="rtub-messages__mention-item-avatar"
+                                                     src="@GetAvatarUrl(suggestion.avatarUrl)"
+                                                     alt="@suggestion.displayName"
+                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                <div>
+                                                    <div class="rtub-messages__mention-item-username">@suggestion.displayName</div>
+                                                    @if (!string.IsNullOrWhiteSpace(suggestion.fullName) && suggestion.fullName != suggestion.displayName)
+                                                    {
+                                                        <div class="rtub-messages__mention-item-fullname">@suggestion.fullName</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @* Emoji picker panel *@
+                                @if (isEmojiPickerOpen)
+                                {
+                                    <div class="rtub-messages__emoji-panel" @onclick:stopPropagation="true">
+                                        @foreach (var emoji in EmojiList)
+                                        {
+                                            var e = emoji;
+                                            <button class="rtub-messages__emoji-btn" @onclick="() => SelectEmoji(e)">@e</button>
+                                        }
+                                    </div>
+                                }
+
                                 <div class="rtub-messages__composer">
+                                    <button class="rtub-messages__composer-emoji-btn"
+                                            type="button"
+                                            @onclick="() => { isEmojiPickerOpen = !isEmojiPickerOpen; isMentionDropdownOpen = false; reactionPickerOpenForMessageId = null; }"
+                                            @onclick:stopPropagation="true"
+                                            title="Emoji">
+                                        <i class="bi bi-emoji-smile"></i>
+                                    </button>
                                     <textarea @ref="messageInput" class="rtub-messages__composer-input messaging-input"
                                            placeholder="Escreva uma mensagem..."
                                            rows="1"
@@ -365,6 +481,7 @@
                                            disabled="@isSending"></textarea>
                                     <button class="rtub-messages__composer-send"
                                             @onclick="SendMessage"
+                                            @onclick:stopPropagation="true"
                                             disabled="@isSending">
                                         @if (isSending)
                                         {
@@ -672,6 +789,45 @@
     private bool isInputFocusHandlerSetup = false;
     private DotNetObjectReference<Inbox>? _composerDotNetRef;
 
+    // Reply state
+    private MessageDto? replyingToMessage;
+
+    // Mention state
+    private List<(string userId, string username, string displayName, string fullName, string avatarUrl)> mentionSuggestions = new();
+    private bool isMentionDropdownOpen = false;
+
+    // Emoji picker state
+    private bool isEmojiPickerOpen = false;
+
+    // Message hover state (for reply/reaction button visibility)
+    private int? hoveredMessageId;
+    private int? reactionPickerOpenForMessageId;
+
+    // Common emoji list (static, no external lib)
+    private static readonly IReadOnlyList<string> EmojiList = new[]
+    {
+        // Smileys & People
+        "😀","😃","😄","😁","😆","😅","🤣","😂","🙂","🙃","😉","😊","😇","🥰","😍","🤩",
+        "😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🤫","🤔","🤐",
+        "🤨","😐","😑","😶","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒",
+        "🤕","🤢","🤧","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐",
+        // Gestures
+        "👍","👎","👏","🙌","👐","🤲","🤜","🤛","✊","👊","🤚","✋","🖐","👋","🤟",
+        "🤙","💪","🦾","🤝","🙏",
+        // Hearts & Symbols
+        "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖",
+        "💘","💝","💟","✌️","☑️","✅","❌","⭕","🔥","💯","💢","💥","🎉","🎊","🎈","🎁",
+        // Food & Objects
+        "🍕","🍔","🍟","🌮","🍜","🍣","🍰","☕","🍺","🥂","🏆","⚽","🎮","📱","💻",
+        "📷","🎵","🎶","🌈","⭐","🌟","💫","✨","🌙","☀️",
+        // Animals
+        "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐸","🐷","🐙","🦋"
+    };
+
+    // Mention highlight regex (compiled)
+    private static readonly System.Text.RegularExpressions.Regex MentionHighlightRegex =
+        new(@"(@\w+)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     // Group members modal
     private enum ModalType { GroupMembers, NewMessage, NewGroup }
     private readonly MultiModalState<ModalType> modals = new();
@@ -888,6 +1044,131 @@
     {
         groupMembersSearchTerm = string.Empty;
         return Task.CompletedTask;
+    }
+
+    // ── Reply ──────────────────────────────────────────────────────────
+
+    private void SetReply(MessageDto message)
+    {
+        replyingToMessage = message;
+        isEmojiPickerOpen = false;
+        reactionPickerOpenForMessageId = null;
+    }
+
+    private void CancelReply()
+    {
+        replyingToMessage = null;
+    }
+
+    // ── Emoji picker ────────────────────────────────────────────────────
+
+    private async Task SelectEmoji(string emoji)
+    {
+        await JSRuntime.InvokeVoidAsync("messageComposer.insertEmoji", emoji);
+        isEmojiPickerOpen = false;
+    }
+
+    private void CloseAllOverlays()
+    {
+        isEmojiPickerOpen = false;
+        isMentionDropdownOpen = false;
+        reactionPickerOpenForMessageId = null;
+    }
+
+    // ── Mentions ────────────────────────────────────────────────────────
+
+    [JSInvokable("JsMentionQuery")]
+    public async Task JsMentionQuery(string query)
+    {
+        if (string.IsNullOrEmpty(query))
+        {
+            mentionSuggestions.Clear();
+            isMentionDropdownOpen = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+        var results = await MentionService.GetSuggestionsAsync(query, maxResults: 6);
+        mentionSuggestions = results.ToList();
+        isMentionDropdownOpen = mentionSuggestions.Any();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SelectMentionInChat((string userId, string username, string displayName, string fullName, string avatarUrl) suggestion)
+    {
+        await JSRuntime.InvokeVoidAsync("messageComposer.insertMention", suggestion.username);
+        mentionSuggestions.Clear();
+        isMentionDropdownOpen = false;
+    }
+
+    // ── Reactions ───────────────────────────────────────────────────────
+
+    private void ToggleReactionPicker(int messageId)
+    {
+        reactionPickerOpenForMessageId = reactionPickerOpenForMessageId == messageId ? null : messageId;
+        isEmojiPickerOpen = false;
+    }
+
+    private async Task SendReaction(MessageDto message, string emoji)
+    {
+        reactionPickerOpenForMessageId = null;
+        if (selectedConversation == null) return;
+
+        try
+        {
+            // Send via SignalR hub — hub handles toggle + broadcast
+            await HubContext.Clients.User(currentUserId)
+                .ReactionUpdated(selectedConversation.Id, message.Id, message.Reactions);
+
+            // Call service directly and broadcast via hub
+            var updatedReactions = await MessagingService.ToggleReactionAsync(message.Id, currentUserId, emoji);
+
+            // Broadcast to all in the conversation
+            var groupName = $"conversation-{selectedConversation.Id}";
+            await HubContext.Clients.Group(groupName).ReactionUpdated(selectedConversation.Id, message.Id, updatedReactions);
+
+            // Update local state immediately
+            HandleReactionUpdatedLocal(message.Id, updatedReactions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error sending reaction {Emoji} on message {MessageId}", emoji, message.Id);
+        }
+    }
+
+    private void HandleReactionUpdatedLocal(int messageId, List<MessageReactionSummaryDto> reactions)
+    {
+        var msg = messages.FirstOrDefault(m => m.Id == messageId);
+        if (msg != null)
+        {
+            msg.Reactions = reactions;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleReactionUpdated(int conversationId, int messageId, List<MessageReactionSummaryDto> reactions)
+    {
+        if (selectedConversation?.Id != conversationId) return;
+        HandleReactionUpdatedLocal(messageId, reactions);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ── Mention highlight rendering ─────────────────────────────────────
+
+    private Microsoft.AspNetCore.Components.MarkupString RenderMentionHighlighted(string body)
+    {
+        if (string.IsNullOrEmpty(body) || !body.Contains('@'))
+            return new Microsoft.AspNetCore.Components.MarkupString(System.Net.WebUtility.HtmlEncode(body));
+
+        var parts = MentionHighlightRegex.Split(body);
+        var sb = new System.Text.StringBuilder();
+        foreach (var part in parts)
+        {
+            if (part.StartsWith('@') && part.Length > 1)
+                sb.Append($"<span class=\"rtub-messages__mention\">{System.Net.WebUtility.HtmlEncode(part)}</span>");
+            else
+                sb.Append(System.Net.WebUtility.HtmlEncode(part));
+        }
+        return new Microsoft.AspNetCore.Components.MarkupString(sb.ToString());
     }
 
     // ── JS-invokable callbacks for messageComposer.js ──────────────────
@@ -1317,6 +1598,7 @@
         NotificationService.OnMessageSeen += HandleMessageSeen;
         NotificationService.OnTypingStarted += HandleTypingStarted;
         NotificationService.OnTypingStopped += HandleTypingStopped;
+        NotificationService.OnReactionUpdated += HandleReactionUpdated;
         
         // Original initialization code
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1586,7 +1868,15 @@
         
         // Reset JS composer state (clears textarea text and typing flags without .NET callback)
         try { await JSRuntime.InvokeVoidAsync("messageComposer.reset"); } catch { }
-        
+
+        // Reset compose overlay state when switching conversations
+        replyingToMessage = null;
+        mentionSuggestions.Clear();
+        isMentionDropdownOpen = false;
+        isEmojiPickerOpen = false;
+        reactionPickerOpenForMessageId = null;
+        hoveredMessageId = null;
+
         typingUsers.Clear();
         isLoadingMessages = true;
         isInputFocusHandlerSetup = false;
@@ -1673,23 +1963,30 @@
         
         var conversationId = conversation.Id;
 
+        // Capture and clear reply state before async operations
+        var replyToId = replyingToMessage?.Id;
+        replyingToMessage = null;
+        mentionSuggestions.Clear();
+        isMentionDropdownOpen = false;
+
         // Fire-and-forget typing stop — don't block the send on hub round-trips
         _ = StopTyping();
-        
+
         try
         {
             MessageDto sentMessage;
-            
+
             if (conversation.IsGroup)
             {
-                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, conversationId, trimmedText);
+                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, conversationId, trimmedText, replyToId);
             }
             else
             {
                 var messageDto = new SendMessageDto
                 {
                     ReceiverId = conversation.OtherParticipantId!,
-                    Body = trimmedText
+                    Body = trimmedText,
+                    ReplyToMessageId = replyToId
                 };
                 sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
             }
@@ -1778,6 +2075,7 @@
         NotificationService.OnMessageSeen -= HandleMessageSeen;
         NotificationService.OnTypingStarted -= HandleTypingStarted;
         NotificationService.OnTypingStopped -= HandleTypingStopped;
+        NotificationService.OnReactionUpdated -= HandleReactionUpdated;
         
         _conversationsLock?.Dispose();
         _disposalCancellationTokenSource?.Dispose();

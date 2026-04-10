@@ -26,4 +26,9 @@ public interface IMessagesHubClient
     /// Notified when a user stops typing
     /// </summary>
     Task TypingStopped(int conversationId, string userId);
+
+    /// <summary>
+    /// Notified when reactions on a message change
+    /// </summary>
+    Task ReactionUpdated(int conversationId, int messageId, List<MessageReactionSummaryDto> reactions);
 }

@@ -19,6 +19,7 @@ public class MessagesNotificationService
     public event Func<int, string, DateTime, Task>? OnMessageSeen;
     public event Func<int, string, Task>? OnTypingStarted;
     public event Func<int, string, Task>? OnTypingStopped;
+    public event Func<int, int, List<MessageReactionSummaryDto>, Task>? OnReactionUpdated;
 
     /// <summary>
     /// Notifies subscribers that a new message was received
@@ -69,6 +70,19 @@ public class MessagesNotificationService
         {
             await InvokeAllAsync(handler.GetInvocationList(), d =>
                 ((Func<int, string, Task>)d)(conversationId, userId));
+        }
+    }
+
+    /// <summary>
+    /// Notifies subscribers that reactions on a message were updated
+    /// </summary>
+    public async Task NotifyReactionUpdatedAsync(int conversationId, int messageId, List<MessageReactionSummaryDto> reactions)
+    {
+        var handler = OnReactionUpdated;
+        if (handler != null)
+        {
+            await InvokeAllAsync(handler.GetInvocationList(), d =>
+                ((Func<int, int, List<MessageReactionSummaryDto>, Task>)d)(conversationId, messageId, reactions));
         }
     }
 

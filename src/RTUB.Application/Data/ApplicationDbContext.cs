@@ -112,6 +112,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Messaging DbSets
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
+    public DbSet<MessageReaction> MessageReactions { get; set; } = null!;
     public DbSet<ConversationUserSettings> ConversationUserSettings { get; set; }
 
     // Gallery DbSets
