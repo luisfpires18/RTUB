@@ -57,12 +57,26 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
     public async Task DeleteAllAsync()
     {
         using var context = CreateContext();
+        if (context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            var all = await context.Set<AuditLog>().ToListAsync();
+            context.Set<AuditLog>().RemoveRange(all);
+            await context.SaveChangesAsync();
+            return;
+        }
         await context.Set<AuditLog>().ExecuteDeleteAsync();
     }
 
     public async Task DeleteByUserAsync(string userName)
     {
         using var context = CreateContext();
+        if (context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            var rows = await context.Set<AuditLog>().Where(a => a.UserName == userName).ToListAsync();
+            context.Set<AuditLog>().RemoveRange(rows);
+            await context.SaveChangesAsync();
+            return;
+        }
         await context.Set<AuditLog>()
             .Where(a => a.UserName == userName)
             .ExecuteDeleteAsync();

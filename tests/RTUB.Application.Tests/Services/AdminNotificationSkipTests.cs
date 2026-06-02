@@ -48,7 +48,8 @@ public class AdminNotificationSkipTests : IDisposable
             _mockRetirementStatusService.Object,
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
-            _mockHttpContextAccessor.Object);
+            _mockHttpContextAccessor.Object,
+            _mockUserManager.Object);
 
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(CreateContextFactory()),

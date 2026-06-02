@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -20,19 +21,22 @@ public class EnrollmentService : IEnrollmentService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public EnrollmentService(
         IEnrollmentRepository enrollmentRepository,
         IRetirementStatusService retirementStatusService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        UserManager<ApplicationUser> userManager)
     {
         _enrollmentRepository = enrollmentRepository;
         _retirementStatusService = retirementStatusService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
+        _userManager = userManager;
     }
 
     public async Task<Enrollment?> GetEnrollmentByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -67,6 +71,7 @@ public class EnrollmentService : IEnrollmentService
         enrollment.Notes = notes;
         enrollment.WillAttend = willAttend;
         enrollment.OtherInstruments = otherInstruments;
+        enrollment.CategoryAtEvent = await ResolveUserPrimaryCategoryAsync(userId);
         var createdEnrollment = await _enrollmentRepository.AddAsync(enrollment);
 
         if (!skipNotification)
@@ -314,5 +319,11 @@ public class EnrollmentService : IEnrollmentService
             return $"{request.Scheme}://{request.Host}";
         }
         return "https://rtub.pt"; // Fallback
+    }
+
+    private async Task<MemberCategory?> ResolveUserPrimaryCategoryAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        return user?.GetPrimaryCategory();
     }
 }

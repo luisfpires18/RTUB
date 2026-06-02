@@ -40,6 +40,9 @@ public class MbwayTransferService : IMbwayTransferService
     /// <inheritdoc />
     public async Task<(bool Success, string Message)> AddTransferAsync(MbwayTransfer transfer, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(transfer.MemberUserId))
+            return (false, "Membro é obrigatório.");
+
         try
         {
             using var context = _contextFactory.CreateDbContext();
@@ -56,6 +59,9 @@ public class MbwayTransferService : IMbwayTransferService
     /// <inheritdoc />
     public async Task<(bool Success, string Message)> UpdateTransferAsync(MbwayTransfer transfer, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(transfer.MemberUserId))
+            return (false, "Membro é obrigatório.");
+
         try
         {
             using var context = _contextFactory.CreateDbContext();

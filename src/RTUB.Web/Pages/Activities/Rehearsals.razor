@@ -284,16 +284,19 @@ else
                                         }
                                     </div>
                                     <div class="enrollment-card-badges-row">
-                                        @* Category badge below status *@
+                                        @* Category badge below status — snapshot if present, else current *@
+                                        @{
+                                            var __mainCat = attendance.EffectiveCategory();
+                                        }
                                         @if (attendance.User.Positions.Contains(Position.Magister))
                                         {
                                             <PositionBadge Position="Position.Magister" />
                                         }
-                                        else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                        else if (__mainCat == MemberCategory.Tuno)
                                         {
                                             <CategoryBadge Category="MemberCategory.Tuno" />
                                         }
-                                        else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                        else if (__mainCat == MemberCategory.Caloiro)
                                         {
                                             <CategoryBadge Category="MemberCategory.Caloiro" />
                                         }
@@ -303,7 +306,7 @@ else
                         </EnrollmentCard>
                     }
                 </div>
-                
+
                 <!-- Pagination for Main Participants -->
                 @if (filteredMainParticipants.Count > 0)
                 {
@@ -405,20 +408,23 @@ else
                                 @if (attendance.User != null)
                                 {
                                     <div class="enrollment-card-badges-row">
-                                        @* Category badge for not attending members *@
+                                        @* Category badge for not attending members — snapshot first *@
+                                        @{
+                                            var __naCat = attendance.EffectiveCategory();
+                                        }
                                         @if (attendance.User.Positions.Contains(Position.Magister))
                                         {
                                             <PositionBadge Position="Position.Magister" />
                                         }
-                                        else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                        else if (__naCat == MemberCategory.Tuno)
                                         {
                                             <CategoryBadge Category="MemberCategory.Tuno" />
                                         }
-                                        else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                        else if (__naCat == MemberCategory.Caloiro)
                                         {
                                             <CategoryBadge Category="MemberCategory.Caloiro" />
                                         }
-                                        else if (attendance.User.Categories.Contains(MemberCategory.Leitao))
+                                        else if (__naCat == MemberCategory.Leitao)
                                         {
                                             <CategoryBadge Category="MemberCategory.Leitao" />
                                         }

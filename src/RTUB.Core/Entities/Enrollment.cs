@@ -21,6 +21,12 @@ public class Enrollment : BaseEntity
     public string? Notes { get; set; }
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Snapshot of the user's primary member category at the time this enrollment was created.
+    /// Preserves historical context (LEITAO/CALOIRO/TUNO/...) so promotions don't rewrite the past.
+    /// </summary>
+    public MemberCategory? CategoryAtEvent { get; set; }
+
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual ApplicationUser? User { get; set; }

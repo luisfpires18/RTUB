@@ -20,6 +20,13 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
+    private static Mock<UserManager<ApplicationUser>> CreateMockUserManager()
+    {
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        return new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+    }
+
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly EnrollmentService _enrollmentService;
@@ -50,7 +57,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         _eventRepository = new EventRepository(_fixture.CreateContextFactory());
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
@@ -442,7 +450,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - New user enrolls with willAttend = false
         await enrollmentService.CreateEnrollmentAsync("enroll_non_user4", testEvent.Id, willAttend: false);
@@ -543,7 +552,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - New user enrolls with willAttend = true
         await enrollmentService.CreateEnrollmentAsync("enroll_user4", testEvent.Id, willAttend: true);
@@ -647,7 +657,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - User changes from attending to not attending
         await enrollmentService.UpdateEnrollmentAsync(enrollment4.Id, willAttend: false);
@@ -728,7 +739,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - User changes from not attending to attending
         await enrollmentService.UpdateEnrollmentAsync(enrollment2.Id, willAttend: true);
@@ -811,7 +823,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - Delete enrollment for attending user
         await enrollmentService.DeleteEnrollmentAsync(enrollment2.Id);
@@ -846,7 +859,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act
         await enrollmentService.DeleteEnrollmentAsync(enrollment.Id);
@@ -878,7 +892,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - Create enrollment with skipNotification = true
         var result = await enrollmentService.CreateEnrollmentAsync("user123", testEvent.Id, willAttend: true, skipNotification: true);
@@ -909,7 +924,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - Create enrollment for past event
         var result = await enrollmentService.CreateEnrollmentAsync("user123", pastEvent.Id, willAttend: true);
@@ -940,7 +956,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - Update enrollment but keep willAttend = true
         var result = await enrollmentService.UpdateEnrollmentAsync(
@@ -978,7 +995,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockHttpContextAccessor.Object,
+            CreateMockUserManager().Object);
 
         // Act - Update enrollment but keep willAttend = false
         var result = await enrollmentService.UpdateEnrollmentAsync(
@@ -994,6 +1012,110 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         result.Should().NotBeNull();
         result.WillAttend.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateEnrollmentAsync_SnapshotsUserPrimaryCategoryAtEvent()
+    {
+        // Arrange — seed user with Leitao category, service must snapshot Leitao on enrollment row
+        var user = new ApplicationUser
+        {
+            Id = "snapshot-user-1",
+            FirstName = "Snap",
+            LastName = "User",
+            Nickname = "Snap",
+            Email = "snap1@example.com",
+            UserName = "snap1@example.com",
+            Categories = new List<Core.Enums.MemberCategory> { Core.Enums.MemberCategory.Leitao }
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        var mockUserManager = CreateMockUserManager();
+        mockUserManager.Setup(m => m.FindByIdAsync(user.Id)).ReturnsAsync(user);
+
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var service = new EnrollmentService(
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object,
+            mockUserManager.Object);
+
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Snapshot Event", DateTime.Now.AddDays(7), "Loc", Core.Enums.EventType.Festival, "Desc");
+
+        // Act
+        var enrollment = await service.CreateEnrollmentAsync(user.Id, eventEntity.Id, skipNotification: true);
+
+        // Assert
+        enrollment.CategoryAtEvent.Should().Be(Core.Enums.MemberCategory.Leitao);
+    }
+
+    [Fact]
+    public async Task CreateEnrollmentAsync_PicksHighestPriorityCategoryForSnapshot()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "snapshot-user-2",
+            FirstName = "Snap",
+            LastName = "Two",
+            Nickname = "Snap2",
+            Email = "snap2@example.com",
+            UserName = "snap2@example.com",
+            Categories = new List<Core.Enums.MemberCategory>
+            {
+                Core.Enums.MemberCategory.Tuno,
+                Core.Enums.MemberCategory.Veterano,
+                Core.Enums.MemberCategory.Tunossauro
+            }
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        var mockUserManager = CreateMockUserManager();
+        mockUserManager.Setup(m => m.FindByIdAsync(user.Id)).ReturnsAsync(user);
+
+        var service = new EnrollmentService(
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
+            _mockRetirementStatusService.Object,
+            new Mock<IPushNotificationFactory>().Object,
+            new Mock<IPushNotificationService>().Object,
+            new Mock<IHttpContextAccessor>().Object,
+            mockUserManager.Object);
+
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Snapshot Event 2", DateTime.Now.AddDays(8), "Loc", Core.Enums.EventType.Festival, "Desc");
+
+        var enrollment = await service.CreateEnrollmentAsync(user.Id, eventEntity.Id, skipNotification: true);
+
+        enrollment.CategoryAtEvent.Should().Be(Core.Enums.MemberCategory.Tunossauro);
+    }
+
+    [Fact]
+    public async Task CreateEnrollmentAsync_UserNotFound_SnapshotsNull()
+    {
+        var mockUserManager = CreateMockUserManager();
+        mockUserManager.Setup(m => m.FindByIdAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
+
+        var service = new EnrollmentService(
+            new EnrollmentRepository(_fixture.CreateContextFactory()),
+            _mockRetirementStatusService.Object,
+            new Mock<IPushNotificationFactory>().Object,
+            new Mock<IPushNotificationService>().Object,
+            new Mock<IHttpContextAccessor>().Object,
+            mockUserManager.Object);
+
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Snapshot Event Null", DateTime.Now.AddDays(9), "Loc", Core.Enums.EventType.Festival, "Desc");
+
+        var enrollment = await service.CreateEnrollmentAsync("nonexistent-user", eventEntity.Id, skipNotification: true);
+
+        enrollment.CategoryAtEvent.Should().BeNull();
     }
 
     public void Dispose()

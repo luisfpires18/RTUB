@@ -347,6 +347,28 @@
     <Sections>
         @if (selectedCard != null)
         {
+            <!-- Title (editable) -->
+            <InfoSection SectionTitle="Título"
+                        IconClass="bi-card-text"
+                        CssClass="mb-4">
+                <div class="input-group">
+                    <input type="text"
+                           class="form-control"
+                           maxlength="200"
+                           placeholder="Título do cartão"
+                           @bind="cardEditTitle"
+                           @bind:event="oninput" />
+                    <button type="button"
+                            class="btn btn-primary btn-primary-purple"
+                            @onclick="UpdateCardTitle"
+                            disabled="@(string.IsNullOrWhiteSpace(cardEditTitle) || cardEditTitle.Trim() == (selectedCard?.Title ?? string.Empty))"
+                            title="Guardar título"
+                            aria-label="Guardar título">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            </InfoSection>
+
             <!-- Status Section -->
             <InfoSection SectionTitle="Estado"
                         IconClass="bi-toggles"
@@ -840,6 +862,7 @@
     private LogisticsCard? editingCard = null;
     private int currentListId = 0;
     private string cardTitle = string.Empty;
+    private string cardEditTitle = string.Empty;
     private string cardDescription = string.Empty;
     private string selectedUserId = string.Empty;
     private string selectedUserName = string.Empty;
@@ -1300,6 +1323,7 @@
             catch { }
         }
         
+        cardEditTitle = card.Title;
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
         memberSearchTerm = string.Empty;
@@ -1578,6 +1602,19 @@
     {
         if (selectedCard == null) return;
         await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, cardDetailsText);
+    }
+
+    private async Task UpdateCardTitle()
+    {
+        if (selectedCard == null) return;
+        var trimmed = (cardEditTitle ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed) || trimmed == selectedCard.Title)
+        {
+            cardEditTitle = selectedCard.Title;
+            return;
+        }
+        await CardService.UpdateCardAsync(selectedCard.Id, trimmed, selectedCard.Description ?? string.Empty);
+        selectedCard.Title = trimmed;
     }
 
     private async Task UpdateCardDates()

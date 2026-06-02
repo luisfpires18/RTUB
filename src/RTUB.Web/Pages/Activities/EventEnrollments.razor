@@ -119,8 +119,8 @@
         <!-- Enrollment Content -->
         @if (eventEnrollments != null && eventEnrollments.Any())
         {
-            var performingMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
-            var leitaoMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+            var performingMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() != MemberCategory.Leitao).ToList();
+            var leitaoMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() == MemberCategory.Leitao).ToList();
             var notAttendingMembers = eventEnrollments.Where(e => e.User != null && !e.WillAttend).ToList();
 
             @if (performingMembers.Any())
@@ -151,15 +151,18 @@
                                 @if (enrollment.User != null)
                                 {
                                     <div class="enrollment-card-badges-row">
+                                        @{
+                                            var __pmCat = enrollment.EffectiveCategory();
+                                        }
                                         @if (enrollment.User.Positions.Contains(Position.Magister))
                                         {
                                             <PositionBadge Position="Position.Magister" />
                                         }
-                                        else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
+                                        else if (__pmCat == MemberCategory.Tuno)
                                         {
                                             <CategoryBadge Category="MemberCategory.Tuno" />
                                         }
-                                        else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
+                                        else if (__pmCat == MemberCategory.Caloiro)
                                         {
                                             <CategoryBadge Category="MemberCategory.Caloiro" />
                                         }
@@ -253,19 +256,22 @@
                                 @if (enrollment.User != null)
                                 {
                                     <div class="enrollment-card-badges-row">
+                                        @{
+                                            var __naCat = enrollment.EffectiveCategory();
+                                        }
                                         @if (enrollment.User.Positions.Contains(Position.Magister))
                                         {
                                             <PositionBadge Position="Position.Magister" />
                                         }
-                                        else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
+                                        else if (__naCat == MemberCategory.Tuno)
                                         {
                                             <CategoryBadge Category="MemberCategory.Tuno" />
                                         }
-                                        else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
+                                        else if (__naCat == MemberCategory.Caloiro)
                                         {
                                             <CategoryBadge Category="MemberCategory.Caloiro" />
                                         }
-                                        else if (enrollment.User.Categories.Contains(MemberCategory.Leitao))
+                                        else if (__naCat == MemberCategory.Leitao)
                                         {
                                             <CategoryBadge Category="MemberCategory.Leitao" />
                                         }
@@ -767,11 +773,11 @@
         }
         
         var performingMembers = eventEnrollments
-            .Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() != MemberCategory.Leitao)
             .ToList();
-        
+
         var leitaoMembers = eventEnrollments
-            .Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() == MemberCategory.Leitao)
             .ToList();
         
         var notAttendingMembers = eventEnrollments

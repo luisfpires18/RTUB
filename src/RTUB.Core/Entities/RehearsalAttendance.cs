@@ -29,6 +29,12 @@ public class RehearsalAttendance : BaseEntity
 
     public DateTime CheckedInAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Snapshot of the user's primary member category at the time this attendance was recorded.
+    /// Preserves historical context (LEITAO/CALOIRO/TUNO/...) so promotions don't rewrite the past.
+    /// </summary>
+    public MemberCategory? CategoryAtRehearsal { get; set; }
+
     // Navigation
     public virtual Rehearsal? Rehearsal { get; set; }
     public virtual ApplicationUser? User { get; set; }

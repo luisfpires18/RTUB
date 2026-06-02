@@ -447,16 +447,20 @@ iframe {
   .py-4 { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
   .py-5 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
 
-  /* Fix overflow issues on mobile — iOS Safari needs BOTH html AND body */
+  /* Fix overflow issues on mobile — iOS Safari needs BOTH html AND body.
+     Use overflow-x: clip (not hidden) so position: fixed descendants stay
+     anchored to the viewport. `overflow-x: hidden` on html/body makes iOS
+     Safari treat them as the scroll container, causing fixed bottom navs
+     (MobileBottomNav) to drift to the middle of the screen. */
   html,
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: none;
   }
 
   /* Prevent any page content from causing horizontal scroll */
   .content-main {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Global bottom clearance so footer/content don't hide behind fixed bottom nav */

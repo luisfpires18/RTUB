@@ -29,6 +29,9 @@ public class RehearsalAttendanceConfiguration : IEntityTypeConfiguration<Rehears
         builder.Property(a => a.Notes)
             .HasMaxLength(500);
 
+        builder.Property(a => a.CategoryAtRehearsal)
+            .HasConversion<int?>();
+
         builder.Property(a => a.CreatedAt)
             .IsRequired();
 

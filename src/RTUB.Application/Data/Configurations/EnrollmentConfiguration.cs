@@ -12,6 +12,9 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
 {
     public void Configure(EntityTypeBuilder<Enrollment> builder)
     {
+        builder.Property(e => e.CategoryAtEvent)
+            .HasConversion<int?>();
+
         // Composite unique index for preventing duplicate enrollments
         // One user can only enroll once per event
         builder.HasIndex(e => new { e.EventId, e.UserId })

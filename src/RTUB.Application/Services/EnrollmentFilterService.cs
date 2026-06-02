@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -20,11 +21,11 @@ public class EnrollmentFilterService : IEnrollmentFilterService
         }
 
         var performingMembers = enrollments
-            .Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() != MemberCategory.Leitao)
             .ToList();
 
         var leitaoMembers = enrollments
-            .Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() == MemberCategory.Leitao)
             .ToList();
 
         var notAttendingMembers = enrollments

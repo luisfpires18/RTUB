@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -59,14 +60,14 @@ public class RehearsalAttendanceFilterService : IRehearsalAttendanceFilterServic
     public (List<RehearsalAttendance> mainParticipants, List<RehearsalAttendance> leitoes, List<RehearsalAttendance> notAttending)
         SplitAttendancesByCategory(IEnumerable<RehearsalAttendance> attendances, string searchTerm = "")
     {
-        // Split into main participants and leitões
+        // Split into main participants and leitões using historical category snapshot when present
         var mainParticipants = attendances
-            .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(a => a.User != null && a.WillAttend && a.EffectiveCategory() != MemberCategory.Leitao)
             .OrderByDescending(a => a.CheckedInAt)
             .ToList();
 
         var leitoes = attendances
-            .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(a => a.User != null && a.WillAttend && a.EffectiveCategory() == MemberCategory.Leitao)
             .OrderByDescending(a => a.CheckedInAt)
             .ToList();
 

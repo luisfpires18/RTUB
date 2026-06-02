@@ -120,6 +120,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.Notes = notes;
         // Set other instruments
         attendance.OtherInstruments = otherInstruments;
+        attendance.CategoryAtRehearsal = await ResolveUserPrimaryCategoryAsync(userId);
 
         var createdAttendance = await _attendanceRepository.AddAsync(attendance);
 
@@ -162,6 +163,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.MarkAttendance(true); // Set Attended = true immediately
         attendance.Notes = notes;
         attendance.OtherInstruments = otherInstruments;
+        attendance.CategoryAtRehearsal = await ResolveUserPrimaryCategoryAsync(userId);
 
         return await _attendanceRepository.AddAsync(attendance);
         // Note: This method is designed for admin use and inherently does not send notifications
@@ -497,5 +499,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             return $"{request.Scheme}://{request.Host}";
         }
         return "https://rtub.pt"; // Fallback
+    }
+
+    private async Task<MemberCategory?> ResolveUserPrimaryCategoryAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        return user?.GetPrimaryCategory();
     }
 }

@@ -214,5 +214,42 @@ public static class ApplicationUserExtensions
         if (user.IsLeitao()) return "Leitão";
         return "Membro";
     }
+
+    /// <summary>
+    /// Effective category for an enrollment: prefers the historical snapshot stored on the enrollment,
+    /// falls back to the user's current primary category when the snapshot is missing (pre-snapshot rows).
+    /// </summary>
+    public static MemberCategory? EffectiveCategory(this Enrollment enrollment)
+    {
+        if (enrollment.CategoryAtEvent.HasValue) return enrollment.CategoryAtEvent;
+        return enrollment.User?.GetPrimaryCategory();
+    }
+
+    /// <summary>
+    /// Effective category for a rehearsal attendance: prefers the historical snapshot,
+    /// falls back to the user's current primary category when the snapshot is missing.
+    /// </summary>
+    public static MemberCategory? EffectiveCategory(this RehearsalAttendance attendance)
+    {
+        if (attendance.CategoryAtRehearsal.HasValue) return attendance.CategoryAtRehearsal;
+        return attendance.User?.GetPrimaryCategory();
+    }
+
+    /// <summary>
+    /// Primary category as enum for historical snapshotting (Enrollment.CategoryAtEvent / RehearsalAttendance.CategoryAtRehearsal).
+    /// Priority: TunoHonorario > Fundador > Tunossauro > Veterano > Tuno > Caloiro > Leitao.
+    /// Returns null if the user has no categories.
+    /// </summary>
+    public static MemberCategory? GetPrimaryCategory(this ApplicationUser user)
+    {
+        if (user.Categories.Contains(MemberCategory.TunoHonorario)) return MemberCategory.TunoHonorario;
+        if (user.Categories.Contains(MemberCategory.Fundador)) return MemberCategory.Fundador;
+        if (user.Categories.Contains(MemberCategory.Tunossauro)) return MemberCategory.Tunossauro;
+        if (user.Categories.Contains(MemberCategory.Veterano)) return MemberCategory.Veterano;
+        if (user.Categories.Contains(MemberCategory.Tuno)) return MemberCategory.Tuno;
+        if (user.Categories.Contains(MemberCategory.Caloiro)) return MemberCategory.Caloiro;
+        if (user.Categories.Contains(MemberCategory.Leitao)) return MemberCategory.Leitao;
+        return null;
+    }
     #endregion
 }

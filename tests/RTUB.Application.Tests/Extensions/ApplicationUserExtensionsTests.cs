@@ -599,4 +599,159 @@ public class ApplicationUserExtensionsTests
     }
 
     #endregion
+
+    #region GetPrimaryCategory Tests
+
+    [Fact]
+    public void GetPrimaryCategory_WithNoCategories_ReturnsNull()
+    {
+        var user = CreateUserWithCategories();
+
+        user.GetPrimaryCategory().Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(MemberCategory.Leitao, MemberCategory.Leitao)]
+    [InlineData(MemberCategory.Caloiro, MemberCategory.Caloiro)]
+    [InlineData(MemberCategory.Tuno, MemberCategory.Tuno)]
+    [InlineData(MemberCategory.Veterano, MemberCategory.Veterano)]
+    [InlineData(MemberCategory.Tunossauro, MemberCategory.Tunossauro)]
+    [InlineData(MemberCategory.Fundador, MemberCategory.Fundador)]
+    [InlineData(MemberCategory.TunoHonorario, MemberCategory.TunoHonorario)]
+    public void GetPrimaryCategory_SingleCategory_ReturnsThatCategory(MemberCategory only, MemberCategory expected)
+    {
+        var user = CreateUserWithCategories(only);
+
+        user.GetPrimaryCategory().Should().Be(expected);
+    }
+
+    [Fact]
+    public void GetPrimaryCategory_TunoHonorario_OutranksEverything()
+    {
+        var user = CreateUserWithCategories(
+            MemberCategory.Tuno,
+            MemberCategory.Caloiro,
+            MemberCategory.TunoHonorario,
+            MemberCategory.Fundador);
+
+        user.GetPrimaryCategory().Should().Be(MemberCategory.TunoHonorario);
+    }
+
+    [Fact]
+    public void GetPrimaryCategory_FundadorOutranksTunossauro()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Tunossauro, MemberCategory.Fundador);
+
+        user.GetPrimaryCategory().Should().Be(MemberCategory.Fundador);
+    }
+
+    [Fact]
+    public void GetPrimaryCategory_TunossauroOutranksVeteranoAndTuno()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Tuno, MemberCategory.Veterano, MemberCategory.Tunossauro);
+
+        user.GetPrimaryCategory().Should().Be(MemberCategory.Tunossauro);
+    }
+
+    [Fact]
+    public void GetPrimaryCategory_CaloiroOutranksLeitao()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Leitao, MemberCategory.Caloiro);
+
+        user.GetPrimaryCategory().Should().Be(MemberCategory.Caloiro);
+    }
+
+    #endregion
+
+    #region EffectiveCategory (Enrollment / RehearsalAttendance) Tests
+
+    [Fact]
+    public void EffectiveCategory_Enrollment_WithSnapshot_PrefersSnapshotOverCurrent()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Tuno);
+        var enrollment = new Enrollment
+        {
+            UserId = user.Id,
+            EventId = 1,
+            User = user,
+            CategoryAtEvent = MemberCategory.Leitao
+        };
+
+        enrollment.EffectiveCategory().Should().Be(MemberCategory.Leitao);
+    }
+
+    [Fact]
+    public void EffectiveCategory_Enrollment_NoSnapshot_FallsBackToUserPrimary()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Caloiro);
+        var enrollment = new Enrollment
+        {
+            UserId = user.Id,
+            EventId = 1,
+            User = user,
+            CategoryAtEvent = null
+        };
+
+        enrollment.EffectiveCategory().Should().Be(MemberCategory.Caloiro);
+    }
+
+    [Fact]
+    public void EffectiveCategory_Enrollment_NoSnapshotAndNoUser_ReturnsNull()
+    {
+        var enrollment = new Enrollment
+        {
+            UserId = "x",
+            EventId = 1,
+            User = null,
+            CategoryAtEvent = null
+        };
+
+        enrollment.EffectiveCategory().Should().BeNull();
+    }
+
+    [Fact]
+    public void EffectiveCategory_RehearsalAttendance_WithSnapshot_PrefersSnapshot()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Tuno);
+        var attendance = new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user.Id,
+            User = user,
+            CategoryAtRehearsal = MemberCategory.Leitao
+        };
+
+        attendance.EffectiveCategory().Should().Be(MemberCategory.Leitao);
+    }
+
+    [Fact]
+    public void EffectiveCategory_RehearsalAttendance_NoSnapshot_FallsBackToUserPrimary()
+    {
+        var user = CreateUserWithCategories(MemberCategory.Veterano, MemberCategory.Tuno);
+        var attendance = new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user.Id,
+            User = user,
+            CategoryAtRehearsal = null
+        };
+
+        attendance.EffectiveCategory().Should().Be(MemberCategory.Veterano);
+    }
+
+    [Fact]
+    public void EffectiveCategory_RehearsalAttendance_NoSnapshotAndNoUser_ReturnsNull()
+    {
+        var attendance = new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = "x",
+            User = null,
+            CategoryAtRehearsal = null
+        };
+
+        attendance.EffectiveCategory().Should().BeNull();
+    }
+
+    #endregion
 }
