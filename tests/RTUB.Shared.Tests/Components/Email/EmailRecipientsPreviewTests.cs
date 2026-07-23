@@ -9,7 +9,7 @@ namespace RTUB.Shared.Tests.Components.Email;
 /// <summary>
 /// Tests for the EmailRecipientsPreview component to ensure email recipient display works correctly
 /// </summary>
-public class EmailRecipientsPreviewTests : TestContext
+public class EmailRecipientsPreviewTests : BunitContext
 {
     private List<ApplicationUser> GetTestSubscribedUsers()
     {
@@ -37,7 +37,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.SubscribedUsersTitle, "Recipients:"));
 
@@ -55,7 +55,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var nonSubscribedUsers = GetTestNonSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.NonSubscribedUsers, nonSubscribedUsers)
             .Add(p => p.ShowNonSubscribedUsers, true)
             .Add(p => p.NonSubscribedUsersTitle, "Won't receive:"));
@@ -73,7 +73,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var nonSubscribedUsers = GetTestNonSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.NonSubscribedUsers, nonSubscribedUsers)
             .Add(p => p.ShowNonSubscribedUsers, false)
             .Add(p => p.NonSubscribedUsersTitle, "Won't receive:"));
@@ -91,7 +91,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var infoBadge = "3 / 5 members will receive this message.";
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.InfoBadgeText, infoBadge));
 
@@ -107,7 +107,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.ShowProfilePicture, true));
 
@@ -123,7 +123,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.ShowProfilePicture, false));
 
@@ -138,7 +138,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.ShowEmail, true));
 
@@ -154,7 +154,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.ShowEmail, false));
 
@@ -169,7 +169,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var emptyUsers = new List<ApplicationUser>();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, emptyUsers)
             .Add(p => p.ShowEmptySubscribedMessage, true)
             .Add(p => p.EmptySubscribedMessage, "No subscribers found."));
@@ -188,7 +188,7 @@ public class EmailRecipientsPreviewTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, users));
 
         // Assert
@@ -206,7 +206,7 @@ public class EmailRecipientsPreviewTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, users));
 
         // Assert
@@ -220,7 +220,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var subscribedUsers = GetTestSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.MaxHeight, "400px"));
 
@@ -236,7 +236,7 @@ public class EmailRecipientsPreviewTests : TestContext
         Func<ApplicationUser, string> additionalInfoFunc = user => $"ID: {user.Id}";
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.AdditionalUserInfoFunc, additionalInfoFunc));
 
@@ -253,7 +253,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var nonSubscribedUsers = GetTestNonSubscribedUsers();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.NonSubscribedUsers, nonSubscribedUsers)
             .Add(p => p.ShowNonSubscribedUsers, true));
@@ -272,7 +272,7 @@ public class EmailRecipientsPreviewTests : TestContext
             .ToList();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, manyUsers)
             .Add(p => p.UsePagination, true)
             .Add(p => p.PageSize, 10));
@@ -291,7 +291,7 @@ public class EmailRecipientsPreviewTests : TestContext
             .ToList();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, manyUsers)
             .Add(p => p.UsePagination, false)
             .Add(p => p.PageSize, 10));
@@ -311,7 +311,7 @@ public class EmailRecipientsPreviewTests : TestContext
             .ToList();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, manyUsers)
             .Add(p => p.UsePagination, true)
             .Add(p => p.PageSize, 15));
@@ -329,7 +329,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var emptyUsers = new List<ApplicationUser>();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, emptyUsers));
 
         // Assert - should not crash
@@ -344,7 +344,7 @@ public class EmailRecipientsPreviewTests : TestContext
         var emptyNonSubscribed = new List<ApplicationUser>();
 
         // Act
-        var cut = RenderComponent<EmailRecipientsPreview>(parameters => parameters
+        var cut = Render<EmailRecipientsPreview>(parameters => parameters
             .Add(p => p.SubscribedUsers, subscribedUsers)
             .Add(p => p.NonSubscribedUsers, emptyNonSubscribed)
             .Add(p => p.ShowNonSubscribedUsers, true));

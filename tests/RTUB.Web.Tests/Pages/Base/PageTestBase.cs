@@ -16,7 +16,7 @@ namespace RTUB.Web.Tests.Pages.Base;
 /// Base class for page component tests
 /// Provides common setup for mocking services, authentication, and JavaScript interop
 /// </summary>
-public abstract class PageTestBase : TestContext
+public abstract class PageTestBase : BunitContext
 {
     protected readonly Mock<IJSRuntime> MockJSRuntime;
     protected readonly Mock<ILoggerFactory> MockLoggerFactory;
@@ -82,14 +82,14 @@ public abstract class PageTestBase : TestContext
 
     /// <summary>
     /// Sets up authentication for the test context.
-    /// Uses fluent AddTestAuthorization().SetAuthorized().SetRoles() so IsInRole works in components.
+    /// Uses fluent AddAuthorization().SetAuthorized().SetRoles() so IsInRole works in components.
     /// </summary>
     /// <param name="userId">User ID (default: "test-user")</param>
     /// <param name="userName">User name (default: "Test User")</param>
     /// <param name="roles">User roles (default: empty)</param>
     protected void SetupAuthentication(string userId = "test-user", string userName = "Test User", params string[] roles)
     {
-        var authState = this.AddTestAuthorization().SetAuthorized(userId);
+        var authState = this.AddAuthorization().SetAuthorized(userId);
         foreach (var role in roles)
         {
             authState.SetRoles(role);
@@ -102,7 +102,7 @@ public abstract class PageTestBase : TestContext
     /// <param name="userId">User ID (default: "admin-user")</param>
     protected void SetupAuthenticationAsAdmin(string userId = "admin-user")
     {
-        this.AddTestAuthorization().SetAuthorized(userId).SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized(userId).SetRoles("Admin");
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public abstract class PageTestBase : TestContext
     /// </summary>
     protected void SetupUnauthenticated()
     {
-        this.AddTestAuthorization();
+        this.AddAuthorization();
     }
 
     /// <summary>

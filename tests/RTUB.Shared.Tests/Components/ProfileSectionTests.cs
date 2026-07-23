@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ProfileSection component to ensure sections display and interact correctly
 /// </summary>
-public class ProfileSectionTests : TestContext
+public class ProfileSectionTests : BunitContext
 {
     [Fact]
     public void ProfileSection_RendersTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section"));
 
         // Assert
@@ -25,7 +25,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_RendersIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.Icon, "bi-person-fill"));
 
@@ -37,7 +37,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsEditButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.ShowEditButton, true));
 
@@ -50,7 +50,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_HidesEditButtonWhenNotRequired()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.ShowEditButton, false));
 
@@ -62,7 +62,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsContentWhenExpanded()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsExpanded, true)
             .Add(p => p.ChildContent, (RenderFragment)((builder) =>
@@ -78,7 +78,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsChevronDownWhenCollapsed()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsExpanded, false)
             .Add(p => p.IsCollapsible, true));
@@ -91,7 +91,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsChevronUpWhenExpanded()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsExpanded, true)
             .Add(p => p.IsCollapsible, true));
@@ -104,7 +104,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_HasCardStructure()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section"));
 
         // Assert
@@ -118,7 +118,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsEditContentWhenEditing()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsEditing, true)
             .Add(p => p.EditContent, (RenderFragment)((builder) =>
@@ -139,7 +139,7 @@ public class ProfileSectionTests : TestContext
         var additionalClass = "custom-section-class";
 
         // Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test")
             .Add(p => p.AdditionalClasses, additionalClass));
 
@@ -151,7 +151,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_IsCollapsibleWhenConfigured()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsCollapsible, true));
 
@@ -163,7 +163,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_IsNotCollapsibleWhenConfigured()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsCollapsible, false));
 
@@ -175,7 +175,7 @@ public class ProfileSectionTests : TestContext
     public void ProfileSection_ShowsCollapsedClassWhenNotExpanded()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileSection>(parameters => parameters
+        var cut = Render<ProfileSection>(parameters => parameters
             .Add(p => p.Title, "Test Section")
             .Add(p => p.IsExpanded, false));
 

@@ -48,7 +48,7 @@ public class NotificationsPageTests : PageTestBase
     public async Task NotificationsPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Notifications>();
+        var cut = Render<Notifications>();
         cut.WaitForState(() => cut.Markup.Contains("Enviar Notificação Push") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -65,7 +65,7 @@ public class NotificationsPageTests : PageTestBase
             .Returns(tcs.Task);
 
         // Act
-        var cut = RenderComponent<Notifications>();
+        var cut = Render<Notifications>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar destinatários", "page should show loading state initially");
@@ -79,7 +79,7 @@ public class NotificationsPageTests : PageTestBase
     public async Task NotificationsPage_DisplaysNotificationForm()
     {
         // Arrange & Act
-        var cut = RenderComponent<Notifications>();
+        var cut = Render<Notifications>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar destinatários"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -92,7 +92,7 @@ public class NotificationsPageTests : PageTestBase
     public async Task NotificationsPage_DisplaysActionButtons()
     {
         // Arrange & Act
-        var cut = RenderComponent<Notifications>();
+        var cut = Render<Notifications>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar destinatários"), TimeSpan.FromSeconds(2));
 
         // Assert

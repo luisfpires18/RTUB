@@ -10,7 +10,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the RehearsalCard component to ensure rehearsal cards display correctly
 /// </summary>
-public class RehearsalCardTests : TestContext
+public class RehearsalCardTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -27,7 +27,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(rehearsalDate, "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -42,7 +42,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Main Hall");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -58,7 +58,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room", "Christmas Songs");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -74,7 +74,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -90,7 +90,7 @@ public class RehearsalCardTests : TestContext
         rehearsal.Cancel("Test cancellation");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -107,7 +107,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -123,7 +123,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 12));
 
@@ -139,7 +139,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
@@ -160,7 +160,7 @@ public class RehearsalCardTests : TestContext
         var attendance = RehearsalAttendance.Create(1, "user123");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -180,7 +180,7 @@ public class RehearsalCardTests : TestContext
         var attendance = RehearsalAttendance.Create(1, "user123");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -200,7 +200,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsPastRehearsal, true)
             .Add(p => p.AttendanceCount, 5));
@@ -217,7 +217,7 @@ public class RehearsalCardTests : TestContext
         rehearsal.Cancel("Test cancellation");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 5));
@@ -233,7 +233,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.AttendanceCount, 0));
@@ -251,7 +251,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, false)
             .Add(p => p.AttendanceCount, 0));
@@ -267,7 +267,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Today, "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -283,7 +283,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Today.AddDays(1), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -298,7 +298,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 0));
 
@@ -314,7 +314,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
@@ -336,7 +336,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 5));
 
@@ -353,7 +353,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 8));
 
@@ -370,7 +370,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 5));
 
@@ -389,7 +389,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 5)
             .Add(p => p.OnViewDetails, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -409,7 +409,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.AttendanceCount, 5)
             .Add(p => p.OnViewAttendances, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -430,7 +430,7 @@ public class RehearsalCardTests : TestContext
         var attendance = RehearsalAttendance.Create(1, "user123");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -454,7 +454,7 @@ public class RehearsalCardTests : TestContext
         var attendance = RehearsalAttendance.Create(1, "user123");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -481,7 +481,7 @@ public class RehearsalCardTests : TestContext
         attendance.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -501,7 +501,7 @@ public class RehearsalCardTests : TestContext
         attendance.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -519,7 +519,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
@@ -539,7 +539,7 @@ public class RehearsalCardTests : TestContext
         attendance.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -557,7 +557,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Today, "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
@@ -581,7 +581,7 @@ public class RehearsalCardTests : TestContext
         attendance.Attended = false;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -601,7 +601,7 @@ public class RehearsalCardTests : TestContext
         attendance.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -622,7 +622,7 @@ public class RehearsalCardTests : TestContext
         attendance.Attended = true;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -642,7 +642,7 @@ public class RehearsalCardTests : TestContext
         attendance.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
@@ -660,7 +660,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
@@ -687,7 +687,7 @@ public class RehearsalCardTests : TestContext
         attendance.Attended = false;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, true)
@@ -708,7 +708,7 @@ public class RehearsalCardTests : TestContext
         attendance.Attended = true;
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, true)
@@ -729,7 +729,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastRehearsal, true)
@@ -750,7 +750,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, false)
             .Add(p => p.IsPastRehearsal, true)
@@ -769,7 +769,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastRehearsal, false)
@@ -788,7 +788,7 @@ public class RehearsalCardTests : TestContext
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
         // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+        var cut = Render<RehearsalCard>(parameters => parameters
             .Add(p => p.Rehearsal, rehearsal)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastRehearsal, true)

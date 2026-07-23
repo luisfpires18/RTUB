@@ -11,7 +11,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the EventCard component to ensure event cards display correctly
 /// </summary>
-public class EventCardTests : TestContext
+public class EventCardTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -27,7 +27,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 5));
 
@@ -43,7 +43,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Christmas Event", eventDate, "Concert Hall", EventType.Festival);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -58,7 +58,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Concert Hall", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -74,7 +74,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao, "This is a great event!");
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -89,7 +89,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 15));
 
@@ -105,7 +105,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
@@ -126,7 +126,7 @@ public class EventCardTests : TestContext
         var enrollment = Enrollment.Create("user123", eventEntity.Id);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -146,7 +146,7 @@ public class EventCardTests : TestContext
         var enrollment = Enrollment.Create("user123", eventEntity.Id);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -169,7 +169,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsPastEvent, true)
             .Add(p => p.EnrollmentCount, 5));
@@ -186,7 +186,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.EnrollmentCount, 0));
@@ -204,7 +204,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, false)
             .Add(p => p.EnrollmentCount, 0));
@@ -220,7 +220,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 0));
@@ -237,7 +237,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -253,7 +253,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -269,7 +269,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
@@ -291,7 +291,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
@@ -316,7 +316,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", eventType);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -333,7 +333,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Today Event", today, "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -350,7 +350,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Tomorrow Event", tomorrow, "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -367,7 +367,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Yesterday Event", yesterday, "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsPastEvent, true)
             .Add(p => p.EnrollmentCount, 0));
@@ -385,7 +385,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Evening Event", eventDate, "Concert Hall", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -402,7 +402,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("All Day Event", eventDate, "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -421,7 +421,7 @@ public class EventCardTests : TestContext
         eventEntity.SetEndDate(endDate);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -439,11 +439,11 @@ public class EventCardTests : TestContext
         var eveningEvent = Event.Create("Evening Event", new DateTime(2025, 12, 25, 19, 0, 0), "Location", EventType.Atuacao);
 
         // Act
-        var cutMorning = RenderComponent<EventCard>(parameters => parameters
+        var cutMorning = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, morningEvent)
             .Add(p => p.EnrollmentCount, 0));
 
-        var cutEvening = RenderComponent<EventCard>(parameters => parameters
+        var cutEvening = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eveningEvent)
             .Add(p => p.EnrollmentCount, 0));
 
@@ -461,7 +461,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, true)
@@ -481,7 +481,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, true)
@@ -498,7 +498,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastEvent, false)
@@ -517,7 +517,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, false)
             .Add(p => p.IsPastEvent, false)
@@ -535,7 +535,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastEvent, true)
@@ -554,7 +554,7 @@ public class EventCardTests : TestContext
         eventEntity.Cancel("Event cancelled due to weather");
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastEvent, false)
@@ -576,7 +576,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -596,7 +596,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -614,7 +614,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
@@ -635,7 +635,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -655,7 +655,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -675,7 +675,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -699,7 +699,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -719,7 +719,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -739,7 +739,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = true;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -759,7 +759,7 @@ public class EventCardTests : TestContext
         enrollment.WillAttend = false;
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, enrollment)
             .Add(p => p.IsPastEvent, false)
@@ -777,7 +777,7 @@ public class EventCardTests : TestContext
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
         // Act
-        var cut = RenderComponent<EventCard>(parameters => parameters
+        var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)

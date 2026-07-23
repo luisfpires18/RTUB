@@ -10,17 +10,17 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the LabelEditButton component to ensure edit button displays correctly for admins
 /// </summary>
-public class LabelEditButtonTests : TestContext
+public class LabelEditButtonTests : BunitContext
 {
     [Fact]
     public void LabelEditButton_DoesNotRenderButton_WhenNotAuthorized()
     {
         // Arrange
-        this.AddTestAuthorization().SetNotAuthorized();
+        this.AddAuthorization().SetNotAuthorized();
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert - AuthorizeView renders nothing when not authorized
@@ -31,11 +31,11 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_Renders_WhenAuthorizedAsAdmin()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert
@@ -47,10 +47,10 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_DoesNotRenderButton_WhenLabelIsNull()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, (Label?)null));
 
         // Assert - AuthorizeView renders but button should not be present
@@ -61,11 +61,11 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_HasEditTitle()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert
@@ -76,11 +76,11 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_AppliesDefaultCssClass()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert
@@ -91,12 +91,12 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_AppliesCustomCssClass()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
         var customClass = "custom-edit-button";
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label)
             .Add(p => p.CssClass, customClass));
 
@@ -108,11 +108,11 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_IsSmallButton()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert
@@ -123,11 +123,11 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_IsLinkStyle()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
 
         // Act
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
         // Assert
@@ -138,12 +138,12 @@ public class LabelEditButtonTests : TestContext
     public void LabelEditButton_InvokesOnEditClick_WhenClicked()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var label = Label.Create("test-key", "Test Title", "Test Content");
         bool callbackInvoked = false;
         Label? receivedLabel = null;
 
-        var cut = RenderComponent<LabelEditButton>(parameters => parameters
+        var cut = Render<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label)
             .Add(p => p.OnEditClick, EventCallback.Factory.Create<Label>(this, (l) =>
             {

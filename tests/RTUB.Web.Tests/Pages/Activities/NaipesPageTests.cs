@@ -48,7 +48,7 @@ public class NaipesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar conteúdo") || cut.Markup.Contains("Naipes") || cut.Markup.Contains("Selecione um Instrumento"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Naipes", "page should display title");
@@ -77,7 +77,7 @@ public class NaipesPageTests : PageTestBase
                 return new List<NaipeContentDto>();
             });
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
 
         cut.Markup.Should().Contain("Naipes", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("spinner-border") || m.Contains("A carregar") || m.Contains("Naipes"), "should show loading or title initially");
@@ -90,7 +90,7 @@ public class NaipesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => cut.Markup.Contains("Selecione um Instrumento") || cut.Markup.Contains("Nenhum conteúdo"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Selecione um Instrumento", "should show empty state when no instrument selected");
@@ -115,7 +115,7 @@ public class NaipesPageTests : PageTestBase
             .Setup(x => x.GetAllContentAsync())
             .ReturnsAsync(new List<NaipeContentDto>());
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => cut.Markup.Contains("Guitarra") || cut.Markup.Contains("Selecione um Instrumento"), TimeSpan.FromSeconds(2));
 
         var instrumentBtn = cut.FindAll(".instrument-selector-item").FirstOrDefault();
@@ -132,7 +132,7 @@ public class NaipesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Vídeo") || cut.Markup.Contains("Selecione um Instrumento"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Vídeo", "authenticated user should see add video button");
@@ -148,7 +148,7 @@ public class NaipesPageTests : PageTestBase
     {
         SetupAuthenticationAsAdmin("admin-user");
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => cut.Markup.Contains("Configurar") || cut.Markup.Contains("Selecione um Instrumento"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Configurar", "admin should see config button");
@@ -160,7 +160,7 @@ public class NaipesPageTests : PageTestBase
         SetupAuthentication("regular-user", "Regular User");
         // No "Admin" role; default GetUserAsync returns user so isAdmin = user.IsInRole("Admin") is false
 
-        var cut = RenderComponent<Naipes>();
+        var cut = Render<Naipes>();
         cut.WaitForState(() => cut.Markup.Contains("Naipes") && (!cut.Markup.Contains("A carregar conteúdo") || cut.Markup.Contains("Selecione um Instrumento")), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().NotContain("Configurar", "regular user should not see config button");

@@ -86,7 +86,7 @@ public class MeetingsPageTests : PageTestBase
         SetupAuthentication("test-user", "Test User");
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -107,7 +107,7 @@ public class MeetingsPageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
 
         // Assert - Should show loading initially
         cut.Markup.Should().Contain("A carregar", "page should show loading message initially");
@@ -123,7 +123,7 @@ public class MeetingsPageTests : PageTestBase
             .ReturnsAsync(new List<Meeting>());
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -146,7 +146,7 @@ public class MeetingsPageTests : PageTestBase
             .ReturnsAsync(meetings);
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => cut.Markup.Contains("Test Meeting") && !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -168,7 +168,7 @@ public class MeetingsPageTests : PageTestBase
             .ReturnsAsync(new List<Meeting>());
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -185,7 +185,7 @@ public class MeetingsPageTests : PageTestBase
             .ReturnsAsync(new List<Meeting>());
 
         // Act
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -205,7 +205,7 @@ public class MeetingsPageTests : PageTestBase
             .Setup(x => x.GetAllMeetingsAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(new List<Meeting>());
 
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
@@ -229,7 +229,7 @@ public class MeetingsPageTests : PageTestBase
             .Setup(x => x.GetAllMeetingsAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(meetings);
 
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open edit modal via reflection (method is private)
@@ -253,7 +253,7 @@ public class MeetingsPageTests : PageTestBase
             .Setup(x => x.GetAllMeetingsAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(meetings);
 
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open delete modal via reflection (method is private)
@@ -284,7 +284,7 @@ public class MeetingsPageTests : PageTestBase
             .Setup(x => x.CreateMeetingAsync(It.IsAny<Meeting>()))
             .ReturnsAsync(newMeeting);
 
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal
@@ -317,7 +317,7 @@ public class MeetingsPageTests : PageTestBase
             .Setup(x => x.GetAllMeetingsAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(new List<Meeting>());
 
-        var cut = RenderComponent<Meetings>();
+        var cut = Render<Meetings>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var openDelete = typeof(Meetings).GetMethod("OpenDeleteModal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

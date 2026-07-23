@@ -44,7 +44,7 @@ public class AlbumsPageTests : PageTestBase
         _mockUserManager = SetupUserManager();
         _mockWebHostEnvironment = SetupWebHostEnvironment();
 
-        // NavigationManager is provided automatically by bUnit's TestContext
+        // NavigationManager is provided automatically by bUnit's BunitContext
 
         // Setup default service responses
         _mockAlbumService
@@ -93,7 +93,7 @@ public class AlbumsPageTests : PageTestBase
     public void AlbumsPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
 
         // Assert
         cut.Markup.Should().Contain("Música", "page should display 'Música' title");
@@ -113,7 +113,7 @@ public class AlbumsPageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar álbuns", "page should show loading message initially");
@@ -131,7 +131,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Album>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
 
         // Wait for async initialization to complete
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
@@ -159,7 +159,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Song>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         // OnInitializedAsync is called automatically by bUnit during rendering
         cut.WaitForState(() => cut.Markup.Contains("Test Album") && !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -182,7 +182,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Album>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -199,7 +199,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Album>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -216,7 +216,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Album>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -233,7 +233,7 @@ public class AlbumsPageTests : PageTestBase
             .ReturnsAsync(new List<Album>());
 
         // Act
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -253,7 +253,7 @@ public class AlbumsPageTests : PageTestBase
             .Setup(x => x.GetAlbumsForUserAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new List<Album>());
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
@@ -285,7 +285,7 @@ public class AlbumsPageTests : PageTestBase
             .Setup(x => x.GetAuthorizedUserIdsAsync(1))
             .ReturnsAsync(new List<string>());
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open edit modal via reflection (method is private)
@@ -309,7 +309,7 @@ public class AlbumsPageTests : PageTestBase
             .Setup(x => x.GetAlbumsForUserAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(albums);
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open delete modal via reflection (method is private)
@@ -346,7 +346,7 @@ public class AlbumsPageTests : PageTestBase
                 It.IsAny<bool>()))
             .ReturnsAsync(newAlbum);
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
@@ -381,7 +381,7 @@ public class AlbumsPageTests : PageTestBase
             .Setup(x => x.GetAlbumsForUserAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new List<Album>());
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var openDelete = typeof(Albums).GetMethod("OpenDeleteModal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
@@ -411,7 +411,7 @@ public class AlbumsPageTests : PageTestBase
             .Setup(x => x.GetPublicAlbumsAsync())
             .ReturnsAsync(albums);
 
-        var cut = RenderComponent<Albums>();
+        var cut = Render<Albums>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Navigate via reflection (method is private)

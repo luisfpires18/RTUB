@@ -31,7 +31,7 @@ public class LabelsPageTests : PageTestBase
     {
         SetupAuthenticationAsAdmin("admin-user");
 
-        var cut = RenderComponent<Labels>();
+        var cut = Render<Labels>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar") || cut.Markup.Contains("Gestão de Etiquetas") || cut.Markup.Contains("Nenhuma etiqueta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Gestão de Etiquetas", "page should display title");
@@ -50,7 +50,7 @@ public class LabelsPageTests : PageTestBase
                 return (IEnumerable<Label>)new List<Label>();
             });
 
-        var cut = RenderComponent<Labels>();
+        var cut = Render<Labels>();
 
         cut.Markup.Should().Contain("Gestão de Etiquetas", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("A carregar") || m.Contains("Gestão de Etiquetas"), "should show loading or title initially");
@@ -63,7 +63,7 @@ public class LabelsPageTests : PageTestBase
     {
         SetupAuthenticationAsAdmin("admin-user");
 
-        var cut = RenderComponent<Labels>();
+        var cut = Render<Labels>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhuma etiqueta") || cut.Markup.Contains("Pesquisar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Nenhuma etiqueta encontrada", "should show empty state when no labels");
@@ -74,7 +74,7 @@ public class LabelsPageTests : PageTestBase
     {
         SetupAuthenticationAsAdmin("admin-user");
 
-        var cut = RenderComponent<Labels>();
+        var cut = Render<Labels>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Novo Texto") || cut.Markup.Contains("Nenhuma etiqueta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Novo Texto", "admin should see create button");

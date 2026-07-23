@@ -54,7 +54,7 @@ public class RequestsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Requests>();
+        var cut = Render<Requests>();
         cut.WaitForState(() => cut.Markup.Contains("Gestão de Pedidos") || cut.Markup.Contains("Pedidos Pendentes") || cut.Markup.Contains("Nenhum pedido"), TimeSpan.FromSeconds(3));
 
         cut.Markup.Should().Contain("Gestão de Pedidos", "page should display title");
@@ -66,7 +66,7 @@ public class RequestsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Requests>();
+        var cut = Render<Requests>();
         cut.WaitForState(() => cut.Markup.Contains("Pedidos Pendentes") && cut.Markup.Contains("Pedidos Respondidos"), TimeSpan.FromSeconds(3));
 
         cut.Markup.Should().Contain("Pedidos Pendentes", "page should show pending section");
@@ -78,7 +78,7 @@ public class RequestsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Requests>();
+        var cut = Render<Requests>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhum pedido pendente") || cut.Markup.Contains("Nenhum pedido respondido"), TimeSpan.FromSeconds(3));
 
         cut.Markup.Should().Contain("Nenhum pedido pendente encontrado", "should show empty state for pending");
@@ -94,7 +94,7 @@ public class RequestsPageTests : PageTestBase
             .Setup(x => x.GetAllRequestsAsync())
             .ReturnsAsync(new List<Request> { pending });
 
-        var cut = RenderComponent<Requests>();
+        var cut = Render<Requests>();
         cut.WaitForState(() => cut.Markup.Contains("Alice") || cut.Markup.Contains("Atuacao"), TimeSpan.FromSeconds(3));
 
         cut.Markup.Should().Contain("Alice", "page should display pending request name");
@@ -109,7 +109,7 @@ public class RequestsPageTests : PageTestBase
             .Setup(x => x.GetAllRequestsAsync())
             .ReturnsAsync(new List<Request> { answered });
 
-        var cut = RenderComponent<Requests>();
+        var cut = Render<Requests>();
         cut.WaitForState(() => cut.Markup.Contains("Bob") || cut.Markup.Contains("Concerto"), TimeSpan.FromSeconds(3));
 
         cut.Markup.Should().Contain("Bob", "page should display answered request name");

@@ -64,7 +64,7 @@ public class RehearsalsPageTests : PageTestBase
         SetupAuthentication("test-user", "Test User");
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -85,7 +85,7 @@ public class RehearsalsPageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
 
         // Assert - Should show loading initially
         cut.Markup.Should().Contain("A carregar", "page should show loading message initially");
@@ -101,7 +101,7 @@ public class RehearsalsPageTests : PageTestBase
             .ReturnsAsync(new List<Rehearsal>());
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -124,7 +124,7 @@ public class RehearsalsPageTests : PageTestBase
             .ReturnsAsync(rehearsals);
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => cut.Markup.Contains("Test Location") && !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -146,7 +146,7 @@ public class RehearsalsPageTests : PageTestBase
             .ReturnsAsync(new List<Rehearsal>());
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -163,7 +163,7 @@ public class RehearsalsPageTests : PageTestBase
             .ReturnsAsync(new List<Rehearsal>());
 
         // Act
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -183,7 +183,7 @@ public class RehearsalsPageTests : PageTestBase
             .Setup(x => x.GetRehearsalsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(new List<Rehearsal>());
 
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
@@ -207,7 +207,7 @@ public class RehearsalsPageTests : PageTestBase
             .Setup(x => x.GetRehearsalsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(rehearsals);
 
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open edit modal via reflection (method is private)
@@ -231,7 +231,7 @@ public class RehearsalsPageTests : PageTestBase
             .Setup(x => x.GetRehearsalsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(rehearsals);
 
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open delete modal via reflection (method is private)
@@ -262,7 +262,7 @@ public class RehearsalsPageTests : PageTestBase
             .Setup(x => x.CreateRehearsalAsync(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(newRehearsal);
 
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal
@@ -295,7 +295,7 @@ public class RehearsalsPageTests : PageTestBase
             .Setup(x => x.GetRehearsalsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(new List<Rehearsal>());
 
-        var cut = RenderComponent<Rehearsals>();
+        var cut = Render<Rehearsals>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var openDelete = typeof(Rehearsals).GetMethod("OpenDeleteModal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

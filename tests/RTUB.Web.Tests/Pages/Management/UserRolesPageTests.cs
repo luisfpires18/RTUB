@@ -61,7 +61,7 @@ public class UserRolesPageTests : PageTestBase
     public async Task UserRolesPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<UserRoles>();
+        var cut = Render<UserRoles>();
         cut.WaitForState(() => cut.Markup.Contains("Gestão de Funções de Utilizadores") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -75,7 +75,7 @@ public class UserRolesPageTests : PageTestBase
         // Arrange - Already set up with empty data in constructor
 
         // Act
-        var cut = RenderComponent<UserRoles>();
+        var cut = Render<UserRoles>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -86,7 +86,7 @@ public class UserRolesPageTests : PageTestBase
     public async Task UserRolesPage_DisplaysSearchBar()
     {
         // Arrange & Act
-        var cut = RenderComponent<UserRoles>();
+        var cut = Render<UserRoles>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

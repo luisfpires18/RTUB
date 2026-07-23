@@ -47,7 +47,7 @@ public class GamesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => !cut.Markup.Contains("spinner-border") || cut.Markup.Contains("Jogos") || cut.Markup.Contains("Sem jogos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Jogos", "page should display title");
@@ -66,7 +66,7 @@ public class GamesPageTests : PageTestBase
                 return new List<GameDto>();
             });
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
 
         cut.Markup.Should().Contain("Jogos", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("spinner-border") || m.Contains("Jogos"), "should show loading or title initially");
@@ -79,7 +79,7 @@ public class GamesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Sem jogos") || cut.Markup.Contains("games-grid"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Sem jogos disponíveis", "should show empty state when no games");
@@ -98,7 +98,7 @@ public class GamesPageTests : PageTestBase
             .Setup(x => x.GetAllGamesAsync())
             .ReturnsAsync(games);
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Game One") || cut.Markup.Contains("Game Two"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Game One", "page should display first game");
@@ -125,7 +125,7 @@ public class GamesPageTests : PageTestBase
             .Setup(x => x.GetAllGamesAsync())
             .ReturnsAsync(games);
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Public Game") || cut.Markup.Contains("Sem jogos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Public Game", "Leitao should see public games");
@@ -152,7 +152,7 @@ public class GamesPageTests : PageTestBase
             .Setup(x => x.GetAllGamesAsync())
             .ReturnsAsync(games);
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Public Game") || cut.Markup.Contains("Members Game"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Public Game", "admin should see public games");
@@ -171,7 +171,7 @@ public class GamesPageTests : PageTestBase
             .Setup(x => x.GetAllGamesAsync())
             .ReturnsAsync(games);
 
-        var cut = RenderComponent<GamesPage>();
+        var cut = Render<GamesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Game One"), TimeSpan.FromSeconds(2));
 
         // Edit button is in GameCard component, which may not be easily testable

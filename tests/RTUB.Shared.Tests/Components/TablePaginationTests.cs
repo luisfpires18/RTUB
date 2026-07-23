@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the TablePagination component to ensure pagination functionality works correctly
 /// </summary>
-public class TablePaginationTests : TestContext
+public class TablePaginationTests : BunitContext
 {
     [Fact]
     public void TablePagination_RendersItemCount_Correctly()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -27,7 +27,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_RendersWithCustomItemLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50)
@@ -41,7 +41,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_DoesNotRenderPaginationNav_WhenOnlyOnePage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 5));
@@ -56,7 +56,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_RendersPaginationControls_WhenMultiplePages()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -69,7 +69,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_DisablesPreviousButton_OnFirstPage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -83,7 +83,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_EnablesPreviousButton_OnSecondPage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 2)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -97,7 +97,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_DisablesNextButton_OnLastPage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 5)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -111,7 +111,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_EnablesNextButton_BeforeLastPage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -125,7 +125,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_ShowsAllPages_When7OrFewerPages()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 70));
@@ -141,7 +141,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_ShowsEllipsis_WhenMoreThan7Pages()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 5)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 100));
@@ -154,7 +154,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_HighlightsCurrentPage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 3)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50));
@@ -173,7 +173,7 @@ public class TablePaginationTests : TestContext
         int receivedPage = 0;
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50)
@@ -201,7 +201,7 @@ public class TablePaginationTests : TestContext
         // Arrange
         int receivedPage = 0;
 
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50)
@@ -224,7 +224,7 @@ public class TablePaginationTests : TestContext
         // Arrange
         int receivedPage = 0;
 
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 2)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50)
@@ -245,7 +245,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_RendersPageSizeSelector()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100));
@@ -260,7 +260,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_PageSizeSelector_HasCorrectOptions()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100));
@@ -277,7 +277,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_PageSizeSelector_ShowsCurrentPageSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 50)
             .Add(p => p.TotalItems, 100));
@@ -294,7 +294,7 @@ public class TablePaginationTests : TestContext
         int receivedPageSize = 0;
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100)
@@ -317,7 +317,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_CalculatesEndItemNumber_Correctly()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 5)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 47)); // Last page with only 7 items
@@ -330,7 +330,7 @@ public class TablePaginationTests : TestContext
     public void TablePagination_ShowsZero_WhenNoItems()
     {
         // Arrange & Act
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 0));
@@ -345,7 +345,7 @@ public class TablePaginationTests : TestContext
         // Arrange
         int callbackCount = 0;
 
-        var cut = RenderComponent<TablePagination>(parameters => parameters
+        var cut = Render<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 2)
             .Add(p => p.PageSize, 10)
             .Add(p => p.TotalItems, 50)

@@ -62,16 +62,17 @@ public class PushControllerTests
     }
 
     [Fact]
-    public void GetStatus_ReturnsEnabledTrue_WhenUserIsOwner()
+    public async Task GetStatus_ReturnsEnabledTrue_WhenUserIsOwner()
     {
         // Arrange
         _options.Enabled = false; // Even when disabled
         SetupUserContext("test-user", isOwner: true);
         _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
         _mockPushService.Setup(s => s.GetVapidPublicKey()).Returns("test-public-key");
+        _mockPushService.Setup(s => s.IsOptedOutAsync("test-user")).ReturnsAsync(false);
 
         // Act
-        var result = _controller.GetStatus() as OkObjectResult;
+        var result = await _controller.GetStatus() as OkObjectResult;
 
         // Assert
         Assert.NotNull(result);
@@ -79,20 +80,22 @@ public class PushControllerTests
         Assert.NotNull(statusDto);
         Assert.True(statusDto.IsEnabled, "OWNER should always have access");
         Assert.True(statusDto.IsConfigured);
+        Assert.False(statusDto.IsOptedOut);
         Assert.Equal("test-public-key", statusDto.VapidPublicKey);
     }
 
     [Fact]
-    public void GetStatus_ReturnsEnabledTrue_WhenFeatureIsEnabled()
+    public async Task GetStatus_ReturnsEnabledTrue_WhenFeatureIsEnabled()
     {
         // Arrange
         _options.Enabled = true;
         SetupUserContext("test-user", isOwner: false);
         _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
         _mockPushService.Setup(s => s.GetVapidPublicKey()).Returns("test-public-key");
+        _mockPushService.Setup(s => s.IsOptedOutAsync("test-user")).ReturnsAsync(false);
 
         // Act
-        var result = _controller.GetStatus() as OkObjectResult;
+        var result = await _controller.GetStatus() as OkObjectResult;
 
         // Assert
         Assert.NotNull(result);
@@ -104,7 +107,7 @@ public class PushControllerTests
     }
 
     [Fact]
-    public void GetStatus_ReturnsEnabledFalse_WhenFeatureIsDisabledAndNotOwner()
+    public async Task GetStatus_ReturnsEnabledFalse_WhenFeatureIsDisabledAndNotOwner()
     {
         // Arrange
         _options.Enabled = false;
@@ -112,7 +115,7 @@ public class PushControllerTests
         _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
 
         // Act
-        var result = _controller.GetStatus() as OkObjectResult;
+        var result = await _controller.GetStatus() as OkObjectResult;
 
         // Assert
         Assert.NotNull(result);
@@ -120,6 +123,26 @@ public class PushControllerTests
         Assert.NotNull(statusDto);
         Assert.False(statusDto.IsEnabled);
         Assert.Null(statusDto.VapidPublicKey);
+    }
+
+    [Fact]
+    public async Task GetStatus_ReturnsIsOptedOutTrue_WhenUserOptedOut()
+    {
+        // Arrange
+        _options.Enabled = true;
+        SetupUserContext("test-user", isOwner: false);
+        _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
+        _mockPushService.Setup(s => s.GetVapidPublicKey()).Returns("test-public-key");
+        _mockPushService.Setup(s => s.IsOptedOutAsync("test-user")).ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.GetStatus() as OkObjectResult;
+
+        // Assert
+        Assert.NotNull(result);
+        var statusDto = result.Value as PushStatusDto;
+        Assert.NotNull(statusDto);
+        Assert.True(statusDto.IsOptedOut);
     }
 
     [Fact]
@@ -165,6 +188,7 @@ public class PushControllerTests
             It.IsAny<PushSubscriptionDto>(),
             It.IsAny<string>(),
             It.Is<string?>(name => name == "Test User")), Times.Once);
+        _mockPushService.Verify(s => s.SetOptedOutAsync("test-user", false), Times.Once);
     }
 
     [Fact]
@@ -196,6 +220,7 @@ public class PushControllerTests
         // Assert
         Assert.NotNull(result);
         _mockPushService.Verify(s => s.UnsubscribeAsync(request.Endpoint), Times.Once);
+        _mockPushService.Verify(s => s.SetOptedOutAsync("test-user", true), Times.Once);
     }
 
     [Fact]

@@ -8,7 +8,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the Modal component to ensure proper rendering, behavior, and interactions
 /// </summary>
-public class ModalTests : TestContext
+public class ModalTests : BunitContext
 {
     public ModalTests()
     {
@@ -21,7 +21,7 @@ public class ModalTests : TestContext
     public void Modal_WhenShowIsFalse_DoesNotRender()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, false)
             .Add(p => p.Title, "Test Modal"));
 
@@ -33,7 +33,7 @@ public class ModalTests : TestContext
     public void Modal_WhenShowIsTrue_Renders()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test Modal"));
 
@@ -49,7 +49,7 @@ public class ModalTests : TestContext
         var expectedTitle = "My Test Modal";
 
         // Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, expectedTitle));
 
@@ -65,7 +65,7 @@ public class ModalTests : TestContext
         var bodyText = "This is the modal body content";
 
         // Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.BodyContent, builder => builder.AddContent(0, bodyText)));
 
@@ -81,7 +81,7 @@ public class ModalTests : TestContext
         var footerText = "Footer content";
 
         // Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.FooterContent, builder => builder.AddContent(0, footerText)));
 
@@ -94,7 +94,7 @@ public class ModalTests : TestContext
     public void Modal_DoesNotRenderFooter_WhenFooterContentIsNull()
     {
         // Arrange & Act — also disable ShowCloseButton (default true) which renders a fallback footer
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test")
             .Add(p => p.ShowCloseButton, false));
@@ -107,7 +107,7 @@ public class ModalTests : TestContext
     public void Modal_ShowsCloseButton_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test"));
 
@@ -119,7 +119,7 @@ public class ModalTests : TestContext
     public void Modal_HidesCloseButton_WhenShowCloseButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test")
             .Add(p => p.ShowCloseButton, false));
@@ -132,7 +132,7 @@ public class ModalTests : TestContext
     public void Modal_AppliesSmallSize_WhenSizeIsSmall()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.Small));
 
@@ -144,7 +144,7 @@ public class ModalTests : TestContext
     public void Modal_AppliesLargeSize_WhenSizeIsLarge()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.Large));
 
@@ -156,7 +156,7 @@ public class ModalTests : TestContext
     public void Modal_AppliesExtraLargeSize_WhenSizeIsExtraLarge()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.ExtraLarge));
 
@@ -168,7 +168,7 @@ public class ModalTests : TestContext
     public void Modal_DoesNotApplySizeClass_WhenSizeIsDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.Default));
 
@@ -182,7 +182,7 @@ public class ModalTests : TestContext
     public void Modal_AppliesCenteredClass_WhenCenteredIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Centered, true));
 
@@ -194,7 +194,7 @@ public class ModalTests : TestContext
     public void Modal_DoesNotApplyCenteredClass_WhenCenteredIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Centered, false));
 
@@ -209,7 +209,7 @@ public class ModalTests : TestContext
         bool showChangedCalled = false;
         bool newShowValue = true;
 
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test")
             .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, (value) =>
@@ -233,7 +233,7 @@ public class ModalTests : TestContext
         // Arrange
         bool onCloseCalled = false;
 
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test")
             .Add(p => p.OnClose, EventCallback.Factory.Create(this, () =>
@@ -253,7 +253,7 @@ public class ModalTests : TestContext
     public void Modal_RendersHeader_OnlyWhenTitleOrCloseButtonIsPresent()
     {
         // Arrange & Act - No title, no close button
-        var cut1 = RenderComponent<Modal>(parameters => parameters
+        var cut1 = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, string.Empty)
             .Add(p => p.ShowCloseButton, false));
@@ -262,7 +262,7 @@ public class ModalTests : TestContext
         cut1.Markup.Should().NotContain("modal-header", "modal should not have header when no title and no close button");
 
         // Act - With title
-        var cut2 = RenderComponent<Modal>(parameters => parameters
+        var cut2 = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Title")
             .Add(p => p.ShowCloseButton, false));
@@ -271,7 +271,7 @@ public class ModalTests : TestContext
         cut2.Markup.Should().Contain("modal-header", "modal should have header when title is present");
 
         // Act - With close button but no title
-        var cut3 = RenderComponent<Modal>(parameters => parameters
+        var cut3 = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, string.Empty)
             .Add(p => p.ShowCloseButton, true));
@@ -284,7 +284,7 @@ public class ModalTests : TestContext
     public void Modal_CombinesSizeAndCentered_Correctly()
     {
         // Arrange & Act
-        var cut = RenderComponent<Modal>(parameters => parameters
+        var cut = Render<Modal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.Large)
             .Add(p => p.Centered, true));

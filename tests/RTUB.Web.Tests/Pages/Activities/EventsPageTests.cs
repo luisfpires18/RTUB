@@ -163,7 +163,7 @@ public class EventsPageTests : PageTestBase
         SetupAuthentication("test-user", "Test User");
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -185,7 +185,7 @@ public class EventsPageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar atuações", "page should show loading message initially");
@@ -208,7 +208,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -232,7 +232,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event> { pastEvent });
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => cut.Markup.Contains("Future Event") || cut.Markup.Contains("Past Event"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -253,7 +253,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -270,7 +270,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -287,7 +287,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -304,7 +304,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - Enrollment buttons are in child components, so we check for enrollment-related content
@@ -326,7 +326,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var createButton = cut.Find("button:contains('Adicionar Atuação')");
@@ -351,7 +351,7 @@ public class EventsPageTests : PageTestBase
         // The trophies modal loads trophies directly from TrophyService.GetByEventIdAsync
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var trophiesButton = cut.Find("button:contains('Prémios')");
@@ -391,7 +391,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(newEvent);
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Open create modal and submit (simplified - actual form submission would require more setup)
@@ -421,7 +421,7 @@ public class EventsPageTests : PageTestBase
             .Returns(Task.CompletedTask);
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Delete button would be in EventCard component
@@ -459,7 +459,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event>());
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - fiscal year filter dropdown is present (selected value or "Todos os anos" may vary)
@@ -478,7 +478,7 @@ public class EventsPageTests : PageTestBase
             .ReturnsAsync(new List<Event> { futureEvent });
 
         // Act
-        var cut = RenderComponent<Events>();
+        var cut = Render<Events>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

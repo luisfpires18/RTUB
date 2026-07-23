@@ -9,13 +9,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ProfileField component to ensure fields display correctly
 /// </summary>
-public class ProfileFieldTests : TestContext
+public class ProfileFieldTests : BunitContext
 {
     [Fact]
     public void ProfileField_RendersLabelAndValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Test Label")
             .Add(p => p.Value, "Test Value"));
 
@@ -28,7 +28,7 @@ public class ProfileFieldTests : TestContext
     public void ProfileField_ShowsNaoDefinidoForEmptyValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Empty Field")
             .Add(p => p.Value, (string?)null));
 
@@ -41,7 +41,7 @@ public class ProfileFieldTests : TestContext
     public void ProfileField_ShowsNaoDefinidoForWhitespaceValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Empty Field")
             .Add(p => p.Value, "   "));
 
@@ -53,7 +53,7 @@ public class ProfileFieldTests : TestContext
     public void ProfileField_HasResponsiveClasses()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Value, "Value"));
 
@@ -69,7 +69,7 @@ public class ProfileFieldTests : TestContext
         var additionalClass = "custom-class";
 
         // Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Value, "Value")
             .Add(p => p.AdditionalClasses, additionalClass));
@@ -82,7 +82,7 @@ public class ProfileFieldTests : TestContext
     public void ProfileField_ShowsTooltipOnEmptyValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Empty")
             .Add(p => p.Value, (string?)null)
             .Add(p => p.ShowTooltip, true));
@@ -96,7 +96,7 @@ public class ProfileFieldTests : TestContext
     public void ProfileField_HidesTooltipWhenShowTooltipIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<ProfileField>(parameters => parameters
+        var cut = Render<ProfileField>(parameters => parameters
             .Add(p => p.Label, "Empty")
             .Add(p => p.Value, (string?)null)
             .Add(p => p.ShowTooltip, false));

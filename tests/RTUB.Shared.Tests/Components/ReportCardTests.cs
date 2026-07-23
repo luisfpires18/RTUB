@@ -10,7 +10,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ReportCard component to ensure report cards display correctly
 /// </summary>
-public class ReportCardTests : TestContext
+public class ReportCardTests : BunitContext
 {
     private readonly Fixture _fixture;
     private static readonly DateTime TestDate = new DateTime(2023, 6, 15);
@@ -27,7 +27,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Financial Report 2023-2024", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -42,7 +42,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Test Report", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -59,7 +59,7 @@ public class ReportCardTests : TestContext
         report.Publish();
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -75,7 +75,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Test Report", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -93,7 +93,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Current Year Report", currentFiscalYearStartYear);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -112,7 +112,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Past Year Report", pastYear);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -131,7 +131,7 @@ public class ReportCardTests : TestContext
         report.Activities.Add(activity);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -155,7 +155,7 @@ public class ReportCardTests : TestContext
         report.Activities.Add(activity);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -174,7 +174,7 @@ public class ReportCardTests : TestContext
         report.Activities.Add(activity);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -189,7 +189,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Test Report", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -204,7 +204,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Test Report", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, true));
 
@@ -221,7 +221,7 @@ public class ReportCardTests : TestContext
         report.Publish();
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, true));
 
@@ -237,7 +237,7 @@ public class ReportCardTests : TestContext
         var report = Report.Create("Test Report", 2023);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 
@@ -257,7 +257,7 @@ public class ReportCardTests : TestContext
         report.Activities.Add(activity);
 
         // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
+        var cut = Render<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
             .Add(p => p.CanPublish, false));
 

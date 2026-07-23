@@ -13,7 +13,7 @@ namespace RTUB.Shared.Tests.Components.UI;
 /// Tests for the PushNotificationPrompt component
 /// Tests prompt display logic, allow/dismiss actions, and error handling
 /// </summary>
-public class PushNotificationPromptTests : TestContext
+public class PushNotificationPromptTests : BunitContext
 {
     private readonly Mock<ILogger<PushNotificationPrompt>> _mockLogger;
 
@@ -21,7 +21,7 @@ public class PushNotificationPromptTests : TestContext
     {
         _mockLogger = new Mock<ILogger<PushNotificationPrompt>>();
         Services.AddSingleton(_mockLogger.Object);
-        this.AddTestAuthorization();
+        this.AddAuthorization();
 
         // Setup JSInterop for component
         JSInterop.SetupVoid("pwaHelper.markAsPrompted", _ => true);
@@ -34,7 +34,7 @@ public class PushNotificationPromptTests : TestContext
     public void PushNotificationPrompt_DoesNotShow_Initially()
     {
         // Arrange & Act
-        var cut = RenderComponent<PushNotificationPrompt>();
+        var cut = Render<PushNotificationPrompt>();
 
         // Assert
         cut.Markup.Should().NotContain("push-prompt-overlay", "should not show prompt initially");
@@ -49,10 +49,10 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(true);
 
         // Act
-        var cut = RenderComponent<PushNotificationPrompt>();
+        var cut = Render<PushNotificationPrompt>();
         await cut.InvokeAsync(async () => await Task.Delay(350)); // allow OnAfterRenderAsync to complete
 
-        // Assert - Should not show because user is not authenticated (AddTestAuthorization creates unauthenticated user by default)
+        // Assert - Should not show because user is not authenticated (AddAuthorization creates unauthenticated user by default)
         cut.Markup.Should().NotContain("push-prompt-overlay", "should not show prompt when user is not authenticated");
     }
 
@@ -64,8 +64,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(false);
 
         // Act - must be authenticated to reach shouldShow
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         await cut.InvokeAsync(async () => await Task.Delay(350));
 
         // Assert
@@ -90,8 +90,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(status);
 
         // Act - Render with authenticated user
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -118,8 +118,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(status);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         await cut.InvokeAsync(async () => await Task.Delay(350));
 
         // Assert
@@ -143,8 +143,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(status);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         await cut.InvokeAsync(async () => await Task.Delay(350));
 
         // Assert
@@ -171,8 +171,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(true);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var allowButton = cut.Find("button.btn-primary");
@@ -206,8 +206,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(true);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var allowButton = cut.Find("button.btn-primary");
@@ -241,8 +241,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(false);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var allowButton = cut.Find("button.btn-primary");
@@ -276,8 +276,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(false);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var allowButton = cut.Find("button.btn-primary");
@@ -308,8 +308,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(status);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var dismissButton = cut.Find("button.btn-outline-secondary");
@@ -340,8 +340,8 @@ public class PushNotificationPromptTests : TestContext
             .SetResult(true);
 
         // Act
-        this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<PushNotificationPrompt>();
+        this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<PushNotificationPrompt>();
         cut.WaitForState(() => cut.Markup.Contains("push-prompt-overlay"), TimeSpan.FromSeconds(2));
 
         var allowButton = cut.Find("button.btn-primary");

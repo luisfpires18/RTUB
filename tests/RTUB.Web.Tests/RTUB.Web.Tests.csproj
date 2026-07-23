@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AngleSharp" />
     <PackageReference Include="AutoFixture" />
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="bunit" />

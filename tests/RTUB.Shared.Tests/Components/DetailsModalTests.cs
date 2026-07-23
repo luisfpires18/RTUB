@@ -8,7 +8,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the DetailsModal component to ensure details modal functionality works correctly
 /// </summary>
-public class DetailsModalTests : TestContext
+public class DetailsModalTests : BunitContext
 {
     public DetailsModalTests()
     {
@@ -21,7 +21,7 @@ public class DetailsModalTests : TestContext
     public void DetailsModal_WhenShowIsFalse_DoesNotRender()
     {
         // Arrange & Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, false));
 
         // Assert
@@ -32,7 +32,7 @@ public class DetailsModalTests : TestContext
     public void DetailsModal_WhenShowIsTrue_Renders()
     {
         // Arrange & Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test Modal")
             .Add(p => p.HeaderTitle, "Test Header"));
@@ -49,7 +49,7 @@ public class DetailsModalTests : TestContext
         var title = "Details Modal Title";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, title)
             .Add(p => p.HeaderTitle, "Header"));
@@ -65,7 +65,7 @@ public class DetailsModalTests : TestContext
         var headerTitle = "Item Name";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, headerTitle));
@@ -81,7 +81,7 @@ public class DetailsModalTests : TestContext
         var iconClass = "bi-music-note-beamed";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")
@@ -98,7 +98,7 @@ public class DetailsModalTests : TestContext
         var imageUrl = "/images/test.jpg";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")
@@ -112,7 +112,7 @@ public class DetailsModalTests : TestContext
     public void DetailsModal_IsCentered()
     {
         // Arrange & Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header"));
@@ -125,7 +125,7 @@ public class DetailsModalTests : TestContext
     public void DetailsModal_IsLargeSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header"));
@@ -141,7 +141,7 @@ public class DetailsModalTests : TestContext
         var imageUrl = "/images/test-instrument.jpg";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")
@@ -160,7 +160,7 @@ public class DetailsModalTests : TestContext
         var imageUrl = "/images/test-member.jpg";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")
@@ -179,7 +179,7 @@ public class DetailsModalTests : TestContext
         var imageUrl = "/images/test.jpg";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")
@@ -197,7 +197,7 @@ public class DetailsModalTests : TestContext
         var iconClass = "bi-music-note-beamed";
 
         // Act
-        var cut = RenderComponent<DetailsModal>(parameters => parameters
+        var cut = Render<DetailsModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Modal")
             .Add(p => p.HeaderTitle, "Header")

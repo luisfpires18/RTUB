@@ -65,7 +65,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .Returns(tcs.Task);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading initially");
@@ -84,7 +84,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .ReturnsAsync(report);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Relatório 2023-2024") || !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Relatório 2023-2024", "page should display report title");
@@ -100,7 +100,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .ReturnsAsync(report);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Dinheiro Total") || !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Dinheiro Total", "page should display summary card");
@@ -116,7 +116,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .ReturnsAsync(report);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Relatório Publicado") || cut.Markup.Contains("Published Report"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Relatório Publicado", "published report should show read-only warning");
@@ -136,7 +136,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .ReturnsAsync(report);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Histórico") || cut.Markup.Contains("Ver Calotes") || !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Histórico de Transações", "admin should see transaction history button");
@@ -151,7 +151,7 @@ public class ReportPageTests : PageTestBase
             .Setup(x => x.GetReportByIdAsync(1))
             .ReturnsAsync(report);
 
-        var cut = RenderComponent<ReportPage>(p => p.Add(p => p.ReportId, 1));
+        var cut = Render<ReportPage>(p => p.Add(p => p.ReportId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Ver Calotes") || !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Ver Calotes", "authenticated user should see Calotes button");

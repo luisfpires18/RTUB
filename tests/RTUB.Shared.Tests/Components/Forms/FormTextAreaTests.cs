@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components.Forms;
 /// <summary>
 /// Tests for the FormTextArea component to ensure proper rendering and value binding
 /// </summary>
-public class FormTextAreaTests : TestContext
+public class FormTextAreaTests : BunitContext
 {
     [Fact]
     public void FormTextArea_RendersLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Label"));
 
         // Assert
@@ -25,7 +25,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_RendersIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Icon, "text-paragraph"));
 
@@ -37,7 +37,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_RendersValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Value, "Test Value"));
 
@@ -50,7 +50,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_RendersPlaceholder()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Placeholder, "Enter description..."));
 
@@ -63,7 +63,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_ShowsRequiredIndicator()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Required, true));
 
@@ -76,7 +76,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_SetsRowsAttribute()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Rows, 5));
 
@@ -89,7 +89,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_DefaultRowsIsThree()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field"));
 
         // Assert
@@ -101,7 +101,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_RendersHelpText()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.HelpText, "This is help text"));
 
@@ -113,7 +113,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_CanBeDisabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Disabled, true));
 
@@ -126,7 +126,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_CanBeReadOnly()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.ReadOnly, true));
 
@@ -139,7 +139,7 @@ public class FormTextAreaTests : TestContext
     public void FormTextArea_HasFormControlClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextArea>(parameters => parameters
+        var cut = Render<FormTextArea>(parameters => parameters
             .Add(p => p.Label, "Test Field"));
 
         // Assert

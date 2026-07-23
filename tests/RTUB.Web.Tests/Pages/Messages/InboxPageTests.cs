@@ -65,7 +65,7 @@ public class InboxPageTests : PageTestBase
     public async Task InboxPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Inbox>();
+        var cut = Render<Inbox>();
 
         // Assert - Component should render (may show loading state initially)
         cut.Markup.Should().NotBeNullOrEmpty("page should render");
@@ -75,7 +75,7 @@ public class InboxPageTests : PageTestBase
     public async Task InboxPage_ComponentRenders()
     {
         // Arrange & Act
-        var cut = RenderComponent<Inbox>();
+        var cut = Render<Inbox>();
 
         // Assert - Component should render successfully
         cut.Markup.Should().NotBeNullOrEmpty("page should render");

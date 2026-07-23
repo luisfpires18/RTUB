@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the CategoryBadge component to ensure member category badges display correctly
 /// </summary>
-public class CategoryBadgeTests : TestContext
+public class CategoryBadgeTests : BunitContext
 {
     [Fact]
     public void CategoryBadge_RendersTunoCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Tuno));
 
         // Assert
@@ -26,7 +26,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersVeteranoCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Veterano));
 
         // Assert
@@ -38,7 +38,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersTunossauroCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Tunossauro));
 
         // Assert
@@ -50,7 +50,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersTunoHonorarioCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.TunoHonorario));
 
         // Assert
@@ -62,7 +62,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersCaloiroCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Caloiro));
 
         // Assert
@@ -74,7 +74,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersLeitaoCategory()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Leitao));
 
         // Assert
@@ -86,7 +86,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_HasBadgeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Tuno));
 
         // Assert
@@ -100,7 +100,7 @@ public class CategoryBadgeTests : TestContext
         var additionalClass = "custom-class";
 
         // Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Tuno)
             .Add(p => p.AdditionalClasses, additionalClass));
 
@@ -112,7 +112,7 @@ public class CategoryBadgeTests : TestContext
     public void CategoryBadge_RendersAsSpan()
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, MemberCategory.Veterano));
 
         // Assert
@@ -130,7 +130,7 @@ public class CategoryBadgeTests : TestContext
         MemberCategory category, string expectedText, string expectedClass)
     {
         // Arrange & Act
-        var cut = RenderComponent<CategoryBadge>(parameters => parameters
+        var cut = Render<CategoryBadge>(parameters => parameters
             .Add(p => p.Category, category));
 
         // Assert

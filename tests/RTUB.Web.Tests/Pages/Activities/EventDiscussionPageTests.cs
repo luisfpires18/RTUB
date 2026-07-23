@@ -71,7 +71,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(eventItem);
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Discussão") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -94,7 +94,7 @@ public class EventDiscussionPageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
 
         // Assert
@@ -122,7 +122,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(0);
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Nenhum post encontrado") || cut.Markup.Contains("Discussão"), TimeSpan.FromSeconds(2));
 
@@ -170,7 +170,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(new Dictionary<int, int> { { 1, 0 }, { 2, 0 } });
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("First Post") || cut.Markup.Contains("Discussão"), TimeSpan.FromSeconds(2));
 
@@ -201,7 +201,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(currentUser);
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Post") || cut.Markup.Contains("Discussão"), TimeSpan.FromSeconds(2));
 
@@ -226,7 +226,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(discussion);
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Pesquisar") || cut.Markup.Contains("Discussão"), TimeSpan.FromSeconds(2));
 
@@ -246,7 +246,7 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(eventItem);
 
         // Act
-        var cut = RenderComponent<EventDiscussionPage>(parameters => parameters
+        var cut = Render<EventDiscussionPage>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("bi-arrow-left") || cut.Markup.Contains("Discussão"), TimeSpan.FromSeconds(2));
 

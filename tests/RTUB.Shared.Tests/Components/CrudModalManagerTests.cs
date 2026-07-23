@@ -8,7 +8,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the CrudModalManager component (generic CRUD modal manager)
 /// </summary>
-public class CrudModalManagerTests : TestContext
+public class CrudModalManagerTests : BunitContext
 {
     public CrudModalManagerTests()
     {
@@ -27,7 +27,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_DoesNotShowEditModal_Initially()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>();
+        var cut = Render<CrudModalManager<TestEntity>>();
 
         // Assert
         cut.Markup.Should().NotContain("Criar Novo", "edit modal should not be shown initially");
@@ -38,7 +38,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsEditModal_WhenShowEditModalIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, false)
             .Add(p => p.EditingEntity, new TestEntity { Id = 1, Name = "Test" }));
@@ -51,7 +51,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsCreateTitle_WhenInCreateMode()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, true));
 
@@ -63,7 +63,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsEditTitle_WhenNotInCreateMode()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, false));
 
@@ -75,7 +75,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsCustomCreateTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, true)
             .Add(p => p.CreateTitle, "Add New Item"));
@@ -88,7 +88,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsCustomEditTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, false)
             .Add(p => p.EditTitle, "Update Item"));
@@ -101,7 +101,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsDefaultFooterButtons_WhenNoCustomFooter()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true));
 
         // Assert
@@ -115,7 +115,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_DoesNotShowDeleteModal_Initially()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>();
+        var cut = Render<CrudModalManager<TestEntity>>();
 
         // Assert
         cut.Markup.Should().NotContain("Confirmar Eliminação", "delete modal should not be shown initially");
@@ -125,7 +125,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsDeleteModal_WhenShowDeleteModalIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowDeleteModal, true)
             .Add(p => p.DeletingEntity, new TestEntity { Id = 1, Name = "Test" }));
 
@@ -137,7 +137,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsCustomDeleteTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowDeleteModal, true)
             .Add(p => p.DeleteTitle, "Confirm Deletion"));
 
@@ -149,7 +149,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsDefaultDeleteMessage_WhenNoCustomContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowDeleteModal, true));
 
         // Assert
@@ -161,7 +161,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsDeleteButtons()
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowDeleteModal, true));
 
         // Assert
@@ -175,7 +175,7 @@ public class CrudModalManagerTests : TestContext
     {
         // Arrange
         bool callbackInvoked = false;
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.OnSave, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
@@ -192,7 +192,7 @@ public class CrudModalManagerTests : TestContext
     {
         // Arrange
         bool callbackInvoked = false;
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowDeleteModal, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
@@ -210,7 +210,7 @@ public class CrudModalManagerTests : TestContext
     public void CrudModalManager_ShowsCorrectTitle_BasedOnMode(bool isCreateMode)
     {
         // Arrange & Act
-        var cut = RenderComponent<CrudModalManager<TestEntity>>(parameters => parameters
+        var cut = Render<CrudModalManager<TestEntity>>(parameters => parameters
             .Add(p => p.ShowEditModal, true)
             .Add(p => p.IsCreateMode, isCreateMode));
 

@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components.Forms;
 /// <summary>
 /// Unit tests for the MonthYearPicker component
 /// </summary>
-public class MonthYearPickerTests : TestContext
+public class MonthYearPickerTests : BunitContext
 {
     [Fact]
     public void MonthYearPicker_RendersWithLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test Label"));
 
         // Assert
@@ -25,7 +25,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_RendersWithIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Icon, "calendar"));
 
@@ -37,7 +37,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_RendersRequiredIndicator_WhenRequired()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Required, true));
 
@@ -53,7 +53,7 @@ public class MonthYearPickerTests : TestContext
         var helpText = "Select a month and year";
 
         // Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.HelpText, helpText));
 
@@ -65,7 +65,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_RendersAllPortugueseMonths()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test"));
 
         // Assert
@@ -86,7 +86,7 @@ public class MonthYearPickerTests : TestContext
         var currentYear = DateTime.Now.Year;
 
         // Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.MinYear, minYear));
 
@@ -99,7 +99,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_DisplaysPlaceholder_WhenNoValueSet()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test"));
 
         // Assert
@@ -110,7 +110,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_DisplaysMonth_WhenMonthParameterProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Month, 5)); // May
 
@@ -123,7 +123,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_DisplaysYear_WhenYearParameterProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Year, 2023));
 
@@ -136,7 +136,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         int? selectedMonth = null;
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.MonthChanged, EventCallback.Factory.Create<int?>(this, (month) => selectedMonth = month)));
 
@@ -153,7 +153,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         int? selectedYear = null;
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.YearChanged, EventCallback.Factory.Create<int?>(this, (year) => selectedYear = year)));
 
@@ -170,7 +170,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         DateTime? resultValue = null;
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<DateTime?>(this, (value) => resultValue = value)));
 
@@ -194,7 +194,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         DateTime? resultValue = new DateTime(2020, 1, 1); // Set initial value
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<DateTime?>(this, (value) => resultValue = value)));
 
@@ -211,7 +211,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         DateTime? resultValue = new DateTime(2020, 1, 1); // Set initial value
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<DateTime?>(this, (value) => resultValue = value)));
 
@@ -228,7 +228,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         DateTime? resultValue = new DateTime(2023, 5, 1);
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Month, 5)
             .Add(p => p.Year, 2023)
@@ -247,7 +247,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         DateTime? resultValue = new DateTime(2023, 5, 1);
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Month, 5)
             .Add(p => p.Year, 2023)
@@ -265,7 +265,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_DisablesInputs_WhenDisabledIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.Disabled, true));
 
@@ -284,7 +284,7 @@ public class MonthYearPickerTests : TestContext
         var customClass = "my-custom-class";
 
         // Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.CssClass, customClass));
 
@@ -299,7 +299,7 @@ public class MonthYearPickerTests : TestContext
         var customInputClass = "custom-input";
 
         // Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.InputCssClass, customInputClass));
 
@@ -312,7 +312,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         int? capturedMonth = null;
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.MonthChanged, EventCallback.Factory.Create<int?>(this, (month) => capturedMonth = month)));
 
@@ -333,7 +333,7 @@ public class MonthYearPickerTests : TestContext
     {
         // Arrange
         int? capturedYear = null;
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test")
             .Add(p => p.YearChanged, EventCallback.Factory.Create<int?>(this, (year) => capturedYear = year)));
 
@@ -353,7 +353,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_HasResponsiveLayout()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test"));
 
         // Assert
@@ -365,7 +365,7 @@ public class MonthYearPickerTests : TestContext
     public void MonthYearPicker_HidesPlaceholderOption()
     {
         // Arrange & Act
-        var cut = RenderComponent<MonthYearPicker>(parameters => parameters
+        var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test"));
 
         // Assert

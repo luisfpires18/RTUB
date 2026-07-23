@@ -182,6 +182,9 @@ class PushNotificationsManager {
                     if (window.pwaHelper && typeof window.pwaHelper.clearSubscriptionLost === 'function') {
                         window.pwaHelper.clearSubscriptionLost();
                     }
+                    if (window.pwaHelper && typeof window.pwaHelper.clearOptedOut === 'function') {
+                        window.pwaHelper.clearOptedOut();
+                    }
                     return true;
                 } catch (syncError) {
                     console.warn('Existing subscription sync failed, creating new one:', syncError);
@@ -259,11 +262,14 @@ class PushNotificationsManager {
             this.subscription = subscription;
             console.log('Successfully subscribed to push notifications');
 
-            // Clear any subscription-lost flags since we have a valid subscription now
+            // Clear any subscription-lost/opted-out flags since we have a valid subscription now
             if (window.pwaHelper && typeof window.pwaHelper.clearSubscriptionLost === 'function') {
                 window.pwaHelper.clearSubscriptionLost();
             }
-            
+            if (window.pwaHelper && typeof window.pwaHelper.clearOptedOut === 'function') {
+                window.pwaHelper.clearOptedOut();
+            }
+
             return true;
         } catch (error) {
             console.error('Error subscribing to push notifications:', error);
@@ -287,7 +293,15 @@ class PushNotificationsManager {
                 // Unsubscribe from push manager
                 await this.subscription.unsubscribe();
                 this.subscription = null;
-                
+
+                // Mark as explicitly opted out so self-healing/recovery logic
+                // (health check, validateAndRefreshSubscription) never silently
+                // re-creates this subscription - unsubscribing does not revoke
+                // Notification.permission, which stays 'granted' (especially on iOS).
+                if (window.pwaHelper && typeof window.pwaHelper.markOptedOut === 'function') {
+                    window.pwaHelper.markOptedOut();
+                }
+
                 console.log('Successfully unsubscribed from push notifications');
                 return true;
             }
@@ -336,7 +350,13 @@ class PushNotificationsManager {
             const subscription = await this.registration.pushManager.getSubscription();
 
             if (!subscription) {
-                // No subscription exists
+                // No subscription exists. If the user explicitly opted out, this is
+                // expected - do not silently resubscribe them.
+                if (window.pwaHelper && typeof window.pwaHelper.isOptedOut === 'function' && window.pwaHelper.isOptedOut()) {
+                    console.log('[Push] User opted out, skipping silent resubscribe');
+                    return 'missing';
+                }
+
                 // If permission was previously granted, the subscription was lost
                 if (Notification.permission === 'granted' && this.vapidPublicKey) {
                     console.log('Push subscription lost, attempting to re-subscribe...');
@@ -532,6 +552,13 @@ class PushNotificationsManager {
                 const subscription = await this.registration.pushManager.getSubscription();
                 
                 if (!subscription) {
+                    // If the user explicitly opted out, this is expected - do not
+                    // silently resubscribe them on the periodic health check either.
+                    if (window.pwaHelper && typeof window.pwaHelper.isOptedOut === 'function' && window.pwaHelper.isOptedOut()) {
+                        console.log('[Push Health] User opted out, skipping recovery');
+                        return;
+                    }
+
                     // Subscription was silently lost!
                     console.warn('[Push Health] Subscription lost, attempting recovery...');
                     if (this.vapidPublicKey) {

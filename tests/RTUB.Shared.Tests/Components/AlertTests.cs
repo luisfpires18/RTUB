@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the Alert component to ensure alert messages display and behave correctly
 /// </summary>
-public class AlertTests : TestContext
+public class AlertTests : BunitContext
 {
     [Fact]
     public void Alert_DoesNotRender_WhenNoMessageAndNoContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, string.Empty));
 
         // Assert
@@ -28,7 +28,7 @@ public class AlertTests : TestContext
         var message = "Success message";
 
         // Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, message));
 
         // Assert
@@ -43,7 +43,7 @@ public class AlertTests : TestContext
         var content = "Custom alert content";
 
         // Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.ChildContent, builder => builder.AddContent(0, content)));
 
         // Assert
@@ -54,7 +54,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesSuccessClass_WhenTypeIsSuccess()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Success")
             .Add(p => p.Type, Alert.AlertType.Success));
 
@@ -66,7 +66,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesErrorClass_WhenTypeIsError()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Error")
             .Add(p => p.Type, Alert.AlertType.Error));
 
@@ -78,7 +78,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesWarningClass_WhenTypeIsWarning()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Warning")
             .Add(p => p.Type, Alert.AlertType.Warning));
 
@@ -90,7 +90,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesInfoClass_WhenTypeIsInfo()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Info")
             .Add(p => p.Type, Alert.AlertType.Info));
 
@@ -102,7 +102,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesPurpleClass_WhenTypeIsPurple()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Purple")
             .Add(p => p.Type, Alert.AlertType.Purple));
 
@@ -114,7 +114,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesInfoClass_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Default alert"));
 
         // Assert
@@ -125,7 +125,7 @@ public class AlertTests : TestContext
     public void Alert_DoesNotShowDismissButton_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test"));
 
         // Assert
@@ -137,7 +137,7 @@ public class AlertTests : TestContext
     public void Alert_ShowsDismissButton_WhenDismissibleIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test")
             .Add(p => p.Dismissible, true));
 
@@ -153,7 +153,7 @@ public class AlertTests : TestContext
         var iconClass = "bi-check-circle";
 
         // Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Success")
             .Add(p => p.Icon, iconClass));
 
@@ -165,7 +165,7 @@ public class AlertTests : TestContext
     public void Alert_DoesNotRenderIcon_WhenNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test"));
 
         // Assert
@@ -176,7 +176,7 @@ public class AlertTests : TestContext
     public void Alert_DismissButton_RemovesMessage()
     {
         // Arrange
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Dismissible message")
             .Add(p => p.Dismissible, true));
 
@@ -197,7 +197,7 @@ public class AlertTests : TestContext
         // Arrange
         bool onDismissCalled = false;
 
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test")
             .Add(p => p.Dismissible, true)
             .Add(p => p.OnDismiss, EventCallback.Factory.Create(this, () =>
@@ -221,7 +221,7 @@ public class AlertTests : TestContext
         var childContent = "Child content";
 
         // Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, message)
             .Add(p => p.ChildContent, builder => builder.AddContent(0, childContent)));
 
@@ -234,7 +234,7 @@ public class AlertTests : TestContext
     public void Alert_HasProperAriaRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test"));
 
         // Assert
@@ -245,7 +245,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesFadeAndShowClasses_WhenDismissible()
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test")
             .Add(p => p.Dismissible, true));
 
@@ -261,7 +261,7 @@ public class AlertTests : TestContext
         var icon = "bi-check-circle";
 
         // Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, message)
             .Add(p => p.Icon, icon)
             .Add(p => p.Type, Alert.AlertType.Success));
@@ -281,7 +281,7 @@ public class AlertTests : TestContext
     public void Alert_AppliesCorrectClass_ForEachType(Alert.AlertType type, string expectedClass)
     {
         // Arrange & Act
-        var cut = RenderComponent<Alert>(parameters => parameters
+        var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test")
             .Add(p => p.Type, type));
 

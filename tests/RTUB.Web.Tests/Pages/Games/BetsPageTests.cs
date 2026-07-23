@@ -66,7 +66,7 @@ public class BetsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => !cut.Markup.Contains("spinner-border") || cut.Markup.Contains("Apostas") || cut.Markup.Contains("Nenhuma aposta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Apostas", "page should display title");
@@ -92,7 +92,7 @@ public class BetsPageTests : PageTestBase
                 return (IEnumerable<Bet>)new List<Bet>();
             });
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
 
         cut.Markup.Should().Contain("Apostas", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("spinner-border") || m.Contains("Apostas"), "should show loading or title initially");
@@ -105,7 +105,7 @@ public class BetsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhuma aposta") || cut.Markup.Contains("Apostas Futuras") || cut.Markup.Contains("Ganhe Fidelis"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Nenhuma aposta encontrada", "should show empty state when no bets");
@@ -134,7 +134,7 @@ public class BetsPageTests : PageTestBase
             .Setup(x => x.GetCommentCountsByBetIdsAsync(It.Is<IEnumerable<int>>(ids => ids.Contains(1))))
             .ReturnsAsync(new Dictionary<int, int> { { 1, 0 } });
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Test Bet") || cut.Markup.Contains("Apostas Futuras"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Apostas Futuras", "should show future bets section");
@@ -146,7 +146,7 @@ public class BetsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Ganhe Fidelis") || cut.Markup.Contains("Nenhuma aposta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Ganhe Fidelis", "should show Fidelis information alert");
@@ -161,7 +161,7 @@ public class BetsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Aposta") || cut.Markup.Contains("Nenhuma aposta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Aposta", "admin should see create button");
@@ -172,7 +172,7 @@ public class BetsPageTests : PageTestBase
     {
         SetupAuthentication("regular-user", "Regular User");
 
-        var cut = RenderComponent<Bets>();
+        var cut = Render<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Aposta") || cut.Markup.Contains("Nenhuma aposta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Aposta", "regular user should see create button");

@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the PositionBadge component to ensure position badges display correctly
 /// </summary>
-public class PositionBadgeTests : TestContext
+public class PositionBadgeTests : BunitContext
 {
     [Fact]
     public void PositionBadge_RendersMagisterPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -26,7 +26,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersViceMagisterPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.ViceMagister));
 
         // Assert
@@ -37,7 +37,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersSecretarioPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Secretario));
 
         // Assert
@@ -48,7 +48,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersPrimeiroTesoureiroPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.PrimeiroTesoureiro));
 
         // Assert
@@ -59,7 +59,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersSegundoTesoureiroPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.SegundoTesoureiro));
 
         // Assert
@@ -70,7 +70,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersPresidenteMesaAssembleiaPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.PresidenteMesaAssembleia));
 
         // Assert
@@ -81,7 +81,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersPresidenteConselhoFiscalPosition()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.PresidenteConselhoFiscal));
 
         // Assert
@@ -92,7 +92,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_HasBadgeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -107,7 +107,7 @@ public class PositionBadgeTests : TestContext
         var additionalClass = "custom-position-class";
 
         // Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister)
             .Add(p => p.AdditionalClasses, additionalClass));
 
@@ -119,7 +119,7 @@ public class PositionBadgeTests : TestContext
     public void PositionBadge_RendersAsSpan()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.ViceMagister));
 
         // Assert
@@ -136,7 +136,7 @@ public class PositionBadgeTests : TestContext
         Position position, string expectedText)
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, position));
 
         // Assert

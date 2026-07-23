@@ -10,12 +10,12 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the SongCard component to ensure song cards display correctly
 /// </summary>
-public class SongCardTests : TestContext
+public class SongCardTests : BunitContext
 {
     public SongCardTests()
     {
         // Setup authorization services for AuthorizeView component
-        this.AddTestAuthorization();
+        this.AddAuthorization();
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -41,7 +41,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1, 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -58,7 +58,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -75,7 +75,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", null, null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -94,7 +94,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, null, "Maria Santos", null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -113,7 +113,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", "Pedro Costa", null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -132,7 +132,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -148,7 +148,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -165,7 +165,7 @@ public class SongCardTests : TestContext
         song.SetHasMusic(true);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -185,7 +185,7 @@ public class SongCardTests : TestContext
         song.SetHasMusic(false);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -202,7 +202,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -220,7 +220,7 @@ public class SongCardTests : TestContext
         song.SetSpotifyUrl("https://spotify.com/song");
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -237,7 +237,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -254,7 +254,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, true)
             .Add(p => p.CanDelete, true));
@@ -274,7 +274,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -290,7 +290,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -307,7 +307,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -325,7 +325,7 @@ public class SongCardTests : TestContext
         song.SetHasMusic(true);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false)
@@ -346,7 +346,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false)
@@ -368,7 +368,7 @@ public class SongCardTests : TestContext
         song.SetSpotifyUrl("https://spotify.com/song");
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false)
@@ -389,7 +389,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, true)
             .Add(p => p.CanDelete, true)
@@ -410,7 +410,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanDelete, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -431,7 +431,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -448,7 +448,7 @@ public class SongCardTests : TestContext
         var song = Song.Create("Favaios", 1);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -467,7 +467,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", "Pedro Costa", null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -486,7 +486,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva, Maria Santos", null, null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -507,7 +507,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", null, null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));
@@ -526,7 +526,7 @@ public class SongCardTests : TestContext
         song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
 
         // Act
-        var cut = RenderComponent<SongCard>(parameters => parameters
+        var cut = Render<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
             .Add(p => p.CanEdit, false)
             .Add(p => p.CanDelete, false));

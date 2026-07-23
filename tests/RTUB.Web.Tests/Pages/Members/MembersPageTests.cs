@@ -98,7 +98,7 @@ public class MembersPageTests : PageTestBase
         SetupAuthentication("test-user", "Test User");
 
         // Act
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -113,7 +113,7 @@ public class MembersPageTests : PageTestBase
         // Users already set up in constructor
 
         // Act
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -141,7 +141,7 @@ public class MembersPageTests : PageTestBase
         _mockUserManager.Setup(x => x.Users).Returns(mockDbSet.Object);
 
         // Act
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => cut.Markup.Contains("Test User") || !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -161,7 +161,7 @@ public class MembersPageTests : PageTestBase
         // Users already set up in constructor
 
         // Act
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -176,7 +176,7 @@ public class MembersPageTests : PageTestBase
         // Users already set up in constructor
 
         // Act
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -194,7 +194,7 @@ public class MembersPageTests : PageTestBase
         SetupAuthentication("admin-user", "Admin User", "Admin");
         // Users already set up in constructor
 
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
@@ -227,7 +227,7 @@ public class MembersPageTests : PageTestBase
             .Setup(x => x.FindByIdAsync("user1"))
             .ReturnsAsync(member);
 
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open edit modal via reflection (method is private)
@@ -256,7 +256,7 @@ public class MembersPageTests : PageTestBase
         mockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.GetEnumerator()).Returns(membersQueryable.GetEnumerator());
         _mockUserManager.Setup(x => x.Users).Returns(mockDbSet.Object);
 
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open delete modal via reflection (method is private)
@@ -279,7 +279,7 @@ public class MembersPageTests : PageTestBase
         SetupAuthentication("admin-user", "Admin User", "Admin");
         // Users already set up in constructor
 
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal
@@ -321,7 +321,7 @@ public class MembersPageTests : PageTestBase
         emptyMockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.GetEnumerator()).Returns(emptyUsers.GetEnumerator());
         _mockUserManager.Setup(x => x.Users).Returns(emptyMockDbSet.Object);
 
-        var cut = RenderComponent<MembersPage>();
+        var cut = Render<MembersPage>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Delete member via reflection (method is private)

@@ -89,7 +89,7 @@ public class EventEnrollmentsTests : PageTestBase
             .ReturnsAsync(testEvent);
 
         // Act
-        var cut = RenderComponent<EventEnrollments>(parameters => parameters
+        var cut = Render<EventEnrollments>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => cut.Markup.Contains("Inscrições") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -107,7 +107,7 @@ public class EventEnrollmentsTests : PageTestBase
             .ReturnsAsync(testEvent);
 
         // Act
-        var cut = RenderComponent<EventEnrollments>(parameters => parameters
+        var cut = Render<EventEnrollments>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -129,7 +129,7 @@ public class EventEnrollmentsTests : PageTestBase
             .ReturnsAsync(testEvent);
 
         // Act
-        var cut = RenderComponent<EventEnrollments>(parameters => parameters
+        var cut = Render<EventEnrollments>(parameters => parameters
             .Add(p => p.EventId, 1));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 

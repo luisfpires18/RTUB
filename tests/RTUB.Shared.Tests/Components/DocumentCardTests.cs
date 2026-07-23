@@ -11,7 +11,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the DocumentCard component
 /// </summary>
-public class DocumentCardTests : TestContext
+public class DocumentCardTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -34,7 +34,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -55,7 +55,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -76,7 +76,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -97,7 +97,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -118,7 +118,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -139,7 +139,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -160,7 +160,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -181,7 +181,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -203,7 +203,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document));
 
         // Assert
@@ -225,7 +225,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document)
             .Add(p => p.IsAdmin, true));
 
@@ -247,7 +247,7 @@ public class DocumentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document)
             .Add(p => p.IsAdmin, false));
 
@@ -271,7 +271,7 @@ public class DocumentCardTests : TestContext
         DocumentMetadata? deletedDocument = null;
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create<DocumentMetadata>(this, doc => deletedDocument = doc)));
@@ -300,7 +300,7 @@ public class DocumentCardTests : TestContext
         DocumentMetadata? downloadedDocument = null;
 
         // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
+        var cut = Render<DocumentCard>(parameters => parameters
             .Add(p => p.Document, document)
             .Add(p => p.OnDownload, EventCallback.Factory.Create<DocumentMetadata>(this, doc => downloadedDocument = doc)));
 

@@ -65,7 +65,7 @@ public class HallOfFamePageTests : PageTestBase
     public async Task HallOfFamePage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<HallOfFame>();
+        var cut = Render<HallOfFame>();
         cut.WaitForState(() => cut.Markup.Contains("Hall of Fame") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -84,7 +84,7 @@ public class HallOfFamePageTests : PageTestBase
             .Returns(tcs.Task);
 
         // Act
-        var cut = RenderComponent<HallOfFame>();
+        var cut = Render<HallOfFame>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
@@ -100,7 +100,7 @@ public class HallOfFamePageTests : PageTestBase
         // Arrange - Already set up with empty data in constructor
 
         // Act
-        var cut = RenderComponent<HallOfFame>();
+        var cut = Render<HallOfFame>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

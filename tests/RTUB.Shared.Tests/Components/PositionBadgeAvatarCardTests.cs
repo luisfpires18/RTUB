@@ -9,13 +9,13 @@ namespace RTUB.Shared.Tests.Components;
 /// Tests for PositionBadge rendering in AvatarCard context
 /// Validates long text handling, accessibility, and responsive behavior
 /// </summary>
-public class PositionBadgeAvatarCardTests : TestContext
+public class PositionBadgeAvatarCardTests : BunitContext
 {
     [Fact]
     public void PositionBadge_HasAriaLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -27,7 +27,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_HasTooltip()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -38,7 +38,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_HasRoleBadgeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -49,7 +49,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_HasCompactPillStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Secretario));
 
         // Assert
@@ -66,7 +66,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_DisplaysCorrectText_ForEachPosition(Position position, string expectedText)
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, position));
 
         // Assert
@@ -77,7 +77,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_LongRoleName_HasEllipsisStyle()
     {
         // Arrange & Act - Using PresidenteConselhoVeteranos which is a longer name
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.PresidenteConselhoVeteranos));
 
         // Assert
@@ -89,7 +89,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_MaintainsAccessibility()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.ViceMagister));
 
         // Assert
@@ -103,7 +103,7 @@ public class PositionBadgeAvatarCardTests : TestContext
     public void PositionBadge_RendersAsSpan()
     {
         // Arrange & Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister));
 
         // Assert
@@ -117,7 +117,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         var additionalClass = "custom-class";
 
         // Act
-        var cut = RenderComponent<PositionBadge>(parameters => parameters
+        var cut = Render<PositionBadge>(parameters => parameters
             .Add(p => p.Position, Position.Magister)
             .Add(p => p.AdditionalClasses, additionalClass));
 

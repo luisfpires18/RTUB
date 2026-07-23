@@ -25,6 +25,7 @@ public class PushNotificationService : IPushNotificationService
     private readonly IConversationRepository _conversationRepository;
     private readonly IMessageRepository _messageRepository;
     private readonly IConversationUserSettingsRepository _settingsRepository;
+    private readonly IUserProfileRepository _userProfileRepository;
     private readonly WebPushOptions _options;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
@@ -34,6 +35,7 @@ public class PushNotificationService : IPushNotificationService
         IConversationRepository conversationRepository,
         IMessageRepository messageRepository,
         IConversationUserSettingsRepository settingsRepository,
+        IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
     {
@@ -41,6 +43,7 @@ public class PushNotificationService : IPushNotificationService
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
         _settingsRepository = settingsRepository;
+        _userProfileRepository = userProfileRepository;
         _options = options.Value;
         _logger = logger;
         _webPushClient = new WebPushClient();
@@ -240,6 +243,24 @@ public class PushNotificationService : IPushNotificationService
     {
         var subscriptions = await _subscriptionRepository.GetAllActiveAsync();
         return subscriptions.Select(s => s.UserId).Distinct();
+    }
+
+    public async Task<bool> IsOptedOutAsync(string userId)
+    {
+        var user = await _userProfileRepository.FirstOrDefaultAsync(u => u.Id == userId);
+        return user?.PushNotificationsOptedOut ?? false;
+    }
+
+    public async Task SetOptedOutAsync(string userId, bool optedOut)
+    {
+        var user = await _userProfileRepository.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null || user.PushNotificationsOptedOut == optedOut)
+        {
+            return;
+        }
+
+        user.PushNotificationsOptedOut = optedOut;
+        await _userProfileRepository.UpdateAsync(user);
     }
 
     /// <summary>

@@ -49,7 +49,7 @@ public class ShopPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar produtos") || cut.Markup.Contains("Loja RTUB") || cut.Markup.Contains("Sem produtos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Loja RTUB", "page should display title");
@@ -75,7 +75,7 @@ public class ShopPageTests : PageTestBase
                 return (IEnumerable<Product>)new List<Product>();
             });
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
 
         cut.Markup.Should().Contain("Loja RTUB", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("A carregar produtos") || m.Contains("Loja RTUB"), "should show loading or title initially");
@@ -88,7 +88,7 @@ public class ShopPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
         cut.WaitForState(() => cut.Markup.Contains("Sem produtos") || cut.Markup.Contains("Pesquisar produtos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Sem produtos disponíveis", "should show empty state when no products");
@@ -99,7 +99,7 @@ public class ShopPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
         cut.WaitForState(() => cut.Markup.Contains("Pesquisar produtos") || cut.Markup.Contains("Sem produtos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Pesquisar produtos", "page should show search bar");
@@ -114,7 +114,7 @@ public class ShopPageTests : PageTestBase
     {
         SetupAuthenticationAsAdmin("admin-user");
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Produto") || cut.Markup.Contains("Sem produtos"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Produto", "admin should see create button");
@@ -125,7 +125,7 @@ public class ShopPageTests : PageTestBase
     {
         SetupAuthentication("regular-user", "Regular User");
 
-        var cut = RenderComponent<Shop>();
+        var cut = Render<Shop>();
         cut.WaitForState(() => cut.Markup.Contains("Loja RTUB") && (!cut.Markup.Contains("A carregar produtos") || cut.Markup.Contains("Sem produtos")), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().NotContain("Adicionar Produto", "regular user should not see create button");

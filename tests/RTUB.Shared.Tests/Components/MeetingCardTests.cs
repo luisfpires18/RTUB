@@ -10,7 +10,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the MeetingCard component to ensure meeting cards display correctly with all UI/UX improvements
 /// </summary>
-public class MeetingCardTests : TestContext
+public class MeetingCardTests : BunitContext
 {
     [Fact]
     public void MeetingCard_RendersMeetingTitle()
@@ -26,7 +26,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -49,7 +49,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -73,7 +73,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -95,7 +95,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -118,7 +118,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -144,7 +144,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -166,7 +166,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, futureMeeting)
             .Add(p => p.IsAdmin, false));
 
@@ -189,7 +189,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, pastMeeting)
             .Add(p => p.IsAdmin, false));
 
@@ -212,7 +212,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -237,7 +237,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true));
 
@@ -266,7 +266,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -291,7 +291,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true));
 
@@ -316,7 +316,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -340,7 +340,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, todayMeeting)
             .Add(p => p.IsAdmin, false));
 
@@ -363,7 +363,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, tomorrowMeeting)
             .Add(p => p.IsAdmin, false));
 
@@ -385,7 +385,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -407,7 +407,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -430,7 +430,7 @@ public class MeetingCardTests : TestContext
         };
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false)
             .Add(p => p.OnViewDetails, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -457,7 +457,7 @@ public class MeetingCardTests : TestContext
         };
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.OnEdit, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -484,7 +484,7 @@ public class MeetingCardTests : TestContext
         };
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -511,7 +511,7 @@ public class MeetingCardTests : TestContext
         };
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.OnSendEmail, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -538,7 +538,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, true));
 
@@ -569,7 +569,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -603,7 +603,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
@@ -634,7 +634,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.Organizer, organizer)
             .Add(p => p.IsAdmin, false));
@@ -660,7 +660,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.Organizer, null)
             .Add(p => p.IsAdmin, false));
@@ -692,7 +692,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.Organizer, organizer)
             .Add(p => p.IsAdmin, false));
@@ -728,7 +728,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.Organizer, organizer)
             .Add(p => p.IsAdmin, false));
@@ -763,7 +763,7 @@ public class MeetingCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
+        var cut = Render<MeetingCard>(parameters => parameters
             .Add(p => p.Meeting, meeting)
             .Add(p => p.Organizer, organizer)
             .Add(p => p.IsAdmin, false));

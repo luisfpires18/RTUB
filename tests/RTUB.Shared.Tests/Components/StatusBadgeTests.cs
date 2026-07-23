@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the StatusBadge component to ensure request status badges display correctly
 /// </summary>
-public class StatusBadgeTests : TestContext
+public class StatusBadgeTests : BunitContext
 {
     [Fact]
     public void StatusBadge_RendersPendingStatus()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Pending));
 
         // Assert
@@ -26,7 +26,7 @@ public class StatusBadgeTests : TestContext
     public void StatusBadge_RendersAnalysingStatus()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Analysing));
 
         // Assert
@@ -38,7 +38,7 @@ public class StatusBadgeTests : TestContext
     public void StatusBadge_RendersConfirmedStatus()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Confirmed));
 
         // Assert
@@ -50,7 +50,7 @@ public class StatusBadgeTests : TestContext
     public void StatusBadge_RendersRejectedStatus()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Rejected));
 
         // Assert
@@ -62,7 +62,7 @@ public class StatusBadgeTests : TestContext
     public void StatusBadge_HasBadgeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Pending));
 
         // Assert
@@ -73,7 +73,7 @@ public class StatusBadgeTests : TestContext
     public void StatusBadge_RendersAsSpan()
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, RequestStatus.Confirmed));
 
         // Assert
@@ -89,7 +89,7 @@ public class StatusBadgeTests : TestContext
         RequestStatus status, string expectedText, string expectedClass)
     {
         // Arrange & Act
-        var cut = RenderComponent<StatusBadge>(parameters => parameters
+        var cut = Render<StatusBadge>(parameters => parameters
             .Add(p => p.Status, status));
 
         // Assert

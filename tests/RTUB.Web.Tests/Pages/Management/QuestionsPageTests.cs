@@ -46,7 +46,7 @@ public class QuestionsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Questions>();
+        var cut = Render<Questions>();
         cut.WaitForState(() => !cut.Markup.Contains("spinner-border") || cut.Markup.Contains("Perguntas") || cut.Markup.Contains("Nenhuma pergunta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Perguntas", "page should display title");
@@ -62,7 +62,7 @@ public class QuestionsPageTests : PageTestBase
             .Setup(x => x.GetAllWithRepliesAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<bool?>(), It.IsAny<string?>()))
             .Returns(tcs.Task);
 
-        var cut = RenderComponent<Questions>();
+        var cut = Render<Questions>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("spinner-border", "should show loading initially");
@@ -78,7 +78,7 @@ public class QuestionsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Questions>();
+        var cut = Render<Questions>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhuma pergunta") || cut.Markup.Contains("Pesquisar perguntas"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Nenhuma pergunta aberta encontrada", "should show empty state when no open questions");
@@ -89,7 +89,7 @@ public class QuestionsPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<Questions>();
+        var cut = Render<Questions>();
         cut.WaitForState(() => cut.Markup.Contains("Pesquisar perguntas") || cut.Markup.Contains("Nenhuma pergunta"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Pesquisar perguntas", "page should show search bar");

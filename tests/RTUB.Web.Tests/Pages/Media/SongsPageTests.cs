@@ -121,7 +121,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync(album);
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -138,7 +138,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync((Album?)null);
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
 
         // Assert
@@ -159,7 +159,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync(new List<Song>());
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -187,7 +187,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync(songs);
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => cut.Markup.Contains("Song") && !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -211,7 +211,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync(album);
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -230,7 +230,7 @@ public class SongsPageTests : PageTestBase
             .ReturnsAsync(album);
 
         // Act
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -252,7 +252,7 @@ public class SongsPageTests : PageTestBase
             .Setup(x => x.GetAlbumByIdAsync(TestAlbumId))
             .ReturnsAsync(album);
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -281,7 +281,7 @@ public class SongsPageTests : PageTestBase
             .Setup(x => x.GetSongsByAlbumIdAsync(TestAlbumId))
             .ReturnsAsync(new List<Song> { song });
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -310,7 +310,7 @@ public class SongsPageTests : PageTestBase
             .Setup(x => x.GetSongsByAlbumIdAsync(TestAlbumId))
             .ReturnsAsync(new List<Song> { song });
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -352,7 +352,7 @@ public class SongsPageTests : PageTestBase
                 It.IsAny<bool>()))
             .ReturnsAsync(newSong);
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -390,7 +390,7 @@ public class SongsPageTests : PageTestBase
             .Setup(x => x.GetSongsByAlbumIdAsync(TestAlbumId))
             .ReturnsAsync(new List<Song>());
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -430,7 +430,7 @@ public class SongsPageTests : PageTestBase
             .Setup(x => x.GetSongsByAlbumIdAsync(TestAlbumId))
             .ReturnsAsync(songs);
 
-        var cut = RenderComponent<Songs>(parameters => parameters
+        var cut = Render<Songs>(parameters => parameters
             .Add(p => p.AlbumId, TestAlbumId));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 

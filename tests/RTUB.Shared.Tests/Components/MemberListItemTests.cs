@@ -11,7 +11,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the MemberListItem component to ensure member list rows display correctly
 /// </summary>
-public class MemberListItemTests : TestContext
+public class MemberListItemTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -45,7 +45,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser("Jane", "Smith", "Janie");
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -59,7 +59,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser("John", "Doe", "Johnny");
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -73,7 +73,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -88,7 +88,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -103,7 +103,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsAdmin, true));
 
@@ -119,7 +119,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsAdmin, false));
 
@@ -135,7 +135,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsOwner, true));
 
@@ -151,7 +151,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsOwner, false));
 
@@ -167,7 +167,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.CurrentFiscalYearPosition, Position.Magister));
 
@@ -184,7 +184,7 @@ public class MemberListItemTests : TestContext
         user.Categories = new List<MemberCategory>();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -199,7 +199,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
 
         // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user));
 
         // Assert
@@ -213,7 +213,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.OnViewDetails, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
@@ -232,7 +232,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.OnEdit, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
@@ -252,7 +252,7 @@ public class MemberListItemTests : TestContext
         var user = CreateTestUser();
         bool callbackInvoked = false;
 
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
+        var cut = Render<MemberListItem>(parameters => parameters
             .Add(p => p.User, user)
             .Add(p => p.IsOwner, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => callbackInvoked = true)));

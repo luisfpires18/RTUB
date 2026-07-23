@@ -13,7 +13,7 @@ namespace RTUB.Web.Tests.Components;
 /// Tests for the VersionedAsset component that generates versioned URLs for static assets.
 /// Verifies that CSS and JS files are properly versioned to prevent cache issues after deployments.
 /// </summary>
-public class VersionedAssetTests : TestContext
+public class VersionedAssetTests : BunitContext
 {
     private readonly Mock<IFileVersionProvider> _mockFileVersionProvider;
 
@@ -36,7 +36,7 @@ public class VersionedAssetTests : TestContext
             .Returns(versionedPath);
 
         // Act
-        var cut = RenderComponent<VersionedAsset>(parameters => parameters
+        var cut = Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Css));
 
@@ -57,7 +57,7 @@ public class VersionedAssetTests : TestContext
             .Returns(versionedPath);
 
         // Act
-        var cut = RenderComponent<VersionedAsset>(parameters => parameters
+        var cut = Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Js));
 
@@ -78,7 +78,7 @@ public class VersionedAssetTests : TestContext
             .Returns(versionedPath);
 
         // Act
-        var cut = RenderComponent<VersionedAsset>(parameters => parameters
+        var cut = Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Css)
             .Add(p => p.Rel, "preload"));
@@ -99,7 +99,7 @@ public class VersionedAssetTests : TestContext
             .Returns(versionedPath);
 
         // Act
-        var cut = RenderComponent<VersionedAsset>(parameters => parameters
+        var cut = Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Css)
             .Add(p => p.Integrity, integrity));
@@ -119,7 +119,7 @@ public class VersionedAssetTests : TestContext
             .Returns(versionedPath);
 
         // Act
-        var cut = RenderComponent<VersionedAsset>(parameters => parameters
+        var cut = Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Css)
             .Add(p => p.CrossOrigin, "anonymous"));
@@ -139,7 +139,7 @@ public class VersionedAssetTests : TestContext
             .Verifiable();
 
         // Act
-        RenderComponent<VersionedAsset>(parameters => parameters
+        Render<VersionedAsset>(parameters => parameters
             .Add(p => p.Path, path)
             .Add(p => p.Type, VersionedAsset.AssetType.Css));
 

@@ -7,7 +7,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the RoleBadge component to ensure role badges display correctly
 /// </summary>
-public class RoleBadgeTests : TestContext
+public class RoleBadgeTests : BunitContext
 {
     [Fact]
     public void RoleBadge_RendersRoleWithIcon()
@@ -16,7 +16,7 @@ public class RoleBadgeTests : TestContext
         var role = "Admin";
 
         // Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, role));
 
         // Assert
@@ -29,7 +29,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_RendersOwnerWithIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Owner"));
 
         // Assert
@@ -41,7 +41,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_RendersMemberWithIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
@@ -53,7 +53,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_RendersModWithIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Mod"));
 
         // Assert
@@ -65,7 +65,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesWarningClass_ForModRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Mod"));
 
         // Assert
@@ -76,7 +76,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_HasBadgeClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
@@ -87,7 +87,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesDangerClass_ForOwnerRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Owner"));
 
         // Assert
@@ -98,7 +98,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesSuccessClass_ForAdminRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Admin"));
 
         // Assert
@@ -109,7 +109,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesCustomColorStyle_ForMemberRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
@@ -120,7 +120,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesSecondaryClass_ForUnknownRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "UnknownRole"));
 
         // Assert
@@ -131,7 +131,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesSecondaryClass_ForEmptyRole()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, string.Empty));
 
         // Assert
@@ -145,7 +145,7 @@ public class RoleBadgeTests : TestContext
         var additionalClass = "custom-class";
 
         // Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Admin")
             .Add(p => p.AdditionalClasses, additionalClass));
 
@@ -161,7 +161,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_AppliesCorrectIconAndClass_ForEachRole(string role, string expectedIcon, string expectedText, string expectedClassOrColor)
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, role));
 
         // Assert
@@ -174,7 +174,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_RendersAsSpan()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
@@ -185,7 +185,7 @@ public class RoleBadgeTests : TestContext
     public void RoleBadge_HasAccessibilityAttributes()
     {
         // Arrange & Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Admin"));
 
         // Assert
@@ -201,7 +201,7 @@ public class RoleBadgeTests : TestContext
         var role = "Administrator";
 
         // Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, role));
 
         // Assert
@@ -215,7 +215,7 @@ public class RoleBadgeTests : TestContext
         var longRole = "Very Long Role Name That Should Be Truncated";
 
         // Act
-        var cut = RenderComponent<RoleBadge>(parameters => parameters
+        var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, longRole));
 
         // Assert

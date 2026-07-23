@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the InstrumentCounter component to ensure instrument counts display correctly
 /// </summary>
-public class InstrumentCounterTests : TestContext
+public class InstrumentCounterTests : BunitContext
 {
     [Fact]
     public void InstrumentCounter_DoesNotRender_WhenInstrumentCountsIsNull()
     {
         // Arrange & Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, null));
 
         // Assert
@@ -33,7 +33,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -52,7 +52,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -71,7 +71,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -89,7 +89,7 @@ public class InstrumentCounterTests : TestContext
         var customTitle = "Instruments Used";
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts)
             .Add(p => p.Title, customTitle));
 
@@ -108,7 +108,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -128,7 +128,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -148,7 +148,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -169,7 +169,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -186,7 +186,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert
@@ -204,7 +204,7 @@ public class InstrumentCounterTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts)
             .Add(p => p.MarginTop, "mt-5")
             .Add(p => p.MarginBottom, "mb-2"));
@@ -225,7 +225,7 @@ public class InstrumentCounterTests : TestContext
         var additionalClass = "custom-class";
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts)
             .Add(p => p.AdditionalClass, additionalClass));
 
@@ -240,7 +240,7 @@ public class InstrumentCounterTests : TestContext
         var instrumentCounts = new Dictionary<InstrumentType, int>();
 
         // Act
-        var cut = RenderComponent<InstrumentCounter>(parameters => parameters
+        var cut = Render<InstrumentCounter>(parameters => parameters
             .Add(p => p.InstrumentCounts, instrumentCounts));
 
         // Assert

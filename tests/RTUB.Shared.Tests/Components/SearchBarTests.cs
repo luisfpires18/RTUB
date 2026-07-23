@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the SearchBar component to ensure search functionality works correctly
 /// </summary>
-public class SearchBarTests : TestContext
+public class SearchBarTests : BunitContext
 {
     [Fact]
     public void SearchBar_RendersSearchInput()
     {
         // Arrange & Act
-        var cut = RenderComponent<SearchBar>();
+        var cut = Render<SearchBar>();
 
         // Assert
         var input = cut.Find("input[type='text']");
@@ -24,7 +24,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_ShowsSearchIcon()
     {
-        var cut = RenderComponent<SearchBar>();
+        var cut = Render<SearchBar>();
 
         cut.Markup.Should().Contain("bi-search");
     }
@@ -32,7 +32,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_UsesDefaultPlaceholder()
     {
-        var cut = RenderComponent<SearchBar>();
+        var cut = Render<SearchBar>();
 
         var input = cut.Find("input");
         input.GetAttribute("placeholder").Should().Be("Pesquisar...");
@@ -43,7 +43,7 @@ public class SearchBarTests : TestContext
     {
         const string placeholder = "Search for items...";
 
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Placeholder, placeholder));
 
         var input = cut.Find("input");
@@ -55,7 +55,7 @@ public class SearchBarTests : TestContext
     {
         const string value = "test query";
 
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Value, value));
 
         cut.Find("input").GetAttribute("value").Should().Be(value);
@@ -64,7 +64,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_DoesNotShowClearButton_WhenValueIsEmpty()
     {
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Value, string.Empty));
 
         cut.FindAll("button").Should().BeEmpty();
@@ -73,7 +73,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_ShowsClearButton_WhenValueIsPresent()
     {
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Value, "test"));
 
         var clearButton = cut.Find("button");
@@ -84,7 +84,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_ClearButton_HasTitle()
     {
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Value, "test"));
 
         cut.Find("button").GetAttribute("title").Should().Be("Limpar pesquisa");
@@ -97,7 +97,7 @@ public class SearchBarTests : TestContext
         bool onSearchCalled = false;
         bool onClearCalled = false;
 
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Value, "test")
             .Add(p => p.ValueChanged, EventCallback.Factory.Create<string>(this, v => receivedValue = v))
             .Add(p => p.OnSearch, EventCallback.Factory.Create<string>(this, _ => onSearchCalled = true))
@@ -113,7 +113,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_Compact_AddsCompactClass()
     {
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.Compact, true));
 
         cut.Markup.Should().Contain("search-bar-container--compact");
@@ -122,7 +122,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_RendersContainer()
     {
-        var cut = RenderComponent<SearchBar>();
+        var cut = Render<SearchBar>();
 
         cut.Markup.Should().Contain("search-bar-container");
         cut.Markup.Should().Contain("search-bar");
@@ -131,7 +131,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_SupportsCustomDebounceDelay()
     {
-        var cut = RenderComponent<SearchBar>(parameters => parameters
+        var cut = Render<SearchBar>(parameters => parameters
             .Add(p => p.DebounceDelay, 500));
 
         cut.Find("input").Should().NotBeNull();
@@ -140,7 +140,7 @@ public class SearchBarTests : TestContext
     [Fact]
     public void SearchBar_DefaultDebounceDelay_Is300()
     {
-        var cut = RenderComponent<SearchBar>();
+        var cut = Render<SearchBar>();
 
         cut.Instance.DebounceDelay.Should().Be(300);
     }

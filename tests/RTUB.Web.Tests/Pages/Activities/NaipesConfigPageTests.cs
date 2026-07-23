@@ -38,7 +38,7 @@ public class NaipesConfigPageTests : PageTestBase
     public async Task NaipesConfigPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<NaipesConfig>();
+        var cut = Render<NaipesConfig>();
         cut.WaitForState(() => cut.Markup.Contains("Configuração de Naipes") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -55,7 +55,7 @@ public class NaipesConfigPageTests : PageTestBase
             .Returns(tcs.Task);
 
         // Act
-        var cut = RenderComponent<NaipesConfig>();
+        var cut = Render<NaipesConfig>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
@@ -69,7 +69,7 @@ public class NaipesConfigPageTests : PageTestBase
     public async Task NaipesConfigPage_DisplaysBackButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<NaipesConfig>();
+        var cut = Render<NaipesConfig>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - desktop back link targets /naipes, mobile nav shows "Voltar"
@@ -80,7 +80,7 @@ public class NaipesConfigPageTests : PageTestBase
     public async Task NaipesConfigPage_DisplaysInfoAlert()
     {
         // Arrange & Act
-        var cut = RenderComponent<NaipesConfig>();
+        var cut = Render<NaipesConfig>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

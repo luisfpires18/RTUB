@@ -50,7 +50,7 @@ public class MemberMapPageTests : PageTestBase
     public async Task MemberMapPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<MemberMap>();
+        var cut = Render<MemberMap>();
         cut.WaitForState(() => cut.Markup.Contains("Mapa de Membros") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -61,7 +61,7 @@ public class MemberMapPageTests : PageTestBase
     public async Task MemberMapPage_DisplaysMapDescription()
     {
         // Arrange & Act
-        var cut = RenderComponent<MemberMap>();
+        var cut = Render<MemberMap>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - Check that the page renders (map may be in a container)

@@ -9,13 +9,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ImageUploadManager component to ensure file upload functionality works correctly
 /// </summary>
-public class ImageUploadManagerTests : TestContext
+public class ImageUploadManagerTests : BunitContext
 {
     [Fact]
     public void ImageUploadManager_RendersLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.Label, "Upload Photo"));
 
         // Assert
@@ -26,7 +26,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_RendersDefaultLabel_WhenNoLabelProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>();
+        var cut = Render<ImageUploadManager>();
 
         // Assert
         cut.Markup.Should().Contain("Escolher imagem", "default label should be displayed");
@@ -36,7 +36,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_RendersFileInput()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>();
+        var cut = Render<ImageUploadManager>();
 
         // Assert
         var input = cut.Find("input[type=file]");
@@ -47,7 +47,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_ShowsCurrentImage_WhenUrlProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.CurrentImageUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentImage, true));
 
@@ -61,7 +61,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_DoesNotShowCurrentImage_WhenShowCurrentImageIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.CurrentImageUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentImage, false));
 
@@ -73,7 +73,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_DoesNotShowCurrentImage_WhenNoUrlProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.ShowCurrentImage, true));
 
         // Assert
@@ -84,7 +84,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_AppliesCustomPreviewCssClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.CurrentImageUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentImage, true)
             .Add(p => p.PreviewCssClass, "custom-preview-class"));
@@ -97,7 +97,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_AppliesDefaultPreviewCssClass_WhenNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.CurrentImageUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentImage, true));
 
@@ -109,7 +109,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_HasFormControl()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>();
+        var cut = Render<ImageUploadManager>();
 
         // Assert
         cut.Markup.Should().Contain("localized-file-picker", "should render localized file picker");
@@ -120,7 +120,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_HasFormLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>();
+        var cut = Render<ImageUploadManager>();
 
         // Assert
         cut.Markup.Should().Contain("form-label", "should have form label class");
@@ -133,7 +133,7 @@ public class ImageUploadManagerTests : TestContext
     public void ImageUploadManager_RendersCustomLabels(string customLabel)
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageUploadManager>(parameters => parameters
+        var cut = Render<ImageUploadManager>(parameters => parameters
             .Add(p => p.Label, customLabel));
 
         // Assert

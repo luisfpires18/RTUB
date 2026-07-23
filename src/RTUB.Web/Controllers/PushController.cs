@@ -45,15 +45,21 @@ public class PushController : ControllerBase
     /// Returns whether the user can use Web Push and configuration details
     /// </summary>
     [HttpGet("status")]
-    public IActionResult GetStatus()
+    public async Task<IActionResult> GetStatus()
     {
         var hasAccess = HasWebPushAccess();
         var isConfigured = _pushNotificationService.IsConfigured();
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isOptedOut = hasAccess && !string.IsNullOrEmpty(userId)
+            ? await _pushNotificationService.IsOptedOutAsync(userId)
+            : false;
 
         return Ok(new PushStatusDto
         {
             IsEnabled = hasAccess,
             IsConfigured = isConfigured,
+            IsOptedOut = isOptedOut,
             VapidPublicKey = hasAccess && isConfigured ? _pushNotificationService.GetVapidPublicKey() : null
         });
     }
@@ -88,6 +94,7 @@ public class PushController : ControllerBase
             var userAgent = Request.Headers.UserAgent.ToString();
 
             var isNew = await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
+            await _pushNotificationService.SetOptedOutAsync(userId, false);
 
             if (isNew)
             {
@@ -132,6 +139,12 @@ public class PushController : ControllerBase
         try
         {
             await _pushNotificationService.UnsubscribeAsync(request.Endpoint);
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await _pushNotificationService.SetOptedOutAsync(userId, true);
+            }
 
             var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
 

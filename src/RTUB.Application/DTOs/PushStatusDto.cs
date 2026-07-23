@@ -7,5 +7,6 @@ public class PushStatusDto
 {
     public bool IsEnabled { get; set; }
     public bool IsConfigured { get; set; }
+    public bool IsOptedOut { get; set; }
     public string? VapidPublicKey { get; set; }
 }

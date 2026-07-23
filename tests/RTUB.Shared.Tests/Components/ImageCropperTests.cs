@@ -12,7 +12,7 @@ namespace RTUB.Shared.Tests.Components;
 /// Tests for the ImageCropper component to ensure image cropping functionality works correctly
 /// Includes JavaScript interop tests for complete coverage
 /// </summary>
-public class ImageCropperTests : TestContext
+public class ImageCropperTests : BunitContext
 {
     public ImageCropperTests()
     {
@@ -25,7 +25,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_DoesNotRender_WhenShowModalIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, false));
 
         // Assert
@@ -36,7 +36,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_RendersModal_WhenShowModalIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -47,7 +47,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasCropImageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -58,7 +58,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasRotateButtons()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -70,7 +70,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasZoomButtons()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -82,7 +82,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasResetButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -93,7 +93,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasCropAndSaveButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -104,7 +104,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasCancelButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -118,7 +118,7 @@ public class ImageCropperTests : TestContext
         var helpText = "Use 1:1 aspect ratio for profile pictures";
 
         // Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true)
             .Add(p => p.AspectRatioHelp, helpText));
 
@@ -130,7 +130,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_DoesNotDisplayAspectRatioHelp_WhenNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true)
             .Add(p => p.AspectRatioHelp, string.Empty));
 
@@ -142,7 +142,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_UsesLargeModalSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -153,7 +153,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_IsCentered()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -164,7 +164,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasImageElement()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -175,7 +175,7 @@ public class ImageCropperTests : TestContext
     public void ImageCropper_HasPrimaryPurpleButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Assert
@@ -198,7 +198,7 @@ public class ImageCropperTests : TestContext
         fileMock.Setup(f => f.OpenReadStream(It.IsAny<long>()))
             .Returns(new MemoryStream(new byte[1024 * 1024]));
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.LoadImageAsync(fileMock.Object);
@@ -220,7 +220,7 @@ public class ImageCropperTests : TestContext
         fileMock.Setup(f => f.Size).Returns(11 * 1024 * 1024); // 11MB > 10MB limit
         fileMock.Setup(f => f.ContentType).Returns("image/jpeg");
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.LoadImageAsync(fileMock.Object);
@@ -246,7 +246,7 @@ public class ImageCropperTests : TestContext
         fileMock.Setup(f => f.OpenReadStream(It.IsAny<long>()))
             .Returns(new MemoryStream(imageBytes));
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.LoadImageAsync(fileMock.Object);
@@ -267,7 +267,7 @@ public class ImageCropperTests : TestContext
         fileMock.Setup(f => f.OpenReadStream(It.IsAny<long>()))
             .Throws(new Exception("File read error"));
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.LoadImageAsync(fileMock.Object);
@@ -289,7 +289,7 @@ public class ImageCropperTests : TestContext
         // Arrange
         JSInterop.SetupVoid("ImageCropperInterop.initializeCropper");
 
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.AspectRatio, 1.0)); // Fixed aspect ratio
 
         // Act - InitializeCropper is called internally through LoadImageAsync
@@ -316,7 +316,7 @@ public class ImageCropperTests : TestContext
         // Arrange
         JSInterop.SetupVoid("ImageCropperInterop.initializeCropper");
 
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.AspectRatio, 0)); // Free aspect ratio
 
         var fileMock = new Mock<IBrowserFile>();
@@ -349,7 +349,7 @@ public class ImageCropperTests : TestContext
         fileMock.Setup(f => f.OpenReadStream(It.IsAny<long>()))
             .Returns(new MemoryStream(new byte[1024]));
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.LoadImageAsync(fileMock.Object);
@@ -386,7 +386,7 @@ public class ImageCropperTests : TestContext
         JSInterop.SetupVoid("ImageCropperInterop.initializeCropper");
         JSInterop.SetupVoid("ImageCropperInterop.destroy");
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Simulate initialization
         var fileMock = new Mock<IBrowserFile>();
@@ -412,7 +412,7 @@ public class ImageCropperTests : TestContext
     public async Task DisposeAsync_WhenNotInitialized_DoesNotCallDestroy()
     {
         // Arrange
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Act
         await cut.Instance.DisposeAsync();
@@ -425,7 +425,7 @@ public class ImageCropperTests : TestContext
     public void AspectRatio_Zero_PassesNullToJavaScript()
     {
         // Arrange
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.AspectRatio, 0));
 
         // Assert
@@ -436,7 +436,7 @@ public class ImageCropperTests : TestContext
     public void AspectRatio_Positive_PassesValueToJavaScript()
     {
         // Arrange
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.AspectRatio, 1.0));
 
         // Assert
@@ -447,7 +447,7 @@ public class ImageCropperTests : TestContext
     public void ErrorMessages_AreDisplayedInUI_WhenErrorOccurs()
     {
         // Arrange
-        var cut = RenderComponent<ImageCropper>(parameters => parameters
+        var cut = Render<ImageCropper>(parameters => parameters
             .Add(p => p.ShowModal, true));
 
         // Note: Error messages are displayed when errorMessage is set
@@ -465,7 +465,7 @@ public class ImageCropperTests : TestContext
         // Arrange
         JSInterop.SetupVoid("ImageCropperInterop.initializeCropper");
 
-        var cut = RenderComponent<ImageCropper>();
+        var cut = Render<ImageCropper>();
 
         // Create error first by trying to load with invalid file
         var invalidFileMock = new Mock<IBrowserFile>();

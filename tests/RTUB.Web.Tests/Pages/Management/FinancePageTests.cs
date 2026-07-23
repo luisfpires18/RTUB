@@ -83,7 +83,7 @@ public class FinancePageTests : PageTestBase
         SetupAuthentication("test-user", "Test User");
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -105,7 +105,7 @@ public class FinancePageTests : PageTestBase
             });
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar relatórios", "page should show loading message initially");
@@ -124,7 +124,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -147,7 +147,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(reports);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => cut.Markup.Contains("Report") && !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -168,7 +168,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -185,7 +185,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -202,7 +202,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -223,7 +223,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         var createButton = cut.Find("button:contains('Adicionar Relatório')");
@@ -258,7 +258,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(newReport);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Open create modal (simplified - actual form submission would require more setup)
@@ -288,7 +288,7 @@ public class FinancePageTests : PageTestBase
             .Returns(Task.CompletedTask);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Delete button would be in ReportCard component
@@ -318,7 +318,7 @@ public class FinancePageTests : PageTestBase
             .Returns(Task.CompletedTask);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Publish button would be in ReportCard component
@@ -346,7 +346,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(new List<ReportEntity>());
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -370,7 +370,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(reports);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Publish button is in ReportCard component
@@ -392,7 +392,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(reports);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Delete button is in ReportCard component
@@ -418,7 +418,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(reports);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Open create modal
@@ -452,7 +452,7 @@ public class FinancePageTests : PageTestBase
             .ReturnsAsync(reports);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Open create modal
@@ -489,7 +489,7 @@ public class FinancePageTests : PageTestBase
             .Returns(Task.CompletedTask);
 
         // Act
-        var cut = RenderComponent<Finance>();
+        var cut = Render<Finance>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Note: Edit functionality would require opening edit modal and submitting form

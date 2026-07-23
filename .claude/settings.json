@@ -3,7 +3,8 @@
     "allow": [
       "Bash(dotnet ef migrations add AddNerbaOrderEventId --project src/RTUB.Application --startup-project src/RTUB.Web)",
       "Bash(dotnet ef migrations add AddNerbaOrderEventId)",
-      "Bash(dotnet ef database update)"
+      "Bash(dotnet ef database update)",
+      "Bash(git remote *)"
     ]
   }
 }

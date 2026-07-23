@@ -72,4 +72,19 @@ public interface IPushNotificationService
     /// </summary>
     /// <returns>List of user IDs with active push subscriptions</returns>
     Task<IEnumerable<string>> GetSubscribedUserIdsAsync();
+
+    /// <summary>
+    /// Checks whether the user has explicitly opted out of push notifications
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    Task<bool> IsOptedOutAsync(string userId);
+
+    /// <summary>
+    /// Sets whether the user has explicitly opted out of push notifications.
+    /// Set to true on unsubscribe and false on subscribe so self-healing/recovery
+    /// logic never silently overrides a deliberate opt-out.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="optedOut">Whether the user is opted out</param>
+    Task SetOptedOutAsync(string userId, bool optedOut);
 }

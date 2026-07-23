@@ -10,7 +10,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the InstrumentCircle component to ensure instruments display correctly
 /// </summary>
-public class InstrumentCircleTests : TestContext
+public class InstrumentCircleTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -26,7 +26,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Guitarra", "Test Guitar", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -41,7 +41,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Bandolim", "Test Mandolin", InstrumentCondition.Excellent);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -56,7 +56,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Flauta", "Test Flute", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -77,7 +77,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Baixo", "Test Bass", condition);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -94,7 +94,7 @@ public class InstrumentCircleTests : TestContext
         instrument.Brand = "Fender";
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -111,7 +111,7 @@ public class InstrumentCircleTests : TestContext
         instrument.Location = "Storage Room";
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -131,7 +131,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create(category, "Test Instrument", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -146,7 +146,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Flauta", "Test Flute", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, "")
             .Add(p => p.ShowViewButton, true)
@@ -164,7 +164,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Bandolim", "Test Mandolin", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, "")
             .Add(p => p.ShowViewButton, false));
@@ -180,7 +180,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Baixo", "Test Bass", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, "")
             .Add(p => p.ShowEditButton, true));
@@ -196,7 +196,7 @@ public class InstrumentCircleTests : TestContext
         var instrument = Instrument.Create("Cavaquinho", "Test Cavaquinho", InstrumentCondition.Good);
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, "")
             .Add(p => p.ShowDeleteButton, true));
@@ -213,7 +213,7 @@ public class InstrumentCircleTests : TestContext
         // Brand not set
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -229,7 +229,7 @@ public class InstrumentCircleTests : TestContext
         // Location not set
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -245,7 +245,7 @@ public class InstrumentCircleTests : TestContext
         instrument.ThumbnailUrl = "/images/thumbnails/guitar-thumb.jpg";
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -262,7 +262,7 @@ public class InstrumentCircleTests : TestContext
         // ThumbnailUrl not set
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -279,7 +279,7 @@ public class InstrumentCircleTests : TestContext
         instrument.ThumbnailUrl = "/images/thumbnails/flute-thumb.jpg";
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 
@@ -296,7 +296,7 @@ public class InstrumentCircleTests : TestContext
         // No ImageUrl or ThumbnailUrl set
 
         // Act
-        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+        var cut = Render<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, ""));
 

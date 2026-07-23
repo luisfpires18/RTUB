@@ -16,6 +16,7 @@ public class PushNotificationServiceTests
     private readonly Mock<IConversationRepository> _mockConversationRepository;
     private readonly Mock<IMessageRepository> _mockMessageRepository;
     private readonly Mock<IConversationUserSettingsRepository> _mockSettingsRepository;
+    private readonly Mock<IUserProfileRepository> _mockUserProfileRepository;
     private readonly Mock<ILogger<PushNotificationService>> _mockLogger;
     private readonly WebPushOptions _options;
     private readonly PushNotificationService _service;
@@ -26,6 +27,7 @@ public class PushNotificationServiceTests
         _mockConversationRepository = new Mock<IConversationRepository>();
         _mockMessageRepository = new Mock<IMessageRepository>();
         _mockSettingsRepository = new Mock<IConversationUserSettingsRepository>();
+        _mockUserProfileRepository = new Mock<IUserProfileRepository>();
         _mockLogger = new Mock<ILogger<PushNotificationService>>();
 
         // Configure with minimal VAPID configuration for testing
@@ -45,6 +47,7 @@ public class PushNotificationServiceTests
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
             _mockSettingsRepository.Object,
+            _mockUserProfileRepository.Object,
             optionsWrapper,
             _mockLogger.Object);
     }
@@ -69,6 +72,7 @@ public class PushNotificationServiceTests
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
             _mockSettingsRepository.Object,
+            _mockUserProfileRepository.Object,
             emptyOptions,
             _mockLogger.Object);
 
@@ -196,6 +200,102 @@ public class PushNotificationServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
             () => _service.UnsubscribeAsync(""));
+    }
+
+    [Fact]
+    public async Task IsOptedOutAsync_ReturnsTrue_WhenUserOptedOut()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user-1", PushNotificationsOptedOut = true };
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _service.IsOptedOutAsync("user-1");
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsOptedOutAsync_ReturnsFalse_WhenUserNotOptedOut()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user-1", PushNotificationsOptedOut = false };
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _service.IsOptedOutAsync("user-1");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsOptedOutAsync_ReturnsFalse_WhenUserNotFound()
+    {
+        // Arrange
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        // Act
+        var result = await _service.IsOptedOutAsync("missing-user");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task SetOptedOutAsync_UpdatesUser_WhenValueChanges()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user-1", PushNotificationsOptedOut = false };
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(user);
+
+        // Act
+        await _service.SetOptedOutAsync("user-1", true);
+
+        // Assert
+        _mockUserProfileRepository.Verify(r => r.UpdateAsync(It.Is<ApplicationUser>(
+            u => u.Id == "user-1" && u.PushNotificationsOptedOut == true
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetOptedOutAsync_DoesNotUpdate_WhenValueAlreadyMatches()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user-1", PushNotificationsOptedOut = true };
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(user);
+
+        // Act
+        await _service.SetOptedOutAsync("user-1", true);
+
+        // Assert
+        _mockUserProfileRepository.Verify(r => r.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetOptedOutAsync_DoesNothing_WhenUserNotFound()
+    {
+        // Arrange
+        _mockUserProfileRepository
+            .Setup(r => r.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        // Act
+        await _service.SetOptedOutAsync("missing-user", true);
+
+        // Assert
+        _mockUserProfileRepository.Verify(r => r.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
     }
 
     [Fact]
@@ -407,6 +507,7 @@ public class PushNotificationServiceTests
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
             _mockSettingsRepository.Object,
+            _mockUserProfileRepository.Object,
             emptyOptions,
             _mockLogger.Object);
 

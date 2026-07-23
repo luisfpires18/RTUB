@@ -104,7 +104,7 @@ public class ProfilePageTests : PageTestBase
     public async Task ProfilePage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
         cut.WaitForState(() => cut.Markup.Contains("Meu Perfil") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -121,7 +121,7 @@ public class ProfilePageTests : PageTestBase
             .Returns(tcs.Task);
 
         // Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
@@ -141,7 +141,7 @@ public class ProfilePageTests : PageTestBase
             .ReturnsAsync(testUser);
 
         // Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -160,7 +160,7 @@ public class ProfilePageTests : PageTestBase
             .ReturnsAsync(testUser);
 
         // Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -178,7 +178,7 @@ public class ProfilePageTests : PageTestBase
             .ReturnsAsync(testUser);
 
         // Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - Personal section is shown by default (sectionsExpanded["personal"] = true)
@@ -195,7 +195,7 @@ public class ProfilePageTests : PageTestBase
             .ReturnsAsync(testUser);
 
         // Act
-        var cut = RenderComponent<Profile>();
+        var cut = Render<Profile>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - Tuna section is shown by default (sectionsExpanded["tuna"] = true)

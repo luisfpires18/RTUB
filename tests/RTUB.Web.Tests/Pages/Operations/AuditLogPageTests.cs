@@ -33,7 +33,7 @@ public class AuditLogPageTests : PageTestBase
         SetupEmptyServiceData();
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -74,7 +74,7 @@ public class AuditLogPageTests : PageTestBase
             .ReturnsAsync((Enumerable.Empty<AuditLog>(), 0));
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
 
         // Assert - Check loading state before async operations complete
         component.Markup.Should().Contain("A carregar");
@@ -92,7 +92,7 @@ public class AuditLogPageTests : PageTestBase
         SetupEmptyServiceData();
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -108,7 +108,7 @@ public class AuditLogPageTests : PageTestBase
         SetupServiceData(logs);
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -126,7 +126,7 @@ public class AuditLogPageTests : PageTestBase
         SetupServiceData(logs);
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -144,7 +144,7 @@ public class AuditLogPageTests : PageTestBase
         SetupServiceData(CreateTestAuditLogs(2));
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -162,7 +162,7 @@ public class AuditLogPageTests : PageTestBase
         SetupServiceData(CreateTestAuditLogs(1));
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -177,7 +177,7 @@ public class AuditLogPageTests : PageTestBase
         SetupServiceData(CreateTestAuditLogs(1));
 
         // Act
-        var component = RenderComponent<AuditLogPage>();
+        var component = Render<AuditLogPage>();
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

@@ -130,7 +130,12 @@ window.pwaHelper = {
         if (!this.isPwaMode()) {
             return false;
         }
-        
+
+        // User explicitly unsubscribed - never auto re-prompt or self-heal
+        if (this.isOptedOut()) {
+            return false;
+        }
+
         // Always show if never prompted
         if (!this.hasBeenPrompted()) {
             return true;
@@ -179,6 +184,47 @@ window.pwaHelper = {
     },
 
     /**
+     * Marks that the user explicitly opted out of push notifications (unsubscribed).
+     * This must be checked before any silent/automatic resubscribe attempt, since
+     * unsubscribing does not revoke Notification.permission (it stays 'granted',
+     * especially on iOS), which is otherwise indistinguishable from a subscription
+     * that was merely lost (e.g. Chrome endpoint rotation).
+     */
+    markOptedOut: function() {
+        try {
+            localStorage.setItem('rtub-push-opted-out', 'true');
+            return true;
+        } catch (e) {
+            console.error('Error writing to localStorage:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Clears the opted-out flag (called when the user explicitly subscribes again)
+     */
+    clearOptedOut: function() {
+        try {
+            localStorage.removeItem('rtub-push-opted-out');
+            return true;
+        } catch (e) {
+            console.error('Error removing from localStorage:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Checks whether the user has explicitly opted out of push notifications
+     */
+    isOptedOut: function() {
+        try {
+            return localStorage.getItem('rtub-push-opted-out') === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
      * Checks the health of the current push subscription
      * Returns: 'active', 'expired', 'missing', or 'error'
      * Call this on app start in PWA/TWA mode to detect stale subscriptions
@@ -197,7 +243,14 @@ window.pwaHelper = {
             const subscription = await registration.pushManager.getSubscription();
             
             if (!subscription) {
-                // No subscription exists - check if user previously had one
+                // No subscription exists. If the user explicitly opted out, this is
+                // expected (unsubscribing doesn't revoke Notification.permission) -
+                // do not treat it as a lost subscription needing recovery.
+                if (this.isOptedOut()) {
+                    return 'none';
+                }
+
+                // Check if user previously had one
                 if (Notification.permission === 'granted' && this.hasBeenPrompted()) {
                     // User granted permission before but subscription is gone
                     // This means the subscription was rotated or expired
@@ -264,6 +317,17 @@ window.pwaHelper = {
             }
             
             const data = await response.json();
+
+            // Keep the local opted-out cache in sync with the server's record,
+            // which is the source of truth (survives reinstall/relogin/cross-device).
+            if (data && typeof data.isOptedOut === 'boolean') {
+                if (data.isOptedOut) {
+                    this.markOptedOut();
+                } else {
+                    this.clearOptedOut();
+                }
+            }
+
             return data;
         } catch (e) {
             console.error('Error fetching push status:', e);

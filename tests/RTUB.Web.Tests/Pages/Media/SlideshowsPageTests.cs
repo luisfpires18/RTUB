@@ -43,7 +43,7 @@ public class SlideshowsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar slides") || cut.Markup.Contains("Gestão de Apresentação") || cut.Markup.Contains("Nenhum slideshow"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Gestão de Apresentação", "page should display title");
@@ -62,7 +62,7 @@ public class SlideshowsPageTests : PageTestBase
                 return (IEnumerable<Slideshow>)new List<Slideshow>();
             });
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
 
         cut.Markup.Should().Contain("Gestão de Apresentação", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("A carregar slides") || m.Contains("Gestão de Apresentação"), "should show loading or title initially");
@@ -75,7 +75,7 @@ public class SlideshowsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhum slideshow") || cut.Markup.Contains("Pesquisar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Nenhum slideshow encontrado", "should show empty state when no slideshows");
@@ -86,7 +86,7 @@ public class SlideshowsPageTests : PageTestBase
     {
         SetupAuthentication("admin-user", "Admin User", "Admin");
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Slide") || cut.Markup.Contains("Nenhum slideshow"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Slide", "admin should see create button");
@@ -105,7 +105,7 @@ public class SlideshowsPageTests : PageTestBase
             .Setup(x => x.GetAllSlideshowsAsync())
             .ReturnsAsync(slides);
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
         cut.WaitForState(() => cut.Markup.Contains("Slide One") || cut.Markup.Contains("Slide Two"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Slide One", "page should display first slide");
@@ -127,7 +127,7 @@ public class SlideshowsPageTests : PageTestBase
             .Setup(x => x.GetAllSlideshowsAsync())
             .ReturnsAsync(new List<Slideshow>());
 
-        var cut = RenderComponent<Slideshows>();
+        var cut = Render<Slideshows>();
         cut.WaitForState(() => cut.Markup.Contains("Test Slide"), TimeSpan.FromSeconds(2));
 
         var openDelete = typeof(Slideshows).GetMethod("OpenDeleteModal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

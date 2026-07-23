@@ -8,13 +8,13 @@ namespace RTUB.Shared.Tests.Components.Forms;
 /// <summary>
 /// Tests for the FormTextField component to ensure proper rendering and value binding
 /// </summary>
-public class FormTextFieldTests : TestContext
+public class FormTextFieldTests : BunitContext
 {
     [Fact]
     public void FormTextField_RendersLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Label"));
 
         // Assert
@@ -25,7 +25,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_RendersIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Icon, "person"));
 
@@ -37,7 +37,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_RendersValue()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Value, "Test Value"));
 
@@ -50,7 +50,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_RendersPlaceholder()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Placeholder, "Enter text..."));
 
@@ -63,7 +63,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_ShowsRequiredIndicator()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Required, true));
 
@@ -76,7 +76,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_RendersHelpText()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.HelpText, "This is help text"));
 
@@ -88,7 +88,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_CanBeDisabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.Disabled, true));
 
@@ -101,7 +101,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_CanBeReadOnly()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.ReadOnly, true));
 
@@ -114,7 +114,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_AppliesAdditionalCssClasses()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.CssClass, "custom-class")
             .Add(p => p.InputCssClass, "custom-input")
@@ -130,7 +130,7 @@ public class FormTextFieldTests : TestContext
     public void FormTextField_HasFormControlClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<FormTextField>(parameters => parameters
+        var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field"));
 
         // Assert

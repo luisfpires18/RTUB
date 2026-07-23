@@ -40,7 +40,7 @@ public class HierarchyPageTests : PageTestBase
     public async Task HierarchyPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Hierarchy>();
+        var cut = Render<Hierarchy>();
         cut.WaitForState(() => cut.Markup.Contains("Hierarquia da Tuna") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -53,7 +53,7 @@ public class HierarchyPageTests : PageTestBase
         // Arrange - Already set up with empty data in constructor
 
         // Act
-        var cut = RenderComponent<Hierarchy>();
+        var cut = Render<Hierarchy>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -64,7 +64,7 @@ public class HierarchyPageTests : PageTestBase
     public async Task HierarchyPage_DisplaysFamilyTreeDescription()
     {
         // Arrange & Act
-        var cut = RenderComponent<Hierarchy>();
+        var cut = Render<Hierarchy>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

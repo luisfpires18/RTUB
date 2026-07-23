@@ -48,7 +48,7 @@ public class CalotesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(new List<FiscalYear>());
 
-        var cut = RenderComponent<Calotes>();
+        var cut = Render<Calotes>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar calotes") || cut.Markup.Contains("Nenhum ano letivo"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Calotes", "page should display title");
@@ -72,7 +72,7 @@ public class CalotesPageTests : PageTestBase
             .Setup(x => x.GetFiscalYearByStartYearAsync(2024))
             .ReturnsAsync(fy);
 
-        var cut = RenderComponent<Calotes>();
+        var cut = Render<Calotes>();
 
         cut.Markup.Should().Contain("Calotes", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("A carregar") || m.Contains("Calotes"), "should show loading or title initially");
@@ -93,7 +93,7 @@ public class CalotesPageTests : PageTestBase
             .Setup(x => x.GetFiscalYearByStartYearAsync(2024))
             .ReturnsAsync(fy);
 
-        var cut = RenderComponent<Calotes>();
+        var cut = Render<Calotes>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhum calote") || cut.Markup.Contains("Total de Calotes") || cut.Markup.Contains("Selecionar Ano"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Calotes", "page should display title");
@@ -113,7 +113,7 @@ public class CalotesPageTests : PageTestBase
             .Setup(x => x.GetFiscalYearByStartYearAsync(2024))
             .ReturnsAsync(fy);
 
-        var cut = RenderComponent<Calotes>();
+        var cut = Render<Calotes>();
         cut.WaitForState(() => cut.Markup.Contains("Pesquisar membros") || cut.Markup.Contains("Nenhum calote") || cut.Markup.Contains("Selecionar Ano"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Pesquisar membros", "page should show search bar when fiscal years exist");
@@ -136,7 +136,7 @@ public class CalotesPageTests : PageTestBase
             .Setup(x => x.GetFiscalYearByStartYearAsync(2024))
             .ReturnsAsync(fy);
 
-        var cut = RenderComponent<Calotes>();
+        var cut = Render<Calotes>();
         cut.WaitForState(() => cut.Markup.Contains("Calotes") && (!cut.Markup.Contains("A carregar calotes") || cut.Markup.Contains("Nenhum calote") || cut.Markup.Contains("Selecionar")), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().NotContain("Adicionar Calote", "regular user should not see add button");

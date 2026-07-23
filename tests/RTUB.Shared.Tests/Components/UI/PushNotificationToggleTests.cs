@@ -13,7 +13,7 @@ namespace RTUB.Shared.Tests.Components.UI;
 /// Tests for the PushNotificationToggle component
 /// Tests push notification subscription workflow, status checking, and toggle behavior
 /// </summary>
-public class PushNotificationToggleTests : TestContext
+public class PushNotificationToggleTests : BunitContext
 {
     private readonly Mock<ILogger<PushNotificationToggle>> _mockLogger;
 
@@ -29,7 +29,7 @@ public class PushNotificationToggleTests : TestContext
     {
         _mockLogger = new Mock<ILogger<PushNotificationToggle>>();
         Services.AddSingleton(_mockLogger.Object);
-        this.AddTestAuthorization();
+        this.AddAuthorization();
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange & Act - No eval setup: component runs fetch, then catches and exits loading.
         // Loading can be transient; assert root renders and we end up in a valid state.
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
 
         cut.Markup.Should().Contain("push-notification-toggle", "should render root");
         var hasLoading = cut.Markup.Contains("Checking permissions");
@@ -54,7 +54,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(null!);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
 
         // Wait for OnAfterRenderAsync to complete
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
@@ -83,7 +83,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(false);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
 
         // Wait for OnAfterRenderAsync to complete
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
@@ -109,7 +109,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(false);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -135,7 +135,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(true);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -164,7 +164,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(true);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         var checkbox = cut.Find("input[type=checkbox]");
@@ -198,7 +198,7 @@ public class PushNotificationToggleTests : TestContext
             .SetException(new Exception("Subscription failed"));
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         var checkbox = cut.Find("input[type=checkbox]");
@@ -231,7 +231,7 @@ public class PushNotificationToggleTests : TestContext
             .SetResult(true);
 
         // Act
-        var cut = RenderComponent<PushNotificationToggle>();
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         var checkbox = cut.Find("input[type=checkbox]");

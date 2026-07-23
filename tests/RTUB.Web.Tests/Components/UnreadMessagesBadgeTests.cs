@@ -16,7 +16,7 @@ namespace RTUB.Web.Tests.Components;
 /// Tests for the UnreadMessagesBadge component
 /// Tests real-time updates, SignalR integration, badge display, and event handling
 /// </summary>
-public class UnreadMessagesBadgeTests : TestContext
+public class UnreadMessagesBadgeTests : BunitContext
 {
     private const string SkipBadge = "UnreadMessagesBadge uses InteractiveServer + async init; badge render and JS register need richer bUnit setup.";
 
@@ -30,7 +30,7 @@ public class UnreadMessagesBadgeTests : TestContext
 
         Services.AddSingleton(_mockMessagingService.Object);
         Services.AddSingleton(_notificationService);
-        this.AddTestAuthorization();
+        this.AddAuthorization();
         JSInterop.SetupVoid("rtubUnreadMessages.register", _ => true);
     }
 
@@ -39,9 +39,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(0);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Length > 0, TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().NotContain("badge", "should not render badge when count is zero");
@@ -52,9 +52,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(5);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("badge"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("badge", "should render badge when count is greater than zero");
@@ -67,9 +67,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(3);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>(parameters => parameters
+        var cut = Render<UnreadMessagesBadge>(parameters => parameters
             .Add(p => p.CssClass, "custom-badge-class"));
         cut.WaitForState(() => cut.Markup.Contains("badge"), TimeSpan.FromSeconds(2));
 
@@ -82,9 +82,9 @@ public class UnreadMessagesBadgeTests : TestContext
         var initialCount = 2;
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(initialCount);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("2"), TimeSpan.FromSeconds(2));
 
         // Act - Simulate message received
@@ -117,8 +117,8 @@ public class UnreadMessagesBadgeTests : TestContext
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(2);
 
-        var authState = this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var authState = this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<UnreadMessagesBadge>();
 
         // Wait for initial render
         cut.WaitForState(() => cut.Markup.Contains("2"), TimeSpan.FromSeconds(2));
@@ -149,8 +149,8 @@ public class UnreadMessagesBadgeTests : TestContext
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(2);
 
-        var authState = this.AddTestAuthorization().SetAuthorized("test-user");
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var authState = this.AddAuthorization().SetAuthorized("test-user");
+        var cut = Render<UnreadMessagesBadge>();
 
         // Wait for initial render
         cut.WaitForState(() => cut.Markup.Contains("2"), TimeSpan.FromSeconds(2));
@@ -179,9 +179,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(5);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("5"), TimeSpan.FromSeconds(2));
 
         // Act - Update mock to return new count after message seen
@@ -204,9 +204,9 @@ public class UnreadMessagesBadgeTests : TestContext
         var countChangedInvoked = false;
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(2);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>(parameters => parameters
+        var cut = Render<UnreadMessagesBadge>(parameters => parameters
             .Add(p => p.OnCountChanged, EventCallback.Factory.Create(this, () => countChangedInvoked = true)));
         cut.WaitForState(() => cut.Markup.Contains("2"), TimeSpan.FromSeconds(2));
 
@@ -236,9 +236,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(0);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Length > 0, TimeSpan.FromSeconds(2));
 
         var registerInvocations = JSInterop.Invocations["rtubUnreadMessages.register"];
@@ -250,9 +250,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(2);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("2"), TimeSpan.FromSeconds(2));
 
         // Act - Update mock to return new count
@@ -275,9 +275,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(1);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("1"), TimeSpan.FromSeconds(2));
 
         // Act - Update mock to return new count
@@ -302,7 +302,7 @@ public class UnreadMessagesBadgeTests : TestContext
             .ReturnsAsync(3);
 
         // Act - Render without authentication
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
 
         // Wait a bit
         await Task.Delay(500);
@@ -316,9 +316,9 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ThrowsAsync(new Exception("Database error"));
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Length > 0, TimeSpan.FromSeconds(2));
 
         // Assert - Component should render without badge (count is 0 due to error handling)
@@ -331,15 +331,15 @@ public class UnreadMessagesBadgeTests : TestContext
     {
         _mockMessagingService.Setup(m => m.GetUnreadCountAsync(It.IsAny<string>()))
             .ReturnsAsync(3);
-        this.AddTestAuthorization().SetAuthorized("test-user");
+        this.AddAuthorization().SetAuthorized("test-user");
 
-        var cut = RenderComponent<UnreadMessagesBadge>();
+        var cut = Render<UnreadMessagesBadge>();
         cut.WaitForState(() => cut.Markup.Contains("3"), TimeSpan.FromSeconds(2));
 
         var initialRenderCount = cut.RenderCount;
 
         // Act - Trigger state change that doesn't change count
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.CssClass, "new-class"));
 
         // Assert - Should not re-render if count hasn't changed (ShouldRender optimization)

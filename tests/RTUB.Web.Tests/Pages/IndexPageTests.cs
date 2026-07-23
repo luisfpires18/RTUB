@@ -65,7 +65,7 @@ public class IndexPageTests : PageTestBase
         SetupUnauthenticated();
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("rtub_logo") || cut.Markup.Contains("RTUB Logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -79,7 +79,7 @@ public class IndexPageTests : PageTestBase
         SetupUnauthenticated();
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("Sobre Nós") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -97,7 +97,7 @@ public class IndexPageTests : PageTestBase
         SetupUnauthenticated();
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("Facebook") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -123,7 +123,7 @@ public class IndexPageTests : PageTestBase
             .ReturnsAsync(slides);
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("homeCarousel") || cut.Markup.Contains("Slide 1"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -141,7 +141,7 @@ public class IndexPageTests : PageTestBase
             .ReturnsAsync(new List<Slideshow>());
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => !cut.Markup.Contains("homeCarousel") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -163,7 +163,7 @@ public class IndexPageTests : PageTestBase
             .ReturnsAsync(publicSlides);
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("Public Slide") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -186,7 +186,7 @@ public class IndexPageTests : PageTestBase
             .ReturnsAsync(allSlides);
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("Authenticated Slide") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -201,7 +201,7 @@ public class IndexPageTests : PageTestBase
         SetupUnauthenticated();
 
         // Act
-        var cut = RenderComponent<IndexPage>();
+        var cut = Render<IndexPage>();
         cut.WaitForState(() => cut.Markup.Contains("Sobre Nós") || cut.Markup.Contains("rtub_logo"), TimeSpan.FromSeconds(2));
 
         // Assert

@@ -92,7 +92,7 @@ public class LeaderboardPageTests : PageTestBase
     public async Task LeaderboardPage_RendersPageTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<Leaderboard>();
+        var cut = Render<Leaderboard>();
         cut.WaitForState(() => cut.Markup.Contains("Tabela de Classificação") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -109,7 +109,7 @@ public class LeaderboardPageTests : PageTestBase
             .Returns(tcs.Task);
 
         // Act
-        var cut = RenderComponent<Leaderboard>();
+        var cut = Render<Leaderboard>();
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
@@ -125,7 +125,7 @@ public class LeaderboardPageTests : PageTestBase
         // Arrange - Already set up with empty data in constructor
 
         // Act
-        var cut = RenderComponent<Leaderboard>();
+        var cut = Render<Leaderboard>();
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert

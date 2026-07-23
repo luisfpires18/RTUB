@@ -13,7 +13,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the FolderCard component
 /// </summary>
-public class FolderCardTests : TestContext
+public class FolderCardTests : BunitContext
 {
     private readonly Fixture _fixture;
 
@@ -22,7 +22,7 @@ public class FolderCardTests : TestContext
         _fixture = new Fixture();
 
         // Add authorization services
-        this.AddTestAuthorization();
+        this.AddAuthorization();
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "General")
             .Add(p => p.FolderPath, "docs/General")
             .Add(p => p.Documents, documents));
@@ -58,7 +58,7 @@ public class FolderCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents));
@@ -92,7 +92,7 @@ public class FolderCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents));
@@ -108,7 +108,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -126,7 +126,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -144,7 +144,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Empty")
             .Add(p => p.FolderPath, "docs/Empty")
             .Add(p => p.Documents, documents)
@@ -171,7 +171,7 @@ public class FolderCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -189,7 +189,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -204,11 +204,11 @@ public class FolderCardTests : TestContext
     public void FolderCard_ShowsUploadAndDeleteButtons_ForAdmin()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -223,12 +223,12 @@ public class FolderCardTests : TestContext
     public void FolderCard_UploadButton_TriggersCallback()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
+        this.AddAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
         var documents = new List<DocumentMetadata>();
         string? uploadFolderPath = null;
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -249,7 +249,7 @@ public class FolderCardTests : TestContext
         var documents = new List<DocumentMetadata>();
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)
@@ -301,7 +301,7 @@ public class FolderCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<FolderCard>(parameters => parameters
+        var cut = Render<FolderCard>(parameters => parameters
             .Add(p => p.FolderName, "Test")
             .Add(p => p.FolderPath, "docs/Test")
             .Add(p => p.Documents, documents)

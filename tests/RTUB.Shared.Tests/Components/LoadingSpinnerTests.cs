@@ -9,13 +9,13 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the LoadingSpinner component to ensure loading states display correctly
 /// </summary>
-public class LoadingSpinnerTests : TestContext
+public class LoadingSpinnerTests : BunitContext
 {
     [Fact]
     public void LoadingSpinner_Renders_WhenShowIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -27,7 +27,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_DoesNotRender_WhenShowIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, false));
 
         // Assert
@@ -38,7 +38,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_ShowsDefaultMessage()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -52,7 +52,7 @@ public class LoadingSpinnerTests : TestContext
         var customMessage = "Loading data...";
 
         // Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Message, customMessage));
 
@@ -64,7 +64,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_HidesMessage_WhenShowMessageIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowMessage, false));
 
@@ -76,7 +76,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_UsesBorderType_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -87,7 +87,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_UsesGrowType_WhenTypeIsGrow()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Type, LoadingSpinner.SpinnerVariant.Grow));
 
@@ -99,7 +99,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_AppliesSmallSize_WhenSizeIsSmall()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, SpinnerSize.Small));
 
@@ -111,7 +111,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_AppliesLargeSize_WhenSizeIsLarge()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, SpinnerSize.Large));
 
@@ -123,7 +123,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_IsCentered_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -134,7 +134,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_CanBeNotCentered()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Centered, false));
 
@@ -146,7 +146,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_AppliesPrimaryColor_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -164,7 +164,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_AppliesCorrectColor_ForEachColorType(SpinnerColor color, string expectedClass)
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Color, color));
 
@@ -176,7 +176,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_HasAccessibleLabel_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -188,7 +188,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_ShowsLabel_WhenShowLabelIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowLabel, true)
             .Add(p => p.Type, LoadingSpinner.SpinnerVariant.Grow));
@@ -205,7 +205,7 @@ public class LoadingSpinnerTests : TestContext
         var additionalClass = "my-custom-class";
 
         // Act
-        var cut = RenderComponent<LoadingSpinner>(parameters => parameters
+        var cut = Render<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.AdditionalContainerClass, additionalClass));
 
@@ -217,7 +217,7 @@ public class LoadingSpinnerTests : TestContext
     public void LoadingSpinner_ShowsRendersByDefault()
     {
         // Arrange & Act - Show defaults to true
-        var cut = RenderComponent<LoadingSpinner>();
+        var cut = Render<LoadingSpinner>();
 
         // Assert
         cut.Markup.Should().NotBeEmpty("spinner should render by default");

@@ -8,7 +8,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ConfirmDialog component to ensure confirmation dialogs work correctly
 /// </summary>
-public class ConfirmDialogTests : TestContext
+public class ConfirmDialogTests : BunitContext
 {
     public ConfirmDialogTests()
     {
@@ -21,7 +21,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_WhenShowIsFalse_DoesNotRender()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, false));
 
         // Assert
@@ -32,7 +32,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_WhenShowIsTrue_Renders()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -44,7 +44,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_RendersDefaultTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -58,7 +58,7 @@ public class ConfirmDialogTests : TestContext
         var customTitle = "Delete Confirmation";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, customTitle));
 
@@ -73,7 +73,7 @@ public class ConfirmDialogTests : TestContext
         var message = "Are you sure you want to delete this item?";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Message, message));
 
@@ -88,7 +88,7 @@ public class ConfirmDialogTests : TestContext
         var warningMessage = "This action cannot be undone.";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Message, "Delete?")
             .Add(p => p.WarningMessage, warningMessage));
@@ -105,7 +105,7 @@ public class ConfirmDialogTests : TestContext
         var bodyContent = "Custom body content";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.BodyContent, builder => builder.AddContent(0, bodyContent)));
 
@@ -117,7 +117,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_RendersDefaultButtonTexts()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -133,7 +133,7 @@ public class ConfirmDialogTests : TestContext
         var cancelText = "Keep";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ConfirmText, confirmText)
             .Add(p => p.CancelText, cancelText));
@@ -147,7 +147,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_UsesDefaultButtonClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -161,7 +161,7 @@ public class ConfirmDialogTests : TestContext
         var customClass = "btn-danger";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ConfirmButtonClass, customClass));
 
@@ -175,7 +175,7 @@ public class ConfirmDialogTests : TestContext
         // Arrange
         bool onConfirmCalled = false;
 
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ConfirmText, "Confirm")
             .Add(p => p.OnConfirm, EventCallback.Factory.Create(this, () =>
@@ -199,7 +199,7 @@ public class ConfirmDialogTests : TestContext
         bool showChangedCalled = false;
         bool newShowValue = true;
 
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ConfirmText, "Confirm")
             .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, (value) =>
@@ -224,7 +224,7 @@ public class ConfirmDialogTests : TestContext
         // Arrange
         bool onCancelCalled = false;
 
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.CancelText, "Cancel")
             .Add(p => p.OnCancel, EventCallback.Factory.Create(this, () =>
@@ -248,7 +248,7 @@ public class ConfirmDialogTests : TestContext
         bool showChangedCalled = false;
         bool newShowValue = true;
 
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.CancelText, "Cancel")
             .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, (value) =>
@@ -271,7 +271,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_IsCentered_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -282,7 +282,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_DoesNotShowCloseButton_ByDefault()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert — ConfirmDialog defaults ShowCloseButton to false
@@ -293,7 +293,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_HidesCloseButton_WhenShowCloseButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowCloseButton, false));
 
@@ -305,7 +305,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_AppliesModalSize()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Size, Modal.ModalSize.Large));
 
@@ -317,7 +317,7 @@ public class ConfirmDialogTests : TestContext
     public void ConfirmDialog_CancelButton_HasSecondaryStyle()
     {
         // Arrange & Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
@@ -332,7 +332,7 @@ public class ConfirmDialogTests : TestContext
         var message = "Simple message";
 
         // Act
-        var cut = RenderComponent<ConfirmDialog>(parameters => parameters
+        var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Message, message)
             .Add(p => p.BodyContent, builder => builder.AddContent(0, bodyContent)));

@@ -14,7 +14,7 @@ namespace RTUB.Shared.Tests.Components.UI;
 /// <summary>
 /// Tests for the EnrollmentStatisticsButton component
 /// </summary>
-public class EnrollmentStatisticsButtonTests : TestContext
+public class EnrollmentStatisticsButtonTests : BunitContext
 {
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
     private readonly Mock<IEventService> _mockEventService;
@@ -48,10 +48,10 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_DoesNotRender_WhenNotMember()
     {
         // Arrange & Act
-        var authContext = this.AddTestAuthorization();
+        var authContext = this.AddAuthorization();
         authContext.SetNotAuthorized();
 
-        var cut = RenderComponent<EnrollmentStatisticsButton>();
+        var cut = Render<EnrollmentStatisticsButton>();
 
         // Assert
         cut.Markup.Should().BeEmpty("button should not render for non-admin users");
@@ -61,11 +61,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_Renders_WhenIsMember()
     {
         // Arrange & Act
-        var authContext = this.AddTestAuthorization();
+        var authContext = this.AddAuthorization();
         authContext.SetAuthorized("TestUser");
         authContext.SetRoles("Member");
 
-        var cut = RenderComponent<EnrollmentStatisticsButton>();
+        var cut = Render<EnrollmentStatisticsButton>();
 
         // Assert
         cut.Markup.Should().Contain("btn-outline-primary", "button should render with correct styling");
@@ -77,11 +77,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_HasCorrectButtonProperties()
     {
         // Arrange & Act
-        var authContext = this.AddTestAuthorization();
+        var authContext = this.AddAuthorization();
         authContext.SetAuthorized("TestUser");
         authContext.SetRoles("Member");
 
-        var cut = RenderComponent<EnrollmentStatisticsButton>();
+        var cut = Render<EnrollmentStatisticsButton>();
 
         // Assert
         var button = cut.Find("button");
@@ -95,11 +95,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_OpensModalOnClick()
     {
         // Arrange
-        var authContext = this.AddTestAuthorization();
+        var authContext = this.AddAuthorization();
         authContext.SetAuthorized("TestUser");
         authContext.SetRoles("Member");
 
-        var cut = RenderComponent<EnrollmentStatisticsButton>();
+        var cut = Render<EnrollmentStatisticsButton>();
 
         // Act
         cut.Find("button").Click();
@@ -116,7 +116,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
 /// <summary>
 /// Tests for the MyEnrollmentsButton component
 /// </summary>
-public class MyEnrollmentsButtonTests : TestContext
+public class MyEnrollmentsButtonTests : BunitContext
 {
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
     private readonly Mock<IEventService> _mockEventService;
@@ -137,7 +137,7 @@ public class MyEnrollmentsButtonTests : TestContext
         Services.AddSingleton(_mockUserManager.Object);
 
         // Setup auth state
-        var authContext = this.AddTestAuthorization();
+        var authContext = this.AddAuthorization();
         authContext.SetAuthorized("TestUser");
 
         // Mock UserManager to return a test user
@@ -162,7 +162,7 @@ public class MyEnrollmentsButtonTests : TestContext
     public void MyEnrollmentsButton_Renders_Always()
     {
         // Arrange & Act
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Assert
         cut.Markup.Should().Contain("btn-outline-secondary", "button should render with correct styling");
@@ -174,7 +174,7 @@ public class MyEnrollmentsButtonTests : TestContext
     public void MyEnrollmentsButton_HasCorrectButtonProperties()
     {
         // Arrange & Act
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Assert
         var button = cut.Find("button");
@@ -193,7 +193,7 @@ public class MyEnrollmentsButtonTests : TestContext
         _mockEventService.Setup(x => x.GetPastEventsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<Event>());
 
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Act
         var button = cut.Find("button");
@@ -223,7 +223,7 @@ public class MyEnrollmentsButtonTests : TestContext
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByUserIdAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<Enrollment>());
 
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Act
         var button = cut.Find("button");
@@ -258,7 +258,7 @@ public class MyEnrollmentsButtonTests : TestContext
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByUserIdAsync("test-user-id"))
             .ReturnsAsync(enrollments);
 
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Act
         var button = cut.Find("button");
@@ -276,7 +276,7 @@ public class MyEnrollmentsButtonTests : TestContext
     public void MyEnrollmentsButton_ShowsStatusBadges()
     {
         // Arrange - The component should show "Foi" for WillAttend:true and "Não foi" for others
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Assert - Button should render with correct styling to display badges
         cut.Markup.Should().Contain("btn-outline-secondary");
@@ -299,7 +299,7 @@ public class MyEnrollmentsButtonTests : TestContext
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByUserIdAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<Enrollment>());
 
-        var cut = RenderComponent<MyEnrollmentsButton>();
+        var cut = Render<MyEnrollmentsButton>();
 
         // Act
         var button = cut.Find("button");

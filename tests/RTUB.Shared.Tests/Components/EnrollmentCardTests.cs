@@ -9,13 +9,13 @@ namespace RTUB.Shared.Tests.Components;
 /// Tests for the EnrollmentCard component to ensure enrollment information displays correctly
 /// with proper actions, badges, and text wrapping
 /// </summary>
-public class EnrollmentCardTests : TestContext
+public class EnrollmentCardTests : BunitContext
 {
     [Fact]
     public void EnrollmentCard_RendersWithBasicProperties()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.FullName, "João Silva")
@@ -36,7 +36,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesNotesSection_WhenNotesEmpty()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.Notes, ""));
 
@@ -48,7 +48,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesNotesSection_WhenNotesWhitespace()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.Notes, "   "));
 
@@ -60,7 +60,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_DisplaysNotesSection_WhenNotesHasContent()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.Notes, "Some notes here"));
 
@@ -73,7 +73,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_ShowsDeleteButton_WhenShowDeleteButtonIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowDeleteButton, true)
             .Add(p => p.DeleteTooltip, "Eliminar Inscrição"));
@@ -88,7 +88,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesDeleteButton_WhenShowDeleteButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowDeleteButton, false));
 
@@ -100,7 +100,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_ShowsApproveButton_WhenShowApproveButtonIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowApproveButton, true)
             .Add(p => p.ApproveTooltip, "Aprovar"));
@@ -115,7 +115,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesApproveButton_WhenShowApproveButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowApproveButton, false));
 
@@ -127,7 +127,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_DisplaysInstrumentRow_WhenInstrumentTextProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.InstrumentText, "Guitarra"));
 
@@ -140,7 +140,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesInstrumentRow_WhenInstrumentTextEmpty()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.InstrumentText, ""));
 
@@ -155,7 +155,7 @@ public class EnrollmentCardTests : TestContext
         var longNotes = "This is a very long note that should wrap properly without clipping the text content. It contains multiple sentences and should display correctly.";
 
         // Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.Notes, longNotes));
 
@@ -168,7 +168,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_DisplaysStatusText_WhenProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.StatusText, "Aprovado")
             .Add(p => p.StatusLabel, "Estado:"));
@@ -182,7 +182,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_HidesStatusRow_WhenStatusTextEmpty()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.StatusText, ""));
 
@@ -203,7 +203,7 @@ public class EnrollmentCardTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.BadgeContent, badgeContent));
 
@@ -216,7 +216,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_RerendersWhenShowApproveButtonChanges()
     {
         // Arrange
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.ShowApproveButton, false));
@@ -225,7 +225,7 @@ public class EnrollmentCardTests : TestContext
         cut.Markup.Should().NotContain("enrollment-card-approve-btn", "should not have approve button initially");
 
         // Act - change ShowApproveButton to true
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.ShowApproveButton, true));
 
         // Assert - component should re-render with approve button
@@ -236,7 +236,7 @@ public class EnrollmentCardTests : TestContext
     public void EnrollmentCard_RerendersWhenShowCancelButtonChanges()
     {
         // Arrange
-        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+        var cut = Render<EnrollmentCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.ShowCancelButton, false));
@@ -245,7 +245,7 @@ public class EnrollmentCardTests : TestContext
         cut.Markup.Should().NotContain("enrollment-card-cancel-btn", "should not have cancel button initially");
 
         // Act - change ShowCancelButton to true
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.ShowCancelButton, true));
 
         // Assert - component should re-render with cancel button

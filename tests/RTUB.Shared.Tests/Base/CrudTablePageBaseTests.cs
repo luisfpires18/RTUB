@@ -9,7 +9,7 @@ namespace RTUB.Shared.Tests.Base;
 /// <summary>
 /// Tests for CrudTablePageBase to ensure proper search, sorting, and pagination functionality
 /// </summary>
-public class CrudTablePageBaseTests : TestContext
+public class CrudTablePageBaseTests : BunitContext
 {
     // Test entity for testing purposes
     public class TestEntity
@@ -90,7 +90,7 @@ public class CrudTablePageBaseTests : TestContext
     public void CrudTablePageBase_Initializes_WithDefaultValues()
     {
         // Arrange & Act
-        var cut = RenderComponent<TestCrudTablePage>();
+        var cut = Render<TestCrudTablePage>();
 
         // Assert
         cut.Instance.GetAllItems().Should().BeEmpty("AllItems should be empty initially");
@@ -104,7 +104,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(50);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
 
         // Act
@@ -120,7 +120,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(10); // Use only 10 items
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
@@ -140,7 +140,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(50);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
         cut.Instance.PublicUpdateSearch("Item 1");
@@ -158,7 +158,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(10);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
@@ -174,7 +174,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(10);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
@@ -196,7 +196,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(100);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
@@ -213,7 +213,7 @@ public class CrudTablePageBaseTests : TestContext
     {
         // Arrange
         var testData = CreateTestData(100);
-        var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
+        var cut = Render<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
         await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
         cut.Instance.PublicChangePage(3);
@@ -231,7 +231,7 @@ public class CrudTablePageBaseTests : TestContext
     public void ApplyFiltersAndPagination_WorksWithNullAllItems()
     {
         // Arrange
-        var cut = RenderComponent<TestCrudTablePage>();
+        var cut = Render<TestCrudTablePage>();
 
         // Act & Assert - Should not throw
         Action act = () => cut.Instance.PublicApplyFiltersAndPagination();
@@ -242,7 +242,7 @@ public class CrudTablePageBaseTests : TestContext
     public void PaginationHelper_DefaultPageSize_Is50()
     {
         // Arrange & Act
-        var cut = RenderComponent<TestCrudTablePage>();
+        var cut = Render<TestCrudTablePage>();
 
         // Assert
         cut.Instance.GetPaginationHelper().PageSize.Should().Be(50, "default page size should be 50");

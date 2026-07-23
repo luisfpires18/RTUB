@@ -9,7 +9,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the ParticipationModal component to ensure proper rendering and behavior
 /// </summary>
-public class ParticipationModalTests : TestContext
+public class ParticipationModalTests : BunitContext
 {
     public ParticipationModalTests()
     {
@@ -22,7 +22,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_WhenShowIsFalse_DoesNotRender()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, false)
             .Add(p => p.Title, "Test Participation Modal"));
 
@@ -34,7 +34,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_WhenShowIsTrue_Renders()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test Participation Modal"));
 
@@ -50,7 +50,7 @@ public class ParticipationModalTests : TestContext
         var expectedTitle = "Inscrever em Evento";
 
         // Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, expectedTitle));
 
@@ -62,7 +62,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsWillAttendSection_WhenShowWillAttendIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowWillAttend, true)
             .Add(p => p.Title, "Test Modal"));
@@ -77,7 +77,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_HidesWillAttendSection_WhenShowWillAttendIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowWillAttend, false)
             .Add(p => p.Title, "Test Modal"));
@@ -90,7 +90,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsInstrumentToggle_ForNonLeitaoMembers()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.Title, "Test Modal"));
@@ -103,7 +103,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsInstrumentDropdown_WhenWantToPlayIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.WantToPlay, true)
@@ -118,7 +118,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsNotesField()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.NotesPlaceholder, "Informações adicionais...")
             .Add(p => p.Title, "Test Modal"));
@@ -135,7 +135,7 @@ public class ParticipationModalTests : TestContext
         var submitButtonText = "Confirmar Inscrição";
 
         // Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.SubmitButtonText, submitButtonText)
             .Add(p => p.Title, "Test Modal"));
@@ -148,7 +148,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsCancelButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.Title, "Test Modal"));
 
@@ -163,7 +163,7 @@ public class ParticipationModalTests : TestContext
         var notesRows = 5;
 
         // Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.NotesRows, notesRows)
             .Add(p => p.Title, "Test Modal"));
@@ -176,7 +176,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsInstrumentAsOptional_ForLeitaoMembers()
     {
         // Arrange & Act
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, true)
             .Add(p => p.Title, "Test Modal"));
@@ -189,7 +189,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ForEventMode_ShowsAllSections()
     {
         // Arrange & Act - Simulating event enrollment mode
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowWillAttend, true)
             .Add(p => p.WillAttend, true)
@@ -208,7 +208,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ForRehearsalMode_HidesWillAttendSection()
     {
         // Arrange & Act - Simulating rehearsal attendance mode
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.ShowWillAttend, false)
             .Add(p => p.IsLeitao, false)
@@ -225,7 +225,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_DisablesWantToPlayToggle_WhenNoInstrumentsConfigured()
     {
         // Arrange & Act - Simulating user with no instruments
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.AvailableInstruments, new List<InstrumentType>()) // Empty list = no instruments
@@ -241,7 +241,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_ShowsWarningMessage_WhenNoInstrumentsConfigured()
     {
         // Arrange & Act - Simulating user with no instruments
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.AvailableInstruments, new List<InstrumentType>()) // Empty list = no instruments
@@ -257,7 +257,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_EnablesWantToPlayToggle_WhenInstrumentsAvailable()
     {
         // Arrange & Act - Simulating user with instruments
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.AvailableInstruments, new List<InstrumentType> { InstrumentType.Guitarra })
@@ -274,7 +274,7 @@ public class ParticipationModalTests : TestContext
     public void ParticipationModal_HidesWarningMessage_WhenInstrumentsAvailable()
     {
         // Arrange & Act - Simulating user with instruments
-        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+        var cut = Render<ParticipationModal>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.IsLeitao, false)
             .Add(p => p.AvailableInstruments, new List<InstrumentType> { InstrumentType.Guitarra })

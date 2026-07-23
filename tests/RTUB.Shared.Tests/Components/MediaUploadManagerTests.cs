@@ -1,5 +1,6 @@
 using Bunit;
 using FluentAssertions;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Moq;
 using RTUB.Shared;
@@ -10,9 +11,9 @@ namespace RTUB.Shared.Tests.Components;
 /// Tests for the MediaUploadManager component
 /// Tests file selection, validation (images and videos), size limits, and error handling
 /// </summary>
-public class MediaUploadManagerTests : TestContext
+public class MediaUploadManagerTests : BunitContext
 {
-    private static async Task TriggerInputFileChangeAsync(IRenderedFragment cut, IBrowserFile file)
+    private static async Task TriggerInputFileChangeAsync(IRenderedComponent<MediaUploadManager> cut, IBrowserFile file)
     {
         var input = cut.FindComponent<InputFile>().Instance;
         var args = new InputFileChangeEventArgs(new List<IBrowserFile> { file });
@@ -23,7 +24,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_RendersLabel()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.Label, "Upload Media"));
 
         // Assert
@@ -34,7 +35,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_RendersDefaultLabel_WhenNoLabelProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
 
         // Assert
         cut.Markup.Should().Contain("Escolher ficheiro", "default label should be displayed");
@@ -44,7 +45,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_RendersFileInput_WithCorrectAccept()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
 
         // Assert
         var input = cut.Find("input[type=file]");
@@ -55,7 +56,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_ShowsCurrentImage_WhenImageUrlProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.CurrentMediaUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentMedia, true));
 
@@ -70,7 +71,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_ShowsCurrentVideo_WhenVideoUrlProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.CurrentMediaUrl, "https://example.com/video.mp4")
             .Add(p => p.ShowCurrentMedia, true));
 
@@ -84,7 +85,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_DoesNotShowCurrentMedia_WhenShowCurrentMediaIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.CurrentMediaUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentMedia, false));
 
@@ -96,7 +97,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_DoesNotShowCurrentMedia_WhenNoUrlProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.ShowCurrentMedia, true));
 
         // Assert
@@ -107,7 +108,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_AppliesCustomPreviewCssClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.CurrentMediaUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentMedia, true)
             .Add(p => p.PreviewCssClass, "custom-preview-class"));
@@ -120,7 +121,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_AppliesDefaultPreviewCssClass_WhenNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.CurrentMediaUrl, "https://example.com/image.jpg")
             .Add(p => p.ShowCurrentMedia, true));
 
@@ -132,7 +133,7 @@ public class MediaUploadManagerTests : TestContext
     public void MediaUploadManager_ShowsDefaultFileName_WhenNoFileSelected()
     {
         // Arrange & Act
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
 
         // Assert
         cut.Markup.Should().Contain("Sem ficheiro escolhido", "should show default file name message");
@@ -142,7 +143,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ShowsNewMediaMessage_WhenFileSelected()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns("test.jpg");
         fileMock.Setup(f => f.ContentType).Returns("image/jpeg");
@@ -160,7 +161,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ShowsError_WhenFileTypeNotSupported()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns("test.pdf");
         fileMock.Setup(f => f.ContentType).Returns("application/pdf");
@@ -179,7 +180,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ShowsError_WhenImageTooLarge()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.MaxImageSize, 5 * 1024 * 1024)); // 5MB limit
 
         // Create a file larger than 5MB
@@ -201,7 +202,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ShowsError_WhenVideoTooLarge()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>(parameters => parameters
+        var cut = Render<MediaUploadManager>(parameters => parameters
             .Add(p => p.MaxVideoSize, 50 * 1024 * 1024)); // 50MB limit
 
         // Create a video file larger than 50MB
@@ -223,14 +224,14 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_AcceptsValidImage()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns("test.jpg");
         fileMock.Setup(f => f.ContentType).Returns("image/jpeg");
         fileMock.Setup(f => f.Size).Returns(1024);
 
         IBrowserFile? selectedFile = null;
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.OnFileSelected, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<IBrowserFile>(this, (file) => selectedFile = file)));
 
         // Act
@@ -246,14 +247,14 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_AcceptsValidVideo()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns("test.mp4");
         fileMock.Setup(f => f.ContentType).Returns("video/mp4");
         fileMock.Setup(f => f.Size).Returns(1024);
 
         IBrowserFile? selectedFile = null;
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.OnFileSelected, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<IBrowserFile>(this, (file) => selectedFile = file)));
 
         // Act
@@ -269,7 +270,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_UsesDefaultSizeLimits()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
 
         // Assert - Default limits are 10MB for images, 100MB for videos
         // We can't directly test the parameter values, but we can verify the component accepts files within limits
@@ -290,7 +291,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ResetsState_WhenResetCalled()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns("test.jpg");
         fileMock.Setup(f => f.ContentType).Returns("image/jpeg");
@@ -314,7 +315,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ShowsError_WhenExceptionOccurs()
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
 
         // Create a file that might cause an exception (null file scenario is handled by component)
         // We'll test with a valid file but simulate an error scenario
@@ -347,7 +348,7 @@ public class MediaUploadManagerTests : TestContext
     public async Task MediaUploadManager_ValidatesContentType(string contentType, bool shouldAccept)
     {
         // Arrange
-        var cut = RenderComponent<MediaUploadManager>();
+        var cut = Render<MediaUploadManager>();
         var fileMock = new Mock<IBrowserFile>();
         fileMock.Setup(f => f.Name).Returns($"test.{contentType.Split('/')[1]}");
         fileMock.Setup(f => f.ContentType).Returns(contentType);

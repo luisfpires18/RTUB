@@ -9,13 +9,13 @@ namespace RTUB.Web.Tests.Components;
 /// Tests for the ReconnectModal component that provides enhanced UX during Blazor Server circuit reconnection.
 /// Verifies that the component renders correctly and displays appropriate reconnection UI.
 /// </summary>
-public class ReconnectModalTests : TestContext
+public class ReconnectModalTests : BunitContext
 {
     [Fact]
     public void ReconnectModal_Renders_WithCorrectStructure()
     {
         // Act
-        var cut = RenderComponent<ReconnectModal>();
+        var cut = Render<ReconnectModal>();
 
         // Assert
         cut.Markup.Should().Contain("reconnect-modal");
@@ -28,7 +28,7 @@ public class ReconnectModalTests : TestContext
     public void ReconnectModal_ContainsReconnectIcon()
     {
         // Act
-        var cut = RenderComponent<ReconnectModal>();
+        var cut = Render<ReconnectModal>();
 
         // Assert
         cut.Markup.Should().Contain("reconnect-icon");
@@ -39,7 +39,7 @@ public class ReconnectModalTests : TestContext
     public void ReconnectModal_ContainsSpinner()
     {
         // Act
-        var cut = RenderComponent<ReconnectModal>();
+        var cut = Render<ReconnectModal>();
 
         // Assert
         cut.Markup.Should().Contain("spinner-border");
@@ -50,7 +50,7 @@ public class ReconnectModalTests : TestContext
     public void ReconnectModal_HasCorrectAriaAttributes()
     {
         // Act
-        var cut = RenderComponent<ReconnectModal>();
+        var cut = Render<ReconnectModal>();
 
         // Assert
         cut.Markup.Should().Contain("role=\"status\"");

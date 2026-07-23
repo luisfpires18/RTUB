@@ -10,13 +10,13 @@ namespace RTUB.Shared.Tests.Components;
 /// Tests for the AvatarCard component to ensure member cards display correctly
 /// with proper actions, badges, and accessibility features
 /// </summary>
-public class AvatarCardTests : TestContext
+public class AvatarCardTests : BunitContext
 {
     [Fact]
     public void AvatarCard_RendersWithBasicProperties()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.FullName, "João Silva")
@@ -35,7 +35,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysViewButton()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ViewTooltip, "Ver Detalhes"));
 
@@ -48,7 +48,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_ShowsEditButton_WhenShowEditButtonIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowEditButton, true)
             .Add(p => p.EditTooltip, "Editar"));
@@ -63,7 +63,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_HidesEditButton_WhenShowEditButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowEditButton, false));
 
@@ -75,7 +75,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_ShowsDeleteButton_WhenShowDeleteButtonIsTrue()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowDeleteButton, true)
             .Add(p => p.DeleteTooltip, "Eliminar"));
@@ -90,7 +90,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_HidesDeleteButton_WhenShowDeleteButtonIsFalse()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowDeleteButton, false));
 
@@ -103,7 +103,7 @@ public class AvatarCardTests : TestContext
     {
         // Arrange
         var viewClicked = false;
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
 
@@ -120,7 +120,7 @@ public class AvatarCardTests : TestContext
     {
         // Arrange
         var editClicked = false;
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowEditButton, true)
             .Add(p => p.OnEdit, EventCallback.Factory.Create(this, () => editClicked = true)));
@@ -138,7 +138,7 @@ public class AvatarCardTests : TestContext
     {
         // Arrange
         var deleteClicked = false;
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowDeleteButton, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => deleteClicked = true)));
@@ -156,7 +156,7 @@ public class AvatarCardTests : TestContext
     {
         // Arrange
         var viewClicked = false;
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
 
@@ -173,7 +173,7 @@ public class AvatarCardTests : TestContext
     {
         // Arrange
         var viewClicked = false;
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
 
@@ -189,7 +189,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_HasTabIndex_ForKeyboardAccessibility()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
 
         // Assert
@@ -200,7 +200,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysSkeletonLoader_WhenLazyLoadEnabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LazyLoad, true));
 
@@ -212,7 +212,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_UsesLazyLoading_WhenLazyLoadEnabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LazyLoad, true));
 
@@ -224,7 +224,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_UsesEagerLoading_WhenLazyLoadDisabled()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LazyLoad, false));
 
@@ -245,7 +245,7 @@ public class AvatarCardTests : TestContext
         });
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.BadgeContent, badgeFragment));
 
@@ -258,7 +258,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_HandlesEmptyInstrumentText()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.InstrumentText, ""));
 
@@ -270,7 +270,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysInstrumentIcon_WhenInstrumentTextProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.InstrumentText, "Guitarra"));
 
@@ -282,7 +282,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_HasProperAriaLabels()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.ShowEditButton, true)
             .Add(p => p.ShowDeleteButton, true)
@@ -300,7 +300,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysOnlyTunaName_WhenFullNameNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.FullName, ""));
@@ -314,7 +314,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysBothNames_WhenBothProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.FullName, "João Silva"));
@@ -332,7 +332,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_BadgeContainer_NeverOverflowsCard()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
 
         // Assert
@@ -346,7 +346,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_BadgeContainer_HasVerticalStack()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
 
         // Assert
@@ -366,7 +366,7 @@ public class AvatarCardTests : TestContext
         });
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.BadgeContent, badgeFragment));
 
@@ -378,7 +378,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_BadgeContainer_RespectsCardPadding()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
 
         // Assert
@@ -418,7 +418,7 @@ public class AvatarCardTests : TestContext
         });
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.BadgeContent, multipleBadges));
 
@@ -439,7 +439,7 @@ public class AvatarCardTests : TestContext
         var recentLoginDate = DateTime.UtcNow.AddMinutes(-30);
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LastLoginDate, recentLoginDate));
 
@@ -456,7 +456,7 @@ public class AvatarCardTests : TestContext
         var oldLoginDate = DateTime.UtcNow.AddHours(-2);
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LastLoginDate, oldLoginDate));
 
@@ -470,7 +470,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_DisplaysOfflineStatus_WhenLastLoginDateIsNull()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LastLoginDate, null));
 
@@ -487,7 +487,7 @@ public class AvatarCardTests : TestContext
         var justUnderOneHour = DateTime.UtcNow.AddMinutes(-59);
 
         // Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LastLoginDate, justUnderOneHour));
 
@@ -499,7 +499,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_LoginStatusDisplaysAboveNickname()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.TunaName, "Tuninho")
             .Add(p => p.LastLoginDate, DateTime.UtcNow));
@@ -516,7 +516,7 @@ public class AvatarCardTests : TestContext
     public void AvatarCard_LoginStatusHasCircleIcon()
     {
         // Arrange & Act
-        var cut = RenderComponent<AvatarCard>(parameters => parameters
+        var cut = Render<AvatarCard>(parameters => parameters
             .Add(p => p.AvatarUrl, "/images/avatar.jpg")
             .Add(p => p.LastLoginDate, DateTime.UtcNow));
 

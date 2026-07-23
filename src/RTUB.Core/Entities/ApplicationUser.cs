@@ -55,6 +55,10 @@ public class ApplicationUser : IdentityUser
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 
+    // Push notification preference - true if user explicitly unsubscribed;
+    // prevents self-healing logic from silently re-subscribing them
+    public bool PushNotificationsOptedOut { get; set; } = false;
+
     // Retirement status - tracks if active members have been inactive 6+ months
     public bool IsRetired { get; set; } = false;
 

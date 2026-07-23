@@ -62,7 +62,7 @@ public class RolesPageTests : PageTestBase
     {
         SetupAuthentication("test-user", "Test User");
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Órgãos Sociais") || cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Órgãos Sociais", "page should display title");
@@ -84,7 +84,7 @@ public class RolesPageTests : PageTestBase
                 };
             });
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
 
         cut.Markup.Should().Contain("Órgãos Sociais", "page should display title");
         cut.Markup.Should().Match(m => m.Contains("A carregar") || m.Contains("Órgãos Sociais"), "should show loading or title initially");
@@ -100,7 +100,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(new List<FiscalYear>());
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Nenhum ano letivo") || cut.Markup.Contains("Órgãos Sociais"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Nenhum ano letivo ainda", "should show empty state when no fiscal years");
@@ -119,7 +119,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(fiscalYears);
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Selecionar Ano Letivo") || cut.Markup.Contains("DIREÇÃO"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Selecionar Ano Letivo", "page should display fiscal year dropdown");
@@ -137,7 +137,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(fiscalYears);
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Abrir RGI") || cut.Markup.Contains("DIREÇÃO"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Abrir RGI", "member should see RGI button");
@@ -155,7 +155,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(fiscalYears);
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("Adicionar Ano Letivo") || cut.Markup.Contains("DIREÇÃO"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("Adicionar Ano Letivo", "admin should see create fiscal year button");
@@ -173,7 +173,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(fiscalYears);
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("DIREÇÃO") || cut.Markup.Contains("Órgãos Sociais"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().NotContain("Adicionar Ano Letivo", "regular user should not see create fiscal year button");
@@ -191,7 +191,7 @@ public class RolesPageTests : PageTestBase
             .Setup(x => x.GetAllFiscalYearsAsync())
             .ReturnsAsync(fiscalYears);
 
-        var cut = RenderComponent<RolesPage>();
+        var cut = Render<RolesPage>();
         cut.WaitForState(() => cut.Markup.Contains("DIREÇÃO") || cut.Markup.Contains("Órgãos Sociais"), TimeSpan.FromSeconds(2));
 
         cut.Markup.Should().Contain("DIREÇÃO", "page should display Direção section");

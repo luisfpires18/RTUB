@@ -8,7 +8,7 @@ namespace RTUB.Shared.Tests.Components;
 /// <summary>
 /// Tests for the SortableTableHeader component to ensure sorting functionality works correctly
 /// </summary>
-public class SortableTableHeaderTests : TestContext
+public class SortableTableHeaderTests : BunitContext
 {
     [Fact]
     public void SortableTableHeader_RendersHeaderText()
@@ -17,7 +17,7 @@ public class SortableTableHeaderTests : TestContext
         var headerText = "Name";
 
         // Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, headerText)
             .Add(p => p.SortColumn, "name"));
 
@@ -29,7 +29,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_HasSortableHeaderClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Test")
             .Add(p => p.SortColumn, "test"));
 
@@ -41,7 +41,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_DoesNotShowIcon_WhenNotCurrentColumn()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.CurrentSortColumn, "email"));
@@ -54,7 +54,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_ShowsUpArrow_WhenCurrentColumnAndAscending()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.CurrentSortColumn, "name")
@@ -68,7 +68,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_ShowsDownArrow_WhenCurrentColumnAndDescending()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.CurrentSortColumn, "name")
@@ -85,7 +85,7 @@ public class SortableTableHeaderTests : TestContext
         bool callbackInvoked = false;
         string? receivedColumn = null;
 
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.OnSortChanged, EventCallback.Factory.Create<string>(this, (column) =>
@@ -107,7 +107,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_DoesNotInvokeCallback_WhenCallbackNotProvided()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name"));
 
@@ -129,7 +129,7 @@ public class SortableTableHeaderTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.AdditionalAttributes, additionalAttributes));
@@ -143,7 +143,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_TogglesIconCorrectly()
     {
         // Arrange
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.CurrentSortColumn, "name")
@@ -153,7 +153,7 @@ public class SortableTableHeaderTests : TestContext
         cut.Markup.Should().Contain("bi-arrow-up", "initially should show up arrow");
 
         // Act - Update to descending
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.IsSortAscending, false));
 
         // Assert new state
@@ -165,7 +165,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_ChangesIcon_WhenCurrentColumnChanges()
     {
         // Arrange
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name")
             .Add(p => p.CurrentSortColumn, "name")
@@ -175,7 +175,7 @@ public class SortableTableHeaderTests : TestContext
         cut.Markup.Should().Contain("bi-arrow-up", "icon should be visible when current column");
 
         // Act - Change current column
-        cut.SetParametersAndRender(parameters => parameters
+        cut.Render(parameters => parameters
             .Add(p => p.CurrentSortColumn, "email"));
 
         // Assert new state - icon hidden
@@ -186,7 +186,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_IsClickable()
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, "Name")
             .Add(p => p.SortColumn, "name"));
 
@@ -203,7 +203,7 @@ public class SortableTableHeaderTests : TestContext
     public void SortableTableHeader_RendersCorrectly_WithDifferentColumns(string headerText, string sortColumn)
     {
         // Arrange & Act
-        var cut = RenderComponent<SortableTableHeader>(parameters => parameters
+        var cut = Render<SortableTableHeader>(parameters => parameters
             .Add(p => p.HeaderText, headerText)
             .Add(p => p.SortColumn, sortColumn));
 
