@@ -169,6 +169,74 @@ public abstract class BaseStorageService<TLogger>
     }
 
     /// <summary>
+    /// Gets the last-modified timestamp (UTC) for an S3 object
+    /// </summary>
+    /// <param name="objectKey">The object key</param>
+    /// <returns>The last-modified timestamp in UTC, or null if the object does not exist</returns>
+    protected async Task<DateTime?> GetObjectLastModifiedUtcAsync(string objectKey)
+    {
+        try
+        {
+            var request = new GetObjectMetadataRequest
+            {
+                BucketName = _bucketName,
+                Key = objectKey
+            };
+
+            var response = await _s3Client.GetObjectMetadataAsync(request);
+            return response.LastModified?.ToUniversalTime();
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error getting object last-modified. Bucket: '{BucketName}', Key: '{ObjectKey}', ErrorCode: {ErrorCode}, Message: {Message}",
+                _bucketName, objectKey, ex.ErrorCode, ex.Message);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting object last-modified for: {ObjectKey}", objectKey);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Copies an object within the bucket server-side, without downloading or re-uploading it
+    /// </summary>
+    /// <param name="sourceKey">The source object key</param>
+    /// <param name="destinationKey">The destination object key</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    protected async Task CopyObjectAsync(string sourceKey, string destinationKey, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new CopyObjectRequest
+            {
+                SourceBucket = _bucketName,
+                SourceKey = sourceKey,
+                DestinationBucket = _bucketName,
+                DestinationKey = destinationKey
+            };
+
+            await _s3Client.CopyObjectAsync(request, cancellationToken);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error copying object. Bucket: '{BucketName}', Source: '{SourceKey}', Destination: '{DestinationKey}', ErrorCode: {ErrorCode}, Message: {Message}",
+                _bucketName, sourceKey, destinationKey, ex.ErrorCode, ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error copying object from {SourceKey} to {DestinationKey}", sourceKey, destinationKey);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Uploads an object to S3 storage
     /// </summary>
     /// <param name="objectKey">The object key</param>

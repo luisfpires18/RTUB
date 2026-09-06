@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
@@ -14,6 +15,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Application.Services.Retirement;
+using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
 using RTUB.Web.Services;
@@ -363,6 +365,73 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Key for the S3 client that talks to the private database-backup bucket.
+    /// Kept separate from the media client so the backup can use a bucket-scoped token.
+    /// </summary>
+    private const string BackupS3ClientKey = "R2Backup";
+
+    /// <summary>
+    /// Registers the daily SQLite backup: its own R2 client, storage service and scheduler.
+    /// Registers nothing when DatabaseBackup:Enabled is false, so non-production
+    /// environments never touch the backup bucket.
+    /// </summary>
+    public static IServiceCollection AddDatabaseBackupServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        var options = configuration
+            .GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName)
+            .Get<RTUB.Application.Configuration.DatabaseBackupOptions>();
+
+        if (options?.Enabled != true)
+        {
+            return services;
+        }
+
+        // Credentials fall back to the media R2 settings when a dedicated backup token is
+        // not configured. Resolved lazily so a misconfiguration surfaces as a clear error
+        // in the logs rather than at container build time.
+        services.AddKeyedSingleton<Amazon.S3.IAmazonS3>(BackupS3ClientKey, (serviceProvider, _) =>
+        {
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+            var accessKey = configuration["DatabaseBackup:AccessKeyId"] ?? configuration["Cloudflare:R2:AccessKeyId"];
+            var secretKey = configuration["DatabaseBackup:SecretAccessKey"] ?? configuration["Cloudflare:R2:SecretAccessKey"];
+            var accountId = configuration["DatabaseBackup:AccountId"] ?? configuration["Cloudflare:R2:AccountId"];
+
+            if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
+            {
+                var errorMsg = "Database backup credentials not configured. Set DatabaseBackup:AccessKeyId and DatabaseBackup:SecretAccessKey (or fall back to the Cloudflare:R2 ones).";
+                logger.LogError(errorMsg);
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            if (string.IsNullOrEmpty(accountId))
+            {
+                var errorMsg = "Database backup account ID not configured. Set DatabaseBackup:AccountId or Cloudflare:R2:AccountId.";
+                logger.LogError(errorMsg);
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            var credentials = new Amazon.Runtime.BasicAWSCredentials(accessKey, secretKey);
+            var config = new Amazon.S3.AmazonS3Config
+            {
+                ServiceURL = $"https://{accountId}.r2.cloudflarestorage.com",
+                ForcePathStyle = true,
+                AuthenticationRegion = "auto"
+            };
+            return new Amazon.S3.AmazonS3Client(credentials, config);
+        });
+
+        services.AddScoped<IDatabaseBackupStorageService>(serviceProvider =>
+            new DatabaseBackupStorageService(
+                serviceProvider.GetRequiredKeyedService<Amazon.S3.IAmazonS3>(BackupS3ClientKey),
+                serviceProvider.GetRequiredService<IOptions<RTUB.Application.Configuration.DatabaseBackupOptions>>(),
+                serviceProvider.GetRequiredService<ILogger<DatabaseBackupStorageService>>()));
+
+        services.AddHostedService<DatabaseBackupBackgroundService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers member query and statistics services
     /// Provides optimized queries for member pages (Leaderboard, Members)
     /// </summary>
@@ -440,6 +509,8 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
             configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
 
         return services;
     }

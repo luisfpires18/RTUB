@@ -182,6 +182,7 @@ public class Program
         services.AddBettingServices();
         services.AddEmailServices();
         services.AddStorageServices();
+        services.AddDatabaseBackupServices(builder.Configuration);
         services.AddMemberQueryServices();
         services.AddMemberServices();
         services.AddRoleServices();
