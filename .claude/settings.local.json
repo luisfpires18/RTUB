@@ -10,7 +10,9 @@
       "Bash(dotnet clean)",
       "Bash(taskkill /PID 53916 /F)",
       "WebFetch(domain:www.nuget.org)",
-      "WebFetch(domain:bunit.dev)"
+      "WebFetch(domain:bunit.dev)",
+      "PowerShell(gh --version 2>&1)",
+      "PowerShell(gh auth status 2>&1)"
     ]
   }
 }
