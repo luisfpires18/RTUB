@@ -6,11 +6,10 @@ _Last updated: 2026-09-07_
 
 ## Phase
 Modernization **Phase 1B — Claude Code workflow & essential tooling**.
-Implementation complete, **awaiting owner review**.
+**COMPLETE** — merged into `dev` and pushed to `origin/dev`.
 
 ## Branch
-`chore/001/claude-workflow` (branched from `master`).
-`dev` created locally from the `master` baseline. Nothing committed, pushed, or merged yet — this phase is authorized for local branch creation only.
+`dev` (contains Phase 1B commit e232614c). Work branch `chore/001/claude-workflow` not yet deleted.
 
 ## Last completed step
 Phase 1B implementation + review correction:
@@ -24,14 +23,14 @@ Phase 1B implementation + review correction:
 - Obsolete `.github/prompts/rtub-ask-opus.prompt.md` deleted.
 
 ## Current task
-Owner review of Phase 1B. No further changes until reviewed.
+**Phase 1C.1** — Create `rtub-sqlite` skill (per Phase 1C plan).
 
 ## Blockers
 None.
 
 ## Deferred / owner decisions
-- **Phase 1C:** custom RTUB skills (`rtub-sqlite`, `rtub-push`, `rtub-pwa`, `rtub-testing`, `rtub-shipping`, `rtub-frontend`, `rtub-mytuno`) — deliberately not created yet.
-- Committing / pushing / merging `chore/001/claude-workflow` into `dev` — needs explicit authorization.
+- **Phase 1C:** remaining custom RTUB skills (`rtub-push`, `rtub-pwa`, `rtub-testing`, `rtub-shipping`, `rtub-frontend`, `rtub-mytuno`) — deliberately not created yet.
+- Work branch `chore/001/claude-workflow` cleanup — delete when convenient.
 - `playwright@claude-plugins-official` was already installed at project scope before Phase 1B. Not removed.
 - `docs/cloudflare-account-migration-runbook.md` carries pre-existing uncommitted edits from earlier work. Preserved untouched.
 - Pending feature work (logging usernames, inventory discard values, Direcao meetings, MBWAY transfers page, Nerba orders grid, leaderboard UI) — unchanged, not part of this phase.
@@ -42,15 +41,12 @@ None.
 - `docs/architecture/adr/README.md` — ADR format; no ADRs recorded yet.
 - `.claude/skills/webapp-testing/UPSTREAM.md` — vendored-skill provenance and security review.
 
-## Latest validation
-Phase 1B changes no application behavior, so the full test suite was not run.
-- `.claude/settings.json` parses as valid JSON — PASS
-- `.claude/settings.local.json` untracked, still present on disk, matched by `.gitignore` — PASS
-- `security-guidance` v2.0.7 active for RTUB (project scope, 4 hooks, 0 model-context cost) — PASS
-- `webapp-testing` available project-locally — PASS
-- `dotnet build src/RTUB.Web/RTUB.csproj` — PASS (0 warnings, 0 errors)
-- Browser smoke test via the skill's `with_server.py` against `https://localhost:58869/login`:
-  HTTP 200, login form rendered, `window.Blazor` initialized, 0 console errors, 0 page errors — PASS
-- `git diff --check` clean; secret scan clean; no stray artifacts — PASS
-- Build/smoke test not rerun for the review-correction pass (untracking a settings file cannot affect app behavior).
-- Graphify not rebuilt (no application-structure change) — correct.
+## Latest validation (Phase 1B)
+Commit e232614c verified before merge:
+- Phase 1B files staged only; unrelated `docs/cloudflare-account-migration-runbook.md` excluded — PASS
+- `.claude/settings.json` valid JSON — PASS
+- `.claude/settings.local.json` untracked, ignored, on disk — PASS
+- No accidental secrets in staged diff — PASS
+- Upstream `SKILL.md` trailing whitespace preserved for provenance (noted in UPSTREAM.md) — PASS
+- Merge to `dev` successful (fast-forward from master baseline) — PASS
+- STATE.md updated to reflect Phase 1B complete — PASS
