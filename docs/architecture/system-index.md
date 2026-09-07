@@ -48,11 +48,18 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic. |
-| `src/RTUB.Web/Controllers/PushController.cs` | Subscription registration endpoints. |
-| `src/RTUB.Application/Services/EmailNotificationService.cs` | Email notification channel. |
+| `src/RTUB.Application/Configuration/WebPushOptions.cs` | VAPID / feature-flag options. |
+| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle, inbox fallback. |
+| `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
+| `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
+| `src/RTUB.Web/Controllers/PushController.cs` | `/api/push/*` subscription and send endpoints. |
+| `src/RTUB.Web/wwwroot/js/push-notifications.js` | Browser-side subscription manager. |
+| `src/RTUB.Web/wwwroot/service-worker.js` | `push` / `notificationclick` / `pushsubscriptionchange` handlers. |
+| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor`, `PushNotificationToggle.razor` | Opt-in UI. |
+| `.claude/skills/rtub-push/SKILL.md` | RTUB-specific push behavior and constraints. |
 
 VAPID keys are configuration/secrets — never committed.
+Email notifications are a separate channel (`src/RTUB.Application/Services/EmailNotificationService.cs`).
 
 ## Storage / R2 / backups
 
