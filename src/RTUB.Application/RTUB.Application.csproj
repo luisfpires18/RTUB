@@ -5,12 +5,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- HttpContext / IHttpContextAccessor come from the .NET 10 shared framework.
+         Declared explicitly so it does not depend on Identity.UI pulling it in transitively. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
     <PackageReference Include="QuestPDF" />
     <PackageReference Include="WebPush-NetCore" />
     <PackageReference Include="Newtonsoft.Json" />
