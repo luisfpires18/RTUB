@@ -5,25 +5,29 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-07_
 
 ## Phase
-Modernization **Phase 1B — Claude Code workflow & essential tooling**.
-**COMPLETE** — merged into `dev` and pushed to `origin/dev`.
+Modernization **Phase 1C.1 — `rtub-sqlite` skill**.
+**Implementation complete — awaiting owner review.** Not committed.
 
 ## Branch
-`dev` (contains Phase 1B commit e232614c). Work branch `chore/001/claude-workflow` not yet deleted.
+`chore/002/rtub-sqlite-skill` (branched from `dev`). Phase 1B lives in `dev`.
 
 ## Last completed step
-Phase 1B implementation + review correction:
-- Root `CLAUDE.md` (routing rules) and this `STATE.md`.
-- `docs/architecture/system-index.md` + `docs/architecture/adr/README.md`.
-- `.claude/settings.json` permission cleanup (blanket `Bash(*)` removed; durable `npm ci`/`npm run build:*` promoted here).
-- `.claude/settings.local.json` untracked from git (`git rm --cached`), added to `.gitignore` — stays on disk as a machine-local override, no longer committed.
-- `security-guidance@claude-plugins-official` v2.0.7 installed at project scope.
-- `webapp-testing` skill vendored to `.claude/skills/webapp-testing/` with `UPSTREAM.md` provenance.
-- Stale AI guidance corrected in `.github/agents/` (test, backend, docs).
-- Obsolete `.github/prompts/rtub-ask-opus.prompt.md` deleted.
+Phase 1C.1: created `.claude/skills/rtub-sqlite/SKILL.md` (121 lines).
+Durable RTUB-specific SQLite/EF Core knowledge, verified against current code:
+- `IDbContextFactory` one-context-per-operation; `Repository<T>` saves internally, no `SaveChangesAsync` on `IRepository<T>`; `UpdateAsync` is fetch-then-`SetValues` (scalars only) and throws when the row is missing.
+- WAL/busy-timeout PRAGMAs via `SqliteConnectionInterceptor` on every connection open; `DefaultTimeout=30`; `Cache=Shared` deliberately absent.
+- Migrations assembly is `"RTUB"` (`src/RTUB.Web/RTUB.csproj`); EF CLI needs `--project src/RTUB.Web`; `PendingModelChangesWarning` suppressed; startup migrate skipped when `EnvironmentName == "Test"`.
+- Two distinct test databases: EF InMemory (`DatabaseFixture`, enforces `[Required]`, `CleanDatabase` skips `Users` and is a hand-maintained list) vs real SQLite shared `:memory:` via `EnsureCreated()` (`TestWebApplicationFactory`) — migrations untested there.
+- Backup uses `SqliteConnection.BackupDatabase()` because WAL makes file copies invalid; restore must delete stale `-wal`/`-shm`; schedulers are per-instance, hosted services need `IServiceScopeFactory`.
+No application code or tests modified.
+
+Follow-up: review found `docs/backend-practices.md:155` missing `--project src/RTUB.Web`
+(fails from repo root). Fixed to match `.github/copilot-instructions.md:20` and the skill.
+All three now agree.
+
 
 ## Current task
-**Phase 1C.1** — Create `rtub-sqlite` skill (per Phase 1C plan).
+Owner review of Phase 1C.1. Next planned unit: **1C.2 `rtub-push`** — not started, not authorized yet.
 
 ## Blockers
 None.
@@ -41,12 +45,12 @@ None.
 - `docs/architecture/adr/README.md` — ADR format; no ADRs recorded yet.
 - `.claude/skills/webapp-testing/UPSTREAM.md` — vendored-skill provenance and security review.
 
-## Latest validation (Phase 1B)
-Commit e232614c verified before merge:
-- Phase 1B files staged only; unrelated `docs/cloudflare-account-migration-runbook.md` excluded — PASS
-- `.claude/settings.json` valid JSON — PASS
-- `.claude/settings.local.json` untracked, ignored, on disk — PASS
-- No accidental secrets in staged diff — PASS
-- Upstream `SKILL.md` trailing whitespace preserved for provenance (noted in UPSTREAM.md) — PASS
-- Merge to `dev` successful (fast-forward from master baseline) — PASS
-- STATE.md updated to reflect Phase 1B complete — PASS
+## Latest validation (Phase 1C.1)
+Documentation/tooling only — RTUB test suite deliberately not run, Graphify not rebuilt.
+- `SKILL.md` frontmatter parses; `name`/`description` present; name is a valid slug — PASS
+- All 17 file/directory paths referenced in the skill exist — PASS
+- Every claim re-verified against current source before writing — PASS
+- No secrets or credential-shaped strings — PASS
+- `git diff --check` clean — PASS
+- Body 117 lines, within the 80–150 target; points to `docs/cloudflare-r2-and-database-backups.md` and `docs/backend-practices.md` instead of duplicating them — PASS
+- Unrelated `docs/cloudflare-account-migration-runbook.md` edits preserved untouched — PASS

@@ -152,7 +152,7 @@ var userDict = users.ToDictionary(u => u.Id);
 - Review generated SQL before applying
 
 ```bash
-dotnet ef migrations add AddIsLockedToActivity
+dotnet ef migrations add AddIsLockedToActivity --project src/RTUB.Web
 ```
 
 ## Services & Business Logic
