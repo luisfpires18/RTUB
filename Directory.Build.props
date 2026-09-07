@@ -1,17 +1,20 @@
 <Project>
   <!--
-    Suppressed warnings. Verified causes (Phase 2.1, 2026-09-08) — re-check before extending:
+    Suppressed warnings. Verified causes (Phase 2.2.1, 2026-09-08) — re-check before extending:
     - NU1903: known vulnerabilities in packages RTUB does not reference directly:
         * Microsoft.NETCore.App 1.0.5 and Microsoft.NETCore.Jit 1.0.7, dragged in by
           WebPush-NetCore 1.0.2. These 1.x runtime packages are not used at run time —
           the app runs on the .NET 10 shared framework — but NuGet still audits them.
           Removed only by replacing WebPush-NetCore (Push modernization phase).
-        * SQLitePCLRaw.lib.e_sqlite3 2.1.11, a transitive dependency of
-          Microsoft.EntityFrameworkCore.Sqlite 10.0.0. Waiting on an EF Core bump.
     - NETSDK1206: version-specific/distribution-specific RIDs in Libuv 1.9.1, reached through
       Microsoft.NETCore.App 1.0.5 -> WebPush-NetCore 1.0.2. Same fix as above.
     NOT caused by Microsoft.AspNetCore.Http.Abstractions 2.2.0 — that package was removed in
-    Phase 2.1 and neither warning changed. Do not add suppressions here to make a build green.
+    Phase 2.1 and neither warning changed.
+    No longer caused by SQLitePCLRaw.lib.e_sqlite3: the .NET 10.0.11 servicing update moved
+    Microsoft.EntityFrameworkCore.Sqlite's transitive SQLitePCLRaw from 2.1.11
+    (GHSA-2m69-gcr7-jv3q) to 2.1.12, which is clean. Verified by rebuilding with both
+    suppressions removed — WebPush-NetCore is now the sole cause of each.
+    Do not add suppressions here to make a build green.
   -->
   <PropertyGroup>
     <!-- C# Language and Analysis Settings -->
