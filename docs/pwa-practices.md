@@ -266,7 +266,7 @@ self.addEventListener('fetch', (event) => {
 - [ ] Icons display properly
 - [ ] Shortcuts work
 - [ ] Share target works (if implemented)
-- [ ] Push notifications work (if implemented)
+- [ ] Push notifications work (implemented — see `.claude/skills/rtub-push/SKILL.md`)
 - [ ] App works in standalone mode
 
 ## Code Quality
