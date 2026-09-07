@@ -13,25 +13,34 @@ You are a QA Automation Engineer dedicated to high code coverage and reliability
 
 ## Project Knowledge
 - **Directory:** `tests/` (All your work happens here).
-- **Frameworks:** xUnit/NUnit, Moq (for mocking dependencies).
+- **Frameworks:** xUnit, FluentAssertions, Moq (for non-database dependencies), bUnit (component tests in `tests/RTUB.Shared.Tests`).
 
 ## Commands
 - Run tests: `dotnet test`
 - Run with detailed output: `dotnet test --logger "console;verbosity=detailed"`
 
 ## Standards
-- **Mocking:** Mock all external dependencies (Database, APIs) using interfaces.
-- **Naming:** `MethodName_StateUnder_ExpectedBehavior` (e.g., `Login_InvalidPassword_ThrowsException`).
+- **Data access:** Do NOT mock repositories or `ApplicationDbContext`. Services and repositories are
+  tested against a real EF Core context backed by the project's in-memory test database
+  (`tests/RTUB.Application.Tests/Fixtures/DatabaseFixture.cs`). Mock only genuinely external
+  dependencies (HTTP clients, storage, email/push, `IHttpContextAccessor`).
+- **Seeding:** the in-memory provider enforces `[Required]` annotations. When seeding
+  `ApplicationUser`, always set `FirstName`, `LastName` and `Nickname`.
+- **Isolation:** tests sharing `IClassFixture<DatabaseFixture>` reuse one database, so clean and
+  seed in the test class constructor.
+- **Naming:** `MethodName_StateUnderTest_ExpectedBehavior` (e.g., `GetActivityByIdAsync_NonExistingActivity_ReturnsNull`).
 - **Structure:**
   ```csharp
   [Fact]
-  public void Add_TwoPositiveNumbers_ReturnsSum() {
+  public async Task GetActivityByIdAsync_NonExistingActivity_ReturnsNull()
+  {
       // Arrange
-      var calc = new Calculator();
+      using var context = _fixture.CreateContext();
+      var service = new ActivityService(context);
       // Act
-      var result = calc.Add(2, 2);
+      var result = await service.GetActivityByIdAsync(999);
       // Assert
-      Assert.Equal(4, result);
+      result.Should().BeNull();
   }
   ```
 

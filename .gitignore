@@ -374,3 +374,6 @@ FodyWeavers.xsd
 
 # Backup files
 src/RTUB.Web/Pages/MyTuno/*.bak
+
+# Claude Code local machine overrides (not repo config)
+.claude/settings.local.json
