@@ -69,7 +69,6 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `src/RTUB.Application/Services/Storage/` | Shared storage abstractions. |
 | `src/RTUB.Application/Services/DatabaseBackupBackgroundService.cs` | Scheduled SQLite backup to object storage. |
 | `docs/cloudflare-r2-and-database-backups.md` | Authoritative storage/backup design. |
-| `docs/cloudflare-account-migration-runbook.md` | Account migration procedure. |
 
 ## Background jobs
 
