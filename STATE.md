@@ -67,13 +67,15 @@ unstaged edits went with it — intended, the file itself is obsolete.
 `docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests.
 
 ## Next unit
-**Phase 2.3 — `WebPush-NetCore 1.0.2` replacement (Push modernization).** It is now the single
-blocking dependency: sole cause of `NU1903` + `NETSDK1206`, and the sole reason the unused
-`Newtonsoft.Json` floor pin must stay. Replacing it (e.g. `Lib.Net.Http.WebPush`, or VAPID +
-`HttpClient` directly) retires the WebPush advisories **and** lets Phase 2.2.2's removal land for
-free. Scope it against `PushNotificationService.cs` (`WebPushClient`, `VapidDetails`,
-`PushSubscription`, `WebPushException` 404/410/429 handling) — see the `rtub-push` skill.
-Test-stack modernization (xunit v3 family) remains a separate, later unit.
+**Make Graphify operational.** The `CLAUDE.md` context-discipline rule says "prefer Graphify over
+targeted reads", but no Graphify index, config, CLI or MCP server exists anywhere in the repo or
+`.claude/` — every session so far has fallen back to `grep` + `sed -n`. Either stand the tool up
+and generate a real index, or drop the routing rule so it stops costing a wasted decision each
+session. Decide, then align `CLAUDE.md` (deliberately left unmodified so far).
+
+Queued after that: **Phase 2.3 — replace `WebPush-NetCore 1.0.2`** (sole cause of `NU1903` +
+`NETSDK1206`, and the only reason the Newtonsoft floor pin still exists). Test-stack
+modernization (xunit v3) remains a separate, later unit.
 
 ## Blockers
 None.
