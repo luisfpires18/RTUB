@@ -6,10 +6,11 @@ _Last updated: 2026-09-08_
 
 ## Phase
 Modernization **Phase 2.2.1 (Microsoft/.NET 10 servicing update) — COMPLETE, merged to dev.**
+Housekeeping unit (obsolete Cloudflare runbook removal) — COMPLETE, merged to dev.
 
 ## Branch
-`chore/006/remove-obsolete-cloudflare-runbook`, branched from `dev`. Uncommitted.
-`chore/005/dotnet-servicing-update` merged via --no-ff at 98537769; can be deleted when convenient.
+`dev`. Work branch `chore/006/remove-obsolete-cloudflare-runbook` merged via --no-ff; kept, not
+deleted. `chore/001`–`chore/005` also still present; delete when convenient.
 
 ## Last completed step
 Phase 2.2.1: bumped all 11 Microsoft .NET 10 servicing packages `10.0.0` → **`10.0.11`**
@@ -33,13 +34,18 @@ Comment block in `Directory.Build.props` updated to record the new cause set. No
 nothing added.
 
 ## Current task
-Housekeeping: obsolete `docs/cloudflare-account-migration-runbook.md` deleted (owner-confirmed),
-plus its two routing references in `CLAUDE.md` and `docs/architecture/system-index.md`. The file's
-pre-existing unstaged edits went with it — intended, the file itself is obsolete.
-`docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests. Uncommitted.
+None active.
+
+## Last housekeeping unit
+Obsolete `docs/cloudflare-account-migration-runbook.md` deleted (owner-confirmed), plus its two
+routing references in `CLAUDE.md` and `docs/architecture/system-index.md`. The file's pre-existing
+unstaged edits went with it — intended, the file itself is obsolete.
+`docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests.
 
 ## Next unit
-**Phase 2.2.2 — dependency hygiene.** Not started.
+**Phase 2.2.2 — investigate the direct `Newtonsoft.Json` dependency.** Still a direct package
+reference despite the completed System.Text.Json migration; determine whether anything still needs
+it and whether the direct reference can be dropped. Not started.
 
 ## Blockers
 None.
@@ -53,7 +59,6 @@ None.
   - Test stack still old: `Microsoft.NET.Test.Sdk 17.12.0`, `xunit.runner.visualstudio 2.8.2`,
     `MockQueryable.Moq 8.0.0`, `coverlet.collector 6.0.2`, `bunit 2.7.2`, `AngleSharp 1.5.2`.
   - `QuestPDF 2024.10.3`, AWS SDK, `Microsoft.Playwright 1.50.0` — independent version trains.
-  - `Newtonsoft.Json` still a direct ref despite System.Text.Json migration — not investigated.
 - **Phase 1C:** remaining optional custom skills — deliberately not created.
 - Work-branch cleanup (`chore/001`–`chore/004`) — delete when convenient.
 - Pending feature work — unchanged, not part of any phase.
