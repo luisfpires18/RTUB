@@ -51,7 +51,6 @@ Run only what the change can break.
 | PWA, service worker, push | `docs/pwa-practices.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
-| Cloudflare account migration | `docs/cloudflare-account-migration-runbook.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |
 | Role guidance for AI agents | `.github/agents/` |

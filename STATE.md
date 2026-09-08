@@ -8,8 +8,8 @@ _Last updated: 2026-09-08_
 Modernization **Phase 2.2.1 (Microsoft/.NET 10 servicing update) — COMPLETE, merged to dev.**
 
 ## Branch
-`dev`. Work branch `chore/005/dotnet-servicing-update` merged via --no-ff at 98537769; can be
-deleted when convenient.
+`chore/006/remove-obsolete-cloudflare-runbook`, branched from `dev`. Uncommitted.
+`chore/005/dotnet-servicing-update` merged via --no-ff at 98537769; can be deleted when convenient.
 
 ## Last completed step
 Phase 2.2.1: bumped all 11 Microsoft .NET 10 servicing packages `10.0.0` → **`10.0.11`**
@@ -33,11 +33,13 @@ Comment block in `Directory.Build.props` updated to record the new cause set. No
 nothing added.
 
 ## Current task
-None active.
+Housekeeping: obsolete `docs/cloudflare-account-migration-runbook.md` deleted (owner-confirmed),
+plus its two routing references in `CLAUDE.md` and `docs/architecture/system-index.md`. The file's
+pre-existing unstaged edits went with it — intended, the file itself is obsolete.
+`docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests. Uncommitted.
 
 ## Next unit
-**Remove obsolete `docs/cloudflare-account-migration-runbook.md`.** Owner confirmed obsolete;
-deletion deliberately excluded from Phase 2.2.1 — goes in its own atomic branch next. Not started.
+**Phase 2.2.2 — dependency hygiene.** Not started.
 
 ## Blockers
 None.
@@ -54,9 +56,6 @@ None.
   - `Newtonsoft.Json` still a direct ref despite System.Text.Json migration — not investigated.
 - **Phase 1C:** remaining optional custom skills — deliberately not created.
 - Work-branch cleanup (`chore/001`–`chore/004`) — delete when convenient.
-- `docs/cloudflare-account-migration-runbook.md` — owner confirmed obsolete, may be deleted.
-  Pre-existing unstaged edits preserved, untouched by Phase 2.2.1. Deletion is next unit, its
-  own atomic branch — not folded into dependency work.
 - Pending feature work — unchanged, not part of any phase.
 
 ## Relevant files
