@@ -18,6 +18,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="QuestPDF" />
     <PackageReference Include="WebPush-NetCore" />
+    <!-- Not used by any RTUB source file. Temporary security floor: WebPush-NetCore 1.0.2
+         declares a permissive Newtonsoft.Json >= 9.0.1 and ships it as a runtime asset, so
+         without this direct reference the graph resolves 9.0.1 (GHSA-5crp-9r3c-p9vr, High).
+         RTUB.Shared needs no reference of its own - it inherits 13.0.4 through this project.
+         Revisit when WebPush-NetCore is replaced. -->
     <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 

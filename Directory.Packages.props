@@ -34,6 +34,7 @@
     <!-- Microsoft Extensions -->
     <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="10.0.11" />
     <!-- Third Party -->
+    <!-- Security floor only; see RTUB.Application.csproj. Retire with WebPush-NetCore. -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="QuestPDF" Version="2024.10.3" />
     <PackageVersion Include="WebPush-NetCore" Version="1.0.2" />
