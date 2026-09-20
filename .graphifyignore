@@ -1,0 +1,44 @@
+# Graphify scope for RTUB.
+# .gitignore is honoured automatically (bin/, obj/, node_modules/, *.db, publish/,
+# .vs/, pixi-build/). This file only ADDS exclusions on top of it.
+
+# Graphify's own output and skill payload — never index them back into the graph.
+graphify-out/
+.claude/skills/graphify/
+
+# VCS internals
+.git/
+
+# Generated EF Core migrations (~21 MB, 321 files, no inbound call edges).
+# Schema history is not architecture; it would dominate the graph with noise.
+src/RTUB.Web/Migrations/
+
+# Vendored third-party front-end libraries
+src/RTUB.Web/wwwroot/lib/
+*.min.js
+*.min.css
+*.map
+
+# Binary media / fonts — nothing for AST or relationship extraction
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.svg
+*.ico
+*.mp3
+*.woff
+*.woff2
+
+# Local databases and any credential-bearing local overrides (defence in depth;
+# most are already gitignored).
+*.db
+*.db-shm
+*.db-wal
+appsettings.*.local.json
+appsettings.Development.json
+.env
+.env.*
+*.pfx
+*.pem
+secrets.json

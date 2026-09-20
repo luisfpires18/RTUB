@@ -2,45 +2,51 @@
 
 Living execution state. **Read this first.** Overwrite stale entries — this is a status board, not a diary.
 
-_Last updated: 2026-09-08_
+_Last updated: 2026-09-20_
 
 ## Phase
-Modernization **Phase 2.2.2 (Newtonsoft.Json dependency investigation) — COMPLETE, unmerged.**
-Phase 2.2.1 (Microsoft/.NET 10 servicing update) and the Cloudflare runbook removal are merged to
-dev.
+Tooling unit **008 (make Graphify operational) — implementation complete, uncommitted, awaiting
+owner review.** CLI, Claude skill and MCP are all **operational**: the MCP server is connected and
+verified from inside Claude, the conditional Graphify usage policy is established and the generated
+graph is gitignored. Nothing outstanding.
+Modernization Phase 2.2.2 and everything before it are merged to `dev`.
 
 ## Branch
-`chore/007/remove-newtonsoft-json`, branched from `dev`. Uncommitted (no commit authorized).
-`chore/001`–`chore/006` still present; delete when convenient.
+`chore/008/enable-graphify`, branched from `dev`. Uncommitted (no commit authorized).
+`chore/001`–`chore/007` still present; delete when convenient.
 
 ## Last completed step
-**Phase 2.2.2 — Newtonsoft.Json: `RTUB.Shared` direct reference REMOVED, `RTUB.Application`
-reference RETAINED as a temporary security floor.** Central `PackageVersion 13.0.4` kept.
+**Unit 008 — Graphify is operational.**
 
-- **Source usage: none.** No `Newtonsoft`, `JsonConvert`, `JObject`, `JToken`, converter, settings
-  or attribute reference in any `.cs` / `.razor` / `.cshtml` in `src/` or `tests/`. The only
-  `JsonIgnore` / `JsonIgnoreCondition` hits (`DTOs/CombatResult.cs`, `Arena/BossMode/Stage.razor`)
-  are System.Text.Json. `PushNotificationService` serializes with `System.Text.Json`. No
-  Newtonsoft-specific serialization semantics anywhere.
-- **Why Application keeps it:** `WebPush-NetCore 1.0.2` declares a permissive
-  `Newtonsoft.Json >= 9.0.1` and ships the assembly as a **runtime** asset. Removing *both* direct
-  references (first experiment) dropped `RTUB.Application` and `RTUB.Shared` to **9.0.1**,
-  introducing **`GHSA-5crp-9r3c-p9vr` (High)**. `Microsoft.EntityFrameworkCore.Tools` is
-  `PrivateAssets=all`, so its 13.0.4 does not backstop published output, and central transitive
-  pinning is off — the `PackageVersion` alone cannot hold the floor. So the Application reference
-  is a version floor, not a code dependency.
-- **Why Shared no longer needs it (proved separately):** removing only
-  `src/RTUB.Shared/RTUB.Shared.csproj`'s reference and re-restoring resolves `RTUB.Shared` to
-  **13.0.4 transitively** through its `RTUB.Application` ProjectReference. Redundant; removed.
-  No new advisory, no version change anywhere else.
-- **Comments:** one explanation lives in `RTUB.Application.csproj`; `Directory.Packages.props`
-  carries a one-line pointer. No comment left in Shared. No transitive pinning enabled, no
-  package override added.
-
-Phase 2.2.1: bumped all 11 Microsoft .NET 10 servicing packages `10.0.0` → **`10.0.11`**
-(latest stable verified against NuGet at execution time; no .NET 11 previews). Families kept
-aligned on one servicing release: ASP.NET Core, EF Core, Microsoft.Extensions, EF health checks,
-SignalR client, MVC testing. Test/third-party packages deliberately untouched.
+- **CLI:** `graphifyy 0.9.56` (PyPI, `Graphify-Labs/graphify`, Apache-2.0) in an isolated venv at
+  `C:\Users\Victus\.local\graphify-venv`. **Not** an RTUB dependency — no csproj, package.json or
+  lockfile touched. Its `Scripts/` dir is first on the *user* PATH.
+- **Claude integration:** project-scoped. `.claude/skills/graphify/` (skill + 8 references),
+  `.claude/CLAUDE.md` (skill registration), `.mcp.json` (project MCP server `graphify-mcp`).
+  The installer's `PreToolUse` hooks were **removed** from `.claude/settings.json` — they fire on
+  every Bash/Grep/Read/Glob and mandate `graphify query`, which the effectiveness test showed is the
+  weakest entry point. `.claude/settings.json` is back to byte-identical with `dev`.
+  Root `CLAUDE.md` keeps our own concise wording; the installer's 10-line block was reverted.
+- **Scope:** `.graphifyignore` (44 lines) on top of `.gitignore`. Excludes `graphify-out/`,
+  `.git/`, the 21 MB / 321-file generated `src/RTUB.Web/Migrations/`, vendored `wwwroot/lib/`,
+  minified/map files, binary media/fonts, and local DB + credential patterns. No secret or local
+  database content is indexed; tracked `appsettings*.json` were checked and are placeholder-only.
+- **Graph:** build `graphify extract . --code-only` — 1325 code files, no LLM, no API key, 73 s ->
+  **19,928 nodes / 47,685 edges / 699 communities**. After one `graphify update .`:
+  **20,354 / 48,074 / 734**, 88% EXTRACTED / 12% INFERRED / 0% AMBIGUOUS.
+  Incremental update re-extracted **95 of 1325 files (7%)** — the SHA256 cache works; the 81 s wall
+  time is clustering + HTML, not extraction.
+- **MCP:** `.mcp.json` declares one stdio server, `command: "graphify-mcp"`, arg
+  `graphify-out/graph.json`, empty `env`. No secret, no absolute path, no venv path — portable and
+  committable as-is; left unchanged.
+  Verified end-to-end by JSON-RPC probe against the venv `graphify-mcp.exe`: `initialize` returns
+  `graphify 0.9.56`, `tools/list` returns 10 tools, `graph_stats` returns 20,354 / 48,074 / 734,
+  `get_neighbors IPushNotificationService` returns forward *and* reverse (`<--`) edges with exact
+  `file:line`, `shortest_path PushNotificationService -> IPushNotificationService` returns the
+  1-hop `implements` edge. Three spot-checks against source matched exactly.
+- **Ponytail:** installed as a global plugin (`ponytail@ponytail` 4.10.0, user scope), loads at
+  SessionStart at level `full`. Not an RTUB dependency — nothing in the repo references it, and
+  `~/.claude/skills/` is empty (no duplicate manual skill).
 
 ## SQLite vulnerability outcome
 - **Before:** `SQLitePCLRaw.lib.e_sqlite3 2.1.11` — High, `GHSA-2m69-gcr7-jv3q`.
@@ -67,15 +73,58 @@ unstaged edits went with it — intended, the file itself is obsolete.
 `docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests.
 
 ## Next unit
-**Make Graphify operational.** The `CLAUDE.md` context-discipline rule says "prefer Graphify over
-targeted reads", but no Graphify index, config, CLI or MCP server exists anywhere in the repo or
-`.claude/` — every session so far has fallen back to `grep` + `sed -n`. Either stand the tool up
-and generate a real index, or drop the routing rule so it stops costing a wasted decision each
-session. Decide, then align `CLAUDE.md` (deliberately left unmodified so far).
+**Phase 2.3 — replace `WebPush-NetCore 1.0.2`.** Sole cause of `NU1903` + `NETSDK1206`, and the only
+reason the Newtonsoft floor pin still exists. Test-stack modernization (xunit v3) is a separate,
+later unit.
 
-Queued after that: **Phase 2.3 — replace `WebPush-NetCore 1.0.2`** (sole cause of `NU1903` +
-`NETSDK1206`, and the only reason the Newtonsoft floor pin still exists). Test-stack
-modernization (xunit v3) remains a separate, later unit.
+## Graphify effectiveness (measured, unit 008)
+Three real cross-layer questions, Graphify first, then minimal source verification.
+
+| Question | Graphify result | Verdict |
+| --- | --- | --- |
+| Web Push: scheduler -> browser | `affected IPushNotificationService` returned all 6 background senders + `PushController` at exact `file:line`. **Missed** the browser leg — `service-worker.js` is a degree-2 island. | Accurate; incomplete at the HTTP boundary |
+| SQLite backup + R2 | `affected IDatabaseBackupStorageService` found the `DatabaseBackupBackgroundService` orchestrator (`RunBackupAsync` L144, `RotateAsync` L211) and the `BaseStorageService` hierarchy. `query` returned false positives (`RestoreHp`, `ObjectPool`). | Accurate via `affected`; `query` noisy |
+| MyTuno Blazor/Application/PixiJS | Correctly linked `MyTunoHome.razor` -> `IInventoryService`. **No path** Razor -> PixiJS: `JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", ...)` is string dispatch, invisible to AST. | Real blind spot; grep found it in one call |
+
+Conclusions: `explain` / `affected` are the value — precise, verifiable `file:line`, reverse traversal
+that grep cannot cheaply reproduce. `graphify query` is lexical BFS and misleads. Cross-language and
+string-dispatch boundaries are a structural blind spot. MCP beats reading the 147 KB `GRAPH_REPORT.md`
+(same engine as the CLI, structured access); the report itself is not worth reading in full.
+Maintaining the graph is worthwhile at ~73 s rebuild / 7% incremental cost.
+
+## Graph artifact policy
+`graphify-out/` is **gitignored** — 84 MB total, `graph.json` alone 38 MB, fully reproducible from
+source. Committed instead: `.claude/skills/graphify/`, `.claude/CLAUDE.md`, `.mcp.json`,
+`.graphifyignore`, the `.gitignore` rule, and the `CLAUDE.md` routing rule.
+
+## MCP gate — executable conflict resolved
+The PATH fight is over; it was solved by making the *winning* install compatible instead.
+
+`explorer.exe` (PID 9396, running since the 2026-09-19 boot) caches the pre-reorder environment
+block, and Claude Desktop inherits it from explorer — so neither a new session nor an app restart
+ever picked up the reordered PATH. Rather than reorder further, the Microsoft-Store Python
+user-site install was upgraded in place: **graphifyy 0.9.55 -> 0.9.56 with the `mcp` extra**
+(`mcp 2.2.0`), using its own interpreter
+`C:\Users\Victus\AppData\Local\Microsoft\WindowsApps\python3.13.exe`
+(`pip install --user --upgrade "graphifyy[mcp]==0.9.56"`).
+
+Both installs are now 0.9.56 + MCP, so whichever wins PATH works. The venv was left untouched.
+Verified in-process: `graphify --version` = 0.9.56; the winning Store `graphify-mcp.exe` imports
+`mcp.server.stdio` and answers `initialize` over stdio.
+
+Claude's MCP client does not reconnect mid-session, so the upgrade only took effect in a new
+session. **Confirmed operational 2026-09-20** in a fresh Claude session, via the MCP tools
+themselves (not the CLI, not a manual JSON-RPC probe):
+- `graph_stats` → **20,354 nodes / 48,074 edges / 734 communities**, 88% EXTRACTED / 12% INFERRED
+  / 0% AMBIGUOUS — matches the built graph exactly.
+- `get_node IPushNotificationService` → `src/RTUB.Application/Interfaces/IPushNotificationService.cs`
+  L8, degree 67.
+- `shortest_path PushNotificationService → IPushNotificationService` → 1-hop `implements`
+  [EXTRACTED].
+
+The chain Claude → `.mcp.json` → `graphify-mcp` → `graphify-out/graph.json` works end-to-end.
+The Microsoft-Store Python install is the one winning PATH; `graphify --version` = 0.9.56. Which
+of the two installs wins does not matter — both are 0.9.56 + MCP.
 
 ## Blockers
 None.
@@ -93,7 +142,9 @@ None.
   pin plus its `PackageVersion` are the only Newtonsoft declarations left; delete both together
   with the WebPush replacement.
 - **Phase 1C:** remaining optional custom skills — deliberately not created.
-- Work-branch cleanup (`chore/001`–`chore/004`) — delete when convenient.
+- Work-branch cleanup (`chore/001`–`chore/007`) — delete when convenient.
+- Two `graphifyy 0.9.56 + MCP` installs (isolated venv, Microsoft-Store Python user site). The
+  Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
 ## Relevant files

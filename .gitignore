@@ -377,3 +377,7 @@ src/RTUB.Web/Pages/MyTuno/*.bak
 
 # Claude Code local machine overrides (not repo config)
 .claude/settings.local.json
+
+# Graphify generated knowledge graph (~84 MB: 38 MB graph.json + AST cache).
+# Rebuilt locally with `graphify extract . --code-only`; never committed.
+graphify-out/
