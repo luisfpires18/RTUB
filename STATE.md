@@ -5,48 +5,42 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-20_
 
 ## Phase
-Tooling unit **008 (make Graphify operational) — implementation complete, uncommitted, awaiting
-owner review.** CLI, Claude skill and MCP are all **operational**: the MCP server is connected and
-verified from inside Claude, the conditional Graphify usage policy is established and the generated
-graph is gitignored. Nothing outstanding.
-Modernization Phase 2.2.2 and everything before it are merged to `dev`.
+Modernization unit **009 (replace `WebPush-NetCore 1.0.2`) — implementation complete, uncommitted,
+awaiting owner review.** `WebPush-NetCore` is gone, the Newtonsoft floor pin is gone, and both
+`NU1903` / `NETSDK1206` suppressions are gone. Solution now has **zero vulnerable packages**.
+Tooling unit 008 (Graphify) and modernization Phase 2.2.2 and earlier are merged to `dev`.
 
 ## Branch
-`chore/008/enable-graphify`, branched from `dev`. Uncommitted (no commit authorized).
-`chore/001`–`chore/007` still present; delete when convenient.
+`chore/009/replace-webpush-netcore`, branched from `dev`. Uncommitted (no commit authorized).
+`chore/001`–`chore/008` still present; delete when convenient.
 
 ## Last completed step
-**Unit 008 — Graphify is operational.**
+**Unit 009 — `WebPush-NetCore 1.0.2` replaced by `WebPush 1.0.13`.**
 
-- **CLI:** `graphifyy 0.9.56` (PyPI, `Graphify-Labs/graphify`, Apache-2.0) in an isolated venv at
-  `C:\Users\Victus\.local\graphify-venv`. **Not** an RTUB dependency — no csproj, package.json or
-  lockfile touched. Its `Scripts/` dir is first on the *user* PATH.
-- **Claude integration:** project-scoped. `.claude/skills/graphify/` (skill + 8 references),
-  `.claude/CLAUDE.md` (skill registration), `.mcp.json` (project MCP server `graphify-mcp`).
-  The installer's `PreToolUse` hooks were **removed** from `.claude/settings.json` — they fire on
-  every Bash/Grep/Read/Glob and mandate `graphify query`, which the effectiveness test showed is the
-  weakest entry point. `.claude/settings.json` is back to byte-identical with `dev`.
-  Root `CLAUDE.md` keeps our own concise wording; the installer's 10-line block was reverted.
-- **Scope:** `.graphifyignore` (44 lines) on top of `.gitignore`. Excludes `graphify-out/`,
-  `.git/`, the 21 MB / 321-file generated `src/RTUB.Web/Migrations/`, vendored `wwwroot/lib/`,
-  minified/map files, binary media/fonts, and local DB + credential patterns. No secret or local
-  database content is indexed; tracked `appsettings*.json` were checked and are placeholder-only.
-- **Graph:** build `graphify extract . --code-only` — 1325 code files, no LLM, no API key, 73 s ->
-  **19,928 nodes / 47,685 edges / 699 communities**. After one `graphify update .`:
-  **20,354 / 48,074 / 734**, 88% EXTRACTED / 12% INFERRED / 0% AMBIGUOUS.
-  Incremental update re-extracted **95 of 1325 files (7%)** — the SHA256 cache works; the 81 s wall
-  time is clustering + HTML, not extraction.
-- **MCP:** `.mcp.json` declares one stdio server, `command: "graphify-mcp"`, arg
-  `graphify-out/graph.json`, empty `env`. No secret, no absolute path, no venv path — portable and
-  committable as-is; left unchanged.
-  Verified end-to-end by JSON-RPC probe against the venv `graphify-mcp.exe`: `initialize` returns
-  `graphify 0.9.56`, `tools/list` returns 10 tools, `graph_stats` returns 20,354 / 48,074 / 734,
-  `get_neighbors IPushNotificationService` returns forward *and* reverse (`<--`) edges with exact
-  `file:line`, `shortest_path PushNotificationService -> IPushNotificationService` returns the
-  1-hop `implements` edge. Three spot-checks against source matched exactly.
-- **Ponytail:** installed as a global plugin (`ponytail@ponytail` 4.10.0, user scope), loads at
-  SessionStart at level `full`. Not an RTUB dependency — nothing in the repo references it, and
-  `~/.claude/skills/` is empty (no duplicate manual skill).
+**Replacement chosen:** `WebPush 1.0.13` (`web-push-libs/web-push-csharp`, published 2026-04-28).
+**Reason:** `WebPush-NetCore` is a fork of this exact library, so the API surface RTUB uses is
+identical — `WebPushClient`, `SetVapidDetails`, `PushSubscription(endpoint, p256dh, auth)`,
+`SendNotificationAsync(sub, payload, Dictionary<string,object>)`, `WebPushException.StatusCode`.
+**Zero source changes** in `src/` — the swap is package-reference only. Ships a native `net10.0`
+TFM and one transitive dependency, `Portable.BouncyCastle 1.9.0` (not deprecated, no advisories).
+
+**Rejected:** `ClosureOSS.WebPush 2.5.7` — also maintained and `net10.0`-native, but a v2 API
+redesign (DI `IWebPushClient`, different options model) and three transitive dependencies
+(`Microsoft.Extensions.Logging.Abstractions 10.0.11`, `Microsoft.IdentityModel.{JsonWebTokens,Tokens} 8.22.0`).
+Larger migration for no requirement RTUB has. Revisit only if `WebPush 1.x` stalls again.
+
+**Behavior preserved verbatim** — `IPushNotificationService`, VAPID config/behavior,
+`Enabled` / `IsConfigured()` split, Owner bypass, inbox-before-push, retry/backoff (3 attempts,
+2^n transient / 3^n on 429), `TTL 86400`, `Urgency: high`, 404/410 subscription deletion, all
+caller contracts. `PushNotificationService` was not refactored.
+
+**VAPID key formats verified empirically** against `WebPush 1.0.13` (throwaway probe, not committed):
+`SetVapidDetails` accepts base64url, standard base64, and either with padding. RTUB's base64url
+storage format (`NormalizeBase64Url`) is accepted — the swap cannot silently disable sending.
+
+**Files changed (4):** `Directory.Packages.props`, `Directory.Build.props`,
+`src/RTUB.Application/RTUB.Application.csproj`,
+`tests/RTUB.Application.Tests/Services/PushNotificationServiceTests.cs`.
 
 ## SQLite vulnerability outcome
 - **Before:** `SQLitePCLRaw.lib.e_sqlite3 2.1.11` — High, `GHSA-2m69-gcr7-jv3q`.
@@ -55,13 +49,28 @@ Modernization Phase 2.2.2 and everything before it are merged to `dev`.
   the normal dependency graph resolved it.
 
 ## Warning suppressions
-Both retained, re-verified diagnostically by rebuilding with `NU1903` and `NETSDK1206`
-removed from `NoWarn`:
-- `NU1903` — now caused **only** by `Microsoft.NETCore.App 1.0.5` + `Microsoft.NETCore.Jit 1.0.7`
-  via `WebPush-NetCore 1.0.2`. SQLitePCLRaw no longer contributes.
-- `NETSDK1206` — Libuv RIDs via the same `WebPush-NetCore` chain. Unchanged.
-Comment block in `Directory.Build.props` updated to record the new cause set. Nothing removed,
-nothing added.
+**Both removed.** `NoWarn` no longer lists `NU1903` or `NETSDK1206`, and the explanatory comment
+block in `Directory.Build.props` went with them. Verified, not assumed: forced restore + Release
+build with both suppressions absent gives **0 warnings, 0 errors** under `TreatWarningsAsErrors`.
+Their sole remaining cause — `Microsoft.NETCore.App 1.0.5` / `Microsoft.NETCore.Jit 1.0.7` /
+`Libuv 1.9.1` via `WebPush-NetCore` — left the graph with the package.
+
+## Newtonsoft outcome — floor pin removed
+The temporary direct `Newtonsoft.Json 13.0.4` reference in `RTUB.Application` and its
+`PackageVersion` in `Directory.Packages.props` are **both deleted**. They existed only because
+`WebPush-NetCore 1.0.2` declared a permissive `Newtonsoft.Json >= 9.0.1`; `WebPush 1.0.13` declares
+no Newtonsoft dependency at all.
+
+Verified with `dotnet nuget why` after a forced restore, not assumed:
+- `RTUB.Application` — "does not have a dependency on Newtonsoft.Json". Same for `RTUB.Core`,
+  `RTUB.Shared`.
+- `RTUB` (Web) — `13.0.4`, transitive via `Microsoft.EntityFrameworkCore.Tools` → `.Design`
+  (build/design-time only).
+- Test projects — `13.0.1`, transitive via `Microsoft.NET.Test.Sdk 17.12.0` →
+  `Microsoft.TestPlatform.TestHost`. `13.0.1` is the fixed version for `GHSA-5crp-9r3c-p9vr`.
+
+No RTUB project declares Newtonsoft directly any more, and no serialization code was touched
+(the migration to `System.Text.Json` completed in Phase 2.2).
 
 ## Current task
 None active.
@@ -73,9 +82,10 @@ unstaged edits went with it — intended, the file itself is obsolete.
 `docs/cloudflare-r2-and-database-backups.md` untouched. Docs-only: no build, no tests.
 
 ## Next unit
-**Phase 2.3 — replace `WebPush-NetCore 1.0.2`.** Sole cause of `NU1903` + `NETSDK1206`, and the only
-reason the Newtonsoft floor pin still exists. Test-stack modernization (xunit v3) is a separate,
-later unit.
+**Test-stack modernization — `xunit 2.9.2` family → `xunit.v3`** across all 5 test projects, with
+`Microsoft.NET.Test.Sdk 17.12.0`, `xunit.runner.visualstudio 2.8.2`, `bunit 2.7.2`,
+`MockQueryable.Moq 8.0.0`, `coverlet.collector 6.0.2`, `AngleSharp 1.5.2` in the same unit.
+This is now the only remaining deprecated-package cluster in the solution.
 
 ## Graphify effectiveness (measured, unit 008)
 Three real cross-layer questions, Graphify first, then minimal source verification.
@@ -130,31 +140,60 @@ of the two installs wins does not matter — both are 0.9.56 + MCP.
 None.
 
 ## Deferred / owner decisions
-- **Remaining dependency findings (unchanged by 2.2.1):**
-  - `WebPush-NetCore 1.0.2` → Push modernization phase. Sole remaining cause of `NU1903`
-    (`GHSA-7mfr-774f-w5r9`, `GHSA-8884-xcr4-r68p`, `GHSA-xcvr-qv8h-m7xw`) and `NETSDK1206`.
-    Also deprecated: `Microsoft.NETCore.App 1.0.5`, `Microsoft.NETCore.Runtime.CoreCLR 1.0.7`.
-  - `xunit 2.9.2` family deprecated (Legacy → `xunit.v3`) across all 5 test projects.
+- **Remaining dependency findings (after 009):**
+  - `xunit 2.9.2` family deprecated (Legacy → `xunit.v3`) across all 5 test projects — **the only
+    deprecated packages left in the solution.**
   - Test stack still old: `Microsoft.NET.Test.Sdk 17.12.0`, `xunit.runner.visualstudio 2.8.2`,
     `MockQueryable.Moq 8.0.0`, `coverlet.collector 6.0.2`, `bunit 2.7.2`, `AngleSharp 1.5.2`.
   - `QuestPDF 2024.10.3`, AWS SDK, `Microsoft.Playwright 1.50.0` — independent version trains.
-- **Newtonsoft.Json final removal** — blocked on `WebPush-NetCore`. The `RTUB.Application` floor
-  pin plus its `PackageVersion` are the only Newtonsoft declarations left; delete both together
-  with the WebPush replacement.
+  - `Portable.BouncyCastle 1.9.0` — new transitive via `WebPush 1.0.13`. Not deprecated, no
+    advisories, but it is the legacy package id (`BouncyCastle.Cryptography` is the modern one).
+    Nothing to do; note it if a future advisory lands.
+- **Push subsystem debt (unchanged, out of scope for 009):** `WebPushClient` is still newed up
+  inside `PushNotificationService`, so it cannot be mocked and no test covers an actual send,
+  a retry, or 404/410 cleanup. Also: two service-worker registration paths, unbounded
+  `BroadcastAsync` fan-out, no `CancellationToken`, no delivery metrics. All deliberately untouched.
 - **Phase 1C:** remaining optional custom skills — deliberately not created.
-- Work-branch cleanup (`chore/001`–`chore/007`) — delete when convenient.
+- Work-branch cleanup (`chore/001`–`chore/008`) — delete when convenient.
 - Two `graphifyy 0.9.56 + MCP` installs (isolated venv, Microsoft-Store Python user site). The
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
 ## Relevant files
-- `Directory.Packages.props` — Newtonsoft floor-pin rationale comment (Phase 2.2.2); 11 Microsoft
-  packages → 10.0.11 (Phase 2.2.1).
-- `src/RTUB.Application/RTUB.Application.csproj`, `src/RTUB.Shared/RTUB.Shared.csproj` — Newtonsoft
-  floor-pin rationale comments.
-- `Directory.Build.props` — suppression comment updated (SQLitePCLRaw cause removed).
+- `Directory.Packages.props` — `WebPush 1.0.13` replaces `WebPush-NetCore 1.0.2`; Newtonsoft
+  `PackageVersion` removed (unit 009). 11 Microsoft packages → 10.0.11 (Phase 2.2.1).
+- `src/RTUB.Application/RTUB.Application.csproj` — `WebPush` reference; Newtonsoft floor pin and
+  its rationale comment removed (unit 009).
+- `Directory.Build.props` — `NU1903` / `NETSDK1206` suppressions and the whole rationale comment
+  block removed (unit 009).
+- `tests/RTUB.Application.Tests/Services/PushNotificationServiceTests.cs` — one added test,
+  `Constructor_AcceptsRealVapidKeys_WithoutLoggingInvalidConfigurationWarning`.
+- `src/RTUB.Application/Services/PushNotificationService.cs` — **unchanged**; the `using WebPush;`
+  and every API call were already correct for the replacement package.
 
-## Latest validation (Phase 2.2.2)
+## Latest validation (unit 009)
+- Forced restore (`--force-evaluate`): OK, all 9 projects.
+- Build Release: **0 warnings, 0 errors** — with `NU1903` / `NETSDK1206` no longer suppressed and
+  `TreatWarningsAsErrors=true`.
+- Full test suite: **4478 passed, 0 failed, 60 skipped**. Baseline 4477 + the one added test.
+  (Core 791, Application 1968, Shared 759, Web 735, Integration 225.)
+- Focused push tests (`FullyQualifiedName~Push`, Application): **82 passed, 0 failed**.
+- `dotnet list package --vulnerable --include-transitive`: **zero vulnerable packages in all 9
+  projects** — first time in the modernization.
+- `dotnet list package --deprecated --include-transitive`: only the pre-existing `xunit 2.x`
+  family. Every `Microsoft.NETCore.*` 1.x entry is gone.
+- Resolved graph check: `WebPush-NetCore` **absent**; `Microsoft.NETCore.App 1.0.5`,
+  `Microsoft.NETCore.Jit 1.0.7`, `Microsoft.NETCore.Runtime.CoreCLR 1.0.7` and `Libuv 1.9.1`
+  **all absent**. `WebPush 1.0.13` + `Portable.BouncyCastle 1.9.0` resolve everywhere.
+- Newtonsoft final state verified with `dotnet nuget why` — see the Newtonsoft section above.
+- Migrations / `ApplicationDbContextModelSnapshot.cs`: **unchanged** (nothing under
+  `src/RTUB.Web/Migrations/` touched).
+- `git diff --check` clean; secret scan clean. File encodings (BOM + CRLF) verified byte-identical
+  to `HEAD` so the diff carries no whitespace noise.
+- Graphify not rebuilt — no application structure change (`src/` has zero source edits).
+- Frontend/Playwright not run — no frontend file touched.
+
+## Previous validation (Phase 2.2.2)
 - Code search across `src/` + `tests/` for every Newtonsoft API surface: **0 hits.**
 - Forced restore (`--force-evaluate`) after the Shared-only removal: OK.
 - Resolved Newtonsoft graph — `RTUB.Application` 13.0.4 (direct), `RTUB.Shared` **13.0.4
