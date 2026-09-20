@@ -411,7 +411,11 @@ public class Program
         app.MapHealthChecks("/health");
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
-        app.MapPost("/auth/login", async (HttpContext http,
+        // The IFormCollection parameter makes this endpoint an antiforgery-protected form
+        // endpoint: the framework requires a valid token and returns 400 before the handler
+        // runs. Do not replace it with HttpContext.Request.ReadFormAsync() — that silently
+        // removes CSRF protection. The token is rendered by <AntiforgeryToken /> in Login.razor.
+        app.MapPost("/auth/login", async (IFormCollection form,
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
                                           ApplicationDbContext db,
@@ -419,7 +423,6 @@ public class Program
                                           AuditContext auditContext,
                                           IMemoryCache cache) =>
         {
-            var form = await http.Request.ReadFormAsync();
             var username = form["Username"].ToString();
             var password = form["Password"].ToString();
             var rememberRaw = form["RememberMe"].ToString();
@@ -519,16 +522,17 @@ public class Program
                 return Results.Redirect(returnUrl);
             }
             return Results.Redirect("/");
-        })
-        // If you want antiforgery enforced here, replace the next line with: .RequireAntiforgery();
-        .DisableAntiforgery();
+        });
 
         // LOGOUT (HTTP POST)
-        app.MapPost("/auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
+        // The unused IFormCollection parameter is what enables antiforgery validation — see the
+        // note on /auth/login. The token is rendered by <AntiforgeryToken /> in MainLayout.razor.
+        app.MapPost("/auth/logout", async (IFormCollection form,
+                                           SignInManager<ApplicationUser> signInManager) =>
         {
             await signInManager.SignOutAsync();
             return Results.Redirect("/");
-        }).DisableAntiforgery();
+        });
 
         app.MapRazorComponents<RTUB.App>()
            .AddInteractiveServerRenderMode();

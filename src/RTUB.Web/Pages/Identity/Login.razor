@@ -23,6 +23,7 @@
         }
 
         <form method="post" action="/auth/login" @formname="LoginForm">
+            <AntiforgeryToken />
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
             <div class="mb-3">
                 <label class="form-label" for="inputUsername">Nome de utilizador</label>
