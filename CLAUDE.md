@@ -13,7 +13,9 @@ Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
 ## Context discipline
-- Prefer Graphify or targeted reads (`grep`, `sed -n`, single-file reads) over repository-wide scans. Never re-scan the repo to answer a scoped question.
+- Architecture / cross-layer tracing (callers, blast radius, layering): `graphify explain "<sym>"` and `graphify affected "<sym>"` first, while `graphify-out/` is current. Not `graphify query` — it is lexical and noisy.
+- Exact symbols, config, packages, and anything crossing the C#↔JS interop boundary: `grep` / targeted reads first. The graph has no edge across `JSRuntime.Invoke*` string dispatch.
+- Verify Graphify findings against source before changing code. Never re-scan the repo to answer a scoped question.
 - Load only the skills the current task needs.
 - Caveman/concise execution: do the work, skip the narration. Report outcomes, not plans.
 - Keep `CLAUDE.md` and `STATE.md` small. New durable detail belongs in a focused doc or ADR, not here.
@@ -40,7 +42,7 @@ Run only what the change can break.
 - Application code → `dotnet build`, then the affected test project(s).
 - Full `dotnet test` only when the change is broad or before shipping.
 - Always: `git diff --check`, secret scan, review final `git diff` and `git status`.
-- Rebuild Graphify only when application structure changes — not for docs/tooling edits.
+- Rebuild Graphify (`graphify extract . --code-only`) only when application structure changes — not for docs/tooling edits.
 
 ## Authoritative docs
 | Topic | Source |
