@@ -39,18 +39,23 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # Microsoft.Testing.Platform runner (see global.json "test.runner").
+      # TRX comes from xUnit's built-in reporter; coverage from
+      # Microsoft.Testing.Extensions.CodeCoverage. Report filenames are left
+      # unset on purpose: all 5 projects write into one results directory and
+      # MTP auto-assigns unique names, so a fixed name would overwrite.
       - name: Run tests with coverage
         run: |
           dotnet test --no-build --configuration Release \
-            --collect:"XPlat Code Coverage" \
             --results-directory ./coverage \
-            --logger "trx;LogFileName=test-results.trx"
+            --report-xunit-trx \
+            --coverage --coverage-output-format cobertura
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
-          path: coverage/**/coverage.cobertura.xml
+          path: coverage/**/*.cobertura.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
