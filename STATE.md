@@ -5,132 +5,166 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-20_
 
 ## Phase
-Modernization unit **012 (antiforgery on the browser authentication POSTs) — implementation
-complete, uncommitted, awaiting owner review.** Unit 011 is merged to `dev`.
+Modernization unit **013 (CSRF review of the remaining cookie-authenticated API endpoints) —
+implementation complete, uncommitted, awaiting owner review.** Unit 012 is merged to `dev`.
 
 ## Branch
-`fix/012/auth-antiforgery`, branched from `dev` (clean, in sync with `origin/dev` at `0c918bc4`).
+`fix/013/cookie-api-csrf`, branched from `dev` (clean, in sync with `origin/dev` at `1ac8abb9`).
 Uncommitted — no commit authorized.
-`chore/001`–`chore/011` still present; delete when convenient.
+`chore/001`-`chore/011` and `fix/012` still present; delete when convenient.
 
 ## Last completed step
-**Unit 012 — `POST /auth/login` and `POST /auth/logout` now require a valid ASP.NET Core
-antiforgery token.** Authentication logic itself is untouched.
+**Unit 013 — the five remaining cookie-authenticated mutations were classified against real
+observed behavior, and only the one that was genuinely CSRF-reachable was addressed: it was
+deleted, because nothing called it.** No antiforgery plumbing was added anywhere.
 
-### Antiforgery status
+### Endpoints reviewed and CSRF classification
 
-| Endpoint | Before | After |
-| --- | --- | --- |
-| `POST /auth/login` | `.DisableAntiforgery()` | token required, 400 before handler runs |
-| `POST /auth/logout` | `.DisableAntiforgery()` | token required, 400 before handler runs |
+Every row was measured with a real authenticated `WebApplicationFactory` request, not reasoned
+about. Anonymous callers hit the cookie challenge first (302 to `/login`, or 401 for `/api/push/*`).
 
-### Framework finding (verified against .NET 10 docs **and** ASP.NET Core `release/10.0` source)
+| Endpoint | Auth | Form-POST result (authenticated) | Classification |
+| --- | --- | --- | --- |
+| `POST /api/admin/refresh-all` | cookie, `Roles = "Admin"` | **200 OK** with an arbitrary form body, and with no body at all | **exploitable form CSRF - and dead. Removed.** |
+| `POST /api/push/subscribe` | cookie, `[Authorize]` | **415** for all three form enctypes | already protected by request shape |
+| `POST /api/push/unsubscribe` | cookie, `[Authorize]` | **415** for all three form enctypes | already protected by request shape |
+| `POST /api/push/broadcast` | cookie, `Roles = "Owner"` | **403** (role gate precedes binding); 415 for an Owner | already protected; **no browser caller** |
+| `POST /api/push/send-to-selected` | cookie, `Roles = "Owner,Admin"` | **403**; 415 for an Owner/Admin | already protected; **no browser caller** |
 
-Three assumptions were checked, and two of the obvious approaches would have silently failed.
+`/auth/login` and `/auth/logout` already carry real antiforgery tokens (unit 012). The other three
+controllers (`CdnProxy`, `DownloadMedia`, `Images`) expose `[HttpGet]` only — no mutations. That is
+the complete set: a search for `MapPost|MapPut|MapDelete|MapPatch|MapMethods` and
+`HttpPost|HttpPut|HttpDelete|HttpPatch` returns nothing else in the solution.
 
-1. **Plain `<form>` does not emit a token.** The `AntiforgeryToken` component is added
-   automatically **only to `EditForm`**. For an HTML `<form>` element the docs say to add
-   `<AntiforgeryToken />` manually. Both RTUB auth forms are plain `<form>` elements, so both
-   needed it. Failed validation ⇒ **400 Bad Request**.
-2. **`.RequireAntiforgery()` does not exist.** The comment left in `Program.cs` pointed at an API
-   that is not in the framework: `src/Http/Routing/src/PublicAPI.Shipped.txt` lists only
-   `DisableAntiforgery`, and `Microsoft.AspNetCore.Routing.dll` in the 10.0.4 ref pack contains no
-   `RequireAntiforgery` member (only `RequireAntiforgeryTokenAttribute`, in the Antiforgery
-   assembly, which is metadata-only).
-3. **Removing `.DisableAntiforgery()` alone would have protected nothing.**
-   `AntiforgeryMiddleware.Invoke` validates only when the endpoint carries
-   `IAntiforgeryMetadata { RequiresValidation: true }`, and it **never short-circuits** — it only
-   sets `IAntiforgeryValidationFeature`. The 400 is produced inside
-   `RequestDelegateFactory.TryReadFormAsync`, which runs **only for form-bound parameters**.
-   `RequestDelegateFactory.InferAntiforgeryMetadata` likewise fires only when
-   `factoryContext.ReadForm` is true. A handler that calls `HttpContext.Request.ReadFormAsync()`
-   by hand gets neither the metadata nor the gate.
+### The four mechanisms, kept distinct
 
-**Mechanism chosen:** bind the form through the handler signature (`IFormCollection`), which is
-the framework's own documented default — "Minimal APIs that accept form data require antiforgery
-token validation and fail before running application code". No custom CSRF code, no filter, no
-manual `IAntiforgery` call.
+They are **not** interchangeable, and each endpoint above is protected by a different one.
 
-### Changes (3 source files, 2 test files)
-- `Program.cs` — login handler parameter `HttpContext http` → `IFormCollection form`; the
-  `await http.Request.ReadFormAsync()` line deleted (the bound collection is the same
-  `IFormCollection`). Logout handler gains an `IFormCollection form` parameter. Both
-  `.DisableAntiforgery()` calls and the misleading `.RequireAntiforgery()` comment removed.
-  Both endpoints carry a comment saying the parameter *is* the protection, so it is not deleted
-  later as dead code.
-- `Login.razor`, `MainLayout.razor` — `<AntiforgeryToken />` added inside each form.
-  `Microsoft.AspNetCore.Components.Forms` is already in `src/RTUB.Web/_Imports.razor`.
+1. **Form CSRF** — a cross-site `<form>` can POST only `application/x-www-form-urlencoded`,
+   `multipart/form-data` or `text/plain`. This is the attack `/api/admin/refresh-all` was open to:
+   it binds nothing from the body, so *any* of those bodies reached the handler and returned 200.
+2. **JSON API CSRF** — the `PushController` actions are `[ApiController]` + `[FromBody]`. Input
+   formatter selection happens during model binding, **before the action runs**, and the JSON
+   formatter reads only `application/json` / `text/json` / `application/*+json`. All three form
+   enctypes were measured at **415 Unsupported Media Type**. This is a *server-side* gate and does
+   not depend on any browser policy. Measured caveat: a **malformed** `multipart` body returns 400
+   rather than 415 — the body is parsed before formatter selection. Both are pre-action
+   rejections; the test uses well-formed browser-shaped bodies so it asserts the real 415.
+3. **CORS** — there is **no CORS configuration in the solution at all**: no `AddCors`, no
+   `UseCors`, no policy, no `AllowAnyOrigin`, no `AllowCredentials`. That is the safe default, not
+   a gap. A cross-origin `fetch` sending `Content-Type: application/json` is non-simple, so it is
+   preflighted; with no CORS middleware the `OPTIONS` never gets `Access-Control-Allow-Origin` and
+   the browser never sends the real request. **Nothing unsafe was found, so nothing was changed.**
+   Note the limit of this layer: a *simple* cross-origin POST (`text/plain`) is still **sent** —
+   CORS only blocks reading the response — which is why mechanism 2 above, not CORS, is what
+   actually protects the Push endpoints against that shape.
+4. **SameSite** — the sign-in cookie is issued as
+   `.AspNetCore.Identity.Application=...; path=/; samesite=lax; httponly` (observed on a real
+   login response). `Lax` means the cookie is **not** attached to any cross-site POST, form or
+   fetch, so the request arrives unauthenticated. Because the value is set *explicitly* by the
+   framework, Chrome's 2-minute "Lax-allowing-unsafe" intervention — which applies only to cookies
+   with no `SameSite` attribute — does not apply. This is a browser-side, defence-in-depth layer:
+   it is porous to a same-site attacker (any sibling subdomain counts as same-site), which is why
+   it was **not** treated as sufficient on its own for `/api/admin/refresh-all`.
 
-**Nothing else changed.** Credential validation, email-confirmation check, lockout,
-`AccessFailedAsync` / `ResetAccessFailedCountAsync`, expelled-user handling, `LastLoginDate`,
-audit context, the duplicate-log memory cache, `RememberMe`, `SignInAsync`, the
-`UrlHelper.IsLocalUrl` return-URL guard and every redirect are byte-identical.
-`app.UseAntiforgery()` and `AddAntiforgery(o => o.HeaderName = ...)` untouched. No migrations.
+### Why `/api/admin/refresh-all` was deleted rather than protected
 
-### Why the forms render a token at all
-`App.razor` has no `@rendermode`, so `Router` → `AuthorizeRouteView` → `MainLayout` all render
-**static SSR**; only pages marked `@rendermode InteractiveServer` are interactive islands inside
-that static shell. Static SSR is exactly where `<AntiforgeryToken />` works, and the logout form
-therefore gets a fresh token on every full page load. Confirmed by test, not by reasoning:
-the logout test reads the token out of a real `GET /` response.
+It was CSRF-reachable (200 on an authenticated Admin form POST) **and provably unused**:
 
-### Tests
-New `tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs` — **7 tests**, all driving the real
-browser flow (GET the page, read `__RequestVerificationToken` out of the rendered HTML, POST it
-with cookies). No token is ever manufactured and antiforgery is not weakened for tests.
+- A tracked-tree search found only its own definition and unit 012's STATE.md note. No `fetch`, no
+  `HttpClient`, no `.http` / script / CI / doc reference anywhere.
+- `git log --all -S"refresh-all"` returns exactly two commits: `213d0aa0` (which introduced it)
+  and `bc70ceea` (012's STATE.md note). **It never had a caller in any commit on any branch.**
+- Its service is alive and unaffected: `AdminRefreshService.TriggerRefreshAsync()` is called
+  **in-process** from `AllCharacters.razor:520` after a game-data reset. The DI registration, the
+  event, and both Razor subscribers are untouched.
 
-1. `LoginPage_RendersAntiforgeryToken`
-2. `LoginPost_WithoutAntiforgeryToken_IsRejected` — 400, no sign-in cookie
-3. `LoginPost_WithTamperedAntiforgeryToken_IsRejected` — real cookie, corrupted token → 400
-4. `LoginPost_WithTokenFromRenderedForm_SignsUserIn` — 302 → `/`, sign-in cookie issued
-5. `LogoutPost_WithoutAntiforgeryToken_IsRejected` — 400
-6. `LogoutPost_WhileAuthenticated_WithoutAntiforgeryToken_KeepsSessionSignedIn` — 400 and the
-   session survives
-7. `LogoutPost_WithTokenFromRenderedForm_SignsUserOut` — 302 → `/`, sign-in cookie cleared
+So the endpoint was pure dead privileged attack surface. Deleting it removes the vulnerability
+outright, with a 7-line diff and zero token plumbing — strictly smaller and safer than adding an
+antiforgery mechanism to something nothing calls. The effect it triggered remains available from
+the admin UI that actually uses it.
 
-Changed: `AuthenticationTests.CookieValidation_UpdatesLastLoginDate` posted straight to
-`/auth/login`; it now fetches `/login` and submits the rendered token. Only the login step
-changed — its `LastLoginDate` assertions are untouched.
+### Why the Push endpoints were left alone
 
-**Both test traps were found and closed:**
-- **Negative probe.** `.DisableAntiforgery()` was temporarily restored on both endpoints; all four
-  rejection tests then **failed**, and passed again once it was removed. The tests gate on real
-  enforcement, not on an unrelated 400.
-- **First draft passed for the wrong reason.** The logout rejection tests posted an *empty* form
-  body, which `RequestDelegateFactory` rejects with 400 as "request without body" — so they passed
-  even with antiforgery disabled. They now post a non-empty tokenless body, with a comment
-  recording why.
+Their protection is mechanism 2, which is server-side and already in force. Adding antiforgery
+would have required inventing a way for `service-worker.js` to obtain a request token — it cannot
+read a Razor DOM `<AntiforgeryToken />` — for no gain. **Push business logic, the WebPush service
+architecture, notification behavior, roles, the auth cookie, service-worker registration and CORS
+are all byte-identical.** `subscribe` / `unsubscribe` still work over `application/json`, proven by
+test, so push subscription renewal is not at risk.
+
+Recorded, not acted on: `broadcast` and `send-to-selected` have **no browser caller either** —
+every Razor page calls `IPushNotificationService.BroadcastAsync` / `SendToSelectedUsersAsync`
+in-process. They are candidates for the same deletion treatment, but unlike `refresh-all` they are
+not CSRF-reachable, so removing them is cleanup, not security, and is out of this unit's scope.
+
+### Changes (2 source files, 1 new test file)
+- `src/RTUB.Web/Program.cs` — the `/api/admin/refresh-all` `MapPost` block deleted (7 lines).
+  Nothing else in the file touched; it used fully-qualified names, so no `using` went stale.
+- `src/RTUB.Web/Services/AdminRefreshService.cs` — two lines added to the class doc recording that
+  the service is in-process only and deliberately has no HTTP endpoint, so the route is not
+  re-added later.
+- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — **new**, 4 tests.
+
+### Tests (4 new)
+1. `RefreshAllEndpoint_NoLongerExists` — signs in as the seeded **Admin**, so `404` proves the
+   route is gone rather than access-denied.
+2. `PushJsonEndpoint_RejectsEveryContentTypeACrossSiteFormCanPost` — posts all three real form
+   enctypes (`FormUrlEncodedContent`, `MultipartFormDataContent`, `text/plain`) to
+   `/api/push/unsubscribe` with a valid sign-in cookie; each must be **415**.
+3. `PushJsonEndpoint_AcceptsApplicationJsonFromRealCaller` — the same endpoint with
+   `application/json` returns **200**, the positive control proving (2) is a content-type gate and
+   not a blanket block on the service worker.
+4. `AuthenticationCookie_IsSameSiteLax` — asserts the real `Set-Cookie` contains `samesite=lax`,
+   so a later change to `SameSite=None` cannot silently reopen CSRF across every cookie POST.
+
+All four sign in through the **real rendered login form**, so unit 012's antiforgery is exercised
+rather than bypassed. `AntiforgeryFormToken` is reused from `AuthAntiforgeryTests.cs`; that file is
+not modified.
+
+**Negative probe run and reverted.** The endpoint was temporarily re-added to `Program.cs`;
+`RefreshAllEndpoint_NoLongerExists` then **failed**, and passed again once it was removed. The test
+gates on the actual deletion.
 
 ## Current task
 None active.
 
 ## Next unit
-**013 — Microsoft 10.0.11 → 10.0.12 servicing train** across `src/` + tests, which also unblocks
+**Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
-Next *security* unit, if security is the preferred track: **CSRF coverage for the remaining
-cookie-authenticated POST endpoints** (see Deferred), then login rate limiting.
+Next *security* unit: **login rate limiting** — `/auth/login` has none, so password attempts are
+unlimited per IP; Identity lockout is per-account only. Then password policy, then security
+headers / CSP.
 
 ## Blockers
 None.
 
 ## Deferred / owner decisions
 
-### Security, recorded by 012 — explicitly out of scope, nothing changed
-- **Other cookie-authenticated POST endpoints have no antiforgery**: `/api/admin/refresh-all`
-  (Admin-role authorized) and the four `PushController` actions (`subscribe`, `unsubscribe`,
-  `broadcast`, `send-to-selected`). They take JSON rather than a form enctype, which limits
-  classic form-based CSRF, but they were not reviewed or hardened in this unit.
-- **`AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN")`** is configured but no endpoint or client
-  currently sends a header token. Harmless; either use it or drop it.
-- **PWA note, no action needed.** `service-worker.js` serves HTML network-first, cache-fallback,
-  so a cached `/login` page is only returned when the network is down — and login needs the
-  network anyway. No stale-token path introduced.
+### Security — reviewed by 013, deliberately not changed
+- **`AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN")`** is still configured and still unused by
+  every endpoint and client. 013 confirmed no endpoint needs it. Harmless; drop it, or keep it as
+  the hook for a future header-token client.
+- **`POST /api/push/broadcast` and `POST /api/push/send-to-selected` have no browser caller.**
+  Dead HTTP surface, but role-gated and not CSRF-reachable — deletion is cleanup, not security.
+- **`Set-Cookie` carries no `Secure` flag under the test host**, because the default is
+  `CookieSecurePolicy.SameAsRequest` and the test client speaks http. Over https in production the
+  flag is emitted. Not changed; an explicit `Always` is a separate hardening decision.
+- **Pre-existing integration-test flake, not caused by 013.**
+  `AuthAntiforgeryTests.LoginPost_WithoutAntiforgeryToken_IsRejected` (unit 012, unmodified) fails
+  intermittently — roughly 4 runs in 5 — **only when that class is run in isolation**, with
+  `System.InvalidOperationException: Operations that change non-concurrent collections must have
+  exclusive access` thrown from `SqliteConnection.CreateCollation` during
+  `TestWebApplicationFactory` startup. It is a data race between the factory's `EnsureCreated()`
+  and the background services starting on the same shared in-memory connection. It does **not**
+  fire in the full suite (4489 / 0 / 60, clean). Worth its own unit: serialize factory startup
+  before the hosted services run.
 - Out of scope by instruction and untouched: login rate limiting, password policy, MFA, cookie
-  validation / SQLite pressure, security headers / CSP, authorization redesign, `Program.cs`
-  refactor.
-- Known and accepted framework limitation: antiforgery tokens are bound to the user identity, so
-  multiple tabs signed in as different users (or one anonymous, one signed in) are unsupported.
-  This is documented ASP.NET Core behavior, not an RTUB defect.
+  validation / SQLite pressure, security headers / CSP, PWA cache strategy, push architecture
+  refactor, `Program.cs` cleanup.
+- Known and accepted framework limitation (from 012): antiforgery tokens are bound to the user
+  identity, so multiple tabs signed in as different users are unsupported. Documented ASP.NET Core
+  behavior, not an RTUB defect.
 
 ### Carried forward (unchanged)
 - **`xUnit1051` suppressed, not adopted** (1634 sites). Its own unit if wanted: mechanical, but it
@@ -161,29 +195,33 @@ None.
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 012)
-- `src/RTUB.Web/Program.cs` — both auth endpoints; `IFormCollection` parameters, no
-  `DisableAntiforgery`.
-- `src/RTUB.Web/Pages/Identity/Login.razor` — `<AntiforgeryToken />` in the login form.
-- `src/RTUB.Web/Shared/MainLayout.razor` — `<AntiforgeryToken />` in the logout form.
-- `tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs` — **new**; 7 tests + the HTML token
-  reader shared with `AuthenticationTests`.
-- `tests/RTUB.Integration.Tests/AuthenticationTests.cs` — login step now uses the rendered form.
+## Relevant files (unit 013)
+- `src/RTUB.Web/Program.cs` — `/api/admin/refresh-all` removed.
+- `src/RTUB.Web/Services/AdminRefreshService.cs` — doc note: in-process only, no HTTP endpoint.
+- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — **new**; 4 tests.
 
-## Latest validation (unit 012)
+## Latest validation (unit 013)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Full suite, `dotnet test --no-build -c Release`: **4485 passed, 0 failed, 60 skipped.**
-  Baseline was 4478 / 0 / 60; **+7 = exactly the 7 new antiforgery tests**, no other count moved.
-- `RTUB.Integration.Tests` alone: 232 passed / 0 failed / 2 skipped (was 225 / 0 / 2).
-- Negative probe run and reverted (see Tests above) — 4 rejection tests fail without the fix.
-- `git diff --check` clean. Secret scan clean: only synthetic test passwords (`CsrfTest123!`),
-  matching the existing `CookieTest123!` convention. No real token value is ever asserted or
-  logged — the framework logs antiforgery failures at Debug with the parameter name only.
-- `git status` = 3 modified source files, 1 modified test file, 1 new test file. **Migrations and
-  `ApplicationDbContextModelSnapshot.cs` unchanged.**
-- Graphify **not** rebuilt — no application structure change (two handler signatures and two
-  markup lines). Frontend build / Playwright not run; not required.
+- Full suite, `dotnet test --no-build -c Release`: **4489 passed, 0 failed, 60 skipped.**
+  Baseline was 4485 / 0 / 60; **+4 = exactly the 4 new tests.** No test was added or removed for
+  the deleted endpoint — it never had one — and no other count moved.
+- New class run 3x in isolation: 4 / 0 / 0 each time.
+- Negative probe run and reverted (see Tests above) — the removal test fails with the route present.
+- `git diff --check` clean. Secret scan clean: the only credential-shaped string is
+  `TestPassword123!`, which is the pre-existing seeded admin password already in
+  `TestWebApplicationFactory.cs`. No new secret, no VAPID or token material.
+- `git status` = 2 modified source files, 1 new untracked test file. **Migrations and
+  `ApplicationDbContextModelSnapshot.cs` unchanged.** New file normalized to CRLF to match siblings.
+- Graphify **not** rebuilt — deleting one endpoint lambda is not a material structural change.
+  Playwright **not** run: every browser-relevant property (cookie `SameSite`, content-type
+  rejection) was proven server-side by integration test instead.
+
+## Previous validation (unit 012 — merged)
+`POST /auth/login` and `POST /auth/logout` require real antiforgery tokens, via `IFormCollection`
+handler parameters plus `<AntiforgeryToken />` in `Login.razor` and `MainLayout.razor`. 7 tests in
+`tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs`, all driving the real rendered form. Suite
+4485 / 0 / 60. Detail is in the `fix/012/auth-antiforgery` history.
 
 ## Previous validation (unit 011 — merged)
 All 5 test projects migrated from xUnit v2/VSTest to **xUnit v3 4.0.1 on

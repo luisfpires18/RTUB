@@ -540,13 +540,6 @@ public class Program
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
 
-        // Admin endpoint: force all connected circuits to reload user data from DB
-        app.MapPost("/api/admin/refresh-all", async (RTUB.Web.Services.AdminRefreshService refreshService) =>
-        {
-            await refreshService.TriggerRefreshAsync();
-            return Results.Ok(new { message = "Refresh triggered for all connected users." });
-        }).RequireAuthorization(new Microsoft.AspNetCore.Authorization.AuthorizeAttribute { Roles = "Admin" });
-
         // Map API controllers
         app.MapControllers();
 
