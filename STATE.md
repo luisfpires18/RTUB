@@ -5,168 +5,342 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **025 (enable enforced Content-Security-Policy) - COMPLETE, uncommitted,
-awaiting owner review.** Unit 024 is merged to `dev` at `ecabb0fc`. **The CSP / security-header
-modernization track is COMPLETE**: 021 shipped the four supporting headers, 022 removed `eval`,
-023 removed inline script, 024 removed inline style, and 025 ships the policy itself - enforced,
-with no `'unsafe-inline'` and no `'unsafe-eval'`.
+Modernization unit **026 (PWA / service-worker reliability) - COMPLETE, uncommitted, awaiting
+owner review.** Unit 025 is merged to `dev` at `b8798b79`; the CSP / security-header track is
+closed. 026 is a reliability unit, not a redesign - the PWA architecture is unchanged.
 
 ## Branch
-`fix/025/enable-csp`, branched from `dev` (clean, in sync with `origin/dev` at `ecabb0fc`).
-Uncommitted - no commit authorized.
+`fix/026/pwa-service-worker-reliability`, branched from `dev` (clean, in sync with `origin/dev`
+at `b8798b79`). Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`-`fix/024` still present; delete when convenient.
+`fix/020`-`fix/025` still present; delete when convenient.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
 not read for change and not touched by 021 or 025. It remains available as a future unit.
 
 ## Last completed step
-**Unit 025 - RTUB serves an enforced `Content-Security-Policy`. No `'unsafe-inline'`, no
-`'unsafe-eval'`, no `'unsafe-hashes'`, no nonce, no hash, no wildcard origin.**
+**Unit 026 - the PWA's four reliability defects are fixed: the iPhone bottom-nav drift, the
+duplicate service-worker registration, private HTML in the cache, and an update prompt the user
+could never actually reach. Plus E, the offline-page correctness defect 026's own offline
+validation turned up: `offline.js` bounced off the offline page whenever the device had a
+network, whether or not RTUB was reachable.**
 
-### The final policy
-    default-src 'self';
-    base-uri 'self';
-    object-src 'none';
-    frame-ancestors 'none';
-    form-action 'self';
-    script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net;
-    script-src-attr 'none';
-    style-src 'self' https://cdnjs.cloudflare.com https://unpkg.com;
-    style-src-attr 'none';
-    img-src 'self' data: https://*.basemaps.cartocdn.com <R2-public>;
-    media-src 'self' <R2-public> <R2-endpoint>;
-    font-src 'self';
-    manifest-src 'self';
-    worker-src 'self';
-    frame-src <R2-endpoint>            (or 'none' when unconfigured);
-    connect-src 'self' <ws|wss>://<request host>
+### A. MobileBottomNav drift - ROOT CAUSE FOUND AND FIXED
+`2-layout/navbar.css` reintroduced the exact rule `1-base/mobile.css` exists to prevent:
 
-`<R2-public>` and `<R2-endpoint>` are filled from configuration at startup; the WebSocket source
-is filled per request. Neither is a literal in source.
+    /* 1-base/mobile.css, @media (max-width: 768px) */
+    html, body { overflow-x: clip; }          <- deliberate, with a comment saying why
 
-### Every non-'self' source, and the resource that earns it
-| Directive | Source | Why it is there |
+    /* 2-layout/navbar.css, @media (display-mode: standalone) and (max-width: 991.98px) */
+    html, body { overflow-x: hidden; }        <- silently won
+
+Same selector, same specificity (0,0,2); media queries contribute none. `site.css` imports
+`1-base/mobile.css` at line 18 and `2-layout/navbar.css` at line 24, so **source order decided it
+and navbar.css won**. `overflow-x: hidden` on html/body makes iOS Safari treat the viewport root
+as the scroll container, and a `position: fixed; bottom: 0` descendant then drifts off the bottom
+edge - which is the reported bug.
+
+**Why it was never caught before:** the override is gated on `(display-mode: standalone)`. It does
+not apply in a browser tab at any width. It applies **only in the installed PWA** - exactly where
+the owner saw it, on Albums (`/music`).
+
+**Fix:** one declaration, `hidden` -> `clip`, in that navbar.css block, plus a comment naming the
+cascade trap. The `.navbar` / `.offcanvas` `overflow-x: hidden` rules in the same file are left
+alone - they are not ancestors of MobileBottomNav and do not affect the viewport root. **No
+JavaScript repositioning was added, and no `transform: translateZ(0)`** - a transform would itself
+create a containing block for fixed descendants, which is the failure mode, not the fix.
+
+**Also audited and cleared** (none can misplace the nav): `body.modal-open` and
+`body:has(.rtub-messages)` set `position: fixed`, which is *not* a containing-block trigger for
+fixed descendants; `.no-scroll` likewise; `modalHelper.js` only toggles `modal-open`; no
+`transform` / `filter` / `contain` / `will-change` / `perspective` on any layout ancestor;
+`.pwa-mode .navbar { overflow-x: hidden }` is scoped to the navbar, not the root; the nav's own
+`env(safe-area-inset-bottom)` padding is intact. Only **two** `html, body` overflow-x rules exist
+in the whole stylesheet set, and both are now `clip`.
+
+### B. One service-worker registration owner
+Before: **two** `navigator.serviceWorker.register` calls - `sw-register.js` (scope `/`,
+`updateViaCache: 'none'`) and `push-notifications.js` (no options at all). `sw-register.js` also
+*called its own registration function twice* (immediately, then again on `load`), attaching a
+second `updatefound` listener, a second `visibilitychange` listener and a second update-check
+timer chain - the mechanism behind a duplicate update toast.
+
+After: **exactly one** registration call in application source. `PushNotificationsManager` adopts
+it through `navigator.serviceWorker.ready`, bounded by a 10s timeout so `initialize()` cannot hang
+if nothing ever registers. Its public behaviour is unchanged: still sets `this.registration` /
+`this.subscription`, still returns the registration, still throws on failure, and `ready` still
+guarantees an **active** worker, which is the iOS Safari precondition for
+`pushManager.subscribe()`. Push architecture untouched. `registerServiceWorker()` in
+`sw-register.js` is now single-shot.
+
+### C. Cache safety - the private-HTML leak, fixed
+The old fetch handler's document branch matched `!url.pathname.includes('.')`, so **every
+extension-less path fell into it** and every 200 response was written to `DYNAMIC_CACHE`.
+
+Measured live, anonymous, after browsing four pages and fetching the excluded paths:
+
+| Cache | v2.6.0 (before) | v2.7.0 (after) |
 | --- | --- | --- |
-| `script-src` | `https://cdnjs.cloudflare.com` | `cropper.min.js` (MainLayout) |
-| `script-src` | `https://unpkg.com` | `leaflet.js`, SRI-pinned (MainLayout) |
-| `script-src` | `https://cdn.jsdelivr.net` | `pixi.min.js` (MainLayout) |
-| `style-src` | `https://cdnjs.cloudflare.com` | `cropper.min.css` (App.razor `HeadContent`) |
-| `style-src` | `https://unpkg.com` | `leaflet.css`, SRI-pinned |
-| `img-src` | `data:` | `ImageCropper.razor` and `Gallery.razor` render the picked file as a `data:` URL before upload |
-| `img-src` | `https://*.basemaps.cartocdn.com` | Leaflet dark-matter tiles in `memberMap.js` |
-| `img-src` | R2 public origin | avatars, gallery and event images, stored absolute |
-| `media-src` | R2 public origin | `<video><source>` URLs, stored absolute |
-| `media-src` | R2 S3 endpoint | **pre-signed** album audio (`CloudflareAudioStorageService`) |
-| `frame-src` | R2 S3 endpoint | **pre-signed** PDFs: `Songs.razor` lyrics, `Roles.razor` RGI |
-| `connect-src` | `ws(s)://<request host>` | the Blazor Server circuit |
+| `rtub-static` | 10 entries, **2 HTML**: `/` and `/offline.html` | 9 entries, **1 HTML**: `/offline.html` |
+| `rtub-dynamic` | 127 entries, **4 application HTML** (`/music`, `/roles`, `/calotes`, `/`) and **`/health`** | 122 entries, **0 HTML, 0 excluded paths** |
+| `rtub-images` | 5 entries | 5 entries |
 
-**Two R2 origins, not one - this corrected 024's plan.** 024 recorded `Cloudflare:R2:PublicUrl`
-as the only dynamic origin. Reading the storage services showed that is half of it:
-`GeneratePreSignedUrlAsync` (audio, documents, lyrics) issues URLs against the **S3 API
-endpoint**, `https://{Cloudflare:R2:AccountId}.r2.cloudflarestorage.com`, which is a different
-origin from the public bucket. So `media-src` needs both, and `frame-src` needs only the endpoint -
-the two PDF viewers are pre-signed, never public-bucket URLs.
+For a signed-in user those four documents are rendered *authenticated* HTML sitting on disk,
+servable offline or after logout. `/api/push/status`, `/auth/login` and `/_blazor/negotiate`
+escaped caching in that run only because they answered 401/405/405 - status, not policy.
 
-**Considered and deliberately left out:**
-- `connect-src` gets **no** R2 and **no** CDN. Nothing on the page fetches them: Pixi sprites are
-  local `wwwroot` paths (`StageBiomeService` enumerates a folder; `CharacterService` matches
-  `boss_{username}.png` under `wwwroot`), Pixi's R2 images go through the same-origin
-  `/api/cdn/image` proxy, game music is `/sound/*.mp3`, and every API call is same-origin.
-- `img-src` gets **no** S3 endpoint - there are no pre-signed image URLs.
-- `img-src` gets **no** `blob:`. The only `createObjectURL` is in `fileDownload.js` and it feeds an
-  `<a download>` href, which CSP does not govern.
-- `media-src` gets **no** `data:`. `MediaUploadManager.IsVideo` tests the URL's file extension, so
-  a `data:` preview always renders through the `<img>` branch, never `<source>`.
-- `font-src` stays `'self'`: bootstrap-icons ships its `woff2` relatively, and there is no
-  `@font-face` anywhere in `wwwroot/css`.
-- YouTube / Spotify / Instagram / Facebook appear only as `<a target="_blank">` **navigations**,
-  never embeds, and navigation is not governed by any directive in this policy.
-- `'unsafe-eval'` / `'wasm-unsafe-eval'`: not needed. Every component is `InteractiveServer`;
-  there is no `InteractiveAuto` or `InteractiveWebAssembly` render mode in the repo.
+Now:
+- `NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/_blazor', '/hubs/', '/health']`, checked by
+  `isNeverCached()` **before any cache branch**, together with a non-GET guard. Each prefix maps to
+  a real route (`MapPost /auth/login`, `MapPost /auth/logout`, `MapHub /hubs/messages`,
+  `MapHealthChecks /health`, the `/api` controllers).
+- Documents / navigations are **network-only**: the response is returned straight through and
+  never written to a cache. On network failure the fallback is `offline.html`, with a plain 503 as
+  a last resort. The old `caches.match('/offline.html') || caches.match('/')` was dead code anyway
+  - `caches.match` returns a Promise, which is always truthy.
+- `'/'` removed from `STATIC_ASSETS`: it is user-specific HTML.
+- Both guards are scoped to same-origin, so R2 and CDN caching is **unchanged** (cdnjs / unpkg /
+  jsdelivr still cached, as before). No caching optimisation was attempted.
 
-### The last script-src blocker - `memberMap.js`
-024's markup sweep could not see it: `memberMap.js` builds its Leaflet popup as an HTML **string**,
-and that string carried `onerror="this.src='/images/default-avatar.webp';"`. Under
-`script-src-attr 'none'` that is blocked exactly like a handler written in `.razor`.
+### D. Update lifecycle
+`install` called `self.skipWaiting()` **unconditionally**. Every new worker therefore activated at
+once, `clients.claim()` took control, `controllerchange` fired and `sw-register.js` reloaded the
+page. The "Nova versão disponível / Atualizar" prompt was effectively unreachable, and
+`SKIP_WAITING` was not in fact user-gated.
 
-Fixed by reusing 023's mechanism rather than inventing a second one: the `<img>` now carries
-`data-avatar-fallback` and is served by the single capture-phase listener in `avatarFallback.js`.
-That works for dynamically inserted images because Leaflet's `DivOverlay.onAdd` appends the popup
-container to the pane **before** `update()` sets its `innerHTML` - the images are already in the
-document when their non-bubbling `error` event fires, so the capture-phase listener on `document`
-sees it. Proven in the browser, not assumed: see *Browser validation*.
+Fixed: `install` no longer forces activation. The worker waits; the **only** activation trigger is
+the `SKIP_WAITING` message posted by the "Atualizar" click. The user-controlled prompt is
+preserved, not replaced. No new worker is forced to activate immediately.
 
-**The regression gate is a repository-wide scan of application JS, not a one-file assertion.**
-`ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers` sweeps every hand-written `.js`
-and `.ts` under `src/` (excluding `wwwroot/lib`, `node_modules`, `obj`, `bin`, `*.d.ts`) for
-`on<name>=` followed by a quote, and aggregates every hit into one failure. A DOM property write
-(`el.onerror = fn`) is not a CSP violation and is excluded by a negative lookbehind. Two comments
-in `avatarFallback.js` and `memberMap.js` that quoted the old attribute verbatim were reworded so
-the scan can stay a plain regex rather than needing a JS tokenizer.
+`controllerchange` also fired on a **first-ever** install, where `clients.claim()` takes control of
+a page that was never controlled - a pointless extra reload. It is now guarded by
+`hadControllerAtStartup`, alongside the existing `refreshing` guard. One reload path, two guards,
+no loop. Periodic update checks (30s after load, hourly while visible, on `visibilitychange`,
+5-minute debounce) are sensible and were left alone.
 
-### R2 handling - configuration in, normalized origin out
-`ContentSecurityPolicyBuilder` is the only place either origin is produced.
-- **Public URL** is parsed with `Uri.TryCreate(..., UriKind.Absolute)`, accepted only for
-  `http`/`https` with a non-empty host, and reduced to `scheme://host[:port]`. Path, query,
-  fragment and userinfo are discarded, so a configured value cannot carry a `;` or a second
-  directive into the header.
-- **Account id** is interpolated into a hostname, so it is accepted only as a single DNS label
-  (ASCII alphanumerics and interior hyphens, 1-63 chars) before
-  `https://{id}.r2.cloudflarestorage.com` is formed.
-- **Missing or malformed configuration contributes nothing.** The source is dropped, never
-  replaced with a wildcard; `frame-src` degrades to `'none'`. R2 content may then be unavailable,
-  which is the correct failure direction. No configuration value is logged.
+### E. Offline page bounced off itself - FIXED with an origin-reachability probe
+`offline.js` treated `navigator.onLine === true` as proof that RTUB was reachable. It is not: the
+flag reports only whether the device has *a* network interface up, never whether *this origin*
+answers.
 
-### WebSocket handling
-`connect-src 'self'` is **not** relied on to cover the Blazor circuit. MDN notes `'self'` is not
-consistently taken to match `ws:`/`wss:` across browsers, so the exact origin of the current
-request is emitted: `wss://host[:port]` for an https request, `ws://host[:port]` for http, built
-from `Request.Scheme` and `Request.Host`. The Host header is client-controlled, so it is validated
-as a plain host-with-optional-port (DNS name, IPv4, or bracketed IPv6) and dropped if it is not - a
-refused circuit is recoverable, attacker-chosen text inside a security header is not. The broad
-`ws:` / `wss:` schemes are never used.
+The failure, reproduced end to end:
 
-### Header architecture - 021's middleware extended, nothing new added
-The policy is set inside the existing security-header middleware in `Program.cs`. No new
-middleware, no third-party CSP package, no second header system. The builder is a small class with
-two constructors: one taking `IConfiguration` for production, one taking the two raw strings so the
-tests can drive it directly without `InternalsVisibleTo`.
+| Step | What happened |
+| --- | --- |
+| 1 | Origin stopped; device still on a network |
+| 2 | Service worker correctly served `offline.html` from cache |
+| 3 | `navigator.onLine` stayed **true** |
+| 4 | `offline.js` waited ~1s and navigated to `/` |
+| 5 | `/` failed, the worker re-served `offline.html`, and it bounced again |
 
-**Assignment, not `Append`**, and the same idempotence argument as 021: `UseExceptionHandler`
-re-executes the pipeline, so the callback registers twice on the same response; assigning by
-indexer makes the second pass a no-op. Pinned by
-`SecurityHeaderTests.Headers_AreSetOnce_NotAppendedPerPass`.
+**The fix probes the origin instead of the device.** `/health` is the probe, which is appropriate
+precisely because 026 had already made it network-only:
 
-### Scoping: HTML documents only, and why
-The header is set from `Response.OnStarting`, where `Content-Type` is final, and only when it
-starts with `text/html`. A deliberate decision, not an optimisation:
+1. `navigator.onLine === false` -> show the offline state immediately. No probe, no redirect -
+   the request could not succeed anyway.
+2. `navigator.onLine === true` -> `fetch('/health', { cache: 'no-store' })`. Only
+   `response.ok` counts as reachable. `no-store` keeps the browser's HTTP cache out of it;
+   `NEVER_CACHE_PREFIXES` already keeps the service worker's caches out of it. **No service-worker
+   caching change was made, and `/health` stays network-only.**
+3. Rejection, abort, 4xx or 5xx -> stay on `offline.html` and show the offline state. **No
+   redirect.**
+4. Reachable -> the accepted behaviour is unchanged: "Ligação restaurada! A recarregar...", then
+   `/` after the same ~1s delay.
 
-1. **A CSP header served with a worker script governs that worker's own execution context.**
-   RTUB's service worker intercepts and re-fetches the cross-origin subresources it caches - R2
-   media, the three script/style CDNs, the Carto tiles. None of those are in `connect-src`,
-   because the *page* never fetches them. A blanket policy would hand `/service-worker.js` a
-   `connect-src 'self'` and break offline caching. Measured: the worker's caches hold 5
-   cross-origin entries on a single anonymous homepage load.
-2. **On other subresource responses the header buys nothing.** The directives that matter are
-   enforced by the embedding document's policy at fetch time, and `frame-ancestors` applies only
-   to documents - where `X-Frame-Options: DENY`, set on every response since 021, already covers
-   the same ground.
+**Robustness, kept small.** Three callers can fire a probe - the initial check, the `online`
+event, and the existing 3s interval - so a single `probeInFlight` flag suppresses overlap, and a
+5s `AbortController` timeout stops a black-holed connection leaving the page waiting for ever.
+No dependency was added.
 
-Verified live: `/` and `/login` carry exactly one CSP header; `/service-worker.js`,
-`/css/site.css`, `/js/avatarFallback.js`, `/js/offline.js` and `/manifest.webmanifest` carry none.
+**No redirect loop is possible from this code.** A `redirecting` flag makes the navigation
+single-shot and clears the interval at the same moment, and the navigation is now reachable *only*
+through a proven-reachable origin - which is the precise condition the old code got wrong. A
+cross-page-load bounce counter was considered and deliberately not built: it would guard a state
+that cannot persist (a `/health` that answers while `/` fails at the network layer), and that
+extra state is likelier to misfire than the scenario is to occur.
 
-### Report-Only was not used and is not shipped
-The enforced header was correct on the first browser run, so no report-only phase was needed.
-`Content-Security-Policy-Report-Only` appears nowhere in the branch, and
-`SecurityHeaderTests.Page_CarriesExactlyOneEnforcedContentSecurityPolicy` fails if it ever does.
+**Preserved unchanged:** the `online` and `offline` listeners, the "Tentar Novamente" button
+(still `location.reload()`), the 3s periodic retry, the ~1s redirect delay, and all three
+Portuguese strings. `offline.html` itself was not touched. The other 026 work - the
+MobileBottomNav fix, the single-registration work, the cache policy and the update lifecycle - is
+byte-identical.
 
-### Safe cleanup taken
-`App.razor`'s `preconnect` and `dns-prefetch` to `https://fonts.googleapis.com` are **deleted**.
-021 found them dead - no matching stylesheet, no `@font-face`, no `fonts.gstatic.com` reference
-anywhere. Re-verified in 025 before removal, and pinned by a test, so `font-src 'self'` is not
-quietly hiding a missing source.
+### Cache version: bumped once, v2.6.0 -> v2.7.0, with a reason
+Not mechanical. Installed clients are holding cached application HTML and a cached `/health`
+written by v2.6.0. The `activate` handler deletes every `rtub-` cache outside the current set, so
+**the bump is the mechanism that purges those entries**. Without it the fix would stop new leaks
+but leave the existing ones on disk.
+
+### CSP constraint: honoured, unchanged
+No CSP change was needed or made. `/service-worker.js` still carries **no**
+`Content-Security-Policy` header, pinned by `NonDocumentResponse_CarriesNoContentSecurityPolicy`.
+
+## Relevant files (unit 026)
+| File | Change |
+| --- | --- |
+| `src/RTUB.Web/wwwroot/css/2-layout/navbar.css` | `overflow-x: hidden` -> `clip` on `html, body` in the standalone block (+ comment). The whole bottom-nav fix. |
+| `src/RTUB.Web/wwwroot/service-worker.js` | `NEVER_CACHE_PREFIXES` + `isNeverCached()`; non-GET and never-cache guards before any cache branch; document branch is network-only with an `offline.html` fallback; `'/'` dropped from `STATIC_ASSETS`; no `skipWaiting()` on install; `CACHE_VERSION` v2.7.0. |
+| `src/RTUB.Web/wwwroot/js/sw-register.js` | single-shot `registerServiceWorker()`; `controllerchange` reload guarded by `hadControllerAtStartup`. |
+| `src/RTUB.Web/wwwroot/js/push-notifications.js` | stops registering; adopts the existing registration via `navigator.serviceWorker.ready` with a 10s bound. |
+| `src/RTUB.Web/wwwroot/js/offline.js` | `navigator.onLine` -> a `/health` reachability probe (`cache: 'no-store'`, `AbortController` timeout, single-flight, single-shot redirect). Section E. |
+| `tests/RTUB.Web.Tests/Pwa/ServiceWorkerReliabilityTests.cs` | **new**, 22 tests. |
+| `tests/RTUB.Web.Tests/Pwa/OfflineReachabilityTests.cs` | **new**, 8 tests. |
+| `tests/RTUB.Web.Tests/Security/InlineScriptPolicyTests.cs` | doc comment only - it said push-notifications.js registering was out of scope; it no longer registers. |
+
+Not touched: `offline.html`, `offline.css`, the manifest, the push handlers, the CSP builder,
+`Program.cs`, and - for the section E follow-up - `service-worker.js`, `sw-register.js`,
+`push-notifications.js` and `navbar.css`. No migrations.
+
+## Tests (unit 026) - 2 new files, +30
+`tests/RTUB.Web.Tests/Pwa/ServiceWorkerReliabilityTests.cs`. Source-level scans, because the
+behaviour lives in a service worker with no origin, no DOM and no test host. Compact, not
+parameterised into hundreds of cases.
+
+| # | Test | Pins |
+| --- | --- | --- |
+| 1 | `ApplicationSource_ContainsExactlyOneServiceWorkerRegistration` | exactly one register call, and it is `sw-register.js` |
+| 2 | `PushNotificationsManager_AdoptsTheExistingRegistrationInsteadOfRegistering` | uses `serviceWorker.ready`, never registers |
+| 3 | `MainLayout_LoadsTheRegistrationOwner` | `ready` can actually resolve |
+| 4-8 | `ServiceWorker_DeclaresPathAsNeverCached` (Theory x5) | `/api/`, `/auth/`, `/_blazor`, `/hubs/`, `/health` |
+| 9 | `ServiceWorker_AppliesTheNeverCacheGuardBeforeAnyCacheBranch` | the guard runs *before* any `caches.` use |
+| 10 | `ServiceWorker_PassesNonGetRequestsStraightToTheNetwork` | non-GET bypasses cache |
+| 11 | `ServiceWorker_DoesNotPersistApplicationHtml` | no `cache.put` / `caches.open` in the document branch |
+| 12 | `ServiceWorker_DoesNotPrecacheTheApplicationRoot` | `'/'` not in `STATIC_ASSETS` |
+| 13 | `ServiceWorker_FallsBackToOfflinePageForFailedNavigations` | `offline.html` is the document fallback |
+| 14-16 | `ServiceWorker_PrecachesOfflineAsset` (Theory x3) | `offline.html`, `offline.js`, `offline.css` reachable from cache |
+| 17 | `ServiceWorker_SkipsWaitingOnlyOnUserRequest` | no `skipWaiting` in `install`; only the message handler activates |
+| 18 | `SwRegister_PostsSkipWaitingOnlyFromTheUpdateButton` | one `SKIP_WAITING`, from the "Atualizar" click |
+| 19 | `SwRegister_HasOneGuardedReloadPath` | one `location.reload`, both guards present |
+| 20 | `SwRegister_WiresTheUpdateLifecycleOnlyOnce` | single-shot registration |
+| 21 | `MobileBottomNav_KeepsFixedBottomAndSafeAreaContract` | `position: fixed`, `bottom/left/right: 0`, `env(safe-area-inset-bottom)` |
+| 22 | `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` | **the 026 regression guard** - no stylesheet may set `overflow-x: hidden` on `html`/`body` again, in any media query |
+
+Test 22 was **negative-controlled**: reverting the one navbar.css declaration to `hidden` makes it
+fail naming that exact file; restoring `clip` makes it pass. It catches the real regression, not a
+proxy for it.
+
+The `/service-worker.js` CSP-header contract is not duplicated here - it stays pinned over the
+wire by `RTUB.Integration.Tests.SecurityHeaderTests.NonDocumentResponse_CarriesNoContentSecurityPolicy`.
+
+`tests/RTUB.Web.Tests/Pwa/OfflineReachabilityTests.cs` - **8 tests** for section E, same
+source-scan approach and for the same reason: the behaviour runs on a page served from a cache
+with no origin, which no test host reproduces.
+
+| # | Test | Pins |
+| --- | --- | --- |
+| 1 | `OfflineScript_DoesNotRedirectOnNavigatorOnLineAlone` | **the defect** - exactly one navigation exists, it sits behind the probe's success path, and the `navigator.onLine` branch cannot reach it |
+| 2 | `OfflineScript_ProbesTheHealthEndpointAndNothingElse` | `/health` is the only endpoint the page calls |
+| 3 | `OfflineScript_ProbeBypassesTheBrowserHttpCache` | `cache: 'no-store'` on the probe |
+| 4 | `ServiceWorker_KeepsHealthNetworkOnly` | `/health` in `NEVER_CACHE_PREFIXES` and absent from `STATIC_ASSETS` |
+| 5 | `OfflineScript_StaysOnThePageWhenTheProbeFails` | no navigation in the failure path; `catch`, `response.ok` and `AbortController` all present |
+| 6 | `OfflineScript_KeepsTheDelayedRedirectWhenTheOriginIsReachable` | the restored message and the ~1s `REDIRECT_DELAY_MS` are unchanged |
+| 7 | `OfflineScript_AllowsOnlyOneProbeInFlightAndOneRedirect` | `probeInFlight` and `redirecting` guards |
+| 8 | `OfflineScript_KeepsItsExistingControlsAndCopy` | `online`/`offline` listeners, retry reload, 3s interval, all three Portuguese strings |
+
+## Latest validation (unit 026)
+Release build, 0 warnings / 0 errors. All five xUnit v3 native executables:
+
+| Suite | Total | Failed | Skipped |
+| --- | --- | --- | --- |
+| `RTUB.Core.Tests` | 791 | 0 | 0 |
+| `RTUB.Application.Tests` | 1997 | 0 | 0 |
+| `RTUB.Shared.Tests` | 768 | 0 | 2 |
+| `RTUB.Web.Tests` | 876 | 0 | 56 |
+| `RTUB.Integration.Tests` | 281 | 0 | 2 |
+| **Total** | **4713** | **0** | **60** |
+
+Delta accounting, exact:
+- 025 baseline: **4683** / 0 / 60.
+- 026 before the section E fix: **4705** / 0 / 60 - **+22**, entirely `ServiceWorkerReliabilityTests`.
+- 026 after the section E fix: **4713** / 0 / 60 - **+8**, entirely `OfflineReachabilityTests`.
+
+Skips unchanged at 60 throughout. No unrelated BetService / test-runner flake was touched, and no
+existing test needed editing for the section E fix.
+
+Also: `node --check` clean on all four changed JS files (`service-worker.js`, `sw-register.js`,
+`push-notifications.js`, `offline.js`), `git diff --check` clean, no migrations, credential scan
+over the diff and both new test files clean.
+
+## Browser / PWA validation (unit 026) - RUN
+Headless Chromium against a local Release build over `https://localhost:58869` (trusted ASP.NET
+dev cert, so the origin is a secure context and service workers really register).
+
+**Bottom nav - did it reproduce in tooling? Partly, and the part that matters did.**
+Headless Chromium **cannot** emulate `display-mode: standalone`: CDP
+`Emulation.setEmulatedMedia` ignores the `display-mode` feature (`matchMedia('(display-mode:
+standalone)')` stayed `false`) and `--app=` did not navigate. So the standalone condition was
+removed from the matching `@media` rule **at runtime**, leaving the width condition and everything
+else - source order, specificity, the real cascade - untouched. That isolates exactly the one
+condition the emulator cannot supply.
+
+Rule inventory read out of the live CSSOM, in document order, at 375px:
+
+| Order | File | Media | Value |
+| --- | --- | --- | --- |
+| 1 | `1-base/mobile.css` | `(max-width: 768px)` | `clip` |
+| 2 | `2-layout/navbar.css` | `(display-mode: standalone) and (max-width: 991.98px)` | `hidden` *(before)* / `clip` *(after)* |
+
+- **Before:** ungating the standalone query flipped computed `html { overflow-x }` from `clip` to
+  **`hidden`** on every case. The mechanism, reproduced.
+- **After:** it stays **`clip`** on every case.
+
+Scroll stress, 375px and 390px, `/music` (Albums - the reported page) and `/roles`, plus a repeat
+after opening and closing the navbar offcanvas: **36 samples per case, 432 samples total**,
+top -> quarter -> middle -> bottom -> back, with direction reversals.
+`visualViewport.offsetTop + visualViewport.height - nav.getBoundingClientRect().bottom` stayed
+**0 for every sample** (`delta_min = delta_max = 0`), `navTop` pinned at 805, `position: fixed`,
+`display: flex` throughout. Desktop Chromium does **not** itself reproduce the iOS momentum-scroll
+drift - it never treats html/body as the scroll container - so the drift is proven by the
+mechanism and the cascade, not by a visible jump in this browser. **The remaining confirmation is
+a real installed iPhone PWA.**
+
+Modal open/close was not driven: the reachable modals on these anonymous pages need a signed-in
+session. The scroll-lock states were audited in source instead (see A).
+
+**PWA:** exactly **1** registration, scope `/`, script `/service-worker.js`, state `activated`,
+page controlled. `manifest.webmanifest` 200 with 10 icons, `display: standalone`.
+`registration.update()` resolved without throwing and left no waiting worker.
+`PushNotificationsManager.initialize()` ran with **registrations 1 before, 1 after** - it no
+longer creates a second one (it returned `false` because `/api/push/status` is 401 anonymously,
+which is correct without credentials). **0 update toasts, 5 main-frame navigations for 5 `goto`
+calls - no duplicate toast, no reload loop.**
+
+**Offline, with the origin actually stopped** (`taskkill dotnet`, origin then answering nothing),
+using a persistent browser profile warmed beforehand:
+`/music`, `/profile`, `/messages`, `/events`, `/leaderboard` all returned **200 `text/html`,
+694 bytes, `offline.html`** - heading "Sem Conexão", `/css/offline.css` linked and applying 9
+rules, the `135deg` gradient resolving, `offline.js` present and running, retry control present,
+**0 `<style>` elements and 0 inline style attributes** (no CSP regression). Every response had
+**no `.mobile-bottom-nav`, no `.navbar`, no `blazor.web.js`** - i.e. **no authenticated or private
+application HTML was served as a stale cached page.** `/api/push/status` and `/health` returned
+`TypeError: Failed to fetch` - network-only, no cache fallback, exactly as designed.
+
+A second offline pass using `context.set_offline(True)` gave the same result on four paths.
+
+### Offline reachability (section E) - ORIGIN DOWN, NETWORK UP, proven both ways
+The decisive case cannot be tested with `context.set_offline(True)`, because that flips
+`navigator.onLine` and hides the exact bug. The origin process was killed instead, leaving the
+machine online. 11/11 checks passed.
+
+| Case | Result |
+| --- | --- |
+| **A. Origin UP** | `offline.html` loaded, `/health` succeeded, page transitioned to `/`. |
+| **B. Origin DOWN, machine online** | Worker served `offline.html` from cache (`h1` "Sem Conexão", `/css/offline.css` linked with 9 rules, `offline.js` present). `navigator.onLine` **stayed true** - the bug's precondition. Sampled once a second for **12 seconds: `location.pathname` was `/offline.html` on every sample**, status `Ainda offline`. **No redirect, no bounce.** |
+| **C. Origin restored** | The periodic probe detected `/health` and redirected to `/`; the real application page loaded. |
+| Cache audit | `/health` present in **none** of `rtub-static/dynamic/images-rtub-v2.7.0`. |
+| Console | No errors beyond the expected failed `/health` fetch while the origin was unavailable. |
+
+**Negative-controlled, like test 22.** The pre-fix `offline.js` was staged back in and case B
+re-run under identical conditions: it **bounced to `/` inside the first second** - the sampler's
+own execution context was destroyed mid-navigation - and ended on `/`. The fixed file stayed on
+`/offline.html` for the full 12s. The harness reproduces the real defect; it is not a proxy.
+
+**Console:** no new JS errors and **zero page errors**. The console does carry pre-existing
+`img-src` CSP violations for the R2 public origin - that is 025's documented behaviour when
+`Cloudflare:R2:PublicUrl` is not supplied to the local run, not a 026 regression - plus the
+401/405 responses from the excluded-path probes this validation deliberately issued.
+
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
 **No immediate Azure action is required for this deploy.** Production `rtub` has an existing
@@ -221,17 +395,29 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 025 is complete and awaiting owner review.
+None active. Unit 026 is complete and awaiting owner review.
 
 ## Next unit
-**PWA / Service Worker reliability modernization.** 025's scoping decision is a constraint on it:
-whatever changes, `/service-worker.js` must keep being served **without** a CSP header, or the
-worker's cross-origin caching breaks. Three cases pin that
-(`NonDocumentResponse_CarriesNoContentSecurityPolicy`).
+**027 - CI/CD + Azure DEV.** The one PWA correctness defect 026's validation uncovered - the
+offline-page bounce - was fixed inside 026 rather than deferred, so nothing PWA-related is
+outstanding except the device confirmation below.
 
-Carry into that unit as a specific regression case: **the observed iPhone / PWA `MobileBottomNav`
-transient drift** - the bottom nav shifts position briefly on iOS in standalone mode. Not
-reproduced or investigated in 021-025; none of them touched it.
+Constraints 026 hands forward:
+- `/service-worker.js` must keep being served **without** a CSP header (025's rule, still pinned
+  by `NonDocumentResponse_CarriesNoContentSecurityPolicy`).
+- `sw-register.js` is the **sole** service-worker registration owner. Anything needing the
+  registration adopts it via `navigator.serviceWorker.ready`.
+- No stylesheet may set `overflow-x: hidden` on `html`/`body` again, in any media query - it must
+  be `clip`. Pinned by `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot`.
+- Service-worker caches must stay free of application HTML and of `/api`, `/auth`, `/_blazor`,
+  `/hubs`, `/health`. `/health` in particular must stay network-only: `offline.js` uses it as its
+  origin-reachability probe, and a cached 200 would resurrect the bounce bug.
+
+**One confirmation is outstanding and needs a real device:** the MobileBottomNav fix is proven by
+the cascade and by the computed `overflow-x` flipping under a runtime-ungated standalone query,
+but desktop Chromium cannot reproduce iOS momentum-scroll drift and cannot emulate
+`display-mode: standalone`. A run on an **installed iPhone PWA on Albums (`/music`)** would close
+it. Deploying 026 is what makes that check possible.
 
 Also still available, deliberately not taken: **password-policy review / hardening** (Identity is
 `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
@@ -427,185 +613,18 @@ rather than the policy being weakened.
   fixture. Still pre-existing, still its own unit; the ordering dependency is real even when the
   symptom does not appear.
 
-## Relevant files (unit 025)
+### Found by 026
+- ~~**`offline.js` redirects off the offline page whenever `navigator.onLine` is true**~~ -
+  **FIXED before merge; see *E. Offline page bounced off itself* above.** It now probes `/health`
+  with `cache: 'no-store'` and only a successful response redirects. Proven with the origin
+  stopped and the machine still online, and negative-controlled against the pre-fix file.
+- **`.no-scroll` sets `position: fixed` with no `top` offset** (`1-base/global.css`). Applying it
+  scrolls the page back to the top and does not restore the offset on removal. It does **not**
+  affect MobileBottomNav - `position: fixed` on `body` is not a containing-block trigger - so it is
+  unrelated to the 026 bug. Pre-existing; a scroll-position fix is a behaviour change.
 
-**New (2 files):**
-- `src/RTUB.Web/Security/ContentSecurityPolicyBuilder.cs` - the whole policy. Public `Build(scheme,
-  host)`; everything before `connect-src` is built once in the constructor, only the WebSocket
-  source is per-request. Two constructors: `IConfiguration` for production, `(publicUrl,
-  accountId)` for tests.
-- `tests/RTUB.Web.Tests/Security/ContentSecurityPolicyTests.cs` - 35 cases, listed below.
-
-**Changed (4 files):**
-- `src/RTUB.Web/Program.cs` - `using RTUB.Security;`, one builder instance, and an
-  `OnStarting` callback inside the existing security-header middleware. The four headers from 021
-  are untouched.
-- `src/RTUB.Web/wwwroot/js/memberMap.js` - popup avatar: inline `onerror` -> `data-avatar-fallback`.
-- `src/RTUB.Web/wwwroot/js/avatarFallback.js` - comment reworded only; no behaviour change.
-- `src/RTUB.Web/App.razor` - dead Google Fonts `preconnect` / `dns-prefetch` deleted.
-- `tests/RTUB.Integration.Tests/SecurityHeaderTests.cs` - CSP delivery assertions added.
-
-**No migration, no entity, service, repository or DI change.** `git diff --name-only` matches no
-migration or snapshot file.
-
-## Tests (1 new file, +35; 1 existing test file extended, +7)
-
-**New - `ContentSecurityPolicyTests`, 35 cases.** The policy assertions go through the public
-builder rather than a hard-coded expected string, so a deliberate directive change does not have
-to be restated in ten places; only a change that actually weakens the policy fails.
-1. `Policy_NeverAllowsUnsafeInlineOrUnsafeEval` - also bans `'unsafe-hashes'`.
-2. `Policy_ContainsNoWildcardOrWholeSchemeSources` - every source in every directive is checked
-   against `*`, `https:`, `http:`, `ws:`, `wss:` and a leading `*.`; `data:` is additionally
-   banned from `script-src`, `style-src`, `frame-src` and `object-src`.
-3. `Policy_PinsTheDirectivesThatLockOutInjectedContent` - `default-src`/`base-uri`/`form-action`
-   `'self'`; `object-src`/`frame-ancestors`/`script-src-attr`/`style-src-attr` `'none'`;
-   `manifest-src`/`worker-src`/`font-src` `'self'`.
-4. `ExternalOrigins_AppearOnlyInTheDirectivesThatNeedThem` - exact source sets for `script-src`
-   and `style-src`, plus negative checks (jsdelivr is not a style source, Carto is not a script
-   source, cdnjs is not a connect source).
-5. `ConfiguredR2Origins_LandOnlyInTheDirectivesThatUseThem` - public origin in `img-src` and
-   `media-src`; endpoint in `media-src` and `frame-src`; endpoint **not** in `img-src`; public
-   origin **not** in `connect-src` or `script-src`.
-6. `ConfiguredR2PublicUrl_ContributesOnlyItsNormalizedOrigin` / `..._KeepsANonDefaultPort`.
-7. `MalformedR2PublicUrl_CannotInjectPolicyText` - 9 cases including
-   `https://evil.example; script-src 'unsafe-inline'`, `javascript:`, `file://`, `*`, bare host,
-   empty, whitespace, null. Each asserts the injected text is absent **and** that `img-src` /
-   `media-src` fall back to exactly their static source sets.
-8. `MalformedR2AccountId_YieldsNoFrameSource` - 7 cases; `frame-src` must be `'none'`.
-9. `WebSocketSource_MatchesTheRequestSchemeAndHost` - https/http, with and without a port, plus
-   bracketed IPv6.
-10. `MalformedRequestHost_ContributesNoWebSocketSource` - 5 cases including a host carrying
-    `; script-src 'unsafe-inline'`, a path, a non-numeric port, a non-http scheme, and empty.
-11. `MemberMap_BuildsPopupAvatarsWithoutAnInlineHandler` - the named 025 regression case.
-12. `ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers` - the aggregated
-    repository-wide sweep, in the 023/024 style.
-13. `NoWebFontServiceIsReferenced` - the deleted preconnect stays deleted and no `@font-face`
-    appears in `wwwroot/css`, which is what keeps `font-src 'self'` honest.
-
-**Extended - `SecurityHeaderTests`, +7 cases** (delivery, not contents):
-- `Page_CarriesExactlyOneEnforcedContentSecurityPolicy` (3 paths) - `text/html`, exactly one
-  `Content-Security-Policy`, **no** `Content-Security-Policy-Report-Only`, and the key directives
-  present.
-- `Page_AllowsTheBlazorCircuitOnTheRequestHost` - the `ws`/`wss` source matches the actual
-  request authority.
-- `NonDocumentResponse_CarriesNoContentSecurityPolicy` (3 paths, incl. `/service-worker.js`).
-- `Headers_AreSetOnce_NotAppendedPerPass` now also asserts a single CSP header.
-
-Directive **ordering** is deliberately not asserted anywhere - the implementation does not depend
-on it.
-
-## Latest validation (unit 025)
-| Check | Result |
-| --- | --- |
-| `dotnet build RTUB.sln -c Release` | **Succeeded, 0 warnings, 0 errors** |
-| `RTUB.Core.Tests` | 791 total, **0 failed**, 0 skipped |
-| `RTUB.Shared.Tests` | 768 total, **0 failed**, 2 skipped |
-| `RTUB.Application.Tests` | 1997 total, **0 failed**, 0 skipped |
-| `RTUB.Web.Tests` | 846 total, **0 failed**, 56 skipped |
-| `RTUB.Integration.Tests` | 281 total, **0 failed**, 2 skipped |
-| **Total** | **4683 tests, 0 failures, 60 skipped** |
-| `node --check` on both changed JS files | clean |
-| `git diff --check` | clean |
-| Migration / snapshot files touched | **none** |
-| Credential scan over diff + new files | clean - only synthetic placeholders (`pub-test.r2.dev`, `abc123`, `localtestaccount`) |
-
-**The expected 024 baseline failure did NOT reproduce.**
-`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException` **passed** here, both in
-the full 1997-test `RTUB.Application.Tests` run and in isolation. 024 recorded it as failing in a
-full-project run because of shared-fixture ordering; on this Release run it did not. Nothing in
-025 touches `BetService` or any test fixture, so this is the pre-existing flake behaving
-differently, not a fix and not a regression. **No new failure was introduced by 025.**
-
-Test runner: the native executables were used (`tests/<proj>/bin/Release/net10.0/<proj>.exe`),
-filtered with `-class` / `-method`. The `dotnet test` driver remains broken for xUnit v3 in this
-repo - see *Deferred*. 025 did not attempt to fix it.
-
-## Static scan (unit 025) - the acceptance gate
-Run against the whole repository, application-owned files only:
-| Thing | Count |
-| --- | --- |
-| Inline executable `<script>` in browser-served markup | **0** |
-| Inline `on*=` handlers in browser-served markup | **0** |
-| **Inline `on*=` handlers inside JS-built markup strings** | **0** (was 1: `memberMap.js`) |
-| `style="..."` in browser-served markup | **0** |
-| `<style>` elements in browser-served markup | **0** |
-| `style.cssText` / `setAttribute('style')` / injected `<style>` in app JS | **0** |
-| `JSRuntime` `eval` dispatches | **0** |
-| `'unsafe-inline'` / `'unsafe-eval'` / `'unsafe-hashes'` in the policy | **0** |
-
-## Browser validation (unit 025) - RUN, enforced policy, not report-only
-Headless Chromium against a local Development build, with the real security header enforced. The
-`Cloudflare:R2:*` values were supplied as environment variables for the run only; **no hostname
-was written into source, and the local `app.db` is gitignored.**
-
-**Zero CSP violations across every exercised surface.** Violations were collected two ways at once
-- a `securitypolicyviolation` listener installed before page script, and the console - so a
-violation could not be missed by either channel.
-
-**Public / anonymous, desktop 1280 and mobile 375:** `/`, `/login`, `/music`, `/gallery`,
-`/events`, `/roles`, `/calotes`, `/privacy`, plus the auth redirects for `/images`, `/leaderboard`,
-`/naipes`, `/documentation`, `/hall-of-fame`, `/members`, `/member/map`. All clean; no horizontal
-overflow at 375.
-
-**Blazor circuit:** connects (`Blazor` global present, reconnect modal never shown), and
-client-side navigation works over it (`/` -> `/music`). No WebSocket rejection - `connect-src`
-carried `ws://localhost:5199`.
-
-**Third-party, all loaded under the policy:** `Cropper` (function), Leaflet `L` (object), `PIXI`
-(object), `bootstrap` (object). 9 Carto tiles fetched on the map, which exercises
-`img-src https://*.basemaps.cartocdn.com`.
-
-**memberMap popup - the 025 regression case, driven end to end.** `/member/map` needs
-authentication, so the popup builder was driven directly on `/`, where `memberMap.js` is already
-loaded, with synthetic city data and a deliberately missing avatar URL. Result: popup rendered,
-`onerror` attribute **absent**, `data-avatar-fallback` consumed by the listener, and
-`img.src` swapped to `/images/default-avatar.webp` - **with zero CSP violations**. The delegated
-listener handles dynamically inserted popup images exactly as intended.
-
-**Directive probes** (the auth-gated media paths, proven without credentials): an inline
-`onclick` injected via `innerHTML` **did not run** and raised `script-src-attr`; an injected
-`style="width:123px"` was **blocked** (`style-src-attr`, computed width stayed `auto`) while
-`el.style.setProperty('--probe','7px')` **applied** - 024's CSSOM distinction still holds under the
-real header. Cross-origin `img` / `audio` / `iframe` to an unlisted origin were **blocked**; the
-configured R2 public and endpoint origins were **allowed** in `img-src`, `media-src` and
-`frame-src`; and the R2 public origin was **rejected as a script source**, confirming it is not
-over-granted.
-
-**R2, A/B proven.** A first run with a *deliberately mismatched* configured public origin produced
-`img-src` violations for the homepage's real R2 slideshow images. Re-running with the origin that
-matches the data produced **zero**. That is direct evidence that the configured value, and only
-it, admits R2 content. The bucket itself answers **401** to this machine, so nothing decodes
-locally - a network/permission fact, not a CSP outcome, and the absence of any `img-src` violation
-is what the policy is responsible for.
-
-**PWA:** service worker registers and activates (`scope /`, state `activated`), `manifest.webmanifest`
-200 with 10 icons, and `/service-worker.js` carries **no** CSP header. The worker's caches
-(`rtub-static/dynamic/images-rtub-v2.6.0`) hold 5 cross-origin entries - the exact traffic a
-globally scoped policy would have broken.
-
-**Offline page, with the origin actually down:** `/offline.html` renders from cache with its
-external stylesheet only - 1 linked sheet (`/css/offline.css`), 9 rules, **0 `<style>` elements,
-0 inline style attributes** - heading "Sem Conexão", the `135deg` gradient and the `8px` button
-radius all resolving. Identical online and offline. `offline.js` loads from cache and runs (its
-`navigator.onLine` redirect to `/` fires), which is why the DOM had to be snapshotted at
-`domcontentloaded`; 024 already recorded that in-page origin probing is meaningless behind a
-service worker that answers 200 from cache.
-
-**Not browser-tested, and why:** no authenticated session was available and **no credentials were
-invented or requested**. That leaves the *rendered* audio player and the two PDF iframes
-(`/music` album detail, `/roles` RGI) unexercised as real pages. Both directives were instead
-proven by direct probe as described above, and the R2 bucket returns 401 to this machine anyway,
-so a logged-in run here would not have loaded the media either. **An authenticated smoke run in a
-real environment is the one outstanding confirmation.**
-
-## Blockers found by 025
-**None outstanding.** Two things were found and dealt with inside the unit:
-1. **024's R2 plan was incomplete.** It named only `Cloudflare:R2:PublicUrl`; the pre-signed audio
-   and PDF URLs actually resolve against the S3 API endpoint. Both origins are now derived, each
-   only in the directives that use it.
-2. **`memberMap.js`'s JS-built `onerror`**, the blocker 024 flagged. Fixed, and the class of bug
-   is now swept repository-wide rather than pinned file by file.
-
-**Remaining security debt after 025:** password policy (`RequiredLength = 4`, owner-skipped) and
-the historical GitGuardian incidents (owner action). Neither is a CSP concern. **The CSP /
-security-header track itself is complete.**
+### Carried forward unchanged from 025
+- **`dotnet test` still does not work in this repo.** 026 used the five native xUnit v3
+  executables throughout, as 025 did.
+- **`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException`** passed in 026's full
+  Release run. Not touched, as instructed. Still its own unit.

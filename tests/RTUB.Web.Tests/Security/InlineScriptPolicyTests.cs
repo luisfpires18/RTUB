@@ -175,8 +175,9 @@ public class InlineScriptPolicyTests
     /// the same script URL and scope as sw-register.js. Unit 023 dropped the duplicate; page-load
     /// registration is now sw-register.js alone.
     ///
-    /// push-notifications.js also calls register() on demand when the user opts into push. That is
-    /// a separate, pre-existing path and is out of scope here.
+    /// push-notifications.js used to call register() again on demand when the user opted into
+    /// push; unit 026 removed that second path, so sw-register.js is now the only registration
+    /// owner in the repository. ServiceWorkerReliabilityTests enforces that count.
     /// </summary>
     [Fact]
     public void AppRazor_DoesNotDuplicateServiceWorkerRegistration()
