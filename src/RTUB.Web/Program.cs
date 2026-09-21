@@ -324,6 +324,46 @@ public class Program
             app.UseHsts();
         }
 
+        // --------- Security headers ---------
+        // One central place. Runs before static files, the Blazor 404 short-circuit and the
+        // endpoints, so every response carries these. It also runs again when
+        // UseExceptionHandler (registered above) re-executes the pipeline, which is why the
+        // headers are assigned by indexer rather than appended - reassignment is idempotent.
+        //
+        // Strict-Transport-Security is NOT set here: UseHsts above already emits it in every
+        // non-Development environment, and production returns max-age=2592000 today.
+        //
+        // There is deliberately NO Content-Security-Policy. RTUB still dispatches 15
+        // JSRuntime.InvokeAsync("eval", ...) calls across 6 components, plus inline <script>
+        // blocks in App.razor and MainLayout.razor, so any policy that let the app keep working
+        // would need 'unsafe-eval' and 'unsafe-inline' - which is worth less than no policy at
+        // all. See STATE.md (unit 021) for the enumerated blockers.
+        app.Use(async (context, next) =>
+        {
+            var headers = context.Response.Headers;
+
+            // The app serves user-uploaded media and JSON/manifest documents; stop MIME sniffing.
+            headers["X-Content-Type-Options"] = "nosniff";
+
+            // Full URL to same-origin, origin only to other https origins, nothing on downgrade.
+            // Matters for the target="_blank" links out to YouTube/Spotify.
+            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+
+            // RTUB never embeds itself: no window.top/window.parent logic, the PWA is
+            // display:standalone and the Android TWA uses a Custom Tab, not a frame. The app's
+            // own <iframe>s embed R2-hosted PDFs, whose headers are R2's, not these. So DENY is
+            // safe and strictly better than SAMEORIGIN for a Blazor Server circuit.
+            headers["X-Frame-Options"] = "DENY";
+
+            // Only features verified unused across wwwroot/js, Pages and Shared. `fullscreen`
+            // (PDF viewer iframes use allow="fullscreen") and `clipboard-write`
+            // (Share.razor, clipboardCopy.js) are in use and are deliberately left alone, as is
+            // the long tail of exotic features, where a blanket deny buys nothing measurable.
+            headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
+
+            await next();
+        });
+
         // Only use HTTPS redirection in development
         // In production (Azure App Service), HTTPS is handled at the load balancer level
         if (app.Environment.IsDevelopment())
