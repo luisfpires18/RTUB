@@ -1,8 +1,11 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +31,21 @@ namespace RTUB.Web.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Name of the rate limiting policy applied to <c>POST /auth/login</c>.</summary>
+    public const string LoginRateLimitPolicy = "login";
+
+    private const string LoginRateLimitSection = "LoginRateLimit";
+
+    /// <summary>
+    /// Login attempts allowed per client IP per window. Identity locks an account after 5 failures,
+    /// so this sits just above that: a single fumbling user is never throttled, while one client
+    /// probing a list of accounts is capped well below a useful credential-stuffing rate.
+    /// </summary>
+    private const int DefaultLoginPermitLimit = 10;
+
+    /// <summary>Matched to <c>Lockout.DefaultLockoutTimeSpan</c> so both limits tell one story.</summary>
+    private const double DefaultLoginWindowMinutes = 5;
+
     /// <summary>
     /// Registers repositories for data access
     /// Implements Repository pattern following DIP
@@ -466,6 +484,66 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
         services.AddScoped<IMessagingDisplayService, MessagingDisplayService>();
         services.AddScoped<IMessagingSortService, MessagingSortService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the per-client rate limiter for <c>POST /auth/login</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is a named policy only - there is deliberately no <c>GlobalLimiter</c>, so nothing is
+    /// throttled except the endpoints that opt in with <c>RequireRateLimiting</c>.
+    ///
+    /// It complements, and does not replace, Identity's per-account lockout
+    /// (<see cref="AddIdentityServices"/>): lockout stops repeated guesses against one account,
+    /// this stops one client walking many accounts (credential stuffing), which lockout never sees.
+    ///
+    /// Partitioning is on <c>Connection.RemoteIpAddress</c> only. The request's own headers are
+    /// never read: <c>X-Forwarded-For</c> is caller-controlled, so trusting it here would let an
+    /// attacker mint a fresh budget per request and allocate a limiter per forged value. Behind a
+    /// reverse proxy, <c>RemoteIpAddress</c> must be corrected by the host (on Azure App Service,
+    /// the <c>ASPNETCORE_FORWARDEDHEADERS_ENABLED</c> app setting), not by parsing headers here.
+    /// </remarks>
+    public static IServiceCollection AddLoginRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(LoginRateLimitSection);
+        var permitLimit = section.GetValue("PermitLimit", DefaultLoginPermitLimit);
+        var window = TimeSpan.FromMinutes(section.GetValue("WindowMinutes", DefaultLoginWindowMinutes));
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy(LoginRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    // A null RemoteIpAddress collapses into this one shared bucket rather than
+                    // creating a partition, so the partition count stays bounded by the number of
+                    // real peers and can never be grown by anything a caller supplies.
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = window,
+                        // No queue: a rejected attempt is answered immediately instead of holding
+                        // the request open, which is what a flood would otherwise exploit.
+                        QueueLimit = 0
+                    }));
+
+            // Only the login policy exists, so this callback is reached only by a login rejection.
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter =
+                        ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
+                }
+
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await context.HttpContext.Response.WriteAsync(
+                    "Demasiadas tentativas de login. Tente novamente mais tarde.", cancellationToken);
+            };
+        });
 
         return services;
     }

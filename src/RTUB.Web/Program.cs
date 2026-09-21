@@ -55,6 +55,9 @@ public class Program
         // Register all IOptions<T> configuration bindings
         services.AddConfigurationOptions(builder.Configuration);
 
+        // Per-client throttle on POST /auth/login only. Named policy, no global limiter.
+        services.AddLoginRateLimiting(builder.Configuration);
+
         var myTunoScaling = builder.Configuration
             .GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName)
             .Get<RTUB.Application.Configuration.MyTunoScalingConfiguration>();
@@ -340,6 +343,11 @@ public class Program
 
         app.UseRouting();
 
+        // Must follow UseRouting so the endpoint's RequireRateLimiting metadata is resolved, and
+        // precedes authentication/antiforgery so a throttled client is answered 429 before any
+        // credential or token work is done.
+        app.UseRateLimiter();
+
         // Serve static files EXCEPT /images/* (handled by ImagesController for E-Tag support)
         // We'll serve /images through the controller, all other static content through middleware
         app.UseWhen(
@@ -411,6 +419,8 @@ public class Program
         app.MapHealthChecks("/health");
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
+        // RequireRateLimiting below caps attempts per client IP; it complements, and does not
+        // replace, Identity's per-account lockout. See AddLoginRateLimiting.
         // The IFormCollection parameter makes this endpoint an antiforgery-protected form
         // endpoint: the framework requires a valid token and returns 400 before the handler
         // runs. Do not replace it with HttpContext.Request.ReadFormAsync() — that silently
@@ -522,7 +532,8 @@ public class Program
                 return Results.Redirect(returnUrl);
             }
             return Results.Redirect("/");
-        });
+        })
+        .RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);
 
         // LOGOUT (HTTP POST)
         // The unused IFormCollection parameter is what enables antiforgery validation — see the
