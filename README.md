@@ -520,14 +520,31 @@ dotnet run
 
 #### Local Development
 
-For local development, sensitive configuration values should be stored in `appsettings.Development.json` (which is git-ignored):
+For local development, store secrets with [.NET User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), **not** in `appsettings.Development.json`.
+
+> **`appsettings.Development.json` is NOT git-ignored** — there is no rule for it in `.gitignore`, so anything put there can be committed by accident. Keep credentials out of it.
+
+User Secrets are stored outside the repository, per developer, and are loaded automatically in the Development environment. `src/RTUB.Web/RTUB.csproj` already declares a `UserSecretsId`, so no setup is needed beyond setting values:
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "AdminUser:Password" "<owner-password>"
+```
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "SeedData:MemberPassword" "<member-seed-password>"
+```
+
+Replace each `<...>` placeholder with a real value of your own. `AdminUser:Password` is required the first time you start against an empty database; `SeedData:MemberPassword` is required only for the full member seed (see below). The same command sets any other secret, for example `EmailSettings:SmtpPassword` or `IDrive:SecretKey`.
+
+List what is set with `dotnet user-secrets list --project src/RTUB.Web/RTUB.csproj`.
+
+Non-secret local settings can still live in `appsettings.Development.json`:
 
 ```json
 {
   "AdminUser": {
     "Username": "your-username",
-    "Email": "your-email@example.com",
-    "Password": "your-admin-password"
+    "Email": "your-email@example.com"
   },
   "EmailSettings": {
     "SmtpServer": "smtp.gmail.com",
@@ -539,14 +556,16 @@ For local development, sensitive configuration values should be stored in `appse
   },
   "IDrive": {
     "Endpoint": "s3.endpoint.example.com",
-    "Bucket": "your-bucket",
-    "AccessKey": "your-access-key",
-    "SecretKey": "your-secret-key"
+    "Bucket": "your-bucket"
   }
 }
 ```
 
-**Note:** For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
+#### Seeding a full development database
+
+By default the application bootstraps the Owner account only. To create the full member dataset on a **fresh** database, set `isEmptyDb` to `false` in `SeedData.InitializeAsync` (`src/RTUB.Application/Data/SeedData.cs`) and make sure both `AdminUser:Password` and `SeedData:MemberPassword` are set as User Secrets first. Seeding fails with a clear error, creating no users at all, if either is missing.
+
+**Note:** Keep `SmtpPassword`, `IDrive:AccessKey` and `IDrive:SecretKey` in User Secrets, not in the file above. For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
 
 #### Production Deployment
 
@@ -560,7 +579,16 @@ For production, **do not include credentials in JSON files**. Instead, use envir
 **Admin User Configuration:**
 - `AdminUser__Username` - Default admin username
 - `AdminUser__Email` - Default admin email
-- `AdminUser__Password` - Default admin password
+- `AdminUser__Password` - Admin/Owner password. **Required** the first time the application
+  starts against an empty database: the Owner account is created from this value and there is no
+  default. Seeding fails with a clear error if it is missing, blank or left as a placeholder. Not
+  needed once the database has users.
+
+**Seed Data Configuration:**
+- `SeedData__MemberPassword` - Password given to every member created by the bulk member seed.
+  Only required when that seed is switched on (`isEmptyDb` set to `false` in
+  `SeedData.InitializeAsync`) to build a full development database. There is no default, and it is
+  validated before any user is written.
 
 **IDrive/S3 Configuration:**
 - `IDrive__AccessKey` - S3-compatible storage access key

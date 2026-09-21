@@ -24,7 +24,7 @@ public sealed class MemberBuilder
     private int? _yearCaloiro;
     private int? _yearLeitao;
     private string? _mentorId;
-    private string _password = "Rtub123!";
+    private string? _password;
     private bool _isRetired;
 
     public MemberBuilder(UserManager<ApplicationUser> userManager)
@@ -49,11 +49,21 @@ public sealed class MemberBuilder
 
     public async Task<ApplicationUser?> CreateAsync()
     {
+        // Fail closed: there is deliberately no default password. A caller must supply one
+        // explicitly via Password(...) before a user can be created.
+        if (string.IsNullOrWhiteSpace(_password))
+        {
+            throw new InvalidOperationException(
+                $"Cannot create member '{_nickname}': no password was supplied. " +
+                "Call Password(...) with a value from a secure configuration source. " +
+                "MemberBuilder has no default password.");
+        }
+
         var email = EmailFromNickname(_nickname);
         return await CreateSampleUser(
             _userManager,
             email,
-            _password,
+            _password!,
             _role,
             _firstName,
             _lastName,
