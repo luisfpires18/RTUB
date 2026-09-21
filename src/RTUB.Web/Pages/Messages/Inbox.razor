@@ -100,7 +100,7 @@
                                     {
                                         <img src="@GetAvatarUrl(conversation.OtherParticipantAvatar)" 
                                              alt="@(conversation.OtherParticipantNickname ?? conversation.OtherParticipantName)" 
-                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                             data-avatar-fallback />
                                     }
                                 </div>
                                 <div class="rtub-messages__item-content">
@@ -186,7 +186,7 @@
                                     {
                                         <img src="@GetAvatarUrl(selectedConversation.OtherParticipantAvatar)" 
                                              alt="@(selectedConversation.OtherParticipantNickname ?? selectedConversation.OtherParticipantName)" 
-                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                             data-avatar-fallback />
                                     }
                                 </div>
                                 <div class="d-flex flex-column">
@@ -275,7 +275,7 @@
                                                     <div class="rtub-messages__bubble-avatar">
                                                         <img src="@GetAvatarUrl(message.SenderAvatar)"
                                                              alt="@(message.SenderNickname ?? message.SenderName)"
-                                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                             data-avatar-fallback />
                                                     </div>
                                                 }
                                                 else
@@ -441,7 +441,7 @@
                                                 <img class="rtub-messages__mention-item-avatar"
                                                      src="@GetAvatarUrl(suggestion.avatarUrl)"
                                                      alt="@suggestion.displayName"
-                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                     data-avatar-fallback />
                                                 <div>
                                                     <div class="rtub-messages__mention-item-username">@suggestion.displayName</div>
                                                     @if (!string.IsNullOrWhiteSpace(suggestion.fullName) && suggestion.fullName != suggestion.displayName)
@@ -539,7 +539,7 @@
                             <img src="@GetAvatarUrl(member.ImageUrl)" 
                                  alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
                                  class="rtub-messages__member-avatar me-2" 
-                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                 data-avatar-fallback />
                             <div>
                                 @if (!string.IsNullOrEmpty(member.Nickname))
                                 {
@@ -643,7 +643,7 @@
                                 <img src="@GetAvatarUrl(member.ImageUrl)" 
                                      alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
                                      class="rtub-messages__member-avatar me-2" 
-                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                     data-avatar-fallback />
                                 <div>
                                     @if (!string.IsNullOrEmpty(member.Nickname))
                                     {
@@ -738,7 +738,7 @@
                         <img src="@GetAvatarUrl(participant.Avatar)"
                              alt="@(participant.Nickname ?? participant.Name)"
                              class="rtub-messages__group-member-avatar"
-                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                             data-avatar-fallback />
                         <div class="rtub-messages__group-member-info">
                             <div class="rtub-messages__group-member-name">@(participant.Nickname ?? participant.Name)</div>
                             @if (!string.IsNullOrEmpty(participant.Nickname) && !string.IsNullOrEmpty(participant.Name))

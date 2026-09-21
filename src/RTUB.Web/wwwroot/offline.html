@@ -71,29 +71,9 @@
         <img src="/icons/rtub-logo-192.png" alt="RTUB" class="icon" />
         <h1>Sem Conexão</h1>
         <p>Parece que estás offline. Verifica a tua ligação à internet e tenta novamente.</p>
-        <a href="/" class="button" onclick="window.location.reload(); return false;">Tentar Novamente</a>
+        <a href="/" class="button" id="retry">Tentar Novamente</a>
         <div class="status" id="status">A verificar ligação...</div>
     </div>
-    <script>
-        // Check if back online
-        function updateStatus() {
-            const statusEl = document.getElementById('status');
-            if (navigator.onLine) {
-                statusEl.textContent = 'Ligação restaurada! A recarregar...';
-                setTimeout(() => window.location.href = '/', 1000);
-            } else {
-                statusEl.textContent = 'Ainda offline';
-            }
-        }
-        
-        window.addEventListener('online', updateStatus);
-        window.addEventListener('offline', updateStatus);
-        
-        // Check immediately
-        updateStatus();
-        
-        // Periodic check
-        setInterval(updateStatus, 3000);
-    </script>
+    <script src="/js/offline.js"></script>
 </body>
 </html>

@@ -25,7 +25,7 @@
                         var suggestion = s;
                         <div class="member-item p-2 mb-1 border rounded" @onclick="() => SelectMention(suggestion)" @key="suggestion.userId" style="cursor:pointer;">
                             <div class="d-flex align-items-center">
-                                <img src="@suggestion.avatarUrl" alt="@suggestion.displayName" class="member-avatar-small me-2" width="50" height="50" onerror="this.onerror=null;this.src='/images/default-avatar.webp';" />
+                                <img src="@suggestion.avatarUrl" alt="@suggestion.displayName" class="member-avatar-small me-2" width="50" height="50" data-avatar-fallback />
                                 <div>
                                     <div><strong>@suggestion.displayName</strong></div>
                                     @if (!string.IsNullOrWhiteSpace(suggestion.fullName))

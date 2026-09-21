@@ -23,23 +23,12 @@
     @* Preconnect for performance *@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    @* Service Worker Registration - Must be in head for PWABuilder detection *@
-    <script>
-        // Register service worker immediately for PWABuilder and PWA detection
-        // This must run synchronously in the head to be detected by PWABuilder
-        (function() {
-            if ('serviceWorker' in navigator) {
-                // Register immediately without waiting for page load
-                navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
-                    .then(function(registration) {
-                        console.log('[SW] Service Worker registered:', registration.scope);
-                    })
-                    .catch(function(error) {
-                        console.error('[SW] Service Worker registration failed:', error);
-                    });
-            }
-        })();
-    </script>
+    @* Avatar fallback listener. Loaded from <head> so it is attached before any
+       avatar <img> is parsed - it replaces per-element inline onerror handlers. *@
+    <VersionedAsset Path="/js/avatarFallback.js" Type="VersionedAsset.AssetType.Js" />
+    @* Service worker registration lives in /js/sw-register.js, loaded from MainLayout.
+       There is deliberately none here: registering the same script under the same scope
+       twice is idempotent, so the head copy only duplicated work. *@
     @* HeadOutlet allows MainLayout to inject additional head content dynamically *@
     <HeadOutlet />
 </head>
