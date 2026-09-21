@@ -5,116 +5,118 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **017 (make `ResetDevDataAsync` explicit and safe) - implementation complete,
-uncommitted, awaiting owner review.** Unit 016 is merged to `dev` at `6f9f9d8c`.
+Modernization unit **018 (fix the `TestWebApplicationFactory` SQLite startup race) - implementation
+complete, uncommitted, awaiting owner review.** Unit 017 is merged to `dev` at `37a19e8a`.
 
 ## Branch
-`fix/017/development-data-reset-safety`, branched from `dev` (clean, in sync with `origin/dev` at
-`6f9f9d8c`). Uncommitted - no commit authorized.
-`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015` and `fix/016` still present; delete when
-convenient.
+`fix/018/integration-sqlite-startup-race`, branched from `dev` (clean, in sync with `origin/dev` at
+`37a19e8a`). Uncommitted - no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016` and `fix/017` still present;
+delete when convenient.
 
 ## Last completed step
-**Unit 017 - the development-data reset is now opt-in, Development-only and free of hardcoded
-credentials.** The default startup no longer modifies any existing user's credentials.
+**Unit 018 - the integration-test host no longer shares one `SqliteConnection`, and its database is
+seeded before any hosted service starts.** The intermittent
+`InvalidOperationException: Operations that change non-concurrent collections must have exclusive
+access` is gone. Measured in the same harness, back to back: **old factory 12 failures in 40
+isolated runs, all 12 the race; new factory 0 in 40.**
 
-### Before / after
-`SeedData.InitializeAsync` called `ResetDevDataAsync` on every startup, before the existing-user
-early return. The guard was only `if (environment.IsProduction()) return;`, so **Development,
-Test *and* Staging** ran it automatically: it cleared `PushSubscriptions`, rewrote **every**
-user's `PasswordHash` to one shared hardcoded hash via raw SQL, and normalised every email. Two
-live problems: it silently undid unit 016's configured seed passwords on the next local startup,
-and a future Azure DEV App Service running as `Staging` would have reset every user's credentials
-on every restart.
+### Exact cause - proven, not inferred
+Captured stack, abridged, from a reproduction run against the pre-018 factory:
 
-The feature itself is useful, so it was **not deleted**. It is now gated twice:
-
-| Environment | `DevelopmentDataReset:Enabled` | Result |
-| --- | --- | --- |
-| Production | anything | **never runs** |
-| Staging | anything | **never runs** |
-| Test | anything | **never runs** on the normal host path |
-| Development | absent / `false` / unparseable | no reset, no password required |
-| Development | `true` | password required, validated, then reset |
-
-The environment check (`!environment.IsDevelopment()`) comes **first**, so no configuration value
-can switch it on outside local Development.
-
-### Configuration
 ```
-DevelopmentDataReset:Enabled    /  DevelopmentDataReset__Enabled
-DevelopmentDataReset:Password   /  DevelopmentDataReset__Password
+System.InvalidOperationException : Operations that change non-concurrent collections must have
+exclusive access. ...
+  at System.Collections.Generic.Dictionary`2.set_Item(TKey key, TValue value)
+  at Microsoft.Data.Sqlite.SqliteConnection.CreateAggregateCore[...](...)
+  at Microsoft.EntityFrameworkCore.Sqlite.Storage.Internal.SqliteRelationalConnection
+       .InitializeDbConnection(DbConnection connection)
+  at Microsoft.EntityFrameworkCore.Sqlite.Storage.Internal.SqliteRelationalConnection..ctor(...)
+  ... at RTUB.Application.Repositories.GameRepository.GetByKeyAsync(...)
+  ... at RTUB.Application.Data.SeedData.InitializeAsync(...)
+  ... at RTUB.Integration.Tests.TestWebApplicationFactory.CreateHost(...)
 ```
-No hardcoded fallback, no hardcoded `PasswordHash`, no generated-and-lost password. `Enabled` is
-read with `bool.TryParse`, so absent / blank / garbage all resolve to **off** - the safe direction.
 
-### Fail-closed / atomic
-`DevelopmentDataReset:Password` is validated **before the first mutation**, reusing unit 016's
-`RequireSeedPassword`. Missing, null, empty, whitespace or a documented placeholder
-(`your-admin-password`, `changeme`, `change-me`, `password`, case-insensitive) throws
-`InvalidOperationException` naming both `DevelopmentDataReset:Password` and
-`DevelopmentDataReset__Password`. **The supplied value never appears in the message or any log**
-- asserted by a test. A missing password therefore leaves push subscriptions, passwords and emails
-exactly as they were; there is no partially-reset database.
+`SqliteRelationalConnection`'s **constructor** calls `InitializeDbConnection`, which registers EF
+Core's own SQL functions, collations and aggregates (`ef_mod`, `ef_add`, ...) on the
+`SqliteConnection` object. Those registrations are `Dictionary<,>.set_Item` on plain, unsynchronised
+dictionary fields of `SqliteConnection`. **A `SqliteRelationalConnection` is constructed once per
+`ApplicationDbContext`**, so with one shared connection instance *every* context construction
+rewrote those dictionaries. Two constructions at once corrupted them.
 
-### Password reset mechanism - no more raw SQL
-The `UPDATE AspNetUsers SET PasswordHash = '<literal>'` is gone. Each user now goes through
-Identity's own password-reset flow, in **one** call:
-`GeneratePasswordResetTokenAsync` then `ResetPasswordAsync`.
+The two racing paths were:
+1. **main test thread** - `CreateHost` -> `db.Database.EnsureCreated()` -> `SeedData.InitializeAsync`
+   -> `GameService.SeedDefaultGamesAsync` -> new `ApplicationDbContext`;
+2. **thread pool** - `MemberStatusUpdateBackgroundService.ExecuteAsync`, the **only** hosted service
+   with no startup delay (`await RunUpdateAsync()` on its first line; the other nine open with
+   `await Task.Delay(5-25 s)`) -> `MemberStatusService.UpdateAllMemberStatusesAsync` ->
+   `IDbContextFactory.CreateDbContextAsync` -> new `ApplicationDbContext`.
 
-**Deliberately not `RemovePasswordAsync` + `AddPasswordAsync`.** That is a two-step credential
-mutation: a failure between the two steps would leave the account with **no password at all**.
-`ResetPasswordAsync` verifies the token and validates the new password *before* it writes, so a
-rejected reset leaves the existing hash untouched.
+Both are pure DI/startup work, which is why the exception was unrelated to whichever test ran, and
+why the full suite mostly hid it: a warm process loses the overlap window that a cold, isolated
+class run has.
 
-Every `IdentityResult` is checked explicitly. A failed reset throws `InvalidOperationException`
-naming the affected `UserName` and the Identity error `Code: Description` pairs — those never echo
-the password or the reset token, and neither does anything logged.
+**Second, latent bug found by the same trace:** `base.CreateHost(builder)` **starts** the host, so
+every hosted service ran *before* `EnsureCreated()` and the seed. `MemberStatusUpdateBackgroundService`
+was therefore querying `AspNetUsers` against an empty database on every single factory startup and
+logging `SQLite Error 1: 'no such table: AspNetUsers'`, swallowed by its own `catch`. Now fixed too:
+a full integration run logs **zero** SQLite errors where it previously logged twelve.
 
-`ResetPasswordAsync` routes through `UpdatePasswordHash`, so the configured `IPasswordHasher`
-produces the hash and **the security stamp is rotated**; authentication cookies issued before a
-reset stop validating. A test asserts the stamp changes. The web host already supplies the
-password-reset token provider via `AddDefaultTokenProviders()`
-(`ServiceCollectionExtensions.cs:639`); the tests register the same `DataProtectorTokenProvider`
-explicitly.
+### Previous test-database architecture
+- one `SqliteConnection` field on the factory, `DataSource=:memory:`;
+- opened inside `ConfigureWebHost`'s `ConfigureServices` delegate;
+- `AddDbContext<ApplicationDbContext>(o => o.UseSqlite(_connection))` - the **connection instance**;
+- `CreateHost` = `base.CreateHost` (which builds **and starts**), then `EnsureCreated()`, then seed;
+- `Dispose` closed the connection *before* `base.Dispose`.
 
-`DELETE FROM PushSubscriptions` became `RemoveRange` over a materialised list - provider-agnostic
-(works on the InMemory provider the tests use), audited like any other delete, and no change
-tracker mutation mid-enumeration.
+A bare `:memory:` database is private to its one connection, so sharing the instance was the only
+way the old design could keep one database - and sharing the instance was the defect.
 
-Email normalisation to `{UserName}@rtub.pt` stays, but is assigned on the entity (plus
-`NormalizeEmail` for `NormalizedEmail`, persisted by its own checked `UpdateAsync`) rather than via
-`UserManager.SetEmailAsync` - **deliberate**: `SetEmailAsync` clears `EmailConfirmed`, and
-`SignIn.RequireConfirmedAccount = true` (`ServiceCollectionExtensions.cs:627`), so using it would
-lock every dev account out. A test pins `EmailConfirmed` staying `true`. The email is written only
-**after** the password reset succeeds, so a rejected reset rewrites nothing.
+### New test-database architecture
+- `Data Source=rtub-tests-{Guid.NewGuid():N};Mode=Memory;Cache=Shared` - **a name generated per
+  factory instance**, so each factory (and so each test class, which run in parallel) stays isolated,
+  exactly as before;
+- one `_keepAlive` connection opened in the **factory constructor** and closed in `Dispose`. A named
+  in-memory database is dropped when its last connection closes, so this keeps it alive for the
+  factory lifetime. Nothing queries through it. Opening it in the constructor rather than in
+  `ConfigureServices` also means it cannot be created twice or leaked if that delegate re-runs;
+- `AddDbContext` is configured from the **connection string**, so every `ApplicationDbContext` -
+  scoped, or built by `IDbContextFactory` - opens and owns its own `SqliteConnection`. No two
+  contexts can touch one connection's dictionaries again, under any amount of concurrency;
+- `Dispose` now calls `base.Dispose` **first**, then closes `_keepAlive`, so the database outlives
+  anything still querying it.
 
-### Visibility
-`ResetDevDataAsync` went from `private` to `internal` (the project already declares
-`InternalsVisibleTo RTUB.Application.Tests`), which is the explicit test-specific path required.
-Nothing else in `src/` can call it, and the `IsDevelopment()` guard keeps it inert on the normal
-`TestWebApplicationFactory` startup path (that host runs as `Test`).
+### Startup order - fixed at the lifecycle, not with sleeps or retries
+`WebApplicationFactory`'s host is **deferred**: `builder.Build()` does not materialise services, and
+merely reading `host.Services` is what starts the app. Build-seed-then-start is therefore impossible
+- attempting it throws `ObjectDisposedException: IServiceProvider`, which was verified, not assumed.
 
-### Interaction with unit 016 - proven
-`FullSeed_ThenDefaultDevelopmentStartup_KeepsBothConfiguredSeedPasswords` runs the **real** bulk
-seed (`isEmptyDb: false`, 82 members) so the database is in the genuine post-016 state, then
-replays what the next Development startup does with no `DevelopmentDataReset` section configured
-at all. The Owner still authenticates with `AdminUser:Password`, the member `nabo` still
-authenticates with `SeedData:MemberPassword`, and the Owner's email is not rewritten.
+So the seed moved into the host's own lifecycle: a private
+`TestWebApplicationFactory.DatabaseInitializer : IHostedLifecycleService` does `EnsureCreatedAsync`
+plus `SeedData.InitializeAsync` in **`StartingAsync`**. `Host.StartAsync` runs *every* hosted
+service's `StartingAsync` before *any* `StartAsync`, so the database is complete before the first
+background service runs, and registration order is irrelevant. No `Task.Delay`, no retry, no lock,
+no serialisation of the test suite.
 
-### Files changed (3)
-- `src/RTUB.Application/Data/SeedData.cs` - `ResetDevDataAsync` rewritten (guards, config,
-  validation, UserManager-based reset, EF delete, logger); its call site passes `configuration`
-  and `userManager` and gained a two-line comment. **Nothing else in the file changed** - the
-  `isEmptyDb` manual switch and every other seed step are untouched.
-- `README.md` - new "Resetting a local development database (destructive, opt-in)" section under
-  Local Development, plus a "Development Data Reset" entry in the environment-variable list.
-- `tests/RTUB.Application.Tests/Data/DevelopmentDataResetTests.cs` - **new**, the only new file.
+### Hosted services - none removed, none disabled
+`MemberStatusUpdateBackgroundService` and the other nine still start in the test host exactly as in
+production. The fix is ordering plus connection ownership, so nothing had to be stubbed out. **One
+hosted service was added, and it exists only in the test project**: `DatabaseInitializer`, above.
+
+### Seeding semantics - unchanged
+Same `SeedData.InitializeAsync(services, configuration)`, same scope, same configuration, same
+generated `AdminPassword`. Only *when* it runs moved. No production file was touched: the diff is
+two files, both under `tests/`.
+
+### Files changed (2)
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - connection string plus keep-alive
+  connection, `CreateHost` override removed, `DatabaseInitializer` added, `Dispose` order reversed.
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactoryTests.cs` - **new**, the only new file.
 
 ### Not changed, by instruction
-Password policy, MFA, the `TestWebApplicationFactory` SQLite race, Azure provisioning, CI/CD, the
-`isEmptyDb` manual switch, seed-mode shape, email architecture, push architecture. No migration
-and no model-snapshot change - none was needed.
+Application SQLite performance, production DB architecture, cookie-validation DB pressure, global
+test parallelisation policy, `xUnit1051`, CI/CD, Azure, PWA, `SeedData`, hosted-service
+architecture. No migration and no model-snapshot change - none was needed. **Nothing in `src/`.**
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -173,11 +175,7 @@ removing it is a behavior change to the production request pipeline. Carried in 
 None active.
 
 ## Next unit
-**The `TestWebApplicationFactory` SQLite startup race** - serialize factory startup before the
-hosted services run. It hits any integration class run in isolation at roughly 2 runs in 5, and it
-was explicitly out of scope for 015 and 017. Detail under *Deferred* below.
-
-Then: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
+**Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
 Next *security* unit: **password policy** - Identity is currently `RequiredLength = 4` with every
 complexity rule off (`AddIdentityServices`). Then security headers / CSP.
@@ -235,17 +233,10 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 - **`Set-Cookie` carries no `Secure` flag under the test host**, because the default is
   `CookieSecurePolicy.SameAsRequest` and the test client speaks http. Over https in production the
   flag is emitted. Not changed; an explicit `Always` is a separate hardening decision.
-- **Pre-existing integration-test flake, not caused by 013.**
-  `AuthAntiforgeryTests.LoginPost_WithoutAntiforgeryToken_IsRejected` (unit 012, unmodified) fails
-  intermittently — roughly 4 runs in 5 — **only when that class is run in isolation**, with
-  `System.InvalidOperationException: Operations that change non-concurrent collections must have
-  exclusive access` thrown from `SqliteConnection.CreateCollation` during
-  `TestWebApplicationFactory` startup. It is a data race between the factory's `EnsureCreated()`
-  and the background services starting on the same shared in-memory connection. It does **not**
-  fire in the full suite (clean at 4497 / 0 / 60). **Re-measured by 014 and now the most annoying
-  thing in the test suite:** it hits any integration class run in isolation, including the new
-  `LoginRateLimitTests`, at roughly 2 runs in 5. Worth its own unit: serialize factory startup
-  before the hosted services run.
+- ~~**Pre-existing integration-test flake, not caused by 013**~~ — **fixed by unit 018.** The
+  shared `SqliteConnection` is gone and the seed now runs in `IHostedLifecycleService.StartingAsync`.
+  Measured before/after in the same harness: **12 failures in 40 isolated runs → 0 in 40.** See
+  *Last completed step*.
 - Out of scope by instruction and untouched: password policy, MFA, cookie
   validation / SQLite pressure, security headers / CSP, PWA cache strategy, push architecture
   refactor, `Program.cs` cleanup.
@@ -282,56 +273,53 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 017)
-- `src/RTUB.Application/Data/SeedData.cs` - `ResetDevDataAsync` (double gate, config validation,
-  `UserManager`-based password reset, EF push-subscription delete, `ILogger`) and its call site.
-- `tests/RTUB.Application.Tests/Data/DevelopmentDataResetTests.cs` - **new**.
-- `README.md` - local opt-in via User Secrets + environment-variable reference.
+## Relevant files (unit 018)
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - per-factory named shared-cache
+  in-memory database, keep-alive connection, `DatabaseInitializer` hosted lifecycle service.
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactoryTests.cs` - **new**.
 - `STATE.md` - this file.
 
-Unchanged and deliberately so: `SeedData.Member.cs`, `MemberBuilder.cs`, every `appsettings*.json`
-(no `DevelopmentDataReset` section is committed anywhere - the switch is User Secrets / App
-Service settings only), `TestWebApplicationFactory.cs`, migrations, the model snapshot, and CI.
+Unchanged and deliberately so: every file under `src/`, `IntegrationTestBase.cs`,
+`RemoteIpTestStartupFilter.cs`, every existing integration test class, migrations, the model
+snapshot, and CI.
 
-## Tests (14 new, 0 removed, 0 changed)
-All in `DevelopmentDataResetTests`. Every password comes from `TestSecret.NewPassword()`; the push
-subscription's `P256dh`/`Auth` fixture values are generated GUIDs rather than literals for the same
-reason. The only credential-ish literals are the *placeholders* the production code rejects.
-1. `ResetDoesNotRun_LeavesCredentialsEmailsAndPushSubscriptionsUntouched` - **5 theory cases**
-   (Development+`false`, Development+absent, **Staging**+`true`, **Production**+`true`,
-   **Test**+`true`): old password still valid, reset password rejected, email unchanged, security
-   stamp unchanged, push subscription still present.
-2. `Development_EnabledWithoutUsablePassword_ThrowsBeforeAnyMutation` - **5 theory cases** (absent,
-   empty, whitespace, `changeme`, `CHANGEME`): throws naming **both** `DevelopmentDataReset:Password`
-   and `DevelopmentDataReset__Password`, the message does **not** contain the supplied value, and
-   password / email / security stamp / push subscription are all untouched.
-3. `Development_EnabledWithValidPassword_ResetsPasswordsEmailsAndPushSubscriptions` - new password
-   authenticates, **old password no longer works**, email normalised to `{UserName}@rtub.pt` with
-   `NormalizedEmail` upper-cased, `EmailConfirmed` preserved, **security stamp rotated**, push
-   subscriptions cleared.
-4. `Development_EnabledWithValidPassword_ResetsEveryUser` - two users, both reset.
-5. `Development_WhenIdentityRejectsTheReset_ThrowsAndLeavesTheAccountUsable` - a stubbed
-   `IPasswordValidator` rejects the password. The `IdentityResult` failure is **surfaced** as an
-   `InvalidOperationException` carrying the Identity error code and the affected `UserName` and
-   **not** the password; the account keeps a non-empty `PasswordHash`, still authenticates with its
-   previous password, keeps its security stamp and keeps its original email. This is the test that
-   would fail under a `RemovePassword` + `AddPassword` implementation.
-6. `FullSeed_ThenDefaultDevelopmentStartup_KeepsBothConfiguredSeedPasswords` - the unit-016
-   interaction, proven against the real bulk seed. See *Last completed step*.
+## Tests (3 new, 0 removed, 0 changed)
+All in `TestWebApplicationFactoryTests`. They pin the test host's own lifecycle, not application
+behaviour.
+1. `EveryDbContextOpensItsOwnConnection` - two contexts from two scopes plus one from
+   `IDbContextFactory<ApplicationDbContext>`; all three `DbConnection` instances must be distinct,
+   and all three must still see the seeded users. This is the **deterministic** assertion of the new
+   architecture: it fails outright on the old shared-connection design.
+2. `SeedDataIsInPlaceBeforeHostedServicesStart` - a derived factory registers one extra probe
+   `IHostedService` that records, in `StartAsync`, whether the seeded `testadmin` is already
+   present. Deterministic: `StartingAsync` always precedes every `StartAsync`.
+3. `ConcurrentDbContextCreationDoesNotCorruptTheDatabase` - 32 parallel scope-and-context creations,
+   each running a query. This is the direct regression for the reported exception; it is paired with
+   test 1 so the suite never rests on a probabilistic check alone.
 
-## Latest validation (unit 017)
+## Latest validation (unit 018)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `DevelopmentDataResetTests` alone - **14 total, 14 passed, 0 failed, 0 skipped**;
-  together with `SeedDataBootstrapTests` - **29 total, 29 passed**.
-- Full suite, `dotnet test --no-build -c Release`: **4526 passed, 0 failed, 60 skipped**
-  (total 4586). Baseline was 4512 / 0 / 60 - **+14, exactly the tests added.**
+- Focused first: `TestWebApplicationFactoryTests` alone - **3 total, 3 passed**; then the whole
+  `RTUB.Integration.Tests` project - **249 total, 247 passed, 2 skipped, 0 failed**, with **zero**
+  `SQLite Error` lines in the log (previously twelve per run, from the unseeded background query).
+- **Stress, before/after in the same harness**, each class run **in isolation** as its own
+  `dotnet test --filter-class` process:
+
+  | Class | Runs | Old factory | New factory |
+  | --- | --- | --- | --- |
+  | `AuthAntiforgeryTests` | 20 | **5 failed**, all 5 the race | **0 failed** |
+  | `LoginRateLimitTests` | 20 | **7 failed**, all 7 the race | **0 failed** |
+  | `TestWebApplicationFactoryTests` | 20 | n/a | **0 failed** |
+
+  60 isolated new-factory runs, **zero** occurrences of `non-concurrent collections` anywhere in the
+  captured output.
+- Full suite, `dotnet test --no-build -c Release`: **4529 passed, 0 failed, 60 skipped**
+  (total 4589). Baseline was 4526 / 0 / 60 - **+3, exactly the tests added.**
 - `git diff --check`: clean.
-- **No hardcoded `PasswordHash` remains**: repo-wide `grep` for `PasswordHash = "` across `src/`
-  returns nothing, and the removed `AQAAAA...` hash matches nowhere in `src/`, `tests/`, `docs/`
-  or `README.md` (working tree; git history was not rewritten).
-- Diff credential scan for `password = "<literal>"`, `secret = "<literal>"` and `?? "<literal>"`
-  across the changed files: **no match**.
-- `git status`: 1 modified source file, 1 modified `README.md`, 1 new test file, 1 modified
-  `STATE.md`. **Migrations and the model snapshot are untouched.**
-- No frontend build, no Playwright, no Graphify rebuild - one method body, not a structural change.
+- Diff credential scan for `password = "<literal>"`, `secret = "<literal>"`, `token`/`key` literals
+  and `?? "<literal>"` across the changed files: **no match**.
+- `git status`: 1 modified test file, 1 new test file, 1 modified `STATE.md`. **No file under
+  `src/` is touched; migrations and the model snapshot are untouched.**
+- No frontend build, no Playwright, no Graphify rebuild - test infrastructure only, no application
+  structure change.
