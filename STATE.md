@@ -5,130 +5,174 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **020 (restore Identity cookie-refresh semantics without weakening RTUB's
-security checks) - COMPLETE, uncommitted, awaiting owner review.** Unit 019 is merged to `dev` at
-`b45459ec`.
+Modernization unit **021 (security headers + CSP readiness) - COMPLETE, uncommitted, awaiting
+owner review.** Unit 020 is merged to `dev` at `69a1c88f`.
 
 ## Branch
-`fix/020/identity-cookie-validation`, branched from `dev` (clean, in sync with `origin/dev` at
-`b45459ec`). Uncommitted - no commit authorized.
-`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`,
-`perf/019` still present; delete when convenient.
+`fix/021/security-headers-csp-readiness`, branched from `dev` (clean, in sync with `origin/dev` at
+`69a1c88f`). Uncommitted - no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
+`fix/020` still present; delete when convenient.
 
-## Owner decision (2026-09-21) - Option A
-**`LastLoginDate` keeps its activity semantics.** It is not renamed, not split, not restricted to
-login time. The only change is that the write is now throttled to **one per 5 minutes per user**,
-which is the throttle PR #185's comment already claimed to have. Options B and C (login-only, with
-or without a new `LastActivityAt` column) were rejected: both change what the presence UI shows.
+## Owner decision (2026-09-21)
+**Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
+not read for change and not touched by 021. It remains available as a future unit.
 
 ## Last completed step
-**Unit 020 - RTUB's cookie handler now *calls* Identity's `SecurityStampValidator` instead of
-replacing it. Every RTUB check still runs on every request; the framework's principal refresh and
-cookie renewal are back.**
+**Unit 021 - four browser security headers added in one central middleware.
+Content-Security-Policy is DEFERRED on evidence, not shipped weak.**
 
-### Why the custom handler replaced Identity's in the first place
-`AddIdentity` wires the application cookie with
-`OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync`.
-`AddCookieAuthenticationServices` assigned **a whole new `CookieAuthenticationEvents` object**,
-which replaced that delegate outright. It did so to add three rules Identity does not have, all of
-which had to be **immediate** rather than interval-gated:
-- **expulsion** - `IsExpelled` is an RTUB column; Identity knows nothing about it;
-- **Admin-role consistency** - `UserManager.RemoveFromRoleAsync` does **not** bump the security
-  stamp, so the stock validator never notices a revoked Admin role;
-- login/activity logging and the `LastLoginDate` activity write (unit 019).
+### Headers found BEFORE 021
+Measured against live production, not inferred:
+`curl -I https://rtub.azurewebsites.net/health` returns exactly one security header -
+**`Strict-Transport-Security: max-age=2592000`**. Nothing else.
 
-Replacing the delegate was the cheap way to get them, and it cost two framework behaviours: the
-success-path principal refresh, and cookie renewal. Unit 019 recorded both as deferred.
-
-### What changed (one production file, one call)
-`OnValidatePrincipal` now runs, in this order:
-1. security-stamp check -> reject
-2. expelled check -> reject
-3. Admin-consistency check -> reject
-4. **`await SecurityStampValidator.ValidatePrincipalAsync(context);` then
-   `if (context.Principal is null) return;`**
-5. throttled login logging + throttled `LastLoginDate` write (unit 019, untouched)
-
-Step 4 resolves the configured `ISecurityStampValidator` from DI (`AddIdentity` registers
-`SecurityStampValidator<ApplicationUser>` scoped) and runs the real framework validator. Nothing
-of Identity is reimplemented and no subclass was added.
-
-### The ordering is the design, and it is deliberate
-The framework call goes **last**, not first. Verified against the .NET 10 source
-(`src/Identity/Core/src/SecurityStampValidator.cs`):
-
-- `ValidateAsync` computes `validate = timeElapsed > Options.ValidationInterval` and, when that is
-  false, **returns without touching the database or the principal**. Putting RTUB's checks behind
-  it would have diluted all three to the 30-minute interval.
-- On the refresh path it calls `SecurityStampVerified` -> `SignInManager.CreateUserPrincipalAsync`
-  -> `context.ReplacePrincipal(newPrincipal)` + `ShouldRenew = true`. That rebuild **scrubs the
-  stale `Admin` claim** the role probe exists to catch. Running the framework first would have
-  silently downgraded such a session instead of rejecting it - and only on the requests where a
-  refresh happened to fall due. `AdminRoleRemoved_IsStillRejectedImmediately_WhileRefreshIsDue`
-  pins that this does not happen.
-- `CookieValidatePrincipalContext.RejectPrincipal()` is `Principal = null`, which is why the null
-  check after the call is the correct rejection test.
-  `CookieAuthenticationHandler.HandleAuthenticateAsync` then returns `NoPrincipal`; on
-  `ShouldRenew` it calls `RequestRefresh(ticket, context.Principal)` and `FinishResponseAsync`
-  emits the new `Set-Cookie`.
-
-### Validation cadence - exact
-| Check | Cadence | Changed by 020? |
+| Header | Before | Source |
 | --- | --- | --- |
-| RTUB security-stamp verification | **every request** | no |
-| RTUB expelled check | **every request** | no |
-| RTUB Admin-consistency check | **every request** | no |
-| Login logging | every request, log line throttled 1 h per cookie | no |
-| `LastLoginDate` write | throttled, 1 per user per 5 min (unit 019) | no |
-| Framework principal rebuild + `ShouldRenew` | every `ValidationInterval` (**30 min, framework default, unchanged**) | **restored** |
+| `Strict-Transport-Security` | **present**, `max-age=2592000` | `app.UseHsts()`, `Program.cs`, non-Development only |
+| `X-Content-Type-Options` | absent | - |
+| `Referrer-Policy` | absent | - |
+| `X-Frame-Options` | absent | - |
+| `Permissions-Policy` | absent | - |
+| `Content-Security-Policy` | absent | - |
 
-**No check became less frequent.** The framework default was not touched - RTUB simply keeps a
-stricter stamp check in front of it. **The stop condition in the brief was not reached**: nothing
-moved from per-request to 30 minutes.
+A repo-wide grep for every one of those header names across `*.cs`, `*.razor`, `*.json`, `*.js`,
+`*.ts`, `*.config`, `*.yml`, `*.html` returned **zero hits**. There is **no `web.config`, no
+`staticwebapp.config.json`, no `*.pubxml`**, and `.github/workflows/ci.yml` sets no app settings
+and no headers. **Azure App Service supplies nothing** beyond what the app itself emits - the
+`Server: Kestrel` response confirms there is no IIS layer adding any.
 
-### Claim / role refresh - what actually works
-- `UserManager.AddToRoleAsync` / `RemoveFromRoleAsync` do **not** touch the security stamp. Role
-  changes therefore reach a live session through the framework rebuild, at the next validation
-  interval - now that the rebuild runs again. Before 020 they never reached it at all: a session's
-  claims were frozen at the moment the cookie was issued.
-- `UserManager.UpdateSecurityStampAsync` is **not** a refresh. In stock Identity it makes
-  `VerifySecurityStamp` return null, i.e. it is the *revocation* path and forces a re-login. RTUB
-  already calls it on role change in `RoleManagementService.cs:121` and `UserRoles.razor:613`; the
-  comment at the latter ("force fresh cookies and token refresh") is misleading, and the behaviour
-  is a forced logout. Left alone - out of scope, recorded in *Deferred*.
-- Admin **revocation** stays RTUB's immediate rejection, not a claim refresh.
+So the earlier audit note "no meaningful CSP/security-header setup" was right about CSP but
+**wrong about HSTS**, which has been live all along.
 
-### DB cost - measured before and after, same harness
-One authenticated `GET /Events`, throttle already armed, via the `DbCommandInterceptor` in
-`CookieValidationFactory`. "before" = the same probe run with the production file reverted to `dev`.
+### Headers ADDED (one `app.Use` block, `Program.cs`, before `UseHttpsRedirection`)
+| Header | Value | Why this value |
+| --- | --- | --- |
+| `X-Content-Type-Options` | `nosniff` | RTUB serves user-uploaded media plus JSON/manifest documents. Zero-risk, real value. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Origin-only on the `target="_blank"` links out to YouTube/Spotify, nothing on downgrade. Codifies what current browsers already default to - it changes nothing on a modern browser and is insurance for one that does not. |
+| `X-Frame-Options` | `DENY` | See the framing verification below. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` | Exactly the four capability APIs verified unused. |
 
-| | total SQL | `AspNetRoles` | `AspNetUserRoles` | `AspNetUserClaims` | `LastLoginDate` writes |
-| --- | --- | --- | --- | --- | --- |
-| before (dev) - any request | 13 | 1 | 1 | 0 | 0 |
-| after - inside `ValidationInterval` | **13** | 1 | 1 | 0 | 0 |
-| after - refresh due | **15** | 2 | 2 | 1 | 0 |
+Placement: registered **after** the `UseExceptionHandler`/`UseHsts` block and **before**
+`UseHttpsRedirection`, `UseResponseCompression`, `UseRouting`, `UseStaticFiles`, the
+`/_blazor/initializers` short-circuit and every endpoint - so all of those are covered, including
+static assets and 404s. Because `UseExceptionHandler` is registered upstream and **re-executes the
+pipeline**, the middleware runs a second time on an error response; the headers are therefore
+assigned **by indexer, not `Append`**, so re-execution is idempotent. A test pins that.
 
-- **Inside the interval the cost is byte-for-byte unchanged.** The framework call returns before
-  any database work.
-- A refresh costs **+2 commands**: one role join and one user-claims SELECT, from
-  `CreateUserPrincipalAsync`. Once per user per 30 minutes.
-- The framework's `VerifySecurityStamp` repeats RTUB's stamp check but **costs no SELECT**:
-  `UserManager.GetUserAsync` resolves off the request-scoped `DbContext`'s change tracker, which
-  RTUB's own check has already populated. Subclassing `SecurityStampValidator<ApplicationUser>` to
-  deduplicate it would have bought nothing, so it was not done.
-- Role queries were **not** optimised - out of scope, and nothing eliminated them naturally.
+One `app.Use` block in `Program.cs`, ~13 effective lines. **No new file, no extra package**, and
+no `Response.Headers` assignment was added to any page or controller.
 
-### Carried over unchanged from unit 019 (still true, still load-bearing)
-- `LastLoginDate` means **"last authenticated request"**, not "last login". The presence UI
-  (`LoginStatusBadge`, `AvatarCard:306`, `UserCard:107`, `UserRoles:427`, `UserProfileService:93`,
-  `LoginStatisticsButton`) buckets at an hour or coarser, so the 5-minute write throttle is
-  invisible to all of it. Owner decision Option A above. Naming remains debt - see *Deferred*.
-- `OnValidatePrincipal` fires **once per HTTP request per cookie scheme** -
-  `HandleAuthenticateAsync` is memoised by `HandleAuthenticateOnceAsync`.
-- Static assets cost nothing: `UseStaticFiles` (`Program.cs:363`) precedes `UseAuthentication()`
-  (`Program.cs:414`). `/images/*` is excluded from that branch so `ImagesController` can add
-  ETags, so every image request - including a 404 - still runs a full cookie validation.
-- The `SQLITE_LOCKED` (6) retry loop around the activity write, and its corrected comment, stand.
+### `X-Frame-Options: DENY` - why DENY and not SAMEORIGIN
+Verified before choosing, not assumed. **RTUB never embeds itself:**
+- no `window.top` / `window.parent` / `window.self` framing logic anywhere in `src/`;
+- the PWA manifest is `"display": "standalone"` - not a framed surface;
+- the Android TWA (`/.well-known/assetlinks.json`) uses a Chrome Custom Tab, **not an iframe**;
+- no external identity provider, so no OAuth popup/frame handshake.
+
+The app **does** contain two `<iframe>`s - `Pages/Media/Songs.razor:175` and
+`Pages/Public/Roles.razor:730`, both PDF viewers. Both embed **R2-hosted** documents, whose
+framing is governed by **R2's** response headers, not RTUB's. `X-Frame-Options` on RTUB's own
+responses cannot affect them. DENY is therefore safe and strictly better than SAMEORIGIN for a
+Blazor Server circuit.
+
+### `Permissions-Policy` - why only four directives
+No copied deny-list. A grep for `navigator.geolocation`, `getUserMedia`, `navigator.mediaDevices`,
+`requestFullscreen`, `navigator.clipboard`, `capture=`, `PaymentRequest`, `navigator.usb`,
+`navigator.bluetooth`, `navigator.xr`, `DeviceOrientation` and `accelerometer` across
+`wwwroot/js/`, `Pages/`, `Shared/` and `RTUB.Shared` found **exactly one capability API in use:
+`navigator.clipboard`** (`wwwroot/js/clipboardCopy.js:54`, `Pages/Share.razor:88`).
+
+- **Denied** (verified unused): `camera`, `microphone`, `geolocation`, `payment`. With 15 `eval`
+  sites still live (below), denying device access that RTUB never asks for is genuine
+  defence-in-depth against XSS escalation, not theatre.
+- **Deliberately NOT denied:** `clipboard-write` - **in use**, denying it would break Share and
+  the copy helper; `fullscreen` - **in use**, `Songs.razor` and `Roles.razor` carry
+  `allow="fullscreen"` on the PDF iframes, and `fullscreen=()` would break them.
+- **Deliberately omitted entirely:** `usb`, `bluetooth`, `serial`, `hid`, `midi`,
+  `xr-spatial-tracking`, `magnetometer`, `gyroscope`, `accelerometer` and the rest of the long
+  tail. Directive support is inconsistent across browsers and the real-world risk for this app is
+  not measurable - this is exactly the copied deny-list the brief ruled out.
+
+### CSP - **DEFERRED**, and the blockers are exact
+A policy that keeps RTUB working today would need **both `'unsafe-eval'` and `'unsafe-inline'`**
+for `script-src`. That is worth less than no policy, so none was shipped.
+
+**Blocker 1 - `eval`. 15 call sites, 6 production files.** The earlier audit was right that this
+existed and right about where; it is all still present.
+
+| File | Sites |
+| --- | --- |
+| `src/RTUB.Shared/Components/UI/PushNotificationToggle.razor` | 6 (`:74, :118, :135, :148, :194, :230`) |
+| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor` | 2 (`:83, :145`) |
+| `src/RTUB.Shared/Components/Cards/NaipeCard.razor` | 2 (`:132, :147`) |
+| `src/RTUB.Web/Pages/Index.razor` | 2 (`:264, :287`) |
+| `src/RTUB.Web/Pages/Media/Gallery.razor` | 2 (`:1411, :1419`) |
+| `src/RTUB.Web/Pages/Media/Albums.razor` | 1 (`:698`) |
+
+All 15 are `JSRuntime.InvokeVoidAsync("eval", ...)` / `InvokeAsync<T>("eval", ...)` - **string
+dispatch across the C#/JS interop boundary**. A plain `grep -E "\beval\s*\("` finds **none of
+them**; the graph has no edge there either. They are found only by grepping the literal `"eval"`.
+Worth remembering: this is the failure mode `CLAUDE.md` warns about for interop.
+
+**Blocker 2 - inline `<script>`, 3 production blocks.** `src/RTUB.Web/App.razor:27` (service-worker
+registration, must stay in `<head>` for PWABuilder detection),
+`src/RTUB.Web/Shared/MainLayout.razor:343` (`Blazor.start({...})` with the SignalR circuit config
+plus the offcanvas auto-dismiss handler), `src/RTUB.Web/wwwroot/offline.html:77`. Each needs a
+nonce or a hash. A nonce is the harder one here: `App.razor` is the root document and `MainLayout`
+feeds `HeadOutlet`, so the nonce has to reach both from the request.
+
+**Blocker 3 - inline styles.** **11 `<style>` blocks** in production `.razor` files plus
+`offline.html`, and **213 `style="..."` attributes across 29 `.razor` files**. Both forms are
+covered by `style-src`, so a policy without `'unsafe-inline'` needs all of them moved out. (Note
+for whoever picks this up: Bootstrap's *runtime* CSSOM writes - `el.style.x = ...` for offcanvas
+and modal transforms - are **not** CSP-governed and are not a blocker.)
+
+**Blocker 4 - the R2 origin is runtime configuration, not a constant.** `img-src`, `media-src` and
+`frame-src` all need the Cloudflare R2 public origin, which comes from `Cloudflare:R2:PublicUrl`
+(e.g. `https://pub-xxx.r2.dev`) and is **stored absolute in the database**. The policy string has
+to be built from `IConfiguration` at startup, not written as a literal. Not hard - but it is work,
+and getting it wrong dark-breaks every image.
+
+**Not blockers - the external origins are known and enumerable.** Verified by reading what the
+browser actually loads, not by guessing:
+- `script-src`: `https://cdnjs.cloudflare.com` (cropper.js), `https://unpkg.com` (leaflet, SRI
+  pinned), `https://cdn.jsdelivr.net` (pixi.js)
+- `style-src`: `https://cdnjs.cloudflare.com` (cropper.css), `https://unpkg.com` (leaflet.css,
+  SRI pinned)
+- `img-src`: `'self' data:` plus `https://*.basemaps.cartocdn.com`
+  (`wwwroot/js/memberMap.js:72` tile layer) plus the R2 origin
+- `connect-src`: `'self'` - the `_blazor` WebSocket is **same-origin**, and CSP3 `'self'` matches
+  `wss:` to the same host. The service worker (`wwwroot/service-worker.js`) fetches **nothing
+  cross-origin**: every `fetch` is same-origin (`/api/push/*`, cached assets).
+- `frame-src`: the R2 origin only (the two PDF viewers)
+- `font-src`: `'self'` - **`https://fonts.googleapis.com` is a dead `preconnect`/`dns-prefetch`
+  in `App.razor:24-25` with no matching stylesheet link and no `@font-face`. Nothing loads from
+  it.** Do not add it to a policy; delete the hint instead (recorded in *Deferred*).
+- YouTube / Spotify / Instagram / Facebook appear only as `<a href target="_blank">`
+  **navigations**, never embeds - so they need **no** directive at all.
+
+That inventory is the useful output of 021: when the blockers are cleared, the policy can be
+written from it without re-auditing.
+
+### HTTPS / HSTS - conclusion: change nothing
+- **HSTS is already live and correct**: `UseHsts()` runs in every non-Development environment and
+  production returns `max-age=2592000` (30 days). **Not touched.**
+- **`includeSubDomains` and `preload` deliberately NOT added.** Production is
+  `rtub.azurewebsites.net` - RTUB does **not own** the `azurewebsites.net` apex, which is shared
+  Microsoft infrastructure. Asserting a subdomain-wide or preload-list policy from a tenant of a
+  shared domain is wrong, and `preload` is effectively irreversible. Revisit only if RTUB moves to
+  a domain it owns.
+- **`UseHttpsRedirection` left skipped outside Development.** Unchanged, by prior decision: 014
+  flagged it and the 2026-09-21 forwarded-headers confirmation made the skip redundant rather than
+  load-bearing. Removing it is a production request-pipeline behaviour change and is its own unit,
+  not a ride-along on a headers change. Still carried in *Deferred*.
+
+### Browser validation - not run, and why that is correct
+The brief requires a browser smoke run **only if CSP is enabled**. It is not. No frontend source
+changed, no runtime frontend behaviour changed, and the four added headers do not alter rendering
+or script execution. The seven integration tests exercise the real middleware pipeline end to end
+(pages, a static file, a 404, `/health`), which is the proof that was actually needed.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -184,12 +228,27 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 020 is complete and awaiting owner review.
+None active. Unit 021 is complete and awaiting owner review.
 
 ## Next unit
-**Password-policy review / hardening.** Identity is currently `RequiredLength = 4` with every
-complexity rule off (`AddIdentityServices`, `ServiceCollectionExtensions.cs`). Then security
-headers / CSP.
+**022 - remove the `eval` interop, so a CSP becomes possible.** The smallest unit that clears the
+largest CSP blocker, and **not** a frontend refactor. Scope: the **15** `JSRuntime` `"eval"` call
+sites in the 6 files tabulated above, replaced by named functions in the `wwwroot/js/` modules
+that already exist for these areas (`push-notifications.js` covers the two push components;
+`scrollSpy.js` / `mediaSession.js` are the natural homes for the scroll and video cases). No
+nonce architecture, no inline-style work, no CSP header in 022 - those are separate.
+Note for 022: `tests/RTUB.Shared.Tests/Components/UI/PushNotificationToggleTests.cs` sets up
+bUnit `JSInterop` against the **`"eval"` identifier and the script text** (`EvalScriptContains`),
+so those setups must move to the new function names in the same unit or they will fail.
+
+Then, in order: **023** inline `<script>` removal / nonce-or-hash for the 3 blocks; **024** inline
+styles (11 `<style>` blocks + 213 `style=` attributes); **025** enable CSP itself, built from the
+directive inventory recorded above, with the R2 origin read from `Cloudflare:R2:PublicUrl` - and
+with the browser smoke run 021 did not need.
+
+Also still available, deliberately not taken in 021: **password-policy review / hardening**
+(Identity is `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
+`ServiceCollectionExtensions.cs`) - the owner skipped it for this unit.
 Still queued, not security: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests,
 which also unblocks `MockQueryable.Moq 10.0.12`.
 
@@ -279,6 +338,27 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 - **The `IsInRoleAsync` pair is still 2 SELECTs** and could be one join. Out of 020's scope, as it
   was out of 019's; the framework composition did not eliminate it.
 
+### Raised by 021, deliberately not changed
+- **CSP is not enabled.** Four blockers, enumerated exactly in *Last completed step*: 15 `eval`
+  interop sites, 3 inline `<script>` blocks, 11 `<style>` blocks + 213 `style=` attributes, and
+  the R2 origin only being known at runtime. Units 022-025 above clear them in that order. No
+  `Content-Security-Policy-Report-Only` was shipped either - a report-only policy is worth adding
+  once the blockers are down and it can report something actionable, not while it would report
+  every page load.
+- **`Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` / `Cross-Origin-Resource-Policy`
+  were not added.** Outside the brief, and COOP in particular needs its own check of the
+  `LoginPopup` flow and anything relying on `window.opener` before it can be called safe. Cheap to
+  add later; not free to add blind.
+- **`X-XSS-Protection` was not added.** It is removed from Chrome and Edge, ignored by Firefox,
+  and its legacy filter mode was itself an exploitable primitive. Adding it is pure theatre.
+- **`https://fonts.googleapis.com` is a dead `preconnect` + `dns-prefetch`** in `App.razor:24-25`:
+  no stylesheet link, no `@font-face`, nothing loads from it. Two wasted connection hints. Delete
+  them in whichever frontend unit is next in that file - not worth a unit of their own, and 021
+  had no reason to touch `App.razor`.
+- **`UseHttpsRedirection` is still skipped outside Development** (`Program.cs`). Unchanged for the
+  third unit running; see the 014 entry above. Now that forwarded headers are confirmed on, this
+  is a one-line change gated only on someone accepting a production pipeline behaviour change.
+
 ### Carried forward (unchanged)
 - **`xUnit1051` suppressed, not adopted** (1634 sites). Its own unit if wanted: mechanical, but it
   touches nearly every test file, so it must not ride along with anything else.
@@ -307,63 +387,58 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 - Two `graphifyy 0.9.56 + MCP` installs (isolated venv, Microsoft-Store Python user site). The
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
+## Relevant files (unit 021)
+Changed (2):
+- `src/RTUB.Web/Program.cs` - **the only production file touched.** One `app.Use` security-header
+  block inserted between the `UseExceptionHandler`/`UseHsts` block and `UseHttpsRedirection`,
+  carrying the four headers plus the reasoning for the placement, the indexer assignment, and the
+  CSP omission. Nothing else in the file was edited - `UseHsts`, `UseHttpsRedirection`,
+  `UseResponseCompression`, `UseResponseCaching`, `UseRouting`, `UseRateLimiter`, the
+  `UseStaticFiles` branch and its `Cache-Control` rules, the `/_blazor/initializers` short-circuit
+  and every endpoint are byte-for-byte unchanged.
+- `tests/RTUB.Integration.Tests/SecurityHeaderTests.cs` - **new**, 7 tests.
 
-## Relevant files (unit 020)
-Changed (3):
-- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` - **the only production file touched.**
-  One `await SecurityStampValidator.ValidatePrincipalAsync(context);` plus the `context.Principal
-  is null` guard inside `OnValidatePrincipal`, after the three security checks and before the
-  logging/activity block, with the ordering rationale in comment; `AddCookieAuthenticationServices`
-  XML summary updated. No other method touched.
-- `tests/RTUB.Integration.Tests/IdentityCookieRefreshTests.cs` - **new**, 7 tests,
-  `RefreshingCookieFactory`, and `CookieTestSession` (the shared sign-in / `Set-Cookie` helpers).
-- `tests/RTUB.Integration.Tests/CookieValidationTests.cs` - 1 test added; the sign-in helper and
-  the cookie predicate moved to `CookieTestSession` so the two classes cannot drift
-  (**-57 duplicated lines**). No existing assertion or count changed.
+Read and deliberately **not** changed: `App.razor` (inline script, dead font preconnect),
+`Shared/MainLayout.razor` (inline script, CDN tags), `wwwroot/service-worker.js`,
+`wwwroot/offline.html`, `wwwroot/js/memberMap.js`, `Pages/Media/Songs.razor`,
+`Pages/Public/Roles.razor`, the 6 `eval` components, `Extensions/ServiceCollectionExtensions.cs`
+(password policy - skipped by owner decision), `.github/workflows/ci.yml`, `appsettings*.json`.
 
-Read and deliberately **not** changed: `Program.cs`, `AddIdentityServices` (password policy is the
-next unit), `RoleManagementService.cs`, `UserRoles.razor`, `TestWebApplicationFactory.cs`.
+## Tests (7 new, 0 removed, 0 existing assertions changed)
+**`SecurityHeaderTests` (new, 7).** Only the headers RTUB intentionally sets are asserted.
+CSP is **not** asserted in either direction, so enabling it in a later unit needs no edit here -
+as the brief required. `Strict-Transport-Security` is not asserted either: `UseHsts` only runs
+outside Development and the test host is not a production environment, so asserting it would pin
+a value the test host never produces.
+1-3. `Page_CarriesEverySecurityHeader` - `[Theory]` over `/`, `/login`, `/Events`; asserts the
+   exact value of all four headers. Three cases.
+4. `StaticFile_CarriesSecurityHeaders` - `/manifest.webmanifest`, proving the middleware sits
+   ahead of the `UseStaticFiles` branch and is not endpoint-only.
+5. `NotFound_CarriesSecurityHeaders` - an unrouted path still carries them.
+6. `HealthEndpoint_CarriesSecurityHeaders` - `/health`, the one endpoint mapped outside the
+   Razor component pipeline.
+7. `Headers_AreSetOnce_NotAppendedPerPass` - each header has exactly one value. This is the test
+   that pins the indexer-not-`Append` choice; with `Append` a re-executed pipeline would emit
+   duplicates.
 
-Framework source read for this unit (.NET 10, `release/10.0`): `SecurityStampValidator.cs`,
-`SecurityStampValidatorOptions.cs`, `IdentityServiceCollectionExtensions.cs`,
-`CookieValidatePrincipalContext.cs`, `CookieAuthenticationHandler.cs`, `SignInManager.cs`.
+No credential literal. No existing test file was opened or modified.
 
-## Tests (8 new, 0 removed, 0 existing assertions changed)
-**`IdentityCookieRefreshTests` (new, 7).** `RefreshingCookieFactory` derives from
-`CookieValidationFactory` - same database, same SQL recorder - and sets
-`SecurityStampValidatorOptions.TimeProvider` to a +31-minute offset clock, so every request is one
-on which the refresh falls due. **The clock is moved, not the interval**, so the tests exercise the
-real 30-minute default rather than a value invented for them.
-1. `ValidationIntervalElapsed_RenewsTheCookie_AndKeepsTheSessionAuthenticated` - asserts a real
-   non-deleting `Set-Cookie`, not an implementation detail.
-2. `RoleAddedWithoutStampChange_ReachesTheLiveSession_AtTheNextValidation` - user without `Owner`
-   gets **403** from `POST /api/push/broadcast`; `AddToRoleAsync` only (**no stamp bump, no claim
-   surgery in the test**); the next request is authorised and reaches the action body (**400**,
-   "Web Push is not configured"). No re-login.
-3. `AdminRoleRemoved_IsStillRejectedImmediately_WhileRefreshIsDue` - **the ordering proof.**
-4. `ExpelledUser_IsStillRejectedImmediately_WhileRefreshIsDue`.
-5. `SecurityStampChange_IsStillRejectedImmediately_WhileRefreshIsDue`.
-6. `RefreshRequest_StillWritesLastLoginDate_OnlyOncePerThrottleWindow` - 5 requests -> **1** write.
-7. `RefreshRequest_CostsTwoExtraSelects_ToRebuildThePrincipal` - pins 2 / 2 / 1.
-
-**`CookieValidationTests` (1 added, now 11).**
-8. `WithinTheValidationInterval_TheFrameworkValidatorCostsNothing_AndDoesNotRenew` - no `Set-Cookie`
-   inside the interval; the existing exact-count tests around it are the rest of the proof that
-   020 added a framework call and not one database command.
-
-All 10 unit-019 tests still pass **unmodified**, including the three immediate-rejection ones.
-`TestSecret.NewPassword()` throughout; no credential literal.
-
-## Latest validation (unit 020)
+## Latest validation (unit 021)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `CookieValidationTests` + `IdentityCookieRefreshTests` - **18 total, 18 passed**.
-- Full suite, `dotnet test --no-build -c Release`: **4547 passed, 0 failed, 60 skipped**
-  (total 4607). Against the post-019 `dev` baseline of **4539**, the branch is **+8** - exactly the
-  8 tests listed above, 7 + 1.
+- Focused first: `SecurityHeaderTests` - **7 total, 7 passed**.
+- Full suite, `dotnet test --no-build -c Release`: **4554 passed, 0 failed, 60 skipped**
+  (total 4614). Against the post-020 `dev` baseline of **4547**, the branch is **+7** - exactly
+  the 7 tests listed above (3 `[Theory]` cases + 4 `[Fact]`s). Skipped count unchanged at 60.
 - `git diff --check`: clean.
 - Diff credential scan: no match.
 - **No migration and no model-snapshot change** - no column, no entity, no `DbContext` edit.
-- No frontend build, no Graphify rebuild - no application structure changed.
-- No unrelated auth refactor: password policy, MFA, rate limiting, `UseHttpsRedirection`, CSP and
-  the role-query shape were all left exactly as they were.
+- **No frontend build and no Graphify rebuild** - no frontend source and no application structure
+  changed. Two files total: one production, one new test.
+- **No browser run** - correct per the brief, since CSP was not enabled and no runtime frontend
+  behaviour changed. See *Browser validation* above.
+- Production headers were read live (`curl -I https://rtub.azurewebsites.net/health`) as the
+  *before* evidence; nothing was deployed, pushed or changed on Azure.
+- No unrelated refactor: password policy, MFA, cookie validation, login throttling, PWA
+  architecture, CI/CD, Azure provisioning, dependency servicing and the `eval`/inline-JS cleanup
+  were all left exactly as they were.
