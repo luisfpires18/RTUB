@@ -5,14 +5,15 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **019 (reduce authentication cookie-validation SQLite pressure) - COMPLETE,
-uncommitted, awaiting owner review.** Unit 018 is merged to `dev` at `0492cc81`.
+Modernization unit **020 (restore Identity cookie-refresh semantics without weakening RTUB's
+security checks) - COMPLETE, uncommitted, awaiting owner review.** Unit 019 is merged to `dev` at
+`b45459ec`.
 
 ## Branch
-`perf/019/cookie-validation-db-pressure`, branched from `dev` (clean, in sync with `origin/dev` at
-`0492cc81`). Uncommitted - no commit authorized.
-`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018` still present;
-delete when convenient.
+`fix/020/identity-cookie-validation`, branched from `dev` (clean, in sync with `origin/dev` at
+`b45459ec`). Uncommitted - no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`,
+`perf/019` still present; delete when convenient.
 
 ## Owner decision (2026-09-21) - Option A
 **`LastLoginDate` keeps its activity semantics.** It is not renamed, not split, not restricted to
@@ -21,105 +22,113 @@ which is the throttle PR #185's comment already claimed to have. Options B and C
 or without a new `LastActivityAt` column) were rejected: both change what the presence UI shows.
 
 ## Last completed step
-**Unit 019 - the cookie-validation `LastLoginDate` write is throttled; every security check still
-runs on every request.** The investigation that led here is preserved below, because the throttle
-only makes sense against it.
+**Unit 020 - RTUB's cookie handler now *calls* Identity's `SecurityStampValidator` instead of
+replacing it. Every RTUB check still runs on every request; the framework's principal refresh and
+cookie renewal are back.**
 
-### What changed
-`AddCookieAuthenticationServices` (`ServiceCollectionExtensions.cs`) now, after the security checks
-and before the write:
-1. reads the user id from `ClaimTypes.NameIdentifier` (no extra SELECT - it is already in the
-   cookie);
-2. returns immediately if `activity-lastlogin:{userId}` is present in `IMemoryCache`;
-3. otherwise performs the existing raw `UPDATE`, and **only once it has succeeded** caches that key
-   for `ActivityWriteThrottle`. A failed update leaves the key unset so the next request retries.
-
-Two new members on the same class, both public so tests can pin them:
-- `ActivityWriteCachePrefix = "activity-lastlogin:"`
-- `ActivityWriteThrottle = TimeSpan.FromMinutes(5)`
-
-**The throttle key is deliberately separate from the authentication-log key**
-(`login-log:{userName}:{issuedUtc.Ticks}`). One limits how often a line is logged, the other how
-often a row is written; they are different concerns and the log key is keyed by *username* while
-this one is keyed by *user id*, as instructed.
-
-Also corrected narrowly, no behaviour change: the retry's `ex.SqliteErrorCode == 6` now carries a
-comment saying 6 is **`SQLITE_LOCKED`**, not `SQLITE_BUSY` (5) - `SQLITE_BUSY` is already absorbed
-by `PRAGMA busy_timeout = 30000` in `SqliteConnectionInterceptor`, which does not cover
-`SQLITE_LOCKED`. The stale log message "Error while **initializing** LastLoginDate" (a leftover from
-the one-time-backfill version) now reads "updating". No other SQLite change - the retry loop and
-the raw SQL both stay.
-
-### Before / after - measured the same way, by test
-Five consecutive authenticated `GET /Events` on one session:
-
-| | `LastLoginDate` writes | `AspNetRoles` SELECTs | `AspNetUserRoles` SELECTs |
-| --- | --- | --- | --- |
-| before | **5** | 5 | 5 |
-| after | **1** | 5 | 5 |
-
-Security reads are **unchanged and still per request**, by design. Only the write was removed.
-Per-request cost drops from 4 database operations to 3, and from 1 write to 0 on every request
-inside the window. The avatar-grid multiplier noted below collapses to a single write per user per
-5 minutes regardless of how many `/images/*` requests a page makes.
-
-### Cookie-validation frequency - measured, not inferred
+### Why the custom handler replaced Identity's in the first place
 `AddIdentity` wires the application cookie with
 `OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync`.
-`AddCookieAuthenticationServices` then assigns **a whole new `CookieAuthenticationEvents` object**,
-which **replaces** that delegate outright. Consequences:
+`AddCookieAuthenticationServices` assigned **a whole new `CookieAuthenticationEvents` object**,
+which replaced that delegate outright. It did so to add three rules Identity does not have, all of
+which had to be **immediate** rather than interval-gated:
+- **expulsion** - `IsExpelled` is an RTUB column; Identity knows nothing about it;
+- **Admin-role consistency** - `UserManager.RemoveFromRoleAsync` does **not** bump the security
+  stamp, so the stock validator never notices a revoked Admin role;
+- login/activity logging and the `LastLoginDate` activity write (unit 019).
 
-- `SecurityStampValidatorOptions.ValidationInterval` (**default 30 minutes**) is **never consulted**
-  - nothing in the repo configures it and nothing reads it. The stock validator skips the database
-  entirely when `now - Properties.IssuedUtc <= ValidationInterval`; RTUB's handler has no such gate.
-  **This was left exactly as it was** - lowering the security-check frequency was out of scope.
-- `SecurityStampVerified`'s principal refresh (`ReplacePrincipal` + `ShouldRenew = true`) is also
-  gone, so a legitimately refreshed stamp is a forced logout rather than a claims refresh. Deferred.
-- `OnValidatePrincipal` fires **once per HTTP request per cookie scheme** - `HandleAuthenticateAsync`
-  is memoised per request by `HandleAuthenticateOnceAsync`, so repeat `[Authorize]`/`User` reads in
-  the same request are free.
+Replacing the delegate was the cheap way to get them, and it cost two framework behaviours: the
+success-path principal refresh, and cookie renewal. Unit 019 recorded both as deferred.
 
-Measured per request kind, signed in, via an EF `DbCommandInterceptor` in the test host (the write
-column is the first request of a session; subsequent ones inside the window are 0):
+### What changed (one production file, one call)
+`OnValidatePrincipal` now runs, in this order:
+1. security-stamp check -> reject
+2. expelled check -> reject
+3. Admin-consistency check -> reject
+4. **`await SecurityStampValidator.ValidatePrincipalAsync(context);` then
+   `if (context.Principal is null) return;`**
+5. throttled login logging + throttled `LastLoginDate` write (unit 019, untouched)
 
-| Request | SQL | `LastLoginDate` writes | Role lookups |
-| --- | --- | --- | --- |
-| `GET /` | 57 | 1 | 1 |
-| `GET /Events` | 14 | 1 | 1 |
-| `GET /images/...` (**404**) | 4 | 1 | 1 |
-| `GET /favicon.ico`, `/css/site.css`, `/service-worker.js` | 0 | 0 | 0 |
+Step 4 resolves the configured `ISecurityStampValidator` from DI (`AddIdentity` registers
+`SecurityStampValidator<ApplicationUser>` scoped) and runs the real framework validator. Nothing
+of Identity is reimplemented and no subclass was added.
 
-Static assets are free because `UseStaticFiles` is registered at `Program.cs:363`, **before**
-`UseAuthentication()` at `Program.cs:414`. `/images/*` is deliberately excluded from that branch so
-`ImagesController` can add ETags, so every image request - including a 404 - still runs a full
-cookie validation. The throttle is what stops that costing a write per tile.
+### The ordering is the design, and it is deliberate
+The framework call goes **last**, not first. Verified against the .NET 10 source
+(`src/Identity/Core/src/SecurityStampValidator.cs`):
 
-### `LastLoginDate` semantics - resolved by history, and it is NOT "last login"
-- `bacd166c` ("LOGIN UPDATED ON DB") introduced the cookie-validation write as a **one-time
-  backfill**: `... WHERE Id = {userId} AND LastLoginDate IS NULL;`, commented *"Atomic,
-  concurrency-safe 'set once if null'"*.
-- `7293f32d` (**PR #185**, "Fix LastLoginDate not updating on cookie validation") **deleted the
-  `AND LastLoginDate IS NULL` predicate on purpose**, with the new comment: *"Update LastLoginDate
-  to track user activity (both normal login and cookie validation) - **This is throttled by the
-  cache above to prevent excessive DB writes**"*. The throttle claim was false: the cache entry
-  guarded only the log line. Unit 019 makes it true.
+- `ValidateAsync` computes `validate = timeElapsed > Options.ValidationInterval` and, when that is
+  false, **returns without touching the database or the principal**. Putting RTUB's checks behind
+  it would have diluted all three to the 30-minute interval.
+- On the refresh path it calls `SecurityStampVerified` -> `SignInManager.CreateUserPrincipalAsync`
+  -> `context.ReplacePrincipal(newPrincipal)` + `ShouldRenew = true`. That rebuild **scrubs the
+  stale `Admin` claim** the role probe exists to catch. Running the framework first would have
+  silently downgraded such a session instead of rejecting it - and only on the requests where a
+  refresh happened to fall due. `AdminRoleRemoved_IsStillRejectedImmediately_WhileRefreshIsDue`
+  pins that this does not happen.
+- `CookieValidatePrincipalContext.RejectPrincipal()` is `Principal = null`, which is why the null
+  check after the call is the correct rejection test.
+  `CookieAuthenticationHandler.HandleAuthenticateAsync` then returns `NoPrincipal`; on
+  `ShouldRenew` it calls `RequestRefresh(ticket, context.Principal)` and `FinishResponseAsync`
+  emits the new `Set-Cookie`.
 
-The field means **"last authenticated request"**, and the UI depends on it:
+### Validation cadence - exact
+| Check | Cadence | Changed by 020? |
+| --- | --- | --- |
+| RTUB security-stamp verification | **every request** | no |
+| RTUB expelled check | **every request** | no |
+| RTUB Admin-consistency check | **every request** | no |
+| Login logging | every request, log line throttled 1 h per cookie | no |
+| `LastLoginDate` write | throttled, 1 per user per 5 min (unit 019) | no |
+| Framework principal rebuild + `ShouldRenew` | every `ValidationInterval` (**30 min, framework default, unchanged**) | **restored** |
 
-| Consumer | Use |
-| --- | --- |
-| `LoginStatusBadge.razor` | `ONLINE_THRESHOLD_HOURS = 1` -> "Online"/"Recente"/"Esta Semana"/"Este Mes"/"Inativo" |
-| `AvatarCard.razor:306`, `UserCard.razor:107` | green online dot, `< 1 h` |
-| `UserRoles.razor:427` | sorts the member list by online-first |
-| `UserProfileService:93`, `LoginStatisticsButton.razor` | login-statistics report |
-| `AuditLogAppender.cs:41` | excluded from audit logs - *"already logged separately"* |
+**No check became less frequent.** The framework default was not touched - RTUB simply keeps a
+stricter stamp check in front of it. **The stop condition in the brief was not reached**: nothing
+moved from per-request to 30 minutes.
 
-Every one of those buckets at an hour or coarser, so a 5-minute write window is invisible to all of
-them. `Program.cs:489` still writes the field once per real login, unchanged.
+### Claim / role refresh - what actually works
+- `UserManager.AddToRoleAsync` / `RemoveFromRoleAsync` do **not** touch the security stamp. Role
+  changes therefore reach a live session through the framework rebuild, at the next validation
+  interval - now that the rebuild runs again. Before 020 they never reached it at all: a session's
+  claims were frozen at the moment the cookie was issued.
+- `UserManager.UpdateSecurityStampAsync` is **not** a refresh. In stock Identity it makes
+  `VerifySecurityStamp` return null, i.e. it is the *revocation* path and forces a re-login. RTUB
+  already calls it on role change in `RoleManagementService.cs:121` and `UserRoles.razor:613`; the
+  comment at the latter ("force fresh cookies and token refresh") is misleading, and the behaviour
+  is a forced logout. Left alone - out of scope, recorded in *Deferred*.
+- Admin **revocation** stays RTUB's immediate rejection, not a claim refresh.
 
-**The naming mismatch remains technical debt.** The column is called `LastLoginDate` and means
-"last activity". Renaming it needs a migration and an edit to every consumer above; it was
-explicitly excluded from this unit. Carried in *Deferred*.
+### DB cost - measured before and after, same harness
+One authenticated `GET /Events`, throttle already armed, via the `DbCommandInterceptor` in
+`CookieValidationFactory`. "before" = the same probe run with the production file reverted to `dev`.
+
+| | total SQL | `AspNetRoles` | `AspNetUserRoles` | `AspNetUserClaims` | `LastLoginDate` writes |
+| --- | --- | --- | --- | --- | --- |
+| before (dev) - any request | 13 | 1 | 1 | 0 | 0 |
+| after - inside `ValidationInterval` | **13** | 1 | 1 | 0 | 0 |
+| after - refresh due | **15** | 2 | 2 | 1 | 0 |
+
+- **Inside the interval the cost is byte-for-byte unchanged.** The framework call returns before
+  any database work.
+- A refresh costs **+2 commands**: one role join and one user-claims SELECT, from
+  `CreateUserPrincipalAsync`. Once per user per 30 minutes.
+- The framework's `VerifySecurityStamp` repeats RTUB's stamp check but **costs no SELECT**:
+  `UserManager.GetUserAsync` resolves off the request-scoped `DbContext`'s change tracker, which
+  RTUB's own check has already populated. Subclassing `SecurityStampValidator<ApplicationUser>` to
+  deduplicate it would have bought nothing, so it was not done.
+- Role queries were **not** optimised - out of scope, and nothing eliminated them naturally.
+
+### Carried over unchanged from unit 019 (still true, still load-bearing)
+- `LastLoginDate` means **"last authenticated request"**, not "last login". The presence UI
+  (`LoginStatusBadge`, `AvatarCard:306`, `UserCard:107`, `UserRoles:427`, `UserProfileService:93`,
+  `LoginStatisticsButton`) buckets at an hour or coarser, so the 5-minute write throttle is
+  invisible to all of it. Owner decision Option A above. Naming remains debt - see *Deferred*.
+- `OnValidatePrincipal` fires **once per HTTP request per cookie scheme** -
+  `HandleAuthenticateAsync` is memoised by `HandleAuthenticateOnceAsync`.
+- Static assets cost nothing: `UseStaticFiles` (`Program.cs:363`) precedes `UseAuthentication()`
+  (`Program.cs:414`). `/images/*` is excluded from that branch so `ImagesController` can add
+  ETags, so every image request - including a 404 - still runs a full cookie validation.
+- The `SQLITE_LOCKED` (6) retry loop around the activity write, and its corrected comment, stand.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -175,14 +184,14 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 019 is complete and awaiting owner review.
+None active. Unit 020 is complete and awaiting owner review.
 
 ## Next unit
-**Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
-`MockQueryable.Moq 10.0.12`.
-Next *security* unit: **password policy** - Identity is currently `RequiredLength = 4` with every
-complexity rule off (`AddIdentityServices`). Then security headers / CSP.
-New *auth-cleanup / design* unit, raised by 019 - see *Deferred*.
+**Password-policy review / hardening.** Identity is currently `RequiredLength = 4` with every
+complexity rule off (`AddIdentityServices`, `ServiceCollectionExtensions.cs`). Then security
+headers / CSP.
+Still queued, not security: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests,
+which also unblocks `MockQueryable.Moq 10.0.12`.
 
 ## Blockers
 **None.**
@@ -247,24 +256,28 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   the name by owner decision. Renaming it (say to `LastActivityAt`) needs a migration plus an edit
   to `LoginStatusBadge`, `AvatarCard`, `UserCard`, `UserRoles`, `UserProfileService`,
   `LoginStatisticsButton` and `AuditLogAppender`. Its own unit if wanted.
-- **RTUB's `OnValidatePrincipal` replaces Identity's `SecurityStampValidator` entirely** - a whole
-  new `CookieAuthenticationEvents` object is assigned, so the stock delegate never runs. Two
-  consequences, both still live and both deliberately untouched by 019:
-  - `SecurityStampValidatorOptions.ValidationInterval` (default 30 min) is never consulted, so the
-    stamp is checked on **every** request rather than every 30 minutes. Stricter than the framework
-    default, and deliberately left that way.
-  - the stock success path's principal refresh (`CreateUserPrincipalAsync` -> `ReplacePrincipal` +
-    `ShouldRenew = true`) is lost, so a legitimately refreshed stamp logs the user out instead of
-    refreshing their claims.
-  **A future auth-cleanup/design unit should decide whether to compose with the framework validator
-  rather than replace it.** It cannot simply be swapped in: `RemoveFromRoleAsync` does not bump the
-  security stamp, so the stock validator would miss Admin-role revocation. `AdminRoleRemoved_RejectsCookie`
-  pins that. Do not weaken the current checks to regain the framework refresh.
+- ~~**RTUB's `OnValidatePrincipal` replaces Identity's `SecurityStampValidator` entirely**~~ -
+  **fixed by unit 020.** The handler now calls the framework validator after its own checks. The
+  stricter per-request stamp check was kept, `ValidationInterval` stays at the framework default,
+  and the principal refresh / `ShouldRenew` behaviour is back. See *Last completed step*.
 - **The `SQLITE_LOCKED` retry loop was kept**, now correctly commented. The `IsInRoleAsync` pair is
   still 2 SELECTs and could be one join - not done, out of 019's scope.
 - Known and accepted framework limitation (from 012): antiforgery tokens are bound to the user
   identity, so multiple tabs signed in as different users are unsupported. Documented ASP.NET Core
   behavior, not an RTUB defect.
+
+### Raised by 020, deliberately not changed
+- **`UserRoles.razor:613` and `RoleManagementService.cs:121` call `UpdateSecurityStampAsync` on a
+  role change**, commented "force fresh cookies and token refresh". That is not what it does in
+  stock Identity either: bumping the stamp makes `VerifySecurityStamp` fail, so it is a **forced
+  logout**, not a claims refresh. With 020's composition a plain role change would now propagate
+  to a live session within `ValidationInterval` without logging anyone out. Deciding whether
+  either call site should drop the stamp bump is a UX/security decision, not a ride-along.
+- **`ValidationInterval` is still the framework default (30 min) and still unconfigured.** Nothing
+  in the repo sets `SecurityStampValidatorOptions`. Lowering it would only speed up claim refresh -
+  every security check already runs per request - at 2 extra SELECTs per user per interval.
+- **The `IsInRoleAsync` pair is still 2 SELECTs** and could be one join. Out of 020's scope, as it
+  was out of 019's; the framework composition did not eliminate it.
 
 ### Carried forward (unchanged)
 - **`xUnit1051` suppressed, not adopted** (1634 sites). Its own unit if wanted: mechanical, but it
@@ -295,59 +308,62 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 019)
+## Relevant files (unit 020)
 Changed (3):
-- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` - `ActivityWriteCachePrefix` and
-  `ActivityWriteThrottle` constants; the throttle check, the post-success `cache.Set`, the
-  `SQLITE_LOCKED` comment and the corrected log message, all inside `OnValidatePrincipal`.
-  **The only production file touched.**
-- `tests/RTUB.Integration.Tests/CookieValidationTests.cs` - **new**, 10 tests plus the recording
-  factory, `SqlRecorder` and `RecordingCommandInterceptor`.
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - one added member,
-  `protected string ConnectionString`, so a derived factory can re-register the context against the
-  same database in order to attach an interceptor. Nothing else touched.
+- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` - **the only production file touched.**
+  One `await SecurityStampValidator.ValidatePrincipalAsync(context);` plus the `context.Principal
+  is null` guard inside `OnValidatePrincipal`, after the three security checks and before the
+  logging/activity block, with the ordering rationale in comment; `AddCookieAuthenticationServices`
+  XML summary updated. No other method touched.
+- `tests/RTUB.Integration.Tests/IdentityCookieRefreshTests.cs` - **new**, 7 tests,
+  `RefreshingCookieFactory`, and `CookieTestSession` (the shared sign-in / `Set-Cookie` helpers).
+- `tests/RTUB.Integration.Tests/CookieValidationTests.cs` - 1 test added; the sign-in helper and
+  the cookie predicate moved to `CookieTestSession` so the two classes cannot drift
+  (**-57 duplicated lines**). No existing assertion or count changed.
 
-Read and deliberately **not** changed: `Program.cs` (pipeline order, login write),
-`SqliteConnectionInterceptor.cs`, and every presence consumer listed above.
+Read and deliberately **not** changed: `Program.cs`, `AddIdentityServices` (password policy is the
+next unit), `RoleManagementService.cs`, `UserRoles.razor`, `TestWebApplicationFactory.cs`.
 
-## Tests (10 new, 0 removed, 0 changed elsewhere)
-All in `CookieValidationTests`, all green. Cost assertions match on the raw, unquoted
-`UPDATE AspNetUsers` the handler emits - EF Core quotes identifiers, so nothing else collides.
+Framework source read for this unit (.NET 10, `release/10.0`): `SecurityStampValidator.cs`,
+`SecurityStampValidatorOptions.cs`, `IdentityServiceCollectionExtensions.cs`,
+`CookieValidatePrincipalContext.cs`, `CookieAuthenticationHandler.cs`, `SignInManager.cs`.
 
-**Throttle and cost:**
-1. `ValidCookie_IsAccepted_AndFirstRequestCostsOneWritePlusTwoRoleReads` - the first request of a
-   session writes once and is not rejected.
-2. `RepeatedAuthenticatedRequests_WriteLastLoginDate_OnlyOncePerThrottleWindow` - 5 requests ->
-   **1** write, but **5** `AspNetRoles` and **5** `AspNetUserRoles` reads, and all five responses
-   are 200 with no cookie deletion. This is the before/after test and the "still authenticated"
-   test in one.
-3. `ThrottleIsKeyedPerUser_NotShared` - two users, two requests each -> 2 writes.
-4. `ActivityWriteThrottle_IsFiveMinutes` - pins the constant and the key prefix. Real expiry is
-   **not** exercised: a controllable cache clock would be disproportionate here, so the cache-hit
-   path is what the tests cover, as instructed.
-5. `StaticFileRequest_SkipsCookieValidation` - `/service-worker.js` -> 0.
-6. `ImageControllerRequest_CostsAFullCookieValidation_EvenWhenTheImageIsMissing` - a 404 -> 1 write.
+## Tests (8 new, 0 removed, 0 existing assertions changed)
+**`IdentityCookieRefreshTests` (new, 7).** `RefreshingCookieFactory` derives from
+`CookieValidationFactory` - same database, same SQL recorder - and sets
+`SecurityStampValidatorOptions.TimeProvider` to a +31-minute offset clock, so every request is one
+on which the refresh falls due. **The clock is moved, not the interval**, so the tests exercise the
+real 30-minute default rather than a value invented for them.
+1. `ValidationIntervalElapsed_RenewsTheCookie_AndKeepsTheSessionAuthenticated` - asserts a real
+   non-deleting `Set-Cookie`, not an implementation detail.
+2. `RoleAddedWithoutStampChange_ReachesTheLiveSession_AtTheNextValidation` - user without `Owner`
+   gets **403** from `POST /api/push/broadcast`; `AddToRoleAsync` only (**no stamp bump, no claim
+   surgery in the test**); the next request is authorised and reaches the action body (**400**,
+   "Web Push is not configured"). No re-login.
+3. `AdminRoleRemoved_IsStillRejectedImmediately_WhileRefreshIsDue` - **the ordering proof.**
+4. `ExpelledUser_IsStillRejectedImmediately_WhileRefreshIsDue`.
+5. `SecurityStampChange_IsStillRejectedImmediately_WhileRefreshIsDue`.
+6. `RefreshRequest_StillWritesLastLoginDate_OnlyOncePerThrottleWindow` - 5 requests -> **1** write.
+7. `RefreshRequest_CostsTwoExtraSelects_ToRebuildThePrincipal` - pins 2 / 2 / 1.
 
-**Security - each one now arms the throttle with a warm-up request first, so it proves rejection
-still happens on a request that skips the write:**
-7. `SecurityStampChange_RejectsCookie`.
-8. `ExpelledUser_RejectsCookie` - uses `UpdateAsync`, which leaves the stamp alone, so it exercises
-   the expulsion branch specifically.
-9. `AdminRoleRemoved_RejectsCookie` - `RemoveFromRoleAsync` does **not** bump the security stamp, so
-   the stock `SecurityStampValidator` would not catch this. Only RTUB's own role probe does.
-10. `Login_SetsLastLoginDate`.
+**`CookieValidationTests` (1 added, now 11).**
+8. `WithinTheValidationInterval_TheFrameworkValidatorCostsNothing_AndDoesNotRenew` - no `Set-Cookie`
+   inside the interval; the existing exact-count tests around it are the rest of the proof that
+   020 added a framework call and not one database command.
 
-Rejection is asserted by the rejecting response deleting `.AspNetCore.Identity.Application`.
+All 10 unit-019 tests still pass **unmodified**, including the three immediate-rejection ones.
+`TestSecret.NewPassword()` throughout; no credential literal.
 
-## Latest validation (unit 019)
+## Latest validation (unit 020)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `CookieValidationTests` alone - **10 total, 10 passed**.
-- Full suite, `dotnet test --no-build -c Release`: **4539 passed, 0 failed, 60 skipped**
-  (total 4599). The investigation pass of 019 took the branch to 4537 / 0 / 60 with 8 tests; this
-  pass added 2 (`ThrottleIsKeyedPerUser_NotShared`, `ActivityWriteThrottle_IsFiveMinutes`) and
-  rewrote 1 in place. **4537 + 2 = 4539.** Against `dev`'s 4529, the branch is **+10**.
+- Focused first: `CookieValidationTests` + `IdentityCookieRefreshTests` - **18 total, 18 passed**.
+- Full suite, `dotnet test --no-build -c Release`: **4547 passed, 0 failed, 60 skipped**
+  (total 4607). Against the post-019 `dev` baseline of **4539**, the branch is **+8** - exactly the
+  8 tests listed above, 7 + 1.
 - `git diff --check`: clean.
-- Diff credential scan: no match. The tests use `TestSecret.NewPassword()`; no literal.
-- **No migration and no model-snapshot change** - the throttle is cache-only and no column moved.
+- Diff credential scan: no match.
+- **No migration and no model-snapshot change** - no column, no entity, no `DbContext` edit.
 - No frontend build, no Graphify rebuild - no application structure changed.
+- No unrelated auth refactor: password policy, MFA, rate limiting, `UseHttpsRedirection`, CSP and
+  the role-query shape were all left exactly as they were.

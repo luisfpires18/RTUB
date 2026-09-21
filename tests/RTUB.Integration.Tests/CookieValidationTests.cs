@@ -4,7 +4,6 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,13 +30,16 @@ namespace RTUB.Integration.Tests;
 /// The cost assertions are pinned to the raw, unquoted <c>UPDATE AspNetUsers</c> the handler emits
 /// via <c>ExecuteSqlInterpolatedAsync</c>; EF Core quotes identifiers (<c>UPDATE "AspNetUsers"</c>),
 /// so nothing else in the application can be mistaken for it.
+/// <para>Unit 020 added a call to Identity's own <c>SecurityStampValidator</c> after these checks.
+/// Inside its <c>ValidationInterval</c> that call does nothing at all, which is why every count
+/// below is unchanged; <see cref="IdentityCookieRefreshTests"/> covers the requests on which it
+/// does something.</para>
 /// </summary>
 public class CookieValidationTests : IClassFixture<CookieValidationFactory>
 {
-    private const string LastLoginWrite = "UPDATE AspNetUsers";
+    private const string LastLoginWrite = CookieTestSession.LastLoginWrite;
     private const string RoleLookup = "\"AspNetRoles\"";
     private const string UserRoleLookup = "\"AspNetUserRoles\"";
-    private const string IdentityCookie = ".AspNetCore.Identity.Application";
 
     private readonly CookieValidationFactory _factory;
 
@@ -66,6 +68,23 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
             "UserManager.IsInRoleAsync resolves the Admin role by normalized name");
         _factory.Sql.Count(UserRoleLookup).Should().Be(1,
             "UserManager.IsInRoleAsync then probes the join table");
+    }
+
+    [Fact]
+    public async Task WithinTheValidationInterval_TheFrameworkValidatorCostsNothing_AndDoesNotRenew()
+    {
+        var (client, _) = await SignInNewUserAsync("cost-norenew", "10.30.0.11");
+
+        var response = await client.GetAsync("/Events");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        CookieTestSession.RenewsIdentityCookie(response).Should().BeFalse(
+            "SecurityStampValidator.ValidateAsync returns without touching the principal until " +
+            "SecurityStampValidatorOptions.ValidationInterval has elapsed — 30 minutes by default");
+
+        // The exact counts asserted by the tests around this one are the rest of the proof: unit
+        // 020 added a framework call to the handler and not one extra database command inside the
+        // interval. IdentityCookieRefreshTests covers the requests where the refresh is due.
     }
 
     [Fact]
@@ -250,8 +269,7 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
     }
 
     private static bool DeletesIdentityCookie(HttpResponseMessage response) =>
-        response.Headers.TryGetValues("Set-Cookie", out var cookies) &&
-        cookies.Any(c => c.StartsWith($"{IdentityCookie}=;", StringComparison.Ordinal));
+        CookieTestSession.DeletesIdentityCookie(response);
 
     private async Task<DateTime?> ReadLastLoginDateAsync(string userId)
     {
@@ -263,58 +281,9 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
             .SingleAsync();
     }
 
-    /// <summary>
-    /// Creates a confirmed user and signs it in through the real login form, antiforgery token and
-    /// all. <paramref name="clientIp"/> gives each test its own login rate-limiting partition.
-    /// </summary>
-    private async Task<(HttpClient Client, ApplicationUser User)> SignInNewUserAsync(
-        string userName, string clientIp, string? role = null)
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            HandleCookies = true
-        });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, clientIp);
-
-        var user = new ApplicationUser
-        {
-            UserName = userName,
-            Email = $"{userName}@test.com",
-            EmailConfirmed = true,
-            FirstName = "Cookie",
-            LastName = "Validation",
-            Nickname = userName,
-            PhoneNumber = "123456789"
-        };
-        var password = TestSecret.NewPassword();
-
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            (await userManager.CreateAsync(user, password)).Succeeded.Should().BeTrue();
-            if (role is not null)
-            {
-                (await userManager.AddToRoleAsync(user, role)).Succeeded.Should().BeTrue();
-            }
-        }
-
-        var loginPage = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await loginPage.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty();
-
-        var loginResponse = await client.PostAsync("/auth/login", new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                [AntiforgeryFormToken.FieldName] = token!,
-                ["Username"] = userName,
-                ["Password"] = password,
-                ["RememberMe"] = "false"
-            }));
-        loginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-
-        return (client, user);
-    }
+    private Task<(HttpClient Client, ApplicationUser User)> SignInNewUserAsync(
+        string userName, string clientIp, string? role = null) =>
+        CookieTestSession.SignInAsync(_factory, userName, clientIp, role);
 }
 
 /// <summary>
