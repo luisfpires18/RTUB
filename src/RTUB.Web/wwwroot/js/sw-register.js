@@ -9,6 +9,17 @@
     // Guard against infinite reload loops when a new SW takes control
     var refreshing = false;
 
+    // Whether this page was already controlled when the script ran. On a first-ever
+    // install the worker's clients.claim() fires controllerchange for an uncontrolled
+    // page; reloading there is a pointless extra navigation, not an update.
+    var hadControllerAtStartup = !!navigator.serviceWorker.controller;
+
+    // registerServiceWorker() used to run twice (immediately + on window load). register()
+    // is idempotent, but each call attached another 'updatefound' listener, another
+    // 'visibilitychange' listener and another update-check timer chain - which is how a
+    // single update could raise two toasts. One owner, one set of listeners.
+    var registrationStarted = false;
+
     // Minimum interval between SW update checks (5 minutes) to avoid hammering the server
     var UPDATE_CHECK_DEBOUNCE_MS = 5 * 60 * 1000;
     var lastUpdateCheck = 0;
@@ -123,6 +134,9 @@
     // This ensures PWABuilder and other tools can detect it
     // Also register on load as fallback for older browsers
     function registerServiceWorker() {
+        if (registrationStarted) return;
+        registrationStarted = true;
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js', {
                 scope: '/',
@@ -173,16 +187,18 @@
         }
     }
 
-    // Register immediately for PWABuilder detection
+    // Register immediately for PWABuilder detection. registerServiceWorker() is
+    // single-shot, so the load-event fallback below is a no-op once this has run.
     registerServiceWorker();
-    
-    // Also register on load as fallback
     window.addEventListener('load', registerServiceWorker);
 
     // Listen for service worker controller change (new SW activated)
     // Reload the page once so users get fresh assets from the new cache
     navigator.serviceWorker.addEventListener('controllerchange', function() {
         if (refreshing) return;
+        // First-ever install: clients.claim() takes control of a page that was never
+        // controlled. Nothing changed for the user, so do not reload.
+        if (!hadControllerAtStartup) return;
         refreshing = true;
         console.log('[SW Register] New service worker activated, reloading for fresh content...');
         window.location.reload();

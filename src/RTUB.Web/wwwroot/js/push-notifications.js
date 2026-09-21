@@ -1,5 +1,7 @@
 // Push Notifications Manager
-// Handles service worker registration, permission requests, and subscription management
+// Handles permission requests and push subscription management.
+// It does NOT own the service worker - /js/sw-register.js is the sole registration owner;
+// this manager adopts that registration via navigator.serviceWorker.ready.
 // Supports PWA standalone mode and TWA (Trusted Web Activity) from the Play Store
 
 class PushNotificationsManager {
@@ -84,28 +86,35 @@ class PushNotificationsManager {
     }
 
     /**
-     * Registers the service worker
+     * Adopts the service worker registration owned by /js/sw-register.js.
+     *
+     * This manager deliberately never calls the service worker registration API.
+     * sw-register.js is the single registration owner; a second register() call here
+     * produced a duplicate registration path with different options (no explicit scope,
+     * no updateViaCache) and duplicated the update/lifecycle wiring. Waiting instead
+     * keeps the same guarantee this method always provided: the returned registration
+     * has an *active* worker, which iOS Safari requires before pushManager.subscribe().
      */
     async registerServiceWorker() {
         try {
-            this.registration = await navigator.serviceWorker.register('/service-worker.js');
-            console.log('Service Worker registered successfully');
+            // navigator.serviceWorker.ready never rejects and never resolves if nothing
+            // ever registers, so bound the wait rather than hanging initialize() forever.
+            const registration = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Service worker did not become ready')), 10000)
+                )
+            ]);
 
-            // Wait for the service worker to be ready and active
-            await navigator.serviceWorker.ready;
-            
-            // Ensure we have the active registration
-            const registration = await navigator.serviceWorker.ready;
             this.registration = registration;
-            
             console.log('Service Worker is ready and active');
 
             // Check if already subscribed
             this.subscription = await this.registration.pushManager.getSubscription();
-            
+
             return this.registration;
         } catch (error) {
-            console.error('Service Worker registration failed:', error);
+            console.error('Service Worker is not available for push:', error);
             throw error;
         }
     }

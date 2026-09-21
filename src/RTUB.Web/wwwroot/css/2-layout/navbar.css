@@ -207,9 +207,15 @@
 }
 
 @media (display-mode: standalone) and (max-width: 991.98px) {
+  /* Must stay `clip`, never `hidden`. This block loads after 1-base/mobile.css and
+     matches its `html, body` specificity, so `hidden` here silently overrode the
+     deliberate `overflow-x: clip` fix there - but only in the installed PWA, which is
+     why it survived browser-tab testing. `overflow-x: hidden` makes iOS Safari treat
+     html/body as the scroll container, and MobileBottomNav (position: fixed; bottom: 0)
+     then drifts into the middle of the viewport while scrolling. See mobile.css. */
   html,
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: none;
   }
   .navbar .offcanvas {
