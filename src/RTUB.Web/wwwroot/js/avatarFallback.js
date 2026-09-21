@@ -1,8 +1,9 @@
 // Avatar image fallback
 //
-// Replaces the inline onerror="this.onerror=null; this.src='...'" attributes that
-// used to sit on every avatar <img>. A strict CSP script-src blocks inline event
-// handler attributes, so the same behaviour is delivered by one delegated listener.
+// Replaces the inline onerror attributes that used to sit on every avatar <img>,
+// each of which reset itself and then swapped in the default avatar. A strict CSP
+// script-src blocks inline event handler attributes, so the same behaviour is
+// delivered by one delegated listener.
 //
 // Mark an <img> with data-avatar-fallback to opt in.
 //

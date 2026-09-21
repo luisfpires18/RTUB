@@ -14,6 +14,7 @@ using RTUB.Application.Services.Geocoding;
 using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
+using RTUB.Security;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
@@ -333,15 +334,25 @@ public class Program
         // Strict-Transport-Security is NOT set here: UseHsts above already emits it in every
         // non-Development environment, and production returns max-age=2592000 today.
         //
-        // There is deliberately NO Content-Security-Policy yet. Both the script-side and the
-        // style-side blockers are now cleared: unit 022 removed all 15
-        // JSRuntime.InvokeAsync("eval", ...) calls, unit 023 removed every inline <script>
-        // block and inline on* handler attribute, and unit 024 removed every inline <style>
-        // block and style="..." attribute from browser-served markup. So neither script-src
-        // nor style-src needs 'unsafe-eval' or 'unsafe-inline'. What is left is writing the
-        // policy itself, including building the Cloudflare R2 origin from IConfiguration
-        // rather than a literal. Enabling CSP is unit 025.
-        // See STATE.md for the enumerated directives.
+        // Content-Security-Policy is ENFORCED (unit 025), with no 'unsafe-inline' and no
+        // 'unsafe-eval': unit 022 removed all 15 JSRuntime.InvokeAsync("eval", ...) calls,
+        // unit 023 removed every inline <script> block and inline on* handler attribute, and
+        // unit 024 removed every inline <style> block and style="..." attribute from
+        // browser-served markup. Every source in the policy is evidence-based - see
+        // ContentSecurityPolicyBuilder and STATE.md for the per-directive justification.
+        //
+        // It is emitted on HTML DOCUMENT responses only, deliberately. A CSP header served with
+        // a worker script governs that worker's own execution context, and RTUB's service
+        // worker re-fetches the cross-origin subresources it caches (R2 media, the script/style
+        // CDNs, the Leaflet tiles) - none of which connect-src lists, because the page itself
+        // never fetches them. A blanket policy would therefore break offline caching. On other
+        // subresource responses the header buys nothing: the directives that matter are already
+        // enforced by the embedding document's own policy at fetch time, and frame-ancestors
+        // applies only to documents (X-Frame-Options: DENY above covers every response anyway).
+        //
+        // Set from OnStarting because Content-Type is not known when this middleware runs.
+        var contentSecurityPolicy = new ContentSecurityPolicyBuilder(app.Configuration);
+
         app.Use(async (context, next) =>
         {
             var headers = context.Response.Headers;
@@ -364,6 +375,23 @@ public class Program
             // (Share.razor, clipboardCopy.js) are in use and are deliberately left alone, as is
             // the long tail of exotic features, where a blanket deny buys nothing measurable.
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
+
+            context.Response.OnStarting(static state =>
+            {
+                var (ctx, policy) = ((HttpContext, ContentSecurityPolicyBuilder))state;
+                var contentType = ctx.Response.ContentType;
+
+                if (contentType is not null &&
+                    contentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Assigned, never appended: UseExceptionHandler re-executes the pipeline and
+                    // registers this callback a second time on the same response.
+                    ctx.Response.Headers["Content-Security-Policy"] =
+                        policy.Build(ctx.Request.Scheme, ctx.Request.Host.Value);
+                }
+
+                return Task.CompletedTask;
+            }, (context, contentSecurityPolicy));
 
             await next();
         });

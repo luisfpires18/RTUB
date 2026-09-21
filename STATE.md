@@ -5,305 +5,168 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **024 (remove inline-style CSP blockers) - COMPLETE, uncommitted, awaiting
-owner review.** Unit 023 is merged to `dev` at `00e8009f`. No CSP header enabled; that is unit 025.
+Modernization unit **025 (enable enforced Content-Security-Policy) - COMPLETE, uncommitted,
+awaiting owner review.** Unit 024 is merged to `dev` at `ecabb0fc`. **The CSP / security-header
+modernization track is COMPLETE**: 021 shipped the four supporting headers, 022 removed `eval`,
+023 removed inline script, 024 removed inline style, and 025 ships the policy itself - enforced,
+with no `'unsafe-inline'` and no `'unsafe-eval'`.
 
 ## Branch
-`fix/024/remove-inline-styles`, branched from `dev` (clean, in sync with `origin/dev` at
-`00e8009f`). Uncommitted - no commit authorized.
+`fix/025/enable-csp`, branched from `dev` (clean, in sync with `origin/dev` at `ecabb0fc`).
+Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`-`fix/023` still present; delete when convenient.
+`fix/020`-`fix/024` still present; delete when convenient.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
-not read for change and not touched by 021. It remains available as a future unit.
+not read for change and not touched by 021 or 025. It remains available as a future unit.
 
 ## Last completed step
-**Unit 024 - every inline `<style>` block and `style="..."` attribute removed from
-browser-served application markup. Final counts: 0 and 0.**
+**Unit 025 - RTUB serves an enforced `Content-Security-Policy`. No `'unsafe-inline'`, no
+`'unsafe-eval'`, no `'unsafe-hashes'`, no nonce, no hash, no wildcard origin.**
 
-### The measurement that shaped the unit
-The brief assumed that moving `style="width:42%"` into `element.style.width = "42%"` does not help,
-because JS writing the style attribute is still inline-style behaviour for CSP. **That was measured
-against a real `style-src 'self'` policy and it is false.** Chromium results:
+### The final policy
+    default-src 'self';
+    base-uri 'self';
+    object-src 'none';
+    frame-ancestors 'none';
+    form-action 'self';
+    script-src 'self' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net;
+    script-src-attr 'none';
+    style-src 'self' https://cdnjs.cloudflare.com https://unpkg.com;
+    style-src-attr 'none';
+    img-src 'self' data: https://*.basemaps.cartocdn.com <R2-public>;
+    media-src 'self' <R2-public> <R2-endpoint>;
+    font-src 'self';
+    manifest-src 'self';
+    worker-src 'self';
+    frame-src <R2-endpoint>            (or 'none' when unconfigured);
+    connect-src 'self' <ws|wss>://<request host>
 
-| Mechanism | Under `style-src 'self'` |
-| --- | --- |
-| markup `style="..."` | **BLOCKED** (`style-src-attr`) |
-| `setAttribute('style', ...)` | **BLOCKED** (`style-src-attr`) |
-| `<style>` element, authored or injected | **BLOCKED** (`style-src-elem`) |
-| `innerHTML` string containing `style=` | **BLOCKED** (`style-src-attr`) |
-| `el.style.prop = ...` | **ALLOWED**, no violation |
-| `el.style.setProperty('--x', ...)` | **ALLOWED**, no violation |
-| `el.style.cssText = ...` | **ALLOWED**, no violation |
-| constructed `CSSStyleSheet` + `adoptedStyleSheets` | **ALLOWED**, no violation |
+`<R2-public>` and `<R2-endpoint>` are filled from configuration at startup; the WebSocket source
+is filled per request. Neither is a literal in source.
 
-CSP governs the style **attribute** and `<style>` **elements**; it does not govern the CSSOM. That
-distinction is what made the dynamic cases solvable without `'unsafe-inline'`, and it is why the
-existing CSSOM writes in application JS were left alone rather than rewritten.
-
-### Counts before / after
-| Thing | Before 024 | After 024 |
+### Every non-'self' source, and the resource that earns it
+| Directive | Source | Why it is there |
 | --- | --- | --- |
-| Inline `<style>` blocks in browser-served markup | 12 | **0** |
-| `style="..."` attributes in browser-served markup | 213 | **0** |
-| `style=` inside JS-built HTML strings | 4 | **0** |
-| `style.cssText` / injected `<style>` in app JS | 2 | **0** |
-| `setAttribute('style')`, `insertRule` in app JS | 0 | 0 |
-| Inline styles in **email** templates (not CSP-governed) | 177 attrs + 1 block | **unchanged, by design** |
+| `script-src` | `https://cdnjs.cloudflare.com` | `cropper.min.js` (MainLayout) |
+| `script-src` | `https://unpkg.com` | `leaflet.js`, SRI-pinned (MainLayout) |
+| `script-src` | `https://cdn.jsdelivr.net` | `pixi.min.js` (MainLayout) |
+| `style-src` | `https://cdnjs.cloudflare.com` | `cropper.min.css` (App.razor `HeadContent`) |
+| `style-src` | `https://unpkg.com` | `leaflet.css`, SRI-pinned |
+| `img-src` | `data:` | `ImageCropper.razor` and `Gallery.razor` render the picked file as a `data:` URL before upload |
+| `img-src` | `https://*.basemaps.cartocdn.com` | Leaflet dark-matter tiles in `memberMap.js` |
+| `img-src` | R2 public origin | avatars, gallery and event images, stored absolute |
+| `media-src` | R2 public origin | `<video><source>` URLs, stored absolute |
+| `media-src` | R2 S3 endpoint | **pre-signed** album audio (`CloudflareAudioStorageService`) |
+| `frame-src` | R2 S3 endpoint | **pre-signed** PDFs: `Songs.razor` lyrics, `Roles.razor` RGI |
+| `connect-src` | `ws(s)://<request host>` | the Blazor Server circuit |
 
-### Style audit - classification
-Everything the pattern sweep found, classified before any edit:
+**Two R2 origins, not one - this corrected 024's plan.** 024 recorded `Cloudflare:R2:PublicUrl`
+as the only dynamic origin. Reading the storage services showed that is half of it:
+`GeneratePreSignedUrlAsync` (audio, documents, lyrics) issues URLs against the **S3 API
+endpoint**, `https://{Cloudflare:R2:AccountId}.r2.cloudflarestorage.com`, which is a different
+origin from the public bucket. So `media-src` needs both, and `frame-src` needs only the endpoint -
+the two PDF viewers are pre-signed, never public-bucket URLs.
 
-| Class | Count | Disposition |
-| --- | --- | --- |
-| **A. Static** | 170 attrs / 22 files | -> utility or composite classes |
-| **B. Dynamic but finite-state** | 24 attrs | -> conditional / lookup classes |
-| **C. Dynamic value-driven** | 10 attrs | -> validated `data-*` + CSSOM custom property |
-| **D. Third-party generated** | 0 owned | Bootstrap/Leaflet runtime CSSOM writes - not CSP-governed |
-| **E. False positive** | 177 email attrs + 20 app CSSOM writes | left alone, see below |
+**Considered and deliberately left out:**
+- `connect-src` gets **no** R2 and **no** CDN. Nothing on the page fetches them: Pixi sprites are
+  local `wwwroot` paths (`StageBiomeService` enumerates a folder; `CharacterService` matches
+  `boss_{username}.png` under `wwwroot`), Pixi's R2 images go through the same-origin
+  `/api/cdn/image` proxy, game music is `/sound/*.mp3`, and every API call is same-origin.
+- `img-src` gets **no** S3 endpoint - there are no pre-signed image URLs.
+- `img-src` gets **no** `blob:`. The only `createObjectURL` is in `fileDownload.js` and it feeds an
+  `<a download>` href, which CSP does not govern.
+- `media-src` gets **no** `data:`. `MediaUploadManager.IsVideo` tests the URL's file extension, so
+  a `data:` preview always renders through the `<img>` branch, never `<source>`.
+- `font-src` stays `'self'`: bootstrap-icons ships its `woff2` relatively, and there is no
+  `@font-face` anywhere in `wwwroot/css`.
+- YouTube / Spotify / Instagram / Facebook appear only as `<a target="_blank">` **navigations**,
+  never embeds, and navigation is not governed by any directive in this policy.
+- `'unsafe-eval'` / `'wasm-unsafe-eval'`: not needed. Every component is `InteractiveServer`;
+  there is no `InteractiveAuto` or `InteractiveWebAssembly` render mode in the repo.
 
-**A - static (170).** 109 distinct values, decomposing to 98 classes: atoms where the value is a
-single declaration (`u-fs-70`, `u-c-gold`, `u-w-32`, `cursor-pointer`, ...) and one composite class
-per distinct multi-declaration set (`u-tile-gold`, `u-grad-purple`, `u-btn-gold-xs`, ...).
-Generated into `wwwroot/css/9-overrides/inline-style-utilities.css`. The transform was mechanical
-and total: every declaration had to be present in the map or the run aborted, so nothing was
-silently dropped.
+### The last script-src blocker - `memberMap.js`
+024's markup sweep could not see it: `memberMap.js` builds its Leaflet popup as an HTML **string**,
+and that string carried `onerror="this.src='/images/default-avatar.webp';"`. Under
+`script-src-attr 'none'` that is blocked exactly like a handler written in `.razor`.
 
-**B - finite state (24).** `RoleBadge` (3 role branches), `Bets` option outcome (3), `InfoSection`
-cancellation panel, `EmailRecipientsPreview` `MaxHeight` (3 used values), MyTuno cursor toggles (5),
-MyTuno active forge/upgrades tab (4), the rare-set glow, plus the two **palette lookups**:
-`RankHelper.GetRankColorClass` (10 tiers) and `BiomeDisplayHelper.GetBiomeColorClass` /
-`GetSurviveBiomeColorClass` (21 + 12 biomes). The palette classes set `--rank-c` / `--bc`, which is
-what the existing biome CSS already consumed - so the accent icon, badge and border now inherit one
-value instead of repeating an interpolated hex four times.
+Fixed by reusing 023's mechanism rather than inventing a second one: the `<img>` now carries
+`data-avatar-fallback` and is served by the single capture-phase listener in `avatarFallback.js`.
+That works for dynamically inserted images because Leaflet's `DivOverlay.onAdd` appends the popup
+container to the pane **before** `update()` sets its `innerHTML` - the images are already in the
+document when their non-bubbling `error` event fires, so the capture-phase listener on `document`
+sees it. Proven in the browser, not assumed: see *Browser validation*.
 
-**C - genuinely dynamic (10).** 8 progress-bar widths (`RankCard`, `Members`, `Profile`, and 5 in
-`MyTunoHome`) and 2 Logistics label colours the user picks from `<input type="color">`. These cannot
-be a fixed class and cannot be rounded into one without either a class explosion or a visual
-regression. They are the only case that needed new machinery: see *dynamic-style bridge*.
+**The regression gate is a repository-wide scan of application JS, not a one-file assertion.**
+`ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers` sweeps every hand-written `.js`
+and `.ts` under `src/` (excluding `wwwroot/lib`, `node_modules`, `obj`, `bin`, `*.d.ts`) for
+`on<name>=` followed by a quote, and aggregates every hit into one failure. A DOM property write
+(`el.onerror = fn`) is not a CSP violation and is excluded by a negative lookbehind. Two comments
+in `avatarFallback.js` and `memberMap.js` that quoted the old attribute verbatim were reworded so
+the scan can stay a plain regex rather than needing a JS tokenizer.
 
-**E - false positives, deliberately untouched.**
-- **Email templates: 177 `style="..."` + 1 `<style>` across 14 `.cshtml`.** `EmailTemplateService`
-  renders these to an HTML **string** delivered over SMTP. They are never an HTTP response from this
-  app, so no CSP applies - and mail clients strip `<style>`, which makes inline styles a hard
-  requirement. Changing them would break email rendering for zero security gain.
-- **20 CSSOM writes in app JS** (`clipboardCopy.js` 11, `messageScroller.js` 6, `tomatoThrower.js`,
-  `pixiSurviveMode.js`, `pixi/survive/InputManager.ts`). Measured above as **not** CSP-governed.
+### R2 handling - configuration in, normalized origin out
+`ContentSecurityPolicyBuilder` is the only place either origin is produced.
+- **Public URL** is parsed with `Uri.TryCreate(..., UriKind.Absolute)`, accepted only for
+  `http`/`https` with a non-empty host, and reduced to `scheme://host[:port]`. Path, query,
+  fragment and userinfo are discarded, so a configured value cannot carry a `;` or a second
+  directive into the header.
+- **Account id** is interpolated into a hostname, so it is accepted only as a single DNS label
+  (ASCII alphanumerics and interior hyphens, 1-63 chars) before
+  `https://{id}.r2.cloudflarestorage.com` is formed.
+- **Missing or malformed configuration contributes nothing.** The source is dropped, never
+  replaced with a wildcard; `frame-src` degrades to `'none'`. R2 content may then be unavailable,
+  which is the correct failure direction. No configuration value is logged.
 
-### `<style>` blocks - where the 12 went
-11 `.razor` blocks became files in the existing `wwwroot/css` hierarchy, plus `offline.html`:
+### WebSocket handling
+`connect-src 'self'` is **not** relied on to cover the Blazor circuit. MDN notes `'self'` is not
+consistently taken to match `ws:`/`wss:` across browsers, so the exact origin of the current
+request is emitted: `wss://host[:port]` for an https request, `ws://host[:port]` for http, built
+from `Request.Scheme` and `Request.Host`. The Host header is client-controlled, so it is validated
+as a plain host-with-optional-port (DNS name, IPv4, or bracketed IPv6) and dropped if it is not - a
+refused circuit is recoverable, attacker-chosen text inside a security header is not. The broad
+`ws:` / `wss:` schemes are never used.
 
-| Source | Destination |
-| --- | --- |
-| `MeetingCard.razor` (354 lines) | `css/3-components/meeting-card.css` |
-| `QuestionCard.razor` (211) | `css/3-components/question-card.css` |
-| `MonthYearPicker.razor` (58) | `css/3-components/month-year-picker.css` |
-| `Meetings.razor` (72) | `css/4-pages/meetings.css` |
-| `NaipesConfig.razor` (98) | `css/4-pages/naipes-config.css` |
-| `PassaroMaluco.razor` (131) | `css/4-pages/passaro-maluco.css` |
-| `Questions.razor` (57) | `css/4-pages/questions.css` |
-| `Report.razor` (5) | `css/4-pages/report.css` |
-| `AllCharacters.razor` (115) | `css/4-pages/my-tuno-all-characters.css` |
-| `WeaponDrinkConfig.razor` (151) | `css/4-pages/weapon-drink-config.css` |
-| `offline.html` (61) | `css/offline.css` (standalone - offline.html does not load site.css) |
+### Header architecture - 021's middleware extended, nothing new added
+The policy is set inside the existing security-header middleware in `Program.cs`. No new
+middleware, no third-party CSP package, no second header system. The builder is a small class with
+two constructors: one taking `IConfiguration` for production, one taking the two raw strings so the
+tests can drive it directly without `InternalsVisibleTo`.
 
-**Global files, not `.razor.css`, and that is deliberate.** The repo uses both conventions (88
-`.razor.css` files *and* a 63-file `wwwroot/css` hierarchy imported by `site.css`). A `<style>` block
-in `.razor` markup is emitted verbatim and is **global**; moving it to `.razor.css` would scope it to
-that component's own elements and silently stop it applying to anything a child component renders.
-Global files preserve the cascade exactly, with no per-file judgement call to get wrong. `@@media`
-was unescaped to `@media` on the way out.
+**Assignment, not `Append`**, and the same idempotence argument as 021: `UseExceptionHandler`
+re-executes the pipeline, so the callback registers twice on the same response; assigning by
+indexer makes the second pass a no-op. Pinned by
+`SecurityHeaderTests.Headers_AreSetOnce_NotAppendedPerPass`.
 
-**Cascade position preserved.** A body `<style>` block previously beat every stylesheet at equal
-specificity because it came last in document order. The extracted files are therefore imported
-**last** in `site.css`, after everything else, so ties resolve the same way - without `!important`.
-Scoped rules in `RTUB.styles.css` are unaffected: their `[b-xxxxx]` attribute already gives them
-higher specificity regardless of order.
+### Scoping: HTML documents only, and why
+The header is set from `Response.OnStarting`, where `Content-Type` is final, and only when it
+starts with `text/html`. A deliberate decision, not an optimisation:
 
-**One block was deleted, not moved.** `Profile.razor` carried
-`:global(html, body) { overflow-x: hidden; }` inside a plain `<style>` element. `:global()` is
-Blazor scoped-CSS-only syntax; in a real stylesheet it is an invalid selector, so the rule has
-**never applied**. Deleting an inert rule preserves behaviour exactly. Making it work would have
-been a visual change and was not taken - see *Deferred*.
+1. **A CSP header served with a worker script governs that worker's own execution context.**
+   RTUB's service worker intercepts and re-fetches the cross-origin subresources it caches - R2
+   media, the three script/style CDNs, the Carto tiles. None of those are in `connect-src`,
+   because the *page* never fetches them. A blanket policy would hand `/service-worker.js` a
+   `connect-src 'self'` and break offline caching. Measured: the worker's caches hold 5
+   cross-origin entries on a single anonymous homepage load.
+2. **On other subresource responses the header buys nothing.** The directives that matter are
+   enforced by the embedding document's policy at fetch time, and `frame-ancestors` applies only
+   to documents - where `X-Frame-Options: DENY`, set on every response since 021, already covers
+   the same ground.
 
-### Dynamic-style bridge - the only new machinery
-`wwwroot/js/dynamicStyle.js` (~95 lines) carries the 10 category-C values. Markup emits a validated
-`data-*` attribute; the script applies it as a CSS custom property through `el.style.setProperty`,
-which the measurement above shows CSP does not block. A `MutationObserver` with an `attributeFilter`,
-coalesced to one sweep per animation frame, reapplies after Blazor re-renders.
+Verified live: `/` and `/login` carry exactly one CSP header; `/service-worker.js`,
+`/css/site.css`, `/js/avatarFallback.js`, `/js/offline.js` and `/manifest.webmanifest` carry none.
 
-It is **deliberately not a generic "apply this CSS" sink** - that would hand back exactly the
-capability `style-src` removes. Each attribute accepts one narrow shape and nothing else:
-- `data-fill-pct` -> `^\d{1,3}(\.\d+)?$`, clamped to 0-100, applied as `--fill-pct`
-- `data-swatch` -> `^#[0-9a-fA-F]{6}$`, applied as `--swatch`
+### Report-Only was not used and is not shipped
+The enforced header was correct on the first browser run, so no report-only phase was needed.
+`Content-Security-Policy-Report-Only` appears nowhere in the branch, and
+`SecurityHeaderTests.Page_CarriesExactlyOneEnforcedContentSecurityPolicy` fails if it ever does.
 
-Anything else is ignored. Verified in the browser: `data-swatch="red; position:fixed"` set no
-property, left the element at its CSS default colour, and left `position: static`.
-
-Cost: a bar renders at its CSS fallback (`width: var(--fill-pct, 0%)`) for one frame before the
-script applies the real value. For a progress bar with an existing transition this is invisible; it
-is recorded because it is a real, if small, behavioural difference.
-
-### Service-worker update toast - classes, no injected stylesheet
-`sw-register.js`'s `showUpdateToast` built its markup with `innerHTML` carrying 4 `style="..."`
-attributes, assigned `toast.style.cssText`, and **injected a `<style>` element** for the slide-up
-keyframes. It now builds DOM nodes with `className` only; all of it, keyframes included, lives in
-`css/3-components/sw-update-toast.css`. The `cssText` assignment was not itself a CSP violation
-(CSSOM), but the innerHTML attributes and the injected `<style>` were.
-
-Verified in the browser by constructing the toast: `position: fixed`, `z-index: 999999`, the `135deg`
-gradient, `14px 20px` padding, `2px solid #e94560` top border, flex row with `10px` gap, `8px` button
-radii, and `animation: rtub-toast-slide-up 0.3s ease-out` resolving against the stylesheet's
-`@keyframes`. No inline style attribute on the toast and zero `<style>` elements in the document.
-Appearance and behaviour unchanged.
-
-### Leaflet map markers
-`memberMap.js` built its `divIcon` HTML with 2 inline `style` attributes plus a third on the
-"+N mais membros" row - markup strings, so genuinely blocked. Moved to `.marker-pin`, `.marker-count`
-and `.popup-member-item--more` in the existing `css/4-pages/member-map.css`. The vendored
-Leaflet / Bootstrap / Cropper / Pixi files were **not** touched.
-
-### Offline page - proven with the origin actually down
-`offline.html` now links `/css/offline.css`, which was added to `STATIC_ASSETS` in
-`service-worker.js`. The shared script/style fetch branch already had 023's
-`.catch(() => cached || caches.match(request))` cross-cache fallback, so the precached copy is
-reachable; no further service-worker change was needed and `CACHE_VERSION` was **not** bumped.
-
-**Proven end-to-end in headless Chromium**, not reasoned about: register the worker, confirm
-`/css/offline.css` sits in `rtub-static-rtub-v2.6.0` **only** (the `DYNAMIC_CACHE` sweep found
-nothing to delete), kill the server, confirm the port is closed with an out-of-band socket check,
-then load the page. Result: stylesheet served **200, 1551 bytes**, gradient rule present; the page
-renders with the `135deg` gradient background, white text, flex centering, `8px` / `12px 30px`
-button, `120px` icon and the heading "Sem Conexão" - **0 `<style>` elements, 0 inline style
-attributes, 1 linked stylesheet, 9 rules loaded.** 023's `offline.js` work is intact and still
-precached.
-
-An in-page "is the origin up?" probe is useless here and was discarded: the service worker answers
-from cache with **status 200**, so the page cannot tell a live server from a cached response. The
-out-of-band socket check is what makes this result trustworthy.
-
-### Static policy test
-`tests/RTUB.Web.Tests/Security/InlineStylePolicyTests.cs`, **10 aggregated Facts** following 023's
-pattern - repository-wide sweeps that collect every violation and report them in a single failure,
-rather than hundreds of per-file cases. Pinned:
-1. no `style="..."` in browser-served markup
-2. no `<style>` elements in browser-served markup
-3. no `style.cssText`, `setAttribute('style')` or `createElement('style')` in app JS
-4. no `style=` inside JS-built markup strings
-5. email templates are the **only** excluded markup, and the exclusion is still load-bearing
-6. `offline.html` links its external stylesheet; the service worker precaches it
-7. the update toast is styled by classes from the external stylesheet, keyframes included
-8. the dynamic bridge validates its inputs and never uses `cssText`
-9. the migrated values (`#007bff`, the three `max-height`s) survive in the stylesheet
-
-`el.style.prop = ...` and `setProperty` are **deliberately not banned** - they are not CSP violations
-and `dynamicStyle.js` depends on them. `cssText` is banned despite being legal: it has no remaining
-use and is an inline-style-shaped bulk write worth keeping shut.
-
-### Two tests were passing for the wrong reason
-Moving CSS out of markup exposed **two false-positive assertions** that were matching text inside the
-component's own inline `<style>` block rather than rendered markup:
-- `MeetingCardTests.MeetingCard_ShowsHojeBadge_WhenMeetingIsToday` asserted
-  `Contain("meeting-today-badge")`. **No element has ever carried that class** - it exists only as a
-  CSS rule. The "HOJE" text it also asserts is real and comes from `<DateBadge>`; that assertion is
-  kept, the bogus one removed. `.meeting-today-badge` is now **orphaned CSS** (see *Deferred*).
-- `MonthYearPickerTests.MonthYearPicker_HidesPlaceholderOption` asserted
-  `Contain(".month-year-picker option[disabled]")` and `Contain("display: none")` - both pure CSS
-  selector text. Rewritten to assert the component renders the hook the rule targets (a disabled
-  placeholder `<option>` inside `.month-year-picker`) and that the stylesheet still carries the rule.
-
-Three further tests needed updating because the markup contract genuinely changed: `RoleBadgeTests`
-(x2) now assert `role-badge--member` instead of `#007bff`, and `EmailRecipientsPreviewTests` asserts
-`subscriber-list--h400` instead of `max-height: 400px`. The values themselves are pinned in
-`InlineStylePolicyTests`, so that coverage is not lost.
-
-### Third-party CSP style constraint: none found
-No vendored library requires inline styles under a strict `style-src`. Bootstrap's offcanvas and
-modal transforms, Leaflet's positioning and Cropper's sizing all write through the **CSSOM**
-(`el.style.transform = ...`), which the measurement above confirms CSP does not govern. `insertRule`
-and `setAttribute('style')` appear nowhere in the vendored bundles the app loads. **`style-src` has
-no third-party exception.**
-
-### Other behaviour notes, all preserving current behaviour
-- `InstrumentCounter.GetHeaderStyle()` returned `cursor: pointer` while `GetHeaderClass()` already
-  returned a `cursor-pointer` class that **was never defined anywhere**. The method is deleted and
-  the class is now defined, so the component keeps working and the duplication is gone.
-- `InfoSection`'s public `Style` parameter is **removed**. Both callers passed the identical
-  cancellation-reason panel, now `modal-info-section--danger`. Leaving the parameter would have left
-  an inline-style escape hatch the policy test could not ban.
-- `MyTunoHome`'s per-checkpoint `style="--bc: ..."` on `.biome-cp` was **redundant** - the button is
-  inside `.biome-card` and custom properties inherit. Removed, not reimplemented.
-- The rare-tab badge's `animation: rare-tab-pulse` **never ran and still does not.** The keyframes
-  are defined only in `MyTunoHome.razor.css`, which Blazor rewrites to `rare-tab-pulse-b-t56smwc8j2`;
-  the old inline attribute referenced the un-rewritten name, and so does the new class. Identical
-  behaviour, deliberately not "fixed" - see *Deferred*.
-
-### CSP inventory - the style side is now clear (plan for 025)
-**Blocker 1 - `eval`: CLEARED by 022.** `'unsafe-eval'` not needed.
-
-**Blocker 2 - inline `<script>` and inline `on*` handlers: CLEARED by 023.** `script-src` needs no
-`'unsafe-inline'`.
-
-**Blocker 3 - inline styles: CLEARED by 024.** 12 `<style>` blocks and 213 `style="..."` attributes
-gone; JS-built markup and injected stylesheets gone. No nonce, no hash, no `'unsafe-hashes'`.
-**`style-src` is now `'self'` plus the two pinned CDN origins below.** Note `'unsafe-hashes'` would
-NOT have been a way out even if attributes had remained: hashes do not apply to style attributes
-without it, and it re-opens the whole class.
-
-**Blocker 4 - the R2 origin is runtime configuration, not a constant. STILL OPEN, and now the only
-one.** `img-src`, `media-src` and `frame-src` need the Cloudflare R2 public origin from
-`Cloudflare:R2:PublicUrl` (e.g. `https://pub-xxx.r2.dev`), **stored absolute in the database**. The
-policy string must be built from `IConfiguration` at startup, not written as a literal.
-
-**Not blockers - the external origins, verified in 021 by reading what the browser loads:**
-- `script-src`: `https://cdnjs.cloudflare.com` (cropper.js), `https://unpkg.com` (leaflet, SRI
-  pinned), `https://cdn.jsdelivr.net` (pixi.js)
-- `style-src`: `https://cdnjs.cloudflare.com` (cropper.css), `https://unpkg.com` (leaflet.css, SRI
-  pinned)
-- `img-src`: `'self' data:` plus `https://*.basemaps.cartocdn.com` (`wwwroot/js/memberMap.js` tile
-  layer) plus the R2 origin
-- `connect-src`: `'self'` - the `_blazor` WebSocket is **same-origin**, and CSP3 `'self'` matches
-  `wss:` to the same host. The service worker fetches **nothing** cross-origin.
-- `frame-src`: the R2 origin only (the two PDF viewers)
-- `font-src`: `'self'` - `https://fonts.googleapis.com` is a **dead** `preconnect`/`dns-prefetch` in
-  `App.razor` with no matching stylesheet and no `@font-face`. Do not add it to a policy; delete the
-  hint instead (carried in *Deferred*).
-- YouTube / Spotify / Instagram / Facebook appear only as `<a href target="_blank">` **navigations**,
-  never embeds - so they need **no** directive.
-
-The four security headers shipped by 021 (`X-Content-Type-Options: nosniff`,
-`Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`,
-`Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`) and the HSTS decision
-(already live at `max-age=2592000`) are unchanged by 024.
-
-**`Program.cs` comment updated.** It now records that 022 + 023 + 024 cleared both the script-side
-and the style-side blockers, and that CSP itself is unit 025. Comment only - the security-header
-middleware is byte-identical and still emits **no** CSP.
-
-### Browser validation
-Headless Chromium plus the in-app pane, against a local Development build.
-- Homepage and `/login`, desktop (1280) and mobile (375): render correctly, **no horizontal
-  overflow**, and **0 inline style attributes / 0 `<style>` elements in the live DOM** on every one.
-- All **14** new or changed stylesheets fetch **200**; no 404s. Computed styles confirm each migrated
-  value resolves: `u-fs-70` -> `11.2px`, `u-c-gold` -> `rgb(255,215,0)`, `role-badge--member` ->
-  `rgb(0,123,255)`, `rank-c-gold` -> `--rank-c: #ffd700`, `biome-c-forest` -> `--bc: #4caf50`.
-- Dynamic bridge: `data-fill-pct="42.5"` in a 200px container -> **85px**; `data-swatch="#8a2be2"` ->
-  `rgb(138,43,226)`; `999` clamped to `100%`; the injection attempt rejected.
-- Update toast and offline page: see their sections above.
-- Console: the only errors are pre-existing `401`s from auth-gated API calls on the anonymous
-  homepage. **None are style- or CSS-related.**
-
-**Service workers do not register in the in-app browser pane** - a one-line `install`-only worker
-fails there too, so it is an environment limitation, not a regression. Every service-worker result
-above therefore comes from headless Chromium, where they work.
-
-### Frontend build
-**None required.** `wwwroot/css` and `wwwroot/js` are plain hand-written assets served directly and
-versioned by `<VersionedAsset>`; no npm/bundler step governs them. The only build that matters is
-`dotnet build`, which regenerates the scoped-CSS bundle - unchanged by this unit, since no
-`.razor.css` file was touched.
-
+### Safe cleanup taken
+`App.razor`'s `preconnect` and `dns-prefetch` to `https://fonts.googleapis.com` are **deleted**.
+021 found them dead - no matching stylesheet, no `@font-face`, no `fonts.gstatic.com` reference
+anywhere. Re-verified in 025 before removal, and pinned by a test, so `font-src 'self'` is not
+quietly hiding a missing source.
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
 **No immediate Azure action is required for this deploy.** Production `rtub` has an existing
@@ -358,16 +221,17 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 024 is complete and awaiting owner review.
+None active. Unit 025 is complete and awaiting owner review.
 
 ## Next unit
-**025 - enable CSP.** Both the script-side and the style-side blockers are now cleared, so the
-policy can be written without `'unsafe-eval'`, `'unsafe-inline'`, `'unsafe-hashes'`, a nonce or a
-hash. Remaining work is the policy string itself, built from the directive inventory above, with
-`img-src` / `media-src` / `frame-src` taking the Cloudflare R2 public origin from
-`Cloudflare:R2:PublicUrl` at startup rather than a literal - that is Blocker 4 and the only open
-one. Ship it `Content-Security-Policy-Report-Only` first if the owner wants a safety margin, then a
-browser smoke run across the authenticated pages.
+**PWA / Service Worker reliability modernization.** 025's scoping decision is a constraint on it:
+whatever changes, `/service-worker.js` must keep being served **without** a CSP header, or the
+worker's cross-origin caching breaks. Three cases pin that
+(`NonDocumentResponse_CarriesNoContentSecurityPolicy`).
+
+Carry into that unit as a specific regression case: **the observed iPhone / PWA `MobileBottomNav`
+transient drift** - the bottom nav shifts position briefly on iOS in standalone mode. Not
+reproduced or investigated in 021-025; none of them touched it.
 
 Also still available, deliberately not taken: **password-policy review / hardening** (Identity is
 `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
@@ -382,6 +246,12 @@ which also unblocks `MockQueryable.Moq 10.0.12`.
 literals remain in old commits, and unit 015 deliberately did **not** rewrite git history to clear
 them. Mark those incidents "false positive / test credential" in GitGuardian by hand. 015 only
 stops *future* commits from raising new ones. No GitGuardian ignore comment was added either.
+
+**Deployment note for 025:** the policy is built from `Cloudflare:R2:PublicUrl` and
+`Cloudflare:R2:AccountId`. Both are already required by the storage services, so **no new
+configuration key is introduced** and no portal change is needed for this deploy. If either were
+ever unset in an environment, CSP would omit that source - R2 images/audio/PDFs would be blocked
+rather than the policy being weakened.
 
 ## Deferred / owner decisions
 
@@ -462,12 +332,10 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   was out of 019's; the framework composition did not eliminate it.
 
 ### Raised by 021, deliberately not changed
-- **CSP is not enabled.** Of the four blockers enumerated in *Last completed step*, the first -
-  the 15 `eval` interop sites - is **cleared by 022**. Three remain: 3 inline `<script>` blocks
-  (023), 11 `<style>` blocks + 213 `style=` attributes (024), and the R2 origin only being known
-  at runtime (025). No `Content-Security-Policy-Report-Only` was shipped either - a report-only
-  policy is worth adding once the blockers are down and it can report something actionable, not
-  while it would report every page load.
+- ~~**CSP is not enabled.**~~ - **done.** All four blockers 021 enumerated are cleared: `eval`
+  (022), inline `<script>` and `on*` handlers (023, plus the JS-built handler 025 found), inline
+  `<style>` and `style=` (024), and the runtime R2 origin (025 - which turned out to be *two*
+  origins). The enforced header ships in 025. No report-only policy was ever needed.
 - **`Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` / `Cross-Origin-Resource-Policy`
   were not added.** Outside the brief, and COOP in particular needs its own check of the
   `LoginPopup` flow and anything relying on `window.opener` before it can be called safe. Cheap to
@@ -527,19 +395,16 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   during push opt-in, with **different options** (no `scope`, no `updateViaCache`). Pre-existing,
   and already flagged by the `rtub-push` skill. The push unit owns consolidating it.
 - ~~`sw-register.js` toast styles~~ and ~~`offline.html` inline `<style>`~~ - **both done by 024.**
-- **`App.razor` still has the dead `fonts.googleapis.com` `preconnect` / `dns-prefetch`.** No
-  matching stylesheet and no `@font-face` anywhere. 024 did not take it either - it is not an inline
-  style and removing it is unrelated to this unit. Delete it in 025, where `font-src` is decided.
+- ~~**`App.razor` still has the dead `fonts.googleapis.com` `preconnect` / `dns-prefetch`**~~ -
+  **deleted by unit 025**, where `font-src` was decided. Re-verified dead first, and now pinned by
+  `NoWebFontServiceIsReferenced`.
 - **`rtub.carousel.js` is still dead** (raised by 022, unchanged).
 
-### Raised by 024, deliberately not changed
-- **`memberMap.js` still builds an inline `onerror="this.src=..."` handler** inside its popup HTML
-  string (the member avatar). That is a **`script-src`** blocker, not `style-src`, so it is outside
-  024's scope - but it means 023's "0 inline handlers" count missed markup built in JavaScript.
-  023's `avatarFallback.js` already provides the delegated replacement, so the fix is swapping the
-  attribute for `data-avatar-fallback`. **025 must take this or the policy will break the map
-  popups' avatar fallback.** Consider extending `InlineScriptPolicyTests` to sweep JS strings the
-  way `InlineStylePolicyTests` now does.
+### Raised by 024 (two items closed by 025)
+- ~~**`memberMap.js` still builds an inline `onerror` handler inside its popup HTML string**~~ -
+  **fixed by unit 025.** Swapped for `data-avatar-fallback`, and the whole class of bug is now
+  swept repository-wide by `ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers`
+  rather than pinned file by file. Verified in the browser with a failing avatar URL.
 - **`.meeting-today-badge` is orphaned CSS.** Now in `css/3-components/meeting-card.css`; no element
   has ever carried the class. Kept because deleting it is unrelated cleanup, and its absence from the
   markup is now recorded in `MeetingCardTests`.
@@ -552,120 +417,195 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   real rule - that is a visual change, not a CSP one.
 - **`dotnet test` does not work in this repo.** It reports "Zero tests ran" / exit 5 for every
   project, with or without a filter, so the test executables have to be run directly
-  (`tests/<proj>/bin/Debug/net10.0/<proj>.exe`). Worth fixing, since CI and the recorded baselines
-  depend on it.
-- **`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException` fails in a full-project
-  run and passes in isolation**, at `00e8009f` as well as on this branch - shared-fixture ordering.
-  Pre-existing; its own unit.
+  (`tests/<proj>/bin/<config>/net10.0/<proj>.exe`, filtered with `-class` / `-method`). Confirmed
+  still broken in 025, which used the native executables throughout. Worth fixing, since CI and the
+  recorded baselines depend on it.
+- **`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException` is flaky, not
+  consistently failing.** 024 saw it fail in a full-project run and pass in isolation at
+  `00e8009f`, and attributed it to shared-fixture ordering. On 025's Release run it **passed in
+  both** - full 1997-test project run and isolation. Nothing in 025 touches `BetService` or any
+  fixture. Still pre-existing, still its own unit; the ordering dependency is real even when the
+  symptom does not appear.
 
-## Relevant files (unit 024)
+## Relevant files (unit 025)
 
-**New CSS (14 files, all plain `wwwroot/css`, no bundler, no package):**
-- `css/9-overrides/inline-style-utilities.css` - 98 generated classes replacing the 170 static
-  attributes. Imported **last** in `site.css`, on purpose.
-- `css/9-overrides/dynamic-style-classes.css` - hand-written: finite-state modifiers, the rank and
-  biome palettes, and the `--fill-pct` / `--swatch` hooks.
-- `css/offline.css` - standalone, precached; `offline.html` does not load `site.css`.
-- `css/3-components/sw-update-toast.css` - the update toast, keyframes included.
-- `css/3-components/{meeting-card,question-card,month-year-picker}.css`
-- `css/4-pages/{meetings,naipes-config,passaro-maluco,questions,report,my-tuno-all-characters,weapon-drink-config}.css`
+**New (2 files):**
+- `src/RTUB.Web/Security/ContentSecurityPolicyBuilder.cs` - the whole policy. Public `Build(scheme,
+  host)`; everything before `connect-src` is built once in the constructor, only the WebSocket
+  source is per-request. Two constructors: `IConfiguration` for production, `(publicUrl,
+  accountId)` for tests.
+- `tests/RTUB.Web.Tests/Security/ContentSecurityPolicyTests.cs` - 35 cases, listed below.
 
-**New JS (1 file):**
-- `wwwroot/js/dynamicStyle.js` (~95 lines) - the validated `data-*` -> CSSOM bridge. Registered in
-  `MainLayout.razor` next to `scrollSpy.js`.
+**Changed (4 files):**
+- `src/RTUB.Web/Program.cs` - `using RTUB.Security;`, one builder instance, and an
+  `OnStarting` callback inside the existing security-header middleware. The four headers from 021
+  are untouched.
+- `src/RTUB.Web/wwwroot/js/memberMap.js` - popup avatar: inline `onerror` -> `data-avatar-fallback`.
+- `src/RTUB.Web/wwwroot/js/avatarFallback.js` - comment reworded only; no behaviour change.
+- `src/RTUB.Web/App.razor` - dead Google Fonts `preconnect` / `dns-prefetch` deleted.
+- `tests/RTUB.Integration.Tests/SecurityHeaderTests.cs` - CSP delivery assertions added.
 
-**Changed (52 files):**
-- 41 `.razor` - inline style attributes replaced by classes; 11 of them also lost a `<style>` block.
-- `src/RTUB.Core/Helpers/RankHelper.cs` - `+GetRankColorClass`.
-- `src/RTUB.Core/Helpers/BiomeDisplayHelper.cs` - `+GetBiomeColorClass`, `+GetSurviveBiomeColorClass`.
-- `wwwroot/css/site.css` - 14 new imports, the last two of which must stay last.
-- `wwwroot/css/4-pages/member-map.css` - marker and popup classes.
-- `wwwroot/js/sw-register.js` - toast built from DOM nodes and classes.
-- `wwwroot/js/memberMap.js` - `divIcon` markup uses classes.
-- `wwwroot/offline.html` - `<style>` block -> `<link>`.
-- `wwwroot/service-worker.js` - `/css/offline.css` added to `STATIC_ASSETS`. `CACHE_VERSION`
-  **not** bumped: the file's content changed, so a new worker installs and `cache.addAll` writes
-  the entry into the same `STATIC_CACHE`, with no cache churn for users.
-- `src/RTUB.Web/Program.cs` - the CSP comment only; the middleware is byte-identical.
+**No migration, no entity, service, repository or DI change.** `git diff --name-only` matches no
+migration or snapshot file.
 
-**Deleted:** `InfoSection.Style` parameter, `InstrumentCounter.GetHeaderStyle()`, `MyTunoHome`'s
-now-unused `GetBiomeColor` / `GetSurviveBiomeColor` wrappers, and `Profile.razor`'s inert
-`:global()` rule. No migrations; no entity, service, repository or DI change.
+## Tests (1 new file, +35; 1 existing test file extended, +7)
 
-## Tests (1 new file, +10; 4 existing test files updated)
-**New:** `tests/RTUB.Web.Tests/Security/InlineStylePolicyTests.cs` - 10 aggregated Facts, listed
-under *Static policy test* above.
+**New - `ContentSecurityPolicyTests`, 35 cases.** The policy assertions go through the public
+builder rather than a hard-coded expected string, so a deliberate directive change does not have
+to be restated in ten places; only a change that actually weakens the policy fails.
+1. `Policy_NeverAllowsUnsafeInlineOrUnsafeEval` - also bans `'unsafe-hashes'`.
+2. `Policy_ContainsNoWildcardOrWholeSchemeSources` - every source in every directive is checked
+   against `*`, `https:`, `http:`, `ws:`, `wss:` and a leading `*.`; `data:` is additionally
+   banned from `script-src`, `style-src`, `frame-src` and `object-src`.
+3. `Policy_PinsTheDirectivesThatLockOutInjectedContent` - `default-src`/`base-uri`/`form-action`
+   `'self'`; `object-src`/`frame-ancestors`/`script-src-attr`/`style-src-attr` `'none'`;
+   `manifest-src`/`worker-src`/`font-src` `'self'`.
+4. `ExternalOrigins_AppearOnlyInTheDirectivesThatNeedThem` - exact source sets for `script-src`
+   and `style-src`, plus negative checks (jsdelivr is not a style source, Carto is not a script
+   source, cdnjs is not a connect source).
+5. `ConfiguredR2Origins_LandOnlyInTheDirectivesThatUseThem` - public origin in `img-src` and
+   `media-src`; endpoint in `media-src` and `frame-src`; endpoint **not** in `img-src`; public
+   origin **not** in `connect-src` or `script-src`.
+6. `ConfiguredR2PublicUrl_ContributesOnlyItsNormalizedOrigin` / `..._KeepsANonDefaultPort`.
+7. `MalformedR2PublicUrl_CannotInjectPolicyText` - 9 cases including
+   `https://evil.example; script-src 'unsafe-inline'`, `javascript:`, `file://`, `*`, bare host,
+   empty, whitespace, null. Each asserts the injected text is absent **and** that `img-src` /
+   `media-src` fall back to exactly their static source sets.
+8. `MalformedR2AccountId_YieldsNoFrameSource` - 7 cases; `frame-src` must be `'none'`.
+9. `WebSocketSource_MatchesTheRequestSchemeAndHost` - https/http, with and without a port, plus
+   bracketed IPv6.
+10. `MalformedRequestHost_ContributesNoWebSocketSource` - 5 cases including a host carrying
+    `; script-src 'unsafe-inline'`, a path, a non-numeric port, a non-http scheme, and empty.
+11. `MemberMap_BuildsPopupAvatarsWithoutAnInlineHandler` - the named 025 regression case.
+12. `ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers` - the aggregated
+    repository-wide sweep, in the 023/024 style.
+13. `NoWebFontServiceIsReferenced` - the deleted preconnect stays deleted and no `@font-face`
+    appears in `wwwroot/css`, which is what keeps `font-src 'self'` honest.
 
-**Updated, because the markup contract changed or the assertion was bogus:**
-- `RoleBadgeTests` (2 cases) - assert `role-badge--member`, not `#007bff`.
-- `EmailRecipientsPreviewTests` - asserts `subscriber-list--h400`, not `max-height: 400px`.
-- `MeetingCardTests` - the `meeting-today-badge` assertion was a false positive and is removed.
-- `MonthYearPickerTests` - re-targeted from `<style>` text to the rendered hook plus the stylesheet.
+**Extended - `SecurityHeaderTests`, +7 cases** (delivery, not contents):
+- `Page_CarriesExactlyOneEnforcedContentSecurityPolicy` (3 paths) - `text/html`, exactly one
+  `Content-Security-Policy`, **no** `Content-Security-Policy-Report-Only`, and the key directives
+  present.
+- `Page_AllowsTheBlazorCircuitOnTheRequestHost` - the `ws`/`wss` source matches the actual
+  request authority.
+- `NonDocumentResponse_CarriesNoContentSecurityPolicy` (3 paths, incl. `/service-worker.js`).
+- `Headers_AreSetOnce_NotAppendedPerPass` now also asserts a single CSP header.
 
-No test was deleted and no assertion was weakened without its value being re-pinned elsewhere.
+Directive **ordering** is deliberately not asserted anywhere - the implementation does not depend
+on it.
 
-## Latest validation (unit 024)
+## Latest validation (unit 025)
 | Check | Result |
 | --- | --- |
-| `dotnet build RTUB.sln -c Release` | **0 warnings, 0 errors** |
-| `dotnet build RTUB.sln` (Debug) | **0 warnings, 0 errors** |
-| `RTUB.Core.Tests` | 791 total, **0 failed** |
-| `RTUB.Application.Tests` | 1997 total, 1 failed - **pre-existing, see below** |
+| `dotnet build RTUB.sln -c Release` | **Succeeded, 0 warnings, 0 errors** |
+| `RTUB.Core.Tests` | 791 total, **0 failed**, 0 skipped |
 | `RTUB.Shared.Tests` | 768 total, **0 failed**, 2 skipped |
-| `RTUB.Web.Tests` | 811 total, **0 failed**, 56 skipped |
-| `RTUB.Integration.Tests` | 274 total, **0 failed**, 2 skipped |
-| **Suite total** | **4641 run, 4580 passed, 1 failed (pre-existing), 60 skipped** |
-| `node --check` on all 4 changed/new JS files | pass |
-| `git diff --check` | clean (3 trailing-whitespace and 4 EOF-blank-line issues found and fixed) |
-| Secret scan over the full diff | **no matches** |
-| Migrations added | **none** |
+| `RTUB.Application.Tests` | 1997 total, **0 failed**, 0 skipped |
+| `RTUB.Web.Tests` | 846 total, **0 failed**, 56 skipped |
+| `RTUB.Integration.Tests` | 281 total, **0 failed**, 2 skipped |
+| **Total** | **4683 tests, 0 failures, 60 skipped** |
+| `node --check` on both changed JS files | clean |
+| `git diff --check` | clean |
+| Migration / snapshot files touched | **none** |
+| Credential scan over diff + new files | clean - only synthetic placeholders (`pub-test.r2.dev`, `abc123`, `localtestaccount`) |
 
-**Test delta: +10, exactly the new policy Facts.** 4631 -> 4641 total.
+**The expected 024 baseline failure did NOT reproduce.**
+`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException` **passed** here, both in
+the full 1997-test `RTUB.Application.Tests` run and in isolation. 024 recorded it as failing in a
+full-project run because of shared-fixture ordering; on this Release run it did not. Nothing in
+025 touches `BetService` or any test fixture, so this is the pre-existing flake behaving
+differently, not a fix and not a regression. **No new failure was introduced by 025.**
 
-**The one failure is pre-existing and unrelated - this was proven, not assumed.**
-`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException` fails in a full-project run
-and passes in isolation, which is the signature of shared-fixture ordering. A **clean detached
-worktree at `00e8009f`** (dev, before any 024 change) was built and run: it fails **the same test,
-1 of 1997**. 024 touches no Application-layer code at all - only `RTUB.Core/Helpers` additions,
-markup, `wwwroot` assets and tests.
+Test runner: the native executables were used (`tests/<proj>/bin/Release/net10.0/<proj>.exe`),
+filtered with `-class` / `-method`. The `dotnet test` driver remains broken for xUnit v3 in this
+repo - see *Deferred*. 025 did not attempt to fix it.
 
-Note the recorded 023 baseline of "4571 passed / 0 failed / 60 skipped" does **not** reproduce on
-this machine. `dotnet test` cannot drive this repo's xUnit v3 / Microsoft.Testing.Platform runners
-here ("Zero tests ran", exit 5) and the test executables must be run directly; under that runner
-the Bets test fails at `00e8009f` too. Worth reconciling before the next unit - see *Deferred*.
+## Static scan (unit 025) - the acceptance gate
+Run against the whole repository, application-owned files only:
+| Thing | Count |
+| --- | --- |
+| Inline executable `<script>` in browser-served markup | **0** |
+| Inline `on*=` handlers in browser-served markup | **0** |
+| **Inline `on*=` handlers inside JS-built markup strings** | **0** (was 1: `memberMap.js`) |
+| `style="..."` in browser-served markup | **0** |
+| `<style>` elements in browser-served markup | **0** |
+| `style.cssText` / `setAttribute('style')` / injected `<style>` in app JS | **0** |
+| `JSRuntime` `eval` dispatches | **0** |
+| `'unsafe-inline'` / `'unsafe-eval'` / `'unsafe-hashes'` in the policy | **0** |
 
-## Static scan (unit 024) - the acceptance gate
-Tracked application source, excluding `wwwroot/lib`, `node_modules`, `bin`, `obj`:
+## Browser validation (unit 025) - RUN, enforced policy, not report-only
+Headless Chromium against a local Development build, with the real security header enforced. The
+`Cloudflare:R2:*` values were supplied as environment variables for the run only; **no hostname
+was written into source, and the local `app.db` is gitignored.**
 
-| Pattern | Before | After |
-| --- | --- | --- |
-| `style="` in `.razor` | 213 | **0** |
-| `<style` in `.razor` / `.html` | 12 | **0** |
-| `style=` in app JS strings | 4 | **0** |
-| `.style.cssText` in app JS | 1 | **0** |
-| `createElement('style')` in app JS | 1 | **0** |
-| `setAttribute('style'` in app JS | 0 | 0 |
-| `insertRule` in app JS | 0 | 0 |
-| Razor-interpolated `style=` | 43 | **0** |
-| `style="` in `.cshtml` (email only, not CSP-governed) | 177 | 177 |
+**Zero CSP violations across every exercised surface.** Violations were collected two ways at once
+- a `securitypolicyviolation` listener installed before page script, and the console - so a
+violation could not be missed by either channel.
 
-## Browser validation (unit 024) - RUN
-Recorded under *Browser validation* above. Summary: homepage and `/login` at 1280 and 375 with zero
-inline styles and zero `<style>` elements in the live DOM and no horizontal overflow; all 14
-stylesheets 200; every migrated value verified by computed style; the update toast reconstructed and
-matched against its old appearance; the dynamic bridge verified including a rejected injection; and
-`offline.html` proven to render fully styled with the server killed and the port confirmed closed.
+**Public / anonymous, desktop 1280 and mobile 375:** `/`, `/login`, `/music`, `/gallery`,
+`/events`, `/roles`, `/calotes`, `/privacy`, plus the auth redirects for `/images`, `/leaderboard`,
+`/naipes`, `/documentation`, `/hall-of-fame`, `/members`, `/member/map`. All clean; no horizontal
+overflow at 375.
 
-## Blockers found by 024
-**None outstanding.** Three things were found and dealt with inside the unit:
-1. The brief's CSP premise about `element.style` was wrong; measured and corrected, which is what
-   made the dynamic cases solvable.
-2. Two bUnit assertions were passing by matching CSS text inside a `<style>` block rather than
-   rendered markup. Both corrected; one of them exposed orphaned CSS (see *Deferred*).
-3. A first cut of the mechanical transform corrupted 26 tags by applying an insert and a delete at
-   the same offset. Caught immediately by inspecting the diff, all `.razor` files reverted, the
-   transform fixed with an overlap assertion, and re-run from clean. The final diff is verified free
-   of malformed tags and duplicate `class` attributes.
+**Blazor circuit:** connects (`Blazor` global present, reconnect modal never shown), and
+client-side navigation works over it (`/` -> `/music`). No WebSocket rejection - `connect-src`
+carried `ws://localhost:5199`.
 
-**Remaining CSP blockers after 024: none on the script or style side.** The only open item for 025
-is Blocker 4 - building the R2 origin into the policy from `IConfiguration`.
+**Third-party, all loaded under the policy:** `Cropper` (function), Leaflet `L` (object), `PIXI`
+(object), `bootstrap` (object). 9 Carto tiles fetched on the map, which exercises
+`img-src https://*.basemaps.cartocdn.com`.
+
+**memberMap popup - the 025 regression case, driven end to end.** `/member/map` needs
+authentication, so the popup builder was driven directly on `/`, where `memberMap.js` is already
+loaded, with synthetic city data and a deliberately missing avatar URL. Result: popup rendered,
+`onerror` attribute **absent**, `data-avatar-fallback` consumed by the listener, and
+`img.src` swapped to `/images/default-avatar.webp` - **with zero CSP violations**. The delegated
+listener handles dynamically inserted popup images exactly as intended.
+
+**Directive probes** (the auth-gated media paths, proven without credentials): an inline
+`onclick` injected via `innerHTML` **did not run** and raised `script-src-attr`; an injected
+`style="width:123px"` was **blocked** (`style-src-attr`, computed width stayed `auto`) while
+`el.style.setProperty('--probe','7px')` **applied** - 024's CSSOM distinction still holds under the
+real header. Cross-origin `img` / `audio` / `iframe` to an unlisted origin were **blocked**; the
+configured R2 public and endpoint origins were **allowed** in `img-src`, `media-src` and
+`frame-src`; and the R2 public origin was **rejected as a script source**, confirming it is not
+over-granted.
+
+**R2, A/B proven.** A first run with a *deliberately mismatched* configured public origin produced
+`img-src` violations for the homepage's real R2 slideshow images. Re-running with the origin that
+matches the data produced **zero**. That is direct evidence that the configured value, and only
+it, admits R2 content. The bucket itself answers **401** to this machine, so nothing decodes
+locally - a network/permission fact, not a CSP outcome, and the absence of any `img-src` violation
+is what the policy is responsible for.
+
+**PWA:** service worker registers and activates (`scope /`, state `activated`), `manifest.webmanifest`
+200 with 10 icons, and `/service-worker.js` carries **no** CSP header. The worker's caches
+(`rtub-static/dynamic/images-rtub-v2.6.0`) hold 5 cross-origin entries - the exact traffic a
+globally scoped policy would have broken.
+
+**Offline page, with the origin actually down:** `/offline.html` renders from cache with its
+external stylesheet only - 1 linked sheet (`/css/offline.css`), 9 rules, **0 `<style>` elements,
+0 inline style attributes** - heading "Sem Conexão", the `135deg` gradient and the `8px` button
+radius all resolving. Identical online and offline. `offline.js` loads from cache and runs (its
+`navigator.onLine` redirect to `/` fires), which is why the DOM had to be snapshotted at
+`domcontentloaded`; 024 already recorded that in-page origin probing is meaningless behind a
+service worker that answers 200 from cache.
+
+**Not browser-tested, and why:** no authenticated session was available and **no credentials were
+invented or requested**. That leaves the *rendered* audio player and the two PDF iframes
+(`/music` album detail, `/roles` RGI) unexercised as real pages. Both directives were instead
+proven by direct probe as described above, and the R2 bucket returns 401 to this machine anyway,
+so a logged-in run here would not have loaded the media either. **An authenticated smoke run in a
+real environment is the one outstanding confirmation.**
+
+## Blockers found by 025
+**None outstanding.** Two things were found and dealt with inside the unit:
+1. **024's R2 plan was incomplete.** It named only `Cloudflare:R2:PublicUrl`; the pre-signed audio
+   and PDF URLs actually resolve against the S3 API endpoint. Both origins are now derived, each
+   only in the directives that use it.
+2. **`memberMap.js`'s JS-built `onerror`**, the blocker 024 flagged. Fixed, and the class of bug
+   is now swept repository-wide rather than pinned file by file.
+
+**Remaining security debt after 025:** password policy (`RequiredLength = 4`, owner-skipped) and
+the historical GitGuardian incidents (owner action). Neither is a CSP concern. **The CSP /
+security-header track itself is complete.**
