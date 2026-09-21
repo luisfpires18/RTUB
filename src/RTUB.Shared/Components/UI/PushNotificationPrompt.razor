@@ -80,8 +80,7 @@
                         if (status != null && status.IsEnabled && status.IsConfigured)
                         {
                             // Try automatic recovery (only if permission was already granted)
-                            var permissionGranted = await JSRuntime.InvokeAsync<bool>("eval", 
-                                "Notification.permission === 'granted'");
+                            var permissionGranted = await JSRuntime.InvokeAsync<bool>("pwaHelper.isPushPermissionGranted");
                             
                             if (permissionGranted)
                             {
@@ -142,14 +141,7 @@
             }
 
             // Use the validate and refresh method which handles re-subscription
-            var result = await JSRuntime.InvokeAsync<string>("eval", @"
-                (async () => {
-                    if (window.rtubPushManager && typeof window.rtubPushManager.validateAndRefreshSubscription === 'function') {
-                        return await window.rtubPushManager.validateAndRefreshSubscription();
-                    }
-                    return 'error';
-                })()
-            ");
+            var result = await JSRuntime.InvokeAsync<string>("pwaHelper.validateAndRefreshPushSubscription");
 
             if (result == "active" || result == "refreshed")
             {

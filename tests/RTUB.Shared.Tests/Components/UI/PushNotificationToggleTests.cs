@@ -1,29 +1,23 @@
-#nullable disable
 using Bunit;
 using Bunit.TestDoubles;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RTUB.Application.DTOs;
 using RTUB.Shared;
 
 namespace RTUB.Shared.Tests.Components.UI;
 
 /// <summary>
-/// Tests for the PushNotificationToggle component
-/// Tests push notification subscription workflow, status checking, and toggle behavior
+/// Tests for the PushNotificationToggle component.
+/// Covers the push subscription workflow, status checking and toggle behaviour.
+/// Every assertion targets a NAMED JS helper and its argument values - the component
+/// no longer dispatches generated JavaScript, so no test inspects script text.
 /// </summary>
 public class PushNotificationToggleTests : BunitContext
 {
     private readonly Mock<ILogger<PushNotificationToggle>> _mockLogger;
-
-    /// <summary>Match eval invocations by script content. Component passes (scriptString) as args.</summary>
-    private static bool EvalScriptContains(Bunit.JSRuntimeInvocation inv, string sub)
-    {
-        if (inv.Arguments == null || inv.Arguments.Count == 0) return false;
-        var s = inv.Arguments[0]?.ToString() ?? "";
-        return s.Contains(sub, StringComparison.Ordinal);
-    }
 
     public PushNotificationToggleTests()
     {
@@ -32,11 +26,40 @@ public class PushNotificationToggleTests : BunitContext
         this.AddAuthorization();
     }
 
+    private static PushStatusDto Available => new()
+    {
+        IsEnabled = true,
+        IsConfigured = true,
+        VapidPublicKey = "test-key"
+    };
+
+    /// <summary>
+    /// Arranges the named helpers the component calls while it boots: status fetch,
+    /// push-manager init, the subscription check and the Android-hint probe.
+    /// </summary>
+    private void SetupAccess(PushStatusDto status, bool initialized = true, bool isSubscribed = false)
+    {
+        JSInterop.Setup<PushStatusDto?>("pwaHelper.getPushStatus", _ => true)
+            .SetResult(status);
+        JSInterop.Setup<bool>("pwaHelper.initializePushManager", _ => true)
+            .SetResult(initialized);
+        JSInterop.Setup<bool>("pwaHelper.isSubscribedToPush", _ => true)
+            .SetResult(isSubscribed);
+        JSInterop.Setup<bool>("pwaHelper.isAndroidPwa", _ => true)
+            .SetResult(false);
+    }
+
+    private IReadOnlyList<JSRuntimeInvocation> InvocationsOf(string identifier)
+        => JSInterop.Invocations.Identifiers.Contains(identifier)
+            ? JSInterop.Invocations[identifier]
+            : Array.Empty<JSRuntimeInvocation>();
+
     [Fact]
     public void PushNotificationToggle_ShowsLoadingState_Initially()
     {
-        // Arrange & Act - No eval setup: component runs fetch, then catches and exits loading.
-        // Loading can be transient; assert root renders and we end up in a valid state.
+        // Arrange & Act - no JS setup, so the status call is unhandled: the component
+        // catches and exits loading. Loading can be transient; assert the root renders
+        // and we end up in a valid state.
         var cut = Render<PushNotificationToggle>();
 
         cut.Markup.Should().Contain("push-notification-toggle", "should render root");
@@ -49,14 +72,12 @@ public class PushNotificationToggleTests : BunitContext
     [Fact]
     public void PushNotificationToggle_ShowsNothing_WhenNoAccess()
     {
-        // Arrange - Mock JSInterop to return null (no access)
-        JSInterop.Setup<string>("eval", _ => true)
-            .SetResult(null!);
+        // Arrange - the server returns no push status at all
+        JSInterop.Setup<PushStatusDto?>("pwaHelper.getPushStatus", _ => true)
+            .SetResult(null);
 
         // Act
         var cut = Render<PushNotificationToggle>();
-
-        // Wait for OnAfterRenderAsync to complete
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -65,27 +86,29 @@ public class PushNotificationToggleTests : BunitContext
     }
 
     [Fact]
-    public void PushNotificationToggle_ShowsToggle_WhenHasAccess()
+    public void PushNotificationToggle_StaysGraceful_WhenPushNotConfigured()
     {
-        // Arrange - Mock JSInterop to return valid status and initialization
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true,"VapidPublicKey":"test-key"}""";
-
-        // Setup for status check (first eval call)
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
-
-        // Setup for initialize (second eval call)
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
-
-        // Setup for isSubscribed (third eval call)
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(false);
+        // Arrange - push is enabled but the server has no VAPID configuration
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = false });
 
         // Act
         var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
-        // Wait for OnAfterRenderAsync to complete
+        // Assert - no toggle, no error, and the push manager is never initialized
+        cut.Markup.Should().NotContain("form-check-input", "should not show toggle when push is not configured");
+        cut.Markup.Should().NotContain("alert-danger", "an unconfigured server is not an error state");
+        InvocationsOf("pwaHelper.initializePushManager").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PushNotificationToggle_ShowsToggle_WhenHasAccess()
+    {
+        // Arrange
+        SetupAccess(Available);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -94,19 +117,49 @@ public class PushNotificationToggleTests : BunitContext
     }
 
     [Fact]
+    public void PushNotificationToggle_BootsThrough_NamedHelpers()
+    {
+        // Arrange
+        SetupAccess(Available);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+
+        // Assert - the boot sequence goes through named JS functions taking no script
+        var identifiers = JSInterop.Invocations.Identifiers.ToList();
+        identifiers.Should().Contain("pwaHelper.getPushStatus");
+        identifiers.Should().Contain("pwaHelper.initializePushManager");
+        identifiers.Should().Contain("pwaHelper.isSubscribedToPush");
+        identifiers.Should().NotContain("eval", "the component must not dispatch generated JavaScript");
+
+        // The toggle fetches status read-only: syncOptOut: false, so rendering it never
+        // reconciles the local opted-out cache. That side effect belongs to the Prompt path.
+        InvocationsOf("pwaHelper.getPushStatus").Single().Arguments
+            .Should().ContainSingle().Which.Should().Be(false, "the toggle must not sync the opt-out cache");
+    }
+
+    [Fact]
+    public void PushNotificationToggle_SkipsSubscriptionCheck_WhenInitializeFails()
+    {
+        // Arrange - the manager cannot be created (no service worker / no PushManager)
+        SetupAccess(Available, initialized: false);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+
+        // Assert - the toggle still renders unchecked, and nothing is asked of the missing manager
+        cut.Find("input[type=checkbox]").HasAttribute("checked").Should().BeFalse();
+        InvocationsOf("pwaHelper.isSubscribedToPush")
+            .Should().BeEmpty("there is no manager to ask when initialization failed");
+    }
+
+    [Fact]
     public void PushNotificationToggle_ShowsUnchecked_WhenNotSubscribed()
     {
-        // Arrange - Mock JSInterop
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(false);
+        // Arrange
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true }, isSubscribed: false);
 
         // Act
         var cut = Render<PushNotificationToggle>();
@@ -122,17 +175,8 @@ public class PushNotificationToggleTests : BunitContext
     [Fact]
     public void PushNotificationToggle_ShowsChecked_WhenSubscribed()
     {
-        // Arrange - Mock JSInterop
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(true);
+        // Arrange
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true }, isSubscribed: true);
 
         // Act
         var cut = Render<PushNotificationToggle>();
@@ -145,66 +189,90 @@ public class PushNotificationToggleTests : BunitContext
     }
 
     [Fact]
-    public void PushNotificationToggle_ShowsProcessingState_WhenToggling()
+    public void PushNotificationToggle_ShowsAndroidHint_WhenSubscribedOnAndroidPwa()
     {
-        // Arrange - Mock JSInterop
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
+        // Arrange - subscribed, and the device reports Android running as an installed PWA/TWA
+        JSInterop.Setup<PushStatusDto?>("pwaHelper.getPushStatus", _ => true)
+            .SetResult(new PushStatusDto { IsEnabled = true, IsConfigured = true });
+        JSInterop.Setup<bool>("pwaHelper.initializePushManager", _ => true).SetResult(true);
+        JSInterop.Setup<bool>("pwaHelper.isSubscribedToPush", _ => true).SetResult(true);
+        JSInterop.Setup<bool>("pwaHelper.isAndroidPwa", _ => true).SetResult(true);
 
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => cut.Markup.Contains("alert-warning"), TimeSpan.FromSeconds(2));
 
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
+        // Assert - the hint comes from the named probe, not a user-agent script
+        cut.Markup.Should().Contain("alert-warning", "the Android hint uses warning styling");
+        InvocationsOf("pwaHelper.isAndroidPwa").Should().ContainSingle();
+    }
 
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(false);
-
-        // Subscribe will be called when toggling
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
-            .SetResult(true);
+    [Fact]
+    public void PushNotificationToggle_HidesAndroidHint_WhenNotAndroidPwa()
+    {
+        // Arrange - subscribed but not an installed Android client
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true }, isSubscribed: true);
 
         // Act
         var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
-        var checkbox = cut.Find("input[type=checkbox]");
-        checkbox.Change(true); // Trigger toggle
+        // Assert
+        cut.Markup.Should().NotContain("alert-warning", "the Android hint is Android-PWA only");
+    }
 
-        // Assert - checkbox should be disabled while processing
-        // Note: Processing state is very brief, so we check that the component handles the change
-        // The checkbox may or may not be disabled depending on timing
-        var isDisabled = checkbox.HasAttribute("disabled");
-        // Just verify the component rendered - processing state is asynchronous
-        cut.Markup.Should().Contain("form-check-input", "component should render checkbox");
+    [Fact]
+    public void PushNotificationToggle_Subscribes_WithTrueArgument()
+    {
+        // Arrange
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true });
+        JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true).SetResult(true);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+
+        cut.Find("input[type=checkbox]").Change(true);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"), TimeSpan.FromSeconds(2));
+
+        // Assert - one named helper, driven by a boolean argument rather than a script
+        var call = InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle().Subject;
+        call.Arguments.Should().ContainSingle().Which.Should().Be(true, "true asks the helper to subscribe");
+    }
+
+    [Fact]
+    public void PushNotificationToggle_Unsubscribes_WithFalseArgument()
+    {
+        // Arrange - start subscribed so flipping the toggle means "unsubscribe"
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true }, isSubscribed: true);
+        JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true).SetResult(true);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+
+        cut.Find("input[type=checkbox]").Change(false);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully unsubscribed"), TimeSpan.FromSeconds(2));
+
+        // Assert - same named helper, the opposite data value
+        var call = InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle().Subject;
+        call.Arguments.Should().ContainSingle().Which.Should().Be(false, "false asks the helper to unsubscribe");
+        cut.Markup.Should().Contain("alert-success");
     }
 
     [Fact]
     public void PushNotificationToggle_ShowsErrorMessage_WhenSubscribeFails()
     {
-        // Arrange - Mock JSInterop
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(false);
-
-        // Subscribe will throw exception
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
+        // Arrange - the helper rethrows when the push manager is unavailable
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true });
+        JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true)
             .SetException(new Exception("Subscription failed"));
 
         // Act
         var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
-        var checkbox = cut.Find("input[type=checkbox]");
-        checkbox.Change(true); // Trigger subscribe
-
-        // Wait for error message to appear
+        cut.Find("input[type=checkbox]").Change(true);
         cut.WaitForState(() => cut.Markup.Contains("Failed to subscribe"), TimeSpan.FromSeconds(2));
 
         // Assert
@@ -215,33 +283,47 @@ public class PushNotificationToggleTests : BunitContext
     [Fact]
     public void PushNotificationToggle_ShowsSuccessMessage_WhenSubscribeSucceeds()
     {
-        // Arrange - Mock JSInterop
-        var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-
-        JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
-            .SetResult(statusJson);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
-            .SetResult(true);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
-            .SetResult(false);
-
-        JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
-            .SetResult(true);
+        // Arrange
+        SetupAccess(new PushStatusDto { IsEnabled = true, IsConfigured = true });
+        JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true).SetResult(true);
 
         // Act
         var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
-        var checkbox = cut.Find("input[type=checkbox]");
-        checkbox.Change(true); // Trigger subscribe
-
-        // Wait for success message to appear
+        cut.Find("input[type=checkbox]").Change(true);
         cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"), TimeSpan.FromSeconds(2));
 
         // Assert
         cut.Markup.Should().Contain("Successfully subscribed", "should show success message when subscribe succeeds");
         cut.Markup.Should().Contain("alert-success", "success message should have success styling");
+    }
+
+    [Fact]
+    public void PushNotificationToggle_NeverDispatchesGeneratedScript()
+    {
+        // Arrange - drive the whole subscribe flow
+        SetupAccess(Available);
+        JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true).SetResult(true);
+
+        // Act
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+        cut.Find("input[type=checkbox]").Change(true);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"), TimeSpan.FromSeconds(2));
+
+        // Assert - every identifier is a named function and no argument is JavaScript source
+        var identifiers = JSInterop.Invocations.Identifiers.ToList();
+        identifiers.Should().NotBeEmpty();
+        identifiers.Should().OnlyContain(id => id.StartsWith("pwaHelper.", StringComparison.Ordinal));
+
+        var stringArguments = identifiers
+            .SelectMany(InvocationsOf)
+            .SelectMany(i => i.Arguments)
+            .OfType<string>()
+            .ToList();
+        stringArguments.Should().NotContain(
+            s => s.Contains("function", StringComparison.Ordinal) || s.Contains("=>", StringComparison.Ordinal),
+            "arguments must be data, not JavaScript source");
     }
 }

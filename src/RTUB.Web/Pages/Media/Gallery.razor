@@ -1407,18 +1407,12 @@ else
 
     private async Task PlayGalleryPreview(int mediaId)
     {
-        await JSRuntime.InvokeVoidAsync(
-            "eval",
-            $"document.querySelector('[data-gallery-id=\"{mediaId}\"] video')?.play()"
-        );
+        await JSRuntime.InvokeVoidAsync("rtubMediaPreview.playInGalleryCard", mediaId);
     }
 
     private async Task PauseGalleryPreview(int mediaId)
     {
-        await JSRuntime.InvokeVoidAsync(
-            "eval",
-            $"document.querySelector('[data-gallery-id=\"{mediaId}\"] video')?.pause()"
-        );
+        await JSRuntime.InvokeVoidAsync("rtubMediaPreview.pauseInGalleryCard", mediaId);
     }
 
 }
