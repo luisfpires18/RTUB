@@ -81,11 +81,12 @@ public class EmailTemplateTests
     public void WelcomeEmailModel_ShouldHaveCorrectProperties()
     {
         // Arrange & Act
+        var password = TestSecret.NewPassword();
         var model = new WelcomeEmailModel
         {
             UserName = "luisfpires",
             FullName = "Luís Pires",
-            Password = "TempPassword123",
+            Password = password,
             DashboardUrl = "https://rtub.azurewebsites.net/",
             ProfileUrl = "https://rtub.azurewebsites.net/profile",
             EventsUrl = "https://rtub.azurewebsites.net/events",
@@ -94,7 +95,7 @@ public class EmailTemplateTests
         // Assert
         model.UserName.Should().Be("luisfpires");
         model.FullName.Should().Be("Luís Pires");
-        model.Password.Should().Be("TempPassword123");
+        model.Password.Should().Be(password);
         model.DashboardUrl.Should().Be("https://rtub.azurewebsites.net/");
         model.ProfileUrl.Should().Be("https://rtub.azurewebsites.net/profile");
         model.EventsUrl.Should().Be("https://rtub.azurewebsites.net/events");
@@ -234,7 +235,7 @@ public class EmailTemplateTests
         {
             UserName = "test",
             FullName = "Test",
-            Password = "test123"
+            Password = TestSecret.NewPassword()
             // URLs not set - should use defaults
         };
 

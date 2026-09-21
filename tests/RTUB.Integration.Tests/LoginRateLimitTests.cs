@@ -33,7 +33,7 @@ public class LoginRateLimitTests : IntegrationTestBase
     public async Task LoginPost_UnderLimit_SignsUserInNormally()
     {
         var client = CreateBrowserClient("203.0.113.10");
-        var password = NewSecret();
+        var password = TestSecret.NewPassword();
         var user = await CreateUserAsync("rl-under-limit", password);
 
         var response = await PostLoginWithTokenAsync(client, user.UserName!, password);
@@ -82,7 +82,7 @@ public class LoginRateLimitTests : IntegrationTestBase
     public async Task LoginPost_WhenRejected_DoesNotSignAnyoneIn()
     {
         var client = CreateBrowserClient("203.0.113.40");
-        var password = NewSecret();
+        var password = TestSecret.NewPassword();
         var user = await CreateUserAsync("rl-rejected-no-cookie", password);
 
         await ExhaustPermitsAsync(client);
@@ -114,9 +114,9 @@ public class LoginRateLimitTests : IntegrationTestBase
     public async Task LoginPost_WithWrongPassword_UnderLimit_StillCountsTowardAccountLockout()
     {
         var client = CreateBrowserClient("203.0.113.60");
-        var user = await CreateUserAsync("rl-lockout-preserved", NewSecret());
+        var user = await CreateUserAsync("rl-lockout-preserved", TestSecret.NewPassword());
 
-        var response = await PostLoginWithTokenAsync(client, user.UserName!, NewSecret());
+        var response = await PostLoginWithTokenAsync(client, user.UserName!, TestSecret.NewPassword());
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().Should().Be("/login?error=Invalid");
@@ -133,7 +133,7 @@ public class LoginRateLimitTests : IntegrationTestBase
     public async Task LoginPost_UnderLimit_StillRequiresAntiforgeryToken()
     {
         var client = CreateBrowserClient("203.0.113.70");
-        var password = NewSecret();
+        var password = TestSecret.NewPassword();
         var user = await CreateUserAsync("rl-antiforgery-intact", password);
 
         var response = await client.PostAsync("/auth/login", new FormUrlEncodedContent(
@@ -224,12 +224,6 @@ public class LoginRateLimitTests : IntegrationTestBase
         (await userManager.CreateAsync(user, password)).Succeeded.Should().BeTrue();
         return user;
     }
-
-    /// <summary>
-    /// Generated per call so no credential-shaped literal is ever committed. Identity is configured
-    /// with <c>RequiredLength = 4</c> and no complexity rules, so this satisfies the policy.
-    /// </summary>
-    private static string NewSecret() => Guid.NewGuid().ToString("N");
 
     /// <summary>A login body with no antiforgery token: spends a permit, then fails validation.</summary>
     private static FormUrlEncodedContent TokenlessLoginForm() => new(

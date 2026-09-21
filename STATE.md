@@ -2,123 +2,159 @@
 
 Living execution state. **Read this first.** Overwrite stale entries — this is a status board, not a diary.
 
-_Last updated: 2026-09-20_
+_Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **014 (rate limiting on `POST /auth/login`) — implementation complete,
-uncommitted, awaiting owner review.** Unit 013 is merged to `dev`.
+Modernization unit **015 (remove committed synthetic credential literals from tests) —
+implementation complete, uncommitted, awaiting owner review.** Unit 014 is merged to `dev`.
 
 ## Branch
-`fix/014/login-rate-limiting`, branched from `dev` (clean, in sync with `origin/dev` at `f30657b9`).
-Uncommitted — no commit authorized.
-`chore/001`-`chore/011`, `fix/012` and `fix/013` still present; delete when convenient.
+`chore/015/test-secret-hygiene`, branched from `dev` (clean, in sync with `origin/dev` at
+`2f731581`). Uncommitted — no commit authorized.
+`chore/001`-`chore/011` and `fix/012`-`fix/014` still present; delete when convenient.
 
 ## Last completed step
-**Unit 014 — `POST /auth/login` now carries a per-client-IP rate limit, as a named policy applied
-to that one endpoint.** No global limiter, no custom limiter type, no forwarded-header parsing.
+**Unit 015 — every committed credential-shaped literal is gone from the test tree.** Test
+passwords are generated at runtime; nothing about what any test does changed.
 
-### Policy
+### Why
+GitGuardian raised a "Generic Password" incident after unit 012 committed a synthetic test
+password. A scanner cannot tell a synthetic password from a real one, so the noise is structural:
+any future test that types a password-shaped literal re-raises it.
 
-| | |
+### Strategy
+One helper, `tests/Shared/TestSecret.cs`, source-linked into all five test projects by
+`tests/Directory.Build.props` (`<Compile Include>` plus `<Using Include="RTUB.Tests" />`, so no
+per-file using). `tests/Shared` sits outside every project cone, so it does not collide with the
+SDK's default compile glob. No new test project: it is one static class, and a project would drag
+in the whole package and reference chain for nothing.
+
+`TestSecret.NewPassword() => Guid.NewGuid().ToString("N") + "Aa1!"` — fresh per call. The GUID
+gives length and uniqueness; the four-character suffix is complexity padding so the value stays
+valid if Identity's password rules are ever tightened (today: `RequiredLength = 4`, every
+complexity rule off). A test that needs the same value twice holds it in a local and passes it to
+both calls; nothing is written down.
+
+`TestWebApplicationFactory` now generates its seeded-admin password per factory instance and
+exposes it as `AdminPassword`, because `CookieApiCsrfTests` signs that admin in and the create and
+the sign-in must agree. Its `SmtpPassword` is generated too — nothing sends mail under the test
+host, but a credential-shaped literal keyed `SmtpPassword` is exactly what a scanner flags.
+
+Two small simplifications fell out and were taken because they *shorten* the diff, not as
+refactoring: `AuthAntiforgeryTests.LoginThroughRenderedFormAsync` lost its `password` parameter
+(it now generates the value it already used for both create and login, and no caller wanted it),
+and `LoginRateLimitTests`'s private `NewSecret()` was deleted in favour of the shared helper.
+
+### Literals removed
+| Value | Sites |
 | --- | --- |
-| Policy name | `login` (`ServiceCollectionExtensions.LoginRateLimitPolicy`) |
-| Algorithm | partitioned **fixed window**, `RateLimitPartition.GetFixedWindowLimiter` |
-| Threshold / window | **10 permits per 5 minutes**, per partition |
-| Partition key | `HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"` |
-| Queue | `QueueLimit = 0` — rejected immediately, never held open |
-| Rejection | **429** (`RejectionStatusCode` + set again in `OnRejected` before the body is written) |
-| `Retry-After` | emitted from `context.Lease.TryGetMetadata(MetadataName.RetryAfter, ...)`, seconds, invariant |
-| Configuration | `LoginRateLimit:PermitLimit` / `LoginRateLimit:WindowMinutes` in `appsettings.json`; the two constants in `ServiceCollectionExtensions` are the fallback |
-| Scope | `.RequireRateLimiting(...)` on the login `MapPost` **only** |
+| the unit 012 CSRF password | `AuthAntiforgeryTests` x6 |
+| the shared `TestPassword…` admin/user password | `TestWebApplicationFactory`, `CookieApiCsrfTests`, 4 `Workflows/*` files |
+| the cookie-test password | `AuthenticationTests` x2 |
+| the audit-log user password | `LoginAuditLogTests` x2 |
+| the question-repo hash input | `QuestionRepositoryTests` |
+| the welcome-email model passwords | `EmailTemplateTests` x3 (incl. one assertion, now compared to the local) |
+| the SMTP password | `TestWebApplicationFactory` |
+| the README `appsettings.Development.json` example password | `README.md` |
 
-### Why these numbers
-Identity locks an account after **5** failures for **5 minutes**
-(`AddIdentityServices`). 10 / 5 min sits just above that and reuses the same window, so:
-- a real user fumbling a password is locked out by Identity before the IP limit is reached, and is
-  never throttled for a typo;
-- a client walking a list of accounts — credential stuffing, which per-account lockout never sees —
-  is capped at 10 accounts per 5 min per IP, ~120/hour, far below a useful stuffing rate;
-- two people behind one NAT can each still fail 5 times before either is throttled.
+The removed values are deliberately **not quoted anywhere in this file or in a code comment** — a
+comment is scanned like any other line, so re-typing a removed literal to explain it would undo
+the unit.
 
-A single fixed window was enough; no chained limiter was added. Fixed window's known weakness is a
-burst of up to 2x `PermitLimit` straddling a window boundary — 20 attempts, still bounded, and
-still far under a brute-force rate.
+### Deliberately left alone — classified harmless, not secrets
+Low-entropy dictionary or sentinel values that no scanner classifies as a credential, and which
+the brief explicitly warns against replacing blindly:
+- `SmtpPassword = "pass"` / `"password"` (`EmailNotificationServiceTests`, `SmtpClientFactoryTests`,
+  `EmailSenderTests`) — generic words.
+- `"realpassword"` / `"secretpassword"` (`EmailConfigurationProviderTests`, `EmailSenderTests`) —
+  **load-bearing**: `IsSmtpConfigured` returns false for a placeholder and true for a
+  non-placeholder, so these two values are the test's subject, not decoration.
+- `"YOUR_APP_PASSWORD_HERE"` — the placeholder the production code matches on. Removing it would
+  delete the test.
+- `PasswordHash = "oldhash"` / `"newhash"` — audit-log change tracking, not credentials.
+- `IDrive:AccessKey`/`SecretKey` and `Cloudflare:R2:*` = `test-…` — already the non-secret
+  sentinels the brief asks for; hyphenated English, zero entropy.
+- `VapidPublicKey`/`VapidPrivateKey` = `test-public-key` / `test-private-key`, and
+  `P256dh = "BLBsY9NpGt2-M2i3...p256dh_key"` (truncated with a literal ellipsis) — sentinels.
 
-### Why not partition by username/email
-It is caller-controlled, so each forged value would allocate and cache its own limiter — an
-unbounded-partition memory DoS — and it would add nothing, because Identity lockout already covers
-the per-account case. A null/unknown `RemoteIpAddress` deliberately collapses into a single shared
-`"unknown"` bucket rather than creating a partition, so the partition count is bounded by the
-number of real peers.
+### Out of scope, recorded not fixed
+The repo-wide scan found two **production** password defaults in `src/`. Both are real
+security questions and both belong to the already-planned password-policy unit; this phase was
+forbidden to touch `src/`:
+- `src/RTUB.Application/Data/Builders/MemberBuilder.cs:27` — a hardcoded default member password.
+- `src/RTUB.Application/Data/SeedData.Member.cs:26` — the admin seed falls back to a hardcoded
+  password when `AdminUser:Password` is unset. **This is the one worth acting on**: an unset
+  config value silently creates a known-password admin in any environment.
 
-### Middleware order
-`app.UseRateLimiter()` is placed **immediately after `app.UseRouting()`**, which is what the
-current docs require for endpoint-specific policies (the endpoint's `RequireRateLimiting` metadata
-must already be resolved). That also puts it **before** `UseAuthentication` / `UseAuthorization` /
-`UseAntiforgery`, so a throttled client is answered 429 before any credential or token work runs.
-Consequence, asserted by test: every login POST spends a permit **whatever its outcome**, including
-one rejected by antiforgery.
+## Deployment requirement — Azure forwarded headers (CONFIRMED 2026-09-21, no longer blocking)
 
-## Deployment requirement — Azure forwarded headers (BLOCKING for production effect)
+**Resolved.** `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` **is set** on App Service `rtub`
+(resource group `rtub_group`), verified by the owner via Azure CLI on **2026-09-21**. Unit 014's
+login rate limiter therefore partitions on the real client address in production, as designed.
 
 **Production `rtub` is Azure App Service on Linux.** `curl -I https://rtub.azurewebsites.net/health`
 returns `Server: Kestrel` — no IIS layer, so there is no `UseIISIntegration` auto-wiring of
-forwarded headers. `Program.cs` already assumes this: it skips `UseHttpsRedirection` outside
-Development with the comment "HTTPS is handled at the load balancer level", which is the workaround
-used exactly when the scheme is *not* being forwarded.
+forwarded headers. The setting above is Microsoft's documented switch for App Service Linux /
+containers: the host wires `ForwardedHeadersMiddleware` itself, ahead of the app pipeline, with
+cloud-appropriate settings. Nothing is in RTUB's own code for it — deliberately: no
+`UseForwardedHeaders` call, no `ForwardedHeadersOptions`, no clearing of
+`KnownProxies`/`KnownNetworks`, and no manual `X-Forwarded-For` parsing.
 
-Therefore, with no forwarded-headers handling anywhere in the repo today,
-`Connection.RemoteIpAddress` on App Service is the **platform's front-end address, not the client's**.
-Every request would fall into one shared partition and the limiter would throttle all users
-together instead of per client.
-
-**Required App Service setting (Configuration -> Application settings):**
-
-```
-ASPNETCORE_FORWARDEDHEADERS_ENABLED = true
-```
-
-This is Microsoft's documented switch for App Service Linux / containers. The host wires
-`ForwardedHeadersMiddleware` itself, ahead of the app pipeline, with cloud-appropriate settings.
-Nothing is added to RTUB's own code for it — deliberately: no `UseForwardedHeaders` call, no
-`ForwardedHeadersOptions`, no clearing of `KnownProxies`/`KnownNetworks`, and no manual
-`X-Forwarded-For` parsing.
-
-**Not verified:** whether this setting is already present on the `rtub` App Service. It is portal
-configuration and is not in the repo (`.github/workflows/ci.yml` only publishes and deploys; it
-sets no app settings). **Confirm it in the portal before relying on per-IP behavior in production.**
-The same setting is needed on the future Azure dev environment.
-
-Also note: enabling it makes `Request.IsHttps` true behind the proxy, which is what the
-`UseHttpsRedirection` skip at `Program.cs:325` was working around. Revisiting that skip is a
-separate decision, deliberately not made here.
+It is portal/CLI configuration and is **not in the repo** — `.github/workflows/ci.yml` only
+publishes and deploys, and sets no app settings. So it is not reproduced by a redeploy of code
+alone, and **a new App Service (including the future Azure dev environment) needs it set again.**
+Nothing in CI will warn if it is missing.
 
 What `RemoteIpAddress` is, per environment:
 - **Local / `dotnet run`** — the real client address; correct with no extra configuration.
 - **Integration tests (`TestServer`)** — `null` for every request (no transport), so all callers
-  share the `"unknown"` partition. Tests work around this explicitly; see Tests below.
-- **Azure App Service (current prod, Linux/Kestrel)** — the platform front end until
-  `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` is set.
-- **Future Azure dev environment** — same, same setting.
+  share the `"unknown"` partition. `RemoteIpTestStartupFilter` (test host only) works around this
+  by setting the address from an `X-Test-Remote-Ip` header; see *Previous validation (unit 014)*.
+- **Azure App Service (current prod, Linux/Kestrel)** — **the real client address**, as of the
+  2026-09-21 confirmation above.
+- **Future Azure dev environment** — platform front end until the same setting is applied there.
 
+### Consequence now live — `UseHttpsRedirection`
+Turning the setting on makes `Request.IsHttps` true behind the proxy. The skip of
+`UseHttpsRedirection` outside Development at `Program.cs:325` (comment: "HTTPS is handled at the
+load balancer level") was the workaround for exactly the case that no longer applies. The skip is
+now redundant rather than load-bearing. Still **not changed** — it is its own decision, and
+removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
 None active.
 
 ## Next unit
-**Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
+**The `TestWebApplicationFactory` SQLite startup race** — serialize factory startup before the
+hosted services run. It is now the most annoying thing in the suite: it hits any integration class
+run in isolation at roughly 2 runs in 5, and it was explicitly out of scope for 015. Detail under
+*Deferred* below.
+Then: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
 Next *security* unit: **password policy** — Identity is currently `RequiredLength = 4` with every
-complexity rule off (`AddIdentityServices`). Then security headers / CSP.
+complexity rule off (`AddIdentityServices`) — which should also absorb the two `src/` password
+defaults unit 015 found (see *Out of scope, recorded not fixed* above). Then security headers / CSP.
 
 ## Blockers
-**One, deployment-side, not code:** `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` must be confirmed or
-set on the `rtub` App Service, or the new limiter partitions on the platform front-end address
-instead of the client's and throttles all users as one. See *Deployment requirement* above. The
-code is correct and safe either way; only the per-client granularity depends on it.
+**None.** The only open blocker — `ASPNETCORE_FORWARDEDHEADERS_ENABLED` on the `rtub` App Service —
+was **confirmed set on 2026-09-21** (resource group `rtub_group`, verified via Azure CLI). Unit
+014's login rate limiter is now fully effective per client in production. See *Deployment
+requirement* above.
+
+**Owner action, not a blocker:** the historical GitGuardian incidents stay historical. The
+literals remain in old commits, and unit 015 deliberately did **not** rewrite git history to clear
+them. Mark those incidents "false positive / test credential" in GitGuardian by hand. 015 only
+stops *future* commits from raising new ones. No GitGuardian ignore comment was added either.
 
 
 ## Deferred / owner decisions
+
+### Security — raised by 015, deliberately not changed
+- **Two hardcoded production password defaults in `src/`** (`MemberBuilder.cs:27`,
+  `SeedData.Member.cs:26`). Out of scope by instruction; folded into the password-policy unit.
+- **Old commits still contain the removed literals.** History was not rewritten, by instruction.
+- The `src/` scan was run for completeness only; **no production file was touched by 015** and
+  production `appsettings*.json` contain no credential keys at all.
 
 ### Security — raised by 014, deliberately not changed
 - **`RateLimiterOptions.OnRejected` is global, not per-policy.** Today only the `login` policy
@@ -131,9 +167,10 @@ code is correct and safe either way; only the per-client granularity depends on 
   and `CookieApiCsrfTests` (4) are under the limit of 10 and each class gets its own factory, so
   they are safe today. Adding a sixth login POST to one of those classes would start hitting 429 —
   use the `X-Test-Remote-Ip` header for a distinct partition if that happens.
-- **`UseHttpsRedirection` is skipped outside Development** (`Program.cs:325`). Turning on
-  `ASPNETCORE_FORWARDEDHEADERS_ENABLED` makes `Request.IsHttps` true behind the proxy, which is
-  what that skip works around. Separate decision, not made here.
+- **`UseHttpsRedirection` is skipped outside Development** (`Program.cs:325`). **Now actionable:**
+  `ASPNETCORE_FORWARDEDHEADERS_ENABLED` is confirmed on as of 2026-09-21, so `Request.IsHttps` is
+  true behind the proxy and the skip no longer works around anything. Removing it is a production
+  request-pipeline behavior change, so it is its own unit, not a ride-along.
 
 ### Security — reviewed by 013, deliberately not changed
 - **`AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN")`** is still configured and still unused by
@@ -191,70 +228,67 @@ code is correct and safe either way; only the per-client granularity depends on 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 014)
-- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` — new `AddLoginRateLimiting`, plus the
-  policy name and the two default constants.
-- `src/RTUB.Web/Program.cs` — `AddLoginRateLimiting` registration, `UseRateLimiter` after
-  `UseRouting`, `.RequireRateLimiting(...)` on the login `MapPost`.
-- `src/RTUB.Web/appsettings.json` — new `LoginRateLimit` section (10 / 5).
-- `tests/RTUB.Integration.Tests/LoginRateLimitTests.cs` — **new**, 8 tests.
-- `tests/RTUB.Integration.Tests/RemoteIpTestStartupFilter.cs` — **new**, test-host only.
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` — registers that filter (2 lines).
+## Relevant files (unit 015)
+- `tests/Shared/TestSecret.cs` — **new**, the only new file. One static class, one method.
+- `tests/Directory.Build.props` — source-links `tests/Shared/*.cs` into all five test projects and
+  adds the `RTUB.Tests` global using.
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` — new `AdminPassword` property;
+  `AdminUser:Password` and `EmailSettings:SmtpPassword` now generated.
+- `tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs` — 6 literals removed; helper lost a
+  parameter.
+- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — signs the admin in with
+  `Factory.AdminPassword`; `SignInAsync` is no longer `static` because it now reads `Factory`.
+- `tests/RTUB.Integration.Tests/AuthenticationTests.cs`, `LoginRateLimitTests.cs`, and 4
+  `Workflows/*.cs` files.
+- `tests/RTUB.Application.Tests/Data/LoginAuditLogTests.cs`,
+  `tests/RTUB.Application.Tests/Repositories/QuestionRepositoryTests.cs`.
+- `tests/RTUB.Web.Tests/Services/EmailTemplateTests.cs`.
+- `README.md` — one example value in the `appsettings.Development.json` block.
 
-## Tests (8 new)
-`TestServer` has no transport, so `Connection.RemoteIpAddress` is `null` for every request and every
-caller shares one partition — which makes an IP-partitioned policy untestable and makes tests in one
-class interfere. `RemoteIpTestStartupFilter` is an `IStartupFilter` registered **only** by the test
-factory; it runs ahead of the whole app pipeline and sets the same `Connection.RemoteIpAddress` the
-transport sets in production, from an `X-Test-Remote-Ip` header. It is a no-op unless a request opts
-in, so it cannot affect any other test. It is **not** a forwarded-headers implementation and adds no
-production code path. Each test uses its own IP, so the class is order-independent and **no test
-sleeps or waits for a window to roll over**.
+## Tests (0 new)
+**No test was added, removed, renamed or re-asserted.** This unit changes only where a test's
+password comes from. The one assertion that compared against a password literal
+(`EmailTemplateTests.WelcomeEmailModel_ShouldHaveCorrectProperties`) now compares against the
+local that was used to set it, so it still proves the round-trip. No randomness was introduced
+into any assertion unrelated to credentials.
 
-1. `LoginPost_UnderLimit_SignsUserInNormally` — real rendered-form login still 302 to `/` with the
-   Identity cookie.
-2. `LoginPost_AtTheLimit_IsStillAccepted_ThenRejectedWith429` — requests 1..10 all reach antiforgery
-   (400); request 11 is **429**. Pins both the threshold and the limiter-before-antiforgery order.
-3. `LoginPost_WhenRejected_SendsRetryAfterFromLeaseMetadata` — 429 carries a positive `Retry-After`.
-4. `LoginPost_WhenRejected_DoesNotSignAnyoneIn` — valid credentials **and** a valid token, budget
-   spent: 429 and no `Set-Cookie`.
-5. `LoginRateLimit_IsPartitionedByClientIp` — one IP exhausted and 429; a second IP's next request is
-   400, not 429.
-6. `LoginPost_WithWrongPassword_UnderLimit_StillCountsTowardAccountLockout` — 302 to
-   `/login?error=Invalid` **and** `AccessFailedCount == 1`, so lockout is intact.
-7. `LoginPost_UnderLimit_StillRequiresAntiforgeryToken` — tokenless POST is still 400, no cookie.
-8. `RateLimiting_IsScopedToLoginOnly` — `/health`, `GET /login` and `POST /auth/logout` each driven
-   12 times (over the limit) and never throttled, proving there is no global limiter.
-
-**No new credential-shaped literal was committed.** Test passwords come from
-`NewSecret() => Guid.NewGuid().ToString("N")`, generated per call; Identity's `RequiredLength = 4`
-with no complexity rules accepts it. No GitGuardian ignore comment was added. The pre-existing
-`TestPassword123!` in `TestWebApplicationFactory.cs` is untouched.
-
-**Negative probe run and reverted.** `.RequireRateLimiting(...)` was temporarily detached from the
-endpoint: tests 2, 3, 4 and 5 failed and the four behavior-preservation tests (1, 6, 7, 8) still
-passed — exactly the intended split. Restored, all 8 green.
-
-## Latest validation (unit 014)
+## Latest validation (unit 015)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
-  `EnforceCodeStyleInBuild=true`.
-- Full suite, `dotnet test --no-build -c Release`: **4497 passed, 0 failed, 60 skipped.**
-  Baseline was 4489 / 0 / 60; **+8 = exactly the 8 new tests.** No other count moved, and no
-  existing test needed changing.
-- New class run in isolation, 8 runs: **6 clean at 8 / 0 / 0, 2 hit the pre-existing
-  `TestWebApplicationFactory` startup race** (unit 013's documented flake:
-  `System.InvalidOperationException: Operations that change non-concurrent collections must have
-  exclusive access` from `SqliteConnection.CreateCollation`). **Not caused by 014** — the whole
-  stack is DI/EF connection construction, nothing rate-limiting is on it, and the unmodified
-  `AuthAntiforgeryTests` flakes the same way on this branch (2 failures in 5 isolated runs). It
-  never fires in the full suite, which is clean.
-- `git diff --check` clean. Secret scan clean — the only matches on added lines are the words
-  "credential stuffing" in a comment and the `OnRejected` identifier.
-- `git status` = 4 modified files, 2 new untracked test files. **Migrations and
-  `ApplicationDbContextModelSnapshot.cs` unchanged.** New files written CRLF to match siblings.
-- Graphify **not** rebuilt — one DI extension method plus two pipeline lines is not a material
-  structural change. No frontend build, no Playwright.
+  `EnforceCodeStyleInBuild=true`. The source-link and the global using resolve in all five test
+  projects.
+- Focused first: `RTUB.Integration.Tests` alone — **246 total, 244 passed, 0 failed, 2 skipped.**
+- Full suite, `dotnet test --no-build -c Release`: **4497 passed, 0 failed, 60 skipped** —
+  **identical to the baseline.** No count moved in either direction, which is the point.
+- **Repository-wide credential scan, not just the diff.** Two passes over `git ls-files` output
+  (so tracked files only, `src/` included):
+  1. a password-shaped-literal regex (mixed case + digit, 8-64 chars) across `.cs`, `.razor`,
+     `.json`, `.yml`, `.props`, `.ts`, `.js`, `.md`;
+  2. a credential-keyed-assignment regex (`password|secret|accesskey|apikey|clientsecret|…` on the
+     left of `=` or `:`) across `tests/`.
+  Residue after the fix is the classified-harmless list above plus enum/nickname/filename false
+  positives. The scan also caught two things a diff review would have missed: the README example
+  password, and a first draft of `TestSecret.cs` whose own doc comment quoted the removed literal
+  back — both fixed.
+- Tracked `appsettings.json` / `appsettings.Production.json` contain **no** password, secret, key,
+  token or connection-string entries. No real secret was found anywhere; nothing needed escalation.
+- `git diff --check` clean. **Migrations and `ApplicationDbContextModelSnapshot.cs` unchanged.**
+  **No `src/` file changed.**
+- `git status` = 14 modified (13 test files + `README.md`), 1 new untracked directory
+  (`tests/Shared/`). Two workflow files briefly showed as modified from a `sed -i` line-ending
+  rewrite with no content change; restored to CRLF and they dropped out.
+- Graphify **not** rebuilt — no application structure changed.
 
+## Previous validation (unit 014 — merged)
+`POST /auth/login` carries a per-client-IP rate limit: a named `login` policy, partitioned fixed
+window, **10 permits / 5 minutes**, `QueueLimit = 0`, 429 with `Retry-After` from lease metadata,
+configured by `LoginRateLimit:*` in `appsettings.json`. `UseRateLimiter()` sits immediately after
+`UseRouting()`, so a throttled client is answered before any credential or antiforgery work runs.
+Partitioned by `RemoteIpAddress` and not by username: a caller-controlled key would allow an
+unbounded-partition memory DoS, and Identity's 5-failure lockout already covers the per-account
+case. 8 tests in `tests/RTUB.Integration.Tests/LoginRateLimitTests.cs`, using a test-only
+`IStartupFilter` to give each test a distinct client IP. Suite 4497 / 0 / 60. The Azure
+forwarded-headers deployment requirement above is still open. Detail is in the
+`fix/014/login-rate-limiting` history.
 
 ## Previous validation (unit 013 — merged)
 The five remaining cookie-authenticated mutations were classified against measured behavior;

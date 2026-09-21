@@ -44,7 +44,7 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
             PhoneNumber = "123456789"
         };
 
-        var result = await userManager.CreateAsync(testUser, "TestPassword123!");
+        var result = await userManager.CreateAsync(testUser, TestSecret.NewPassword());
         if (!result.Succeeded)
         {
             throw new Exception($"Failed to create test user: {string.Join(", ", result.Errors.Select(e => e.Description))}");

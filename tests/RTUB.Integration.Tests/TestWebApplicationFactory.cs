@@ -20,6 +20,13 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private SqliteConnection? _connection;
 
+    /// <summary>
+    /// Password of the admin that <see cref="SeedData"/> creates for this factory. Generated per
+    /// factory instead of committed, and exposed so a test can sign that admin in — the create
+    /// and the sign-in must use the same value, so it is held here rather than written twice.
+    /// </summary>
+    public string AdminPassword { get; } = TestSecret.NewPassword();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((context, config) =>
@@ -32,11 +39,13 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["AdminUser:Username"] = "testadmin",
                 ["AdminUser:Email"] = "testadmin@test.com",
-                ["AdminUser:Password"] = "TestPassword123!",
+                ["AdminUser:Password"] = AdminPassword,
                 ["EmailSettings:SmtpServer"] = "smtp.test.com",
                 ["EmailSettings:SmtpPort"] = "587",
                 ["EmailSettings:SmtpUsername"] = "test@test.com",
-                ["EmailSettings:SmtpPassword"] = "testpassword",
+                // Generated, not committed: nothing sends mail under the test host, but a
+                // credential-shaped literal keyed "SmtpPassword" is exactly what a scanner flags.
+                ["EmailSettings:SmtpPassword"] = TestSecret.NewPassword(),
                 ["EmailSettings:SenderEmail"] = "noreply@test.com",
                 ["EmailSettings:SenderName"] = "Test RTUB",
                 ["IDrive:Endpoint"] = "s3.test.com",

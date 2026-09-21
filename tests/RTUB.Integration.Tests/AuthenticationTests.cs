@@ -69,7 +69,8 @@ public class AuthenticationTests : IntegrationTestBase
             PhoneNumber = "123456789"
         };
 
-        var createResult = await userManager.CreateAsync(testUser, "CookieTest123!");
+        var password = TestSecret.NewPassword();
+        var createResult = await userManager.CreateAsync(testUser, password);
         createResult.Succeeded.Should().BeTrue();
 
         // Act - Login to get a cookie, following the real browser flow so the login form's
@@ -83,7 +84,7 @@ public class AuthenticationTests : IntegrationTestBase
         {
             [AntiforgeryFormToken.FieldName] = antiforgeryToken!,
             ["Username"] = "cookietest",
-            ["Password"] = "CookieTest123!",
+            ["Password"] = password,
             ["RememberMe"] = "false"
         };
         var loginResponse = await client.PostAsync("/auth/login", new FormUrlEncodedContent(loginData));

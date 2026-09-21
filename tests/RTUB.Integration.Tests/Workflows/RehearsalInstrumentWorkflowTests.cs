@@ -311,7 +311,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
             PhoneNumber = "12312312"
         };
 
-        await userManager.CreateAsync(user, "TestPassword123!");
+        await userManager.CreateAsync(user, TestSecret.NewPassword());
         return user;
     }
 

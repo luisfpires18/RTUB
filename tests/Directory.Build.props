@@ -13,4 +13,15 @@
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      Shared test helpers, source-linked into every test project rather than given a project of
+      their own: it is one static class, and a real project would need the whole package and
+      reference chain for nothing. tests/Shared is outside every project cone, so it does not
+      collide with the SDK's default Compile glob.
+    -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Using Include="RTUB.Tests" />
+  </ItemGroup>
+
 </Project>
