@@ -17,6 +17,9 @@ const OFFLINE_PAGE = '/offline';
 const STATIC_ASSETS = [
     '/',
     '/offline.html',
+    // offline.html loads its script externally (no inline JS); it must be precached
+    // or the fallback page renders without its connection-status behaviour.
+    '/js/offline.js',
     '/icons/rtub-logo-192.png',
     '/icons/rtub-logo-512.png',
     '/icons/rtub-badge-96.png',
@@ -145,7 +148,11 @@ self.addEventListener('fetch', (event) => {
                                     }
                                     return response;
                                 })
-                                .catch(() => cached); // Fallback to cache on error
+                                // Fallback to cache on error. DYNAMIC_CACHE only holds
+                                // scripts already fetched once online, so fall back to a
+                                // cross-cache lookup to reach precached STATIC_ASSETS
+                                // (e.g. /js/offline.js, needed by the offline page).
+                                .catch(() => cached || caches.match(request));
                             
                             return cached || fetchPromise;
                         });

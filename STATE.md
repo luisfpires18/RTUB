@@ -5,22 +5,120 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **022 (remove all eval-based JS interop) - COMPLETE, uncommitted, awaiting
-owner review.** Unit 021 is merged to `dev` at `e03f4a5d`.
+Modernization unit **023 (remove inline scripts and inline JS event handlers) - COMPLETE,
+uncommitted, awaiting owner review.** Unit 022 is merged to `dev` at `0b3d5a37`.
 
 ## Branch
-`fix/022/remove-eval-interop`, branched from `dev` (clean, in sync with `origin/dev` at
-`e03f4a5d`). Uncommitted - no commit authorized.
+`fix/023/remove-inline-scripts`, branched from `dev` (clean, in sync with `origin/dev` at
+`0b3d5a37`). Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`, `fix/021` still present; delete when convenient.
+`fix/020`-`fix/022` still present; delete when convenient.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
 not read for change and not touched by 021. It remains available as a future unit.
 
 ## Last completed step
-**Unit 022 - every `eval` JS interop call removed. Final count: 0.**
-C# now passes DATA to named JS functions; it never builds JavaScript source.
+**Unit 023 - every application inline `<script>` block and inline JS event-handler attribute
+removed. Final counts: 0 and 0.** No CSP header enabled; that is still unit 025.
+
+### Counts before / after
+| Thing | Before 023 | After 023 |
+| --- | --- | --- |
+| Application inline `<script>` blocks | 3 | **0** |
+| Inline JS event-handler attributes (`on*="..."`) | **15** | **0** |
+| `javascript:` URLs, `setAttribute('on*')`, `el.onclick =`, `innerHTML` with `<script>` | 0 | 0 |
+
+The audit found **15** inline handlers, not the 1 that 021 recorded. 021 only enumerated
+`offline.html`. The other 14 were never listed: **13 avatar `onerror` fallbacks** across 6 files
+and **1 `onclick="location.reload()"`** in `ReconnectModal.razor`. All are real `script-src`
+blockers - a strict policy blocks inline handler attributes exactly as it blocks inline blocks.
+
+Blazor `@onclick` / `@onchange` / `@oninput` were **not** touched: they compile to server-side
+delegates and are never emitted as HTML attributes.
+
+### Inline handler inventory that existed before 023
+| File | Sites | What it did |
+| --- | --- | --- |
+| `src/RTUB.Web/Pages/Messages/Inbox.razor` | 7 | avatar `onerror` -> default avatar |
+| `src/RTUB.Web/Shared/MainLayout.razor` | 1 (`:211`) | navbar avatar `onerror` |
+| `src/RTUB.Shared/Components/Cards/MemberCardLite.razor` | 1 | avatar `onerror` |
+| `src/RTUB.Shared/Components/Discussion/CommentComposer.razor` | 1 | avatar `onerror` |
+| `src/RTUB.Shared/Components/Discussion/PostComposer.razor` | 1 | avatar `onerror` |
+| `src/RTUB.Shared/Components/Profile/ProfileHeader.razor` | 1 | avatar `onerror` |
+| `src/RTUB.Web/Pages/Games/Games.razor` | 1 | avatar `onerror` |
+| `src/RTUB.Web/Components/ReconnectModal.razor` | 1 | `onclick="location.reload()"` |
+| `src/RTUB.Web/wwwroot/offline.html` | 1 | `onclick="window.location.reload(); return false;"` |
+
+### Service worker registration decision - the duplicate was DELETED, not moved
+`App.razor:27` claimed its head registration was "required for PWABuilder detection". **The comment
+did not survive reading the code.** `wwwroot/js/sw-register.js` already calls
+`registerServiceWorker()` at parse time with the **same script URL and the same options**
+(`{ scope: '/', updateViaCache: 'none' }`), and it is loaded by `MainLayout` on **every** page -
+there is no second layout and no host `.cshtml` in the repo, so `MainLayout` is universal.
+
+The head block was therefore a **pure duplicate**, and registering the same script under the same
+scope twice is idempotent. It was **removed**, not externalized. Page-load registration is now
+`sw-register.js` alone. Confirmed in the browser: the SW registers and activates normally.
+
+`wwwroot/js/push-notifications.js:91` also calls `register()` on demand when a user opts into
+push. That is a **separate, pre-existing** path, unchanged by 023 and out of its scope.
+
+### Blazor startup externalization - ordering preserved exactly
+`MainLayout.razor`'s inline tail block was split into two purpose-specific files, both referenced
+at the **same position** in the document:
+
+- `wwwroot/js/blazorStartup.js` - the `Blazor.start({...})` call, transcribed verbatim.
+  `withUrl("/_blazor")`, `withServerTimeout(300000)`, `withKeepAliveInterval(15000)` are
+  **unchanged**. It also carries the `ReconnectModal` reload click handler (see below).
+- `wwwroot/js/navOffcanvas.js` - the offcanvas auto-dismiss listener, transcribed verbatim:
+  `dropdown-toggle` exclusion, `#topNav a[href]` and `#topNav button[type="submit"]`, hide only
+  when `.show`, `bootstrap.Offcanvas.getInstance`.
+
+**Ordering is safe and unchanged.** `blazor.web.js` keeps `autostart="false"`, and both it and the
+new files are **classic** (non-`defer`, non-`async`) scripts, so document order guarantees the
+`Blazor` global exists before `blazorStartup.js` runs. **Not** moved to default autostart - that
+would drop the SignalR circuit configuration. Exactly one file calls `Blazor.start()`; a test
+pins that.
+
+`ReconnectModal.razor`'s reload button cannot become a Blazor `@onclick`: the modal is only visible
+once the circuit is **already down**, so no server-side event can be dispatched. It is a delegated
+plain-JS listener on `.reconnect-reload` instead.
+
+### Avatar fallback - one delegated listener replaced 13 attributes
+`wwwroot/js/avatarFallback.js` registers a single `error` listener in the **capture** phase
+(`error` does not bubble) and swaps `src` to `/images/default-avatar.webp` for any `<img>` carrying
+`data-avatar-fallback`. It removes the attribute first, which is the exact equivalent of the old
+`this.onerror = null` guard against a looping fallback.
+
+It is loaded from **`<head>` in `App.razor`**, not from `MainLayout`'s script tail, so the listener
+is attached before any avatar element is parsed - preserving the inline attribute's timing.
+
+### Offline page - external script, and the precache gap that precaching alone did NOT close
+`offline.html` now loads `wwwroot/js/offline.js` (status polling, `online`/`offline` listeners,
+immediate check, 3s interval, 1s reload-on-restore - all verbatim, Portuguese text unchanged). Its
+inline `onclick` became an `addEventListener` on `#retry` that calls `preventDefault()` +
+`location.reload()`; `href="/"` is kept so the link still degrades gracefully without JS.
+
+`/js/offline.js` was added to `STATIC_ASSETS` in `service-worker.js`. **That was not sufficient.**
+The SW's script branch is stale-while-revalidate against `DYNAMIC_CACHE` **only**, and on failure
+it does `.catch(() => cached)` - so for a user who had never opened `offline.html` while online,
+`cached` is `undefined`, `respondWith(undefined)` throws, and the offline page would have loaded
+**without its script**. Verified in the browser before fixing.
+
+Fix, scoped to the offline path only: `.catch(() => cached || caches.match(request))`. The
+cross-cache lookup reaches the precached `STATIC_ASSETS` copy. Online behaviour is untouched.
+
+**Proven end-to-end:** with the dev server stopped and the `DYNAMIC_CACHE` entry deleted,
+`fetch('/js/offline.js')` through the SW returned **200, 1318 bytes, correct content**.
+`CACHE_VERSION` was **not** bumped - the SW file content changed, so a new worker installs and
+`cache.addAll` writes the new entry into the same `STATIC_CACHE`, with no cache churn for users.
+
+### `Program.cs` comment - corrected, no runtime change
+`Program.cs:336` still read "RTUB still dispatches 15 `JSRuntime.InvokeAsync("eval", ...)` calls
+... plus inline `<script>` blocks", which 022 and 023 both made false. It now states the real
+position: script-side blockers cleared by 022 + 023, **inline styles are what remain**, CSP is
+unit 024/025. Comment only - the header middleware is byte-identical.
 
 ### The 15 `eval` sites that existed before 022 (6 files)
 | File | Sites (pre-022 lines) | What it did |
@@ -113,14 +211,13 @@ the manual `System.Text.Json` round-trip is gone too.
 ### CSP inventory carried forward from 021 (still the plan for 025)
 **Blocker 1 - `eval`: CLEARED by 022.** `'unsafe-eval'` is no longer needed.
 
-**Blocker 2 - inline `<script>`, 3 production blocks.** `src/RTUB.Web/App.razor:27` (service-worker
-registration, must stay in `<head>` for PWABuilder detection),
-`src/RTUB.Web/Shared/MainLayout.razor` (`Blazor.start({...})` with the SignalR circuit config plus
-the offcanvas auto-dismiss handler), `src/RTUB.Web/wwwroot/offline.html:77`. Each needs a nonce or
-a hash. A nonce is the harder one: `App.razor` is the root document and `MainLayout` feeds
-`HeadOutlet`, so the nonce has to reach both from the request. **This is unit 023.**
+**Blocker 2 - inline `<script>` and inline `on*` handlers: CLEARED by 023.** All 3 blocks and all
+15 handler attributes are gone, so **`script-src` no longer needs `'unsafe-inline'`**. No nonce and
+no hash were needed - every block became an external file, which sidesteps the hard part entirely
+(a nonce would have had to reach both the root document and `HeadOutlet` from the request).
+**`script-src` is now clean: `'self'` plus the three pinned CDN origins below.**
 
-**Blocker 3 - inline styles.** **11 `<style>` blocks** in production `.razor` files plus
+**Blocker 3 - inline styles. THE ONLY REMAINING SCRIPT-OR-STYLE BLOCKER.** **11 `<style>` blocks** in production `.razor` files plus
 `offline.html`, and **213 `style="..."` attributes across 29 `.razor` files**. Both forms are
 covered by `style-src`. (Bootstrap's *runtime* CSSOM writes - `el.style.x = ...` for offcanvas and
 modal transforms - are **not** CSP-governed and are not a blocker.) **Unit 024.**
@@ -152,13 +249,9 @@ The four security headers shipped by 021 (`X-Content-Type-Options: nosniff`,
 (already live at `max-age=2592000`; no `includeSubDomains`, no `preload`, because RTUB does not own
 the `azurewebsites.net` apex) are unchanged by 022.
 
-**`Program.cs` is NOT touched by 022.** An earlier cut of this unit refreshed the CSP explanatory
-comment there; owner review ruled it out of scope and the file was reverted to its merged 021
-state. Consequence to know about: that comment at `Program.cs:337` now **understates** the
-position - it still reads "RTUB still dispatches 15 `JSRuntime.InvokeAsync("eval", ...)` calls",
-which 022 made false. It is a comment only, with no runtime effect. **Unit 023 owns that comment**
-- it edits the same inline-`<script>` blocks the comment describes, so it can correct both in one
-place.
+**`Program.cs` comment: CORRECTED by 023** (022 deliberately left it stale). It now reads that
+022 + 023 cleared the script-side blockers and that inline styles are what remain. No runtime
+change - the security-header middleware is byte-identical and still emits **no** CSP.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -214,20 +307,19 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 022 is complete and awaiting owner review.
+None active. Unit 023 is complete and awaiting owner review.
 
 ## Next unit
-**023 - inline `<script>` removal / nonce-or-hash for the 3 remaining blocks.** With `eval` gone,
-`'unsafe-inline'` on `script-src` is the last thing standing between RTUB and a real CSP. Scope:
-`src/RTUB.Web/App.razor:27` (service-worker registration - must stay in `<head>` for PWABuilder
-detection), `src/RTUB.Web/Shared/MainLayout.razor` (`Blazor.start({...})` circuit config plus the
-offcanvas auto-dismiss handler) and `src/RTUB.Web/wwwroot/offline.html:77`. Pick nonce or hash per
-block; the nonce path has to reach both the root document and `HeadOutlet` from the request.
-Still **no CSP header in 023**.
+**024 - inline-style CSP cleanup.** Inline styles are now the **only** remaining script-or-style
+CSP blocker. Scope: **12 `<style>` blocks** in production `.razor`/`.html` and **213
+`style="..."` attributes across 29 `.razor` files** - both covered by `style-src`. Bootstrap's
+runtime CSSOM writes (`el.style.x = ...` for offcanvas/modal transforms) are **not** CSP-governed
+and are **not** a blocker. Note `sw-register.js` builds its update toast with `innerHTML` + inline
+`style="..."` and injects a `<style>` element; it executes no inline JS (not a `script-src`
+problem) but its styles are a `style-src` one, so 024 owns it.
 
-Then, in order: **024** inline styles (11 `<style>` blocks + 213 `style=` attributes); **025**
-enable CSP itself, built from the directive inventory above, with the R2 origin read from
-`Cloudflare:R2:PublicUrl`, and a browser smoke run.
+Then **025**: enable CSP itself, built from the directive inventory above, with the R2 origin read
+from `Cloudflare:R2:PublicUrl`, and a browser smoke run.
 
 Also still available, deliberately not taken: **password-policy review / hardening** (Identity is
 `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
@@ -379,138 +471,152 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 - Two `graphifyy 0.9.56 + MCP` installs (isolated venv, Microsoft-Store Python user site). The
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
-## Relevant files (unit 022)
-Production changed (7):
-- `src/RTUB.Shared/Components/UI/PushNotificationToggle.razor` - 6 `eval` sites -> 6 named
-  `pwaHelper.*` calls; private `PushStatusDto` deleted; `@using RTUB.Application.DTOs` added.
-- `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor` - 2 `eval` sites -> 2 named calls.
-  Nothing else in the component touched.
-- `src/RTUB.Shared/Components/Cards/NaipeCard.razor` - 2 sites -> `rtubMediaPreview.play/pause`
-  with the existing `videoElement` `ElementReference`.
-- `src/RTUB.Web/Pages/Index.razor` - 2 sites -> `rtubHome.initCarousel` / `rtubHome.revealSections`.
-  The `rtubScrollSpy.init` call between them is untouched.
-- `src/RTUB.Web/Pages/Media/Gallery.razor` - 2 sites -> `rtubMediaPreview.*InGalleryCard(mediaId)`.
-- `src/RTUB.Web/Pages/Media/Albums.razor` - 1 site -> `rtubScroll.toElement(key)`.
-- `src/RTUB.Web/Shared/MainLayout.razor` - 3 `<VersionedAsset>` lines added next to `scrollSpy.js`.
 
-JS changed (1) / new (3):
-- `src/RTUB.Web/wwwroot/js/pwa-helper.js` - **+5 functions**, inserted before
-  `getAndroidClientMode`, plus **one optional parameter** on the existing `getPushStatus`
-  (`syncOptOut = true`), which leaves every pre-existing caller on its current behaviour.
-  Nothing else edited, nothing removed.
-- `src/RTUB.Web/wwwroot/js/mediaPreview.js` - **new**, `window.rtubMediaPreview`.
-- `src/RTUB.Web/wwwroot/js/home.js` - **new**, `window.rtubHome`.
-- `src/RTUB.Web/wwwroot/js/scrollHelper.js` - **new**, `window.rtubScroll`.
+### Raised by 023, deliberately not changed
+- **Two service-worker registration paths still exist.** 023 removed the `App.razor` duplicate, so
+  page-load registration is `wwwroot/js/sw-register.js` alone - but
+  `wwwroot/js/push-notifications.js:91` still calls `navigator.serviceWorker.register()` on demand
+  during push opt-in, with **different options** (no `scope`, no `updateViaCache`). Pre-existing,
+  out of scope for an inline-script unit, and already flagged by the `rtub-push` skill. The push
+  unit owns consolidating it.
+- **`sw-register.js` builds its update toast with `innerHTML` + inline `style="..."` and injects a
+  `<style>` element.** It executes **no** inline JS, so it is not a `script-src` problem and 023
+  correctly left it alone - but those styles are a `style-src` problem. **Unit 024 owns it.**
+- **`offline.html` still has a large inline `<style>` block.** Same reason: `style-src`, not
+  `script-src`. Unit 024.
+- **`App.razor:23-24` still has the dead `fonts.googleapis.com` `preconnect` / `dns-prefetch`.**
+  Carried over from 021's inventory; no matching stylesheet and no `@font-face` anywhere. 023 was
+  editing adjacent lines but did not take it - out of scope. Delete it in 024 or 025.
+- **`rtub.carousel.js` is still dead** (raised by 022, unchanged).
 
-Read and deliberately **not** changed: `wwwroot/js/push-notifications.js` (the whole
-`PushNotificationsManager` class), `wwwroot/js/sw-register.js`, `wwwroot/service-worker.js`,
-`wwwroot/js/scrollSpy.js`, `wwwroot/js/scrollToTop.js`, `wwwroot/js/modalHelper.js`,
-`wwwroot/js/rtub.carousel.js` (an unreferenced Bootstrap fallback shim - left alone, recorded in
-*Deferred*), `App.razor` and `MainLayout.razor`'s inline `<script>` blocks (unit 023),
-`src/RTUB.Application/DTOs/PushStatusDto.cs`, `PushController`, and - after the review revert -
-**`src/RTUB.Web/Program.cs`**, which carries no 022 change at all.
+## Relevant files (unit 023)
+**New JS (4 files, all plain `wwwroot/js`, no bundler, no package):**
+- `src/RTUB.Web/wwwroot/js/avatarFallback.js` (26 lines) - delegated capture-phase `error`
+  listener for `[data-avatar-fallback]`. Loaded from `<head>` in `App.razor`.
+- `src/RTUB.Web/wwwroot/js/blazorStartup.js` (34 lines) - `Blazor.start({...})` verbatim, plus the
+  `.reconnect-reload` delegated click handler.
+- `src/RTUB.Web/wwwroot/js/navOffcanvas.js` (24 lines) - offcanvas auto-dismiss, verbatim.
+- `src/RTUB.Web/wwwroot/js/offline.js` (40 lines) - offline-page status logic verbatim, plus the
+  `#retry` click listener.
 
-## Tests (1 file rewritten: 8 -> 15, net +7; 0 other test files touched)
-**`tests/RTUB.Shared.Tests/Components/UI/PushNotificationToggleTests.cs` - rewritten.** The
-`EvalScriptContains` helper and every `JSInterop.Setup<T>("eval", ...)` are **gone**; no test
-asserts generated JavaScript source anywhere in the repo any more. Setups now name the real
-helpers (`pwaHelper.getPushStatus`, `initializePushManager`, `isSubscribedToPush`, `isAndroidPwa`,
-`setPushSubscription`) and assert on argument values.
-The 8 original behaviours are all still covered; 7 tests are new:
-1. `StaysGraceful_WhenPushNotConfigured` - unconfigured server: no toggle, no error, and
-   `initializePushManager` is never called.
-2. `BootsThrough_NamedHelpers` - the boot sequence uses the three named identifiers, `"eval"` is
-   absent, and `getPushStatus` is called with the single argument **`false`** (`syncOptOut`), which
-   pins the read-only status fetch described above.
-3. `SkipsSubscriptionCheck_WhenInitializeFails` - no manager means `isSubscribedToPush` is never
-   invoked.
-4. `ShowsAndroidHint_WhenSubscribedOnAndroidPwa` - the hint comes from the named probe.
-5. `HidesAndroidHint_WhenNotAndroidPwa` - the negative case.
-6. `Unsubscribes_WithFalseArgument` - same helper, `false` as the data value.
-7. `NeverDispatchesGeneratedScript` - drives the whole subscribe flow, then asserts every
-   identifier is a `pwaHelper.*` function and no string argument looks like JS source. This is the
-   test that keeps `eval` from coming back.
-`Subscribes_WithTrueArgument` replaces the old timing-dependent `ShowsProcessingState_WhenToggling`
-with an assertion that actually pins the contract (`true` -> subscribe).
-`PushNotificationPromptTests` was read and **not changed**: it already mocked only named
-`pwaHelper.*` identifiers, and neither of the Prompt's two replaced calls is exercised by it (they
-sit on the PWA recovery path, which its default `isPwaMode -> false` skips). Its 2 pre-existing
-skips are unrelated and untouched.
+**Edited:**
+- `src/RTUB.Web/App.razor` - head inline `<script>` **deleted** (duplicate SW registration);
+  `avatarFallback.js` added via `<VersionedAsset>`.
+- `src/RTUB.Web/Shared/MainLayout.razor` - tail inline `<script>` replaced by two
+  `<VersionedAsset>` tags at the same position; 1 avatar `onerror` -> `data-avatar-fallback`.
+- `src/RTUB.Web/Components/ReconnectModal.razor` - `onclick="location.reload()"` removed.
+- `src/RTUB.Web/wwwroot/offline.html` - inline `<script>` -> `<script src="/js/offline.js">`;
+  inline `onclick` -> `id="retry"`.
+- `src/RTUB.Web/wwwroot/service-worker.js` - `/js/offline.js` added to `STATIC_ASSETS`; script
+  branch's failure path widened to `cached || caches.match(request)`.
+- `src/RTUB.Web/Program.cs` - CSP comment corrected. **No runtime change.**
+- 12 avatar `onerror` -> `data-avatar-fallback` in `Inbox.razor` (7), `MemberCardLite.razor`,
+  `CommentComposer.razor`, `PostComposer.razor`, `ProfileHeader.razor`, `Games.razor`.
 
-No credential literal. No `#nullable disable` needed after the rewrite.
+## Tests (1 new file, +10; 0 existing test files touched)
+`tests/RTUB.Web.Tests/Security/InlineScriptPolicyTests.cs` - static source scans, matching the
+existing `PortalContentStyleTests` `GetProjectRoot()` pattern. **10 tests.**
 
-## Latest validation (unit 022)
-- Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
-  `EnforceCodeStyleInBuild=true`.
-- Focused first: `PushNotificationToggleTests` - **15 total, 15 passed**;
-  `PushNotificationPromptTests` - 12 total, 0 failed, 2 pre-existing skips, **not edited**. Then
-  the whole `RTUB.Shared.Tests` project - 768 total, 0 failed, 2 skipped.
-  Re-run unchanged after the review fixes: the `getPushStatus(false)` change **modified** one
-  existing assertion and **added no test**, so every count below is identical before and after.
-- Full suite: **4561 passed, 0 failed, 60 skipped** (total 4621). Against the post-021 baseline of
-  **4554 passed / 60 skipped**, the branch is **+7 passed, +7 total, skips unchanged** - exactly
-  the 7 new tests listed above. Per project: Core 791, Application 1997, Shared 768, Web 791,
-  Integration 274.
-  **Note on the runner:** `dotnet test` (MTP driver) reports *"Zero tests ran"* for **all five**
-  projects on this machine, including ones 022 never touched - an environment/driver problem, not
-  a regression. The numbers above come from running each `tests/<project>/bin/Release/net10.0/
-  <project>.exe` directly, which gives xUnit v3's native console runner. Worth knowing before
-  someone debugs a phantom failure.
-- **Static scan - the acceptance criterion.** Grepping the literal `"eval"` (not `eval(`, which
-  never matched these) across `src/` and `tests/`, excluding `obj/`, `bin/` and `node_modules/`:
-  **two hits, neither a dispatch** - the (021-authored, 022-untouched) explanatory comment in
-  `Program.cs:337` and the negative assertion in `PushNotificationToggleTests`.
-  `Invoke(Void)?Async[^;]*"eval"` returns **zero**.
-  `Setup...("eval"` in `tests/` returns **zero**. Legitimate English matches (`EvaluateRetirement
-  StatusAsync`, `evaluatorResult`, ...) were separated out and left alone, as required.
-  **Production JSInterop identifiers equal to `"eval"`: 0.**
-- **Frontend build: correctly not run.** `src/RTUB.Web/package.json` drives **only** the three
-  PixiJS bundles (`npm run build:pixi`, `pixi/vite.config.ts`, fired on `BeforePublish`). The four
-  files 022 touches are plain hand-written `wwwroot/js` with no bundling step, so the right
-  validation is a JS parse - `node --check` passes on all four.
-- `git diff --check`: clean. Diff credential scan (including the 3 new files): no match.
-- **No migration and no model-snapshot change.** No entity, column or `DbContext` edit.
-- **No Graphify rebuild** - no application structure changed; only interop call targets moved.
+The two repository-wide scans are **aggregated `[Fact]`s, not `[Theory]` sweeps.** An earlier cut
+parameterized them per markup file and contributed **+377** cases that said nothing individually;
+collapsed to 2 facts at owner request. **Coverage is unchanged** - both still walk every
+`.razor` / `.cshtml` / `.html` under `src/` except `wwwroot/lib/`:
 
-## Browser validation (unit 022) - RUN, unlike 021
-Release build served at `http://localhost:5199` (Development env, local `app.db`, backed up first).
-- **Homepage loads, no JS console errors.** The only console errors on the whole run are
-  service-worker registration failures - **pre-existing and environmental**: `/service-worker.js`
-  itself serves `200 text/javascript`, and no SW file appears in the 022 diff. Zero
-  `is not a function`, zero `ReferenceError`, zero JSInterop identifier errors.
-- All four helper namespaces resolve at runtime: `rtubHome.initCarousel`, `rtubHome.revealSections`,
-  `rtubScroll.toElement`, `rtubMediaPreview.{play,pause,playInGalleryCard,pauseInGalleryCard}` and
-  the 5 new `pwaHelper.*` - all `typeof === "function"`. All 4 JS files serve `200`.
-- **Carousel:** `#homeCarousel` present with exactly 1 active item after `initCarousel`.
-- **Scroll-reveal:** 6 `.portal-section`s, 1 `in-view` at the top of the page, **2 after
-  scrolling** - the IntersectionObserver is live, so `revealSections` reproduced the old behaviour
-  rather than just marking what was already visible.
-- **Albums section scroll:** `rtubScroll.toElement('section-history')` moved the page 0 -> 2902 and
-  left the target 64px from the top (`block:'start'` under the sticky nav). A missing id is a
-  silent no-op. *(Caveat: this exercised the helper directly on the homepage sections; the
-  anonymous `/music` page renders one section and no mobile nav, and the authed mobile-nav path
-  needs a login, which was not performed.)*
-- **Gallery / Naipe video preview:** the live `/gallery` currently holds 9 image cards and 0
-  videos, so hovering could not reach the handler. Instead both code paths were driven directly
-  against instrumented `<video>` elements: `playInGalleryCard(41)`/`(42)` resolved to the correct
-  per-card video and nothing else, and the direct-element path (what `NaipeCard` passes as an
-  `ElementReference`) reached the same element. A **missing id, a `null` element and a hostile id
-  (`1"] video, [x="`) all no-op without throwing** - the `CSS.escape` selector holds.
-- **Push - read-only probes only. No permission was requested, no subscription created or
-  destroyed, no manager instantiated.** `Notification.permission` was `denied` before and after.
-  `getPushStatus()` -> `null` (401 for anonymous, handled gracefully - that 401 is the only other
-  console error and it was self-inflicted by the probe); `isSubscribedToPush()` -> `false`;
-  `validateAndRefreshPushSubscription()` -> `'error'`; `isPushPermissionGranted()` -> `false`;
-  `isAndroidPwa()` -> `false`; `setPushSubscription(true)` **threw** the same message the old
-  `eval` threw - which is exactly what drives the Toggle's error alert. The unsupported /
-  not-configured path stays graceful.
-  *(Limitation: the Toggle and the Prompt's recovery branch need an authenticated session and a
-  working service worker; neither was available, and no credentials were entered. Those paths are
-  covered by the 15 bUnit tests instead.)*
-- No dev server, viewport override or launch config left behind; the local `app.db` was backed up
-  before the run and the app only did its normal idempotent startup seeding.
-- **Not re-run after the review fixes**, by instruction: the only runtime change since the smoke
-  run is the `getPushStatus(syncOptOut = true)` default parameter and the Toggle passing `false`.
-  `node --check` passes on `pwa-helper.js`, existing callers are untouched by JS default-parameter
-  semantics (Blazor sends no argument, so `undefined` selects the default), and the Toggle's
-  argument is pinned by `BootsThrough_NamedHelpers`.
+- `ApplicationMarkup_HasNoInlineExecutableScripts`
+- `ApplicationMarkup_HasNoInlineJavaScriptEventHandlers`
+
+Each collects **all** violations (no early exit) and fails once with `relative/path:line  snippet`
+per hit. Matching runs against whole file content, not line by line, because an opening tag can
+span lines (MainLayout's leaflet tag does); the line number is derived from the match offset for
+reporting only.
+
+The 8 focused architecture facts that materially pin behaviour are retained:
+`blazor.web.js` keeps `autostart="false"`; `blazorStartup.js` is referenced **after**
+`blazor.web.js`; exactly one JS file calls `Blazor.start(`; `offline.html` references
+`/js/offline.js` and has no inline script or handler; the SW precaches `/js/offline.js`; the SW
+script branch's offline fallback still reads `cached || caches.match(request)` (the cross-cache
+lookup 023 added); `avatarFallback.js` is referenced **inside `<head>`** and the
+`data-avatar-fallback` hook is in use; `App.razor` no longer registers the service worker.
+
+**Not vacuous - verified by injection.** A temporary probe file with `onclick=`, `onerror=`, an
+external `<script src>` and an inline `<script>` was dropped under `wwwroot/` and the scans
+reported **exactly** the 3 real violations with correct line numbers, ignoring the external tag.
+Probe deleted.
+
+**Regex note (a real bug caught while writing these):** the handler regex is deliberately
+**case-sensitive and lowercase-only**. With `RegexOptions.IgnoreCase` it matched Blazor component
+parameters like `OnClose="..."` and produced **71 false failures**. HTML attributes in this repo
+are lowercase; Blazor parameters are PascalCase. The `(?<![@\w-])` lookbehind keeps `@onclick` out.
+
+## Latest validation (unit 023)
+- `dotnet build RTUB.sln -c Release` - **succeeded, 0 warnings, 0 errors.**
+- `dotnet test --solution RTUB.sln -c Release --no-build` -
+  **total 4631 / passed 4571 / failed 0 / skipped 60.**
+- **Test delta accounted for exactly:** baseline on `dev` before 023 was 4561 passed / 0 failed /
+  60 skipped (4621 total). 4571 - 4561 = **+10**, which is precisely the collapsed
+  `InlineScriptPolicyTests` class. Skipped count unchanged at 60. No existing test changed state.
+- `node --check` clean on all 4 new JS files **and** on `service-worker.js`.
+- `git diff --check` clean. Diff is **43 insertions / 90 deletions across 12 files** - no
+  line-ending churn (`.gitattributes` has `* text=auto`, so the index normalizes to LF).
+- **No migrations** added or touched.
+- **Credential scan clean** on the diff and on all new files: no password, key, token, VAPID,
+  bearer or connection-string literals.
+
+## Static scan (unit 023) - the acceptance gate
+Run over all tracked `.razor` / `.cshtml` / `.html` under `src/`, excluding `wwwroot/lib/`:
+
+| Pattern | Hits |
+| --- | --- |
+| `<script>` / `<script type=...>` without `src` | **0** |
+| any `on*="..."` (`onclick` `onload` `onerror` `onchange` `onsubmit` `oninput` `onkey*` `onmouse*` `onfocus` `onblur`) | **0** |
+| `javascript:` URLs | 0 |
+| `setAttribute("onclick"` / `setAttribute('onclick'` | 0 |
+| `element.onclick =` | 0 |
+| `innerHTML` containing `<script` | 0 |
+| C#/TS source emitting inline handlers | 0 |
+
+Every surviving `<script>` tag is external: `blazor.web.js`, the 3 pinned CDN origins
+(cdnjs/unpkg/jsdelivr), `<VersionedAsset>`-emitted `/js/*.js`, and `offline.html`'s
+`/js/offline.js`.
+
+**Confirmed against the live server, not just source:** the served HTML for `/` contains **0**
+inline `<script>` and **0** inline `on*` attributes, and the live DOM after Blazor render reports
+`inlineScriptCount: 0`, `inlineHandlerCount: 0`.
+
+## Browser validation (unit 023) - RUN
+Local `dotnet run` on `http://localhost:58870`, built-in browser pane.
+
+- **`/`** - loads, Blazor circuit connects (`WebSocket connected to ws://localhost:58870/_blazor`).
+  **No duplicate-`Blazor.start` error.** Service worker registers and activates.
+- **`/login`** - loads, no new console errors.
+- **`/music`** (Blazor-routed navigation) - interactive navigation works.
+- **Script ordering verified in served markup:** `blazor.web.js` (`autostart="false"`) at line 312,
+  `blazorStartup.js` at 347, `navOffcanvas.js` at 348. All 4 new files return **200**.
+- **Mobile offcanvas (375x812):** opened `#topNav`, clicked a `#topNav a[href]` -> offcanvas
+  closed (`show` removed) and Blazor navigated to `/music`. **No exception thrown.**
+- **Avatar fallback:** a broken `<img data-avatar-fallback>` was swapped to
+  `/images/default-avatar.webp` and had its attribute removed (loop guard); a broken `<img>`
+  **without** the attribute was left untouched.
+- **ReconnectModal:** `.reconnect-reload` has **no** inline `onclick`, and clicking it reloads the
+  page - the delegated handler is wired.
+- **Offline page:** external script runs (status text transitions `A verificar ligação...` ->
+  `Ligação restaurada! A recarregar...`); simulating `offline` gives `Ainda offline`; the `#retry`
+  click is `defaultPrevented` by the new listener and `getAttribute('onclick')` is `null`.
+- **Offline availability proven with the server stopped:** `/js/offline.js` precached in
+  `rtub-static-rtub-v2.6.0` alongside `/offline.html`, and `fetch('/js/offline.js')` through the SW
+  returned **200 / 1318 bytes / correct content** with the `DYNAMIC_CACHE` entry deleted.
+- **Console:** only pre-existing `401`s from `pwa-helper.js` polling `/api/push/status` while
+  anonymous (reproduced with `curl`: `/api/push/status -> 401`), plus `404`s from the broken test
+  images deliberately injected above. **No JS errors from any 023 change.**
+- Viewport reset to desktop; dev server stopped; no SW/cache state left in an odd shape.
+- *(Not covered: a signed-in session - no dev credentials were available and none were entered.
+  The authenticated-only behaviour that 023 actually changed is the avatar fallback, which was
+  exercised directly in the live DOM instead, and by the static tests.)*
+
+## Blockers found by 023
+**None outstanding.** One was found and fixed inside the unit: precaching `/js/offline.js` into
+`STATIC_ASSETS` was **not** enough, because the SW's script branch only consulted `DYNAMIC_CACHE`
+(see *Offline page* above). Fixed and proven with the server stopped.
+
+**Remaining CSP blockers after 023:** inline **styles** only - 12 `<style>` blocks and 213
+`style="..."` attributes. `script-src` is clear.
