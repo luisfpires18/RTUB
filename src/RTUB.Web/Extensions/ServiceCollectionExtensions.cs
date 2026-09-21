@@ -656,7 +656,10 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Configures cookie authentication events: security-stamp validation, role-change logout,
-    /// expulsion check, and session logging
+    /// expulsion check, and session logging, followed by Identity's own
+    /// <see cref="SecurityStampValidator"/> so the framework's principal refresh and cookie renewal
+    /// still happen. RTUB's checks run on every request; the framework's refresh stays gated by
+    /// <see cref="SecurityStampValidatorOptions.ValidationInterval"/>.
     /// </summary>
     public static IServiceCollection AddCookieAuthenticationServices(this IServiceCollection services)
     {
@@ -705,6 +708,34 @@ public static class ServiceCollectionExtensions
                         logger.LogInformation("User {UserName} forced to logout due to role change.", userName);
                         return;
                     }
+
+                    // Identity's own cookie validation, composed with the checks above rather than
+                    // replaced by them. AddIdentity installs SecurityStampValidator.ValidatePrincipalAsync
+                    // as OnValidatePrincipal; assigning this whole CookieAuthenticationEvents object
+                    // used to drop it, and with it the principal refresh Identity performs after a
+                    // successful stamp check — so role and profile claim changes never reached a live
+                    // session and the cookie was never renewed. This call runs the configured
+                    // ISecurityStampValidator, which rebuilds the principal from the database
+                    // (SignInManager.CreateUserPrincipalAsync -> ReplacePrincipal + ShouldRenew) once
+                    // SecurityStampValidatorOptions.ValidationInterval has elapsed — 30 minutes by
+                    // default, deliberately left at the framework default here.
+                    //
+                    // The order matters and the RTUB checks must stay in front of it:
+                    //  - they run on EVERY request, whereas the framework gates its own stamp read
+                    //    behind ValidationInterval, so no RTUB check is diluted to that cadence;
+                    //  - they read the principal as it arrived in the cookie. A refresh rebuilds it
+                    //    from the database, scrubbing exactly the stale "Admin" claim the role probe
+                    //    above exists to catch: running the framework first would silently downgrade
+                    //    such a session instead of rejecting it, and only on the requests where a
+                    //    refresh happened to fall due.
+                    //
+                    // The framework repeats the stamp check above, but costs nothing for it:
+                    // UserManager.GetUserAsync resolves off the request-scoped DbContext's change
+                    // tracker, which the check above has already populated. A refresh request pays
+                    // only for the rebuild itself — two SELECTs, once per user per ValidationInterval.
+                    await SecurityStampValidator.ValidatePrincipalAsync(context);
+                    if (context.Principal is null)
+                        return;
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
                     var cookieUserAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
