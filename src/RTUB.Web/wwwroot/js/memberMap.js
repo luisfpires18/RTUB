@@ -125,10 +125,16 @@ window.initializeMemberMap = function (mapDataJson) {
                     <div class="popup-members-list">
                 `;
 
+                // Avatars opt into the delegated fallback listener in avatarFallback.js via
+                // data-avatar-fallback. An inline onerror attribute here would be an inline
+                // event handler exactly like one written in markup, and script-src blocks it.
+                // Leaflet appends the popup container to the pane before setting its innerHTML,
+                // so these images are already in the document and the capture-phase listener
+                // on `document` sees their non-bubbling error events.
                 membersToShow.forEach(member => {
                     popupContent += `
                         <div class="popup-member-item">
-                            <img src="${member.ImageUrl}" alt="${member.FullName}" class="popup-member-avatar" onerror="this.src='/images/default-avatar.webp';" />
+                            <img src="${member.ImageUrl}" alt="${member.FullName}" class="popup-member-avatar" data-avatar-fallback />
                             <div class="popup-member-info">
                                 <p class="popup-member-name">${member.FullName}</p>
                                 <p class="popup-member-nickname">${member.Nickname}</p>
