@@ -1,5 +1,6 @@
 @namespace RTUB.Shared
 @using Microsoft.Extensions.Logging
+@using RTUB.Application.DTOs
 @inject IJSRuntime JSRuntime
 @inject ILogger<PushNotificationToggle> Logger
 
@@ -70,33 +71,17 @@
         {
             try
             {
-                // Check if user has access via API using JavaScript fetch
-                var statusJson = await JSRuntime.InvokeAsync<string>("eval", @"
-                    (async function() {
-                        try {
-                            const response = await fetch('/api/push/status', { credentials: 'include' });
-                            if (!response.ok) return null;
-                            const data = await response.json();
-                            return JSON.stringify(data);
-                        } catch (e) {
-                            console.error('Error fetching push status:', e);
-                            return null;
-                        }
-                    })()
-                ");
+                // Check if user has access via the API.
+                // syncOptOut: false - a read-only status fetch. The toggle must not reconcile the
+                // local opted-out cache as a side effect of rendering; only the Prompt path does.
+                var status = await JSRuntime.InvokeAsync<PushStatusDto?>("pwaHelper.getPushStatus", false);
 
-                if (!string.IsNullOrEmpty(statusJson))
+                if (status != null && status.IsEnabled && status.IsConfigured)
                 {
-                    var status = System.Text.Json.JsonSerializer.Deserialize<PushStatusDto>(statusJson, 
-                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
-                    if (status != null && status.IsEnabled && status.IsConfigured)
-                    {
-                        HasAccess = true;
-                        
-                        // Initialize push manager
-                        await InitializePushManager();
-                    }
+                    HasAccess = true;
+
+                    // Initialize push manager
+                    await InitializePushManager();
                 }
             }
             catch (Exception ex)
@@ -115,44 +100,19 @@
     {
         try
         {
-            var initialized = await JSRuntime.InvokeAsync<bool>("eval", @"
-                (async function() {
-                    // Always create a fresh manager instance
-                    // Use rtubPushManager to avoid conflicts with native pushManager
-                    const manager = new PushNotificationsManager();
-                    const success = await manager.initialize();
-                    if (success) {
-                        window.rtubPushManager = manager;
-                        return true;
-                    }
-                    return false;
-                })()
-            ");
+            // Creates a fresh manager and stores it on window.rtubPushManager
+            var initialized = await JSRuntime.InvokeAsync<bool>("pwaHelper.initializePushManager");
 
             // Only check subscription status if initialization succeeded
             if (initialized)
             {
-                IsSubscribed = await JSRuntime.InvokeAsync<bool>("eval", @"
-                    (async () => {
-                        if (window.rtubPushManager && typeof window.rtubPushManager.isSubscribed === 'function') {
-                            return await window.rtubPushManager.isSubscribed();
-                        }
-                        return false;
-                    })()
-                ");
+                IsSubscribed = await JSRuntime.InvokeAsync<bool>("pwaHelper.isSubscribedToPush");
 
                 // Show Android notification hint if subscribed but on Android
                 // Android 13+ may have OS-level notification blocking even when browser permission is granted
                 if (IsSubscribed)
                 {
-                    ShowAndroidHint = await JSRuntime.InvokeAsync<bool>("eval", @"
-                        (function() {
-                            var ua = navigator.userAgent || '';
-                            var isAndroid = /Android/i.test(ua);
-                            var isPwa = window.pwaHelper && window.pwaHelper.isPwaMode();
-                            return isAndroid && isPwa;
-                        })()
-                    ");
+                    ShowAndroidHint = await JSRuntime.InvokeAsync<bool>("pwaHelper.isAndroidPwa");
                 }
             }
         }
@@ -160,13 +120,6 @@
         {
             Logger.LogError(ex, "Error initializing push manager");
         }
-    }
-
-    private class PushStatusDto
-    {
-        public bool IsEnabled { get; set; }
-        public bool IsConfigured { get; set; }
-        public string? VapidPublicKey { get; set; }
     }
 
     private async Task HandleToggleChange(ChangeEventArgs e)
@@ -191,14 +144,7 @@
 
         try
         {
-            var success = await JSRuntime.InvokeAsync<bool>("eval", @"
-                (async () => {
-                    if (window.rtubPushManager && typeof window.rtubPushManager.subscribe === 'function') {
-                        return await window.rtubPushManager.subscribe();
-                    }
-                    throw new Error('RTUB Push manager not available or subscribe method missing');
-                })()
-            ");
+            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", true);
 
             if (success)
             {
@@ -227,14 +173,7 @@
 
         try
         {
-            var success = await JSRuntime.InvokeAsync<bool>("eval", @"
-                (async () => {
-                    if (window.rtubPushManager && typeof window.rtubPushManager.unsubscribe === 'function') {
-                        return await window.rtubPushManager.unsubscribe();
-                    }
-                    throw new Error('RTUB Push manager not available or unsubscribe method missing');
-                })()
-            ");
+            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", false);
 
             if (success)
             {

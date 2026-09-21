@@ -5,137 +5,132 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **021 (security headers + CSP readiness) - COMPLETE, uncommitted, awaiting
-owner review.** Unit 020 is merged to `dev` at `69a1c88f`.
+Modernization unit **022 (remove all eval-based JS interop) - COMPLETE, uncommitted, awaiting
+owner review.** Unit 021 is merged to `dev` at `e03f4a5d`.
 
 ## Branch
-`fix/021/security-headers-csp-readiness`, branched from `dev` (clean, in sync with `origin/dev` at
-`69a1c88f`). Uncommitted - no commit authorized.
+`fix/022/remove-eval-interop`, branched from `dev` (clean, in sync with `origin/dev` at
+`e03f4a5d`). Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020` still present; delete when convenient.
+`fix/020`, `fix/021` still present; delete when convenient.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
 not read for change and not touched by 021. It remains available as a future unit.
 
 ## Last completed step
-**Unit 021 - four browser security headers added in one central middleware.
-Content-Security-Policy is DEFERRED on evidence, not shipped weak.**
+**Unit 022 - every `eval` JS interop call removed. Final count: 0.**
+C# now passes DATA to named JS functions; it never builds JavaScript source.
 
-### Headers found BEFORE 021
-Measured against live production, not inferred:
-`curl -I https://rtub.azurewebsites.net/health` returns exactly one security header -
-**`Strict-Transport-Security: max-age=2592000`**. Nothing else.
-
-| Header | Before | Source |
+### The 15 `eval` sites that existed before 022 (6 files)
+| File | Sites (pre-022 lines) | What it did |
 | --- | --- | --- |
-| `Strict-Transport-Security` | **present**, `max-age=2592000` | `app.UseHsts()`, `Program.cs`, non-Development only |
-| `X-Content-Type-Options` | absent | - |
-| `Referrer-Policy` | absent | - |
-| `X-Frame-Options` | absent | - |
-| `Permissions-Policy` | absent | - |
-| `Content-Security-Policy` | absent | - |
+| `src/RTUB.Shared/Components/UI/PushNotificationToggle.razor` | 6 (`:74, :118, :135, :148, :194, :230`) | fetch `/api/push/status`; build `PushNotificationsManager`; `isSubscribed`; Android+PWA probe; subscribe; unsubscribe |
+| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor` | 2 (`:83, :145`) | `Notification.permission === 'granted'`; `validateAndRefreshSubscription` |
+| `src/RTUB.Shared/Components/Cards/NaipeCard.razor` | 2 (`:132, :147`) | interpolated `[data-naipe-id="{Id}"] video` -> `play()` / `pause()` |
+| `src/RTUB.Web/Pages/Index.razor` | 2 (`:264, :287`) | Bootstrap carousel init; `.portal-section` scroll-reveal IntersectionObserver |
+| `src/RTUB.Web/Pages/Media/Gallery.razor` | 2 (`:1411, :1419`) | interpolated `[data-gallery-id="{mediaId}"] video` -> `play()` / `pause()` |
+| `src/RTUB.Web/Pages/Media/Albums.razor` | 1 (`:698`) | interpolated `getElementById('{key}').scrollIntoView(...)` |
 
-A repo-wide grep for every one of those header names across `*.cs`, `*.razor`, `*.json`, `*.js`,
-`*.ts`, `*.config`, `*.yml`, `*.html` returned **zero hits**. There is **no `web.config`, no
-`staticwebapp.config.json`, no `*.pubxml`**, and `.github/workflows/ci.yml` sets no app settings
-and no headers. **Azure App Service supplies nothing** beyond what the app itself emits - the
-`Server: Kestrel` response confirms there is no IIS layer adding any.
+Three of these interpolated a C# value straight into JavaScript source. That injection surface is
+gone: every id is now an ordinary argument, and the Gallery selector is built inside JS through
+`CSS.escape`.
 
-So the earlier audit note "no meaningful CSP/security-header setup" was right about CSP but
-**wrong about HSTS**, which has been live all along.
+### Replacement strategy - reuse first, smallest new helper second
+**No parallel push architecture. No IJSObjectReference lifecycle. No ES modules, no bundler, no
+package** - the codebase uses global helper namespaces loaded by `<VersionedAsset>`, and 022 stays
+consistent with that.
 
-### Headers ADDED (one `app.Use` block, `Program.cs`, before `UseHttpsRedirection`)
-| Header | Value | Why this value |
+**Push (`wwwroot/js/pwa-helper.js`, +5 functions and 1 optional parameter, 0 new files).** Two
+of the six Toggle sites needed **no new implementation at all** - `pwaHelper.getPushStatus` and
+`pwaHelper.initializePushManager` already existed and already did exactly that work, so the Toggle
+now calls the same helpers the Prompt has always used. The other four are thin named wrappers,
+each a literal transcription of the `eval` body it replaces:
+
+| New `pwaHelper` function | Replaces | Semantics preserved |
 | --- | --- | --- |
-| `X-Content-Type-Options` | `nosniff` | RTUB serves user-uploaded media plus JSON/manifest documents. Zero-risk, real value. |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Origin-only on the `target="_blank"` links out to YouTube/Spotify, nothing on downgrade. Codifies what current browsers already default to - it changes nothing on a modern browser and is insurance for one that does not. |
-| `X-Frame-Options` | `DENY` | See the framing verification below. |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` | Exactly the four capability APIs verified unused. |
+| `setPushSubscription(enable)` | Toggle subscribe **and** unsubscribe | **Rethrows** when the manager is missing, with the same message - that throw is what makes the Toggle show its error alert. Deliberately *not* `subscribeToPush`, which swallows the error and would have silently changed the UX. |
+| `isSubscribedToPush()` | Toggle `:135` | `false` when no manager |
+| `isAndroidPwa()` | Toggle `:148` | `/Android/i` **and** `isPwaMode()`. Not `getAndroidClientMode()`, which returns `TWA` for an Android TWA where the old expression returned `true`. |
+| `isPushPermissionGranted()` | Prompt `:83` | `Notification.permission === 'granted'`, now guarded by `'Notification' in window` |
+| `validateAndRefreshPushSubscription()` | Prompt `:145` | `'error'` when no manager |
 
-Placement: registered **after** the `UseExceptionHandler`/`UseHsts` block and **before**
-`UseHttpsRedirection`, `UseResponseCompression`, `UseRouting`, `UseStaticFiles`, the
-`/_blazor/initializers` short-circuit and every endpoint - so all of those are covered, including
-static assets and 404s. Because `UseExceptionHandler` is registered upstream and **re-executes the
-pipeline**, the middleware runs a second time on an error response; the headers are therefore
-assigned **by indexer, not `Append`**, so re-execution is idempotent. A test pins that.
+`PushNotificationsManager`, `window.rtubPushManager`, the service-worker registration paths, the
+subscription model and the `/api/push/*` endpoints are **untouched**. No fetch moved between C#
+and JS.
 
-One `app.Use` block in `Program.cs`, ~13 effective lines. **No new file, no extra package**, and
-no `Response.Headers` assignment was added to any page or controller.
+**Media (`wwwroot/js/mediaPreview.js`, new, ~40 lines, `window.rtubMediaPreview`).**
+`play(video)` / `pause(video)` take the element directly - `NaipeCard` already had
+`@ref="videoElement"` on its `<video>`, so it passes the `ElementReference` and the CSS selector
+is gone entirely. `playInGalleryCard(id)` / `pauseInGalleryCard(id)` take the id as data because
+`Gallery`'s `<video>` sits inside a `@foreach` with no `@ref`; that selector is assembled **inside
+JS** via `CSS.escape`. `play` returns the `play()` promise, exactly as the old `eval` expression
+did, so rejection behaviour across the interop boundary is unchanged.
 
-### `X-Frame-Options: DENY` - why DENY and not SAMEORIGIN
-Verified before choosing, not assumed. **RTUB never embeds itself:**
-- no `window.top` / `window.parent` / `window.self` framing logic anywhere in `src/`;
-- the PWA manifest is `"display": "standalone"` - not a framed surface;
-- the Android TWA (`/.well-known/assetlinks.json`) uses a Chrome Custom Tab, **not an iframe**;
-- no external identity provider, so no OAuth popup/frame handshake.
+**Homepage (`wwwroot/js/home.js`, new, ~50 lines, `window.rtubHome`).** `initCarousel()` and
+`revealSections()` are transcriptions of the two `Index.razor` blocks - same carousel options,
+same `threshold: 0.05` / `rootMargin: '0px 0px 80px 0px'`, same `window.innerHeight + 80`
+pre-reveal test, same `unobserve` on reveal. Nothing simplified. Not folded into `scrollSpy.js`:
+the carousel is not scroll behaviour, and `rtubScrollSpy` stays what it is.
 
-The app **does** contain two `<iframe>`s - `Pages/Media/Songs.razor:175` and
-`Pages/Public/Roles.razor:730`, both PDF viewers. Both embed **R2-hosted** documents, whose
-framing is governed by **R2's** response headers, not RTUB's. `X-Frame-Options` on RTUB's own
-responses cannot affect them. DENY is therefore safe and strictly better than SAMEORIGIN for a
-Blazor Server circuit.
+**Scroll (`wwwroot/js/scrollHelper.js`, new, 12 lines, `window.rtubScroll`).** `toElement(id)` is
+`getElementById(id)?.scrollIntoView({behavior:'smooth', block:'start'})` - same behaviour, same
+block. Deliberately **not** `rtubScrollSpy.scrollToSection`, which is landing-page specific (it
+adds `in-view` and offsets by `.portal-sticky-nav`) and would have changed what Albums does.
 
-### `Permissions-Policy` - why only four directives
-No copied deny-list. A grep for `navigator.geolocation`, `getUserMedia`, `navigator.mediaDevices`,
-`requestFullscreen`, `navigator.clipboard`, `capture=`, `PaymentRequest`, `navigator.usb`,
-`navigator.bluetooth`, `navigator.xr`, `DeviceOrientation` and `accelerometer` across
-`wwwroot/js/`, `Pages/`, `Shared/` and `RTUB.Shared` found **exactly one capability API in use:
-`navigator.clipboard`** (`wwwroot/js/clipboardCopy.js:54`, `Pages/Share.razor:88`).
+All three new files are plain hand-written `wwwroot/js`, registered in
+`src/RTUB.Web/Shared/MainLayout.razor` next to `scrollSpy.js`. **No inline `<script>` added.**
 
-- **Denied** (verified unused): `camera`, `microphone`, `geolocation`, `payment`. With 15 `eval`
-  sites still live (below), denying device access that RTUB never asks for is genuine
-  defence-in-depth against XSS escalation, not theatre.
-- **Deliberately NOT denied:** `clipboard-write` - **in use**, denying it would break Share and
-  the copy helper; `fullscreen` - **in use**, `Songs.razor` and `Roles.razor` carry
-  `allow="fullscreen"` on the PDF iframes, and `fullscreen=()` would break them.
-- **Deliberately omitted entirely:** `usb`, `bluetooth`, `serial`, `hid`, `midi`,
-  `xr-spatial-tracking`, `magnetometer`, `gyroscope`, `accelerometer` and the rest of the long
-  tail. Directive support is inconsistent across browsers and the real-world risk for this app is
-  not measurable - this is exactly the copied deny-list the brief ruled out.
+### Security - no `eval` substitute introduced
+The changed code was grepped for `new Function`, `setTimeout("string")`, `setInterval("string")`,
+`innerHTML`, `document.write`, `javascript:` URLs and script-element injection: **zero hits**.
+Removing the C# interpolation also removed three string-injection points.
 
-### CSP - **DEFERRED**, and the blockers are exact
-A policy that keeps RTUB working today would need **both `'unsafe-eval'` and `'unsafe-inline'`**
-for `script-src`. That is worth less than no policy, so none was shipped.
+### Behaviour delta - found in review, then removed
+The first cut of 022 had `PushNotificationToggle` call `pwaHelper.getPushStatus` bare. That helper
+also reconciles the local `rtub-push-opted-out` cache (`markOptedOut` / `clearOptedOut`) from the
+server's `isOptedOut` - **a side effect the Toggle's `eval` fetch never had.** Owner review caught
+it. Fixed, without duplicating the fetch:
 
-**Blocker 1 - `eval`. 15 call sites, 6 production files.** The earlier audit was right that this
-existed and right about where; it is all still present.
+```js
+getPushStatus: async function(syncOptOut = true) { ... if (syncOptOut && data && ...) { ... } }
+```
 
-| File | Sites |
-| --- | --- |
-| `src/RTUB.Shared/Components/UI/PushNotificationToggle.razor` | 6 (`:74, :118, :135, :148, :194, :230`) |
-| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor` | 2 (`:83, :145`) |
-| `src/RTUB.Shared/Components/Cards/NaipeCard.razor` | 2 (`:132, :147`) |
-| `src/RTUB.Web/Pages/Index.razor` | 2 (`:264, :287`) |
-| `src/RTUB.Web/Pages/Media/Gallery.razor` | 2 (`:1411, :1419`) |
-| `src/RTUB.Web/Pages/Media/Albums.razor` | 1 (`:698`) |
+- `PushNotificationToggle` calls `getPushStatus(false)` - a **read-only** status fetch. Rendering
+  the settings toggle no longer touches the local opt-out flag, exactly as before 022.
+- `PushNotificationPrompt` and every other caller pass **no argument**, so JS applies the
+  `= true` default and their behaviour is byte-identical to pre-022. `PushNotificationPrompt.razor`
+  was not edited for this fix and `PushNotificationPromptTests` still passes unchanged (12 tests,
+  2 pre-existing skips).
+- Pinned by `BootsThrough_NamedHelpers`, which now asserts the Toggle's `getPushStatus` invocation
+  carries the single argument `false`.
 
-All 15 are `JSRuntime.InvokeVoidAsync("eval", ...)` / `InvokeAsync<T>("eval", ...)` - **string
-dispatch across the C#/JS interop boundary**. A plain `grep -E "\beval\s*\("` finds **none of
-them**; the graph has no edge there either. They are found only by grepping the literal `"eval"`.
-Worth remembering: this is the failure mode `CLAUDE.md` warns about for interop.
+**022 therefore has no behavioural delta.** Everything else - gating, ordering, error text, success
+text, icons, the Android hint - is unchanged. The Toggle's private `PushStatusDto` was deleted in
+favour of the existing public `RTUB.Application.DTOs.PushStatusDto` the Prompt already uses, so
+the manual `System.Text.Json` round-trip is gone too.
+
+### CSP inventory carried forward from 021 (still the plan for 025)
+**Blocker 1 - `eval`: CLEARED by 022.** `'unsafe-eval'` is no longer needed.
 
 **Blocker 2 - inline `<script>`, 3 production blocks.** `src/RTUB.Web/App.razor:27` (service-worker
 registration, must stay in `<head>` for PWABuilder detection),
-`src/RTUB.Web/Shared/MainLayout.razor:343` (`Blazor.start({...})` with the SignalR circuit config
-plus the offcanvas auto-dismiss handler), `src/RTUB.Web/wwwroot/offline.html:77`. Each needs a
-nonce or a hash. A nonce is the harder one here: `App.razor` is the root document and `MainLayout`
-feeds `HeadOutlet`, so the nonce has to reach both from the request.
+`src/RTUB.Web/Shared/MainLayout.razor` (`Blazor.start({...})` with the SignalR circuit config plus
+the offcanvas auto-dismiss handler), `src/RTUB.Web/wwwroot/offline.html:77`. Each needs a nonce or
+a hash. A nonce is the harder one: `App.razor` is the root document and `MainLayout` feeds
+`HeadOutlet`, so the nonce has to reach both from the request. **This is unit 023.**
 
 **Blocker 3 - inline styles.** **11 `<style>` blocks** in production `.razor` files plus
 `offline.html`, and **213 `style="..."` attributes across 29 `.razor` files**. Both forms are
-covered by `style-src`, so a policy without `'unsafe-inline'` needs all of them moved out. (Note
-for whoever picks this up: Bootstrap's *runtime* CSSOM writes - `el.style.x = ...` for offcanvas
-and modal transforms - are **not** CSP-governed and are not a blocker.)
+covered by `style-src`. (Bootstrap's *runtime* CSSOM writes - `el.style.x = ...` for offcanvas and
+modal transforms - are **not** CSP-governed and are not a blocker.) **Unit 024.**
 
 **Blocker 4 - the R2 origin is runtime configuration, not a constant.** `img-src`, `media-src` and
 `frame-src` all need the Cloudflare R2 public origin, which comes from `Cloudflare:R2:PublicUrl`
 (e.g. `https://pub-xxx.r2.dev`) and is **stored absolute in the database**. The policy string has
-to be built from `IConfiguration` at startup, not written as a literal. Not hard - but it is work,
-and getting it wrong dark-breaks every image.
+to be built from `IConfiguration` at startup, not written as a literal.
 
-**Not blockers - the external origins are known and enumerable.** Verified by reading what the
-browser actually loads, not by guessing:
+**Not blockers - the external origins, verified in 021 by reading what the browser loads:**
 - `script-src`: `https://cdnjs.cloudflare.com` (cropper.js), `https://unpkg.com` (leaflet, SRI
   pinned), `https://cdn.jsdelivr.net` (pixi.js)
 - `style-src`: `https://cdnjs.cloudflare.com` (cropper.css), `https://unpkg.com` (leaflet.css,
@@ -143,36 +138,27 @@ browser actually loads, not by guessing:
 - `img-src`: `'self' data:` plus `https://*.basemaps.cartocdn.com`
   (`wwwroot/js/memberMap.js:72` tile layer) plus the R2 origin
 - `connect-src`: `'self'` - the `_blazor` WebSocket is **same-origin**, and CSP3 `'self'` matches
-  `wss:` to the same host. The service worker (`wwwroot/service-worker.js`) fetches **nothing
-  cross-origin**: every `fetch` is same-origin (`/api/push/*`, cached assets).
+  `wss:` to the same host. The service worker fetches **nothing** cross-origin.
 - `frame-src`: the R2 origin only (the two PDF viewers)
-- `font-src`: `'self'` - **`https://fonts.googleapis.com` is a dead `preconnect`/`dns-prefetch`
-  in `App.razor:24-25` with no matching stylesheet link and no `@font-face`. Nothing loads from
-  it.** Do not add it to a policy; delete the hint instead (recorded in *Deferred*).
+- `font-src`: `'self'` - `https://fonts.googleapis.com` is a **dead** `preconnect`/`dns-prefetch`
+  in `App.razor:24-25` with no matching stylesheet and no `@font-face`. Do not add it to a policy;
+  delete the hint instead (carried in *Deferred*).
 - YouTube / Spotify / Instagram / Facebook appear only as `<a href target="_blank">`
-  **navigations**, never embeds - so they need **no** directive at all.
+  **navigations**, never embeds - so they need **no** directive.
 
-That inventory is the useful output of 021: when the blockers are cleared, the policy can be
-written from it without re-auditing.
+The four security headers shipped by 021 (`X-Content-Type-Options: nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`,
+`Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`) and the HSTS decision
+(already live at `max-age=2592000`; no `includeSubDomains`, no `preload`, because RTUB does not own
+the `azurewebsites.net` apex) are unchanged by 022.
 
-### HTTPS / HSTS - conclusion: change nothing
-- **HSTS is already live and correct**: `UseHsts()` runs in every non-Development environment and
-  production returns `max-age=2592000` (30 days). **Not touched.**
-- **`includeSubDomains` and `preload` deliberately NOT added.** Production is
-  `rtub.azurewebsites.net` - RTUB does **not own** the `azurewebsites.net` apex, which is shared
-  Microsoft infrastructure. Asserting a subdomain-wide or preload-list policy from a tenant of a
-  shared domain is wrong, and `preload` is effectively irreversible. Revisit only if RTUB moves to
-  a domain it owns.
-- **`UseHttpsRedirection` left skipped outside Development.** Unchanged, by prior decision: 014
-  flagged it and the 2026-09-21 forwarded-headers confirmation made the skip redundant rather than
-  load-bearing. Removing it is a production request-pipeline behaviour change and is its own unit,
-  not a ride-along on a headers change. Still carried in *Deferred*.
-
-### Browser validation - not run, and why that is correct
-The brief requires a browser smoke run **only if CSP is enabled**. It is not. No frontend source
-changed, no runtime frontend behaviour changed, and the four added headers do not alter rendering
-or script execution. The seven integration tests exercise the real middleware pipeline end to end
-(pages, a static file, a 404, `/health`), which is the proof that was actually needed.
+**`Program.cs` is NOT touched by 022.** An earlier cut of this unit refreshed the CSP explanatory
+comment there; owner review ruled it out of scope and the file was reverted to its merged 021
+state. Consequence to know about: that comment at `Program.cs:337` now **understates** the
+position - it still reads "RTUB still dispatches 15 `JSRuntime.InvokeAsync("eval", ...)` calls",
+which 022 made false. It is a comment only, with no runtime effect. **Unit 023 owns that comment**
+- it edits the same inline-`<script>` blocks the comment describes, so it can correct both in one
+place.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -228,27 +214,24 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 021 is complete and awaiting owner review.
+None active. Unit 022 is complete and awaiting owner review.
 
 ## Next unit
-**022 - remove the `eval` interop, so a CSP becomes possible.** The smallest unit that clears the
-largest CSP blocker, and **not** a frontend refactor. Scope: the **15** `JSRuntime` `"eval"` call
-sites in the 6 files tabulated above, replaced by named functions in the `wwwroot/js/` modules
-that already exist for these areas (`push-notifications.js` covers the two push components;
-`scrollSpy.js` / `mediaSession.js` are the natural homes for the scroll and video cases). No
-nonce architecture, no inline-style work, no CSP header in 022 - those are separate.
-Note for 022: `tests/RTUB.Shared.Tests/Components/UI/PushNotificationToggleTests.cs` sets up
-bUnit `JSInterop` against the **`"eval"` identifier and the script text** (`EvalScriptContains`),
-so those setups must move to the new function names in the same unit or they will fail.
+**023 - inline `<script>` removal / nonce-or-hash for the 3 remaining blocks.** With `eval` gone,
+`'unsafe-inline'` on `script-src` is the last thing standing between RTUB and a real CSP. Scope:
+`src/RTUB.Web/App.razor:27` (service-worker registration - must stay in `<head>` for PWABuilder
+detection), `src/RTUB.Web/Shared/MainLayout.razor` (`Blazor.start({...})` circuit config plus the
+offcanvas auto-dismiss handler) and `src/RTUB.Web/wwwroot/offline.html:77`. Pick nonce or hash per
+block; the nonce path has to reach both the root document and `HeadOutlet` from the request.
+Still **no CSP header in 023**.
 
-Then, in order: **023** inline `<script>` removal / nonce-or-hash for the 3 blocks; **024** inline
-styles (11 `<style>` blocks + 213 `style=` attributes); **025** enable CSP itself, built from the
-directive inventory recorded above, with the R2 origin read from `Cloudflare:R2:PublicUrl` - and
-with the browser smoke run 021 did not need.
+Then, in order: **024** inline styles (11 `<style>` blocks + 213 `style=` attributes); **025**
+enable CSP itself, built from the directive inventory above, with the R2 origin read from
+`Cloudflare:R2:PublicUrl`, and a browser smoke run.
 
-Also still available, deliberately not taken in 021: **password-policy review / hardening**
-(Identity is `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
-`ServiceCollectionExtensions.cs`) - the owner skipped it for this unit.
+Also still available, deliberately not taken: **password-policy review / hardening** (Identity is
+`RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
+`ServiceCollectionExtensions.cs`) - the owner skipped it in 021.
 Still queued, not security: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests,
 which also unblocks `MockQueryable.Moq 10.0.12`.
 
@@ -339,12 +322,12 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   was out of 019's; the framework composition did not eliminate it.
 
 ### Raised by 021, deliberately not changed
-- **CSP is not enabled.** Four blockers, enumerated exactly in *Last completed step*: 15 `eval`
-  interop sites, 3 inline `<script>` blocks, 11 `<style>` blocks + 213 `style=` attributes, and
-  the R2 origin only being known at runtime. Units 022-025 above clear them in that order. No
-  `Content-Security-Policy-Report-Only` was shipped either - a report-only policy is worth adding
-  once the blockers are down and it can report something actionable, not while it would report
-  every page load.
+- **CSP is not enabled.** Of the four blockers enumerated in *Last completed step*, the first -
+  the 15 `eval` interop sites - is **cleared by 022**. Three remain: 3 inline `<script>` blocks
+  (023), 11 `<style>` blocks + 213 `style=` attributes (024), and the R2 origin only being known
+  at runtime (025). No `Content-Security-Policy-Report-Only` was shipped either - a report-only
+  policy is worth adding once the blockers are down and it can report something actionable, not
+  while it would report every page load.
 - **`Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` / `Cross-Origin-Resource-Policy`
   were not added.** Outside the brief, and COOP in particular needs its own check of the
   `LoginPopup` flow and anything relying on `window.opener` before it can be called safe. Cheap to
@@ -382,63 +365,152 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   it cannot be mocked and no test covers an actual send, a retry, or 404/410 cleanup. Also: two
   service-worker registration paths, unbounded `BroadcastAsync` fan-out, no `CancellationToken`,
   no delivery metrics.
+### Raised by 022, deliberately not changed
+- **`src/RTUB.Web/wwwroot/js/rtub.carousel.js` is dead.** A minified Bootstrap-Carousel fallback
+  shim that self-registers on `DOMContentLoaded` and immediately bails when `bootstrap.Carousel`
+  exists. It is referenced by **no** `<VersionedAsset>`, no `<script>` and no interop call, so it
+  is never loaded at all. Delete it, or wire it up deliberately - 022 left it exactly as it was.
+- **`PushNotificationsManager` is still constructed inside `pwaHelper.initializePushManager` and
+  parked on `window.rtubPushManager`.** 022 kept that arrangement on purpose (it is the push
+  architecture, not the eval cleanup). The push-modernization unit owns it.
+
 - **Phase 1C:** remaining optional custom skills — deliberately not created.
 - Work-branch cleanup (`chore/001`–`chore/011`) — delete when convenient.
 - Two `graphifyy 0.9.56 + MCP` installs (isolated venv, Microsoft-Store Python user site). The
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
-## Relevant files (unit 021)
-Changed (2):
-- `src/RTUB.Web/Program.cs` - **the only production file touched.** One `app.Use` security-header
-  block inserted between the `UseExceptionHandler`/`UseHsts` block and `UseHttpsRedirection`,
-  carrying the four headers plus the reasoning for the placement, the indexer assignment, and the
-  CSP omission. Nothing else in the file was edited - `UseHsts`, `UseHttpsRedirection`,
-  `UseResponseCompression`, `UseResponseCaching`, `UseRouting`, `UseRateLimiter`, the
-  `UseStaticFiles` branch and its `Cache-Control` rules, the `/_blazor/initializers` short-circuit
-  and every endpoint are byte-for-byte unchanged.
-- `tests/RTUB.Integration.Tests/SecurityHeaderTests.cs` - **new**, 7 tests.
+## Relevant files (unit 022)
+Production changed (7):
+- `src/RTUB.Shared/Components/UI/PushNotificationToggle.razor` - 6 `eval` sites -> 6 named
+  `pwaHelper.*` calls; private `PushStatusDto` deleted; `@using RTUB.Application.DTOs` added.
+- `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor` - 2 `eval` sites -> 2 named calls.
+  Nothing else in the component touched.
+- `src/RTUB.Shared/Components/Cards/NaipeCard.razor` - 2 sites -> `rtubMediaPreview.play/pause`
+  with the existing `videoElement` `ElementReference`.
+- `src/RTUB.Web/Pages/Index.razor` - 2 sites -> `rtubHome.initCarousel` / `rtubHome.revealSections`.
+  The `rtubScrollSpy.init` call between them is untouched.
+- `src/RTUB.Web/Pages/Media/Gallery.razor` - 2 sites -> `rtubMediaPreview.*InGalleryCard(mediaId)`.
+- `src/RTUB.Web/Pages/Media/Albums.razor` - 1 site -> `rtubScroll.toElement(key)`.
+- `src/RTUB.Web/Shared/MainLayout.razor` - 3 `<VersionedAsset>` lines added next to `scrollSpy.js`.
 
-Read and deliberately **not** changed: `App.razor` (inline script, dead font preconnect),
-`Shared/MainLayout.razor` (inline script, CDN tags), `wwwroot/service-worker.js`,
-`wwwroot/offline.html`, `wwwroot/js/memberMap.js`, `Pages/Media/Songs.razor`,
-`Pages/Public/Roles.razor`, the 6 `eval` components, `Extensions/ServiceCollectionExtensions.cs`
-(password policy - skipped by owner decision), `.github/workflows/ci.yml`, `appsettings*.json`.
+JS changed (1) / new (3):
+- `src/RTUB.Web/wwwroot/js/pwa-helper.js` - **+5 functions**, inserted before
+  `getAndroidClientMode`, plus **one optional parameter** on the existing `getPushStatus`
+  (`syncOptOut = true`), which leaves every pre-existing caller on its current behaviour.
+  Nothing else edited, nothing removed.
+- `src/RTUB.Web/wwwroot/js/mediaPreview.js` - **new**, `window.rtubMediaPreview`.
+- `src/RTUB.Web/wwwroot/js/home.js` - **new**, `window.rtubHome`.
+- `src/RTUB.Web/wwwroot/js/scrollHelper.js` - **new**, `window.rtubScroll`.
 
-## Tests (7 new, 0 removed, 0 existing assertions changed)
-**`SecurityHeaderTests` (new, 7).** Only the headers RTUB intentionally sets are asserted.
-CSP is **not** asserted in either direction, so enabling it in a later unit needs no edit here -
-as the brief required. `Strict-Transport-Security` is not asserted either: `UseHsts` only runs
-outside Development and the test host is not a production environment, so asserting it would pin
-a value the test host never produces.
-1-3. `Page_CarriesEverySecurityHeader` - `[Theory]` over `/`, `/login`, `/Events`; asserts the
-   exact value of all four headers. Three cases.
-4. `StaticFile_CarriesSecurityHeaders` - `/manifest.webmanifest`, proving the middleware sits
-   ahead of the `UseStaticFiles` branch and is not endpoint-only.
-5. `NotFound_CarriesSecurityHeaders` - an unrouted path still carries them.
-6. `HealthEndpoint_CarriesSecurityHeaders` - `/health`, the one endpoint mapped outside the
-   Razor component pipeline.
-7. `Headers_AreSetOnce_NotAppendedPerPass` - each header has exactly one value. This is the test
-   that pins the indexer-not-`Append` choice; with `Append` a re-executed pipeline would emit
-   duplicates.
+Read and deliberately **not** changed: `wwwroot/js/push-notifications.js` (the whole
+`PushNotificationsManager` class), `wwwroot/js/sw-register.js`, `wwwroot/service-worker.js`,
+`wwwroot/js/scrollSpy.js`, `wwwroot/js/scrollToTop.js`, `wwwroot/js/modalHelper.js`,
+`wwwroot/js/rtub.carousel.js` (an unreferenced Bootstrap fallback shim - left alone, recorded in
+*Deferred*), `App.razor` and `MainLayout.razor`'s inline `<script>` blocks (unit 023),
+`src/RTUB.Application/DTOs/PushStatusDto.cs`, `PushController`, and - after the review revert -
+**`src/RTUB.Web/Program.cs`**, which carries no 022 change at all.
 
-No credential literal. No existing test file was opened or modified.
+## Tests (1 file rewritten: 8 -> 15, net +7; 0 other test files touched)
+**`tests/RTUB.Shared.Tests/Components/UI/PushNotificationToggleTests.cs` - rewritten.** The
+`EvalScriptContains` helper and every `JSInterop.Setup<T>("eval", ...)` are **gone**; no test
+asserts generated JavaScript source anywhere in the repo any more. Setups now name the real
+helpers (`pwaHelper.getPushStatus`, `initializePushManager`, `isSubscribedToPush`, `isAndroidPwa`,
+`setPushSubscription`) and assert on argument values.
+The 8 original behaviours are all still covered; 7 tests are new:
+1. `StaysGraceful_WhenPushNotConfigured` - unconfigured server: no toggle, no error, and
+   `initializePushManager` is never called.
+2. `BootsThrough_NamedHelpers` - the boot sequence uses the three named identifiers, `"eval"` is
+   absent, and `getPushStatus` is called with the single argument **`false`** (`syncOptOut`), which
+   pins the read-only status fetch described above.
+3. `SkipsSubscriptionCheck_WhenInitializeFails` - no manager means `isSubscribedToPush` is never
+   invoked.
+4. `ShowsAndroidHint_WhenSubscribedOnAndroidPwa` - the hint comes from the named probe.
+5. `HidesAndroidHint_WhenNotAndroidPwa` - the negative case.
+6. `Unsubscribes_WithFalseArgument` - same helper, `false` as the data value.
+7. `NeverDispatchesGeneratedScript` - drives the whole subscribe flow, then asserts every
+   identifier is a `pwaHelper.*` function and no string argument looks like JS source. This is the
+   test that keeps `eval` from coming back.
+`Subscribes_WithTrueArgument` replaces the old timing-dependent `ShowsProcessingState_WhenToggling`
+with an assertion that actually pins the contract (`true` -> subscribe).
+`PushNotificationPromptTests` was read and **not changed**: it already mocked only named
+`pwaHelper.*` identifiers, and neither of the Prompt's two replaced calls is exercised by it (they
+sit on the PWA recovery path, which its default `isPwaMode -> false` skips). Its 2 pre-existing
+skips are unrelated and untouched.
 
-## Latest validation (unit 021)
+No credential literal. No `#nullable disable` needed after the rewrite.
+
+## Latest validation (unit 022)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `SecurityHeaderTests` - **7 total, 7 passed**.
-- Full suite, `dotnet test --no-build -c Release`: **4554 passed, 0 failed, 60 skipped**
-  (total 4614). Against the post-020 `dev` baseline of **4547**, the branch is **+7** - exactly
-  the 7 tests listed above (3 `[Theory]` cases + 4 `[Fact]`s). Skipped count unchanged at 60.
-- `git diff --check`: clean.
-- Diff credential scan: no match.
-- **No migration and no model-snapshot change** - no column, no entity, no `DbContext` edit.
-- **No frontend build and no Graphify rebuild** - no frontend source and no application structure
-  changed. Two files total: one production, one new test.
-- **No browser run** - correct per the brief, since CSP was not enabled and no runtime frontend
-  behaviour changed. See *Browser validation* above.
-- Production headers were read live (`curl -I https://rtub.azurewebsites.net/health`) as the
-  *before* evidence; nothing was deployed, pushed or changed on Azure.
-- No unrelated refactor: password policy, MFA, cookie validation, login throttling, PWA
-  architecture, CI/CD, Azure provisioning, dependency servicing and the `eval`/inline-JS cleanup
-  were all left exactly as they were.
+- Focused first: `PushNotificationToggleTests` - **15 total, 15 passed**;
+  `PushNotificationPromptTests` - 12 total, 0 failed, 2 pre-existing skips, **not edited**. Then
+  the whole `RTUB.Shared.Tests` project - 768 total, 0 failed, 2 skipped.
+  Re-run unchanged after the review fixes: the `getPushStatus(false)` change **modified** one
+  existing assertion and **added no test**, so every count below is identical before and after.
+- Full suite: **4561 passed, 0 failed, 60 skipped** (total 4621). Against the post-021 baseline of
+  **4554 passed / 60 skipped**, the branch is **+7 passed, +7 total, skips unchanged** - exactly
+  the 7 new tests listed above. Per project: Core 791, Application 1997, Shared 768, Web 791,
+  Integration 274.
+  **Note on the runner:** `dotnet test` (MTP driver) reports *"Zero tests ran"* for **all five**
+  projects on this machine, including ones 022 never touched - an environment/driver problem, not
+  a regression. The numbers above come from running each `tests/<project>/bin/Release/net10.0/
+  <project>.exe` directly, which gives xUnit v3's native console runner. Worth knowing before
+  someone debugs a phantom failure.
+- **Static scan - the acceptance criterion.** Grepping the literal `"eval"` (not `eval(`, which
+  never matched these) across `src/` and `tests/`, excluding `obj/`, `bin/` and `node_modules/`:
+  **two hits, neither a dispatch** - the (021-authored, 022-untouched) explanatory comment in
+  `Program.cs:337` and the negative assertion in `PushNotificationToggleTests`.
+  `Invoke(Void)?Async[^;]*"eval"` returns **zero**.
+  `Setup...("eval"` in `tests/` returns **zero**. Legitimate English matches (`EvaluateRetirement
+  StatusAsync`, `evaluatorResult`, ...) were separated out and left alone, as required.
+  **Production JSInterop identifiers equal to `"eval"`: 0.**
+- **Frontend build: correctly not run.** `src/RTUB.Web/package.json` drives **only** the three
+  PixiJS bundles (`npm run build:pixi`, `pixi/vite.config.ts`, fired on `BeforePublish`). The four
+  files 022 touches are plain hand-written `wwwroot/js` with no bundling step, so the right
+  validation is a JS parse - `node --check` passes on all four.
+- `git diff --check`: clean. Diff credential scan (including the 3 new files): no match.
+- **No migration and no model-snapshot change.** No entity, column or `DbContext` edit.
+- **No Graphify rebuild** - no application structure changed; only interop call targets moved.
+
+## Browser validation (unit 022) - RUN, unlike 021
+Release build served at `http://localhost:5199` (Development env, local `app.db`, backed up first).
+- **Homepage loads, no JS console errors.** The only console errors on the whole run are
+  service-worker registration failures - **pre-existing and environmental**: `/service-worker.js`
+  itself serves `200 text/javascript`, and no SW file appears in the 022 diff. Zero
+  `is not a function`, zero `ReferenceError`, zero JSInterop identifier errors.
+- All four helper namespaces resolve at runtime: `rtubHome.initCarousel`, `rtubHome.revealSections`,
+  `rtubScroll.toElement`, `rtubMediaPreview.{play,pause,playInGalleryCard,pauseInGalleryCard}` and
+  the 5 new `pwaHelper.*` - all `typeof === "function"`. All 4 JS files serve `200`.
+- **Carousel:** `#homeCarousel` present with exactly 1 active item after `initCarousel`.
+- **Scroll-reveal:** 6 `.portal-section`s, 1 `in-view` at the top of the page, **2 after
+  scrolling** - the IntersectionObserver is live, so `revealSections` reproduced the old behaviour
+  rather than just marking what was already visible.
+- **Albums section scroll:** `rtubScroll.toElement('section-history')` moved the page 0 -> 2902 and
+  left the target 64px from the top (`block:'start'` under the sticky nav). A missing id is a
+  silent no-op. *(Caveat: this exercised the helper directly on the homepage sections; the
+  anonymous `/music` page renders one section and no mobile nav, and the authed mobile-nav path
+  needs a login, which was not performed.)*
+- **Gallery / Naipe video preview:** the live `/gallery` currently holds 9 image cards and 0
+  videos, so hovering could not reach the handler. Instead both code paths were driven directly
+  against instrumented `<video>` elements: `playInGalleryCard(41)`/`(42)` resolved to the correct
+  per-card video and nothing else, and the direct-element path (what `NaipeCard` passes as an
+  `ElementReference`) reached the same element. A **missing id, a `null` element and a hostile id
+  (`1"] video, [x="`) all no-op without throwing** - the `CSS.escape` selector holds.
+- **Push - read-only probes only. No permission was requested, no subscription created or
+  destroyed, no manager instantiated.** `Notification.permission` was `denied` before and after.
+  `getPushStatus()` -> `null` (401 for anonymous, handled gracefully - that 401 is the only other
+  console error and it was self-inflicted by the probe); `isSubscribedToPush()` -> `false`;
+  `validateAndRefreshPushSubscription()` -> `'error'`; `isPushPermissionGranted()` -> `false`;
+  `isAndroidPwa()` -> `false`; `setPushSubscription(true)` **threw** the same message the old
+  `eval` threw - which is exactly what drives the Toggle's error alert. The unsupported /
+  not-configured path stays graceful.
+  *(Limitation: the Toggle and the Prompt's recovery branch need an authenticated session and a
+  working service worker; neither was available, and no credentials were entered. Those paths are
+  covered by the 15 bUnit tests instead.)*
+- No dev server, viewport override or launch config left behind; the local `app.db` was backed up
+  before the run and the app only did its normal idempotent startup seeding.
+- **Not re-run after the review fixes**, by instruction: the only runtime change since the smoke
+  run is the `getPushStatus(syncOptOut = true)` default parameter and the Toggle passing `false`.
+  `node --check` passes on `pwa-helper.js`, existing callers are untouched by JS default-parameter
+  semantics (Blazor sends no argument, so `undefined` selects the default), and the Toggle's
+  argument is pinned by `BootsThrough_NamedHelpers`.

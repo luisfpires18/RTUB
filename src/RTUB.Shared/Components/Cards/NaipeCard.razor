@@ -129,7 +129,7 @@
         {
             try
             {
-                await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-naipe-id=\"{Content.Id}\"] video')?.play()");
+                await JSRuntime.InvokeVoidAsync("rtubMediaPreview.play", videoElement);
             }
             catch
             {
@@ -144,7 +144,7 @@
         {
             try
             {
-                await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-naipe-id=\"{Content.Id}\"] video')?.pause()");
+                await JSRuntime.InvokeVoidAsync("rtubMediaPreview.pause", videoElement);
             }
             catch
             {
