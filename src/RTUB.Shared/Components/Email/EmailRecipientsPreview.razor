@@ -65,7 +65,7 @@
                     </div>
                 }
             </div>
-            <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
+            <div class="subscriber-list @MaxHeightClass">
                 @{
                     var filteredSubscribed = GetFilteredUsers(SubscribedUsers);
                     var subscribedToShow = UsePagination ? GetPagedItems(filteredSubscribed) : filteredSubscribed;
@@ -84,8 +84,7 @@
                         {
                             <img src="@user.ProfilePictureSrc" 
                                  alt="@(user.Nickname ?? user.FirstName)"
-                                 class="member-avatar-small me-2" 
-                                 style="width: 32px; height: 32px; border-radius: 50%;" />
+                                 class="u-w-32 u-h-32 u-rounded-circle member-avatar-small me-2" />
                         }
                         <span class="flex-grow-1">@GetUserDisplayName(user)</span>
                         @if (AdditionalUserInfoFunc != null)
@@ -171,7 +170,7 @@
                     </div>
                 }
             </div>
-            <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
+            <div class="subscriber-list @MaxHeightClass">
                 @{
                     var filteredNonSubscribed = GetFilteredUsers(NonSubscribedUsers);
                     var nonSubscribedToShow = UsePagination ? GetPagedItems(filteredNonSubscribed, isNonSubscribed: true) : filteredNonSubscribed;
@@ -190,8 +189,7 @@
                         {
                             <img src="@user.ProfilePictureSrc" 
                                  alt="@(user.Nickname ?? user.FirstName)"
-                                 class="member-avatar-small me-2" 
-                                 style="width: 32px; height: 32px; border-radius: 50%;" />
+                                 class="u-w-32 u-h-32 u-rounded-circle member-avatar-small me-2" />
                         }
                         <span class="flex-grow-1">@GetUserDisplayName(user)</span>
                         @if (AdditionalUserInfoFunc != null)
@@ -292,6 +290,17 @@
     /// </summary>
     [Parameter]
     public string MaxHeight { get; set; } = "200px";
+
+    /// <summary>
+    /// Maps <see cref="MaxHeight"/> onto the matching subscriber-list modifier class.
+    /// The scroll height lives in CSS so no inline style attribute is emitted.
+    /// </summary>
+    private string MaxHeightClass => MaxHeight switch
+    {
+        "300px" => "subscriber-list--h300",
+        "400px" => "subscriber-list--h400",
+        _ => "subscriber-list--h200"
+    };
 
     /// <summary>
     /// Whether to enable pagination for user lists

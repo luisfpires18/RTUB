@@ -90,7 +90,7 @@
                     <div class="result-subtitle">Arena</div>
                     <div class="result-rewards">
                         <div class="result-reward-row">
-                            <i class="bi bi-graph-up-arrow" style="color: #ffc107;"></i>
+                            <i class="u-c-amber bi bi-graph-up-arrow"></i>
                             @if (currentBattle.RatingChange > 0)
                             {
                                 <span class="text-success">+@currentBattle.RatingChange Rating</span>
@@ -146,10 +146,10 @@
                     </div>
 
                     <!-- Rank Badge -->
-                    <div class="arena-opponent-rank" style="border-color: @myRank.Color;">
-                        <i class="bi @myRank.Icon" style="color: @myRank.Color;"></i>
-                        <span style="color: @myRank.Color; font-weight: 600;">@myRank.Name</span>
-                        <span class="text-muted ms-auto" style="font-size: 0.8rem;">@character.ArenaRating</span>
+                    <div class="arena-opponent-rank rank-tinted @RankHelper.GetRankColorClass(character.ArenaRating)">
+                        <i class="bi @myRank.Icon rank-tinted__icon"></i>
+                        <span class="rank-tinted__name">@myRank.Name</span>
+                        <span class="u-fs-80 text-muted ms-auto">@character.ArenaRating</span>
                     </div>
 
                     <!-- Character Sprite -->
@@ -160,7 +160,7 @@
                     }
                     <div class="text-center my-2">
                         <img src="@CacheBuster.Bust(mySpritePath)" alt="@GetOpponentName(character)"
-                             style="max-height: 100px; object-fit: contain;" loading="lazy" />
+                             class="u-maxh-100 u-of-contain" loading="lazy" />
                     </div>
 
                     <!-- Arena Record -->
@@ -233,10 +233,10 @@
                                 </div>
 
                                 <!-- Rank Badge -->
-                                <div class="arena-opponent-rank" style="border-color: @rank.Color;">
-                                    <i class="bi @rank.Icon" style="color: @rank.Color;"></i>
-                                    <span style="color: @rank.Color; font-weight: 600;">@rank.Name</span>
-                                    <span class="text-muted ms-auto" style="font-size: 0.8rem;">@opponent.ArenaRating</span>
+                                <div class="arena-opponent-rank rank-tinted @RankHelper.GetRankColorClass(opponent.ArenaRating)">
+                                    <i class="bi @rank.Icon rank-tinted__icon"></i>
+                                    <span class="rank-tinted__name">@rank.Name</span>
+                                    <span class="u-fs-80 text-muted ms-auto">@opponent.ArenaRating</span>
                                 </div>
 
                                 <!-- Character Sprite -->
@@ -247,7 +247,7 @@
                                 }
                                 <div class="text-center my-2">
                                     <img src="@CacheBuster.Bust(oppSpritePath)" alt="@GetOpponentName(opponent)"
-                                         style="max-height: 100px; object-fit: contain;" loading="lazy" />
+                                         class="u-maxh-100 u-of-contain" loading="lazy" />
                                 </div>
 
                                 <!-- Player Stats -->

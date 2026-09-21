@@ -225,7 +225,9 @@ public class EmailRecipientsPreviewTests : BunitContext
             .Add(p => p.MaxHeight, "400px"));
 
         // Assert
-        cut.Markup.Should().Contain("max-height: 400px", "custom max height should be applied");
+        // Unit 024 replaced the inline max-height with a modifier class; the pixel
+        // value is pinned in InlineStylePolicyTests.
+        cut.Markup.Should().Contain("subscriber-list--h400", "custom max height should be applied");
     }
 
     [Fact]

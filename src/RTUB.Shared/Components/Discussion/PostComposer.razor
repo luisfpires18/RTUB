@@ -38,7 +38,7 @@
                         @foreach (var s in mentionSuggestions)
                         {
                             var suggestion = s;
-                            <div class="member-item p-2 mb-1 border rounded" @onclick="() => SelectMention(suggestion)" @key="suggestion.userId" style="cursor:pointer;">
+                            <div class="cursor-pointer member-item p-2 mb-1 border rounded" @onclick="() => SelectMention(suggestion)" @key="suggestion.userId">
                                 <div class="d-flex align-items-center">
                                     <img src="@suggestion.avatarUrl" alt="@suggestion.displayName" class="member-avatar-small me-2" width="50" height="50" data-avatar-fallback />
                                     <div>

@@ -1,0 +1,195 @@
+/*
+ * Classes that replaced *dynamic* inline styles (unit 024).
+ *
+ * Hand-written, unlike its generated sibling inline-style-utilities.css.
+ * Three groups:
+ *   1. finite-state modifiers  - the state was one of a few known values
+ *   2. palette classes         - the colour came from a fixed C# lookup table
+ *   3. custom-property hooks   - the value is genuinely runtime data and is
+ *                                applied by js/dynamicStyle.js through the
+ *                                CSSOM, which CSP does not govern
+ *
+ * Imported last in site.css, like the generated utilities.
+ */
+
+/* ============================================================
+   1. Finite-state modifiers
+   ============================================================ */
+
+.u-cursor-not-allowed {
+    cursor: not-allowed;
+}
+
+.u-cursor-default {
+    cursor: default;
+}
+
+/* RoleBadge - per-role colour overrides (was GetRoleBadgeStyle) */
+.role-badge--member {
+    background-color: #007bff;
+    color: white;
+    text-transform: none;
+}
+
+.role-badge--mod {
+    color: #000;
+    text-transform: none;
+}
+
+.role-badge--plain {
+    text-transform: none;
+}
+
+/* Bets - bet option outcome */
+.bet-option--winning {
+    background-color: #28a745;
+    color: white;
+}
+
+.bet-option--mine {
+    background-color: #8a2be2;
+    color: white;
+}
+
+.bet-option--other {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* InfoSection - cancellation-reason panel */
+.modal-info-section--danger {
+    background-color: rgba(220, 38, 38, 0.1);
+    border-left: 4px solid #DC2626;
+}
+
+/* EmailRecipientsPreview - the MaxHeight parameter's three used values */
+.subscriber-list--h200 {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.subscriber-list--h300 {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.subscriber-list--h400 {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* MyTuno - rare set bonus glow on the equip bonus bar */
+.equip-bonus-bar--rare {
+    border-color: #ffd700;
+    box-shadow: 0 0 8px #ffd70066;
+}
+
+/* MyTuno - active forge/upgrades tab button */
+.btn-tab--active {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+
+/* ============================================================
+   2. Palette classes (fixed C# lookup tables)
+   ============================================================ */
+
+/* Arena rank tiers - RankHelper.GetRankColorClass. The tier colour is exposed
+   as --rank-c so the border, icon and name all read the same value. */
+.rank-c-challenger  { --rank-c: #f4c542; }
+.rank-c-grandmaster { --rank-c: #ff4444; }
+.rank-c-master      { --rank-c: #9b59b6; }
+.rank-c-diamond     { --rank-c: #b9f2ff; }
+.rank-c-emerald     { --rank-c: #50c878; }
+.rank-c-platinum    { --rank-c: #7dd8c0; }
+.rank-c-gold        { --rank-c: #ffd700; }
+.rank-c-silver      { --rank-c: #c0c0c0; }
+.rank-c-bronze      { --rank-c: #cd7f32; }
+.rank-c-iron        { --rank-c: #71797e; }
+
+.rank-tinted {
+    border-color: var(--rank-c);
+}
+
+.rank-tinted__icon {
+    color: var(--rank-c);
+}
+
+.rank-tinted__name {
+    color: var(--rank-c);
+    font-weight: 600;
+}
+
+/* Stage-mode biomes - BiomeDisplayHelper.GetBiomeColorClass.
+   --bc is the property the existing biome CSS already consumes. */
+.biome-c-forest      { --bc: #4caf50; }
+.biome-c-swamp       { --bc: #8bc34a; }
+.biome-c-mountains   { --bc: #78909c; }
+.biome-c-snowy       { --bc: #81d4fa; }
+.biome-c-tropical    { --bc: #ff9800; }
+.biome-c-caverns     { --bc: #9c27b0; }
+.biome-c-desert      { --bc: #ffb74d; }
+.biome-c-volcanic    { --bc: #f44336; }
+.biome-c-ruins       { --bc: #795548; }
+.biome-c-sky         { --bc: #64b5f6; }
+.biome-c-underwater  { --bc: #0288d1; }
+.biome-c-underground { --bc: #6d4c41; }
+.biome-c-mechanical  { --bc: #90a4ae; }
+.biome-c-frostfire   { --bc: #26c6da; }
+.biome-c-corruption  { --bc: #ab47bc; }
+.biome-c-dark        { --bc: #37474f; }
+.biome-c-alien       { --bc: #76ff03; }
+.biome-c-void        { --bc: #7c4dff; }
+.biome-c-timerift    { --bc: #e040fb; }
+.biome-c-light       { --bc: #fdd835; }
+.biome-c-arena       { --bc: #ff1744; }
+.biome-c-default     { --bc: #6f42c1; }
+
+/* Survive-mode biomes - BiomeDisplayHelper.GetSurviveBiomeColorClass.
+   Survive mode has its own palette for the same biome names. */
+.survive-biome-c-forest    { --bc: #43a047; }
+.survive-biome-c-swamp     { --bc: #689f38; }
+.survive-biome-c-mountains { --bc: #78909c; }
+.survive-biome-c-snowy     { --bc: #90caf9; }
+.survive-biome-c-tropical  { --bc: #e6a200; }
+.survive-biome-c-caverns   { --bc: #7e57c2; }
+.survive-biome-c-desert    { --bc: #ff8f00; }
+.survive-biome-c-volcanic  { --bc: #e53935; }
+.survive-biome-c-ruins     { --bc: #8d6e63; }
+.survive-biome-c-dark      { --bc: #9575cd; }
+.survive-biome-c-light     { --bc: #fdd835; }
+.survive-biome-c-void      { --bc: #e040fb; }
+.survive-biome-c-default   { --bc: #888; }
+
+/* Biome accents inherit --bc from the enclosing .biome-card */
+.biome-accent {
+    color: var(--bc);
+}
+
+.biome-accent-bg {
+    background: var(--bc);
+}
+
+.u-fs-68 {
+    font-size: 0.68rem;
+}
+
+/* ============================================================
+   3. Custom-property hooks driven by js/dynamicStyle.js
+   ============================================================ */
+
+/* Progress/fill width from data-fill-pct. Falls back to 0% for the one frame
+   before the script applies the value, and if the script never runs. */
+.u-fill-pct {
+    width: var(--fill-pct, 0%);
+}
+
+.u-fill-pct--smooth {
+    transition: width 0.1s linear;
+}
+
+/* Logistics label colour from data-swatch (validated #rrggbb) */
+.u-swatch-bg {
+    background-color: var(--swatch, #6f42c1);
+}

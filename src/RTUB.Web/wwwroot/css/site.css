@@ -87,6 +87,7 @@
 
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');
+@import url('3-components/sw-update-toast.css');
 
 /* Game Styles (shared across game pages) */
 @import url('3-components/game-avoid-questions.css');
@@ -118,3 +119,22 @@
    ======================================== */
 @import url('4-pages/homepage-mobile.css');
 @import url('4-pages/member-map.css');
+/* ========================================
+   5. EXTRACTED INLINE BLOCKS (unit 024)
+   Imported last so these rules keep the cascade position their original
+   in-page <style> blocks had: after everything else site.css imports.
+   ======================================== */
+@import url('3-components/meeting-card.css');
+@import url('3-components/question-card.css');
+@import url('3-components/month-year-picker.css');
+@import url('4-pages/meetings.css');
+@import url('4-pages/naipes-config.css');
+@import url('4-pages/passaro-maluco.css');
+@import url('4-pages/questions.css');
+@import url('4-pages/report.css');
+@import url('4-pages/my-tuno-all-characters.css');
+@import url('4-pages/weapon-drink-config.css');
+
+/* Inline-style replacement utilities (unit 024) - must stay LAST. */
+@import url('9-overrides/inline-style-utilities.css');
+@import url('9-overrides/dynamic-style-classes.css');

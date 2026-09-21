@@ -168,7 +168,7 @@
                                             <div class="card-footer-section">
                                                 @foreach (var label in GetCardLabels(card))
                                                 {
-                                                    <span class="badge badge-label" style="background-color: @label.Color; color: white;">@label.Text</span>
+                                                    <span class="badge badge-label u-swatch-bg u-c-white" data-swatch="@label.Color">@label.Text</span>
                                                 }
                                                 @if (card.Event != null)
                                                 {
@@ -401,7 +401,7 @@
                     {
                         @foreach (var label in cardLabels)
                         {
-                            <span class="badge d-inline-flex align-items-center badge-padded" style="background-color: @label.Color;" @key="label.Id">
+                            <span class="badge d-inline-flex align-items-center badge-padded u-swatch-bg" data-swatch="@label.Color" @key="label.Id">
                                 @label.Text
                                 <button type="button" class="btn-close btn-close-white ms-2 btn-close-small" @onclick="() => RemoveLabel(label)" aria-label="Remover etiqueta"></button>
                             </span>

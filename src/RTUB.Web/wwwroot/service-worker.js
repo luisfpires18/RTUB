@@ -17,9 +17,11 @@ const OFFLINE_PAGE = '/offline';
 const STATIC_ASSETS = [
     '/',
     '/offline.html',
-    // offline.html loads its script externally (no inline JS); it must be precached
-    // or the fallback page renders without its connection-status behaviour.
+    // offline.html loads its script and stylesheet externally (no inline JS, no inline
+    // CSS); both must be precached or the fallback page renders unstyled and without
+    // its connection-status behaviour.
     '/js/offline.js',
+    '/css/offline.css',
     '/icons/rtub-logo-192.png',
     '/icons/rtub-logo-512.png',
     '/icons/rtub-badge-96.png',

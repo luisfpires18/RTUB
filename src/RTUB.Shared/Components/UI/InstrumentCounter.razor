@@ -11,7 +11,7 @@
 {
     <div class="@GetContainerClass()">
         <div class="instrument-counter-section">
-            <div class="instrument-counter-header @GetHeaderClass()" @onclick="ToggleCollapse" style="@GetHeaderStyle()">
+            <div class="instrument-counter-header @GetHeaderClass()" @onclick="ToggleCollapse">
                 <i class="bi bi-music-note-beamed"></i>
                 <span>@Title</span>
                 @if (Collapsible)
@@ -106,11 +106,6 @@
     private string GetHeaderClass()
     {
         return Collapsible ? "cursor-pointer" : "";
-    }
-
-    private string GetHeaderStyle()
-    {
-        return Collapsible ? "cursor: pointer;" : "";
     }
 
     private string GetCollapseIcon()

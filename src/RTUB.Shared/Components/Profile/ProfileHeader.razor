@@ -9,14 +9,14 @@
     Displays the user's header card with avatar, display name, tuna name, role badges, and primary actions
 *@
 
-<div class="profile-header-card card mb-4 w-100 overflow-hidden" style="min-width: 0;">
-    <div class="card-body d-flex flex-column align-items-center w-100" style="min-width: 0;">
-        <div class="row w-100 justify-content-center" style="min-width: 0;">
+<div class="u-minw-0 profile-header-card card mb-4 w-100 overflow-hidden">
+    <div class="u-minw-0 card-body d-flex flex-column align-items-center w-100">
+        <div class="u-minw-0 row w-100 justify-content-center">
             <!-- Avatar and Info Section - Centered -->
-            <div class="col-12" style="min-width: 0;">
-                <div class="text-center d-flex flex-column align-items-center w-100" style="min-width: 0;">
+            <div class="u-minw-0 col-12">
+                <div class="u-minw-0 text-center d-flex flex-column align-items-center w-100">
                     <!-- Avatar -->
-                    <div class="profile-avatar-wrapper profile-avatar-large mx-auto mb-3 mw-100" style="min-width: 0;">
+                    <div class="u-minw-0 profile-avatar-wrapper profile-avatar-large mx-auto mb-3 mw-100">
                         <img src="@GetProfilePictureUrl()"
                              alt="Foto de Perfil"
                              class="profile-avatar img-fluid"
@@ -24,7 +24,7 @@
                     </div>
 
                     <!-- Name and Badges -->
-                    <div class="profile-header-info-centered w-100 d-flex flex-column align-items-center overflow-hidden" style="min-width: 0;">
+                    <div class="u-minw-0 profile-header-info-centered w-100 d-flex flex-column align-items-center overflow-hidden">
                         <h2 class="profile-display-name mb-1">@GetHeaderDisplayName()</h2>
                         @if (!string.IsNullOrEmpty(User.Nickname))
                         {
@@ -34,7 +34,7 @@
                         }
                         
                         <!-- Role Badges -->
-                        <div class="profile-badges mb-3 d-flex justify-content-center flex-wrap w-100" style="min-width: 0;">
+                        <div class="u-minw-0 profile-badges mb-3 d-flex justify-content-center flex-wrap w-100">
                             @{
                                 var displayCategories = StatusHelper.GetDisplayCategories(User);
                             }

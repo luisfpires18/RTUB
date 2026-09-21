@@ -88,18 +88,18 @@
                         <span class="fidelis-bar__label">Fidelis</span>
                         <span class="fidelis-bar__value">@Fmt(currentUser.FidelisBalance)</span>
                     </div>
-                    <div class="fidelis-bar__icon ms-3" style="color: #ffffff;">
+                    <div class="u-c-white fidelis-bar__icon ms-3">
                         <i class="bi bi-lightning-fill"></i>
                     </div>
                     <div class="fidelis-bar__info">
-                        <span class="fidelis-bar__label" style="color: #e040fb;">FITAB</span>
+                        <span class="u-c-magenta fidelis-bar__label">FITAB</span>
                         <span class="fidelis-bar__value">@fitabQuantity</span>
                     </div>
-                    <div class="fidelis-bar__icon ms-3" style="color: #f8bbd0;">
+                    <div class="u-c-pink fidelis-bar__icon ms-3">
                         <span>🐷</span>
                     </div>
                     <div class="fidelis-bar__info">
-                        <span class="fidelis-bar__label" style="color: #f8bbd0;">Leitões</span>
+                        <span class="u-c-pink fidelis-bar__label">Leitões</span>
                         <span class="fidelis-bar__value">@leitaoQuantity</span>
                     </div>
                     <div class="ms-auto">
@@ -146,7 +146,7 @@
                         @if (currentUser != null)
                         {
                             <!-- Inventory tabs -->
-                            <ul class="nav nav-tabs nav-fill mb-2" style="font-size: 0.75rem;">
+                            <ul class="u-fs-75 nav nav-tabs nav-fill mb-2">
                                 <li class="nav-item">
                                     <button type="button" class="nav-link @(inventoryTab == 0 ? "active" : "")" @onclick="() => inventoryTab = 0">
                                         <i class="bi bi-cup-straw me-1"></i>Consumíveis
@@ -162,7 +162,7 @@
                                         <i class="bi bi-shield-shaded me-1"></i>Equipável
                                         @if (rareSetInventory.Count > 0)
                                         {
-                                            <span class="badge ms-1" style="background: linear-gradient(135deg, #ffd700, #daa520); color: #1a1200; font-size: 0.55rem; vertical-align: top; animation: rare-tab-pulse 2s ease-in-out infinite;">
+                                            <span class="u-rare-tab-badge badge ms-1">
                                                 <i class="bi bi-gem"></i> @rareSetInventory.Count
                                             </span>
                                         }
@@ -195,9 +195,8 @@
                                             : "";
                                         var isActionDisabled = isConsumableLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
 
-                                        <div class="item-card item-card--@c.CssVariant @(isConsumableLocked ? "item-card--locked" : "")"
+                                        <div class="item-card item-card--@c.CssVariant @(isConsumableLocked ? "item-card--locked" : "") @(isActionDisabled ? "u-cursor-not-allowed" : "cursor-pointer")"
                                              @onclick="async () => { if (!isActionDisabled) await c.UseAction(); }"
-                                             style="cursor: @(isActionDisabled ? "not-allowed" : "pointer")"
                                              title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Floor {c.UnlockStage} ({unlockBiomeName})" : c.CombatOnlyTooltip ?? c.Name)">
                                             <div class="item-card__qty">
                                                 @if (isConsumableLocked)
@@ -212,7 +211,7 @@
                                             <div class="item-card__icon">
                                                 @if (isConsumableLocked)
                                                 {
-                                                    <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                                    <i class="u-op-40 bi bi-lock-fill"></i>
                                                 }
                                                 else if (c.Using)
                                                 {
@@ -230,7 +229,7 @@
                                             <div class="item-card__name">@c.Name</div>
                                             @if (isConsumableLocked)
                                             {
-                                                <div class="item-card__desc" style="font-size: 0.55rem; opacity: 0.6;">@unlockBiomeName</div>
+                                                <div class="u-fs-55 u-op-60 item-card__desc">@unlockBiomeName</div>
                                             }
                                             else
                                             {
@@ -280,7 +279,7 @@
                                         var invInstrName = invInstrType.HasValue ? InstrumentTypeHelper.GetDisplayName(invInstrType.Value) : kvp.Key.ToString();
                                         var invImgUrl = invInstrType.HasValue && instrumentImages.TryGetValue(invInstrType.Value, out var invUrl) ? invUrl : null;
                                         var invItemKey = kvp.Key;
-                                        <div class="item-card item-card--instrument item-card--clickable" title="@invInstrName" @onclick="() => OnInventoryItemClick(invItemKey)" style="cursor: pointer;">
+                                        <div class="cursor-pointer item-card item-card--instrument item-card--clickable" title="@invInstrName" @onclick="() => OnInventoryItemClick(invItemKey)">
                                             <div class="item-card__qty">@kvp.Value</div>
                                             <div class="item-card__icon">
                                                 @if (!string.IsNullOrEmpty(invImgUrl))
@@ -292,7 +291,7 @@
                                                     <i class="bi bi-music-note-beamed"></i>
                                                 }
                                             </div>
-                                            <div class="item-card__name" style="font-size: 0.55rem;">@invInstrName</div>
+                                            <div class="u-fs-55 item-card__name">@invInstrName</div>
                                         </div>
                                     }
 
@@ -310,8 +309,8 @@
                                 @* ── Rare Set Pieces in Inventory (shown first) ── *@
                                 @if (rareSetInventory.Count > 0)
                                 {
-                                    <div class="mb-3 p-2 rounded" style="background: rgba(255, 215, 0, 0.06); border: 1px solid rgba(255, 215, 0, 0.25);">
-                                        <div class="d-flex align-items-center gap-1 mb-2" style="font-size: 0.75rem; color: #ffd700;">
+                                    <div class="u-tile-gold-soft mb-3 p-2 rounded">
+                                        <div class="u-fs-75 u-c-gold d-flex align-items-center gap-1 mb-2">
                                             <i class="bi bi-gem"></i>
                                             <strong>Rare Set Pieces</strong>
                                         </div>
@@ -322,18 +321,16 @@
                                                 var rareSlot = Core.Helpers.EquipmentDropHelper.FromRareInventoryItemType(kv.Key);
                                                 var alreadyApplied = rareSlot.HasValue && character!.IsRareSetSlotApplied(rareSlot.Value);
                                                 var pieceName = MyTunoConfig.Value.StageMode.RareSet.Pieces.GetValueOrDefault(rareSlotKey ?? "")?.Name ?? rareSlotKey?.ToUpper() ?? "RARE";
-                                                <div class="d-flex flex-column align-items-center p-2 rounded"
-                                                     style="background: rgba(255, 215, 0, 0.08); border: 1px solid rgba(255, 215, 0, 0.3); min-width: 90px;">
-                                                    <i class="bi bi-gem" style="color: #ffd700; font-size: 1.2rem;"></i>
-                                                    <span style="font-size: 0.6rem; color: #ffd700; font-weight: 600;">@pieceName</span>
+                                                <div class="u-tile-gold d-flex flex-column align-items-center p-2 rounded">
+                                                    <i class="u-c-gold u-fs-120 bi bi-gem"></i>
+                                                    <span class="u-fs-60 u-c-gold u-fw-600">@pieceName</span>
                                                     @if (alreadyApplied)
                                                     {
-                                                        <span class="badge bg-secondary mt-1" style="font-size: 0.55rem;">Applied</span>
+                                                        <span class="u-fs-55 badge bg-secondary mt-1">Applied</span>
                                                     }
                                                     else
                                                     {
-                                                        <button class="btn btn-sm mt-1 px-2 py-0" disabled="@applyingRarePiece"
-                                                                style="font-size: 0.6rem; background: linear-gradient(135deg, #ffd700, #daa520); color: #1a1200; font-weight: 700; border: none;"
+                                                        <button class="u-btn-gold-xs btn btn-sm mt-1 px-2 py-0" disabled="@applyingRarePiece"
                                                                 @onclick="() => ApplyRareSetPieceAsync(kv.Key)">
                                                             @if (applyingRarePiece)
                                                             {
@@ -370,9 +367,9 @@
                                         if (item.Type == "weapon" && item.Weapon != null)
                                         {
                                             var wLocal = item.Weapon;
-                                            <div class="item-card item-card--equipment item-card--clickable" 
+                                            <div class="cursor-pointer item-card item-card--equipment item-card--clickable"
                                                  title="@item.Name" 
-                                                 @onclick="() => OnForgedWeaponClick(wLocal)" style="cursor: pointer;">
+                                                 @onclick="() => OnForgedWeaponClick(wLocal)">
                                                 @if (wLocal.Level > 0)
                                                 {
                                                     <div class="item-card__qty">+@wLocal.Level</div>
@@ -380,14 +377,14 @@
                                                 <div class="item-card__icon">
                                                     @if (GetForgedWeaponPictureUrl(wLocal) is string eqWpnImg)
                                                     {
-                                                        <img src="@CacheBuster.Bust(eqWpnImg)" alt="@item.Name" class="gather-sprite" style="filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                                        <img src="@CacheBuster.Bust(eqWpnImg)" alt="@item.Name" class="u-glow-warn-2 gather-sprite" />
                                                     }
                                                     else
                                                     {
-                                                        <i class="bi @item.Icon" style="color: var(--bs-warning);"></i>
+                                                        <i class="u-c-warning bi @item.Icon"></i>
                                                     }
                                                 </div>
-                                                <div class="item-card__name" style="font-size: 0.5rem;">@item.Name</div>
+                                                <div class="u-fs-50 item-card__name">@item.Name</div>
                                             </div>
                                         }
                                         else if (item.ItemType.HasValue)
@@ -395,7 +392,7 @@
                                             var eqItemKey = item.ItemType.Value;
                                             var invSlot = EquipmentDropHelper.FromInventoryItemType(eqItemKey);
                                             var invSlotLevel = invSlot.HasValue ? GetSlotEnhancementLevel(invSlot.Value) : 0;
-                                            <div class="item-card item-card--equipment item-card--clickable" title="@item.Name" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
+                                            <div class="cursor-pointer item-card item-card--equipment item-card--clickable" title="@item.Name" @onclick="() => OnInventoryItemClick(eqItemKey)">
                                                 @if (invSlotLevel > 0)
                                                 {
                                                     <div class="item-card__qty">+@invSlotLevel</div>
@@ -410,7 +407,7 @@
                                                         <i class="bi @item.Icon"></i>
                                                     }
                                                 </div>
-                                                <div class="item-card__name" style="font-size: 0.55rem;">@item.Name</div>
+                                                <div class="u-fs-55 item-card__name">@item.Name</div>
                                             </div>
                                         }
                                     }
@@ -425,7 +422,7 @@
                                 </div>
                                 @if (totalEquipablePages > 1)
                                 {
-                                    <div class="d-flex justify-content-center align-items-center gap-2 mt-2" style="font-size: 0.75rem;">
+                                    <div class="u-fs-75 d-flex justify-content-center align-items-center gap-2 mt-2">
                                         <button class="btn btn-sm btn-outline-secondary py-0 px-1" disabled="@(equipablePage <= 1)" @onclick="() => equipablePage--">
                                             <i class="bi bi-chevron-left"></i>
                                         </button>
@@ -472,7 +469,7 @@
                     </div>
                     <div class="card-body">
                         <!-- Nickname -->
-                        <h5 class="text-center mb-2" style="font-weight: 700;">@(currentUser?.Nickname ?? "Personagem")</h5>
+                        <h5 class="u-fw-700 text-center mb-2">@(currentUser?.Nickname ?? "Personagem")</h5>
 
                         <!-- HP Bar (above character sprite) -->
                         @{
@@ -482,8 +479,8 @@
                         }
                         <div class="xp-bar-container mb-3">
                             <div class="xp-bar-bg">
-                                <div class="xp-bar-fill hp-bar-fill" 
-                                     style="width: @(hpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                                <div class="xp-bar-fill hp-bar-fill u-fill-pct"
+                                     data-fill-pct="@(hpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))"
                                      role="progressbar" 
                                      aria-valuenow="@currentHP" 
                                      aria-valuemin="0" 
@@ -501,8 +498,7 @@
                         <div class="text-center mb-3">
                             <img src="@CacheBuster.Bust(PlayerSpritePath)" 
                                  alt="My Tuno Character" 
-                                 class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
-                                 style="max-height: 200px; max-width: 100%; object-fit: contain;" />
+                                 class="u-maxh-200 u-maxw-full u-of-contain character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")" />
                         </div>
                         
                         <div class="mb-3">
@@ -514,8 +510,8 @@
                             <!-- XP Bar matching Profile.razor style -->
                             <div class="xp-bar-container">
                                 <div class="xp-bar-bg">
-                                    <div class="xp-bar-fill" 
-                                         style="width: @(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                                    <div class="xp-bar-fill u-fill-pct"
+                                         data-fill-pct="@(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))"
                                          role="progressbar" 
                                          aria-valuenow="@character.XP" 
                                          aria-valuemin="0" 
@@ -560,7 +556,7 @@
                                 <h6 class="text-info mb-2"><i class="bi bi-magic me-2"></i>Melhorias Ativas</h6>
                                 @if (character.ShotBuffBattlesRemaining > 0)
                                 {
-                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                    <div class="u-bg-1e p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-droplet-fill text-info me-2"></i>
                                             <span>Shot (+@((int)((character.EffectiveShotBuffMultiplier - 1) * 100))% stats)</span>
@@ -570,7 +566,7 @@
                                 }
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
-                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                    <div class="u-bg-1e p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-wind text-info me-2"></i>
                                             <span>Cigarro (Dodge)</span>
@@ -580,7 +576,7 @@
                                 }
                                 @if (character.HasCanhaoBuff)
                                 {
-                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                    <div class="u-bg-1e p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-bullseye text-info me-2"></i>
                                             <span>Canhão (AOE)</span>
@@ -590,7 +586,7 @@
                                 }
                                 @if (character.HasPenaltyBuff)
                                 {
-                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                    <div class="u-bg-1e p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-lightning-charge-fill text-info me-2"></i>
                                             <span>Penalty — Lifesteal @((character.EffectivePenaltyLifesteal * 100).ToString("F1"))% HP por hit</span>
@@ -655,7 +651,7 @@
                                     {
                                         <div class="equip-bonus-bar__stat">
                                             <span class="equip-bonus-bar__label">Def</span>
-                                            <span class="equip-bonus-bar__value" style="color: #adb5bd;">+@Fmt(character.EquipmentDefenseBonus)</span>
+                                            <span class="u-c-gray equip-bonus-bar__value">+@Fmt(character.EquipmentDefenseBonus)</span>
                                         </div>
                                     }
                                 </div>
@@ -665,32 +661,32 @@
                         @* Rare Set Progress Indicator *@
                         @if (character.RareSetPiecesApplied > 0)
                         {
-                            <div class="equip-bonus-bar" style="@(character.HasRareSetBonus ? "border-color: #ffd700; box-shadow: 0 0 8px #ffd70066;" : "")">
+                            <div class="equip-bonus-bar @(character.HasRareSetBonus ? "equip-bonus-bar--rare" : "")">
                                 <div class="equip-bonus-bar__inner">
                                     <div class="equip-bonus-bar__stat">
-                                        <span class="equip-bonus-bar__label" style="color: #ffd700;">
+                                        <span class="u-c-gold equip-bonus-bar__label">
                                             <i class="bi bi-gem"></i> Rare Set
                                         </span>
-                                        <span class="equip-bonus-bar__value" style="color: #ffd700;">
+                                        <span class="u-c-gold equip-bonus-bar__value">
                                             @character.RareSetPiecesApplied/6
                                         </span>
                                     </div>
                                     @if (character.HasRareSetBonus)
                                     {
                                         <div class="equip-bonus-bar__stat">
-                                            <span class="equip-bonus-bar__label" style="color: #ffd700;">SET BONUS</span>
-                                            <span class="equip-bonus-bar__value" style="color: #ffd700;">+50% CRIT, -0.5s SPD</span>
+                                            <span class="u-c-gold equip-bonus-bar__label">SET BONUS</span>
+                                            <span class="u-c-gold equip-bonus-bar__value">+50% CRIT, -0.5s SPD</span>
                                         </div>
                                     }
                                     else
                                     {
                                         <div class="equip-bonus-bar__stat">
-                                            <span class="equip-bonus-bar__label" style="color: #c0a040;">Crit</span>
-                                            <span class="equip-bonus-bar__value" style="color: #c0a040;">+@((character.RareSetPiecesApplied * 5))%</span>
+                                            <span class="u-c-gold-dim equip-bonus-bar__label">Crit</span>
+                                            <span class="u-c-gold-dim equip-bonus-bar__value">+@((character.RareSetPiecesApplied * 5))%</span>
                                         </div>
                                         <div class="equip-bonus-bar__stat">
-                                            <span class="equip-bonus-bar__label" style="color: #c0a040;">Spd</span>
-                                            <span class="equip-bonus-bar__value" style="color: #c0a040;">-@((character.RareSetPiecesApplied * 0.05).ToString("F2"))s</span>
+                                            <span class="u-c-gold-dim equip-bonus-bar__label">Spd</span>
+                                            <span class="u-c-gold-dim equip-bonus-bar__value">-@((character.RareSetPiecesApplied * 0.05).ToString("F2"))s</span>
                                         </div>
                                     }
                                 </div>
@@ -701,9 +697,8 @@
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
                                 @{ var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head); }
-                                <div class="equip-slot equip-slot--filled @(character.RareHeadApplied ? "equip-slot--rare" : "")" title="HEAD — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentHead)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareHeadApplied ? "equip-slot--rare" : "")" title="HEAD — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentHead)">
                                     @if (headLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@headLevel</div>
@@ -724,9 +719,8 @@
                                 </div>
 
                                 @{ var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders); }
-                                <div class="equip-slot equip-slot--filled @(character.RareShouldersApplied ? "equip-slot--rare" : "")" title="SHOULDERS — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentShoulders)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareShouldersApplied ? "equip-slot--rare" : "")" title="SHOULDERS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentShoulders)">
                                     @if (shouldersLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@shouldersLevel</div>
@@ -747,9 +741,8 @@
                                 </div>
 
                                 @{ var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest); }
-                                <div class="equip-slot equip-slot--filled @(character.RareChestApplied ? "equip-slot--rare" : "")" title="CHEST — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentChest)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareChestApplied ? "equip-slot--rare" : "")" title="CHEST — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentChest)">
                                     @if (chestLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@chestLevel</div>
@@ -780,9 +773,8 @@
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
                                 @{ var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves); }
-                                <div class="equip-slot equip-slot--filled @(character.RareGlovesApplied ? "equip-slot--rare" : "")" title="GLOVES — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentGloves)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareGlovesApplied ? "equip-slot--rare" : "")" title="GLOVES — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentGloves)">
                                     @if (glovesLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@glovesLevel</div>
@@ -803,9 +795,8 @@
                                 </div>
 
                                 @{ var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs); }
-                                <div class="equip-slot equip-slot--filled @(character.RareLegsApplied ? "equip-slot--rare" : "")" title="LEGS — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentLegs)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareLegsApplied ? "equip-slot--rare" : "")" title="LEGS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentLegs)">
                                     @if (legsLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@legsLevel</div>
@@ -826,9 +817,8 @@
                                 </div>
 
                                 @{ var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots); }
-                                <div class="equip-slot equip-slot--filled @(character.RareBootsApplied ? "equip-slot--rare" : "")" title="BOOTS — Clica para upgrade"
-                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentBoots)"
-                                     style="cursor: pointer">
+                                <div class="cursor-pointer equip-slot equip-slot--filled @(character.RareBootsApplied ? "equip-slot--rare" : "")" title="BOOTS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentBoots)">
                                     @if (bootsLevel > 0)
                                     {
                                         <div class="equip-slot__level">+@bootsLevel</div>
@@ -859,10 +849,10 @@
                                 var weapon2 = weapon2Id.HasValue ? forgedWeapons.FirstOrDefault(w => w.Id == weapon2Id.Value) : null;
                                 var isTwoHanded = weapon1 != null && weapon1.IsTwoHanded;
                             }
-                            <div class="equip-slot equip-slot--weapon @(weapon1 != null ? "equip-slot--filled" : "")" 
+                            <div class="equip-slot equip-slot--weapon @(weapon1 != null ? "equip-slot--filled cursor-pointer" : "u-cursor-default")"
                                  title="@(weapon1 != null ? weapon1.Name + " — Clica para desequipar" : "Arma 1")"
                                  @onclick="() => OnWeaponSlotClick(1)"
-                                 style="cursor: @(weapon1 != null ? "pointer" : "default")">
+                                 >
                                 @if (weapon1 != null)
                                 {
                                     if (GetForgedWeaponPictureUrl(weapon1) is string w1Img)
@@ -878,14 +868,14 @@
                                 {
                                     <i class="bi bi-slash-lg"></i>
                                 }
-                                <span class="equip-slot__label">@(weapon1?.Name ?? "Arma 1")@if (weapon1?.Level > 0) { <span class="badge bg-warning text-dark ms-1" style="font-size: 0.5rem;">+@weapon1.Level</span> }</span>
+                                <span class="equip-slot__label">@(weapon1?.Name ?? "Arma 1")@if (weapon1?.Level > 0) { <span class="u-fs-50 badge bg-warning text-dark ms-1">+@weapon1.Level</span> }</span>
                             </div>
                             @if (!isTwoHanded)
                             {
-                                <div class="equip-slot equip-slot--weapon @(weapon2 != null ? "equip-slot--filled" : "")" 
+                                <div class="equip-slot equip-slot--weapon @(weapon2 != null ? "equip-slot--filled cursor-pointer" : "u-cursor-default")"
                                      title="@(weapon2 != null ? weapon2.Name + " — Clica para desequipar" : "Arma 2")"
                                      @onclick="() => OnWeaponSlotClick(2)"
-                                     style="cursor: @(weapon2 != null ? "pointer" : "default")">
+                                     >
                                     @if (weapon2 != null)
                                     {
                                         if (GetForgedWeaponPictureUrl(weapon2) is string w2Img)
@@ -901,7 +891,7 @@
                                     {
                                         <i class="bi bi-slash-lg"></i>
                                     }
-                                    <span class="equip-slot__label">@(weapon2?.Name ?? "Arma 2")@if (weapon2?.Level > 0) { <span class="badge bg-warning text-dark ms-1" style="font-size: 0.5rem;">+@weapon2.Level</span> }</span>
+                                    <span class="equip-slot__label">@(weapon2?.Name ?? "Arma 2")@if (weapon2?.Level > 0) { <span class="u-fs-50 badge bg-warning text-dark ms-1">+@weapon2.Level</span> }</span>
                                 </div>
                             }
                         </div>
@@ -924,7 +914,7 @@
                                 <span class="energy-bar__value">@currentEnergy / @maxEnergy</span>
                             </div>
                             <div class="energy-bar__track">
-                                <div class="energy-bar__fill" style="width: @(maxEnergy > 0 ? (int)(100.0 * currentEnergy / maxEnergy) : 0)%"></div>
+                                <div class="energy-bar__fill u-fill-pct" data-fill-pct="@(maxEnergy > 0 ? (int)(100.0 * currentEnergy / maxEnergy) : 0)"></div>
                             </div>
                             @if (currentEnergy < maxEnergy)
                             {
@@ -943,7 +933,7 @@
                                     <span class="cast-bar__time">@castTimeRemaining.ToString("F1")s</span>
                                 </div>
                                 <div class="cast-bar__track">
-                                    <div class="cast-bar__fill" style="width: @((int)(100.0 * castProgress))%; transition: width 0.1s linear;"></div>
+                                    <div class="cast-bar__fill u-fill-pct u-fill-pct--smooth" data-fill-pct="@((int)(100.0 * castProgress))"></div>
                                 </div>
                             </div>
                         }
@@ -960,7 +950,7 @@
                         <!-- Double Gathering Chance (if upgraded) -->
                         @if (character?.DoubleGatheringChance > 0)
                         {
-                            <div class="text-center mb-2" style="font-size: 0.75rem; color: #ff9500;">
+                            <div class="u-fs-75 u-c-amber-bright text-center mb-2">
                                 <i class="bi bi-fire me-1"></i> @((character.DoubleGatheringChance * 100).ToString("F0"))% chance dupla
                             </div>
                         }
@@ -994,7 +984,7 @@
                                     <div class="gather-node__icon">
                                         @if (isLocked)
                                         {
-                                            <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                            <i class="u-op-40 bi bi-lock-fill"></i>
                                         }
                                         else if (gathering == resType)
                                         {
@@ -1019,7 +1009,7 @@
                                     <div class="gather-node__name">@res.Name</div>
                                     @if (isLocked)
                                     {
-                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Floor {res.UnlockStage}")</div>
+                                        <div class="u-fs-60 u-op-60 gather-node__qty">@(unlockBiome?.Name ?? $"Floor {res.UnlockStage}")</div>
                                     }
                                     else
                                     {
@@ -1030,7 +1020,7 @@
                         </div>
 
                         <div class="text-center mt-auto pt-2">
-                            <small class="text-muted" style="font-size: 0.7rem;">Recolhe recursos para craft!</small>
+                            <small class="u-fs-70 text-muted">Recolhe recursos para craft!</small>
                         </div>
                     </div>
                 </div>
@@ -1039,19 +1029,17 @@
             <!-- Forging Section -->
             <div class="col-lg-4 order-5">
                 <div class="card h-100">
-                    <div class="card-header text-white" style="background-color: #6f42c1;">
+                    <div class="u-bg-purple card-header text-white">
                         <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forge & Shop</h5>
                     </div>
                     <div class="card-body p-3 d-flex flex-column">
                         <!-- Purple toggle tabs (same pattern as Upgrades) -->
                         <div class="d-flex gap-1 mb-3">
-                            <button class="btn btn-sm flex-fill @(forgeShopTab == 0 ? "" : "btn-outline-secondary")"
-                                    style="@(forgeShopTab == 0 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                            <button class="btn btn-sm flex-fill @(forgeShopTab == 0 ? "btn-tab--active" : "btn-outline-secondary")"
                                     @onclick="() => forgeShopTab = 0">
                                 <i class="bi bi-hammer me-1"></i>Forge
                             </button>
-                            <button class="btn btn-sm flex-fill @(forgeShopTab == 1 ? "" : "btn-outline-secondary")"
-                                    style="@(forgeShopTab == 1 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                            <button class="btn btn-sm flex-fill @(forgeShopTab == 1 ? "btn-tab--active" : "btn-outline-secondary")"
                                     @onclick="() => forgeShopTab = 1">
                                 <i class="bi bi-shop me-1"></i>Shop
                             </button>
@@ -1068,7 +1056,7 @@
 
                         @if (forgeShopTab == 0)
                         {
-                        <p class="text-muted mb-3" style="font-size: 0.75rem;">Combina um instrumento com uma bebida para forjar uma arma!</p>
+                        <p class="u-fs-75 text-muted mb-3">Combina um instrumento com uma bebida para forjar uma arma!</p>
 
                         <!-- Forge Slots -->
                         <div class="forge-slots mb-3">
@@ -1088,11 +1076,11 @@
                                     {
                                         <i class="bi bi-music-note-beamed"></i>
                                     }
-                                    <span class="forge-slot__label" style="font-size: 0.55rem;">@GetEquipItemDisplayName(forgeInstrument.Value)</span>
+                                    <span class="u-fs-55 forge-slot__label">@GetEquipItemDisplayName(forgeInstrument.Value)</span>
                                 }
                                 else
                                 {
-                                    <i class="bi bi-music-note-beamed" style="opacity: 0.4;"></i>
+                                    <i class="u-op-40 bi bi-music-note-beamed"></i>
                                     <span class="forge-slot__label">Instrumento</span>
                                 }
                             </div>
@@ -1114,11 +1102,11 @@
                                     {
                                         <i class="bi @(drinkRes?.Icon ?? "bi-droplet")"></i>
                                     }
-                                    <span class="forge-slot__label" style="font-size: 0.55rem;">@GetResourceName(forgeDrink.Value)</span>
+                                    <span class="u-fs-55 forge-slot__label">@GetResourceName(forgeDrink.Value)</span>
                                 }
                                 else
                                 {
-                                    <i class="bi bi-cup-straw" style="opacity: 0.4;"></i>
+                                    <i class="u-op-40 bi bi-cup-straw"></i>
                                     <span class="forge-slot__label">Bebida</span>
                                 }
                             </div>
@@ -1160,14 +1148,14 @@
                                             @onclick="() => SelectForgeDrink(resType)">
                                         @if (GetDrinkPictureUrl(res.Type) is string pickerDrinkImg)
                                         {
-                                            <img src="@CacheBuster.Bust(pickerDrinkImg)" alt="@res.Name" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                            <img src="@CacheBuster.Bust(pickerDrinkImg)" alt="@res.Name" class="u-w-16 u-h-16 u-va-middle gather-sprite" />
                                         }
                                         else
                                         {
                                             <i class="bi @res.Icon me-1"></i>
                                         }
                                         @res.Name <span class="badge bg-dark">@resQty</span>
-                                        @if (resForgeCost > 1) { <span class="badge bg-info bg-opacity-50 ms-1" style="font-size: 0.6rem;">@(resForgeCost)x</span> }
+                                        @if (resForgeCost > 1) { <span class="u-fs-60 badge bg-info bg-opacity-50 ms-1">@(resForgeCost)x</span> }
                                     </button>
                                 }
                                 @if (!activeResources.Any(r => GetResourceQuantity(Enum.Parse<InventoryItemType>(r.Type)) > 0))
@@ -1186,7 +1174,7 @@
                                     <span class="cast-bar__time">@forgeCastTimeRemaining.ToString("F1")s</span>
                                 </div>
                                 <div class="cast-bar__track">
-                                    <div class="cast-bar__fill" style="width: @((int)(100.0 * forgeCastProgress))%; transition: width 0.1s linear;"></div>
+                                    <div class="cast-bar__fill u-fill-pct u-fill-pct--smooth" data-fill-pct="@((int)(100.0 * forgeCastProgress))"></div>
                                 </div>
                             </div>
                         }
@@ -1214,8 +1202,8 @@
                         {
                         <div class="d-flex flex-column gap-2">
                             <div class="enhance-row">
-                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #e67e22, #d35400); color: #fff;">
-                                    <span style="font-size: 1.1rem;">🐷</span>
+                                <div class="u-grad-orange enhance-row__icon">
+                                    <span class="u-fs-110">🐷</span>
                                 </div>
                                 <div class="enhance-row__info">
                                     <div class="enhance-row__title">Leitão</div>
@@ -1226,8 +1214,7 @@
                                     </div>
                                 </div>
                                 <div class="enhance-row__action">
-                                    <button class="btn enhance-row__btn"
-                                            style="background: linear-gradient(180deg, #e67e22, #d35400, #b8450a); border-color: rgba(230, 126, 34, 0.4);"
+                                    <button class="u-panel-grad-orange btn enhance-row__btn"
                                             @onclick="BuyLeitaoWithFitab"
                                             disabled="@(buyingLeitao || fitabQuantity < 25)">
                                         @if (buyingLeitao)
@@ -1240,13 +1227,13 @@
                                         }
                                     </button>
                                     <div class="enhance-row__cost">
-                                        <span style="font-size: 0.7rem;">25 FITAB</span>
+                                        <span class="u-fs-70">25 FITAB</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="enhance-row">
-                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #8e44ad, #6f42c1); color: #fff;">
+                                <div class="u-grad-purple enhance-row__icon">
                                     <i class="bi bi-music-note-beamed"></i>
                                 </div>
                                 <div class="enhance-row__info">
@@ -1258,8 +1245,7 @@
                                     </div>
                                 </div>
                                 <div class="enhance-row__action">
-                                    <button class="btn enhance-row__btn"
-                                            style="background: linear-gradient(180deg, #8e44ad, #6f42c1, #5a32a3); border-color: rgba(142, 68, 173, 0.4);"
+                                    <button class="u-panel-grad-purple btn enhance-row__btn"
                                             @onclick="BuyLeitaoWithInstrumentParts"
                                             disabled="@(buyingLeitaoWithInstrumentParts || TotalInstrumentParts < 2)">
                                         @if (buyingLeitaoWithInstrumentParts)
@@ -1272,7 +1258,7 @@
                                         }
                                     </button>
                                     <div class="enhance-row__cost">
-                                        <span style="font-size: 0.7rem;">2 peças</span>
+                                        <span class="u-fs-70">2 peças</span>
                                     </div>
                                 </div>
                             </div>
@@ -1287,19 +1273,17 @@
             <!-- Upgrades (merged: Stats + Melhorias + Poderes) -->
             <div class="col-lg-4 order-6">
                 <div class="card h-100">
-                    <div class="card-header text-white" style="background-color: #6f42c1;">
+                    <div class="u-bg-purple card-header text-white">
                         <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
                     </div>
                     <div class="card-body p-3 d-flex flex-column">
                         <!-- Purple toggle tabs -->
                         <div class="d-flex gap-1 mb-3">
-                            <button class="btn btn-sm flex-fill @(upgradesTab == 0 ? "" : "btn-outline-secondary")"
-                                    style="@(upgradesTab == 0 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 0 ? "btn-tab--active" : "btn-outline-secondary")"
                                     @onclick="() => upgradesTab = 0">
                                 <i class="bi bi-bar-chart-fill me-1"></i>Stats
                             </button>
-                            <button class="btn btn-sm flex-fill @(upgradesTab == 1 ? "" : "btn-outline-secondary")"
-                                    style="@(upgradesTab == 1 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 1 ? "btn-tab--active" : "btn-outline-secondary")"
                                     @onclick="() => upgradesTab = 1">
                                 <i class="bi bi-lightning-fill me-1"></i>Melhorias
                             </button>
@@ -1346,11 +1330,11 @@
                Centered="true">
             <BodyContent>
                 <div class="text-center mb-3">
-                    <i class="bi bi-hammer" style="font-size: 2rem; color: var(--bs-warning);"></i>
-                    <p class="text-muted mt-2 mb-3" style="font-size: 0.85rem;">Escolhe o tipo de arma e dá-lhe um nome!</p>
+                    <i class="u-fs-200 u-c-warning bi bi-hammer"></i>
+                    <p class="u-fs-85 text-muted mt-2 mb-3">Escolhe o tipo de arma e dá-lhe um nome!</p>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" style="font-size: 0.8rem;">Tipo de Arma</label>
+                    <label class="u-fs-80 form-label">Tipo de Arma</label>
                     <div class="d-flex flex-wrap gap-2 justify-content-center">
                         @foreach (var wt in WeaponTypeHelper.AllWeaponTypes)
                         {
@@ -1359,7 +1343,7 @@
                                     @onclick="() => SelectForgeWeaponType(wtLocal)">
                                 @if (GetWeaponPictureUrl(wtLocal) is string forgeWtImg)
                                 {
-                                    <img src="@CacheBuster.Bust(forgeWtImg)" alt="@WeaponTypeHelper.GetDisplayName(wtLocal)" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                    <img src="@CacheBuster.Bust(forgeWtImg)" alt="@WeaponTypeHelper.GetDisplayName(wtLocal)" class="u-w-16 u-h-16 u-va-middle gather-sprite" />
                                 }
                                 else
                                 {
@@ -1371,7 +1355,7 @@
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label" style="font-size: 0.8rem;">Nome da Arma</label>
+                    <label class="u-fs-80 form-label">Nome da Arma</label>
                     <input type="text" class="form-control" maxlength="100" @bind="forgeWeaponName" placeholder="@forgeWeaponDefaultName" />
                 </div>
             </BodyContent>
@@ -1399,11 +1383,11 @@
                     <div class="forge-result-icon mb-3">
                         @if (GetForgedWeaponPictureUrl(lastForgedWeapon) is string forgeResultImg)
                         {
-                            <img src="@CacheBuster.Bust(forgeResultImg)" alt="@lastForgedWeapon.Name" style="width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                            <img src="@CacheBuster.Bust(forgeResultImg)" alt="@lastForgedWeapon.Name" class="u-w-64 u-h-64 u-of-contain u-glow-warn-4" />
                         }
                         else
                         {
-                            <i class="bi @WeaponTypeHelper.GetIcon(lastForgedWeapon.WeaponType)" style="font-size: 3rem; color: var(--bs-warning);"></i>
+                            <i class="u-fs-300 u-c-warning bi @WeaponTypeHelper.GetIcon(lastForgedWeapon.WeaponType)"></i>
                         }
                     </div>
                     <h4 class="text-warning mb-2">@lastForgedWeapon.Name</h4>
@@ -1411,7 +1395,7 @@
                         @WeaponTypeHelper.GetDisplayName(lastForgedWeapon.WeaponType)
                     </span>
                     <div class="equip-confirm-stats mt-3">
-                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                        <small class="u-c-aaa u-fs-75 d-block mb-2"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
                         <div class="ftile-grid ftile-grid--bonus">
                             @if (lastForgedWeapon.BonusHP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(lastForgedWeapon.BonusHP)}")" Color="red" Size="sm" /> }
                             @if (lastForgedWeapon.BonusPower > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(lastForgedWeapon.BonusPower)}")" Color="green" Size="sm" /> }
@@ -1477,11 +1461,11 @@
                     <div class="equip-confirm-icon">
                         @if (GetForgedWeaponPictureUrl(pendingWeapon) is string pendingWpnImg)
                         {
-                            <img src="@CacheBuster.Bust(pendingWpnImg)" alt="@pendingWeapon.Name" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                            <img src="@CacheBuster.Bust(pendingWpnImg)" alt="@pendingWeapon.Name" class="u-w-56 u-h-56 u-of-contain u-glow-warn-4" />
                         }
                         else
                         {
-                            <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
+                            <i class="u-fs-250 u-c-warning bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)"></i>
                         }
                     </div>
                     <h5 class="item-detail-name">
@@ -1508,7 +1492,7 @@
                         }
                         @if (pendingWeapon.Level > 0)
                         {
-                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@pendingWeapon.Level</span>
+                            <span class="u-fs-70 badge bg-warning text-dark ms-1">+@pendingWeapon.Level</span>
                         }
                     </h5>
                     <div class="item-detail-tags">
@@ -1518,7 +1502,7 @@
                             <span class="badge bg-purple bg-opacity-25 text-purple">
                                 @if (!string.IsNullOrEmpty(GetDrinkPictureUrl(pendingWeapon.SourceDrink)))
                                 {
-                                    <img src="@CacheBuster.Bust(GetDrinkPictureUrl(pendingWeapon.SourceDrink))" alt="" style="width: 14px; height: 14px; vertical-align: -2px;" />
+                                    <img src="@CacheBuster.Bust(GetDrinkPictureUrl(pendingWeapon.SourceDrink))" alt="" class="u-w-14 u-h-14 u-va-n2" />
                                 }
                                 @(currentDrinkRes.Name ?? pendingWeapon.SourceDrink.ToString())
                             </span>
@@ -1733,15 +1717,15 @@
                         @foreach (var weapon in forgedWeapons)
                         {
                             var isEquippedW = weapon.IsEquipped;
-                            <div @key="weapon.Id" class="stats-card @(isEquippedW ? "border-success" : "")" style="cursor: pointer;" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
-                                <div class="stats-card-position" style="width: 40px;">
+                            <div @key="weapon.Id" class="cursor-pointer stats-card @(isEquippedW ? "border-success" : "")" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
+                                <div class="u-w-40 stats-card-position">
                                     @if (GetForgedWeaponPictureUrl(weapon) is string listWpnImg)
                                     {
-                                        <img src="@CacheBuster.Bust(listWpnImg)" alt="@weapon.Name" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                        <img src="@CacheBuster.Bust(listWpnImg)" alt="@weapon.Name" class="u-w-32 u-h-32 u-of-contain u-glow-warn-2" />
                                     }
                                     else
                                     {
-                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType)" style="font-size: 1.5rem; color: var(--bs-warning);"></i>
+                                        <i class="u-fs-150 u-c-warning bi @WeaponTypeHelper.GetIcon(weapon.WeaponType)"></i>
                                     }
                                 </div>
                                 <div class="stats-card-content">
@@ -1749,10 +1733,10 @@
                                         @weapon.Name
                                         @if (weapon.Level > 0)
                                         {
-                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">+@weapon.Level</span>
+                                            <span class="u-fs-65 badge bg-warning text-dark ms-1">+@weapon.Level</span>
                                         }
                                     </div>
-                                    <div class="stats-card-subtitle" style="font-size: 0.75rem; color: #aaa;">
+                                    <div class="u-fs-75 u-c-aaa stats-card-subtitle">
                                         @WeaponTypeHelper.GetDisplayName(weapon.WeaponType)
                                         <span class="ms-2">
                                             @if (weapon.BonusHP > 0) { <span class="text-danger">+@Fmt(weapon.BonusHP) HP</span> }
@@ -1766,11 +1750,11 @@
                                 <div class="stats-card-count">
                                     @if (isEquippedW)
                                     {
-                                        <span class="badge bg-success" style="font-size: 0.75rem;"><i class="bi bi-check-circle me-1"></i>Equipado</span>
+                                        <span class="u-fs-75 badge bg-success"><i class="bi bi-check-circle me-1"></i>Equipado</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-dark" style="font-size: 0.7rem;">Não equipado</span>
+                                        <span class="u-fs-70 badge bg-dark">Não equipado</span>
                                     }
                                 </div>
                             </div>
@@ -1858,18 +1842,18 @@
                     <div class="equip-confirm-icon">
                         @if (!string.IsNullOrEmpty(actionItemImgUrl))
                         {
-                            <img src="@CacheBuster.Bust(actionItemImgUrl)" alt="@actionItemName" style="width: 56px; height: 56px; object-fit: contain;" />
+                            <img src="@CacheBuster.Bust(actionItemImgUrl)" alt="@actionItemName" class="u-w-56 u-h-56 u-of-contain" />
                         }
                         else
                         {
-                            <i class="bi @actionItemIcon" style="font-size: 2.5rem; color: var(--bs-primary);"></i>
+                            <i class="u-fs-250 u-c-primary bi @actionItemIcon"></i>
                         }
                     </div>
                     <h5 class="item-detail-name">
                         @actionItemName
                         @if (actionIsEquip && actionSlotLevel > 0)
                         {
-                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@actionSlotLevel</span>
+                            <span class="u-fs-70 badge bg-warning text-dark ms-1">+@actionSlotLevel</span>
                         }
                     </h5>
                     @if (actionIsInstr)
@@ -2029,34 +2013,33 @@
                             var isCurrent = highestStage >= biome.StageMin && highestStage <= biome.StageMax;
                             var biomeCheckpoints = GetCheckpointsForBiome(biome.StageMin, biome.StageMax, highestStage);
                             var icon = GetBiomeIcon(biome.Name);
-                            var color = GetBiomeColor(biome.Name);
+                            var colorClass = BiomeDisplayHelper.GetBiomeColorClass(biome.Name);
                             var rangeText = biome.StageMax >= 999999 ? $"{biome.StageMin}+" : $"{biome.StageMin}–{biome.StageMax}";
                             var isExpanded = expandedBiomes.Contains(biome.Name);
 
-                            <div @key="biome.Name" class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
-                                 style="--bc: @color;">
+                            <div @key="biome.Name" class="biome-card @colorClass @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")">
                                 <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
                                      @onclick="() => { if (isUnlocked) ToggleBiomeExpanded(biome.Name); }">
-                                    <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">@biome.Name</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Floors @rangeText</div>
+                                    <i class="bi @icon biome-accent u-fs-120 u-w-22 text-center"></i>
+                                    <div class="u-flex-1 u-minw-0">
+                                        <div class="u-fw-700 u-fs-90 u-c-eee">@biome.Name</div>
+                                        <div class="u-fs-70 u-c-w35">Floors @rangeText</div>
                                     </div>
                                     @if (isCompleted)
                                     {
-                                        <i class="bi bi-check-circle-fill" style="color: @color; font-size: 1rem;"></i>
+                                        <i class="bi bi-check-circle-fill biome-accent u-fs-100"></i>
                                     }
                                     else if (isCurrent)
                                     {
-                                        <span class="badge" style="background: @color; font-size: 0.68rem;">Atual</span>
+                                        <span class="badge biome-accent-bg u-fs-68">Atual</span>
                                     }
                                     else if (!isUnlocked)
                                     {
-                                        <i class="bi bi-lock-fill" style="color: rgba(255,255,255,0.2);"></i>
+                                        <i class="u-c-w20 bi bi-lock-fill"></i>
                                     }
                                     @if (isUnlocked)
                                     {
-                                        <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down")" style="color: rgba(255,255,255,0.3);"></i>
+                                        <i class="u-c-w30 bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down")"></i>
                                     }
                                 </div>
                                 @if (isUnlocked && isExpanded && biomeCheckpoints.Count > 0)
@@ -2066,7 +2049,6 @@
                                         {
                                             var isHighest = cp >= highestStage - 9 && cp <= highestStage;
                                             <button @key="cp" class="biome-cp @(isHighest ? "biome-cp-active" : "")"
-                                                    style="--bc: @color;"
                                                     @onclick="() => StartFromStage(cp)">
                                                 @cp
                                             </button>
@@ -2197,31 +2179,30 @@
                             var isCompleted = highestSurvive > level;
                             var isCurrent = surviveProgress.CurrentLevel == level;
                             var icon = GetSurviveBiomeIcon(name);
-                            var color = GetSurviveBiomeColor(name);
+                            var colorClass = BiomeDisplayHelper.GetSurviveBiomeColorClass(name);
                             var config = SurviveModeService.GetLevelConfig(level, character?.Level ?? 1);
                             var timer = config.TimerDurationSeconds;
                             var timerStr = timer >= 60 ? $"{(int)(timer / 60)}:{((int)(timer % 60)):D2}" : $"0:{(int)timer:D2}";
 
-                            <div @key="name" class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
-                                 style="--bc: @color;">
+                            <div @key="name" class="biome-card @colorClass @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")">
                                 <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
                                      @onclick="async () => { if (isUnlocked) await StartSurviveLevel(level); }">
-                                    <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">Level @level — @name</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Sobreviver @timerStr</div>
+                                    <i class="bi @icon biome-accent u-fs-120 u-w-22 text-center"></i>
+                                    <div class="u-flex-1 u-minw-0">
+                                        <div class="u-fw-700 u-fs-90 u-c-eee">Level @level — @name</div>
+                                        <div class="u-fs-70 u-c-w35">Sobreviver @timerStr</div>
                                     </div>
                                     @if (isCompleted)
                                     {
-                                        <i class="bi bi-check-circle-fill" style="color: @color; font-size: 1rem;"></i>
+                                        <i class="bi bi-check-circle-fill biome-accent u-fs-100"></i>
                                     }
                                     else if (isCurrent)
                                     {
-                                        <span class="badge" style="background: @color; font-size: 0.68rem;">Próximo</span>
+                                        <span class="badge biome-accent-bg u-fs-68">Próximo</span>
                                     }
                                     else if (!isUnlocked)
                                     {
-                                        <i class="bi bi-lock-fill" style="color: rgba(255,255,255,0.2);"></i>
+                                        <i class="u-c-w20 bi bi-lock-fill"></i>
                                     }
                                 </div>
                             </div>
@@ -2933,7 +2914,6 @@
 
     private static string GetSurviveBiomeIcon(string name) => BiomeDisplayHelper.GetSurviveBiomeIcon(name);
 
-    private static string GetSurviveBiomeColor(string name) => BiomeDisplayHelper.GetSurviveBiomeColor(name);
 
     private async Task OpenStageModal()
     {
@@ -3035,7 +3015,6 @@
 
     private static string GetBiomeIcon(string biomeName) => BiomeDisplayHelper.GetBiomeIcon(biomeName);
 
-    private static string GetBiomeColor(string biomeName) => BiomeDisplayHelper.GetBiomeColor(biomeName);
 
 
 
