@@ -5,104 +5,116 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **016 (harden production bootstrap credentials) — implementation complete,
-uncommitted, awaiting owner review.** Unit 015 is merged to `dev` at `bbe61213`.
+Modernization unit **017 (make `ResetDevDataAsync` explicit and safe) - implementation complete,
+uncommitted, awaiting owner review.** Unit 016 is merged to `dev` at `6f9f9d8c`.
 
 ## Branch
-`fix/016/bootstrap-credentials`, branched from `dev` (clean, in sync with `origin/dev` at
-`bbe61213`). Uncommitted — no commit authorized.
-`chore/001`-`chore/011`, `fix/012`-`fix/014` and `chore/015` still present; delete when convenient.
+`fix/017/development-data-reset-safety`, branched from `dev` (clean, in sync with `origin/dev` at
+`6f9f9d8c`). Uncommitted - no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015` and `fix/016` still present; delete when
+convenient.
 
 ## Last completed step
-**Unit 016 — the two hardcoded production password defaults unit 015 found are gone.** Neither
-was a leaked credential; both were insecure application defaults. Bootstrap now fails closed.
+**Unit 017 - the development-data reset is now opt-in, Development-only and free of hardcoded
+credentials.** The default startup no longer modifies any existing user's credentials.
 
-### Owner bootstrap — before / after
-`SeedData.Member.cs` read `configuration["AdminUser:Password"] ?? <hardcoded default>`. With the
-setting unset, an empty database silently produced an Owner+Admin account whose password is in
-the source tree.
+### Before / after
+`SeedData.InitializeAsync` called `ResetDevDataAsync` on every startup, before the existing-user
+early return. The guard was only `if (environment.IsProduction()) return;`, so **Development,
+Test *and* Staging** ran it automatically: it cleared `PushSubscriptions`, rewrote **every**
+user's `PasswordHash` to one shared hardcoded hash via raw SQL, and normalised every email. Two
+live problems: it silently undid unit 016's configured seed passwords on the next local startup,
+and a future Azure DEV App Service running as `Staging` would have reset every user's credentials
+on every restart.
 
-After: the fallback is gone. `RequireBootstrapPassword` throws `InvalidOperationException` when
-the value is null, empty, whitespace, or one of the documented placeholders (`your-admin-password`
-— the README example — plus `changeme` / `change-me` / `password`, matched case-insensitively).
-The message names `AdminUser:Password` and `AdminUser__Password` and **never contains the value**.
-No replacement default, and no generated password nobody can retrieve.
+The feature itself is useful, so it was **not deleted**. It is now gated twice:
 
-**Empty database:** no `AdminUser:Password` → seeding throws, zero users created, startup fails.
-With the setting supplied → the Owner is created exactly as before, same username/email defaults
-(`rtub` / `admin@rtub.pt`), same `Owner` + `Admin` roles, same early return.
-
-**Existing populated database:** unaffected and does **not** require the setting.
-`InitializeAsync` still returns as soon as any user exists, and the new check sits *inside* the
-`ownerUser == null` branch, so it is only evaluated when an Owner is actually about to be created.
-
-One supporting change: the `if (isEmptyDb) return;` was hoisted out of the create-success branch
-to just after the `ownerUser == null` block, so the Owner-only bootstrap returns whether or not the
-Owner was created on this run. It does not fire when `isEmptyDb` is `false`, so the full-seed path
-is unaffected.
-
-### MemberBuilder / bulk member seed — CORRECTED
-An earlier draft of this unit called the bulk member seed dead legacy code. **That was wrong.** It
-is an **intentional manual developer switch**: `isEmptyDb` at `SeedData.cs` is flipped to `false`
-by hand against a fresh database to build a full development dataset, and back to `true` otherwise.
-It is now commented as such in place. The boolean stays, the ~40 member definitions stay, and
-nothing about the switch was turned into configuration.
-
-`MemberBuilder._password` had a hardcoded default and `Password(...)` was called by nothing, so
-that default was the only password every seeded member got. Fix keeps the builder fail-closed —
-`_password` is `string?` with no default and `CreateAsync` throws before touching `UserManager`
-when it is unset — and gives `SeedMembersAsync` an external source for it.
-
-**Two separate externally configured passwords. The privileged Owner password is never reused for
-ordinary members.**
-
-| Path | `AdminUser:Password` | `SeedData:MemberPassword` |
+| Environment | `DevelopmentDataReset:Enabled` | Result |
 | --- | --- | --- |
-| Fresh DB, `isEmptyDb = true` | **required** | not required |
-| Fresh DB, `isEmptyDb = false` | **required** | **required** |
-| Existing populated DB | not required | not required |
+| Production | anything | **never runs** |
+| Staging | anything | **never runs** |
+| Test | anything | **never runs** on the normal host path |
+| Development | absent / `false` / unparseable | no reset, no password required |
+| Development | `true` | password required, validated, then reset |
 
-Smallest implementation: the class-level `Member(userManager)` helper became a **local function**
-inside `SeedMembersAsync` that applies the resolved member password to every builder. All 82 call
-sites are untouched and no password literal was introduced anywhere.
+The environment check (`!environment.IsDevelopment()`) comes **first**, so no configuration value
+can switch it on outside local Development.
 
-**Validated before mutation.** With `isEmptyDb = false`, `SeedData:MemberPassword` is checked at
-the top of `SeedMembersAsync`, *before* the Owner is created. A missing value therefore leaves
-**zero** users behind — important because `InitializeAsync` returns as soon as any user exists, so
-a half-seeded database would never be completed on a later start.
+### Configuration
+```
+DevelopmentDataReset:Enabled    /  DevelopmentDataReset__Enabled
+DevelopmentDataReset:Password   /  DevelopmentDataReset__Password
+```
+No hardcoded fallback, no hardcoded `PasswordHash`, no generated-and-lost password. `Enabled` is
+read with `bool.TryParse`, so absent / blank / garbage all resolve to **off** - the safe direction.
 
-### Where local passwords go — User Secrets, not `appsettings.Development.json`
-**`appsettings.Development.json` is NOT git-ignored.** `.gitignore` contains no rule for it
-(verified on `dev`), so it is not a safe place for credentials and the README no longer says it is.
-Local values for `AdminUser:Password` and `SeedData:MemberPassword` go in **.NET User Secrets**,
-using the `UserSecretsId` already declared at `src/RTUB.Web/RTUB.csproj:5`. README documents the
-two `dotnet user-secrets set` commands with `<placeholder>` arguments only — no literals.
+### Fail-closed / atomic
+`DevelopmentDataReset:Password` is validated **before the first mutation**, reusing unit 016's
+`RequireSeedPassword`. Missing, null, empty, whitespace or a documented placeholder
+(`your-admin-password`, `changeme`, `change-me`, `password`, case-insensitive) throws
+`InvalidOperationException` naming both `DevelopmentDataReset:Password` and
+`DevelopmentDataReset__Password`. **The supplied value never appears in the message or any log**
+- asserted by a test. A missing password therefore leaves push subscriptions, passwords and emails
+exactly as they were; there is no partially-reset database.
 
-### Known interaction — the full seed is undone on the next startup
-On a **fresh** database with `isEmptyDb = false`, seeding is correct: the Owner is created from
-`AdminUser:Password` and every member from `SeedData:MemberPassword`, kept separate, and the tests
-prove it.
+### Password reset mechanism - no more raw SQL
+The `UPDATE AspNetUsers SET PasswordHash = '<literal>'` is gone. Each user now goes through
+Identity's own password-reset flow, in **one** call:
+`GeneratePasswordResetTokenAsync` then `ResetPasswordAsync`.
 
-**But the next non-Production startup overwrites all of it.** `ResetDevDataAsync` runs before the
-seeding early-return and rewrites **every** user's `PasswordHash` to one shared value, so after the
-second run neither configured password authenticates anyone — every account shares the hardcoded
-dev hash instead. That is pre-existing behavior, untouched by 016, and it is why the next unit
-changed (see *Next unit*).
+**Deliberately not `RemovePasswordAsync` + `AddPasswordAsync`.** That is a two-step credential
+mutation: a failure between the two steps would leave the account with **no password at all**.
+`ResetPasswordAsync` verifies the token and validates the new password *before* it writes, so a
+rejected reset leaves the existing hash untouched.
 
-### Files changed (5)
-- `src/RTUB.Application/Data/SeedData.Member.cs` — both fallbacks removed, `RequireSeedPassword` +
-  placeholder set added, member password resolved once into a local-function builder factory,
-  `isEmptyDb` return hoisted.
-- `src/RTUB.Application/Data/SeedData.cs` — comment documenting the `isEmptyDb` manual switch.
-  **No behavior change**; the boolean itself is untouched.
-- `src/RTUB.Application/Data/Builders/MemberBuilder.cs` — default removed, fail-closed guard.
-- `README.md` — documents `SeedData__MemberPassword` and when each password is required.
-- `tests/RTUB.Application.Tests/Data/SeedDataBootstrapTests.cs` — **new**, the only new file.
+Every `IdentityResult` is checked explicitly. A failed reset throws `InvalidOperationException`
+naming the affected `UserName` and the Identity error `Code: Description` pairs — those never echo
+the password or the reset token, and neither does anything logged.
+
+`ResetPasswordAsync` routes through `UpdatePasswordHash`, so the configured `IPasswordHasher`
+produces the hash and **the security stamp is rotated**; authentication cookies issued before a
+reset stop validating. A test asserts the stamp changes. The web host already supplies the
+password-reset token provider via `AddDefaultTokenProviders()`
+(`ServiceCollectionExtensions.cs:639`); the tests register the same `DataProtectorTokenProvider`
+explicitly.
+
+`DELETE FROM PushSubscriptions` became `RemoveRange` over a materialised list - provider-agnostic
+(works on the InMemory provider the tests use), audited like any other delete, and no change
+tracker mutation mid-enumeration.
+
+Email normalisation to `{UserName}@rtub.pt` stays, but is assigned on the entity (plus
+`NormalizeEmail` for `NormalizedEmail`, persisted by its own checked `UpdateAsync`) rather than via
+`UserManager.SetEmailAsync` - **deliberate**: `SetEmailAsync` clears `EmailConfirmed`, and
+`SignIn.RequireConfirmedAccount = true` (`ServiceCollectionExtensions.cs:627`), so using it would
+lock every dev account out. A test pins `EmailConfirmed` staying `true`. The email is written only
+**after** the password reset succeeds, so a rejected reset rewrites nothing.
+
+### Visibility
+`ResetDevDataAsync` went from `private` to `internal` (the project already declares
+`InternalsVisibleTo RTUB.Application.Tests`), which is the explicit test-specific path required.
+Nothing else in `src/` can call it, and the `IsDevelopment()` guard keeps it inert on the normal
+`TestWebApplicationFactory` startup path (that host runs as `Test`).
+
+### Interaction with unit 016 - proven
+`FullSeed_ThenDefaultDevelopmentStartup_KeepsBothConfiguredSeedPasswords` runs the **real** bulk
+seed (`isEmptyDb: false`, 82 members) so the database is in the genuine post-016 state, then
+replays what the next Development startup does with no `DevelopmentDataReset` section configured
+at all. The Owner still authenticates with `AdminUser:Password`, the member `nabo` still
+authenticates with `SeedData:MemberPassword`, and the Owner's email is not rewritten.
+
+### Files changed (3)
+- `src/RTUB.Application/Data/SeedData.cs` - `ResetDevDataAsync` rewritten (guards, config,
+  validation, UserManager-based reset, EF delete, logger); its call site passes `configuration`
+  and `userManager` and gained a two-line comment. **Nothing else in the file changed** - the
+  `isEmptyDb` manual switch and every other seed step are untouched.
+- `README.md` - new "Resetting a local development database (destructive, opt-in)" section under
+  Local Development, plus a "Development Data Reset" entry in the environment-variable list.
+- `tests/RTUB.Application.Tests/Data/DevelopmentDataResetTests.cs` - **new**, the only new file.
 
 ### Not changed, by instruction
-Identity's password policy (`RequiredLength = 4`, complexity off) is untouched — still its own
-unit. No Azure configuration was changed. `ResetDevDataAsync` was reviewed and left alone — see the
-finding in *Deferred*, which corrects how its guard was described earlier.
+Password policy, MFA, the `TestWebApplicationFactory` SQLite race, Azure provisioning, CI/CD, the
+`isEmptyDb` manual switch, seed-mode shape, email architecture, push architecture. No migration
+and no model-snapshot change - none was needed.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -161,23 +173,14 @@ removing it is a behavior change to the production request pipeline. Carried in 
 None active.
 
 ## Next unit
-**`ResetDevDataAsync` hardening — promoted ahead of the SQLite race by unit 016.** Its guard is
-only `if (environment.IsProduction()) return;`, so **Development *and* Staging** rewrite every
-user's `PasswordHash` to one shared hardcoded value on every startup. Two reasons it goes first:
-it silently undoes the full development seed 016 just made correct (see above), and an Azure DEV
-App Service running as `Staging` would reset all user passwords on each start — that environment
-is planned. Likely shape: tighten to `IsDevelopment()` and/or gate on an explicit opt-in setting,
-and source the reset password from configuration rather than a hardcoded hash. Detail in
-*Deferred*.
+**The `TestWebApplicationFactory` SQLite startup race** - serialize factory startup before the
+hosted services run. It hits any integration class run in isolation at roughly 2 runs in 5, and it
+was explicitly out of scope for 015 and 017. Detail under *Deferred* below.
 
-Then: **the `TestWebApplicationFactory` SQLite startup race** — serialize factory startup before
-the hosted services run. It hits any integration class run in isolation at roughly 2 runs in 5,
-and it was explicitly out of scope for 015. Detail under *Deferred* below.
 Then: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
-Next *security* unit: **password policy** — Identity is currently `RequiredLength = 4` with every
-complexity rule off (`AddIdentityServices`). The two `src/` password defaults it was going to
-absorb were handled separately by unit 016 and are no longer part of it. Then security headers / CSP.
+Next *security* unit: **password policy** - Identity is currently `RequiredLength = 4` with every
+complexity rule off (`AddIdentityServices`). Then security headers / CSP.
 
 ## Blockers
 **None.** The only open blocker — `ASPNETCORE_FORWARDEDHEADERS_ENABLED` on the `rtub` App Service —
@@ -196,14 +199,10 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 ### Security — raised by 015, deliberately not changed
 - ~~**Two hardcoded production password defaults in `src/`**~~ — **fixed by unit 016.** Both now
   fail closed; see *Last completed step* above.
-- **`ResetDevDataAsync` (`SeedData.cs`) runs in EVERY environment except Production.** The guard
-  is exactly `if (environment.IsProduction()) return;`, so **Development *and* Staging** execute
-  it — it clears push subscriptions and rewrites **every** user's `PasswordHash` to one shared
-  value. Its own doc comment ("only execute in Development / local environments") understates
-  this. Behavior deliberately **not changed** by 016; not required by the seeding tests.
-  **Act on this before the planned Azure DEV environment**: an Azure DEV App Service running as
-  `Staging` would reset every user password to the same known hash on each startup. Its own unit —
-  tighten the guard to `IsDevelopment()`, or gate it on an explicit opt-in setting.
+- ~~**`ResetDevDataAsync` runs in EVERY environment except Production**~~ - **fixed by unit 017.**
+  Now opt-in (`DevelopmentDataReset:Enabled`), local-Development-only, disabled by default, no
+  hardcoded hash, validated before any mutation. Staging and Production can no longer run it at
+  all. See *Last completed step*.
 - ~~"the bulk member seed is dead code"~~ — **that earlier claim was wrong and is retracted.** It
   is an intentional manual full-seed developer path (`isEmptyDb`), now documented in place and
   covered by tests. Nothing to clean up.
@@ -283,59 +282,56 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 016)
-- `src/RTUB.Application/Data/SeedData.Member.cs` — Owner bootstrap: no fallback password,
-  `RequireBootstrapPassword` + `BootstrapPasswordPlaceholders`, `isEmptyDb` return hoisted.
-- `src/RTUB.Application/Data/Builders/MemberBuilder.cs` — `_password` is `string?` with no
-  default; `CreateAsync` throws before creating a user when it is unset.
-- `tests/RTUB.Application.Tests/Data/SeedDataBootstrapTests.cs` — **new**.
-- `STATE.md` — this file.
+## Relevant files (unit 017)
+- `src/RTUB.Application/Data/SeedData.cs` - `ResetDevDataAsync` (double gate, config validation,
+  `UserManager`-based password reset, EF push-subscription delete, `ILogger`) and its call site.
+- `tests/RTUB.Application.Tests/Data/DevelopmentDataResetTests.cs` - **new**.
+- `README.md` - local opt-in via User Secrets + environment-variable reference.
+- `STATE.md` - this file.
 
-Unchanged and deliberately so: `SeedData.cs` (incl. `ResetDevDataAsync`), every `appsettings*.json`
-(they contain no `AdminUser` section at all), `README.md` (its `your-admin-password` placeholder is
-now one of the values the code rejects), migrations and the model snapshot, and CI.
+Unchanged and deliberately so: `SeedData.Member.cs`, `MemberBuilder.cs`, every `appsettings*.json`
+(no `DevelopmentDataReset` section is committed anywhere - the switch is User Secrets / App
+Service settings only), `TestWebApplicationFactory.cs`, migrations, the model snapshot, and CI.
 
-## Tests (15 new, 0 removed, 0 changed)
-All in `SeedDataBootstrapTests`. Every password comes from `TestSecret.NewPassword()` (unit 015) —
-no password-shaped literal was introduced. The only credential-ish literals are the *placeholders*
-the production code rejects, which are the assertion's subject, not secrets.
-1. `EmptyDatabase_WithoutUsableAdminPassword_CreatesNoOwnerAndFailsClearly` — **6 theory cases**
-   (absent, empty, whitespace, `your-admin-password`, `changeme`, `CHANGEME`): throws naming
-   `AdminUser:Password` **and** zero users exist after.
-2. `EmptyDatabase_WithSuppliedAdminPassword_CreatesOwnerWithBothRoles` — `isEmptyDb: true`, no
-   member password configured: Owner created, password verified, `Owner` + `Admin` roles, exactly
-   one user. Owner-only behavior preserved.
-3. `BulkSeed_WithoutUsableMemberPassword_WritesNothingAndFailsClearly` — **4 theory cases**
-   (absent, empty, whitespace, `changeme`) with a valid admin password and `isEmptyDb: false`:
-   throws naming `SeedData:MemberPassword` and **zero users created** — proves validation precedes
-   any mutation.
-4. `BulkSeed_WithMemberPassword_SeedsOwnerAndMembersWithThatPassword` — `isEmptyDb: false`: Owner
-   created and authenticates with the **admin** password, user count > 1, and the seeded member
-   `nabo` authenticates with the **member** password and holds the `Member` role. Proves the two
-   passwords stay separate and the full dataset really is created (82 members).
-5. `PopulatedDatabase_DoesNotRequireBootstrapPassword` — Owner pre-seeded, neither setting
-   configured: no throw, count unchanged.
-6. `MemberBuilder_WithoutExplicitPassword_CreatesNoUserAndFailsClearly` — still fail-closed.
-7. `MemberBuilder_WithExplicitPassword_CreatesTheUser` — the guard did not break the path.
+## Tests (14 new, 0 removed, 0 changed)
+All in `DevelopmentDataResetTests`. Every password comes from `TestSecret.NewPassword()`; the push
+subscription's `P256dh`/`Auth` fixture values are generated GUIDs rather than literals for the same
+reason. The only credential-ish literals are the *placeholders* the production code rejects.
+1. `ResetDoesNotRun_LeavesCredentialsEmailsAndPushSubscriptionsUntouched` - **5 theory cases**
+   (Development+`false`, Development+absent, **Staging**+`true`, **Production**+`true`,
+   **Test**+`true`): old password still valid, reset password rejected, email unchanged, security
+   stamp unchanged, push subscription still present.
+2. `Development_EnabledWithoutUsablePassword_ThrowsBeforeAnyMutation` - **5 theory cases** (absent,
+   empty, whitespace, `changeme`, `CHANGEME`): throws naming **both** `DevelopmentDataReset:Password`
+   and `DevelopmentDataReset__Password`, the message does **not** contain the supplied value, and
+   password / email / security stamp / push subscription are all untouched.
+3. `Development_EnabledWithValidPassword_ResetsPasswordsEmailsAndPushSubscriptions` - new password
+   authenticates, **old password no longer works**, email normalised to `{UserName}@rtub.pt` with
+   `NormalizedEmail` upper-cased, `EmailConfirmed` preserved, **security stamp rotated**, push
+   subscriptions cleared.
+4. `Development_EnabledWithValidPassword_ResetsEveryUser` - two users, both reset.
+5. `Development_WhenIdentityRejectsTheReset_ThrowsAndLeavesTheAccountUsable` - a stubbed
+   `IPasswordValidator` rejects the password. The `IdentityResult` failure is **surfaced** as an
+   `InvalidOperationException` carrying the Identity error code and the affected `UserName` and
+   **not** the password; the account keeps a non-empty `PasswordHash`, still authenticates with its
+   previous password, keeps its security stamp and keeps its original email. This is the test that
+   would fail under a `RemovePassword` + `AddPassword` implementation.
+6. `FullSeed_ThenDefaultDevelopmentStartup_KeepsBothConfiguredSeedPasswords` - the unit-016
+   interaction, proven against the real bulk seed. See *Last completed step*.
 
-Requirement "no known/default password exists in production source" is covered by the repo-wide
-scan below, **not** by a test: a test asserting a specific literal is absent would have to contain
-that literal, which is exactly what unit 015 removed.
-
-## Latest validation (unit 016)
+## Latest validation (unit 017)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `SeedDataBootstrapTests` alone — **10 total, 10 passed, 0 failed, 0 skipped.**
-- Full suite, `dotnet test --no-build -c Release`: **4507 passed, 0 failed, 60 skipped**
-  (total 4567). Baseline was 4497 / 0 / 60 — **+10, exactly the tests added.**
-- `git diff --check`: clean. Both edited files re-normalised to CRLF, so the diff is minimal
-  (36 insertions / 3 deletions and 13 / 3) rather than whole-file rewrites.
-- Repo-wide scan for the two known defaults across `src/`, `tests/`, `docs/`, `README.md` and
-  `.github/`: **no match** (working tree; git history was not rewritten, same as unit 015).
-- Targeted credential scan of `src/` for `?? "<literal>"` password fallbacks and
-  `password = "<literal>"` assignments: one hit, `Profile.razor`'s `OnChangePassword` event
-  callback — markup, not a credential.
-- `git status`: 2 modified source files, 1 new test file, 1 modified `STATE.md`. **Migrations and
-  the model snapshot are untouched** — no schema change was needed or made.
-- No frontend build, no Playwright, no Graphify rebuild — the change is two method bodies, not a
-  structural change.
+- Focused first: `DevelopmentDataResetTests` alone - **14 total, 14 passed, 0 failed, 0 skipped**;
+  together with `SeedDataBootstrapTests` - **29 total, 29 passed**.
+- Full suite, `dotnet test --no-build -c Release`: **4526 passed, 0 failed, 60 skipped**
+  (total 4586). Baseline was 4512 / 0 / 60 - **+14, exactly the tests added.**
+- `git diff --check`: clean.
+- **No hardcoded `PasswordHash` remains**: repo-wide `grep` for `PasswordHash = "` across `src/`
+  returns nothing, and the removed `AQAAAA...` hash matches nowhere in `src/`, `tests/`, `docs/`
+  or `README.md` (working tree; git history was not rewritten).
+- Diff credential scan for `password = "<literal>"`, `secret = "<literal>"` and `?? "<literal>"`
+  across the changed files: **no match**.
+- `git status`: 1 modified source file, 1 modified `README.md`, 1 new test file, 1 modified
+  `STATE.md`. **Migrations and the model snapshot are untouched.**
+- No frontend build, no Playwright, no Graphify rebuild - one method body, not a structural change.
