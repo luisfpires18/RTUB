@@ -5,118 +5,121 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **018 (fix the `TestWebApplicationFactory` SQLite startup race) - implementation
-complete, uncommitted, awaiting owner review.** Unit 017 is merged to `dev` at `37a19e8a`.
+Modernization unit **019 (reduce authentication cookie-validation SQLite pressure) - COMPLETE,
+uncommitted, awaiting owner review.** Unit 018 is merged to `dev` at `0492cc81`.
 
 ## Branch
-`fix/018/integration-sqlite-startup-race`, branched from `dev` (clean, in sync with `origin/dev` at
-`37a19e8a`). Uncommitted - no commit authorized.
-`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016` and `fix/017` still present;
+`perf/019/cookie-validation-db-pressure`, branched from `dev` (clean, in sync with `origin/dev` at
+`0492cc81`). Uncommitted - no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018` still present;
 delete when convenient.
 
+## Owner decision (2026-09-21) - Option A
+**`LastLoginDate` keeps its activity semantics.** It is not renamed, not split, not restricted to
+login time. The only change is that the write is now throttled to **one per 5 minutes per user**,
+which is the throttle PR #185's comment already claimed to have. Options B and C (login-only, with
+or without a new `LastActivityAt` column) were rejected: both change what the presence UI shows.
+
 ## Last completed step
-**Unit 018 - the integration-test host no longer shares one `SqliteConnection`, and its database is
-seeded before any hosted service starts.** The intermittent
-`InvalidOperationException: Operations that change non-concurrent collections must have exclusive
-access` is gone. Measured in the same harness, back to back: **old factory 12 failures in 40
-isolated runs, all 12 the race; new factory 0 in 40.**
+**Unit 019 - the cookie-validation `LastLoginDate` write is throttled; every security check still
+runs on every request.** The investigation that led here is preserved below, because the throttle
+only makes sense against it.
 
-### Exact cause - proven, not inferred
-Captured stack, abridged, from a reproduction run against the pre-018 factory:
+### What changed
+`AddCookieAuthenticationServices` (`ServiceCollectionExtensions.cs`) now, after the security checks
+and before the write:
+1. reads the user id from `ClaimTypes.NameIdentifier` (no extra SELECT - it is already in the
+   cookie);
+2. returns immediately if `activity-lastlogin:{userId}` is present in `IMemoryCache`;
+3. otherwise performs the existing raw `UPDATE`, and **only once it has succeeded** caches that key
+   for `ActivityWriteThrottle`. A failed update leaves the key unset so the next request retries.
 
-```
-System.InvalidOperationException : Operations that change non-concurrent collections must have
-exclusive access. ...
-  at System.Collections.Generic.Dictionary`2.set_Item(TKey key, TValue value)
-  at Microsoft.Data.Sqlite.SqliteConnection.CreateAggregateCore[...](...)
-  at Microsoft.EntityFrameworkCore.Sqlite.Storage.Internal.SqliteRelationalConnection
-       .InitializeDbConnection(DbConnection connection)
-  at Microsoft.EntityFrameworkCore.Sqlite.Storage.Internal.SqliteRelationalConnection..ctor(...)
-  ... at RTUB.Application.Repositories.GameRepository.GetByKeyAsync(...)
-  ... at RTUB.Application.Data.SeedData.InitializeAsync(...)
-  ... at RTUB.Integration.Tests.TestWebApplicationFactory.CreateHost(...)
-```
+Two new members on the same class, both public so tests can pin them:
+- `ActivityWriteCachePrefix = "activity-lastlogin:"`
+- `ActivityWriteThrottle = TimeSpan.FromMinutes(5)`
 
-`SqliteRelationalConnection`'s **constructor** calls `InitializeDbConnection`, which registers EF
-Core's own SQL functions, collations and aggregates (`ef_mod`, `ef_add`, ...) on the
-`SqliteConnection` object. Those registrations are `Dictionary<,>.set_Item` on plain, unsynchronised
-dictionary fields of `SqliteConnection`. **A `SqliteRelationalConnection` is constructed once per
-`ApplicationDbContext`**, so with one shared connection instance *every* context construction
-rewrote those dictionaries. Two constructions at once corrupted them.
+**The throttle key is deliberately separate from the authentication-log key**
+(`login-log:{userName}:{issuedUtc.Ticks}`). One limits how often a line is logged, the other how
+often a row is written; they are different concerns and the log key is keyed by *username* while
+this one is keyed by *user id*, as instructed.
 
-The two racing paths were:
-1. **main test thread** - `CreateHost` -> `db.Database.EnsureCreated()` -> `SeedData.InitializeAsync`
-   -> `GameService.SeedDefaultGamesAsync` -> new `ApplicationDbContext`;
-2. **thread pool** - `MemberStatusUpdateBackgroundService.ExecuteAsync`, the **only** hosted service
-   with no startup delay (`await RunUpdateAsync()` on its first line; the other nine open with
-   `await Task.Delay(5-25 s)`) -> `MemberStatusService.UpdateAllMemberStatusesAsync` ->
-   `IDbContextFactory.CreateDbContextAsync` -> new `ApplicationDbContext`.
+Also corrected narrowly, no behaviour change: the retry's `ex.SqliteErrorCode == 6` now carries a
+comment saying 6 is **`SQLITE_LOCKED`**, not `SQLITE_BUSY` (5) - `SQLITE_BUSY` is already absorbed
+by `PRAGMA busy_timeout = 30000` in `SqliteConnectionInterceptor`, which does not cover
+`SQLITE_LOCKED`. The stale log message "Error while **initializing** LastLoginDate" (a leftover from
+the one-time-backfill version) now reads "updating". No other SQLite change - the retry loop and
+the raw SQL both stay.
 
-Both are pure DI/startup work, which is why the exception was unrelated to whichever test ran, and
-why the full suite mostly hid it: a warm process loses the overlap window that a cold, isolated
-class run has.
+### Before / after - measured the same way, by test
+Five consecutive authenticated `GET /Events` on one session:
 
-**Second, latent bug found by the same trace:** `base.CreateHost(builder)` **starts** the host, so
-every hosted service ran *before* `EnsureCreated()` and the seed. `MemberStatusUpdateBackgroundService`
-was therefore querying `AspNetUsers` against an empty database on every single factory startup and
-logging `SQLite Error 1: 'no such table: AspNetUsers'`, swallowed by its own `catch`. Now fixed too:
-a full integration run logs **zero** SQLite errors where it previously logged twelve.
+| | `LastLoginDate` writes | `AspNetRoles` SELECTs | `AspNetUserRoles` SELECTs |
+| --- | --- | --- | --- |
+| before | **5** | 5 | 5 |
+| after | **1** | 5 | 5 |
 
-### Previous test-database architecture
-- one `SqliteConnection` field on the factory, `DataSource=:memory:`;
-- opened inside `ConfigureWebHost`'s `ConfigureServices` delegate;
-- `AddDbContext<ApplicationDbContext>(o => o.UseSqlite(_connection))` - the **connection instance**;
-- `CreateHost` = `base.CreateHost` (which builds **and starts**), then `EnsureCreated()`, then seed;
-- `Dispose` closed the connection *before* `base.Dispose`.
+Security reads are **unchanged and still per request**, by design. Only the write was removed.
+Per-request cost drops from 4 database operations to 3, and from 1 write to 0 on every request
+inside the window. The avatar-grid multiplier noted below collapses to a single write per user per
+5 minutes regardless of how many `/images/*` requests a page makes.
 
-A bare `:memory:` database is private to its one connection, so sharing the instance was the only
-way the old design could keep one database - and sharing the instance was the defect.
+### Cookie-validation frequency - measured, not inferred
+`AddIdentity` wires the application cookie with
+`OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync`.
+`AddCookieAuthenticationServices` then assigns **a whole new `CookieAuthenticationEvents` object**,
+which **replaces** that delegate outright. Consequences:
 
-### New test-database architecture
-- `Data Source=rtub-tests-{Guid.NewGuid():N};Mode=Memory;Cache=Shared` - **a name generated per
-  factory instance**, so each factory (and so each test class, which run in parallel) stays isolated,
-  exactly as before;
-- one `_keepAlive` connection opened in the **factory constructor** and closed in `Dispose`. A named
-  in-memory database is dropped when its last connection closes, so this keeps it alive for the
-  factory lifetime. Nothing queries through it. Opening it in the constructor rather than in
-  `ConfigureServices` also means it cannot be created twice or leaked if that delegate re-runs;
-- `AddDbContext` is configured from the **connection string**, so every `ApplicationDbContext` -
-  scoped, or built by `IDbContextFactory` - opens and owns its own `SqliteConnection`. No two
-  contexts can touch one connection's dictionaries again, under any amount of concurrency;
-- `Dispose` now calls `base.Dispose` **first**, then closes `_keepAlive`, so the database outlives
-  anything still querying it.
+- `SecurityStampValidatorOptions.ValidationInterval` (**default 30 minutes**) is **never consulted**
+  - nothing in the repo configures it and nothing reads it. The stock validator skips the database
+  entirely when `now - Properties.IssuedUtc <= ValidationInterval`; RTUB's handler has no such gate.
+  **This was left exactly as it was** - lowering the security-check frequency was out of scope.
+- `SecurityStampVerified`'s principal refresh (`ReplacePrincipal` + `ShouldRenew = true`) is also
+  gone, so a legitimately refreshed stamp is a forced logout rather than a claims refresh. Deferred.
+- `OnValidatePrincipal` fires **once per HTTP request per cookie scheme** - `HandleAuthenticateAsync`
+  is memoised per request by `HandleAuthenticateOnceAsync`, so repeat `[Authorize]`/`User` reads in
+  the same request are free.
 
-### Startup order - fixed at the lifecycle, not with sleeps or retries
-`WebApplicationFactory`'s host is **deferred**: `builder.Build()` does not materialise services, and
-merely reading `host.Services` is what starts the app. Build-seed-then-start is therefore impossible
-- attempting it throws `ObjectDisposedException: IServiceProvider`, which was verified, not assumed.
+Measured per request kind, signed in, via an EF `DbCommandInterceptor` in the test host (the write
+column is the first request of a session; subsequent ones inside the window are 0):
 
-So the seed moved into the host's own lifecycle: a private
-`TestWebApplicationFactory.DatabaseInitializer : IHostedLifecycleService` does `EnsureCreatedAsync`
-plus `SeedData.InitializeAsync` in **`StartingAsync`**. `Host.StartAsync` runs *every* hosted
-service's `StartingAsync` before *any* `StartAsync`, so the database is complete before the first
-background service runs, and registration order is irrelevant. No `Task.Delay`, no retry, no lock,
-no serialisation of the test suite.
+| Request | SQL | `LastLoginDate` writes | Role lookups |
+| --- | --- | --- | --- |
+| `GET /` | 57 | 1 | 1 |
+| `GET /Events` | 14 | 1 | 1 |
+| `GET /images/...` (**404**) | 4 | 1 | 1 |
+| `GET /favicon.ico`, `/css/site.css`, `/service-worker.js` | 0 | 0 | 0 |
 
-### Hosted services - none removed, none disabled
-`MemberStatusUpdateBackgroundService` and the other nine still start in the test host exactly as in
-production. The fix is ordering plus connection ownership, so nothing had to be stubbed out. **One
-hosted service was added, and it exists only in the test project**: `DatabaseInitializer`, above.
+Static assets are free because `UseStaticFiles` is registered at `Program.cs:363`, **before**
+`UseAuthentication()` at `Program.cs:414`. `/images/*` is deliberately excluded from that branch so
+`ImagesController` can add ETags, so every image request - including a 404 - still runs a full
+cookie validation. The throttle is what stops that costing a write per tile.
 
-### Seeding semantics - unchanged
-Same `SeedData.InitializeAsync(services, configuration)`, same scope, same configuration, same
-generated `AdminPassword`. Only *when* it runs moved. No production file was touched: the diff is
-two files, both under `tests/`.
+### `LastLoginDate` semantics - resolved by history, and it is NOT "last login"
+- `bacd166c` ("LOGIN UPDATED ON DB") introduced the cookie-validation write as a **one-time
+  backfill**: `... WHERE Id = {userId} AND LastLoginDate IS NULL;`, commented *"Atomic,
+  concurrency-safe 'set once if null'"*.
+- `7293f32d` (**PR #185**, "Fix LastLoginDate not updating on cookie validation") **deleted the
+  `AND LastLoginDate IS NULL` predicate on purpose**, with the new comment: *"Update LastLoginDate
+  to track user activity (both normal login and cookie validation) - **This is throttled by the
+  cache above to prevent excessive DB writes**"*. The throttle claim was false: the cache entry
+  guarded only the log line. Unit 019 makes it true.
 
-### Files changed (2)
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - connection string plus keep-alive
-  connection, `CreateHost` override removed, `DatabaseInitializer` added, `Dispose` order reversed.
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactoryTests.cs` - **new**, the only new file.
+The field means **"last authenticated request"**, and the UI depends on it:
 
-### Not changed, by instruction
-Application SQLite performance, production DB architecture, cookie-validation DB pressure, global
-test parallelisation policy, `xUnit1051`, CI/CD, Azure, PWA, `SeedData`, hosted-service
-architecture. No migration and no model-snapshot change - none was needed. **Nothing in `src/`.**
+| Consumer | Use |
+| --- | --- |
+| `LoginStatusBadge.razor` | `ONLINE_THRESHOLD_HOURS = 1` -> "Online"/"Recente"/"Esta Semana"/"Este Mes"/"Inativo" |
+| `AvatarCard.razor:306`, `UserCard.razor:107` | green online dot, `< 1 h` |
+| `UserRoles.razor:427` | sorts the member list by online-first |
+| `UserProfileService:93`, `LoginStatisticsButton.razor` | login-statistics report |
+| `AuditLogAppender.cs:41` | excluded from audit logs - *"already logged separately"* |
+
+Every one of those buckets at an hour or coarser, so a 5-minute write window is invisible to all of
+them. `Program.cs:489` still writes the field once per real login, unchanged.
+
+**The naming mismatch remains technical debt.** The column is called `LastLoginDate` and means
+"last activity". Renaming it needs a migration and an edit to every consumer above; it was
+explicitly excluded from this unit. Carried in *Deferred*.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -172,25 +175,22 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active.
+None active. Unit 019 is complete and awaiting owner review.
 
 ## Next unit
 **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
 Next *security* unit: **password policy** - Identity is currently `RequiredLength = 4` with every
 complexity rule off (`AddIdentityServices`). Then security headers / CSP.
+New *auth-cleanup / design* unit, raised by 019 - see *Deferred*.
 
 ## Blockers
-**None.** The only open blocker — `ASPNETCORE_FORWARDEDHEADERS_ENABLED` on the `rtub` App Service —
-was **confirmed set on 2026-09-21** (resource group `rtub_group`, verified via Azure CLI). Unit
-014's login rate limiter is now fully effective per client in production. See *Deployment
-requirement* above.
+**None.**
 
 **Owner action, not a blocker:** the historical GitGuardian incidents stay historical. The
 literals remain in old commits, and unit 015 deliberately did **not** rewrite git history to clear
 them. Mark those incidents "false positive / test credential" in GitGuardian by hand. 015 only
 stops *future* commits from raising new ones. No GitGuardian ignore comment was added either.
-
 
 ## Deferred / owner decisions
 
@@ -237,9 +237,31 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   shared `SqliteConnection` is gone and the seed now runs in `IHostedLifecycleService.StartingAsync`.
   Measured before/after in the same harness: **12 failures in 40 isolated runs → 0 in 40.** See
   *Last completed step*.
-- Out of scope by instruction and untouched: password policy, MFA, cookie
-  validation / SQLite pressure, security headers / CSP, PWA cache strategy, push architecture
-  refactor, `Program.cs` cleanup.
+- ~~Out of scope by instruction and untouched: ... cookie validation / SQLite pressure ...~~ -
+  **done by unit 019** (Option A, 5-minute write throttle). Still out of scope and untouched:
+  password policy, MFA, security headers / CSP, PWA cache strategy, push architecture refactor,
+  `Program.cs` cleanup.
+
+### Raised by 019, deliberately not changed
+- **`LastLoginDate` is named "last login" but means "last authenticated activity".** Unit 019 kept
+  the name by owner decision. Renaming it (say to `LastActivityAt`) needs a migration plus an edit
+  to `LoginStatusBadge`, `AvatarCard`, `UserCard`, `UserRoles`, `UserProfileService`,
+  `LoginStatisticsButton` and `AuditLogAppender`. Its own unit if wanted.
+- **RTUB's `OnValidatePrincipal` replaces Identity's `SecurityStampValidator` entirely** - a whole
+  new `CookieAuthenticationEvents` object is assigned, so the stock delegate never runs. Two
+  consequences, both still live and both deliberately untouched by 019:
+  - `SecurityStampValidatorOptions.ValidationInterval` (default 30 min) is never consulted, so the
+    stamp is checked on **every** request rather than every 30 minutes. Stricter than the framework
+    default, and deliberately left that way.
+  - the stock success path's principal refresh (`CreateUserPrincipalAsync` -> `ReplacePrincipal` +
+    `ShouldRenew = true`) is lost, so a legitimately refreshed stamp logs the user out instead of
+    refreshing their claims.
+  **A future auth-cleanup/design unit should decide whether to compose with the framework validator
+  rather than replace it.** It cannot simply be swapped in: `RemoveFromRoleAsync` does not bump the
+  security stamp, so the stock validator would miss Admin-role revocation. `AdminRoleRemoved_RejectsCookie`
+  pins that. Do not weaken the current checks to regain the framework refresh.
+- **The `SQLITE_LOCKED` retry loop was kept**, now correctly commented. The `IsInRoleAsync` pair is
+  still 2 SELECTs and could be one join - not done, out of 019's scope.
 - Known and accepted framework limitation (from 012): antiforgery tokens are bound to the user
   identity, so multiple tabs signed in as different users are unsupported. Documented ASP.NET Core
   behavior, not an RTUB defect.
@@ -273,53 +295,59 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 018)
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - per-factory named shared-cache
-  in-memory database, keep-alive connection, `DatabaseInitializer` hosted lifecycle service.
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactoryTests.cs` - **new**.
-- `STATE.md` - this file.
+## Relevant files (unit 019)
+Changed (3):
+- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` - `ActivityWriteCachePrefix` and
+  `ActivityWriteThrottle` constants; the throttle check, the post-success `cache.Set`, the
+  `SQLITE_LOCKED` comment and the corrected log message, all inside `OnValidatePrincipal`.
+  **The only production file touched.**
+- `tests/RTUB.Integration.Tests/CookieValidationTests.cs` - **new**, 10 tests plus the recording
+  factory, `SqlRecorder` and `RecordingCommandInterceptor`.
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` - one added member,
+  `protected string ConnectionString`, so a derived factory can re-register the context against the
+  same database in order to attach an interceptor. Nothing else touched.
 
-Unchanged and deliberately so: every file under `src/`, `IntegrationTestBase.cs`,
-`RemoteIpTestStartupFilter.cs`, every existing integration test class, migrations, the model
-snapshot, and CI.
+Read and deliberately **not** changed: `Program.cs` (pipeline order, login write),
+`SqliteConnectionInterceptor.cs`, and every presence consumer listed above.
 
-## Tests (3 new, 0 removed, 0 changed)
-All in `TestWebApplicationFactoryTests`. They pin the test host's own lifecycle, not application
-behaviour.
-1. `EveryDbContextOpensItsOwnConnection` - two contexts from two scopes plus one from
-   `IDbContextFactory<ApplicationDbContext>`; all three `DbConnection` instances must be distinct,
-   and all three must still see the seeded users. This is the **deterministic** assertion of the new
-   architecture: it fails outright on the old shared-connection design.
-2. `SeedDataIsInPlaceBeforeHostedServicesStart` - a derived factory registers one extra probe
-   `IHostedService` that records, in `StartAsync`, whether the seeded `testadmin` is already
-   present. Deterministic: `StartingAsync` always precedes every `StartAsync`.
-3. `ConcurrentDbContextCreationDoesNotCorruptTheDatabase` - 32 parallel scope-and-context creations,
-   each running a query. This is the direct regression for the reported exception; it is paired with
-   test 1 so the suite never rests on a probabilistic check alone.
+## Tests (10 new, 0 removed, 0 changed elsewhere)
+All in `CookieValidationTests`, all green. Cost assertions match on the raw, unquoted
+`UPDATE AspNetUsers` the handler emits - EF Core quotes identifiers, so nothing else collides.
 
-## Latest validation (unit 018)
+**Throttle and cost:**
+1. `ValidCookie_IsAccepted_AndFirstRequestCostsOneWritePlusTwoRoleReads` - the first request of a
+   session writes once and is not rejected.
+2. `RepeatedAuthenticatedRequests_WriteLastLoginDate_OnlyOncePerThrottleWindow` - 5 requests ->
+   **1** write, but **5** `AspNetRoles` and **5** `AspNetUserRoles` reads, and all five responses
+   are 200 with no cookie deletion. This is the before/after test and the "still authenticated"
+   test in one.
+3. `ThrottleIsKeyedPerUser_NotShared` - two users, two requests each -> 2 writes.
+4. `ActivityWriteThrottle_IsFiveMinutes` - pins the constant and the key prefix. Real expiry is
+   **not** exercised: a controllable cache clock would be disproportionate here, so the cache-hit
+   path is what the tests cover, as instructed.
+5. `StaticFileRequest_SkipsCookieValidation` - `/service-worker.js` -> 0.
+6. `ImageControllerRequest_CostsAFullCookieValidation_EvenWhenTheImageIsMissing` - a 404 -> 1 write.
+
+**Security - each one now arms the throttle with a warm-up request first, so it proves rejection
+still happens on a request that skips the write:**
+7. `SecurityStampChange_RejectsCookie`.
+8. `ExpelledUser_RejectsCookie` - uses `UpdateAsync`, which leaves the stamp alone, so it exercises
+   the expulsion branch specifically.
+9. `AdminRoleRemoved_RejectsCookie` - `RemoveFromRoleAsync` does **not** bump the security stamp, so
+   the stock `SecurityStampValidator` would not catch this. Only RTUB's own role probe does.
+10. `Login_SetsLastLoginDate`.
+
+Rejection is asserted by the rejecting response deleting `.AspNetCore.Identity.Application`.
+
+## Latest validation (unit 019)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Focused first: `TestWebApplicationFactoryTests` alone - **3 total, 3 passed**; then the whole
-  `RTUB.Integration.Tests` project - **249 total, 247 passed, 2 skipped, 0 failed**, with **zero**
-  `SQLite Error` lines in the log (previously twelve per run, from the unseeded background query).
-- **Stress, before/after in the same harness**, each class run **in isolation** as its own
-  `dotnet test --filter-class` process:
-
-  | Class | Runs | Old factory | New factory |
-  | --- | --- | --- | --- |
-  | `AuthAntiforgeryTests` | 20 | **5 failed**, all 5 the race | **0 failed** |
-  | `LoginRateLimitTests` | 20 | **7 failed**, all 7 the race | **0 failed** |
-  | `TestWebApplicationFactoryTests` | 20 | n/a | **0 failed** |
-
-  60 isolated new-factory runs, **zero** occurrences of `non-concurrent collections` anywhere in the
-  captured output.
-- Full suite, `dotnet test --no-build -c Release`: **4529 passed, 0 failed, 60 skipped**
-  (total 4589). Baseline was 4526 / 0 / 60 - **+3, exactly the tests added.**
+- Focused first: `CookieValidationTests` alone - **10 total, 10 passed**.
+- Full suite, `dotnet test --no-build -c Release`: **4539 passed, 0 failed, 60 skipped**
+  (total 4599). The investigation pass of 019 took the branch to 4537 / 0 / 60 with 8 tests; this
+  pass added 2 (`ThrottleIsKeyedPerUser_NotShared`, `ActivityWriteThrottle_IsFiveMinutes`) and
+  rewrote 1 in place. **4537 + 2 = 4539.** Against `dev`'s 4529, the branch is **+10**.
 - `git diff --check`: clean.
-- Diff credential scan for `password = "<literal>"`, `secret = "<literal>"`, `token`/`key` literals
-  and `?? "<literal>"` across the changed files: **no match**.
-- `git status`: 1 modified test file, 1 new test file, 1 modified `STATE.md`. **No file under
-  `src/` is touched; migrations and the model snapshot are untouched.**
-- No frontend build, no Playwright, no Graphify rebuild - test infrastructure only, no application
-  structure change.
+- Diff credential scan: no match. The tests use `TestSecret.NewPassword()`; no literal.
+- **No migration and no model-snapshot change** - the throttle is cache-only and no column moved.
+- No frontend build, no Graphify rebuild - no application structure changed.
