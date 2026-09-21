@@ -27,8 +27,9 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
-        // Development-only: reset passwords, emails and clear push subscriptions
-        await ResetDevDataAsync(dbContext, environment, logger);
+        // Opt-in, Development-only: reset passwords, emails and clear push subscriptions.
+        // Disabled by default — a normal startup never touches existing credentials.
+        await ResetDevDataAsync(configuration, dbContext, userManager, environment, logger);
 
         if (await dbContext.Users.AnyAsync())
         {
@@ -80,34 +81,97 @@ public static partial class SeedData
     }
 
     /// <summary>
-    /// Resets development data: clears push subscriptions, resets all passwords to a
-    /// common dev password, and normalises emails to {UserName}@rtub.pt.
-    /// This method is explicitly guarded to NEVER run in Production.
+    /// Destructive, opt-in development-data reset: clears push subscriptions, resets every
+    /// user's password to the configured development reset password, and normalises emails to
+    /// {UserName}@rtub.pt.
+    ///
+    /// It runs only when the host environment is Development <b>and</b>
+    /// <c>DevelopmentDataReset:Enabled</c> is true. Production, Staging and Test never run it,
+    /// whatever the configuration says, and it is disabled by default in Development too, so a
+    /// normal startup leaves seeded credentials intact.
+    ///
+    /// Internal rather than private so a test can drive it explicitly; the environment guard
+    /// keeps it inert on the normal test-host startup path.
     /// </summary>
-    private static async Task ResetDevDataAsync(
+    internal static async Task ResetDevDataAsync(
+        IConfiguration configuration,
         ApplicationDbContext dbContext,
+        UserManager<ApplicationUser> userManager,
         IHostEnvironment environment,
         Microsoft.Extensions.Logging.ILogger logger)
     {
-        // SAFETY: only execute in Development / local environments — never in Production
-        if (environment.IsProduction())
+        // SAFETY: local Development only. Staging (the planned Azure DEV App Service), Test and
+        // Production must preserve their users across restarts, so no configuration can switch
+        // this on for them.
+        if (!environment.IsDevelopment())
         {
             return;
         }
 
-        Console.WriteLine($"[SeedData] Environment is '{environment.EnvironmentName}' — applying dev-only data reset...");
+        // Opt-in. Absent, unparseable or false all mean "do not touch anything".
+        if (!bool.TryParse(configuration["DevelopmentDataReset:Enabled"], out var enabled) || !enabled)
+        {
+            return;
+        }
 
-        // 1. Clear all push subscriptions (prevents stale browser subscriptions in dev)
-        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM PushSubscriptions");
+        // Validated before the first mutation: a missing password must leave the database exactly
+        // as it was, not half reset. There is no fallback value, and the supplied one is never logged.
+        var resetPassword = configuration["DevelopmentDataReset:Password"];
+        RequireSeedPassword(resetPassword, "DevelopmentDataReset:Password", "reset development data");
 
-        // 2. Reset every user's password to the shared dev password
-        await dbContext.Database.ExecuteSqlRawAsync(
-            "UPDATE AspNetUsers SET PasswordHash = 'AQAAAAIAAYagAAAAEGwYEFQkEX1qRc/y9PN4xCOZJzOrGdT2WJAO/NqxKRR7ifpvA1B/T6o68ves9EGV4A=='");
+        logger.LogWarning(
+            "[SeedData] DevelopmentDataReset is enabled in environment '{Environment}' - clearing push "
+            + "subscriptions and resetting every user's password and email.",
+            environment.EnvironmentName);
 
-        // 3. Normalise emails to {UserName}@rtub.pt
-        await dbContext.Database.ExecuteSqlRawAsync(
-            "UPDATE AspNetUsers SET Email = UserName || '@rtub.pt', NormalizedEmail = UPPER(UserName || '@rtub.pt')");
+        // 1. Clear all push subscriptions (prevents stale browser subscriptions in dev).
+        // Materialised first so the change tracker is not mutated mid-enumeration, and done
+        // through EF rather than raw SQL so it works on every provider and is audited like any
+        // other delete.
+        var subscriptions = await dbContext.PushSubscriptions.ToListAsync();
+        dbContext.PushSubscriptions.RemoveRange(subscriptions);
+        await dbContext.SaveChangesAsync();
 
-        Console.WriteLine("[SeedData] Dev-only data reset complete (push subs cleared, passwords & emails reset).");
+        // 2. Reset every user's password and normalise their email.
+        var users = await dbContext.Users.ToListAsync();
+        foreach (var user in users)
+        {
+            // Identity's own password-reset flow, in one step. Deliberately NOT
+            // RemovePasswordAsync followed by AddPasswordAsync: that is a two-step credential
+            // mutation, and a failure between the two would leave the account with no password
+            // at all. ResetPasswordAsync validates first and only then writes, so a failure
+            // leaves the existing password intact.
+            //
+            // It also routes through UpdatePasswordHash, so the configured IPasswordHasher
+            // produces the hash and the security stamp is rotated — any authentication cookie
+            // issued before the reset stops validating.
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var reset = await userManager.ResetPasswordAsync(user, token, resetPassword!);
+            if (!reset.Succeeded)
+            {
+                // Identity's error codes and descriptions never echo the password or the token.
+                throw new InvalidOperationException(
+                    $"Development data reset failed to set the password for '{user.UserName}': "
+                    + string.Join(", ", reset.Errors.Select(e => $"{e.Code}: {e.Description}")));
+            }
+
+            // Assigned after the reset so a rejected password does not rewrite the email either,
+            // and persisted by its own update.
+            user.Email = $"{user.UserName}@rtub.pt";
+            user.NormalizedEmail = userManager.NormalizeEmail(user.Email);
+
+            var updated = await userManager.UpdateAsync(user);
+            if (!updated.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Development data reset failed to normalise the email for '{user.UserName}': "
+                    + string.Join(", ", updated.Errors.Select(e => $"{e.Code}: {e.Description}")));
+            }
+        }
+
+        logger.LogWarning(
+            "[SeedData] Development data reset complete - push subscriptions cleared, {UserCount} "
+            + "user password(s) and email(s) reset.",
+            users.Count);
     }
 }

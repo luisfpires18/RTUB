@@ -561,6 +561,43 @@ Non-secret local settings can still live in `appsettings.Development.json`:
 }
 ```
 
+#### Resetting a local development database (destructive, opt-in)
+
+`SeedData.ResetDevDataAsync` sanitises a local development database: it clears every push
+subscription, resets **every** user's password to one configured value, and rewrites every email
+to `{UserName}@rtub.pt`.
+
+**It is destructive and disabled by default.** It runs only when the host environment is
+`Development` **and** `DevelopmentDataReset:Enabled` is `true`. `Production` and `Staging` never
+run it, whatever the configuration says — the environment check comes first — so a `Staging`
+deployment keeps its users across restarts. A normal Development startup with the setting absent
+or `false` does not touch any password, email or push subscription.
+
+Switch it on for a single intentional reset with User Secrets:
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Enabled" "true"
+```
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Password" "<development-reset-password>"
+```
+
+- Replace `<development-reset-password>` with a real value of your own. There is no default and no
+  hardcoded hash; the password is required whenever `Enabled` is `true` and is validated **before**
+  anything is written, so a missing value leaves the database untouched rather than half reset. The
+  value is never written to a log or an error message.
+- Use it **only** when you intend to sanitise or reset your local development users. It overwrites
+  the passwords seeded from `AdminUser:Password` and `SeedData:MemberPassword`.
+- **Set `Enabled` back to `false` (or remove it) once the reset has run**, otherwise every
+  subsequent startup resets the database again:
+
+```bash
+dotnet user-secrets remove --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Enabled"
+```
+
+- **Never put `DevelopmentDataReset:Password` in a tracked `appsettings` file.** User Secrets only.
+
 #### Seeding a full development database
 
 By default the application bootstraps the Owner account only. To create the full member dataset on a **fresh** database, set `isEmptyDb` to `false` in `SeedData.InitializeAsync` (`src/RTUB.Application/Data/SeedData.cs`) and make sure both `AdminUser:Password` and `SeedData:MemberPassword` are set as User Secrets first. Seeding fails with a clear error, creating no users at all, if either is missing.
@@ -589,6 +626,14 @@ For production, **do not include credentials in JSON files**. Instead, use envir
   Only required when that seed is switched on (`isEmptyDb` set to `false` in
   `SeedData.InitializeAsync`) to build a full development database. There is no default, and it is
   validated before any user is written.
+
+**Development Data Reset (local Development only):**
+- `DevelopmentDataReset__Enabled` - Opt-in switch for the destructive local reset described above.
+  Defaults to off. **Ignored outside the `Development` environment** — setting it on a `Production`
+  or `Staging` host (including the Azure DEV App Service) does nothing.
+- `DevelopmentDataReset__Password` - Password every user is reset to when the switch is on.
+  Required whenever `Enabled` is `true`, validated before any write, and never logged. There is no
+  default. Keep it in User Secrets, not in a tracked `appsettings` file.
 
 **IDrive/S3 Configuration:**
 - `IDrive__AccessKey` - S3-compatible storage access key
