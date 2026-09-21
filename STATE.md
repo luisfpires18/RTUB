@@ -5,86 +5,122 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **015 (remove committed synthetic credential literals from tests) —
-implementation complete, uncommitted, awaiting owner review.** Unit 014 is merged to `dev`.
+Modernization unit **016 (harden production bootstrap credentials) — implementation complete,
+uncommitted, awaiting owner review.** Unit 015 is merged to `dev` at `bbe61213`.
 
 ## Branch
-`chore/015/test-secret-hygiene`, branched from `dev` (clean, in sync with `origin/dev` at
-`2f731581`). Uncommitted — no commit authorized.
-`chore/001`-`chore/011` and `fix/012`-`fix/014` still present; delete when convenient.
+`fix/016/bootstrap-credentials`, branched from `dev` (clean, in sync with `origin/dev` at
+`bbe61213`). Uncommitted — no commit authorized.
+`chore/001`-`chore/011`, `fix/012`-`fix/014` and `chore/015` still present; delete when convenient.
 
 ## Last completed step
-**Unit 015 — every committed credential-shaped literal is gone from the test tree.** Test
-passwords are generated at runtime; nothing about what any test does changed.
+**Unit 016 — the two hardcoded production password defaults unit 015 found are gone.** Neither
+was a leaked credential; both were insecure application defaults. Bootstrap now fails closed.
 
-### Why
-GitGuardian raised a "Generic Password" incident after unit 012 committed a synthetic test
-password. A scanner cannot tell a synthetic password from a real one, so the noise is structural:
-any future test that types a password-shaped literal re-raises it.
+### Owner bootstrap — before / after
+`SeedData.Member.cs` read `configuration["AdminUser:Password"] ?? <hardcoded default>`. With the
+setting unset, an empty database silently produced an Owner+Admin account whose password is in
+the source tree.
 
-### Strategy
-One helper, `tests/Shared/TestSecret.cs`, source-linked into all five test projects by
-`tests/Directory.Build.props` (`<Compile Include>` plus `<Using Include="RTUB.Tests" />`, so no
-per-file using). `tests/Shared` sits outside every project cone, so it does not collide with the
-SDK's default compile glob. No new test project: it is one static class, and a project would drag
-in the whole package and reference chain for nothing.
+After: the fallback is gone. `RequireBootstrapPassword` throws `InvalidOperationException` when
+the value is null, empty, whitespace, or one of the documented placeholders (`your-admin-password`
+— the README example — plus `changeme` / `change-me` / `password`, matched case-insensitively).
+The message names `AdminUser:Password` and `AdminUser__Password` and **never contains the value**.
+No replacement default, and no generated password nobody can retrieve.
 
-`TestSecret.NewPassword() => Guid.NewGuid().ToString("N") + "Aa1!"` — fresh per call. The GUID
-gives length and uniqueness; the four-character suffix is complexity padding so the value stays
-valid if Identity's password rules are ever tightened (today: `RequiredLength = 4`, every
-complexity rule off). A test that needs the same value twice holds it in a local and passes it to
-both calls; nothing is written down.
+**Empty database:** no `AdminUser:Password` → seeding throws, zero users created, startup fails.
+With the setting supplied → the Owner is created exactly as before, same username/email defaults
+(`rtub` / `admin@rtub.pt`), same `Owner` + `Admin` roles, same early return.
 
-`TestWebApplicationFactory` now generates its seeded-admin password per factory instance and
-exposes it as `AdminPassword`, because `CookieApiCsrfTests` signs that admin in and the create and
-the sign-in must agree. Its `SmtpPassword` is generated too — nothing sends mail under the test
-host, but a credential-shaped literal keyed `SmtpPassword` is exactly what a scanner flags.
+**Existing populated database:** unaffected and does **not** require the setting.
+`InitializeAsync` still returns as soon as any user exists, and the new check sits *inside* the
+`ownerUser == null` branch, so it is only evaluated when an Owner is actually about to be created.
 
-Two small simplifications fell out and were taken because they *shorten* the diff, not as
-refactoring: `AuthAntiforgeryTests.LoginThroughRenderedFormAsync` lost its `password` parameter
-(it now generates the value it already used for both create and login, and no caller wanted it),
-and `LoginRateLimitTests`'s private `NewSecret()` was deleted in favour of the shared helper.
+One supporting change: the `if (isEmptyDb) return;` was hoisted out of the create-success branch
+to just after the `ownerUser == null` block, so the Owner-only bootstrap returns whether or not the
+Owner was created on this run. It does not fire when `isEmptyDb` is `false`, so the full-seed path
+is unaffected.
 
-### Literals removed
-| Value | Sites |
-| --- | --- |
-| the unit 012 CSRF password | `AuthAntiforgeryTests` x6 |
-| the shared `TestPassword…` admin/user password | `TestWebApplicationFactory`, `CookieApiCsrfTests`, 4 `Workflows/*` files |
-| the cookie-test password | `AuthenticationTests` x2 |
-| the audit-log user password | `LoginAuditLogTests` x2 |
-| the question-repo hash input | `QuestionRepositoryTests` |
-| the welcome-email model passwords | `EmailTemplateTests` x3 (incl. one assertion, now compared to the local) |
-| the SMTP password | `TestWebApplicationFactory` |
-| the README `appsettings.Development.json` example password | `README.md` |
+### MemberBuilder / bulk member seed — CORRECTED
+An earlier draft of this unit called the bulk member seed dead legacy code. **That was wrong.** It
+is an **intentional manual developer switch**: `isEmptyDb` at `SeedData.cs` is flipped to `false`
+by hand against a fresh database to build a full development dataset, and back to `true` otherwise.
+It is now commented as such in place. The boolean stays, the ~40 member definitions stay, and
+nothing about the switch was turned into configuration.
 
-The removed values are deliberately **not quoted anywhere in this file or in a code comment** — a
-comment is scanned like any other line, so re-typing a removed literal to explain it would undo
-the unit.
+`MemberBuilder._password` had a hardcoded default and `Password(...)` was called by nothing, so
+that default was the only password every seeded member got. Fix keeps the builder fail-closed —
+`_password` is `string?` with no default and `CreateAsync` throws before touching `UserManager`
+when it is unset — and gives `SeedMembersAsync` an external source for it.
 
-### Deliberately left alone — classified harmless, not secrets
-Low-entropy dictionary or sentinel values that no scanner classifies as a credential, and which
-the brief explicitly warns against replacing blindly:
-- `SmtpPassword = "pass"` / `"password"` (`EmailNotificationServiceTests`, `SmtpClientFactoryTests`,
-  `EmailSenderTests`) — generic words.
-- `"realpassword"` / `"secretpassword"` (`EmailConfigurationProviderTests`, `EmailSenderTests`) —
-  **load-bearing**: `IsSmtpConfigured` returns false for a placeholder and true for a
-  non-placeholder, so these two values are the test's subject, not decoration.
-- `"YOUR_APP_PASSWORD_HERE"` — the placeholder the production code matches on. Removing it would
-  delete the test.
-- `PasswordHash = "oldhash"` / `"newhash"` — audit-log change tracking, not credentials.
-- `IDrive:AccessKey`/`SecretKey` and `Cloudflare:R2:*` = `test-…` — already the non-secret
-  sentinels the brief asks for; hyphenated English, zero entropy.
-- `VapidPublicKey`/`VapidPrivateKey` = `test-public-key` / `test-private-key`, and
-  `P256dh = "BLBsY9NpGt2-M2i3...p256dh_key"` (truncated with a literal ellipsis) — sentinels.
+**Two separate externally configured passwords. The privileged Owner password is never reused for
+ordinary members.**
 
-### Out of scope, recorded not fixed
-The repo-wide scan found two **production** password defaults in `src/`. Both are real
-security questions and both belong to the already-planned password-policy unit; this phase was
-forbidden to touch `src/`:
-- `src/RTUB.Application/Data/Builders/MemberBuilder.cs:27` — a hardcoded default member password.
-- `src/RTUB.Application/Data/SeedData.Member.cs:26` — the admin seed falls back to a hardcoded
-  password when `AdminUser:Password` is unset. **This is the one worth acting on**: an unset
-  config value silently creates a known-password admin in any environment.
+| Path | `AdminUser:Password` | `SeedData:MemberPassword` |
+| --- | --- | --- |
+| Fresh DB, `isEmptyDb = true` | **required** | not required |
+| Fresh DB, `isEmptyDb = false` | **required** | **required** |
+| Existing populated DB | not required | not required |
+
+Smallest implementation: the class-level `Member(userManager)` helper became a **local function**
+inside `SeedMembersAsync` that applies the resolved member password to every builder. All 82 call
+sites are untouched and no password literal was introduced anywhere.
+
+**Validated before mutation.** With `isEmptyDb = false`, `SeedData:MemberPassword` is checked at
+the top of `SeedMembersAsync`, *before* the Owner is created. A missing value therefore leaves
+**zero** users behind — important because `InitializeAsync` returns as soon as any user exists, so
+a half-seeded database would never be completed on a later start.
+
+### Where local passwords go — User Secrets, not `appsettings.Development.json`
+**`appsettings.Development.json` is NOT git-ignored.** `.gitignore` contains no rule for it
+(verified on `dev`), so it is not a safe place for credentials and the README no longer says it is.
+Local values for `AdminUser:Password` and `SeedData:MemberPassword` go in **.NET User Secrets**,
+using the `UserSecretsId` already declared at `src/RTUB.Web/RTUB.csproj:5`. README documents the
+two `dotnet user-secrets set` commands with `<placeholder>` arguments only — no literals.
+
+### Known interaction — the full seed is undone on the next startup
+On a **fresh** database with `isEmptyDb = false`, seeding is correct: the Owner is created from
+`AdminUser:Password` and every member from `SeedData:MemberPassword`, kept separate, and the tests
+prove it.
+
+**But the next non-Production startup overwrites all of it.** `ResetDevDataAsync` runs before the
+seeding early-return and rewrites **every** user's `PasswordHash` to one shared value, so after the
+second run neither configured password authenticates anyone — every account shares the hardcoded
+dev hash instead. That is pre-existing behavior, untouched by 016, and it is why the next unit
+changed (see *Next unit*).
+
+### Files changed (5)
+- `src/RTUB.Application/Data/SeedData.Member.cs` — both fallbacks removed, `RequireSeedPassword` +
+  placeholder set added, member password resolved once into a local-function builder factory,
+  `isEmptyDb` return hoisted.
+- `src/RTUB.Application/Data/SeedData.cs` — comment documenting the `isEmptyDb` manual switch.
+  **No behavior change**; the boolean itself is untouched.
+- `src/RTUB.Application/Data/Builders/MemberBuilder.cs` — default removed, fail-closed guard.
+- `README.md` — documents `SeedData__MemberPassword` and when each password is required.
+- `tests/RTUB.Application.Tests/Data/SeedDataBootstrapTests.cs` — **new**, the only new file.
+
+### Not changed, by instruction
+Identity's password policy (`RequiredLength = 4`, complexity off) is untouched — still its own
+unit. No Azure configuration was changed. `ResetDevDataAsync` was reviewed and left alone — see the
+finding in *Deferred*, which corrects how its guard was described earlier.
+
+## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
+
+**No immediate Azure action is required for this deploy.** Production `rtub` has an existing
+database with users, so `InitializeAsync` returns before the bootstrap check is ever evaluated.
+Deploying unit 016 to current production changes nothing at startup, and the existing Owner
+account is unaffected — its password is whatever it was set to, not the removed default.
+
+**Any fresh/empty database will now refuse to start without it.** Before the future Azure **dev**
+environment (or any new App Service, container, or local database created from scratch) is first
+started, `AdminUser__Password` must be supplied as an App Service application setting or
+equivalent secure configuration source, with a real value — not a placeholder. Without it,
+seeding throws and no privileged account is created. Like
+`ASPNETCORE_FORWARDEDHEADERS_ENABLED` below, this is portal/CLI configuration, is **not in the
+repo**, is not applied by a code redeploy, and nothing in CI will warn if it is missing.
+
+**`SeedData__MemberPassword`** is needed only by a developer who flips `isEmptyDb` to `false` for a
+full local seed. It is never required in Azure unless that switch is used there.
 
 ## Deployment requirement — Azure forwarded headers (CONFIRMED 2026-09-21, no longer blocking)
 
@@ -125,15 +161,23 @@ removing it is a behavior change to the production request pipeline. Carried in 
 None active.
 
 ## Next unit
-**The `TestWebApplicationFactory` SQLite startup race** — serialize factory startup before the
-hosted services run. It is now the most annoying thing in the suite: it hits any integration class
-run in isolation at roughly 2 runs in 5, and it was explicitly out of scope for 015. Detail under
-*Deferred* below.
+**`ResetDevDataAsync` hardening — promoted ahead of the SQLite race by unit 016.** Its guard is
+only `if (environment.IsProduction()) return;`, so **Development *and* Staging** rewrite every
+user's `PasswordHash` to one shared hardcoded value on every startup. Two reasons it goes first:
+it silently undoes the full development seed 016 just made correct (see above), and an Azure DEV
+App Service running as `Staging` would reset all user passwords on each start — that environment
+is planned. Likely shape: tighten to `IsDevelopment()` and/or gate on an explicit opt-in setting,
+and source the reset password from configuration rather than a hardcoded hash. Detail in
+*Deferred*.
+
+Then: **the `TestWebApplicationFactory` SQLite startup race** — serialize factory startup before
+the hosted services run. It hits any integration class run in isolation at roughly 2 runs in 5,
+and it was explicitly out of scope for 015. Detail under *Deferred* below.
 Then: **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
 Next *security* unit: **password policy** — Identity is currently `RequiredLength = 4` with every
-complexity rule off (`AddIdentityServices`) — which should also absorb the two `src/` password
-defaults unit 015 found (see *Out of scope, recorded not fixed* above). Then security headers / CSP.
+complexity rule off (`AddIdentityServices`). The two `src/` password defaults it was going to
+absorb were handled separately by unit 016 and are no longer part of it. Then security headers / CSP.
 
 ## Blockers
 **None.** The only open blocker — `ASPNETCORE_FORWARDEDHEADERS_ENABLED` on the `rtub` App Service —
@@ -150,8 +194,19 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
 ## Deferred / owner decisions
 
 ### Security — raised by 015, deliberately not changed
-- **Two hardcoded production password defaults in `src/`** (`MemberBuilder.cs:27`,
-  `SeedData.Member.cs:26`). Out of scope by instruction; folded into the password-policy unit.
+- ~~**Two hardcoded production password defaults in `src/`**~~ — **fixed by unit 016.** Both now
+  fail closed; see *Last completed step* above.
+- **`ResetDevDataAsync` (`SeedData.cs`) runs in EVERY environment except Production.** The guard
+  is exactly `if (environment.IsProduction()) return;`, so **Development *and* Staging** execute
+  it — it clears push subscriptions and rewrites **every** user's `PasswordHash` to one shared
+  value. Its own doc comment ("only execute in Development / local environments") understates
+  this. Behavior deliberately **not changed** by 016; not required by the seeding tests.
+  **Act on this before the planned Azure DEV environment**: an Azure DEV App Service running as
+  `Staging` would reset every user password to the same known hash on each startup. Its own unit —
+  tighten the guard to `IsDevelopment()`, or gate it on an explicit opt-in setting.
+- ~~"the bulk member seed is dead code"~~ — **that earlier claim was wrong and is retracted.** It
+  is an intentional manual full-seed developer path (`isEmptyDb`), now documented in place and
+  covered by tests. Nothing to clean up.
 - **Old commits still contain the removed literals.** History was not rewritten, by instruction.
 - The `src/` scan was run for completeness only; **no production file was touched by 015** and
   production `appsettings*.json` contain no credential keys at all.
@@ -228,120 +283,59 @@ stops *future* commits from raising new ones. No GitGuardian ignore comment was 
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 015)
-- `tests/Shared/TestSecret.cs` — **new**, the only new file. One static class, one method.
-- `tests/Directory.Build.props` — source-links `tests/Shared/*.cs` into all five test projects and
-  adds the `RTUB.Tests` global using.
-- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` — new `AdminPassword` property;
-  `AdminUser:Password` and `EmailSettings:SmtpPassword` now generated.
-- `tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs` — 6 literals removed; helper lost a
-  parameter.
-- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — signs the admin in with
-  `Factory.AdminPassword`; `SignInAsync` is no longer `static` because it now reads `Factory`.
-- `tests/RTUB.Integration.Tests/AuthenticationTests.cs`, `LoginRateLimitTests.cs`, and 4
-  `Workflows/*.cs` files.
-- `tests/RTUB.Application.Tests/Data/LoginAuditLogTests.cs`,
-  `tests/RTUB.Application.Tests/Repositories/QuestionRepositoryTests.cs`.
-- `tests/RTUB.Web.Tests/Services/EmailTemplateTests.cs`.
-- `README.md` — one example value in the `appsettings.Development.json` block.
+## Relevant files (unit 016)
+- `src/RTUB.Application/Data/SeedData.Member.cs` — Owner bootstrap: no fallback password,
+  `RequireBootstrapPassword` + `BootstrapPasswordPlaceholders`, `isEmptyDb` return hoisted.
+- `src/RTUB.Application/Data/Builders/MemberBuilder.cs` — `_password` is `string?` with no
+  default; `CreateAsync` throws before creating a user when it is unset.
+- `tests/RTUB.Application.Tests/Data/SeedDataBootstrapTests.cs` — **new**.
+- `STATE.md` — this file.
 
-## Tests (0 new)
-**No test was added, removed, renamed or re-asserted.** This unit changes only where a test's
-password comes from. The one assertion that compared against a password literal
-(`EmailTemplateTests.WelcomeEmailModel_ShouldHaveCorrectProperties`) now compares against the
-local that was used to set it, so it still proves the round-trip. No randomness was introduced
-into any assertion unrelated to credentials.
+Unchanged and deliberately so: `SeedData.cs` (incl. `ResetDevDataAsync`), every `appsettings*.json`
+(they contain no `AdminUser` section at all), `README.md` (its `your-admin-password` placeholder is
+now one of the values the code rejects), migrations and the model snapshot, and CI.
 
-## Latest validation (unit 015)
+## Tests (15 new, 0 removed, 0 changed)
+All in `SeedDataBootstrapTests`. Every password comes from `TestSecret.NewPassword()` (unit 015) —
+no password-shaped literal was introduced. The only credential-ish literals are the *placeholders*
+the production code rejects, which are the assertion's subject, not secrets.
+1. `EmptyDatabase_WithoutUsableAdminPassword_CreatesNoOwnerAndFailsClearly` — **6 theory cases**
+   (absent, empty, whitespace, `your-admin-password`, `changeme`, `CHANGEME`): throws naming
+   `AdminUser:Password` **and** zero users exist after.
+2. `EmptyDatabase_WithSuppliedAdminPassword_CreatesOwnerWithBothRoles` — `isEmptyDb: true`, no
+   member password configured: Owner created, password verified, `Owner` + `Admin` roles, exactly
+   one user. Owner-only behavior preserved.
+3. `BulkSeed_WithoutUsableMemberPassword_WritesNothingAndFailsClearly` — **4 theory cases**
+   (absent, empty, whitespace, `changeme`) with a valid admin password and `isEmptyDb: false`:
+   throws naming `SeedData:MemberPassword` and **zero users created** — proves validation precedes
+   any mutation.
+4. `BulkSeed_WithMemberPassword_SeedsOwnerAndMembersWithThatPassword` — `isEmptyDb: false`: Owner
+   created and authenticates with the **admin** password, user count > 1, and the seeded member
+   `nabo` authenticates with the **member** password and holds the `Member` role. Proves the two
+   passwords stay separate and the full dataset really is created (82 members).
+5. `PopulatedDatabase_DoesNotRequireBootstrapPassword` — Owner pre-seeded, neither setting
+   configured: no throw, count unchanged.
+6. `MemberBuilder_WithoutExplicitPassword_CreatesNoUserAndFailsClearly` — still fail-closed.
+7. `MemberBuilder_WithExplicitPassword_CreatesTheUser` — the guard did not break the path.
+
+Requirement "no known/default password exists in production source" is covered by the repo-wide
+scan below, **not** by a test: a test asserting a specific literal is absent would have to contain
+that literal, which is exactly what unit 015 removed.
+
+## Latest validation (unit 016)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
-  `EnforceCodeStyleInBuild=true`. The source-link and the global using resolve in all five test
-  projects.
-- Focused first: `RTUB.Integration.Tests` alone — **246 total, 244 passed, 0 failed, 2 skipped.**
-- Full suite, `dotnet test --no-build -c Release`: **4497 passed, 0 failed, 60 skipped** —
-  **identical to the baseline.** No count moved in either direction, which is the point.
-- **Repository-wide credential scan, not just the diff.** Two passes over `git ls-files` output
-  (so tracked files only, `src/` included):
-  1. a password-shaped-literal regex (mixed case + digit, 8-64 chars) across `.cs`, `.razor`,
-     `.json`, `.yml`, `.props`, `.ts`, `.js`, `.md`;
-  2. a credential-keyed-assignment regex (`password|secret|accesskey|apikey|clientsecret|…` on the
-     left of `=` or `:`) across `tests/`.
-  Residue after the fix is the classified-harmless list above plus enum/nickname/filename false
-  positives. The scan also caught two things a diff review would have missed: the README example
-  password, and a first draft of `TestSecret.cs` whose own doc comment quoted the removed literal
-  back — both fixed.
-- Tracked `appsettings.json` / `appsettings.Production.json` contain **no** password, secret, key,
-  token or connection-string entries. No real secret was found anywhere; nothing needed escalation.
-- `git diff --check` clean. **Migrations and `ApplicationDbContextModelSnapshot.cs` unchanged.**
-  **No `src/` file changed.**
-- `git status` = 14 modified (13 test files + `README.md`), 1 new untracked directory
-  (`tests/Shared/`). Two workflow files briefly showed as modified from a `sed -i` line-ending
-  rewrite with no content change; restored to CRLF and they dropped out.
-- Graphify **not** rebuilt — no application structure changed.
-
-## Previous validation (unit 014 — merged)
-`POST /auth/login` carries a per-client-IP rate limit: a named `login` policy, partitioned fixed
-window, **10 permits / 5 minutes**, `QueueLimit = 0`, 429 with `Retry-After` from lease metadata,
-configured by `LoginRateLimit:*` in `appsettings.json`. `UseRateLimiter()` sits immediately after
-`UseRouting()`, so a throttled client is answered before any credential or antiforgery work runs.
-Partitioned by `RemoteIpAddress` and not by username: a caller-controlled key would allow an
-unbounded-partition memory DoS, and Identity's 5-failure lockout already covers the per-account
-case. 8 tests in `tests/RTUB.Integration.Tests/LoginRateLimitTests.cs`, using a test-only
-`IStartupFilter` to give each test a distinct client IP. Suite 4497 / 0 / 60. The Azure
-forwarded-headers deployment requirement above is still open. Detail is in the
-`fix/014/login-rate-limiting` history.
-
-## Previous validation (unit 013 — merged)
-The five remaining cookie-authenticated mutations were classified against measured behavior;
-`POST /api/admin/refresh-all` was CSRF-reachable and provably uncalled, so it was deleted. The Push
-endpoints were left alone — `[FromBody]` JSON binding returns 415 for every form enctype. 4 tests in
-`tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs`. Suite 4489 / 0 / 60. Detail is in the
-`fix/013/cookie-api-csrf` history.
-
-## Previous validation (unit 012 — merged)
-`POST /auth/login` and `POST /auth/logout` require real antiforgery tokens, via `IFormCollection`
-handler parameters plus `<AntiforgeryToken />` in `Login.razor` and `MainLayout.razor`. 7 tests in
-`tests/RTUB.Integration.Tests/AuthAntiforgeryTests.cs`, all driving the real rendered form. Suite
-4485 / 0 / 60. Detail is in the `fix/012/auth-antiforgery` history.
-
-## Previous validation (unit 011 — merged)
-All 5 test projects migrated from xUnit v2/VSTest to **xUnit v3 4.0.1 on
-Microsoft.Testing.Platform v2**, with zero test-source and zero `src/` edits. New `global.json`
-(`test.runner`) and `tests/Directory.Build.props` (suppresses `xUnit1051`, 1634 sites). CI switched
-to `--report-xunit-trx` + `--coverage --coverage-output-format cobertura`. Suite **4478 / 0 / 60**,
-zero vulnerable and zero deprecated packages across all 9 projects. Runtime fell from ~25 min to
-~25 s. Detail is in the `chore/011/migrate-xunit-v3` history.
-
-## Graphify effectiveness (measured, unit 008)
-Three real cross-layer questions, Graphify first, then minimal source verification.
-
-| Question | Graphify result | Verdict |
-| --- | --- | --- |
-| Web Push: scheduler -> browser | `affected IPushNotificationService` returned all 6 background senders + `PushController` at exact `file:line`. **Missed** the browser leg — `service-worker.js` is a degree-2 island. | Accurate; incomplete at the HTTP boundary |
-| SQLite backup + R2 | `affected IDatabaseBackupStorageService` found the `DatabaseBackupBackgroundService` orchestrator (`RunBackupAsync` L144, `RotateAsync` L211) and the `BaseStorageService` hierarchy. `query` returned false positives (`RestoreHp`, `ObjectPool`). | Accurate via `affected`; `query` noisy |
-| MyTuno Blazor/Application/PixiJS | Correctly linked `MyTunoHome.razor` -> `IInventoryService`. **No path** Razor -> PixiJS: `JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", ...)` is string dispatch, invisible to AST. | Real blind spot; grep found it in one call |
-
-Conclusions: `explain` / `affected` are the value — precise, verifiable `file:line`, reverse traversal
-that grep cannot cheaply reproduce. `graphify query` is lexical BFS and misleads. Cross-language and
-string-dispatch boundaries are a structural blind spot. MCP beats reading the 147 KB `GRAPH_REPORT.md`
-(same engine as the CLI, structured access); the report itself is not worth reading in full.
-Maintaining the graph is worthwhile at ~73 s rebuild / 7% incremental cost.
-
-## Graph artifact policy
-`graphify-out/` is **gitignored** — 84 MB total, `graph.json` alone 38 MB, fully reproducible from
-source. Committed instead: `.claude/skills/graphify/`, `.claude/CLAUDE.md`, `.mcp.json`,
-`.graphifyignore`, the `.gitignore` rule, and the `CLAUDE.md` routing rule.
-
-## MCP gate — executable conflict resolved
-The PATH fight is over; it was solved by making the *winning* install compatible instead.
-
-`explorer.exe` caches the pre-reorder environment block and Claude Desktop inherits it, so neither
-a new session nor an app restart ever picked up a reordered PATH. Instead, the Microsoft-Store
-Python user-site install was upgraded in place: **graphifyy 0.9.55 -> 0.9.56 with the `mcp` extra**
-(`mcp 2.2.0`). Both installs are now 0.9.56 + MCP, so whichever wins PATH works.
-
-**Confirmed operational 2026-09-20** in a fresh Claude session, via the MCP tools themselves:
-`graph_stats` → **20,354 nodes / 48,074 edges / 734 communities** (88% EXTRACTED / 12% INFERRED);
-`get_node IPushNotificationService` → `src/RTUB.Application/Interfaces/IPushNotificationService.cs`
-L8, degree 67; `shortest_path PushNotificationService → IPushNotificationService` → 1-hop
-`implements` [EXTRACTED]. The chain Claude → `.mcp.json` → `graphify-mcp` →
-`graphify-out/graph.json` works end-to-end.
+  `EnforceCodeStyleInBuild=true`.
+- Focused first: `SeedDataBootstrapTests` alone — **10 total, 10 passed, 0 failed, 0 skipped.**
+- Full suite, `dotnet test --no-build -c Release`: **4507 passed, 0 failed, 60 skipped**
+  (total 4567). Baseline was 4497 / 0 / 60 — **+10, exactly the tests added.**
+- `git diff --check`: clean. Both edited files re-normalised to CRLF, so the diff is minimal
+  (36 insertions / 3 deletions and 13 / 3) rather than whole-file rewrites.
+- Repo-wide scan for the two known defaults across `src/`, `tests/`, `docs/`, `README.md` and
+  `.github/`: **no match** (working tree; git history was not rewritten, same as unit 015).
+- Targeted credential scan of `src/` for `?? "<literal>"` password fallbacks and
+  `password = "<literal>"` assignments: one hit, `Profile.razor`'s `OnChangePassword` event
+  callback — markup, not a credential.
+- `git status`: 2 modified source files, 1 new test file, 1 modified `STATE.md`. **Migrations and
+  the model snapshot are untouched** — no schema change was needed or made.
+- No frontend build, no Playwright, no Graphify rebuild — the change is two method bodies, not a
+  structural change.

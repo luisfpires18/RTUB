@@ -45,6 +45,12 @@ public static partial class SeedData
             }
         }
 
+        // Manual developer switch — intentionally hardcoded, not configuration.
+        //   true  = bootstrap the Owner account only (the normal path, incl. production).
+        //   false = also seed the full development member dataset defined in SeedData.Member.cs.
+        // Flip to false by hand against a fresh database to build a full dev environment. That
+        // path additionally requires SeedData:MemberPassword to be configured; there is no
+        // default member password.
         var isEmptyDb = true;
 
         Console.WriteLine(isEmptyDb ? $"Seeding just a owner..." : $"Seeding initial data...");

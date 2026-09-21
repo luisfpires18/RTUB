@@ -11,8 +11,6 @@ namespace RTUB.Application.Data;
 
 public static partial class SeedData
 {
-    private static MemberBuilder Member(UserManager<ApplicationUser> userManager) => new(userManager);
-
     // ---- public entrypoint ----
     public static async Task SeedMembersAsync(
         IConfiguration configuration,
@@ -23,11 +21,30 @@ public static partial class SeedData
         // ===== 1. OWNER =====
         var defaultUsername = configuration["AdminUser:Username"] ?? "rtub";
         var defaultEmail = configuration["AdminUser:Email"] ?? "admin@rtub.pt";
-        var adminPassword = configuration["AdminUser:Password"] ?? "Admin123!";
+        var adminPassword = configuration["AdminUser:Password"];
+        var memberPassword = configuration["SeedData:MemberPassword"];
+
+        // The bulk member seed below runs only when the Owner-only bootstrap is switched off.
+        // Every seeded member needs a password and there is deliberately no default, so it must
+        // come from configuration. Validated here, before anything is written, so a missing
+        // value cannot leave a half-seeded database behind.
+        if (!isEmptyDb)
+        {
+            RequireSeedPassword(memberPassword, "SeedData:MemberPassword", "run the bulk member seed");
+        }
+
+        // Every member is built through this, so the password is supplied in exactly one place.
+        MemberBuilder Member(UserManager<ApplicationUser> manager) =>
+            new MemberBuilder(manager).Password(memberPassword!);
 
         var ownerUser = await userManager.FindByNameAsync(defaultUsername);
         if (ownerUser == null)
         {
+            // Fail closed: never bootstrap a privileged account with a password that is
+            // absent, blank, or one of the documented placeholders. There is deliberately
+            // no fallback default. The value itself is never logged.
+            RequireSeedPassword(adminPassword, "AdminUser:Password", "bootstrap the Owner account");
+
             ownerUser = new ApplicationUser
             {
                 UserName = defaultUsername,
@@ -47,21 +64,26 @@ public static partial class SeedData
                 Subscribed = true,
             };
 
-            var result = await userManager.CreateAsync(ownerUser, adminPassword);
+            var result = await userManager.CreateAsync(ownerUser, adminPassword!);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(ownerUser, "Owner");
                 await userManager.AddToRoleAsync(ownerUser, "Admin");
-
-                if (isEmptyDb)
-                {
-                    return;
-                }
             }
             else
             {
                 throw new Exception($"Unable to create owner user: {string.Join(", ", result.Errors)}");
             }
+        }
+
+        // An empty-database bootstrap seeds the Owner and nothing else. This check used to sit
+        // inside the create-success branch, so a call with the Owner already present fell through
+        // to the bulk member seeding below. That path is unreachable from InitializeAsync (it
+        // returns early once any user exists) and the bulk members now fail closed for want of a
+        // password, so the guard is hoisted to cover both cases.
+        if (isEmptyDb)
+        {
+            return;
         }
 
         // ===== 2. MEMBERS =====
@@ -711,4 +733,32 @@ public static partial class SeedData
         }
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Throws unless <paramref name="password"/> is a real, externally supplied secret. Each
+    /// caller checks only on the path that actually creates users, so a database that needs no
+    /// seeding still starts without any of these settings configured.
+    /// </summary>
+    private static void RequireSeedPassword(string? password, string configKey, string what)
+    {
+        if (!string.IsNullOrWhiteSpace(password) && !SeedPasswordPlaceholders.Contains(password))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Cannot {what}: the configuration value '{configKey}' (environment variable " +
+            $"'{configKey.Replace(":", "__", StringComparison.Ordinal)}') is missing, blank, or " +
+            "still set to a placeholder. Supply a real password from a secure configuration " +
+            "source before seeding. There is no default password.");
+    }
+
+    private static readonly HashSet<string> SeedPasswordPlaceholders =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "your-admin-password",
+            "changeme",
+            "change-me",
+            "password",
+        };
 }
