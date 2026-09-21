@@ -47,6 +47,19 @@ public static class ServiceCollectionExtensions
     private const double DefaultLoginWindowMinutes = 5;
 
     /// <summary>
+    /// Cache-key prefix for the <c>LastLoginDate</c> write throttle, keyed by <b>user id</b>.
+    /// Deliberately separate from the authentication-log throttle in the same handler: one limits
+    /// how often a line is logged, this one limits how often a row is written.
+    /// </summary>
+    public const string ActivityWriteCachePrefix = "activity-lastlogin:";
+
+    /// <summary>
+    /// How long a successful <c>LastLoginDate</c> write suppresses the next one for the same user.
+    /// Well under the one-hour bucket the presence UI renders, so the throttle is invisible there.
+    /// </summary>
+    public static readonly TimeSpan ActivityWriteThrottle = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     /// Registers repositories for data access
     /// Implements Repository pattern following DIP
     /// </summary>
@@ -708,6 +721,19 @@ public static class ServiceCollectionExtensions
                         });
                     }
 
+                    // LastLoginDate is, despite its name, a last-authenticated-activity stamp: it
+                    // backs the online / "Recente" presence UI, which buckets at one hour. This
+                    // handler runs on every authenticated request, so the write is throttled to one
+                    // per ActivityWriteThrottle per user — far finer than the UI can render, and it
+                    // keeps routine requests off the write path entirely.
+                    var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                        return;
+
+                    var activityCacheKey = $"{ActivityWriteCachePrefix}{userId}";
+                    if (cache.TryGetValue(activityCacheKey, out _))
+                        return;
+
                     try
                     {
                         var db = context.HttpContext?.RequestServices?.GetService<ApplicationDbContext>();
@@ -716,10 +742,6 @@ public static class ServiceCollectionExtensions
                             logger.LogWarning("ApplicationDbContext not available in OnValidatePrincipal");
                             return;
                         }
-
-                        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                        if (string.IsNullOrWhiteSpace(userId))
-                            return;
 
                         var now = DateTime.UtcNow;
                         for (int attempt = 1; ; attempt++)
@@ -732,15 +754,25 @@ public static class ServiceCollectionExtensions
                                     WHERE Id = {userId};");
                                 break;
                             }
+                            // 6 is SQLITE_LOCKED, not SQLITE_BUSY (5). SQLITE_BUSY is already
+                            // absorbed by "PRAGMA busy_timeout = 30000" in SqliteConnectionInterceptor;
+                            // busy_timeout does not cover SQLITE_LOCKED, which is why it is retried here.
                             catch (Microsoft.Data.Sqlite.SqliteException ex) when (attempt < 3 && ex.SqliteErrorCode == 6)
                             {
                                 await Task.Delay(50 * (int)Math.Pow(2, attempt - 1));
                             }
                         }
+
+                        // Only once the write has actually succeeded — a failed update must not
+                        // suppress the next request's attempt.
+                        cache.Set(activityCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = ActivityWriteThrottle
+                        });
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error while initializing LastLoginDate for {UserName}", userName);
+                        logger.LogError(ex, "Error while updating LastLoginDate for {UserName}", userName);
                     }
                 }
             };

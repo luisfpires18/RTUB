@@ -42,6 +42,13 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly SqliteConnection _keepAlive;
 
     /// <summary>
+    /// This factory's connection string, so a derived factory can re-register
+    /// <see cref="ApplicationDbContext"/> against the same database — for example to attach an
+    /// interceptor — instead of pointing at a different one.
+    /// </summary>
+    protected string ConnectionString => _connectionString;
+
+    /// <summary>
     /// Password of the admin that <see cref="SeedData"/> creates for this factory. Generated per
     /// factory instead of committed, and exposed so a test can sign that admin in — the create
     /// and the sign-in must use the same value, so it is held here rather than written twice.
