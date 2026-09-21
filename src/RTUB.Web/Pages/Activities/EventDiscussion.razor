@@ -121,8 +121,7 @@
                                                     <div class="d-flex align-items-center gap-2">
                                                         <img src="@p.Passenger.ProfilePictureSrc"
                                                              alt="@p.Passenger.GetDisplayName()"
-                                                             class="rounded-circle"
-                                                             style="width:32px;height:32px;object-fit:cover;" />
+                                                             class="u-w-32 u-h-32 u-of-cover rounded-circle" />
                                                         <span>
                                                             @if (!string.IsNullOrEmpty(p.Passenger.Nickname))
                                                             {
@@ -353,7 +352,7 @@
                     <div class="d-flex align-items-center justify-content-between mb-1" @key="p.Id">
                         <div class="d-flex align-items-center gap-2">
                             <img src="@p.ProfilePictureSrc" alt="@p.GetDisplayName()"
-                                 class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" />
+                                 class="u-w-28 u-h-28 u-of-cover rounded-circle" />
                             <span>@p.GetDisplayName()</span>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary"

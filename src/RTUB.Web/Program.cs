@@ -333,13 +333,15 @@ public class Program
         // Strict-Transport-Security is NOT set here: UseHsts above already emits it in every
         // non-Development environment, and production returns max-age=2592000 today.
         //
-        // There is deliberately NO Content-Security-Policy yet. The script-side blockers are
-        // now cleared: unit 022 removed all 15 JSRuntime.InvokeAsync("eval", ...) calls, and
-        // unit 023 removed every inline <script> block and inline on* handler attribute, so
-        // script-src no longer needs 'unsafe-eval' or 'unsafe-inline'. What remains is
-        // style-src: the app still ships inline <style> blocks and style="..." attributes,
-        // so a policy today would need 'unsafe-inline' for styles. Enabling CSP is unit 024.
-        // See STATE.md for the enumerated blockers.
+        // There is deliberately NO Content-Security-Policy yet. Both the script-side and the
+        // style-side blockers are now cleared: unit 022 removed all 15
+        // JSRuntime.InvokeAsync("eval", ...) calls, unit 023 removed every inline <script>
+        // block and inline on* handler attribute, and unit 024 removed every inline <style>
+        // block and style="..." attribute from browser-served markup. So neither script-src
+        // nor style-src needs 'unsafe-eval' or 'unsafe-inline'. What is left is writing the
+        // policy itself, including building the Cloudflare R2 origin from IConfiguration
+        // rather than a literal. Enabling CSP is unit 025.
+        // See STATE.md for the enumerated directives.
         app.Use(async (context, next) =>
         {
             var headers = context.Response.Headers;

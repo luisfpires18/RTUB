@@ -35,9 +35,8 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
                     <img src="@(Comment.Author.ProfilePictureSrc)"
-                         class="rounded-circle me-2"
-                         alt="@(Comment.Author.Nickname ?? Comment.Author.UserName)"
-                         style="width: 36px; height: 36px; object-fit: cover;" />
+                         class="u-w-36 u-h-36 u-of-cover rounded-circle me-2"
+                         alt="@(Comment.Author.Nickname ?? Comment.Author.UserName)" />
                     <div>
                         <div class="fw-bold">@(Comment.Author.Nickname ?? Comment.Author.UserName)</div>
                         <small class="text-muted">
@@ -83,7 +82,7 @@
             }
             else
             {
-                <p class="mb-0" style="white-space: pre-line;">@RenderMentions(Comment.Body)</p>
+                <p class="u-ws-pre-line mb-0">@RenderMentions(Comment.Body)</p>
             }
         </div>
     }

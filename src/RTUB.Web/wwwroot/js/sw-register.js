@@ -26,50 +26,43 @@
         // Don't show duplicate toasts
         if (document.getElementById('rtub-sw-update-toast')) return;
 
+        // Built as DOM nodes with classes only. All styling (including the slide-up
+        // keyframes) lives in css/3-components/sw-update-toast.css, so a strict
+        // style-src needs neither 'unsafe-inline' nor an injected <style> element.
         var toast = document.createElement('div');
         toast.id = 'rtub-sw-update-toast';
+        toast.className = 'rtub-sw-toast';
         toast.setAttribute('role', 'alert');
         toast.setAttribute('aria-live', 'assertive');
-        toast.innerHTML =
-            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-                '<span style="flex:1;min-width:0;">Nova versão disponível!</span>' +
-                '<button id="rtub-sw-update-btn" style="' +
-                    'background:#fff;color:#1a1a2e;border:none;border-radius:8px;' +
-                    'padding:8px 18px;font-weight:600;font-size:14px;cursor:pointer;' +
-                    'white-space:nowrap;' +
-                '">Atualizar</button>' +
-                '<button id="rtub-sw-dismiss-btn" style="' +
-                    'background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);' +
-                    'border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;' +
-                    'white-space:nowrap;' +
-                '">Depois</button>' +
-            '</div>';
 
-        // Toast styling — fixed bottom bar, matches RTUB dark theme
-        toast.style.cssText =
-            'position:fixed;bottom:0;left:0;right:0;z-index:999999;' +
-            'background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;' +
-            'padding:14px 20px;font-family:inherit;font-size:15px;' +
-            'box-shadow:0 -2px 12px rgba(0,0,0,0.3);' +
-            'animation:rtub-toast-slide-up 0.3s ease-out;' +
-            'border-top:2px solid #e94560;';
+        var row = document.createElement('div');
+        row.className = 'rtub-sw-toast__row';
 
-        // Inject slide-up animation if not already present
-        if (!document.getElementById('rtub-sw-toast-style')) {
-            var style = document.createElement('style');
-            style.id = 'rtub-sw-toast-style';
-            style.textContent =
-                '@keyframes rtub-toast-slide-up {' +
-                    'from { transform: translateY(100%); opacity: 0; }' +
-                    'to { transform: translateY(0); opacity: 1; }' +
-                '}';
-            document.head.appendChild(style);
-        }
+        var text = document.createElement('span');
+        text.className = 'rtub-sw-toast__text';
+        text.textContent = 'Nova versão disponível!';
+
+        var updateBtn = document.createElement('button');
+        updateBtn.id = 'rtub-sw-update-btn';
+        updateBtn.type = 'button';
+        updateBtn.className = 'rtub-sw-toast__update';
+        updateBtn.textContent = 'Atualizar';
+
+        var dismissBtn = document.createElement('button');
+        dismissBtn.id = 'rtub-sw-dismiss-btn';
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'rtub-sw-toast__dismiss';
+        dismissBtn.textContent = 'Depois';
+
+        row.appendChild(text);
+        row.appendChild(updateBtn);
+        row.appendChild(dismissBtn);
+        toast.appendChild(row);
 
         document.body.appendChild(toast);
 
         // "Atualizar" button — tell the waiting SW to skip waiting and take control
-        document.getElementById('rtub-sw-update-btn').addEventListener('click', function() {
+        updateBtn.addEventListener('click', function() {
             if (waitingSW) {
                 waitingSW.postMessage({ type: 'SKIP_WAITING' });
             }
@@ -77,7 +70,7 @@
         });
 
         // "Depois" button — dismiss toast, user will get it next time
-        document.getElementById('rtub-sw-dismiss-btn').addEventListener('click', function() {
+        dismissBtn.addEventListener('click', function() {
             toast.remove();
         });
     }

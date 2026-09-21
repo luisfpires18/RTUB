@@ -783,9 +783,9 @@ else
                                                 @if (statusResultValue.ProgressMonths.HasValue && statusResultValue.ProgressTotalMonths.HasValue)
                                                 {
                                                     <div class="progress progress-compact">
-                                                        <div class="progress-bar bg-primary" 
-                                                             role="progressbar" 
-                                                             style="width: @((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                        <div class="progress-bar bg-primary u-fill-pct"
+                                                             role="progressbar"
+                                                             data-fill-pct="@((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))"
                                                              aria-valuenow="@statusResultValue.ProgressMonths.Value" 
                                                              aria-valuemin="0" 
                                                              aria-valuemax="@statusResultValue.ProgressTotalMonths.Value">

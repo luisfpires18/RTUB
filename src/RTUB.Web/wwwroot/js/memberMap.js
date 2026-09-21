@@ -99,8 +99,10 @@ window.initializeMemberMap = function (mapDataJson) {
                 // Create custom icon with member count
                 const markerIcon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div class="marker-pin" style="background: linear-gradient(135deg, #8a2be2 0%, #6a1bb2 100%); width: 30px; height: 30px; border-radius: 50% 50% 50% 0; position: relative; transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>
-                       <div class="marker-count" style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%) rotate(45deg); color: white; font-weight: bold; font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${cityGroup.MemberCount}</div>`,
+                    // Styling lives in css/4-pages/member-map.css — no inline style
+                    // attributes, so a strict style-src needs no 'unsafe-inline'.
+                    html: `<div class="marker-pin"></div>
+                       <div class="marker-count">${cityGroup.MemberCount}</div>`,
                     iconSize: [30, 42],
                     iconAnchor: [15, 42],
                     popupAnchor: [0, -42]
@@ -138,7 +140,7 @@ window.initializeMemberMap = function (mapDataJson) {
                 if (hasMoreMembers) {
                     const remainingCount = cityGroup.Members.length - maxMembersToShow;
                     popupContent += `
-                        <div class="popup-member-item" style="text-align: center; font-style: italic; color: #b0b0b0;">
+                        <div class="popup-member-item popup-member-item--more">
                             +${remainingCount} mais ${remainingCount === 1 ? 'membro' : 'membros'}
                         </div>
                     `;

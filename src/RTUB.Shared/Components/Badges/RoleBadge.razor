@@ -5,8 +5,7 @@
     Shows icon followed by role name
 *@
 
-<span class="badge avatar-card-role-badge @GetRoleBadgeClass(Role) @AdditionalClasses" 
-      style="@GetRoleBadgeStyle(Role)"
+<span class="badge avatar-card-role-badge @GetRoleBadgeClass(Role) @GetRoleBadgeModifier(Role) @AdditionalClasses"
       tabindex="0"
       role="button"
       aria-expanded="false"
@@ -60,15 +59,16 @@
     }
 
     /// <summary>
-    /// Returns custom inline style for roles that need it
+    /// Returns the modifier class carrying the per-role colour overrides.
+    /// All three variants also reset text-transform (see badges.css).
     /// </summary>
-    private string GetRoleBadgeStyle(string role)
+    private string GetRoleBadgeModifier(string role)
     {
         return role switch
         {
-            "Member" => "background-color: #007bff; color: white; text-transform: none;",
-            "Mod" => "color: #000; text-transform: none;",  // Black text on yellow/orange
-            _ => "text-transform: none;"
+            "Member" => "role-badge--member",
+            "Mod" => "role-badge--mod",
+            _ => "role-badge--plain"
         };
     }
 

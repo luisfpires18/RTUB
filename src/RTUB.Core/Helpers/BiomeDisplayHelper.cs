@@ -72,4 +72,31 @@ public static class BiomeDisplayHelper
         "Desert" => "#ff8f00", "Volcanic" => "#e53935", "Ruins" => "#8d6e63",
         "Dark" => "#9575cd", "Light" => "#fdd835", "Void" => "#e040fb", _ => "#888"
     };
+
+    /// <summary>
+    /// CSS modifier class carrying the stage-mode biome's accent colour as the
+    /// <c>--bc</c> custom property (see css/9-overrides/dynamic-style-classes.css).
+    /// Mirrors <see cref="GetBiomeColor"/> exactly, including its fallback.
+    /// </summary>
+    public static string GetBiomeColorClass(string biomeName) => biomeName switch
+    {
+        "Forest" or "Swamp" or "Mountains" or "Snowy" or "Tropical" or "Caverns" or "Desert"
+            or "Volcanic" or "Ruins" or "Sky" or "Underwater" or "Underground" or "Mechanical"
+            or "Frostfire" or "Corruption" or "Dark" or "Alien" or "Void" or "Timerift"
+            or "Light" or "Arena" => "biome-c-" + biomeName.ToLowerInvariant(),
+        _ => "biome-c-default"
+    };
+
+    /// <summary>
+    /// CSS modifier class carrying the survive-mode biome's accent colour as
+    /// <c>--bc</c>. Survive mode uses its own palette, so these are separate
+    /// classes from <see cref="GetBiomeColorClass"/>.
+    /// </summary>
+    public static string GetSurviveBiomeColorClass(string name) => name switch
+    {
+        "Forest" or "Swamp" or "Mountains" or "Snowy" or "Tropical" or "Caverns" or "Desert"
+            or "Volcanic" or "Ruins" or "Dark" or "Light" or "Void"
+            => "survive-biome-c-" + name.ToLowerInvariant(),
+        _ => "survive-biome-c-default"
+    };
 }

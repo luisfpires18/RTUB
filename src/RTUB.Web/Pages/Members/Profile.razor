@@ -30,11 +30,6 @@
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @inject IOptions<RTUB.Application.Configuration.Toggles> Toggles
 
-<style>
-    :global(html, body) {
-        overflow-x: hidden;
-    }
-</style>
 
 <div class="profile-page container-fluid w-100 d-flex flex-column align-items-center overflow-hidden">
     <div class="page-header-centered mb-4 w-100">
@@ -287,9 +282,9 @@
                                             @if (memberStatusResultValue.ProgressMonths.HasValue && memberStatusResultValue.ProgressTotalMonths.HasValue)
                                             {
                                                 <div class="progress progress-compact">
-                                                    <div class="progress-bar bg-primary" 
-                                                         role="progressbar" 
-                                                         style="width: @((memberStatusResultValue.ProgressMonths.Value * 100.0 / memberStatusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                    <div class="progress-bar bg-primary u-fill-pct"
+                                                         role="progressbar"
+                                                         data-fill-pct="@((memberStatusResultValue.ProgressMonths.Value * 100.0 / memberStatusResultValue.ProgressTotalMonths.Value).ToString("F0"))"
                                                          aria-valuenow="@memberStatusResultValue.ProgressMonths.Value" 
                                                          aria-valuemin="0" 
                                                          aria-valuemax="@memberStatusResultValue.ProgressTotalMonths.Value">

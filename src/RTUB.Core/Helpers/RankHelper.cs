@@ -56,4 +56,11 @@ public static class RankHelper
             _       => "Iron",
         };
     }
+
+    /// <summary>
+    /// CSS modifier class carrying the tier's colour as the <c>--rank-c</c> custom
+    /// property (see css/9-overrides/dynamic-style-classes.css). One class per tier,
+    /// matching the colours <see cref="GetRank"/> returns.
+    /// </summary>
+    public static string GetRankColorClass(int rating) => "rank-c-" + GetTierName(rating).ToLowerInvariant();
 }

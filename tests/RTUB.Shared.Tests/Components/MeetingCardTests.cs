@@ -345,8 +345,11 @@ public class MeetingCardTests : BunitContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
+        // The badge text comes from <DateBadge>. The former "meeting-today-badge"
+        // assertion was matching the component's inline <style> block, not rendered
+        // markup - no element has ever carried that class. Unit 024 moved the CSS
+        // into a stylesheet, which exposed it.
         cut.Markup.Should().Contain("HOJE", "should display 'HOJE' badge for today's meeting");
-        cut.Markup.Should().Contain("meeting-today-badge", "should have meeting-today-badge class");
     }
 
     [Fact]

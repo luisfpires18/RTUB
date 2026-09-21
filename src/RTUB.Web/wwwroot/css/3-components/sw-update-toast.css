@@ -1,0 +1,68 @@
+/*
+ * Service-worker update toast
+ * Built by wwwroot/js/sw-register.js when a new service worker is waiting.
+ * Lives here (not as injected CSS) so a strict style-src needs no 'unsafe-inline'.
+ */
+
+.rtub-sw-toast {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999999;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #fff;
+    padding: 14px 20px;
+    font-family: inherit;
+    font-size: 15px;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+    animation: rtub-toast-slide-up 0.3s ease-out;
+    border-top: 2px solid #e94560;
+}
+
+.rtub-sw-toast__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rtub-sw-toast__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.rtub-sw-toast__update {
+    background: #fff;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.rtub-sw-toast__dismiss {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+@keyframes rtub-toast-slide-up {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
