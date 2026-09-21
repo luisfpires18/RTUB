@@ -53,6 +53,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            // Lets a test represent a distinct client IP; no-op unless the request opts in.
+            services.AddTransient<IStartupFilter, RemoteIpTestStartupFilter>();
+
             // Remove the existing ApplicationDbContext registration
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();

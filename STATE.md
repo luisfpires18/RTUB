@@ -5,126 +5,102 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-20_
 
 ## Phase
-Modernization unit **013 (CSRF review of the remaining cookie-authenticated API endpoints) —
-implementation complete, uncommitted, awaiting owner review.** Unit 012 is merged to `dev`.
+Modernization unit **014 (rate limiting on `POST /auth/login`) — implementation complete,
+uncommitted, awaiting owner review.** Unit 013 is merged to `dev`.
 
 ## Branch
-`fix/013/cookie-api-csrf`, branched from `dev` (clean, in sync with `origin/dev` at `1ac8abb9`).
+`fix/014/login-rate-limiting`, branched from `dev` (clean, in sync with `origin/dev` at `f30657b9`).
 Uncommitted — no commit authorized.
-`chore/001`-`chore/011` and `fix/012` still present; delete when convenient.
+`chore/001`-`chore/011`, `fix/012` and `fix/013` still present; delete when convenient.
 
 ## Last completed step
-**Unit 013 — the five remaining cookie-authenticated mutations were classified against real
-observed behavior, and only the one that was genuinely CSRF-reachable was addressed: it was
-deleted, because nothing called it.** No antiforgery plumbing was added anywhere.
+**Unit 014 — `POST /auth/login` now carries a per-client-IP rate limit, as a named policy applied
+to that one endpoint.** No global limiter, no custom limiter type, no forwarded-header parsing.
 
-### Endpoints reviewed and CSRF classification
+### Policy
 
-Every row was measured with a real authenticated `WebApplicationFactory` request, not reasoned
-about. Anonymous callers hit the cookie challenge first (302 to `/login`, or 401 for `/api/push/*`).
+| | |
+| --- | --- |
+| Policy name | `login` (`ServiceCollectionExtensions.LoginRateLimitPolicy`) |
+| Algorithm | partitioned **fixed window**, `RateLimitPartition.GetFixedWindowLimiter` |
+| Threshold / window | **10 permits per 5 minutes**, per partition |
+| Partition key | `HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"` |
+| Queue | `QueueLimit = 0` — rejected immediately, never held open |
+| Rejection | **429** (`RejectionStatusCode` + set again in `OnRejected` before the body is written) |
+| `Retry-After` | emitted from `context.Lease.TryGetMetadata(MetadataName.RetryAfter, ...)`, seconds, invariant |
+| Configuration | `LoginRateLimit:PermitLimit` / `LoginRateLimit:WindowMinutes` in `appsettings.json`; the two constants in `ServiceCollectionExtensions` are the fallback |
+| Scope | `.RequireRateLimiting(...)` on the login `MapPost` **only** |
 
-| Endpoint | Auth | Form-POST result (authenticated) | Classification |
-| --- | --- | --- | --- |
-| `POST /api/admin/refresh-all` | cookie, `Roles = "Admin"` | **200 OK** with an arbitrary form body, and with no body at all | **exploitable form CSRF - and dead. Removed.** |
-| `POST /api/push/subscribe` | cookie, `[Authorize]` | **415** for all three form enctypes | already protected by request shape |
-| `POST /api/push/unsubscribe` | cookie, `[Authorize]` | **415** for all three form enctypes | already protected by request shape |
-| `POST /api/push/broadcast` | cookie, `Roles = "Owner"` | **403** (role gate precedes binding); 415 for an Owner | already protected; **no browser caller** |
-| `POST /api/push/send-to-selected` | cookie, `Roles = "Owner,Admin"` | **403**; 415 for an Owner/Admin | already protected; **no browser caller** |
+### Why these numbers
+Identity locks an account after **5** failures for **5 minutes**
+(`AddIdentityServices`). 10 / 5 min sits just above that and reuses the same window, so:
+- a real user fumbling a password is locked out by Identity before the IP limit is reached, and is
+  never throttled for a typo;
+- a client walking a list of accounts — credential stuffing, which per-account lockout never sees —
+  is capped at 10 accounts per 5 min per IP, ~120/hour, far below a useful stuffing rate;
+- two people behind one NAT can each still fail 5 times before either is throttled.
 
-`/auth/login` and `/auth/logout` already carry real antiforgery tokens (unit 012). The other three
-controllers (`CdnProxy`, `DownloadMedia`, `Images`) expose `[HttpGet]` only — no mutations. That is
-the complete set: a search for `MapPost|MapPut|MapDelete|MapPatch|MapMethods` and
-`HttpPost|HttpPut|HttpDelete|HttpPatch` returns nothing else in the solution.
+A single fixed window was enough; no chained limiter was added. Fixed window's known weakness is a
+burst of up to 2x `PermitLimit` straddling a window boundary — 20 attempts, still bounded, and
+still far under a brute-force rate.
 
-### The four mechanisms, kept distinct
+### Why not partition by username/email
+It is caller-controlled, so each forged value would allocate and cache its own limiter — an
+unbounded-partition memory DoS — and it would add nothing, because Identity lockout already covers
+the per-account case. A null/unknown `RemoteIpAddress` deliberately collapses into a single shared
+`"unknown"` bucket rather than creating a partition, so the partition count is bounded by the
+number of real peers.
 
-They are **not** interchangeable, and each endpoint above is protected by a different one.
+### Middleware order
+`app.UseRateLimiter()` is placed **immediately after `app.UseRouting()`**, which is what the
+current docs require for endpoint-specific policies (the endpoint's `RequireRateLimiting` metadata
+must already be resolved). That also puts it **before** `UseAuthentication` / `UseAuthorization` /
+`UseAntiforgery`, so a throttled client is answered 429 before any credential or token work runs.
+Consequence, asserted by test: every login POST spends a permit **whatever its outcome**, including
+one rejected by antiforgery.
 
-1. **Form CSRF** — a cross-site `<form>` can POST only `application/x-www-form-urlencoded`,
-   `multipart/form-data` or `text/plain`. This is the attack `/api/admin/refresh-all` was open to:
-   it binds nothing from the body, so *any* of those bodies reached the handler and returned 200.
-2. **JSON API CSRF** — the `PushController` actions are `[ApiController]` + `[FromBody]`. Input
-   formatter selection happens during model binding, **before the action runs**, and the JSON
-   formatter reads only `application/json` / `text/json` / `application/*+json`. All three form
-   enctypes were measured at **415 Unsupported Media Type**. This is a *server-side* gate and does
-   not depend on any browser policy. Measured caveat: a **malformed** `multipart` body returns 400
-   rather than 415 — the body is parsed before formatter selection. Both are pre-action
-   rejections; the test uses well-formed browser-shaped bodies so it asserts the real 415.
-3. **CORS** — there is **no CORS configuration in the solution at all**: no `AddCors`, no
-   `UseCors`, no policy, no `AllowAnyOrigin`, no `AllowCredentials`. That is the safe default, not
-   a gap. A cross-origin `fetch` sending `Content-Type: application/json` is non-simple, so it is
-   preflighted; with no CORS middleware the `OPTIONS` never gets `Access-Control-Allow-Origin` and
-   the browser never sends the real request. **Nothing unsafe was found, so nothing was changed.**
-   Note the limit of this layer: a *simple* cross-origin POST (`text/plain`) is still **sent** —
-   CORS only blocks reading the response — which is why mechanism 2 above, not CORS, is what
-   actually protects the Push endpoints against that shape.
-4. **SameSite** — the sign-in cookie is issued as
-   `.AspNetCore.Identity.Application=...; path=/; samesite=lax; httponly` (observed on a real
-   login response). `Lax` means the cookie is **not** attached to any cross-site POST, form or
-   fetch, so the request arrives unauthenticated. Because the value is set *explicitly* by the
-   framework, Chrome's 2-minute "Lax-allowing-unsafe" intervention — which applies only to cookies
-   with no `SameSite` attribute — does not apply. This is a browser-side, defence-in-depth layer:
-   it is porous to a same-site attacker (any sibling subdomain counts as same-site), which is why
-   it was **not** treated as sufficient on its own for `/api/admin/refresh-all`.
+## Deployment requirement — Azure forwarded headers (BLOCKING for production effect)
 
-### Why `/api/admin/refresh-all` was deleted rather than protected
+**Production `rtub` is Azure App Service on Linux.** `curl -I https://rtub.azurewebsites.net/health`
+returns `Server: Kestrel` — no IIS layer, so there is no `UseIISIntegration` auto-wiring of
+forwarded headers. `Program.cs` already assumes this: it skips `UseHttpsRedirection` outside
+Development with the comment "HTTPS is handled at the load balancer level", which is the workaround
+used exactly when the scheme is *not* being forwarded.
 
-It was CSRF-reachable (200 on an authenticated Admin form POST) **and provably unused**:
+Therefore, with no forwarded-headers handling anywhere in the repo today,
+`Connection.RemoteIpAddress` on App Service is the **platform's front-end address, not the client's**.
+Every request would fall into one shared partition and the limiter would throttle all users
+together instead of per client.
 
-- A tracked-tree search found only its own definition and unit 012's STATE.md note. No `fetch`, no
-  `HttpClient`, no `.http` / script / CI / doc reference anywhere.
-- `git log --all -S"refresh-all"` returns exactly two commits: `213d0aa0` (which introduced it)
-  and `bc70ceea` (012's STATE.md note). **It never had a caller in any commit on any branch.**
-- Its service is alive and unaffected: `AdminRefreshService.TriggerRefreshAsync()` is called
-  **in-process** from `AllCharacters.razor:520` after a game-data reset. The DI registration, the
-  event, and both Razor subscribers are untouched.
+**Required App Service setting (Configuration -> Application settings):**
 
-So the endpoint was pure dead privileged attack surface. Deleting it removes the vulnerability
-outright, with a 7-line diff and zero token plumbing — strictly smaller and safer than adding an
-antiforgery mechanism to something nothing calls. The effect it triggered remains available from
-the admin UI that actually uses it.
+```
+ASPNETCORE_FORWARDEDHEADERS_ENABLED = true
+```
 
-### Why the Push endpoints were left alone
+This is Microsoft's documented switch for App Service Linux / containers. The host wires
+`ForwardedHeadersMiddleware` itself, ahead of the app pipeline, with cloud-appropriate settings.
+Nothing is added to RTUB's own code for it — deliberately: no `UseForwardedHeaders` call, no
+`ForwardedHeadersOptions`, no clearing of `KnownProxies`/`KnownNetworks`, and no manual
+`X-Forwarded-For` parsing.
 
-Their protection is mechanism 2, which is server-side and already in force. Adding antiforgery
-would have required inventing a way for `service-worker.js` to obtain a request token — it cannot
-read a Razor DOM `<AntiforgeryToken />` — for no gain. **Push business logic, the WebPush service
-architecture, notification behavior, roles, the auth cookie, service-worker registration and CORS
-are all byte-identical.** `subscribe` / `unsubscribe` still work over `application/json`, proven by
-test, so push subscription renewal is not at risk.
+**Not verified:** whether this setting is already present on the `rtub` App Service. It is portal
+configuration and is not in the repo (`.github/workflows/ci.yml` only publishes and deploys; it
+sets no app settings). **Confirm it in the portal before relying on per-IP behavior in production.**
+The same setting is needed on the future Azure dev environment.
 
-Recorded, not acted on: `broadcast` and `send-to-selected` have **no browser caller either** —
-every Razor page calls `IPushNotificationService.BroadcastAsync` / `SendToSelectedUsersAsync`
-in-process. They are candidates for the same deletion treatment, but unlike `refresh-all` they are
-not CSRF-reachable, so removing them is cleanup, not security, and is out of this unit's scope.
+Also note: enabling it makes `Request.IsHttps` true behind the proxy, which is what the
+`UseHttpsRedirection` skip at `Program.cs:325` was working around. Revisiting that skip is a
+separate decision, deliberately not made here.
 
-### Changes (2 source files, 1 new test file)
-- `src/RTUB.Web/Program.cs` — the `/api/admin/refresh-all` `MapPost` block deleted (7 lines).
-  Nothing else in the file touched; it used fully-qualified names, so no `using` went stale.
-- `src/RTUB.Web/Services/AdminRefreshService.cs` — two lines added to the class doc recording that
-  the service is in-process only and deliberately has no HTTP endpoint, so the route is not
-  re-added later.
-- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — **new**, 4 tests.
+What `RemoteIpAddress` is, per environment:
+- **Local / `dotnet run`** — the real client address; correct with no extra configuration.
+- **Integration tests (`TestServer`)** — `null` for every request (no transport), so all callers
+  share the `"unknown"` partition. Tests work around this explicitly; see Tests below.
+- **Azure App Service (current prod, Linux/Kestrel)** — the platform front end until
+  `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` is set.
+- **Future Azure dev environment** — same, same setting.
 
-### Tests (4 new)
-1. `RefreshAllEndpoint_NoLongerExists` — signs in as the seeded **Admin**, so `404` proves the
-   route is gone rather than access-denied.
-2. `PushJsonEndpoint_RejectsEveryContentTypeACrossSiteFormCanPost` — posts all three real form
-   enctypes (`FormUrlEncodedContent`, `MultipartFormDataContent`, `text/plain`) to
-   `/api/push/unsubscribe` with a valid sign-in cookie; each must be **415**.
-3. `PushJsonEndpoint_AcceptsApplicationJsonFromRealCaller` — the same endpoint with
-   `application/json` returns **200**, the positive control proving (2) is a content-type gate and
-   not a blanket block on the service worker.
-4. `AuthenticationCookie_IsSameSiteLax` — asserts the real `Set-Cookie` contains `samesite=lax`,
-   so a later change to `SameSite=None` cannot silently reopen CSRF across every cookie POST.
-
-All four sign in through the **real rendered login form**, so unit 012's antiforgery is exercised
-rather than bypassed. `AntiforgeryFormToken` is reused from `AuthAntiforgeryTests.cs`; that file is
-not modified.
-
-**Negative probe run and reverted.** The endpoint was temporarily re-added to `Program.cs`;
-`RefreshAllEndpoint_NoLongerExists` then **failed**, and passed again once it was removed. The test
-gates on the actual deletion.
 
 ## Current task
 None active.
@@ -132,14 +108,32 @@ None active.
 ## Next unit
 **Microsoft 10.0.11 -> 10.0.12 servicing train** across `src/` + tests, which also unblocks
 `MockQueryable.Moq 10.0.12`.
-Next *security* unit: **login rate limiting** — `/auth/login` has none, so password attempts are
-unlimited per IP; Identity lockout is per-account only. Then password policy, then security
-headers / CSP.
+Next *security* unit: **password policy** — Identity is currently `RequiredLength = 4` with every
+complexity rule off (`AddIdentityServices`). Then security headers / CSP.
 
 ## Blockers
-None.
+**One, deployment-side, not code:** `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` must be confirmed or
+set on the `rtub` App Service, or the new limiter partitions on the platform front-end address
+instead of the client's and throttles all users as one. See *Deployment requirement* above. The
+code is correct and safe either way; only the per-client granularity depends on it.
+
 
 ## Deferred / owner decisions
+
+### Security — raised by 014, deliberately not changed
+- **`RateLimiterOptions.OnRejected` is global, not per-policy.** Today only the `login` policy
+  exists, so the Portuguese rejection body can only be reached by a login rejection. **A second
+  policy added later must either share that message or move the callback onto its own policy.**
+- **A 429 on a browser form POST renders as a bare text page**, not the styled `/login?error=...`
+  page the endpoint's other failures use. Redirecting instead would mean answering 302, which
+  contradicts the required 429. Left as-is; a status-code page for 429 is a UX decision.
+- **Existing login tests share the `"unknown"` partition.** `AuthAntiforgeryTests` (5 login POSTs)
+  and `CookieApiCsrfTests` (4) are under the limit of 10 and each class gets its own factory, so
+  they are safe today. Adding a sixth login POST to one of those classes would start hitting 429 —
+  use the `X-Test-Remote-Ip` header for a distinct partition if that happens.
+- **`UseHttpsRedirection` is skipped outside Development** (`Program.cs:325`). Turning on
+  `ASPNETCORE_FORWARDEDHEADERS_ENABLED` makes `Request.IsHttps` true behind the proxy, which is
+  what that skip works around. Separate decision, not made here.
 
 ### Security — reviewed by 013, deliberately not changed
 - **`AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN")`** is still configured and still unused by
@@ -157,9 +151,11 @@ None.
   exclusive access` thrown from `SqliteConnection.CreateCollation` during
   `TestWebApplicationFactory` startup. It is a data race between the factory's `EnsureCreated()`
   and the background services starting on the same shared in-memory connection. It does **not**
-  fire in the full suite (4489 / 0 / 60, clean). Worth its own unit: serialize factory startup
+  fire in the full suite (clean at 4497 / 0 / 60). **Re-measured by 014 and now the most annoying
+  thing in the test suite:** it hits any integration class run in isolation, including the new
+  `LoginRateLimitTests`, at roughly 2 runs in 5. Worth its own unit: serialize factory startup
   before the hosted services run.
-- Out of scope by instruction and untouched: login rate limiting, password policy, MFA, cookie
+- Out of scope by instruction and untouched: password policy, MFA, cookie
   validation / SQLite pressure, security headers / CSP, PWA cache strategy, push architecture
   refactor, `Program.cs` cleanup.
 - Known and accepted framework limitation (from 012): antiforgery tokens are bound to the user
@@ -195,27 +191,77 @@ None.
   Store one wins PATH and works; both are compatible, so neither needs removing.
 - Pending feature work — unchanged, not part of any phase.
 
-## Relevant files (unit 013)
-- `src/RTUB.Web/Program.cs` — `/api/admin/refresh-all` removed.
-- `src/RTUB.Web/Services/AdminRefreshService.cs` — doc note: in-process only, no HTTP endpoint.
-- `tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs` — **new**; 4 tests.
+## Relevant files (unit 014)
+- `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` — new `AddLoginRateLimiting`, plus the
+  policy name and the two default constants.
+- `src/RTUB.Web/Program.cs` — `AddLoginRateLimiting` registration, `UseRateLimiter` after
+  `UseRouting`, `.RequireRateLimiting(...)` on the login `MapPost`.
+- `src/RTUB.Web/appsettings.json` — new `LoginRateLimit` section (10 / 5).
+- `tests/RTUB.Integration.Tests/LoginRateLimitTests.cs` — **new**, 8 tests.
+- `tests/RTUB.Integration.Tests/RemoteIpTestStartupFilter.cs` — **new**, test-host only.
+- `tests/RTUB.Integration.Tests/TestWebApplicationFactory.cs` — registers that filter (2 lines).
 
-## Latest validation (unit 013)
+## Tests (8 new)
+`TestServer` has no transport, so `Connection.RemoteIpAddress` is `null` for every request and every
+caller shares one partition — which makes an IP-partitioned policy untestable and makes tests in one
+class interfere. `RemoteIpTestStartupFilter` is an `IStartupFilter` registered **only** by the test
+factory; it runs ahead of the whole app pipeline and sets the same `Connection.RemoteIpAddress` the
+transport sets in production, from an `X-Test-Remote-Ip` header. It is a no-op unless a request opts
+in, so it cannot affect any other test. It is **not** a forwarded-headers implementation and adds no
+production code path. Each test uses its own IP, so the class is order-independent and **no test
+sleeps or waits for a window to roll over**.
+
+1. `LoginPost_UnderLimit_SignsUserInNormally` — real rendered-form login still 302 to `/` with the
+   Identity cookie.
+2. `LoginPost_AtTheLimit_IsStillAccepted_ThenRejectedWith429` — requests 1..10 all reach antiforgery
+   (400); request 11 is **429**. Pins both the threshold and the limiter-before-antiforgery order.
+3. `LoginPost_WhenRejected_SendsRetryAfterFromLeaseMetadata` — 429 carries a positive `Retry-After`.
+4. `LoginPost_WhenRejected_DoesNotSignAnyoneIn` — valid credentials **and** a valid token, budget
+   spent: 429 and no `Set-Cookie`.
+5. `LoginRateLimit_IsPartitionedByClientIp` — one IP exhausted and 429; a second IP's next request is
+   400, not 429.
+6. `LoginPost_WithWrongPassword_UnderLimit_StillCountsTowardAccountLockout` — 302 to
+   `/login?error=Invalid` **and** `AccessFailedCount == 1`, so lockout is intact.
+7. `LoginPost_UnderLimit_StillRequiresAntiforgeryToken` — tokenless POST is still 400, no cookie.
+8. `RateLimiting_IsScopedToLoginOnly` — `/health`, `GET /login` and `POST /auth/logout` each driven
+   12 times (over the limit) and never throttled, proving there is no global limiter.
+
+**No new credential-shaped literal was committed.** Test passwords come from
+`NewSecret() => Guid.NewGuid().ToString("N")`, generated per call; Identity's `RequiredLength = 4`
+with no complexity rules accepts it. No GitGuardian ignore comment was added. The pre-existing
+`TestPassword123!` in `TestWebApplicationFactory.cs` is untouched.
+
+**Negative probe run and reverted.** `.RequireRateLimiting(...)` was temporarily detached from the
+endpoint: tests 2, 3, 4 and 5 failed and the four behavior-preservation tests (1, 6, 7, 8) still
+passed — exactly the intended split. Restored, all 8 green.
+
+## Latest validation (unit 014)
 - Release build, whole solution: **0 warnings, 0 errors** under `TreatWarningsAsErrors=true` and
   `EnforceCodeStyleInBuild=true`.
-- Full suite, `dotnet test --no-build -c Release`: **4489 passed, 0 failed, 60 skipped.**
-  Baseline was 4485 / 0 / 60; **+4 = exactly the 4 new tests.** No test was added or removed for
-  the deleted endpoint — it never had one — and no other count moved.
-- New class run 3x in isolation: 4 / 0 / 0 each time.
-- Negative probe run and reverted (see Tests above) — the removal test fails with the route present.
-- `git diff --check` clean. Secret scan clean: the only credential-shaped string is
-  `TestPassword123!`, which is the pre-existing seeded admin password already in
-  `TestWebApplicationFactory.cs`. No new secret, no VAPID or token material.
-- `git status` = 2 modified source files, 1 new untracked test file. **Migrations and
-  `ApplicationDbContextModelSnapshot.cs` unchanged.** New file normalized to CRLF to match siblings.
-- Graphify **not** rebuilt — deleting one endpoint lambda is not a material structural change.
-  Playwright **not** run: every browser-relevant property (cookie `SameSite`, content-type
-  rejection) was proven server-side by integration test instead.
+- Full suite, `dotnet test --no-build -c Release`: **4497 passed, 0 failed, 60 skipped.**
+  Baseline was 4489 / 0 / 60; **+8 = exactly the 8 new tests.** No other count moved, and no
+  existing test needed changing.
+- New class run in isolation, 8 runs: **6 clean at 8 / 0 / 0, 2 hit the pre-existing
+  `TestWebApplicationFactory` startup race** (unit 013's documented flake:
+  `System.InvalidOperationException: Operations that change non-concurrent collections must have
+  exclusive access` from `SqliteConnection.CreateCollation`). **Not caused by 014** — the whole
+  stack is DI/EF connection construction, nothing rate-limiting is on it, and the unmodified
+  `AuthAntiforgeryTests` flakes the same way on this branch (2 failures in 5 isolated runs). It
+  never fires in the full suite, which is clean.
+- `git diff --check` clean. Secret scan clean — the only matches on added lines are the words
+  "credential stuffing" in a comment and the `OnRejected` identifier.
+- `git status` = 4 modified files, 2 new untracked test files. **Migrations and
+  `ApplicationDbContextModelSnapshot.cs` unchanged.** New files written CRLF to match siblings.
+- Graphify **not** rebuilt — one DI extension method plus two pipeline lines is not a material
+  structural change. No frontend build, no Playwright.
+
+
+## Previous validation (unit 013 — merged)
+The five remaining cookie-authenticated mutations were classified against measured behavior;
+`POST /api/admin/refresh-all` was CSRF-reachable and provably uncalled, so it was deleted. The Push
+endpoints were left alone — `[FromBody]` JSON binding returns 415 for every form enctype. 4 tests in
+`tests/RTUB.Integration.Tests/Api/CookieApiCsrfTests.cs`. Suite 4489 / 0 / 60. Detail is in the
+`fix/013/cookie-api-csrf` history.
 
 ## Previous validation (unit 012 — merged)
 `POST /auth/login` and `POST /auth/logout` require real antiforgery tokens, via `IFormCollection`
