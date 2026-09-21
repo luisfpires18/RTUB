@@ -36,14 +36,15 @@ public class AuthAntiforgeryTests : IntegrationTestBase
     [Fact]
     public async Task LoginPost_WithoutAntiforgeryToken_IsRejected()
     {
-        var user = await CreateUserAsync("csrf-login-missing", "CsrfTest123!");
+        var password = TestSecret.NewPassword();
+        var user = await CreateUserAsync("csrf-login-missing", password);
         var client = CreateBrowserClient();
 
         var response = await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
                 ["Username"] = user.UserName!,
-                ["Password"] = "CsrfTest123!",
+                ["Password"] = password,
                 ["RememberMe"] = "false"
             }));
 
@@ -55,7 +56,8 @@ public class AuthAntiforgeryTests : IntegrationTestBase
     [Fact]
     public async Task LoginPost_WithTamperedAntiforgeryToken_IsRejected()
     {
-        var user = await CreateUserAsync("csrf-login-tampered", "CsrfTest123!");
+        var password = TestSecret.NewPassword();
+        var user = await CreateUserAsync("csrf-login-tampered", password);
         var client = CreateBrowserClient();
 
         // Visit the real page first so the antiforgery cookie is issued, then corrupt the token.
@@ -66,7 +68,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
             {
                 [AntiforgeryFormToken.FieldName] = Tamper(token),
                 ["Username"] = user.UserName!,
-                ["Password"] = "CsrfTest123!",
+                ["Password"] = password,
                 ["RememberMe"] = "false"
             }));
 
@@ -80,7 +82,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
     {
         var client = CreateBrowserClient();
 
-        var response = await LoginThroughRenderedFormAsync(client, "csrf-login-ok", "CsrfTest123!");
+        var response = await LoginThroughRenderedFormAsync(client, "csrf-login-ok");
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().Should().Be("/");
@@ -102,7 +104,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
     public async Task LogoutPost_WhileAuthenticated_WithoutAntiforgeryToken_KeepsSessionSignedIn()
     {
         var client = CreateBrowserClient();
-        await LoginThroughRenderedFormAsync(client, "csrf-logout-missing", "CsrfTest123!");
+        await LoginThroughRenderedFormAsync(client, "csrf-logout-missing");
 
         var response = await client.PostAsync("/auth/logout", TokenlessLogoutForm());
 
@@ -118,7 +120,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
     public async Task LogoutPost_WithTokenFromRenderedForm_SignsUserOut()
     {
         var client = CreateBrowserClient();
-        await LoginThroughRenderedFormAsync(client, "csrf-logout-ok", "CsrfTest123!");
+        await LoginThroughRenderedFormAsync(client, "csrf-logout-ok");
 
         // The logout form lives in MainLayout, so any authenticated page renders its token.
         var token = await ReadTokenAsync(client, "/");
@@ -161,10 +163,13 @@ public class AuthAntiforgeryTests : IntegrationTestBase
 
     /// <summary>
     /// Drives the real browser flow: GET the login page, read its antiforgery token, POST the form.
+    /// The password is generated here so the create and the POST share one value that is never
+    /// written down; no caller needs to know it.
     /// </summary>
     private async Task<HttpResponseMessage> LoginThroughRenderedFormAsync(
-        HttpClient client, string userName, string password)
+        HttpClient client, string userName)
     {
+        var password = TestSecret.NewPassword();
         var user = await CreateUserAsync(userName, password);
         var token = await ReadTokenAsync(client, "/login");
 

@@ -257,7 +257,7 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
             PhoneNumber = "9123123"
         };
 
-        await userManager.CreateAsync(user, "TestPassword123!");
+        await userManager.CreateAsync(user, TestSecret.NewPassword());
         return user;
     }
 

@@ -123,7 +123,7 @@ public class CookieApiCsrfTests : IntegrationTestBase
     /// Signs in the seeded admin through the real rendered login form, so the antiforgery
     /// protection added in unit 012 is exercised rather than bypassed.
     /// </summary>
-    private static async Task<HttpResponseMessage> SignInAsync(HttpClient client)
+    private async Task<HttpResponseMessage> SignInAsync(HttpClient client)
     {
         var page = await client.GetAsync("/login");
         var token = AntiforgeryFormToken.Find(await page.Content.ReadAsStringAsync());
@@ -134,7 +134,7 @@ public class CookieApiCsrfTests : IntegrationTestBase
             {
                 [AntiforgeryFormToken.FieldName] = token!,
                 ["Username"] = "testadmin",
-                ["Password"] = "TestPassword123!",
+                ["Password"] = Factory.AdminPassword,
                 ["RememberMe"] = "false"
             }));
     }

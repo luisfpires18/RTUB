@@ -527,7 +527,7 @@ For local development, sensitive configuration values should be stored in `appse
   "AdminUser": {
     "Username": "your-username",
     "Email": "your-email@example.com",
-    "Password": "YourPassword123!"
+    "Password": "your-admin-password"
   },
   "EmailSettings": {
     "SmtpServer": "smtp.gmail.com",
