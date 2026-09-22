@@ -78,49 +78,39 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _mockUserManager.Object,
             _fixture.CreateContextFactory());
 
-        // Create test users (only if they don't exist for shared database)
-        var userId1 = "bet-test-user-1";
-        var userId2 = "bet-test-user-2";
-
-        if (!_context.Users.Any(u => u.Id == userId1))
-        {
-            _testUser1 = new ApplicationUser
-            {
-                Id = userId1,
-                UserName = "bet_testuser1",
-                Email = "bet_test1@test.com",
-                FirstName = "Bet",
-                LastName = "User1",
-                Nickname = "BetTestUser1",
-                FidelisBalance = 1000
-            };
-            _context.Users.Add(_testUser1);
-        }
-        else
-        {
-            _testUser1 = _context.Users.Find(userId1)!;
-        }
-
-        if (!_context.Users.Any(u => u.Id == userId2))
-        {
-            _testUser2 = new ApplicationUser
-            {
-                Id = userId2,
-                UserName = "bet_testuser2",
-                Email = "bet_test2@test.com",
-                FirstName = "Bet",
-                LastName = "User2",
-                Nickname = "BetTestUser2",
-                FidelisBalance = 500
-            };
-            _context.Users.Add(_testUser2);
-        }
-        else
-        {
-            _testUser2 = _context.Users.Find(userId2)!;
-        }
+        // Create test users and reset their mutable state for every test
+        _testUser1 = EnsureTestUser("bet-test-user-1", "1", 1000m);
+        _testUser2 = EnsureTestUser("bet-test-user-2", "2", 500m);
 
         _context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Returns the shared test user with the given id, creating it when missing, and always resets
+    /// the state these tests assert on. <see cref="DatabaseFixture.CleanDatabase"/> deliberately keeps
+    /// the Users table, so without this reset a balance left behind by an earlier test (winnings paid
+    /// out, amounts deducted) leaks into the next one and makes this class order-dependent.
+    /// </summary>
+    private ApplicationUser EnsureTestUser(string userId, string suffix, decimal fidelisBalance)
+    {
+        var user = _context.Users.Find(userId);
+
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                Id = userId,
+                UserName = $"bet_testuser{suffix}",
+                Email = $"bet_test{suffix}@test.com",
+                FirstName = "Bet",
+                LastName = $"User{suffix}",
+                Nickname = $"BetTestUser{suffix}"
+            };
+            _context.Users.Add(user);
+        }
+
+        user.FidelisBalance = fidelisBalance;
+        return user;
     }
 
     public void Dispose()
@@ -192,8 +182,12 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await _betService.PlaceBetAsync(_testUser1.Id, bet.Id, option.Id, betAmount));
 
-        // Verify balance was NOT deducted
+        // Verify balance was NOT deducted, in memory or in the database
         _testUser1.FidelisBalance.Should().Be(1000m);
+
+        using var verifyCtx = _fixture.CreateContext();
+        var dbUser = await verifyCtx.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _testUser1.Id);
+        dbUser!.FidelisBalance.Should().Be(1000m);
     }
 
     [Fact]
@@ -419,27 +413,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userBets = new List<UserBet>();
         for (int i = 0; i < 5; i++)
         {
-            var userId = $"bet-test-user-{i + 3}";
-            ApplicationUser user;
-
-            if (!_context.Users.Any(u => u.Id == userId))
-            {
-                user = new ApplicationUser
-                {
-                    Id = userId,
-                    UserName = $"bet_testuser{i + 3}",
-                    Email = $"bet_test{i + 3}@test.com",
-                    FirstName = "Bet",
-                    LastName = $"User{i + 3}",
-                    Nickname = $"BetTestUser{i + 3}",
-                    FidelisBalance = 1000
-                };
-                _context.Users.Add(user);
-            }
-            else
-            {
-                user = _context.Users.Find(userId)!;
-            }
+            var user = EnsureTestUser($"bet-test-user-{i + 3}", $"{i + 3}", 1000m);
 
             users.Add(user);
             var userBet = UserBet.Create(user.Id, bet.Id, i % 2 == 0 ? option1.Id : option2.Id, 100m);
