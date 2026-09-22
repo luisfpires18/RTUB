@@ -206,8 +206,9 @@ production App Service.
 ```
 rtub-db/database/current.db   (read-only GET, immutable input)
   -> $RUNNER_TEMP/snapshot.db        never opened read-write; fingerprinted before and after
-  -> $RUNNER_TEMP/rtub-dev.db        a SEPARATE file: copy, then sanitize, then validate
-  -> /home/site/data/rtub-dev.db     app stopped, rollback copy kept, sidecars removed
+  -> $RUNNER_TEMP/sanitized.db       a SEPARATE file: copy, then sanitize, then validate
+  -> resolve the DEV file            from rtub-dev's own ConnectionStrings__SqliteConnection
+  -> /home/site/data/<that file>     app stopped, rollback copy kept, sidecars removed
   -> start + poll /health + scripts/smoke-azure-dev.sh
 ```
 
@@ -302,27 +303,64 @@ this is an owner action, once.
 
 ### Replacing the DEV database
 
-`ConnectionStrings__SqliteConnection` on `rtub-dev` is
-`Data Source=/home/site/data/rtub-dev.db`, on the Azure Files share.
+**The file is never named in the workflow.** Which SQLite file `rtub-dev` opens is decided by
+its own `ConnectionStrings__SqliteConnection` app setting, so that is what the workflow reads,
+after the OIDC login and **before** anything is stopped. Below, `<db>` is whatever that setting
+resolves to.
+
+> The first live refresh is why. The workflow hardcoded `site/data/rtub-dev.db`, but `rtub-dev`
+> had meanwhile been re-pointed at a fresh file (`rtub-dev-v3.db`, per unit 027's redeploy
+> checklist). It backed up, replaced and cleaned the sidecars of an empty 4 KB database the app
+> never opened, and the real one was untouched.
+
+`scripts/resolve-dev-db-path.sh` validates the setting and fails closed. It accepts exactly
+`Data Source=/home/site/data/<file>.db`:
+
+| Refused | Why |
+|---|---|
+| setting missing or empty | nothing to resolve; the app itself would fall back to a relative `Data Source=app.db` (`Program.cs`), outside `/home/site/data` |
+| any second keyword (`Mode`, `Cache`, `Password`, …) or two trailing `;` | `Mode=Memory` means no file; `Password` means the unencrypted sanitized copy cannot be opened |
+| keyword other than `Data Source` (incl. the `DataSource`/`Filename` aliases), or no `=` at all | not the one accepted shape; also rejects SQL Server strings, `:memory:` and bare paths |
+| path not under `/home/site/data/` — relative, `wwwroot`, look-alike or differently-cased directory, `file:` URI, quoted | the only durable directory `rtub-dev` keeps databases in |
+| any `/` or `..` after `/home/site/data/` | no subdirectory, no traversal |
+| name not matching `[A-Za-z0-9][A-Za-z0-9._-]*\.db` | no hidden file, space, `%`, CR or newline; a sidecar (`.db-wal`) or `.rollback` copy is not a database |
+
+That allow-list is also what makes the result safe to append to `$GITHUB_ENV`: no newline can
+smuggle in a second variable. The value is passed to the script through the environment, never
+argv; the connection string is masked and never printed, and no rejection message echoes any part
+of it. Only the validated path is logged.
+
+Two further refusals happen in the workflow itself: the `az` read must succeed, and a
+`SqliteConnection` entry on the **Connection strings** blade must not also exist — it reaches the
+app as the same configuration key, and which of the two wins is undefined. Only a count is read
+back for that check.
+
+The validated `/home/site/data/<db>` is exported once as the Kudu VFS path `site/data/<db>`
+(`DEV_DB_PATH`, through `$GITHUB_ENV`). There is deliberately no `env:` default for it anywhere,
+and both destructive steps refuse an unset or empty value before acquiring a token.
+`tests/RTUB.Web.Tests/Deployment/RefreshDevDatabaseWorkflowTests.cs` pins all of this, and the
+workflow re-runs the resolver's `--self-test` before trusting it.
 
 1. `az webapp stop` — SQLite must not be open while the file is swapped, and stopping
    checkpoints whatever WAL the running app holds.
-2. `GET` the current DEV database through Kudu's VFS API and `PUT` it back as
-   `rtub-dev.db.rollback`, on the same share. Deliberately not a workflow artifact: it is a
-   whole database.
-3. `PUT` the sanitized file over `rtub-dev.db`. This is the only destructive moment, and it
-   is flagged before it runs so a partial write still triggers the rollback step.
-4. `DELETE` `rtub-dev.db-wal` and `rtub-dev.db-shm`. They describe pages of a database that
-   no longer exists; SQLite would otherwise try to recover them into the new file.
+2. `GET` the current `<db>` through Kudu's VFS API and `PUT` it back as `<db>.rollback`, on
+   the same share. Deliberately not a workflow artifact: it is a whole database.
+3. `PUT` the sanitized file over `<db>`. This is the only destructive moment, and it is
+   flagged before it runs so a partial write still triggers the rollback step.
+4. `DELETE` `<db>-wal` and `<db>-shm`. They describe pages of a database that no longer
+   exists; SQLite would otherwise try to recover them into the new file.
 5. `az webapp start`, then poll `/health` (the first boot migrates the snapshot forward,
    which is slow and is the intended path), then `scripts/smoke-azure-dev.sh` with
    `SKIP_AZ=1`.
 
-**Rollback.** If the replacement fails, the workflow `PUT`s `rollback.db` back, clears the
-sidecars and starts the app again. By hand afterwards: `PUT`
-`/home/site/data/rtub-dev.db.rollback` over `rtub-dev.db` through the same VFS endpoint,
-delete the sidecars, restart. A `.rollback` file is left behind by every run and is
-overwritten by the next one.
+**Rollback.** If the replacement fails, the workflow `PUT`s `rollback.db` back over `<db>`,
+clears the sidecars and starts the app again. By hand afterwards: `PUT`
+`/home/site/data/<db>.rollback` over `<db>` through the same VFS endpoint, delete the
+sidecars, restart. A `.rollback` file is left behind by every run and is overwritten by the
+next one.
+
+Re-pointing `rtub-dev` at a different file needs **no workflow change**: change the app setting,
+and the next refresh follows it.
 
 **Kudu VFS, not `/api/command`.** `PUT`/`GET`/`DELETE` on `…scm.azurewebsites.net/api/vfs/`
 is the documented single-file API and invokes no shell on the App Service. `If-Match: *` is

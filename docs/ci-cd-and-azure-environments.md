@@ -247,7 +247,7 @@ is shared with production.
 
 | | Production | DEV |
 | --- | --- | --- |
-| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | `Data Source=/home/site/data/rtub-dev.db` |
+| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | `Data Source=/home/site/data/<file>.db` — `rtub-dev-v3.db` as of 2026-09-22. **Read the live setting; never copy this cell into code.** The DEV refresh workflow resolves it at run time. |
 | `DatabaseBackup__Enabled` | `true` | `false` |
 
 `/home` is the Azure Files share mounted into the container. It survives restarts, redeploys and

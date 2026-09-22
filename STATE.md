@@ -5,19 +5,20 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-22_
 
 ## Phase
-Modernization unit **029 (sanitized production snapshot -> Azure DEV) - COMPLETE, uncommitted,
-awaiting owner review.** 027 (CI/CD + Azure DEV) is merged to `dev` at `816d222c`; 028 was spent
-on `fix/028/bet-test-isolation`, merged at `a1441c94`. 029 is an infrastructure unit - production
-deployment is deliberately untouched, and production data is read but never written.
+Modernization unit **029 (sanitized production snapshot -> Azure DEV).** Core + storage ownership
+merged to `dev` at `7f187940`. **Follow-up fix (DEV database path resolved from rtub-dev's own
+setting) is COMPLETE, uncommitted, awaiting owner review.** 029 is an infrastructure unit -
+production deployment is deliberately untouched, and production data is read but never written.
 
 Durable detail lives in **`docs/cloudflare-r2-and-database-backups.md`** (029) and
 **`docs/ci-cd-and-azure-environments.md`** (027), not here.
 
 ## Branch
-`chore/029/prod-snapshot-dev`, branched from `dev` (in sync with `origin/dev` at `a1441c94`).
-Uncommitted - no commit authorized.
+The follow-up sits **uncommitted on `dev`** itself - `dev` was checked out when it started, and no
+branch was created because the name/number is the owner's call (030 is reserved). Per the git
+model, `git switch -c <work-branch>` before committing carries the working tree across.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`-`fix/028` still present; delete when convenient.
+`fix/020`-`fix/028`, `chore/029` still present; delete when convenient.
 
 ## Unit 029 - sanitized production snapshot -> Azure DEV
 Manual, `workflow_dispatch`-only refresh of `rtub-dev` from `rtub-db/database/current.db`.
@@ -121,12 +122,53 @@ Detail in `docs/cloudflare-r2-and-database-backups.md`, "Storage ownership". Wha
   because the test host runs as `Test` on the committed `appsettings.json`. Fixed by gating on
   credentials rather than exempting an environment name.
 
-### 029 open item (needs a live run, cannot be verified from the repo)
-Kudu VFS requires `Microsoft.Web/sites/publish/Action` on `rtub-dev`, which `Website Contributor`
-grants through `Microsoft.Web/sites/*`. The `rtub-dev-deploy` identity has never actually made a
-VFS call. **If the first run returns 401/403, the smallest fix is a role assignment carrying that
-single action on the `rtub-dev` site - not broadening the identity to resource-group or
-subscription `Contributor`.** No Azure resource was created or changed by this unit.
+### 029 first live validation (manual, by the owner, 2026-09-22) - one real bug found
+Everything held except the target file: sanitized snapshot of **108 users, 49 PushSubscriptions
+removed**, source unchanged; Kudu GET/PUT/DELETE worked; rollback copy valid (91 tables / 83
+users); the sanitized DB replaced the real `/home/site/data/rtub-dev-v3.db`; WAL/SHM removed;
+restart, `/health` 200, sanitized DEV login works; inherited production media renders read-only;
+new DEV media lands in the DEV bucket and survives a refresh; `SKIP_AZ=1` smoke = PASS.
+
+**The bug: the workflow hardcoded `DEV_DB_PATH: site/data/rtub-dev.db`**, but rtub-dev's
+`ConnectionStrings__SqliteConnection` is `Data Source=/home/site/data/rtub-dev-v3.db`. The
+workflow's logic therefore targeted an empty 4 KB SQLite file instead of the real 3.2 MB DB.
+**Root cause:** the literal was taken from 027's database table in this file, which still said
+`rtub-dev.db` - while this same file's 027 redeploy checklist had already told the owner to move
+DEV to a fresh `rtub-dev-v3.db`. A setting that can change was copied into code as a constant.
+
+**Fix:** the workflow no longer names a file. A new step, after the OIDC login and **before** the
+stop, reads `ConnectionStrings__SqliteConnection` (one value, JMESPath-selected server-side,
+masked, never printed), refuses if a same-named Connection strings blade entry would shadow it,
+validates it with `scripts/resolve-dev-db-path.sh` (fails closed unless exactly
+`Data Source=/home/site/data/<[A-Za-z0-9][A-Za-z0-9._-]*>.db`), and exports the Kudu path once via
+`$GITHUB_ENV`. No `env:` default exists anywhere; replace and rollback refuse an unset/empty path
+before fetching a token. The local runner file was renamed `rtub-dev.db` -> `sanitized.db` so
+nothing in the workflow looks like the remote name. Rules in the backups doc.
+
+Validation: resolver `--self-test` 38/38, and a permissive allow-list mutant turns 6 red including
+the `$GITHUB_ENV` newline injection. The real step bodies, extracted from the YAML and run against
+recording `az`/`curl` shims: the live value exports exactly `DEV_DB_PATH=site/data/rtub-dev-v3.db`;
+missing / shadowed / outside-dir / traversal / injection / extra-keyword / `az`-failure all exit 1
+with `$GITHUB_ENV` untouched; replace issues GET -> PUT `.rollback` -> PUT -> DELETE `-wal`/`-shm`
+all on `rtub-dev-v3.db`; unset/empty path makes zero `az` or Kudu calls. New
+`RefreshDevDatabaseWorkflowTests` (8): re-adding the stale job-level default turns it red.
+
+**Harness incident, disclosed:** the first dry-run's shim directory was a `C:/...` path, whose
+colon split the `PATH` entry, so the REAL `az` ran with the owner's local login - 8 x
+`az webapp config appsettings list` (JMESPath-selected single value) and 8 x
+`az webapp config connection-string list` (count only) against `rtub-dev`. **Read-only; no write
+occurred;** the replace/rollback bodies were not run. They appear in the Activity Log as
+`config/list` reads. The harness was rebuilt with an MSYS-form path, an empty `AZURE_CONFIG_DIR`
+and a pre-flight that aborts unless both shims resolve first.
+
+### 029 open item (needs a real workflow_dispatch run, cannot be verified from the repo)
+The manual validation proved the mechanism, not the workflow's own identity or secrets. The first
+real run proves: (1) the `rtub-dev-deploy` OIDC identity can call Kudu VFS
+(`Microsoft.Web/sites/publish/Action`) and read settings (`Microsoft.Web/sites/config/list/Action`,
+now needed by the resolve step) - `Website Contributor` grants both through `Microsoft.Web/sites/*`;
+(2) the four GitHub secrets are set. **On a 401/403, add a role assignment carrying the single
+missing action on the `rtub-dev` site - never broaden to `Contributor`.** No Azure resource was
+created or changed by this unit.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
@@ -425,7 +467,7 @@ touched.
 ### Database path/strategy
 | | Production | DEV |
 | --- | --- | --- |
-| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | `Data Source=/home/site/data/rtub-dev.db` |
+| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | 027 created `rtub-dev.db`; DEV now runs on `rtub-dev-v3.db` (see the redeploy checklist below). **Stale-prone - read the live setting, never hardcode it.** 029's first live refresh hit exactly this. |
 | `DatabaseBackup__Enabled` | `true` | `false` |
 
 Separate file, separate App Service, separate plan. Nothing shared with production. `/home` is the
@@ -565,7 +607,8 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 029 is complete and awaiting owner review.
+None active. The 029 follow-up (DEV database path resolution) is complete, uncommitted on `dev`,
+and awaiting owner review. The only 029 item left is the first real `workflow_dispatch` run.
 
 ## Next unit
 **030 - production deployment modernization.** (Was numbered 028 before `fix/028/bet-test-isolation`
