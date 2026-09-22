@@ -100,9 +100,13 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 
 | Path | Responsibility |
 | --- | --- |
-| `.github/workflows/ci.yml` | Build, test, and Azure App Service deploy. |
+| `.github/workflows/ci.yml` | Build, test, production deploy (`master` push) and Azure DEV deploy (`dev` push). |
+| `docs/ci-cd-and-azure-environments.md` | Branch/deploy model, test command, Node version, Azure DEV + production topology, OIDC, setting names. |
 | `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook and central build/package versioning. |
-| `scripts/` | Operational helper scripts. |
+| `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
+| `scripts/` | Operational helper scripts, run by hand. |
+| `scripts/smoke-azure-dev.sh` | Read-only Azure DEV smoke test: `/health`, CSP on HTML, no CSP on the service worker. Writes nothing. |
+| `scripts/package-azure-dev.sh` | Packages a publish tree for Azure Linux and rejects backslash separators — never use `Compress-Archive`. |
 
 ## Architecture decisions
 

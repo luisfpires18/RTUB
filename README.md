@@ -568,10 +568,14 @@ subscription, resets **every** user's password to one configured value, and rewr
 to `{UserName}@rtub.pt`.
 
 **It is destructive and disabled by default.** It runs only when the host environment is
-`Development` **and** `DevelopmentDataReset:Enabled` is `true`. `Production` and `Staging` never
-run it, whatever the configuration says — the environment check comes first — so a `Staging`
-deployment keeps its users across restarts. A normal Development startup with the setting absent
-or `false` does not touch any password, email or push subscription.
+`Development` **or** `Staging` — the Azure DEV App Service — **and** `DevelopmentDataReset:Enabled`
+is `true`. The environment check is an allow-list and comes first, so `Production`, `Test` and any
+other environment never run it whatever the configuration says. A normal startup with the setting
+absent or `false` does not touch any password, email or push subscription.
+
+`Staging` is included deliberately: Azure DEV carries a seeded member dataset that exists to be
+reset to one shared development password on demand. Never enable it against a database whose
+credentials matter.
 
 Switch it on for a single intentional reset with User Secrets:
 

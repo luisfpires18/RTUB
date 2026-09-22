@@ -12,6 +12,16 @@ public partial class AddMentorField : Migration
     {
         // SQLite requires manual table rebuild for adding self-referential foreign key
         // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+        //
+        // YearLeitao / YearCaloiro / YearTuno are carried through deliberately. This rebuild
+        // originally omitted them, which silently dropped three columns the initial Db migration
+        // had created. Nothing noticed until the first EF-generated rebuild of AspNetUsers
+        // (RemoveIsActiveFromApplicationUser), which builds its ef_temp_AspNetUsers from this
+        // migration's model snapshot - where the columns still exist - and fails with
+        // "no such column: YearCaloiro" on any database migrated from zero.
+        //
+        // When you hand-write a SQLite table rebuild, the column list must match the model
+        // snapshot exactly. Diff it before committing.
 
         // Step 1: Create new table with MentorId column and foreign key
         migrationBuilder.Sql(@"
@@ -45,6 +55,9 @@ public partial class AddMentorField : Migration
                     ""SecurityStamp"" TEXT NULL,
                     ""TwoFactorEnabled"" INTEGER NOT NULL,
                     ""UserName"" TEXT NULL,
+                    ""YearCaloiro"" INTEGER NULL,
+                    ""YearLeitao"" INTEGER NULL,
+                    ""YearTuno"" INTEGER NULL,
                     ""MentorId"" TEXT NULL,
                     CONSTRAINT ""FK_AspNetUsers_AspNetUsers_MentorId"" FOREIGN KEY (""MentorId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE SET NULL
                 );
@@ -59,7 +72,8 @@ public partial class AddMentorField : Migration
                      ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
                      ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
                      ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
-                     ""TwoFactorEnabled"", ""UserName"", ""MentorId"")
+                     ""TwoFactorEnabled"", ""UserName"", ""YearCaloiro"", ""YearLeitao"", ""YearTuno"",
+                     ""MentorId"")
                 SELECT
                     ""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
                     ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
@@ -67,7 +81,8 @@ public partial class AddMentorField : Migration
                     ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
                     ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
                     ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
-                    ""TwoFactorEnabled"", ""UserName"", NULL
+                    ""TwoFactorEnabled"", ""UserName"", ""YearCaloiro"", ""YearLeitao"", ""YearTuno"",
+                    NULL
                 FROM ""AspNetUsers"";
             ");
 
@@ -120,7 +135,10 @@ public partial class AddMentorField : Migration
                     ""ProfilePictureData"" BLOB NULL,
                     ""SecurityStamp"" TEXT NULL,
                     ""TwoFactorEnabled"" INTEGER NOT NULL,
-                    ""UserName"" TEXT NULL
+                    ""UserName"" TEXT NULL,
+                    ""YearCaloiro"" INTEGER NULL,
+                    ""YearLeitao"" INTEGER NULL,
+                    ""YearTuno"" INTEGER NULL
                 );
             ");
 
@@ -133,7 +151,7 @@ public partial class AddMentorField : Migration
                      ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
                      ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
                      ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
-                     ""TwoFactorEnabled"", ""UserName"")
+                     ""TwoFactorEnabled"", ""UserName"", ""YearCaloiro"", ""YearLeitao"", ""YearTuno"")
                 SELECT
                     ""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
                     ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
@@ -141,7 +159,7 @@ public partial class AddMentorField : Migration
                     ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
                     ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
                     ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
-                    ""TwoFactorEnabled"", ""UserName""
+                    ""TwoFactorEnabled"", ""UserName"", ""YearCaloiro"", ""YearLeitao"", ""YearTuno""
                 FROM ""AspNetUsers"";
             ");
 

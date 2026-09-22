@@ -46,13 +46,20 @@ public static partial class SeedData
             }
         }
 
-        // Manual developer switch — intentionally hardcoded, not configuration.
+        // Which seed runs against a fresh database. Opt-in, so an unset flag keeps the behaviour
+        // this had when it was a hardcoded `true` — production included.
         //   true  = bootstrap the Owner account only (the normal path, incl. production).
-        //   false = also seed the full development member dataset defined in SeedData.Member.cs.
-        // Flip to false by hand against a fresh database to build a full dev environment. That
-        // path additionally requires SeedData:MemberPassword to be configured; there is no
-        // default member password.
-        var isEmptyDb = true;
+        //   false = also seed the full development member dataset in SeedData.Member.cs. Azure
+        //           DEV opts in; hardcoding it would arm the bulk seed on any fresh database.
+        //
+        // Three conditions must all hold before a member is created this way: no users exist
+        // (checked above), the flag is true, and SeedData:MemberPassword is set — SeedMembersAsync
+        // throws otherwise, and there is no default member password.
+        //
+        // Accepts "true"/"false" only, case-insensitive; absent is false. Anything else ("1",
+        // "yes", "") throws out of GetValue<bool> and the app refuses to start, which is the
+        // right failure — a typo stops the host rather than silently picking a seed.
+        var isEmptyDb = !configuration.GetValue<bool>("SeedData:SeedFullDataset");
 
         Console.WriteLine(isEmptyDb ? $"Seeding just a owner..." : $"Seeding initial data...");
 
@@ -85,10 +92,11 @@ public static partial class SeedData
     /// user's password to the configured development reset password, and normalises emails to
     /// {UserName}@rtub.pt.
     ///
-    /// It runs only when the host environment is Development <b>and</b>
-    /// <c>DevelopmentDataReset:Enabled</c> is true. Production, Staging and Test never run it,
-    /// whatever the configuration says, and it is disabled by default in Development too, so a
-    /// normal startup leaves seeded credentials intact.
+    /// It runs only when the host environment is Development <b>or Staging</b> (the Azure DEV
+    /// App Service) <b>and</b> <c>DevelopmentDataReset:Enabled</c> is true. Production, Test and
+    /// any other environment never run it, whatever the configuration says, and it is disabled by
+    /// default in the allowed environments too, so a normal startup leaves seeded credentials
+    /// intact.
     ///
     /// Internal rather than private so a test can drive it explicitly; the environment guard
     /// keeps it inert on the normal test-host startup path.
@@ -100,10 +108,17 @@ public static partial class SeedData
         IHostEnvironment environment,
         Microsoft.Extensions.Logging.ILogger logger)
     {
-        // SAFETY: local Development only. Staging (the planned Azure DEV App Service), Test and
-        // Production must preserve their users across restarts, so no configuration can switch
-        // this on for them.
-        if (!environment.IsDevelopment())
+        // SAFETY: an ALLOW-LIST, deliberately, not a "not Production" check. Only Development and
+        // Staging can ever reach the rest of this method; Production, Test and any environment
+        // name nobody has thought of yet return here, and no configuration can switch them on.
+        //
+        // Staging is the Azure DEV App Service, whose users exist to be reset to one shared
+        // development password on demand. It was excluded until unit 027, which is why Azure DEV
+        // could never run this.
+        //
+        // This check comes FIRST on purpose: a disallowed environment must not so much as read
+        // DevelopmentDataReset:Password, let alone touch a credential or a push subscription.
+        if (!environment.IsDevelopment() && !environment.IsStaging())
         {
             return;
         }

@@ -5,341 +5,394 @@ Living execution state. **Read this first.** Overwrite stale entries — this is
 _Last updated: 2026-09-21_
 
 ## Phase
-Modernization unit **026 (PWA / service-worker reliability) - COMPLETE, uncommitted, awaiting
-owner review.** Unit 025 is merged to `dev` at `b8798b79`; the CSP / security-header track is
-closed. 026 is a reliability unit, not a redesign - the PWA architecture is unchanged.
+Modernization unit **027 (CI/CD + Azure DEV environment) - COMPLETE, uncommitted, awaiting owner
+review.** Unit 026 is merged to `dev` at `24d2e86e`; the PWA reliability track is closed. 027 is
+an infrastructure/deployment unit - production deployment is deliberately untouched.
+
+Durable detail lives in **`docs/ci-cd-and-azure-environments.md`**, not here.
 
 ## Branch
-`fix/026/pwa-service-worker-reliability`, branched from `dev` (clean, in sync with `origin/dev`
-at `b8798b79`). Uncommitted - no commit authorized.
+`chore/027/azure-dev-cicd`, branched from `dev` (clean, in sync with `origin/dev` at `24d2e86e`).
+Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`-`fix/025` still present; delete when convenient.
+`fix/020`-`fix/026` still present; delete when convenient.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
-not read for change and not touched by 021 or 025. It remains available as a future unit.
+not read for change and not touched by 021, 025 or 027. It remains available as a future unit.
+
+## Owner decisions (unit 027)
+1. **Create the Azure DEV resources now** - done, see below.
+2. **Azure DEV gets its own Free F1 plan**, not a share of production's Basic B1. Production CPU
+   and RAM are therefore never contended by DEV.
+3. **Azure DEV seeds the full member dataset**, not owner-only bootstrap.
+4. **Create the GitHub `development` environment and its non-secret OIDC variables** - done.
+
+On (3): the owner chose the full dataset, which previously meant editing `var isEmptyDb = true;`
+to `false` in `SeedData.cs`. That literal edit was **not** made. Hardcoding `false` would arm the
+bulk member seed on *any* fresh database, production restores included. The switch is now
+`SeedData:SeedFullDataset` configuration instead, defaulting to the old `true` value of
+`isEmptyDb` when unset - production behaviour is byte-identical, and only `rtub-dev` opts in.
 
 ## Last completed step
-**Unit 026 - the PWA's four reliability defects are fixed: the iPhone bottom-nav drift, the
-duplicate service-worker registration, private HTML in the cache, and an update prompt the user
-could never actually reach. Plus E, the offline-page correctness defect 026's own offline
-validation turned up: `offline.js` bounced off the offline page whenever the device had a
-network, whether or not RTUB was reachable.**
+**Unit 027 - `dev` now has CI and an automatic deployment to a real, separate Azure DEV App
+Service. Production's path is unchanged.**
 
-### A. MobileBottomNav drift - ROOT CAUSE FOUND AND FIXED
-`2-layout/navbar.css` reintroduced the exact rule `1-base/mobile.css` exists to prevent:
+### The premise that turned out to be stale
+The brief said `dotnet test` reports **zero tests** in this repo. **It does not.** Verified by
+running the existing CI command verbatim on this machine:
 
-    /* 1-base/mobile.css, @media (max-width: 768px) */
-    html, body { overflow-x: clip; }          <- deliberate, with a comment saying why
+    dotnet test --no-build --configuration Release --results-directory ./coverage \
+      --report-xunit-trx --coverage --coverage-output-format cobertura
 
-    /* 2-layout/navbar.css, @media (display-mode: standalone) and (max-width: 991.98px) */
-    html, body { overflow-x: hidden; }        <- silently won
+    total: 4713   failed: 0   succeeded: 4653   skipped: 60
 
-Same selector, same specificity (0,0,2); media queries contribute none. `site.css` imports
-`1-base/mobile.css` at line 18 and `2-layout/navbar.css` at line 24, so **source order decided it
-and navbar.css won**. `overflow-x: hidden` on html/body makes iOS Safari treat the viewport root
-as the scroll container, and a `position: fixed; bottom: 0` descendant then drifts off the bottom
-edge - which is the reported bug.
+All five suites discovered and executed. Unit 011 already fixed this by putting
+`{"test": {"runner": "Microsoft.Testing.Platform"}}` in `global.json`, which makes `dotnet test`
+drive MTP instead of the VSTest host. **No change to the test command was needed or made.** No
+`dotnet run --project`, no hand-invoked test executables, no MTP-specific workaround.
 
-**Why it was never caught before:** the override is gated on `(display-mode: standalone)`. It does
-not apply in a browser tab at any width. It applies **only in the installed PWA** - exactly where
-the owner saw it, on Albums (`/music`).
+### Old CI behaviour
+One workflow, `.github/workflows/ci.yml`, one job (`build-and-test`):
+- triggers: PR to `main`/`master`, push to `main`/`master` - **`dev` ran no CI at all**
+- .NET `10.0.x`, restore, Release build, the MTP test command above, coverage + TRX artifacts
+- Node **20**, set up only on a master push
+- on master push only: `dotnet publish` then `azure/webapps-deploy@v3` to app `rtub`,
+  authenticated with the `AZURE_WEBAPP_PUBLISH_PROFILE` repository secret (Basic Auth)
 
-**Fix:** one declaration, `hidden` -> `clip`, in that navbar.css block, plus a comment naming the
-cascade trap. The `.navbar` / `.offcanvas` `overflow-x: hidden` rules in the same file are left
-alone - they are not ancestors of MobileBottomNav and do not affect the viewport root. **No
-JavaScript repositioning was added, and no `transform: translateZ(0)`** - a transform would itself
-create a containing block for fixed descendants, which is the failure mode, not the fix.
+### New CI triggers
+- `build-and-test`: PR to `dev`/`master`/`main`, push to `dev`/`master`/`main`. Its production
+  publish/deploy steps are left **byte-identical**, still guarded by `refs/heads/master`.
+- `deploy-dev` (new job): push to `dev` only, `needs: build-and-test`, `environment: development`,
+  `permissions: {id-token: write, contents: read}`, `concurrency: deploy-dev` with
+  `cancel-in-progress`. Never runs on a pull request. Never touches the production app.
 
-**Also audited and cleared** (none can misplace the nav): `body.modal-open` and
-`body:has(.rtub-messages)` set `position: fixed`, which is *not* a containing-block trigger for
-fixed descendants; `.no-scroll` likewise; `modalHelper.js` only toggles `modal-open`; no
-`transform` / `filter` / `contain` / `will-change` / `perspective` on any layout ancestor;
-`.pwa-mode .navbar { overflow-x: hidden }` is scoped to the navbar, not the root; the nav's own
-`env(safe-area-inset-bottom)` padding is intact. Only **two** `html, body` overflow-x rules exist
-in the whole stylesheet set, and both are now `clip`.
+`deploy-dev` re-publishes rather than consuming an artifact from `build-and-test`, on purpose: it
+keeps the production steps' `if:` expressions untouched, so this unit cannot regress production.
+Cost is ~2 minutes per dev push.
 
-### B. One service-worker registration owner
-Before: **two** `navigator.serviceWorker.register` calls - `sw-register.js` (scope `/`,
-`updateViaCache: 'none'`) and `push-notifications.js` (no options at all). `sw-register.js` also
-*called its own registration function twice* (immediately, then again on `load`), attaching a
-second `updatefound` listener, a second `visibilitychange` listener and a second update-check
-timer chain - the mechanism behind a duplicate update toast.
+### Test command used in GitHub Actions
+Unchanged from the line quoted above. `deploy-dev` runs no tests of its own - `needs:
+build-and-test` is what gates it, and that job runs all five suites.
 
-After: **exactly one** registration call in application source. `PushNotificationsManager` adopts
-it through `navigator.serviceWorker.ready`, bounded by a 10s timeout so `initialize()` cannot hang
-if nothing ever registers. Its public behaviour is unchanged: still sets `this.registration` /
-`this.subscription`, still returns the registration, still throws on failure, and `ready` still
-guarantees an **active** worker, which is the iOS Safari precondition for
-`pushManager.subscribe()`. Push architecture untouched. `registerServiceWorker()` in
-`sw-register.js` is now single-shot.
+### Node decision
+**Node 22**, in the new `deploy-dev` job. Node is **required**, not decorative: `RTUB.csproj`'s
+`BuildPixiTS` target runs `npm ci --ignore-scripts` + `npm run build:pixi` on `BeforePublish`, so
+`dotnet publish` fails outright without it. Node 20 reached end of life in April 2026. 22 is the
+repo's local toolchain version and satisfies `vite ^6`, `cross-env ^10` and `typescript ^5.7` as
+pinned - **no frontend dependency was upgraded**. Node 24 is the step after 22 leaves maintenance
+(April 2027). Production's `setup-node@v4` / Node 20 pin was left alone with the rest of the
+production path.
 
-### C. Cache safety - the private-HTML leak, fixed
-The old fetch handler's document branch matched `!url.pathname.includes('.')`, so **every
-extension-less path fell into it** and every 200 response was written to `DYNAMIC_CACHE`.
-
-Measured live, anonymous, after browsing four pages and fetching the excluded paths:
-
-| Cache | v2.6.0 (before) | v2.7.0 (after) |
-| --- | --- | --- |
-| `rtub-static` | 10 entries, **2 HTML**: `/` and `/offline.html` | 9 entries, **1 HTML**: `/offline.html` |
-| `rtub-dynamic` | 127 entries, **4 application HTML** (`/music`, `/roles`, `/calotes`, `/`) and **`/health`** | 122 entries, **0 HTML, 0 excluded paths** |
-| `rtub-images` | 5 entries | 5 entries |
-
-For a signed-in user those four documents are rendered *authenticated* HTML sitting on disk,
-servable offline or after logout. `/api/push/status`, `/auth/login` and `/_blazor/negotiate`
-escaped caching in that run only because they answered 401/405/405 - status, not policy.
-
-Now:
-- `NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/_blazor', '/hubs/', '/health']`, checked by
-  `isNeverCached()` **before any cache branch**, together with a non-GET guard. Each prefix maps to
-  a real route (`MapPost /auth/login`, `MapPost /auth/logout`, `MapHub /hubs/messages`,
-  `MapHealthChecks /health`, the `/api` controllers).
-- Documents / navigations are **network-only**: the response is returned straight through and
-  never written to a cache. On network failure the fallback is `offline.html`, with a plain 503 as
-  a last resort. The old `caches.match('/offline.html') || caches.match('/')` was dead code anyway
-  - `caches.match` returns a Promise, which is always truthy.
-- `'/'` removed from `STATIC_ASSETS`: it is user-specific HTML.
-- Both guards are scoped to same-origin, so R2 and CDN caching is **unchanged** (cdnjs / unpkg /
-  jsdelivr still cached, as before). No caching optimisation was attempted.
-
-### D. Update lifecycle
-`install` called `self.skipWaiting()` **unconditionally**. Every new worker therefore activated at
-once, `clients.claim()` took control, `controllerchange` fired and `sw-register.js` reloaded the
-page. The "Nova versão disponível / Atualizar" prompt was effectively unreachable, and
-`SKIP_WAITING` was not in fact user-gated.
-
-Fixed: `install` no longer forces activation. The worker waits; the **only** activation trigger is
-the `SKIP_WAITING` message posted by the "Atualizar" click. The user-controlled prompt is
-preserved, not replaced. No new worker is forced to activate immediately.
-
-`controllerchange` also fired on a **first-ever** install, where `clients.claim()` takes control of
-a page that was never controlled - a pointless extra reload. It is now guarded by
-`hadControllerAtStartup`, alongside the existing `refreshing` guard. One reload path, two guards,
-no loop. Periodic update checks (30s after load, hourly while visible, on `visibilitychange`,
-5-minute debounce) are sensible and were left alone.
-
-### E. Offline page bounced off itself - FIXED with an origin-reachability probe
-`offline.js` treated `navigator.onLine === true` as proof that RTUB was reachable. It is not: the
-flag reports only whether the device has *a* network interface up, never whether *this origin*
-answers.
-
-The failure, reproduced end to end:
-
-| Step | What happened |
+### Azure DEV architecture - CREATED AND LIVE
+| Thing | Value |
 | --- | --- |
-| 1 | Origin stopped; device still on a network |
-| 2 | Service worker correctly served `offline.html` from cache |
-| 3 | `navigator.onLine` stayed **true** |
-| 4 | `offline.js` waited ~1s and navigated to `/` |
-| 5 | `/` failed, the worker re-served `offline.html`, and it bounced again |
+| Subscription | `Azure for Students`, tenant `ipbpt.onmicrosoft.com` |
+| Resource group | `rtub_group` (same as production) |
+| App Service | **`rtub-dev`** -> `https://rtub-dev.azurewebsites.net` |
+| Plan | **`ASP-rtub-dev`** - Free **F1**, Linux, Italy North (new; production keeps `ASP-rtubgroup-848b`, Basic B1) |
+| Runtime | `DOTNETCORE 10.0` |
+| Environment | `ASPNETCORE_ENVIRONMENT=Staging` |
+| HTTPS only | on |
+| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` |
+| Health check path | **unset** - see *Deployment smoke: NOT COMPLETED* below |
 
-**The fix probes the origin instead of the device.** `/health` is the probe, which is appropriate
-precisely because 026 had already made it network-only:
+`Staging` is **not** `Development`: `Program.cs` branches on `IsDevelopment()`, so DEV gets HSTS,
+the exception-handler page, response compression and 30-day static caching exactly like
+production. `Staging` is **not** `Test` either, so migrations and seeding do run on startup.
+There is no `appsettings.Staging.json` - `appsettings.json` defaults apply, which is why
+`DatabaseBackup:Enabled` is `false` and DEV never reaches the production backup bucket.
 
-1. `navigator.onLine === false` -> show the offline state immediately. No probe, no redirect -
-   the request could not succeed anyway.
-2. `navigator.onLine === true` -> `fetch('/health', { cache: 'no-store' })`. Only
-   `response.ok` counts as reachable. `no-store` keeps the browser's HTTP cache out of it;
-   `NEVER_CACHE_PREFIXES` already keeps the service worker's caches out of it. **No service-worker
-   caching change was made, and `/health` stays network-only.**
-3. Rejection, abort, 4xx or 5xx -> stay on `offline.html` and show the offline state. **No
-   redirect.**
-4. Reachable -> the accepted behaviour is unchanged: "Ligação restaurada! A recarregar...", then
-   `/` after the same ~1s delay.
+Free F1 limits, per plan per day: 60 CPU-minutes, ~165 MB egress, 1 GB memory, and - the one that
+matters here - **15 worker stop requests**. No Always On either, so ~20 min idle means a cold
+start including the migration check.
 
-**Robustness, kept small.** Three callers can fire a probe - the initial check, the `online`
-event, and the existing 3s interval - so a single `probeInFlight` flag suppresses overlap, and a
-5s `AbortController` timeout stops a black-holed connection leaving the page waiting for ever.
-No dependency was added.
+### Deployment smoke: NOT COMPLETED - `rtub-dev` disabled itself, and it was my configuration
+The app is **not** verified running. `rtub-dev` is `state: QuotaExceeded` / `usageState: Exceeded`
+and serves `403 Site Disabled` until the Free-tier counters reset at **00:00 UTC**.
 
-**No redirect loop is possible from this code.** A `redirecting` flag makes the navigation
-single-shot and clears the interval at the same moment, and the navigation is now reachable *only*
-through a proven-reachable origin - which is the precise condition the old code got wrong. A
-cross-page-load bounce counter was considered and deliberately not built: it would guard a state
-that cannot persist (a `/health` that answers while `/` fails at the network layer), and that
-extra state is likelier to misfire than the scenario is to occur.
+The counter that blew is **`WPStopRequests: 36 / 15`** - worker *stop* requests. `CpuTime` was
+`0 / 3,600,000 ms` and `BytesSent` `0 / 173,015,040` - neither was touched. Total traffic sent to
+the site during the whole unit was **two `curl` requests to `/health`**. No load test, nothing
+resembling usage.
 
-**Preserved unchanged:** the `online` and `offline` listeners, the "Tentar Novamente" button
-(still `location.reload()`), the 3s periodic retry, the ~1s redirect delay, and all three
-Portuguese strings. `offline.html` itself was not touched. The other 026 work - the
-MobileBottomNav fix, the single-registration work, the cache policy and the update lifecycle - is
-byte-identical.
+What actually happened, from the activity log:
 
-### Cache version: bumped once, v2.6.0 -> v2.7.0, with a reason
-Not mechanical. Installed clients are holding cached application HTML and a cached `/health`
-written by v2.6.0. The `activate` handler deletes every `rtub-` cache outside the current set, so
-**the bump is the mechanism that purges those entries**. Without it the fix would stop new leaks
-but leave the existing ones on disk.
-
-### CSP constraint: honoured, unchanged
-No CSP change was needed or made. `/service-worker.js` still carries **no**
-`Content-Security-Policy` header, pinned by `NonDocumentResponse_CarriesNoContentSecurityPolicy`.
-
-## Relevant files (unit 026)
-| File | Change |
+| Time (UTC) | Event |
 | --- | --- |
-| `src/RTUB.Web/wwwroot/css/2-layout/navbar.css` | `overflow-x: hidden` -> `clip` on `html, body` in the standalone block (+ comment). The whole bottom-nav fix. |
-| `src/RTUB.Web/wwwroot/service-worker.js` | `NEVER_CACHE_PREFIXES` + `isNeverCached()`; non-GET and never-cache guards before any cache branch; document branch is network-only with an `offline.html` fallback; `'/'` dropped from `STATIC_ASSETS`; no `skipWaiting()` on install; `CACHE_VERSION` v2.7.0. |
-| `src/RTUB.Web/wwwroot/js/sw-register.js` | single-shot `registerServiceWorker()`; `controllerchange` reload guarded by `hadControllerAtStartup`. |
-| `src/RTUB.Web/wwwroot/js/push-notifications.js` | stops registering; adopts the existing registration via `navigator.serviceWorker.ready` with a 10s bound. |
-| `src/RTUB.Web/wwwroot/js/offline.js` | `navigator.onLine` -> a `/health` reachability probe (`cache: 'no-store'`, `AbortController` timeout, single-flight, single-shot redirect). Section E. |
-| `tests/RTUB.Web.Tests/Pwa/ServiceWorkerReliabilityTests.cs` | **new**, 22 tests. |
-| `tests/RTUB.Web.Tests/Pwa/OfflineReachabilityTests.cs` | **new**, 8 tests. |
-| `tests/RTUB.Web.Tests/Security/InlineScriptPolicyTests.cs` | doc comment only - it said push-notifications.js registering was out of scope; it no longer registers. |
+| 19:50:34 | `rtub-dev` created - empty, no code |
+| 19:51:06 | app settings written -> restart |
+| 19:51:36 | `httpsOnly` -> restart |
+| **19:51:45** | **`healthCheckPath=/health` armed on an app with nothing deployed** |
+| 19:58-19:59 | deploy #1 -> Kudu parallel rsync exit 123, failed |
+| 19:59 -> 21:29 | ~90 min idle while STATE.md was being written |
+| 21:29 | already `403 Site Disabled` |
 
-Not touched: `offline.html`, `offline.css`, the manifest, the push handlers, the CSP builder,
-`Program.cs`, and - for the section E follow-up - `service-worker.js`, `sw-register.js`,
-`push-notifications.js` and `navbar.css`. No migrations.
+Every App Service configuration write restarts the app, so ~6 of the 36 stops were the setup
+writes themselves. The other ~30 were a restart loop: **the health check was armed seven minutes
+before any code existed**, the first deploy then failed, and Azure probed `/health` every minute
+for ninety minutes, restarting the instance each time it failed. On Free tier's allowance of 15
+that is fatal within the hour.
 
-## Tests (unit 026) - 2 new files, +30
-`tests/RTUB.Web.Tests/Pwa/ServiceWorkerReliabilityTests.cs`. Source-level scans, because the
-behaviour lives in a service worker with no origin, no DOM and no test host. Compact, not
-parameterised into hundreds of cases.
+**This is a configuration-ordering mistake, not evidence about the app or about F1.** An earlier
+reading of this that blamed "the F1 memory ceiling" was wrong - it inferred memory from
+`CpuTime 0` / `BytesSent 0` without checking what `WPStopRequests` counts. **F1 has not been
+fairly tested**: the app has never had one clean boot attempt on it.
 
-| # | Test | Pins |
+Remediation already applied: **`healthCheckPath` removed** from `rtub-dev`. Do not set it again
+on Free tier, and never before a deploy has succeeded.
+
+### Startup failure on B1 - native asset missing from the DEPLOYED tree
+DEV was moved to B1 by the owner and produced a real container log:
+
+    QuestPDF.Settings initialisation fails at Program.cs:48
+    DllNotFoundException: Unable to load shared library 'QuestPdfSkia'
+    probed: /home/site/wwwroot/runtimes/linux-x64/native/libQuestPdfSkia.so
+    container exits 134
+
+**The publish command was not at fault.** Proven locally, both publishes run on this machine:
+
+| | `-c Release` (what CI ran) | `-r linux-x64 --self-contained false` |
 | --- | --- | --- |
-| 1 | `ApplicationSource_ContainsExactlyOneServiceWorkerRegistration` | exactly one register call, and it is `sw-register.js` |
-| 2 | `PushNotificationsManager_AdoptsTheExistingRegistrationInsteadOfRegistering` | uses `serviceWorker.ready`, never registers |
-| 3 | `MainLayout_LoadsTheRegistrationOwner` | `ready` can actually resolve |
-| 4-8 | `ServiceWorker_DeclaresPathAsNeverCached` (Theory x5) | `/api/`, `/auth/`, `/_blazor`, `/hubs/`, `/health` |
-| 9 | `ServiceWorker_AppliesTheNeverCacheGuardBeforeAnyCacheBranch` | the guard runs *before* any `caches.` use |
-| 10 | `ServiceWorker_PassesNonGetRequestsStraightToTheNetwork` | non-GET bypasses cache |
-| 11 | `ServiceWorker_DoesNotPersistApplicationHtml` | no `cache.put` / `caches.open` in the document branch |
-| 12 | `ServiceWorker_DoesNotPrecacheTheApplicationRoot` | `'/'` not in `STATIC_ASSETS` |
-| 13 | `ServiceWorker_FallsBackToOfflinePageForFailedNavigations` | `offline.html` is the document fallback |
-| 14-16 | `ServiceWorker_PrecachesOfflineAsset` (Theory x3) | `offline.html`, `offline.js`, `offline.css` reachable from cache |
-| 17 | `ServiceWorker_SkipsWaitingOnlyOnUserRequest` | no `skipWaiting` in `install`; only the message handler activates |
-| 18 | `SwRegister_PostsSkipWaitingOnlyFromTheUpdateButton` | one `SKIP_WAITING`, from the "Atualizar" click |
-| 19 | `SwRegister_HasOneGuardedReloadPath` | one `location.reload`, both guards present |
-| 20 | `SwRegister_WiresTheUpdateLifecycleOnlyOnce` | single-shot registration |
-| 21 | `MobileBottomNav_KeepsFixedBottomAndSafeAreaContract` | `position: fixed`, `bottom/left/right: 0`, `env(safe-area-inset-bottom)` |
-| 22 | `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` | **the 026 regression guard** - no stylesheet may set `overflow-x: hidden` on `html`/`body` again, in any media query |
+| total | 330.5 MB / 1291 files | **266.6 MB** / 1263 files |
+| `runtimes/` | 22 RIDs, 71.8 MB | **absent** |
+| `libQuestPdfSkia.so` | `runtimes/linux-x64/native/` **present, 6.5 MB** | publish **root** |
+| `libe_sqlite3.so` | `runtimes/linux-x64/native/` | publish **root** |
+| deps.json | `runtimeTargets` keyed by RID | `native`, target `…/linux-x64` |
 
-Test 22 was **negative-controlled**: reverting the one navbar.css declaration to `hidden` makes it
-fail naming that exact file; restoring `clip` makes it pass. It catches the real regression, not a
-proxy for it.
+Same ELF x86-64 binary in both, identical BuildID `c8d2c90f…`. The portable publish **does**
+contain the linux-x64 library. The zip that was deployed contained it too - checked by reading the
+zip's central directory: entry `runtimes/linux-x64/native/libQuestPdfSkia.so`, 6 839 384 bytes,
+conformant forward-slash path.
 
-The `/service-worker.js` CSP-header contract is not duplicated here - it stays pinned over the
-wire by `RTUB.Integration.Tests.SecurityHeaderTests.NonDocumentResponse_CarriesNoContentSecurityPolicy`.
+So the artifact was correct and the file went missing **in transport**. Corroborating:
+- the exception **probed the right path**, so deps.json RID resolution worked - the host built
+  `runtimes/linux-x64/native/` into its search list and found nothing there;
+- deploy #1's Kudu parallel rsync exited **123 - partial transfer**;
+- deploy #2's status was never confirmed (the CLI lost the poll to an SSL error) and the site was
+  already 403 before it began;
+- `FileSystemStorage` read **298 MB** against a 330.5 MB publish - about 32 MB short, and
+  `runtimes/` is 71.8 MB of deep, many-file subtree, exactly what an 8-thread rsync truncates.
 
-`tests/RTUB.Web.Tests/Pwa/OfflineReachabilityTests.cs` - **8 tests** for section E, same
-source-scan approach and for the same reason: the behaviour runs on a page served from a cache
-with no origin, which no test host reproduces.
+`/home/site/wwwroot` therefore holds a **truncated tree from the failed rsync**, and QuestPDF -
+initialised at `Program.cs:48`, before any service registration - is simply the first thing to
+touch a file that is not there. `libe_sqlite3.so` would have failed one step later.
 
-| # | Test | Pins |
+**QuestPDF was not upgraded.** 2024.10.3 is fine and ships no `qpdf`/`libqpdf` - `QuestPdfSkia`
+is its only native library. The licence initialisation was not removed or weakened.
+
+Also relevant: **`WEBSITE_RUN_FROM_PACKAGE=1` is set**, which mounts the zip instead of rsyncing
+it and avoids the failing transport entirely. Nothing writes into `wwwroot` at runtime - every
+`WebRootPath` use is a read - and SQLite is under `/home/site/data`, so read-only `wwwroot` costs
+nothing.
+
+Production's B1 plan is at roughly **78% average / 81% peak memory**, so moving `rtub-dev` onto it
+to share is not a safe fallback. If F1 turns out genuinely not to fit after a fair retry, a
+separate Basic B1 plan (~EUR 13/month) is the option with evidence behind it - production runs
+RTUB on B1 today.
+
+### Migration chain could not run from zero - FIXED
+Once deployment worked, DEV still aborted at `Program.cs:234` with
+
+    SQLite Error 1: 'no such column: "YearCaloiro"'
+
+while EF rebuilt `AspNetUsers` through `ef_temp_AspNetUsers`. A completely fresh SQLite path
+(`rtub-dev-v2.db`) failed identically, so it was never corrupt Azure state. **Reproduced locally
+on an empty disposable database and fixed at the source.**
+
+**Root cause: `20251026224954_AddMentorField`.** SQLite cannot add a self-referential foreign key
+in place, so that migration hand-writes the table rebuild in raw SQL. Its
+`CREATE TABLE "AspNetUsers_new"` column list omitted three columns the initial `Db` migration had
+created — proven by diffing the two lists:
+
+    initial Db AspNetUsers columns : 32
+    AddMentorField rebuild columns : 30
+    LOST: YearLeitao, YearCaloiro, YearTuno      NEW: MentorId
+
+`DROP TABLE "AspNetUsers"` + rename then made the loss permanent and silent. Every `.Designer.cs`
+snapshot from `Db` onward still declares the three, because snapshots come from the model, and
+the model never stopped having them (`ApplicationUser.TempoDeTuno` reads `YearTuno`/`MonthTuno`
+today).
+
+Nothing detects the divergence until a migration asks **EF** to rebuild `AspNetUsers`, because
+EF builds its `ef_temp_` table from that migration's snapshot and copies with
+`INSERT … SELECT … FROM AspNetUsers`. **First failure is migration 16,
+`20251105141307_RemoveIsActiveFromApplicationUser`** — a single `DropColumn("IsActive")`.
+Confirmed against the half-migrated database: 15 migrations applied, last
+`20251104005142_AddLastLoginDateToUser`, and `AspNetUsers` carrying `IsActive` but **no
+`YearCaloiro`/`YearLeitao`/`YearTuno`**.
+
+**Fix: carry the three columns through that rebuild** — added to the `CREATE TABLE` and to both
+the `INSERT` column list and the `SELECT` list, in `Up` and in `Down`. 14 lines, one file. No
+migration was regenerated, squashed or deleted, nothing was added to `Program.cs`, no
+`EnsureCreated`, no suppressed errors, and `SeedData` was not touched.
+
+**Why editing a historical migration is safe here.** `AddMentorField` is dated 2025-10-26 and is
+long present in production's `__EFMigrationsHistory`, so EF will never execute it there again —
+the edit is inert for every database that has already applied it. It changes behaviour only for
+databases that have **not** yet applied it, which is exactly the broken case. Production also
+demonstrably *has* the three columns: it is past migration 16, and migration 16 cannot succeed
+against a table that lacks them. The fix makes a fresh install match what production already is.
+
+Pre-existing and deliberately **not** touched: the same rebuild widens `FirstName`, `LastName`,
+`Positions` and `Categories` from `NOT NULL` to `NULL`. Harmless to the migration chain — a
+rebuild copies by column name, not nullability — and out of scope for this unit.
+
+### Azure DEV boots, smoke is not green - three defects, all diagnosed
+DEV now starts: all migrations applied, 83 users seeded, Kestrel on :8080, startup probe green,
+site stays up. `/health` = 200. What is still wrong:
+
+**1. Static files 404 - `Compress-Archive` writes BACKSLASH separators. (b)/(c), packaging.**
+Symptom: `The WebRootPath was not found: /home/site/wwwroot/wwwroot`, and
+`/manifest.webmanifest` + `/service-worker.js` both 404. Then, once run-from-package was taken
+out of the picture, the deploy itself returned **HTTP 400**.
+
+The rsync log named it exactly:
+
+    rsync: [generator] recv_generator: failed to stat
+    "/home/site/wwwroot/LatoFont\Lato-Black.ttf": Invalid argument (22)
+    "/home/site/wwwroot/wwwroot\.well-known\assetlinks.json.br": Invalid argument (22)
+
+Backslash is not legal on the SMB-backed `/home` share, so every entry with one is rejected.
+Raw central-directory parse of the deployed `rtub-dev.zip`: **1231 backslash entries, 0 forward
+slash**, `'wwwroot\manifest.webmanifest'`. Reproduced minimally - `Compress-Archive` on a
+three-file tree emits `wwwroot\manifest.webmanifest`; Windows `bsdtar` on the same tree emits
+`./wwwroot/manifest.webmanifest`.
+
+**I called this wrong twice, and the reason matters.** `zipfile.ZipInfo.__init__` does
+`filename.replace(os.sep, "/")` **when reading**, so on Windows every `zipfile`-based check
+silently converts the bad names and reports "conformant". A PowerShell
+`ZipArchiveEntry.FullName` listing had shown the backslashes correctly and I overrode it with the
+Python result. **Verify zip separators by parsing the central directory bytes, never with
+`zipfile` on Windows.**
+
+That single defect explains both symptoms: the ~39 root-level entries have no separator, so the
+app starts, migrates, seeds and answers `/health` - while `wwwroot/` never exists.
+
+(a) publish output and (e) repo rules were genuinely ruled out: `publish-linux/wwwroot` holds
+**1204 files** including both, no `.deployment` in the package, no static-asset override in
+`RTUB.csproj`. CI is unaffected - `azure/webapps-deploy` packages on `ubuntu-latest`.
+
+**Fix: `./scripts/package-azure-dev.sh`** packages with Python's zipfile (whose `os.sep` rewrite
+is *correct* on write) and then refuses to emit an archive whose central directory contains a
+backslash or is missing `wwwroot/manifest.webmanifest`, `wwwroot/service-worker.js`,
+`libQuestPdfSkia.so` or `libe_sqlite3.so`. Verified on the real tree: **1263 entries, 0
+backslash, all four present.**
+
+**1b. `WEBSITE_RUN_FROM_PACKAGE=1` is separately wrong** - Microsoft: *"The run from package
+feature is currently Windows only and is not yet supported in App Service for Linux."*
+`rtub-dev` is Linux. 027 set it to `1` to dodge the rsync failure, i.e. to hide the backslash bug,
+turning a loud failure into a silent one. Still to be removed, and the stale share underneath
+cleared - `/home/site/wwwroot` holds an old **Windows** publish (`RTUB.exe`, `web.config`,
+`hostingstart.html`, **zero directories**). Owner action; 027 does not modify Azure.
+
+**2. Smoke state parser - trailing CR.** `az` on Windows emits CRLF, so `read -r` left
+`SITE_STATE=$'Running\r'`. `case` fell through to the default branch, and printing the value made
+the carriage return overwrite the start of the line - which is why it rendered as
+`usageState=Normal` / `' FAIL  unexpected state 'Running`. Reproduced with `od -c`, fixed by
+stripping CR, and pinned by `./scripts/smoke-azure-dev.sh --self-test`.
+
+**3. R2 is required, not optional - earlier claim in this file was WRONG.**
+`Index.razor` (`@page "/"`) injects `ISlideshowService` -> `SlideshowService(IImageStorageService)`
+-> `CloudflareImageStorageService(IAmazonS3)` -> the factory throws. Confirmed from the live stack
+trace: `ComponentFactory.CreatePropertyInjector` during `RenderEndpointComponent`, 24 occurrences.
+`IAmazonS3` reaches **13** domain services through **11** storage services, so it covers most
+routable pages. **Decision: A - R2 is genuinely required.** Not made optional: that would mean
+every one of those services tolerating a no-op storage client, which changes semantics broadly and
+turns real storage failures into silence. DEV needs `Cloudflare__R2__{AccountId,AccessKeyId,
+SecretAccessKey,Bucket,PublicUrl}` against a **separate DEV bucket with a bucket-scoped token** -
+never production credentials.
+
+**`RemoteNavigationManager already initialized` is fallout, not a separate bug.** It is logged by
+`ExceptionHandlerMiddleware[3]` ("An exception was thrown attempting to execute the error
+handler"), always immediately after the R2 failure, with
+`EndpointHtmlRenderer.InitializeStandardComponentServicesAsync` at the top of its stack:
+`UseExceptionHandler("/Error")` re-renders `/Error` on an `HttpContext` whose
+`RemoteNavigationManager` the first attempt already initialised. Fix R2 and it disappears. Not
+touched.
+
+### Database path/strategy
+| | Production | DEV |
 | --- | --- | --- |
-| 1 | `OfflineScript_DoesNotRedirectOnNavigatorOnLineAlone` | **the defect** - exactly one navigation exists, it sits behind the probe's success path, and the `navigator.onLine` branch cannot reach it |
-| 2 | `OfflineScript_ProbesTheHealthEndpointAndNothingElse` | `/health` is the only endpoint the page calls |
-| 3 | `OfflineScript_ProbeBypassesTheBrowserHttpCache` | `cache: 'no-store'` on the probe |
-| 4 | `ServiceWorker_KeepsHealthNetworkOnly` | `/health` in `NEVER_CACHE_PREFIXES` and absent from `STATIC_ASSETS` |
-| 5 | `OfflineScript_StaysOnThePageWhenTheProbeFails` | no navigation in the failure path; `catch`, `response.ok` and `AbortController` all present |
-| 6 | `OfflineScript_KeepsTheDelayedRedirectWhenTheOriginIsReachable` | the restored message and the ~1s `REDIRECT_DELAY_MS` are unchanged |
-| 7 | `OfflineScript_AllowsOnlyOneProbeInFlightAndOneRedirect` | `probeInFlight` and `redirecting` guards |
-| 8 | `OfflineScript_KeepsItsExistingControlsAndCopy` | `online`/`offline` listeners, retry reload, 3s interval, all three Portuguese strings |
+| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | `Data Source=/home/site/data/rtub-dev.db` |
+| `DatabaseBackup__Enabled` | `true` | `false` |
 
-## Latest validation (unit 026)
-Release build, 0 warnings / 0 errors. All five xUnit v3 native executables:
+Separate file, separate App Service, separate plan. Nothing shared with production. `/home` is the
+Azure Files share - it survives restart, redeploy and scale. No migration was created by this unit.
 
-| Suite | Total | Failed | Skipped |
-| --- | --- | --- | --- |
-| `RTUB.Core.Tests` | 791 | 0 | 0 |
-| `RTUB.Application.Tests` | 1997 | 0 | 0 |
-| `RTUB.Shared.Tests` | 768 | 0 | 2 |
-| `RTUB.Web.Tests` | 876 | 0 | 56 |
-| `RTUB.Integration.Tests` | 281 | 0 | 2 |
-| **Total** | **4713** | **0** | **60** |
+### OIDC / federation status - CONFIGURED, NO OWNER ACTION LEFT
+DEV authenticates with **OIDC against a user-assigned managed identity**. No publish profile, no
+client secret, nothing long-lived in the repo.
 
-Delta accounting, exact:
-- 025 baseline: **4683** / 0 / 60.
-- 026 before the section E fix: **4705** / 0 / 60 - **+22**, entirely `ServiceWorkerReliabilityTests`.
-- 026 after the section E fix: **4713** / 0 / 60 - **+8**, entirely `OfflineReachabilityTests`.
-
-Skips unchanged at 60 throughout. No unrelated BetService / test-runner flake was touched, and no
-existing test needed editing for the section E fix.
-
-Also: `node --check` clean on all four changed JS files (`service-worker.js`, `sw-register.js`,
-`push-notifications.js`, `offline.js`), `git diff --check` clean, no migrations, credential scan
-over the diff and both new test files clean.
-
-## Browser / PWA validation (unit 026) - RUN
-Headless Chromium against a local Release build over `https://localhost:58869` (trusted ASP.NET
-dev cert, so the origin is a secure context and service workers really register).
-
-**Bottom nav - did it reproduce in tooling? Partly, and the part that matters did.**
-Headless Chromium **cannot** emulate `display-mode: standalone`: CDP
-`Emulation.setEmulatedMedia` ignores the `display-mode` feature (`matchMedia('(display-mode:
-standalone)')` stayed `false`) and `--app=` did not navigate. So the standalone condition was
-removed from the matching `@media` rule **at runtime**, leaving the width condition and everything
-else - source order, specificity, the real cascade - untouched. That isolates exactly the one
-condition the emulator cannot supply.
-
-Rule inventory read out of the live CSSOM, in document order, at 375px:
-
-| Order | File | Media | Value |
-| --- | --- | --- | --- |
-| 1 | `1-base/mobile.css` | `(max-width: 768px)` | `clip` |
-| 2 | `2-layout/navbar.css` | `(display-mode: standalone) and (max-width: 991.98px)` | `hidden` *(before)* / `clip` *(after)* |
-
-- **Before:** ungating the standalone query flipped computed `html { overflow-x }` from `clip` to
-  **`hidden`** on every case. The mechanism, reproduced.
-- **After:** it stays **`clip`** on every case.
-
-Scroll stress, 375px and 390px, `/music` (Albums - the reported page) and `/roles`, plus a repeat
-after opening and closing the navbar offcanvas: **36 samples per case, 432 samples total**,
-top -> quarter -> middle -> bottom -> back, with direction reversals.
-`visualViewport.offsetTop + visualViewport.height - nav.getBoundingClientRect().bottom` stayed
-**0 for every sample** (`delta_min = delta_max = 0`), `navTop` pinned at 805, `position: fixed`,
-`display: flex` throughout. Desktop Chromium does **not** itself reproduce the iOS momentum-scroll
-drift - it never treats html/body as the scroll container - so the drift is proven by the
-mechanism and the cascade, not by a visible jump in this browser. **The remaining confirmation is
-a real installed iPhone PWA.**
-
-Modal open/close was not driven: the reachable modals on these anonymous pages need a signed-in
-session. The scroll-lock states were audited in source instead (see A).
-
-**PWA:** exactly **1** registration, scope `/`, script `/service-worker.js`, state `activated`,
-page controlled. `manifest.webmanifest` 200 with 10 icons, `display: standalone`.
-`registration.update()` resolved without throwing and left no waiting worker.
-`PushNotificationsManager.initialize()` ran with **registrations 1 before, 1 after** - it no
-longer creates a second one (it returned `false` because `/api/push/status` is 401 anonymously,
-which is correct without credentials). **0 update toasts, 5 main-frame navigations for 5 `goto`
-calls - no duplicate toast, no reload loop.**
-
-**Offline, with the origin actually stopped** (`taskkill dotnet`, origin then answering nothing),
-using a persistent browser profile warmed beforehand:
-`/music`, `/profile`, `/messages`, `/events`, `/leaderboard` all returned **200 `text/html`,
-694 bytes, `offline.html`** - heading "Sem Conexão", `/css/offline.css` linked and applying 9
-rules, the `135deg` gradient resolving, `offline.js` present and running, retry control present,
-**0 `<style>` elements and 0 inline style attributes** (no CSP regression). Every response had
-**no `.mobile-bottom-nav`, no `.navbar`, no `blazor.web.js`** - i.e. **no authenticated or private
-application HTML was served as a stale cached page.** `/api/push/status` and `/health` returned
-`TypeError: Failed to fetch` - network-only, no cache fallback, exactly as designed.
-
-A second offline pass using `context.set_offline(True)` gave the same result on four paths.
-
-### Offline reachability (section E) - ORIGIN DOWN, NETWORK UP, proven both ways
-The decisive case cannot be tested with `context.set_offline(True)`, because that flips
-`navigator.onLine` and hides the exact bug. The origin process was killed instead, leaving the
-machine online. 11/11 checks passed.
-
-| Case | Result |
+| Thing | Value |
 | --- | --- |
-| **A. Origin UP** | `offline.html` loaded, `/health` succeeded, page transitioned to `/`. |
-| **B. Origin DOWN, machine online** | Worker served `offline.html` from cache (`h1` "Sem Conexão", `/css/offline.css` linked with 9 rules, `offline.js` present). `navigator.onLine` **stayed true** - the bug's precondition. Sampled once a second for **12 seconds: `location.pathname` was `/offline.html` on every sample**, status `Ainda offline`. **No redirect, no bounce.** |
-| **C. Origin restored** | The periodic probe detected `/health` and redirected to `/`; the real application page loaded. |
-| Cache audit | `/health` present in **none** of `rtub-static/dynamic/images-rtub-v2.7.0`. |
-| Console | No errors beyond the expected failed `/health` fetch while the origin was unavailable. |
+| Identity | `rtub-dev-deploy` (user-assigned managed identity, `rtub_group`) |
+| Federated credential | `github-dev-env` |
+| Issuer | `https://token.actions.githubusercontent.com` |
+| Subject | `repo:luisfpires18/RTUB:environment:development` |
+| Audience | `api://AzureADTokenExchange` |
+| Role | `Website Contributor`, scoped to the **`rtub-dev` site only** |
 
-**Negative-controlled, like test 22.** The pre-fix `offline.js` was staged back in and case B
-re-run under identical conditions: it **bounced to `/` inside the first second** - the sampler's
-own execution context was destroyed mid-navigation - and ended on `/`. The fixed file stayed on
-`/offline.html` for the full 12s. The harness reproduces the real defect; it is not a proxy.
+A managed identity rather than an Entra app registration: it is an ordinary Azure resource, so it
+lives and dies with `rtub_group`, needs no directory administration, and can never grow a secret.
+(The tenant does permit app registrations - `allowedToCreateApps: true` - so this was a choice,
+not a workaround.) The subject is the **environment** form, not the branch form, because the job
+declares `environment: development`; a branch-form credential would not match.
 
-**Console:** no new JS errors and **zero page errors**. The console does carry pre-existing
-`img-src` CSP violations for the R2 public origin - that is 025's documented behaviour when
-`Cloudflare:R2:PublicUrl` is not supplied to the local run, not a 026 regression - plus the
-401/405 responses from the excluded-path probes this validation deliberately issued.
+GitHub environment **`development`** created, no approval gate. Non-secret identifiers stored as
+**variables**, not secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+
+### Required setting NAMES (names only - values are in Azure, never in the repo)
+Startup-fatal on a fresh DEV database: `AdminUser__Password`, and - because DEV opts into the full
+seed - `SeedData__MemberPassword`.
+Also set on `rtub-dev`: `ASPNETCORE_ENVIRONMENT`, `ASPNETCORE_URLS`, `WEBSITES_PORT`,
+`ASPNETCORE_FORWARDEDHEADERS_ENABLED`, `ConnectionStrings__SqliteConnection`,
+`SeedData__SeedFullDataset`, `DatabaseBackup__Enabled`.
+
+Deliberately **absent** in DEV, and none of them block startup - the R2 client is a lazy singleton
+and push checks `WebPushOptions.IsConfigured()`, so each feature fails only when first used:
+`Cloudflare__R2__*`, `WebPush__Vapid*`, `EmailSettings__*`, `DatabaseBackup__*` credentials,
+Application Insights. **DEV must never be given production R2 or backup credentials.**
+
+The two bootstrap passwords were generated randomly and written straight into `rtub-dev`'s
+application settings. They were never printed, never committed and never placed in
+`appsettings*.json`, workflow YAML or this file. Read them in Portal -> `rtub-dev` ->
+Environment variables, or rotate them.
+
+### What is automated vs. manual
+Automated: build, all five test suites, publish (including the Pixi bundle build), Azure login,
+DEV deploy, post-deploy smoke test - on every push to `dev`.
+Manual: the merge from `dev` to `master`, and everything about production.
+
+### Validation (unit 027)
+- `dotnet build --configuration Release` - **clean**, 0 warnings, 0 errors.
+- `dotnet test --no-build --configuration Release` - **4715 total, 0 failed, 4655 succeeded,
+  60 skipped.** Baseline was 4713; **delta is exactly +2**, the two new `MigrationChainTests`.
+- **Empty SQLite database migrates from zero.** `dotnet ef database update` against a fresh
+  disposable file: **159 migrations applied**, last
+  `20260723114241_AddPushNotificationsOptedOutToApplicationUser`, 91 tables,
+  `PRAGMA quick_check` = `ok`, no leftover `ef_temp_*`/`_new`/`_old` tables, and all six
+  `Year*`/`Month*` columns present on `AspNetUsers`.
+- **Application starts against a genuinely empty database.** `ASPNETCORE_ENVIRONMENT=Staging`,
+  `SeedData__SeedFullDataset=true`, connection string pointed at an empty disposable file: the
+  app applied all 159 migrations *itself* through `Program.cs`, seeded **83 users and 4 roles**,
+  logged `Application started`, and reported **zero** `fail:`/`SqliteException`/unhandled
+  exceptions. That is the exact Azure DEV path.
+- **The regression test was proven red before it was proven green.** Reverting the fix and
+  re-running gives `2 failed` with
+  `SqliteException : SQLite Error 1: 'no such column: "YearCaloiro"'` — the production error
+  verbatim. The fix was then restored and byte-compared against a backup.
+- Only disposable scratchpad SQLite files were used. `src/RTUB.Web/app.db` was never opened;
+  every run set `ConnectionStrings__SqliteConnection` explicitly.
+- `.github/workflows/ci.yml` parses as YAML; both jobs, their triggers, `needs`, `if`,
+  `environment`, `permissions` and `concurrency` verified by structural inspection.
+- The smoke-test step's shell body extracted and checked with `bash -n` - **syntax OK**.
+- `git diff --check` - clean.
+- Secret scan over the full diff and the new doc - clean. No Azure GUID (client, tenant or
+  subscription ID) appears in any repository file; they live only in GitHub environment
+  variables.
+- No migration created. No application refactor.
+- **Deployment smoke: NOT RUN** - see above.
 
 ## Deployment requirement — `AdminUser__Password` on a fresh database (unit 016)
 
@@ -348,16 +401,20 @@ database with users, so `InitializeAsync` returns before the bootstrap check is 
 Deploying unit 016 to current production changes nothing at startup, and the existing Owner
 account is unaffected — its password is whatever it was set to, not the removed default.
 
-**Any fresh/empty database will now refuse to start without it.** Before the future Azure **dev**
-environment (or any new App Service, container, or local database created from scratch) is first
-started, `AdminUser__Password` must be supplied as an App Service application setting or
-equivalent secure configuration source, with a real value — not a placeholder. Without it,
-seeding throws and no privileged account is created. Like
-`ASPNETCORE_FORWARDEDHEADERS_ENABLED` below, this is portal/CLI configuration, is **not in the
-repo**, is not applied by a code redeploy, and nothing in CI will warn if it is missing.
+**Any fresh/empty database will now refuse to start without it.** Before any new App Service,
+container, or local database created from scratch is first started, `AdminUser__Password` must be
+supplied as an App Service application setting or equivalent secure configuration source, with a
+real value — not a placeholder. Without it, seeding throws and no privileged account is created.
+Like `ASPNETCORE_FORWARDEDHEADERS_ENABLED` below, this is portal/CLI configuration, is **not in
+the repo**, is not applied by a code redeploy, and nothing in CI will warn if it is missing.
 
-**`SeedData__MemberPassword`** is needed only by a developer who flips `isEmptyDb` to `false` for a
-full local seed. It is never required in Azure unless that switch is used there.
+**Satisfied for Azure DEV (unit 027).** `AdminUser__Password` is set on `rtub-dev`, with a
+randomly generated value written straight into App Service configuration — never printed,
+committed or placed in any file. Read or rotate it in Portal → `rtub-dev` → Environment variables.
+
+**`SeedData__MemberPassword`** is required wherever `SeedData:SeedFullDataset` is `true` against a
+fresh database — which, since unit 027, is Azure DEV. It is set on `rtub-dev`, same handling as
+above. Production does not set the flag and therefore never needs this key.
 
 ## Deployment requirement — Azure forwarded headers (CONFIRMED 2026-09-21, no longer blocking)
 
@@ -375,8 +432,10 @@ cloud-appropriate settings. Nothing is in RTUB's own code for it — deliberatel
 
 It is portal/CLI configuration and is **not in the repo** — `.github/workflows/ci.yml` only
 publishes and deploys, and sets no app settings. So it is not reproduced by a redeploy of code
-alone, and **a new App Service (including the future Azure dev environment) needs it set again.**
-Nothing in CI will warn if it is missing.
+alone, and **any new App Service needs it set again.** Nothing in CI will warn if it is missing.
+
+**Also set on `rtub-dev` (unit 027).** Azure DEV carries `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`
+for the same reason, so the login rate limiter partitions on the real client address there too.
 
 What `RemoteIpAddress` is, per environment:
 - **Local / `dotnet run`** — the real client address; correct with no extra configuration.
@@ -395,14 +454,27 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 026 is complete and awaiting owner review.
+None active. Unit 027 is complete and awaiting owner review.
 
 ## Next unit
-**027 - CI/CD + Azure DEV.** The one PWA correctness defect 026's validation uncovered - the
-offline-page bounce - was fixed inside 026 rather than deferred, so nothing PWA-related is
-outstanding except the device confirmation below.
+**028 - production deployment modernization.** Deliberately kept out of 027 so a DEV pipeline
+change could never take production down. Scope:
+- migrate production from the `AZURE_WEBAPP_PUBLISH_PROFILE` Basic Auth secret to OIDC, the same
+  way DEV now works (its own managed identity, scoped to the `rtub` site)
+- only then delete the publish-profile secret and turn Basic Auth Publishing Credentials off
+- bump the production job's stale action pins: `actions/checkout@v4`, `setup-dotnet@v4`,
+  `setup-node@v4` (Node **20**, end-of-life since April 2026), `upload-artifact@v4`
+- decide whether production should also run from package, as DEV does
+- **close production's native-asset packaging risk**, found by 027 and deliberately left alone.
+  Production App Service is Linux too, and all three of DEV's mitigations are missing there:
+  it publishes **portable**, so `libQuestPdfSkia.so` and `libe_sqlite3.so` sit inside a 72 MB
+  22-RID `runtimes/` subtree in a ~330 MB payload; it has **no `WEBSITE_RUN_FROM_PACKAGE`**, so it
+  deploys through the same extract-and-rsync transport that truncated DEV; and it has **no deploy
+  guard**. A partial transfer would abort production with the identical
+  `DllNotFoundException` at `Program.cs:48` and exit 134. It works today - nothing defends it.
+  `-r linux-x64 --self-contained false` applies to production unchanged.
 
-Constraints 026 hands forward:
+Constraints 026 hands forward, all still live:
 - `/service-worker.js` must keep being served **without** a CSP header (025's rule, still pinned
   by `NonDocumentResponse_CarriesNoContentSecurityPolicy`).
 - `sw-register.js` is the **sole** service-worker registration owner. Anything needing the
@@ -417,7 +489,8 @@ Constraints 026 hands forward:
 the cascade and by the computed `overflow-x` flipping under a runtime-ungated standalone query,
 but desktop Chromium cannot reproduce iOS momentum-scroll drift and cannot emulate
 `display-mode: standalone`. A run on an **installed iPhone PWA on Albums (`/music`)** would close
-it. Deploying 026 is what makes that check possible.
+it. **Unit 027 is what unblocks this** - `https://rtub-dev.azurewebsites.net` is now a real
+installable HTTPS origin carrying 026's code, so the iPhone check no longer needs production.
 
 Also still available, deliberately not taken: **password-policy review / hardening** (Identity is
 `RequiredLength = 4` with every complexity rule off, `AddIdentityServices`,
@@ -426,8 +499,127 @@ Still queued, not security: **Microsoft 10.0.11 -> 10.0.12 servicing train** acr
 which also unblocks `MockQueryable.Moq 10.0.12`.
 
 ## Blockers
-**None.**
+**None in the repository.** All three defects that stopped Azure DEV are fixed and proven
+locally:
 
+1. deployment transport truncated `wwwroot` - RID-specific publish + run-from-package + a
+   deploy guard;
+2. `libQuestPdfSkia.so` missing from the deployed tree - same fix, guard refuses to deploy
+   without it;
+3. **the migration chain could not run from zero** - `AddMentorField` fixed, proven red then
+   green, covered by a new regression test.
+
+What remains is an **owner action**, not a blocker: redeploy `rtub-dev` from the corrected
+artifact and run the smoke script. The tree currently on the App Service is the truncated one and
+its database has never completed migrating, so both must be replaced, not restarted.
+
+The earlier Free-tier quota block has passed (it reset at 00:00 UTC) and DEV is on B1 by owner
+decision. `healthCheckPath` stays empty until a deploy has succeeded.
+
+### Redeploy + verify checklist (owner runs this; 027 did not execute it)
+The tree currently on `rtub-dev` is the **truncated** one - it must be replaced, not restarted.
+DEV is on B1 for now, by owner decision; return it to F1 only after a clean boot and a green
+smoke run.
+
+**Point DEV at a fresh database file before redeploying.** `rtub-dev-v2.db` was left
+half-migrated by the failing chain - 15 migrations applied, `AspNetUsers` missing three columns -
+and the fixed `AddMentorField` will not repair it, because that migration is already recorded in
+its `__EFMigrationsHistory` and will never re-run. A new path (`rtub-dev-v3.db`) migrates cleanly
+from zero. DEV holds no data worth keeping.
+
+```bash
+# 1. publish linux-x64, framework-dependent (~267 MB, natives at the root)
+dotnet publish src/RTUB.Web/RTUB.csproj -c Release -r linux-x64 --self-contained false -o ./publish
+
+# 2. same guard CI runs - refuses to go further if a native library is missing or truncated
+for lib in libQuestPdfSkia.so libe_sqlite3.so; do
+  f="./publish/$lib"; [ -f "$f" ] || f="./publish/runtimes/linux-x64/native/$lib"
+  [ -s "$f" ] && file -L "$f" | grep -q 'ELF 64-bit.*x86-64' && echo "OK $f" || echo "MISSING $lib"
+done
+
+# 3. package. NEVER use Compress-Archive: it writes backslash separators, which Azure
+#    Linux cannot unpack (HTTP 400 from rsync, or silent 404s on every static asset).
+#    This script emits forward slashes and refuses to produce a broken archive.
+#    Writes to TMPDIR, not the repo.
+./scripts/package-azure-dev.sh ./publish
+pkg="${TMPDIR:-/tmp}/rtub-dev.zip"
+
+# 4. FIRST, one-time: run-from-package is Windows-only and must be off on this Linux app.
+#    Leaving it set is what makes /manifest.webmanifest and /service-worker.js 404.
+#    Also clear the stale share underneath the old mount - it still holds a Windows publish.
+az webapp config appsettings delete -g rtub_group -n rtub-dev --setting-names WEBSITE_RUN_FROM_PACKAGE
+
+# 5. deploy - ordinary extraction, the way production deploys
+az webapp deploy -g rtub_group -n rtub-dev --type zip --src-path "$pkg"
+
+# 6. verify
+./scripts/smoke-azure-dev.sh
+```
+
+Also set the five `Cloudflare__R2__*` names before step 6 — see *R2 is required* above. `/` returns
+500 without them, so smoke cannot go green. Use a **separate DEV bucket and a bucket-scoped
+token**, never production credentials.
+
+Step 5 is the one that previously failed silently. Confirm it before trusting step 6:
+`az webapp log deployment show -n rtub-dev -g rtub_group` must end in a succeeded OneDeploy, not
+an rsync error.
+
+Or simply push the branch once it is authorised — `deploy-dev` does steps 1, 2, 4 and 5 itself.
+
+Plain verification, no redeploy:
+
+```bash
+./scripts/smoke-azure-dev.sh
+```
+
+That script is **read-only**. It does A, B and E–F below, and for C it prints the start command
+and stops rather than running it, because on Free tier every restart spends part of a 15/day
+allowance.
+
+| | Step | Expected |
+| --- | --- | --- |
+| A | `az webapp config show -n rtub-dev -g rtub_group --query healthCheckPath -o tsv` | **empty** |
+| B | `az webapp show -n rtub-dev -g rtub_group --query "[state,usageState]" -o tsv` | `Running  Normal` — not `QuotaExceeded` |
+| C | `az webapp start -n rtub-dev -g rtub_group` | **once only, and only if stopped** |
+| D | wait ~60s | first boot runs migrations + the full seed on an empty DB |
+| E | GET `/health`, `/login`, `/manifest.webmanifest`, `/service-worker.js` | all 200 |
+| F | headers | CSP on HTML · **no** CSP on `/service-worker.js` · site still up afterwards |
+| G | — | **no configuration writes at any point during the test** |
+
+If the app boots and stays up, F1 is viable and nothing further is needed. If it crash-loops on
+its own, that is the first real evidence about F1, and the plan decision follows from it.
+
+Everything else in this unit is done: workflow, `SeedData` switch, docs, the App Service and its
+settings, the managed identity, the federated credential, the role assignment, and the GitHub
+`development` environment with its three variables. The first push to `dev` will deploy through
+CI regardless.
+
+## Pre-deploy bug queue
+Defects that must be fixed **before the final production deployment**. Not part of the unit that
+recorded them — each needs its own unit.
+
+### LOG-1 — Logistics management controls missing for Moderator
+**Recorded by 027. NOT implemented in 027.**
+
+Observed: an **Admin** sees the full Logistics management set —
+- Adicionar Lista
+- list add
+- edit
+- delete
+
+A **Moderator** does not get the same controls.
+
+**Owner decision (2026-09-21): Moderators ARE allowed the same Logistics management permissions
+as Admins for these Logistics actions.**
+
+Scope guard, explicit: this applies to **Logistics functionality only**. Do **not** generalize
+Moderator to Admin globally, and do not widen it into a role-model change. The fix is the
+Logistics authorization checks and whatever gates the four controls above — nothing else.
+
+Not investigated yet: no files identified, no root cause traced. 027 is an infrastructure unit
+and deliberately did not look.
+
+## Owner actions
 **Owner action, not a blocker:** the historical GitGuardian incidents stay historical. The
 literals remain in old commits, and unit 015 deliberately did **not** rewrite git history to clear
 them. Mark those incidents "false positive / test credential" in GitGuardian by hand. 015 only
@@ -444,10 +636,13 @@ rather than the policy being weakened.
 ### Security — raised by 015, deliberately not changed
 - ~~**Two hardcoded production password defaults in `src/`**~~ — **fixed by unit 016.** Both now
   fail closed; see *Last completed step* above.
-- ~~**`ResetDevDataAsync` runs in EVERY environment except Production**~~ - **fixed by unit 017.**
-  Now opt-in (`DevelopmentDataReset:Enabled`), local-Development-only, disabled by default, no
-  hardcoded hash, validated before any mutation. Staging and Production can no longer run it at
-  all. See *Last completed step*.
+- ~~**`ResetDevDataAsync` runs in EVERY environment except Production**~~ - **fixed by unit 017**,
+  scope adjusted by **027**. Opt-in (`DevelopmentDataReset:Enabled`), disabled by default, no
+  hardcoded hash, validated before any mutation. The environment guard is an **allow-list of
+  Development and Staging** — 017 restricted it to Development, and 027 added Staging because
+  that is the Azure DEV App Service, whose 83 seeded members exist to be reset to one shared
+  development password on demand. Production, Test and any other environment name are a hard
+  no-op that never even reads the password.
 - ~~"the bulk member seed is dead code"~~ — **that earlier claim was wrong and is retracted.** It
   is an intentional manual full-seed developer path (`isEmptyDb`), now documented in place and
   covered by tests. Nothing to clean up.
@@ -624,7 +819,40 @@ rather than the policy being weakened.
   unrelated to the 026 bug. Pre-existing; a scroll-position fix is a behaviour change.
 
 ### Carried forward unchanged from 025
-- **`dotnet test` still does not work in this repo.** 026 used the five native xUnit v3
-  executables throughout, as 025 did.
+- ~~**`dotnet test` still does not work in this repo.**~~ - **WRONG, corrected by 027.** It works,
+  and it discovers all five suites: `total: 4713, failed: 0, skipped: 60` on SDK `10.0.200`. The
+  enabling piece is `global.json`'s `{"test": {"runner": "Microsoft.Testing.Platform"}}`, added
+  by unit 011. 025 and 026 invoking the five native executables by hand was unnecessary, not
+  required. CI has been running the `dotnet test` form correctly all along.
 - **`BetServiceTests.PlaceBetAsync_WithInsufficientBalance_ThrowsException`** passed in 026's full
-  Release run. Not touched, as instructed. Still its own unit.
+  Release run and again in 027's. Not touched, as instructed. Still its own unit.
+
+### Found by 027, deliberately not changed
+- **Five dead App Service settings on production `rtub`: `IDrive__AccessKey`, `IDrive__Bucket`,
+  `IDrive__Endpoint`, `IDrive__SecretKey`** - `grep -rn "IDrive" src/` returns nothing. Left over
+  from the storage provider that preceded Cloudflare R2. They are portal configuration, not repo
+  content, and two of them are live credentials for whatever that account still is. Deleting them
+  is an owner action on production configuration and is out of scope for a DEV unit. Worth doing:
+  an unused credential is still a credential.
+- **Production's workflow pins are stale**: `actions/checkout@v4`, `actions/setup-dotnet@v4`,
+  `actions/setup-node@v4` with **Node 20**, end-of-life since April 2026, and
+  `actions/upload-artifact@v4`. Current majors are v7 / v6 / v7 / v7. Not bumped here on purpose -
+  those steps are the production deployment path. Folded into unit 028 above.
+- **The skip of `UseHttpsRedirection` outside Development** (`Program.cs`) is now redundant on DEV
+  too, for the same reason it is on production - `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` makes
+  `Request.IsHttps` true behind the front end. Unchanged; still its own decision, already carried
+  above.
+- **`.deployment` sets `SCM_DO_BUILD_DURING_DEPLOYMENT=true`** but is inert for both environments:
+  neither pipeline deploys the repository, they deploy `dotnet publish` output, which does not
+  contain that file. Harmless, and removing it is not this unit's call.
+- **Azure DEV runs from package, production does not.** `WEBSITE_RUN_FROM_PACKAGE=1` is set on
+  `rtub-dev` because the ordinary extract-and-rsync deployment **failed** on it - Kudu's parallel
+  rsync exited 123 unpacking the ~334 MB payload (182 MB of which is `wwwroot/sprites`) through
+  the container's small local disk. Run-from-package mounts the zip instead of extracting it.
+  Nothing in the app writes into `wwwroot` at runtime - every `WebRootPath` use is a read - and
+  SQLite lives under `/home/site/data`, so the read-only `wwwroot` costs nothing. Whether
+  production should do the same is listed under unit 028.
+- **The publish payload is 334 MB, 182 MB of it `wwwroot/sprites`.** That is what makes deployment
+  awkward on a small container and it is why run-from-package was needed. Moving game sprites to
+  R2, or trimming them, would shrink every deploy for both environments. Not touched - it is an
+  application change, not a pipeline one.

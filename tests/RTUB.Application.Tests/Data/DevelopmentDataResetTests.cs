@@ -19,12 +19,16 @@ namespace RTUB.Application.Tests.Data;
 /// <summary>
 /// <c>SeedData.ResetDevDataAsync</c> is destructive: it clears push subscriptions and rewrites
 /// every user's password and email. It used to run automatically in every environment except
-/// Production, which silently undid the configured seed passwords on the next local startup and
-/// would have reset every account on a Staging (Azure DEV) App Service at each restart.
+/// Production, which silently undid the configured seed passwords on the next local startup.
+/// Unit 017 made it opt-in and restricted it to Development.
 ///
-/// It is now opt-in and local-Development-only. These tests pin both halves: that nothing is
-/// touched by default or outside Development, and that the intentional reset still does its job
-/// when it is explicitly switched on.
+/// Unit 027 widened the allow-list to <b>Development and Staging</b>, because Staging is the
+/// Azure DEV App Service and its users exist precisely to be reset to one shared development
+/// password on demand. Production and every other environment remain a hard no-op.
+///
+/// These tests pin all of it: that the allowed environments do the work when explicitly switched
+/// on, and that nothing is touched by default, outside the allow-list, or without a usable
+/// password.
 /// </summary>
 public class DevelopmentDataResetTests : IDisposable
 {
@@ -162,16 +166,22 @@ public class DevelopmentDataResetTests : IDisposable
     // ---- the reset must not run ----
 
     /// <summary>
-    /// The default path. Production and Staging must never reset whatever the configuration says —
-    /// the planned Azure DEV App Service runs as Staging and has to keep its users across
-    /// restarts — and Development itself does nothing unless the reset is explicitly enabled.
+    /// The default path. Production must never reset whatever the configuration says, and neither
+    /// must any environment outside the Development/Staging allow-list. Inside the allow-list,
+    /// nothing happens unless the reset is explicitly enabled.
+    ///
+    /// The guard is an allow-list rather than "not Production", so an environment name nobody
+    /// anticipated is inert by default — <c>QA</c> below stands for that whole class.
     /// </summary>
     [Theory]
     [InlineData("Development", "false", "setting present but off")]
     [InlineData("Development", null, "setting absent entirely")]
-    [InlineData("Staging", "true", "Staging ignores the opt-in — this is the future Azure DEV App Service")]
+    [InlineData("Staging", "false", "Staging is allowed to reset, but only when switched on")]
+    [InlineData("Staging", null, "Staging with the setting absent must not reset")]
+    [InlineData("Staging", "not-a-bool", "an unparseable opt-in is not an opt-in")]
     [InlineData("Production", "true", "Production ignores the opt-in")]
     [InlineData("Test", "true", "the test host ignores the opt-in")]
+    [InlineData("QA", "true", "an environment outside the allow-list ignores the opt-in")]
     public async Task ResetDoesNotRun_LeavesCredentialsEmailsAndPushSubscriptionsUntouched(
         string environmentName, string? enabled, string because)
     {
@@ -198,17 +208,19 @@ public class DevelopmentDataResetTests : IDisposable
     /// configuration key and its environment-variable form, and never echoes the supplied value.
     /// </summary>
     [Theory]
-    [InlineData(null)]          // setting absent entirely
-    [InlineData("")]            // set but empty
-    [InlineData("   ")]         // whitespace only
-    [InlineData("changeme")]    // a documented placeholder
-    [InlineData("CHANGEME")]    // placeholder match is case-insensitive
-    public async Task Development_EnabledWithoutUsablePassword_ThrowsBeforeAnyMutation(
-        string? resetPassword)
+    [InlineData("Development", null)]        // setting absent entirely
+    [InlineData("Development", "")]          // set but empty
+    [InlineData("Development", "   ")]       // whitespace only
+    [InlineData("Development", "changeme")]  // a documented placeholder
+    [InlineData("Development", "CHANGEME")]  // placeholder match is case-insensitive
+    [InlineData("Staging", null)]            // the Azure DEV case: fail closed there too
+    [InlineData("Staging", "changeme")]
+    public async Task EnabledWithoutUsablePassword_ThrowsBeforeAnyMutation(
+        string environmentName, string? resetPassword)
     {
         var (_, password, securityStamp) = await SeedExistingUserAsync();
 
-        var act = () => ResetAsync("Development", "true", resetPassword);
+        var act = () => ResetAsync(environmentName, "true", resetPassword);
 
         var thrown = await act.Should().ThrowAsync<InvalidOperationException>();
         thrown.WithMessage("*DevelopmentDataReset:Password*");
@@ -230,13 +242,21 @@ public class DevelopmentDataResetTests : IDisposable
 
     // ---- the reset must run ----
 
-    [Fact]
-    public async Task Development_EnabledWithValidPassword_ResetsPasswordsEmailsAndPushSubscriptions()
+    /// <summary>
+    /// Both allowed environments do the full job. Staging is the one that matters operationally —
+    /// it is the Azure DEV App Service, and this is the path that resets its existing users to a
+    /// single shared development password.
+    /// </summary>
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public async Task EnabledWithValidPassword_ResetsPasswordsEmailsAndPushSubscriptions(
+        string environmentName)
     {
         var (_, oldPassword, securityStamp) = await SeedExistingUserAsync();
         var resetPassword = TestSecret.NewPassword();
 
-        await ResetAsync("Development", "true", resetPassword);
+        await ResetAsync(environmentName, "true", resetPassword);
 
         var after = await _userManager.FindByNameAsync("existing");
         after.Should().NotBeNull();
@@ -260,14 +280,20 @@ public class DevelopmentDataResetTests : IDisposable
         after.PasswordHash.Should().NotBeNullOrWhiteSpace();
     }
 
-    [Fact]
-    public async Task Development_EnabledWithValidPassword_ResetsEveryUser()
+    /// <summary>
+    /// Every user, not just the first. This is the Azure DEV case in miniature: that database has
+    /// 83 seeded members, and the point of the reset is that all of them end up on one password.
+    /// </summary>
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public async Task EnabledWithValidPassword_ResetsEveryUser(string environmentName)
     {
         await SeedExistingUserAsync("first");
         await SeedExistingUserAsync("second");
         var resetPassword = TestSecret.NewPassword();
 
-        await ResetAsync("Development", "true", resetPassword);
+        await ResetAsync(environmentName, "true", resetPassword);
 
         foreach (var userName in new[] { "first", "second" })
         {
