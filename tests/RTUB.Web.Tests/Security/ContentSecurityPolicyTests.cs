@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using FluentAssertions;
 using RTUB.Security;
 using Xunit;
@@ -19,6 +19,13 @@ public class ContentSecurityPolicyTests
     private const string PublicUrl = "https://pub-test.r2.dev";
     private const string AccountId = "abc123";
     private const string EndpointOrigin = "https://abc123.r2.cloudflarestorage.com";
+
+    /// <summary>Stand-in for the production public bucket a DEV snapshot inherits URLs from.</summary>
+    private const string ProdPublicUrl = "https://pub-prod.r2.dev";
+
+    private static string ReferencePolicy(string? referencePublicUrl) =>
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, referencePublicUrl)
+            .Build("https", "rtub.example");
 
     private static string Policy(
         string? publicUrl = PublicUrl,
@@ -160,6 +167,73 @@ public class ContentSecurityPolicyTests
     {
         Directives(Policy(publicUrl: "http://localhost:9000/bucket"))["img-src"]
             .Should().Contain("http://localhost:9000");
+    }
+
+    // ---------- the DEV production-reference origin (029 follow-up) ----------
+
+    /// <summary>
+    /// A DEV app running on a sanitized production snapshot inherits absolute production media
+    /// URLs it must still be able to render. <c>Cloudflare:R2:ReferencePublicUrl</c> admits that
+    /// one exact origin for reading, and nothing else: it reaches only the two directives that
+    /// render media, never a directive that could execute or connect.
+    /// </summary>
+    [Fact]
+    public void ReferencePublicUrl_AdmitsTheExactProductionOrigin_ForMediaOnly()
+    {
+        var directives = Directives(ReferencePolicy(ProdPublicUrl));
+
+        directives["img-src"].Should().Contain(PublicUrl).And.Contain(ProdPublicUrl);
+        directives["media-src"].Should().Contain(PublicUrl).And.Contain(ProdPublicUrl);
+
+        directives["script-src"].Should().NotContain(ProdPublicUrl);
+        directives["connect-src"].Should().NotContain(ProdPublicUrl);
+        directives["frame-src"].Should().NotContain(ProdPublicUrl);
+        directives["style-src"].Should().NotContain(ProdPublicUrl);
+        directives["default-src"].Should().NotContain(ProdPublicUrl);
+    }
+
+    /// <summary>
+    /// Production sets no reference origin, so its policy is byte-identical to what unit 025
+    /// shipped. This is the regression guard for "production behaviour is unchanged".
+    /// </summary>
+    [Fact]
+    public void NoReferencePublicUrl_LeavesThePolicyByteIdentical()
+    {
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build("https", "rtub.example")
+            .Should().Be(Policy());
+    }
+
+    /// <summary>
+    /// An exact origin or nothing. Junk, a wildcard, a non-http scheme and a bare host all
+    /// contribute no source at all rather than a permissive one.
+    /// </summary>
+    [Theory]
+    [InlineData("*")]
+    [InlineData("https://*")]
+    [InlineData("https://*.r2.dev")]
+    [InlineData("not a url")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("pub-prod.r2.dev")]
+    [InlineData("https://pub-prod.r2.dev; script-src 'unsafe-inline'")]
+    public void ReferencePublicUrl_NeverAdmitsAWildcardOrInjectedText(string configured)
+    {
+        var directives = Directives(ReferencePolicy(configured));
+
+        directives["img-src"].Should().Equal("'self'", "data:", "https://*.basemaps.cartocdn.com", PublicUrl);
+        directives["media-src"].Should().Equal("'self'", PublicUrl, EndpointOrigin);
+        directives.Should().NotContainKey("script-src 'unsafe-inline'");
+        directives["script-src"].Should().NotContain("'unsafe-inline'");
+    }
+
+    /// <summary>
+    /// A reference origin equal to the environment's own origin is dropped, so the header never
+    /// lists the same source twice.
+    /// </summary>
+    [Fact]
+    public void ReferencePublicUrl_EqualToTheCurrentOrigin_IsNotRepeated()
+    {
+        Directives(ReferencePolicy(PublicUrl))["img-src"]
+            .Should().ContainSingle(s => s == PublicUrl);
     }
 
     /// <summary>

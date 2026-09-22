@@ -273,7 +273,11 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
-# SQLite database files
+# SQLite database files.
+# This also covers every file the DEV snapshot refresh touches — the downloaded
+# production snapshot, the sanitized copy and any rollback copy. A production
+# database, sanitized or not, must never be committed. See
+# docs/cloudflare-r2-and-database-backups.md.
 *.db
 *.db-shm
 *.db-wal

@@ -1,4 +1,4 @@
-# RTUB System Index
+﻿# RTUB System Index
 
 Routing map only — paths plus one-line responsibilities. No architecture prose here; follow the link.
 
@@ -10,6 +10,7 @@ Routing map only — paths plus one-line responsibilities. No architecture prose
 | `src/RTUB.Application/` | Business logic: services, repositories, EF Core data layer, DTOs, factories, interfaces. |
 | `src/RTUB.Shared/` | Reusable Razor components, base classes, shared static assets. |
 | `src/RTUB.Web/` | Blazor Interactive Server host: pages, layout, SignalR hub, a few support controllers, DI wiring. |
+| `tools/` | Standalone console utilities run by hand or by a manual workflow. Not part of the deployed app. |
 
 ## Data / SQLite
 
@@ -68,6 +69,10 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `src/RTUB.Application/Services/Cloudflare*StorageService.cs` | Per-domain Cloudflare R2 storage services (images, audio, documents, media, receipts, …). |
 | `src/RTUB.Application/Services/Storage/` | Shared storage abstractions. |
 | `src/RTUB.Application/Services/DatabaseBackupBackgroundService.cs` | Scheduled SQLite backup to object storage. |
+| `src/RTUB.Application/Services/DatabaseSanitizer.cs` | Offline sanitizer: production snapshot → DEV-safe copy. Never writes to its source. |
+| `src/RTUB.Application/Services/Storage/StorageObjectOrigin.cs` | Storage ownership: classifies a stored URL as this environment's, a production reference, external or unknown. |
+| `src/RTUB.Application/Services/Storage/ReferenceStorageService.cs` | **Read-only** view of the production bucket for DEV/Staging. No upload, delete or copy member exists. |
+| `tools/RTUB.DbSanitizer/` | Console entry point for the sanitizer. Reads the DEV password from `RTUB_DEV_PASSWORD`. |
 | `docs/cloudflare-r2-and-database-backups.md` | Authoritative storage/backup design. |
 
 ## Background jobs
@@ -101,6 +106,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | Path | Responsibility |
 | --- | --- |
 | `.github/workflows/ci.yml` | Build, test, production deploy (`master` push) and Azure DEV deploy (`dev` push). |
+| `.github/workflows/refresh-dev-database.yml` | **Manual only** (`workflow_dispatch`): refreshes Azure DEV from a sanitized production snapshot. Never writes to the `rtub-db` bucket. |
 | `docs/ci-cd-and-azure-environments.md` | Branch/deploy model, test command, Node version, Azure DEV + production topology, OIDC, setting names. |
 | `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook and central build/package versioning. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |

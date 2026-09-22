@@ -2,20 +2,131 @@
 
 Living execution state. **Read this first.** Overwrite stale entries — this is a status board, not a diary.
 
-_Last updated: 2026-09-21_
+_Last updated: 2026-09-22_
 
 ## Phase
-Modernization unit **027 (CI/CD + Azure DEV environment) - COMPLETE, uncommitted, awaiting owner
-review.** Unit 026 is merged to `dev` at `24d2e86e`; the PWA reliability track is closed. 027 is
-an infrastructure/deployment unit - production deployment is deliberately untouched.
+Modernization unit **029 (sanitized production snapshot -> Azure DEV) - COMPLETE, uncommitted,
+awaiting owner review.** 027 (CI/CD + Azure DEV) is merged to `dev` at `816d222c`; 028 was spent
+on `fix/028/bet-test-isolation`, merged at `a1441c94`. 029 is an infrastructure unit - production
+deployment is deliberately untouched, and production data is read but never written.
 
-Durable detail lives in **`docs/ci-cd-and-azure-environments.md`**, not here.
+Durable detail lives in **`docs/cloudflare-r2-and-database-backups.md`** (029) and
+**`docs/ci-cd-and-azure-environments.md`** (027), not here.
 
 ## Branch
-`chore/027/azure-dev-cicd`, branched from `dev` (clean, in sync with `origin/dev` at `24d2e86e`).
+`chore/029/prod-snapshot-dev`, branched from `dev` (in sync with `origin/dev` at `a1441c94`).
 Uncommitted - no commit authorized.
 `chore/001`-`chore/011`, `fix/012`-`fix/014`, `chore/015`, `fix/016`-`fix/018`, `perf/019`,
-`fix/020`-`fix/026` still present; delete when convenient.
+`fix/020`-`fix/028` still present; delete when convenient.
+
+## Unit 029 - sanitized production snapshot -> Azure DEV
+Manual, `workflow_dispatch`-only refresh of `rtub-dev` from `rtub-db/database/current.db`.
+**Contract, secret names, rollback behaviour and the Kudu mechanism are in
+`docs/cloudflare-r2-and-database-backups.md`, "Refreshing Azure DEV from a sanitized production
+snapshot".** What matters here:
+
+- **Production is never mutated.** One `GET` against `rtub-db`, nothing else. No write to the
+  bucket, no connection to the live production SQLite file, no production App Service involvement.
+  The R2 credential is specified as a **dedicated read-only token scoped to `rtub-db`** - not the
+  write-capable one the backup service runs with.
+- **The snapshot is immutable input.** Opened `SqliteOpenMode.ReadOnly`, copied, and only the copy
+  is written to. Its SHA-256 and length are compared before and after; a change fails the run.
+- **`DatabaseSanitizer` is raw ADO.NET, not EF Core.** Deliberate: a production snapshot is
+  normally a few migrations behind `dev`, so an EF/`UserManager` pass would throw `no such column`
+  before sanitizing anything. Only columns present since the initial migration are touched, and
+  the app's own startup migration brings the schema forward on first boot.
+- **No hardcoded hash.** `PasswordHasher<ApplicationUser>` with default options, called once per
+  user, so every row gets its own salt. `SecurityStamp` rotated per row.
+- **Fails closed.** A missing DEV password is rejected before the destination is opened; any
+  failed post-check deletes the output. Failure messages name a bad row by `AspNetUsers.Id` only -
+  no password, hash, email or row content reaches a log.
+- **`DevelopmentDataReset` was NOT removed.** It stays for synthetic/fresh DEV databases and for
+  local use. After a 029 refresh, `DevelopmentDataReset__Enabled` should stay **off** on
+  `rtub-dev` - the database arrives already sanitized, and leaving it on would re-hash every user
+  on every cold start. The workflow reads and writes no App Service settings, so that is a
+  one-time owner action.
+- **DEV still holds real personal data after sanitization.** Only credentials and push endpoints
+  are stripped; names, finances and history are kept on purpose. Treat `rtub-dev` access as
+  production-equivalent.
+
+### 029 validation
+- `dotnet build --configuration Release` - clean, 0 warnings, 0 errors.
+- `dotnet test` (all five suites, the CI command) - **4743 total, 0 failed, 4683 succeeded,
+  60 skipped.** Delta is exactly **+21**, the new `DatabaseSanitizerTests`.
+- **Proven red before green.** Mutating `Rewrite` to skip password hashing turns **9 of 21** red,
+  including the fail-closed post-check; the file was restored and re-run green.
+- End-to-end CLI run against a synthetic database: source SHA-256 byte-identical afterwards,
+  `PushSubscriptions` 0, emails `{UserName}@rtub.pt`, `NormalizedEmail` uppercase, per-user
+  distinct hashes, `journal_mode=delete`, no `-wal`/`-shm` left beside either file. No production
+  data was used anywhere.
+- Workflow YAML parses; trigger set asserted to be `workflow_dispatch` alone; every `run:` body
+  extracted and checked with `bash -n`.
+- `git diff --check` clean; secret scan clean; no credential, account id, endpoint or database
+  file added.
+
+### 029 follow-up - storage ownership (DEV must not mutate PROD objects)
+A sanitized snapshot preserves production media URLs byte-for-byte, so a DEV database is full of
+absolute production R2 URLs. **Invariant now enforced in code: an environment may only delete or
+overwrite an object in its own bucket.** Reading another environment's objects stays allowed.
+Detail in `docs/cloudflare-r2-and-database-backups.md`, "Storage ownership". What matters here:
+
+- **Two independent mechanisms**, neither relying on the credential being incapable:
+  1. **Bucket guard** in `AddStorageServices`. `appsettings.json` commits
+     `Cloudflare:R2:Bucket = "rtub"` - **the production bucket** - so a non-production environment
+     that forgets to override it inherits production's bucket and every upload and delete lands
+     there. No per-object check can catch that. Startup is refused when the environment is not
+     Production, the bucket equals the new committed `Cloudflare:R2:ProductionBucket`, **and** an
+     R2 credential is configured. The credential condition is a capability check, not a name-based
+     exemption for `Test`: it is what lets the integration-test host boot on the committed
+     settings, and anything calling itself `Test` while holding real credentials is still refused.
+  2. **Per-object origin check**. `StorageOriginResolver` classifies a stored URL as
+     `CurrentEnvironment` / `ProductionReference` / `External` / `Unknown`; only the first is
+     deletable, and `Unknown` (anything that is not an absolute http/https URL) fails closed.
+- **The bug it closes:** `ExtractObjectKeyFromUrl` reads a URL's *path* and ignores its *host*, so
+  on a cloned database every delete path handed back a production key and issued it against
+  whatever bucket the environment pointed at. `CloudflareGalleryMediaStorageService` was worse -
+  `mediaUrl.Replace($"{_publicUrl}/", "")` silently produced the **whole absolute URL** as the key
+  for any foreign origin. All 8 delete-by-URL paths now go through `ResolveDeletableKey`.
+- **No constructor and no DI registration of the 11 media services changed.** The resolver is
+  built inside `BaseCloudflareStorageService` from the `IConfiguration` it already receives.
+- **Production is unchanged.** Its URLs are under its own public origin, so they resolve to
+  `CurrentEnvironment` and behave exactly as before; it configures no reference origin at all.
+- **Public media:** CSP only. `Cloudflare:R2:ReferencePublicUrl` adds **one exact origin** to
+  `img-src`/`media-src` only - never `script-src`/`connect-src`/`frame-src` - through the same
+  `NormalizeOrigin` that drops wildcards and injected text. No credentials added; inherited URLs
+  are never rewritten to DEV URLs.
+- **Private files:** the DEV-misses-the-object problem is real for documents (`docs/{Env}/…`) and
+  for album audio and lyric PDFs, whose keys carry **no environment segment** at all.
+  `IReferenceStorageService` is the read-only path: no upload, delete, copy or move member, and
+  `ReferenceStorageService` deliberately does **not** derive from `BaseStorageService` so it
+  cannot inherit `PutObjectAsync`/`DeleteObjectAsync`/`DeleteObjectsBatchAsync`/`CopyObjectAsync`.
+  Two gates: never in Production, and all four `Cloudflare:R2:Reference:*` keys required.
+  Unconfigured it builds no S3 client. Receipts needed nothing - they are public URLs.
+- **Owner Storage Maintenance page NOT built.** Its required contract is documented, including
+  that inherited `ProductionReference` rows must be excluded from DEV orphan calculations.
+- **`rtub-dev` must be given its own `Cloudflare__R2__Bucket`** plus the
+  `Cloudflare__R2__ReferencePublicUrl` and `Cloudflare__R2__Reference__*` names. Owner action; no
+  Cloudflare or Azure resource was created or changed.
+
+### 029 follow-up validation
+- `dotnet build --configuration Release` - clean, 0 warnings, 0 errors.
+- `dotnet test` (all five suites) - **4786 total, 0 failed, 4726 succeeded, 60 skipped.**
+  Delta **+43** on 029's 4743: 20 `StorageOwnershipTests`, 12 CSP, 10 `ProductionBucketGuardTests`,
+  1 sanitizer URL-preservation test.
+- **Proven red before green.** Relaxing `ResolveDeletableKey` to let non-`Unknown` origins through
+  turns **6 of 20** ownership tests red; restored and re-run green. (A first attempt used
+  `if (true)`, which does not compile under `TreatWarningsAsErrors` - `--no-build` then re-ran the
+  old binary and reported a meaningless pass. The mutation above compiles.)
+- The bucket guard was **caught by the suite**: its first form failed 243 integration tests,
+  because the test host runs as `Test` on the committed `appsettings.json`. Fixed by gating on
+  credentials rather than exempting an environment name.
+
+### 029 open item (needs a live run, cannot be verified from the repo)
+Kudu VFS requires `Microsoft.Web/sites/publish/Action` on `rtub-dev`, which `Website Contributor`
+grants through `Microsoft.Web/sites/*`. The `rtub-dev-deploy` identity has never actually made a
+VFS call. **If the first run returns 401/403, the smallest fix is a role assignment carrying that
+single action on the `rtub-dev` site - not broadening the identity to resource-group or
+subscription `Contributor`.** No Azure resource was created or changed by this unit.
 
 ## Owner decision (2026-09-21)
 **Password-policy hardening is SKIPPED**, by instruction. Identity's password requirements were
@@ -34,7 +145,7 @@ bulk member seed on *any* fresh database, production restores included. The swit
 `SeedData:SeedFullDataset` configuration instead, defaulting to the old `true` value of
 `isEmptyDb` when unset - production behaviour is byte-identical, and only `rtub-dev` opts in.
 
-## Last completed step
+## Unit 027 record (merged at `816d222c`) - kept for the Azure DEV findings still open below
 **Unit 027 - `dev` now has CI and an automatic deployment to a real, separate Azure DEV App
 Service. Production's path is unchanged.**
 
@@ -454,11 +565,13 @@ now redundant rather than load-bearing. Still **not changed** — it is its own 
 removing it is a behavior change to the production request pipeline. Carried in *Deferred* below.
 
 ## Current task
-None active. Unit 027 is complete and awaiting owner review.
+None active. Unit 029 is complete and awaiting owner review.
 
 ## Next unit
-**028 - production deployment modernization.** Deliberately kept out of 027 so a DEV pipeline
-change could never take production down. Scope:
+**030 - production deployment modernization.** (Was numbered 028 before `fix/028/bet-test-isolation`
+took that number.) Deliberately kept out of 027 and 029 so neither a DEV pipeline change nor a DEV
+database refresh could ever take production down. Nothing in 029 touches production deployment,
+master auto-deploy, release versioning or production rollback - all of that is this unit. Scope:
 - migrate production from the `AZURE_WEBAPP_PUBLISH_PROFILE` Basic Auth secret to OIDC, the same
   way DEV now works (its own managed identity, scoped to the `rtub` site)
 - only then delete the publish-profile secret and turn Basic Auth Publishing Credentials off

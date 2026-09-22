@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 namespace RTUB.Security;
 
@@ -38,16 +38,34 @@ public sealed class ContentSecurityPolicyBuilder
     private readonly string _staticDirectives;
 
     public ContentSecurityPolicyBuilder(IConfiguration configuration)
-        : this(configuration["Cloudflare:R2:PublicUrl"], configuration["Cloudflare:R2:AccountId"])
+        : this(configuration["Cloudflare:R2:PublicUrl"],
+               configuration["Cloudflare:R2:AccountId"],
+               configuration["Cloudflare:R2:ReferencePublicUrl"])
     {
     }
 
     public ContentSecurityPolicyBuilder(string? r2PublicUrl, string? r2AccountId)
+        : this(r2PublicUrl, r2AccountId, null)
+    {
+    }
+
+    public ContentSecurityPolicyBuilder(string? r2PublicUrl, string? r2AccountId, string? r2ReferencePublicUrl)
     {
         var publicOrigin = NormalizeOrigin(r2PublicUrl);
         var endpointOrigin = NormalizeAccountEndpoint(r2AccountId);
+        var referenceOrigin = NormalizeOrigin(r2ReferencePublicUrl);
 
-        _staticDirectives = BuildStaticDirectives(publicOrigin, endpointOrigin);
+        // The reference origin is the production bucket, configured only in Development/Staging so
+        // a DEV app running on a sanitized production snapshot can still render the media those
+        // rows point at. Production sets no such key, so its policy is byte-identical to before.
+        // Dropped when it duplicates the environment's own origin, so the header never repeats it.
+        if (referenceOrigin != null &&
+            string.Equals(referenceOrigin, publicOrigin, StringComparison.OrdinalIgnoreCase))
+        {
+            referenceOrigin = null;
+        }
+
+        _staticDirectives = BuildStaticDirectives(publicOrigin, endpointOrigin, referenceOrigin);
     }
 
     /// <summary>
@@ -118,7 +136,7 @@ public sealed class ContentSecurityPolicyBuilder
         };
     }
 
-    private static string BuildStaticDirectives(string? r2PublicOrigin, string? r2EndpointOrigin)
+    private static string BuildStaticDirectives(string? r2PublicOrigin, string? r2EndpointOrigin, string? r2ReferenceOrigin)
     {
         var policy = new StringBuilder();
 
@@ -173,11 +191,13 @@ public sealed class ContentSecurityPolicyBuilder
         //         data: URL before it is uploaded.
         // carto - the Leaflet dark-matter tiles in memberMap.js.
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
-        Directive("img-src", "'self'", "data:", "https://*.basemaps.cartocdn.com", r2PublicOrigin);
+        // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
+        // a wildcard, and absent unless explicitly configured (i.e. never in production).
+        Directive("img-src", "'self'", "data:", "https://*.basemaps.cartocdn.com", r2PublicOrigin, r2ReferenceOrigin);
 
         // Public origin for <video>; the S3 endpoint for the pre-signed album audio URLs.
         // Game music and effects are same-origin under /sound.
-        Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin);
+        Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin, r2ReferenceOrigin);
 
         // bootstrap-icons ships its woff2 next to its stylesheet; no web font service is used.
         Directive("font-src", "'self'");

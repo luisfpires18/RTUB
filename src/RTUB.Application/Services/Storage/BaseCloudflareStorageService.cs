@@ -19,6 +19,12 @@ public abstract class BaseCloudflareStorageService<TLogger> : BaseStorageService
     protected readonly string _environment;
 
     /// <summary>
+    /// Decides whether a stored URL points at this environment's own bucket. Built from the
+    /// configuration this class already receives, so adding it changed no derived constructor.
+    /// </summary>
+    protected readonly StorageOriginResolver _originResolver;
+
+    /// <summary>
     /// Initializes a new instance of the BaseCloudflareStorageService class
     /// </summary>
     /// <param name="s3Client">Injected S3 client instance</param>
@@ -33,6 +39,49 @@ public abstract class BaseCloudflareStorageService<TLogger> : BaseStorageService
         : base(s3Client, GetBucketName(configuration, logger), logger)
     {
         _environment = hostEnvironment.EnvironmentName;
+        _originResolver = StorageOriginResolver.FromConfiguration(configuration);
+    }
+
+    /// <summary>
+    /// The object key to delete for a stored URL, or <c>null</c> when this environment does not
+    /// own the object and the caller must leave it alone.
+    /// </summary>
+    /// <remarks>
+    /// <para>The single chokepoint for the ownership invariant. Every media service that deletes
+    /// by URL calls this instead of <c>ExtractObjectKeyFromUrl</c>, which reads the path and
+    /// ignores the host - so on a DEV database cloned from production it would happily hand back
+    /// a production key.</para>
+    ///
+    /// <para>Fails closed: only <see cref="StorageObjectOrigin.CurrentEnvironment"/> yields a key.
+    /// A production reference, a foreign origin and anything unparseable all return null, and the
+    /// caller drops the database reference without issuing any remote call. In production every
+    /// stored URL is under the environment's own public origin, so this returns exactly what
+    /// <c>ExtractObjectKeyFromUrl</c> always did.</para>
+    ///
+    /// <para>The refusal is logged at Warning: a refused delete leaves an object behind, and the
+    /// future Owner storage-maintenance page is what reconciles those. Only the object key is
+    /// logged, never the full URL, so no foreign host reaches the log.</para>
+    /// </remarks>
+    /// <param name="url">The stored absolute URL</param>
+    /// <param name="operation">Name of the calling operation, for the refusal log</param>
+    protected string? ResolveDeletableKey(string? url, string operation)
+    {
+        var origin = _originResolver.Resolve(url);
+
+        if (origin == StorageObjectOrigin.CurrentEnvironment)
+        {
+            return ExtractObjectKeyFromUrl(url!);
+        }
+
+        _logger.LogWarning(
+            "{Operation} refused: the stored reference belongs to {Origin}, not to this environment's "
+            + "bucket '{BucketName}'. The remote object was left untouched; key '{ObjectKey}'.",
+            operation,
+            origin,
+            _bucketName,
+            (url != null ? ExtractObjectKeyFromUrl(url) : null) ?? "(unparseable)");
+
+        return null;
     }
 
     /// <summary>
