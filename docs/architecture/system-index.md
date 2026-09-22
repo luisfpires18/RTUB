@@ -112,6 +112,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
 | `scripts/` | Operational helper scripts, run by hand. |
 | `scripts/smoke-azure-dev.sh` | Read-only Azure DEV smoke test: `/health`, CSP on HTML, no CSP on the service worker. Writes nothing. |
+| `scripts/resolve-dev-db-path.sh` | Validates rtub-dev's `ConnectionStrings__SqliteConnection` and emits the Kudu path of the file the app actually opens. Fails closed; `--self-test`. |
 | `scripts/package-azure-dev.sh` | Packages a publish tree for Azure Linux and rejects backslash separators — never use `Compress-Archive`. |
 
 ## Architecture decisions

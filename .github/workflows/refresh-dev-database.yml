@@ -9,7 +9,9 @@ name: Refresh Azure DEV database
 #     -> download to the runner            (immutable input, never written back)
 #     -> sanitize into a SEPARATE file     (tools/RTUB.DbSanitizer)
 #     -> validate the sanitized copy       (fails closed; nothing ships unverified)
-#     -> replace /home/site/data/rtub-dev.db on rtub-dev, keeping a rollback copy
+#     -> resolve the database file rtub-dev ACTUALLY opens, from its own
+#        ConnectionStrings__SqliteConnection - never a hardcoded file name
+#     -> replace that file on rtub-dev, keeping a rollback copy
 #     -> start rtub-dev and run the committed smoke checks
 #
 # PRODUCTION IS NEVER MUTATED. This workflow only ever issues a GET against the
@@ -51,12 +53,14 @@ jobs:
       group: refresh-dev-database
       cancel-in-progress: false
 
+    # DEV_DB_PATH is deliberately NOT defined here. It used to be, as a literal file
+    # name, which went stale the moment rtub-dev was re-pointed at a fresh database:
+    # the workflow then backed up and replaced an empty file the app never opened.
+    # It is now resolved from rtub-dev's own configuration by the "Resolve" step
+    # below and exported through $GITHUB_ENV. Do not add a default back.
     env:
       APP: rtub-dev
       GROUP: rtub_group
-      # Kudu's virtual file system is rooted at /home, so this is
-      # /home/site/data/rtub-dev.db - the DEV ConnectionStrings__SqliteConnection.
-      DEV_DB_PATH: site/data/rtub-dev.db
       BASE_URL: https://rtub-dev.azurewebsites.net
 
     steps:
@@ -118,8 +122,8 @@ jobs:
           set -euo pipefail
           dotnet run --project tools/RTUB.DbSanitizer --configuration Release -- \
             --source "$RUNNER_TEMP/snapshot.db" \
-            --destination "$RUNNER_TEMP/rtub-dev.db"
-          echo "Sanitized: $(stat -c%s "$RUNNER_TEMP/rtub-dev.db") bytes"
+            --destination "$RUNNER_TEMP/sanitized.db"
+          echo "Sanitized: $(stat -c%s "$RUNNER_TEMP/sanitized.db") bytes"
 
       # ----------------------------------------------------------------------
       # 3. Azure DEV. Same OIDC identity ci.yml's deploy-dev job uses.
@@ -130,6 +134,50 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Which SQLite file rtub-dev opens is decided by rtub-dev's own
+      # ConnectionStrings__SqliteConnection and by nothing else, so that is what this
+      # reads. Runs BEFORE the stop: a missing, ambiguous or unexpected setting fails
+      # the run with rtub-dev still up and nothing touched.
+      - name: Resolve the DEV database path from rtub-dev's configuration
+        run: |
+          set -euo pipefail
+
+          # The validator first proves it still rejects every malformed shape, so it
+          # is never trusted in a broken state. Failures print on stderr.
+          bash scripts/resolve-dev-db-path.sh --self-test > /dev/null
+
+          # One value, selected server-side. The full settings list carries secrets and
+          # is never printed - and neither is the connection string itself.
+          connection_string=$(az webapp config appsettings list \
+            --name "$APP" --resource-group "$GROUP" \
+            --query "[?name=='ConnectionStrings__SqliteConnection'].value | [0]" \
+            --output tsv)
+          if [ -n "$connection_string" ]; then
+            echo "::add-mask::$connection_string"
+          fi
+
+          # An entry of the same name on the Connection strings blade reaches the app as
+          # the SAME configuration key, and which of the two wins is not defined. If both
+          # exist we cannot know which file the app opens, so refuse. Only a count is
+          # read back - never a value.
+          shadowing=$(az webapp config connection-string list \
+            --name "$APP" --resource-group "$GROUP" \
+            --query "length([?name=='SqliteConnection'])" \
+            --output tsv)
+          if [ "$shadowing" != "0" ]; then
+            echo "::error::rtub-dev also defines 'SqliteConnection' on its Connection strings blade, so the database it opens is ambiguous. Remove one of the two."
+            exit 1
+          fi
+
+          # Fails closed unless the value is exactly Data Source=/home/site/data/<file>.db.
+          # Passed through the environment, never an argument.
+          dev_db_path=$(SQLITE_CONNECTION_STRING="$connection_string" bash scripts/resolve-dev-db-path.sh)
+
+          # Safe to append: the validator only ever emits site/data/<allow-listed name>.db,
+          # so no newline can smuggle a second variable into $GITHUB_ENV.
+          echo "DEV_DB_PATH=$dev_db_path" >> "$GITHUB_ENV"
+          echo "DEV database: /home/$dev_db_path"
 
       # SQLite must not be open while its file is swapped underneath it. Stopping
       # also flushes and checkpoints whatever WAL the running app still holds.
@@ -149,6 +197,10 @@ jobs:
       - name: Replace the DEV database
         run: |
           set -euo pipefail
+
+          # Resolved by the step above and nowhere else. Unset or empty would turn every
+          # VFS call below into one against the /home root, so refuse outright.
+          : "${DEV_DB_PATH:?DEV_DB_PATH was not resolved - refusing to touch the DEV database}"
 
           TOKEN=$(az account get-access-token --query accessToken -o tsv)
           echo "::add-mask::$TOKEN"
@@ -179,7 +231,7 @@ jobs:
           # 3b. The one destructive moment. Flagged BEFORE it runs so a failure
           #     part-way through still triggers the rollback step below.
           echo "replacement_started=1" >> "$GITHUB_ENV"
-          kudu PUT "$DEV_DB_PATH" -T "$RUNNER_TEMP/rtub-dev.db"
+          kudu PUT "$DEV_DB_PATH" -T "$RUNNER_TEMP/sanitized.db"
           echo "Replaced /home/${DEV_DB_PATH}"
 
           # 3c. The old -wal/-shm describe pages of a database that no longer
@@ -194,6 +246,7 @@ jobs:
         if: failure() && env.replacement_started == '1' && env.rollback_available == '1'
         run: |
           set -euo pipefail
+          : "${DEV_DB_PATH:?DEV_DB_PATH was not resolved - refusing to touch the DEV database}"
 
           TOKEN=$(az account get-access-token --query accessToken -o tsv)
           echo "::add-mask::$TOKEN"
@@ -252,4 +305,4 @@ jobs:
       # here is ever uploaded as an artifact.
       - name: Remove the local database copies
         if: always()
-        run: rm -f "$RUNNER_TEMP/snapshot.db" "$RUNNER_TEMP/rtub-dev.db" "$RUNNER_TEMP/rollback.db"
+        run: rm -f "$RUNNER_TEMP/snapshot.db" "$RUNNER_TEMP/sanitized.db" "$RUNNER_TEMP/rollback.db"
