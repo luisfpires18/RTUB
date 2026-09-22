@@ -180,6 +180,11 @@ DocProject/Help/html
 # Click-Once directory
 publish/
 publish2/
+# Local `dotnet publish -o` output. A linux-x64 publish is ~270 MB.
+publish-linux/
+# Hand-built deployment packages and downloaded App Service logs.
+rtub-dev.zip
+rtub-dev-logs.zip
 
 # Publish Web Output
 *.[Pp]ublish.xml
