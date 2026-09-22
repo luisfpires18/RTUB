@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +23,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly AuditContext _auditContext;
     private readonly int _urlExpirationMinutes;
+    private readonly IReferenceStorageService? _referenceStorage;
     private const int S3_MAX_DELETE_BATCH_SIZE = 1000; // S3 allows max 1000 objects per delete batch
 
     public CloudflareDocumentStorageService(
@@ -32,12 +33,14 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         ILogger<CloudflareDocumentStorageService> logger,
         IDbContextFactory<ApplicationDbContext> contextFactory,
         AuditContext auditContext,
-        IOptions<StorageOptions>? storageOptions = null)
+        IOptions<StorageOptions>? storageOptions = null,
+        IReferenceStorageService? referenceStorage = null)
         : base(s3Client, configuration, hostEnvironment, logger)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
         _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
+        _referenceStorage = referenceStorage;
     }
 
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
@@ -60,12 +63,27 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             };
         }
 
-        return await GeneratePreSignedUrlAsync(documentPath, _urlExpirationMinutes, headerOverrides);
+        // Document paths are stored as keys, not URLs, and carry an environment segment
+        // ("docs/Production/..."). A DEV database cloned from production therefore points at keys
+        // the DEV bucket does not hold. Current bucket first, read-only production reference
+        // second; the reference is unconfigured in production, so nothing changes there.
+        var url = await GeneratePreSignedUrlAsync(documentPath, _urlExpirationMinutes, headerOverrides);
+        if (url != null || _referenceStorage == null)
+        {
+            return url;
+        }
+
+        return await _referenceStorage.GetPreSignedUrlAsync(
+            documentPath,
+            _urlExpirationMinutes,
+            headerOverrides.ContentType,
+            headerOverrides.ContentDisposition);
     }
 
     public async Task<bool> DocumentExistsAsync(string documentPath)
     {
-        return await ObjectExistsAsync(documentPath);
+        return await ObjectExistsAsync(documentPath)
+            || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(documentPath));
     }
 
     public async Task<List<string>> ListFoldersAsync(string prefix = "docs/")

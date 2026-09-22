@@ -376,10 +376,68 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Guards against a non-production environment being pointed at the production bucket.
+    /// </summary>
+    /// <remarks>
+    /// <c>appsettings.json</c> commits <c>Cloudflare:R2:Bucket</c> as the production bucket name,
+    /// so an environment that forgets to override it inherits production's bucket and every
+    /// upload and delete lands there. No per-object ownership check can catch that - the bucket
+    /// really is the one configured - so it is refused at startup instead, before any service can
+    /// be resolved. Production itself is never checked and is unaffected.
+    /// </remarks>
+    private static void GuardAgainstProductionBucket(IConfiguration configuration, IHostEnvironment environment)
+    {
+        if (environment.IsProduction())
+        {
+            return;
+        }
+
+        var bucket = configuration["Cloudflare:R2:Bucket"];
+        var productionBucket = configuration["Cloudflare:R2:ProductionBucket"];
+
+        if (string.IsNullOrWhiteSpace(bucket) || string.IsNullOrWhiteSpace(productionBucket))
+        {
+            return;
+        }
+
+        // Only an environment that can actually reach R2 is worth refusing. With no credential
+        // the S3 client cannot touch any bucket, production's included, so there is nothing to
+        // guard - which is what lets the integration-test host run on the committed settings.
+        //
+        // Deliberately a capability check, not an allow-list of environment names: exempting
+        // "Test" by name would exempt anything that called itself Test, credentials and all.
+        if (string.IsNullOrWhiteSpace(configuration["Cloudflare:R2:AccessKeyId"]) ||
+            string.IsNullOrWhiteSpace(configuration["Cloudflare:R2:SecretAccessKey"]))
+        {
+            return;
+        }
+
+        if (string.Equals(bucket.Trim(), productionBucket.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Environment '{environment.EnvironmentName}' is configured with Cloudflare:R2:Bucket = "
+                + "the production bucket. A non-production environment must have its own bucket: every "
+                + "upload and every delete it performs would otherwise be applied to production data. "
+                + "Set Cloudflare__R2__Bucket to this environment's own bucket.");
+        }
+    }
+
+    /// <summary>
     /// Registers storage services (images, audio, lyrics, documents)
     /// </summary>
-    public static IServiceCollection AddStorageServices(this IServiceCollection services)
+    public static IServiceCollection AddStorageServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
+        GuardAgainstProductionBucket(configuration, environment);
+
+        // Read-only view of the production bucket, for a non-production app running on a
+        // sanitized production snapshot. Always registered, but inert unless the environment is
+        // non-production AND a dedicated Cloudflare:R2:Reference:* credential is configured - so
+        // in production it holds no client and answers "not found" to everything.
+        services.AddSingleton<IReferenceStorageService, ReferenceStorageService>();
+
         services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
         services.AddScoped<IAudioStorageService, CloudflareAudioStorageService>();
         services.AddScoped<ILyricStorageService, CloudflareLyricStorageService>();

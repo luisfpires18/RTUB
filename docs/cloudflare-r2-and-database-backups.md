@@ -192,3 +192,332 @@ these Azure App Settings:
 `current.db` is a plain SQLite file. Download it, run `PRAGMA quick_check;` locally, stop
 the App Service, replace `app.db`, and delete any stale `app.db-wal` / `app.db-shm`
 sidecars before starting up again.
+
+## Refreshing Azure DEV from a sanitized production snapshot
+
+Manual, opt-in refresh of `rtub-dev` from the latest production backup, with credentials
+and push endpoints stripped on the way. Implemented by unit **029**.
+
+**Production is never mutated.** The pipeline issues exactly one request against the
+`rtub-db` bucket — a `GET` of `database/current.db` — and nothing else. It does not write
+to the bucket, does not connect to the live production SQLite file, and does not touch the
+production App Service.
+
+```
+rtub-db/database/current.db   (read-only GET, immutable input)
+  -> $RUNNER_TEMP/snapshot.db        never opened read-write; fingerprinted before and after
+  -> $RUNNER_TEMP/rtub-dev.db        a SEPARATE file: copy, then sanitize, then validate
+  -> /home/site/data/rtub-dev.db     app stopped, rollback copy kept, sidecars removed
+  -> start + poll /health + scripts/smoke-azure-dev.sh
+```
+
+### Source
+
+`database/current.db` in the private `rtub-db` bucket — the object
+`DatabaseBackupBackgroundService` promotes once a snapshot has passed `quick_check`, the
+size-ratio check and an uploaded-byte-count check. `previous.db` and `incoming.db` are not
+read. Nothing is written back.
+
+The workflow's R2 credential must be a **dedicated read-only token scoped to `rtub-db`**.
+It is deliberately not the credential the backup service runs with: that one can write, and
+a read-only token makes "production is never mutated" a property of the credential rather
+than of the code.
+
+### Sanitization contract
+
+`DatabaseSanitizer` (`src/RTUB.Application/Services/DatabaseSanitizer.cs`), driven by
+`tools/RTUB.DbSanitizer`. The source is opened `SqliteOpenMode.ReadOnly`, copied, and only
+the copy is written to. Running with `--source` equal to `--destination` is refused.
+
+Before anything is copied, the source must:
+
+| Check | |
+|---|---|
+| exist and be non-empty | a zero-byte file is a *valid empty* SQLite database, so size is its own check |
+| open as SQLite | |
+| `PRAGMA quick_check` | `ok` |
+| carry `AspNetUsers`, `PushSubscriptions`, `__EFMigrationsHistory` | absence means it is not an RTUB database |
+| contain at least one user | |
+
+Then, in one transaction against the copy:
+
+| | Change |
+|---|---|
+| **A** | every `PushSubscriptions` row deleted |
+| **B** | `Email` = `{UserName}@rtub.pt`; `NormalizedEmail` = the `UpperInvariantLookupNormalizer` form of it |
+| **C** | `PasswordHash` = `PasswordHasher<ApplicationUser>.HashPassword(…)` of the configured DEV password — computed per user, so every row has its own salt. No hash is hardcoded or copied between rows. `SecurityStamp` rotated, which is what invalidates any cookie minted against production. |
+| **D** | everything else preserved. Real names, finances, events, rehearsals, inventory and the migration history all survive — realistic DEV testing is the point. |
+
+A user with no usable `UserName` cannot have a DEV address derived for it, so it is
+**stripped** rather than left alone: `Email`, `NormalizedEmail` and `PasswordHash` are set
+to `NULL`. A null `PasswordHash` is an account that cannot sign in. Keeping the production
+address would leak it into DEV.
+
+`PRAGMA journal_mode=DELETE` is applied to the copy so the artifact carries no `-wal`/`-shm`
+sidecar. `SqliteConnectionInterceptor` puts the database back into WAL on first use in the app.
+
+After sanitizing, the copy must pass, or the run fails and the output file is deleted:
+
+- `PRAGMA quick_check` = `ok`
+- `PushSubscriptions` count == 0
+- users still exist; `__EFMigrationsHistory` still populated
+- every usable user carries the expected `@rtub.pt` email and the matching `NormalizedEmail`
+- every usable user's stored hash verifies against the DEV password through `PasswordHasher`
+- **no** user still carries the password hash it had in the snapshot
+- the source's SHA-256 and length are unchanged from before the run
+
+**Fails closed throughout.** A missing DEV password is rejected before the destination is so
+much as opened, and any failed check deletes the destination, so a half-sanitized database
+cannot be shipped.
+
+**Never logged**: the DEV password, any password hash, the R2 credentials, any production
+email address, or any other row content. Failure messages identify a bad row by its
+`AspNetUsers.Id` only.
+
+### Why not reuse `SeedData.ResetDevDataAsync`
+
+It applies the same contract, and it stays — see below. But it runs through EF Core and
+`UserManager`, which requires the database's schema to match the **current** model. A
+production snapshot is normally a few migrations behind `dev`, so an EF query against it
+throws `no such column` before it sanitizes anything. `DatabaseSanitizer` goes through raw
+ADO.NET and touches only columns that have existed since the initial migration, so it works
+against an older schema; the app's own startup migration then brings that schema forward.
+
+### Relationship to `DevelopmentDataReset` and to `SeedData`
+
+Three different things, all of which stay:
+
+| | What it produces | When |
+|---|---|---|
+| `SeedData` full dataset (`SeedData:SeedFullDataset`) | a **synthetic** DEV database: invented members from `SeedData:MemberPassword` | fresh/empty database, first startup |
+| `DevelopmentDataReset` (`DevelopmentDataReset:Enabled`) | sanitizes **in place, at startup**, in Development or Staging | opt-in, one deliberate reset |
+| Unit 029 refresh (this section) | **real production data**, sanitized before it ever reaches Azure | manual workflow run |
+
+After a 029 refresh, `DevelopmentDataReset__Enabled` should stay **off** on `rtub-dev`: the
+database arrives already sanitized, and leaving the switch on would re-hash every user on
+every cold start of an App Service that sleeps after 20 idle minutes. It is not removed — it
+is still the only way to sanitize a synthetic DEV database, or to re-sanitize one in place
+without a workflow run. Nothing in the workflow reads or writes App Service settings, so
+this is an owner action, once.
+
+### Replacing the DEV database
+
+`ConnectionStrings__SqliteConnection` on `rtub-dev` is
+`Data Source=/home/site/data/rtub-dev.db`, on the Azure Files share.
+
+1. `az webapp stop` — SQLite must not be open while the file is swapped, and stopping
+   checkpoints whatever WAL the running app holds.
+2. `GET` the current DEV database through Kudu's VFS API and `PUT` it back as
+   `rtub-dev.db.rollback`, on the same share. Deliberately not a workflow artifact: it is a
+   whole database.
+3. `PUT` the sanitized file over `rtub-dev.db`. This is the only destructive moment, and it
+   is flagged before it runs so a partial write still triggers the rollback step.
+4. `DELETE` `rtub-dev.db-wal` and `rtub-dev.db-shm`. They describe pages of a database that
+   no longer exists; SQLite would otherwise try to recover them into the new file.
+5. `az webapp start`, then poll `/health` (the first boot migrates the snapshot forward,
+   which is slow and is the intended path), then `scripts/smoke-azure-dev.sh` with
+   `SKIP_AZ=1`.
+
+**Rollback.** If the replacement fails, the workflow `PUT`s `rollback.db` back, clears the
+sidecars and starts the app again. By hand afterwards: `PUT`
+`/home/site/data/rtub-dev.db.rollback` over `rtub-dev.db` through the same VFS endpoint,
+delete the sidecars, restart. A `.rollback` file is left behind by every run and is
+overwritten by the next one.
+
+**Kudu VFS, not `/api/command`.** `PUT`/`GET`/`DELETE` on `…scm.azurewebsites.net/api/vfs/`
+is the documented single-file API and invokes no shell on the App Service. `If-Match: *` is
+required on write; `Expect:` is cleared because Kudu does not answer the 100-continue that
+curl sends for a large body. Authentication is the OIDC managed identity's own ARM token
+(`az account get-access-token`), masked in the log — no publish profile and no Basic Auth
+publishing credential, which stay off on `rtub-dev`.
+
+> **Not yet exercised against the live App Service.** Kudu VFS requires
+> `Microsoft.Web/sites/publish/Action` on `rtub-dev`, which `Website Contributor` grants
+> through `Microsoft.Web/sites/*` — but the `rtub-dev-deploy` identity has not actually made
+> a VFS call yet. If the first run returns 401/403, the smallest fix is a role assignment
+> carrying that single action on the `rtub-dev` site, **not** broadening the identity to
+> subscription or resource-group `Contributor`.
+
+### Required secret and variable NAMES
+
+Names only. No value belongs in this repository, and none is created by this unit.
+
+| Name | Kind | Holds |
+|---|---|---|
+| `R2_DB_ENDPOINT` | secret | `https://<account-id>.r2.cloudflarestorage.com`. A **secret**, not a variable: it embeds the Cloudflare account id. |
+| `R2_DB_READONLY_ACCESS_KEY_ID` | secret | Read-only token scoped to `rtub-db` |
+| `R2_DB_READONLY_SECRET_ACCESS_KEY` | secret | ditto |
+| `DEV_DATABASE_PASSWORD` | secret | Password every DEV account is reset to |
+| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID` | variables | Already present on the `development` environment from unit 027 |
+
+The bucket (`rtub-db`) and key (`database/current.db`) are not secrets and are in the
+workflow.
+
+### Rules
+
+- **Manual only.** `.github/workflows/refresh-dev-database.yml` triggers on
+  `workflow_dispatch` alone — no `push`, no `pull_request`, no `schedule` — and requires the
+  word `REFRESH` to be typed as an input.
+- **No production database, sanitized or otherwise, is ever committed.** `.gitignore`
+  covers `*.db`, `*.db-wal` and `*.db-shm`; the workflow deletes its local copies on exit
+  and uploads no database artifact.
+- **Azure DEV still holds real personal data after sanitization.** Only credentials and push
+  endpoints are removed; names, finances and history are deliberately kept. Treat `rtub-dev`
+  access as production-equivalent, and never give it production R2 or backup credentials.
+
+## Storage ownership: DEV running on a production snapshot
+
+A DEV database refreshed from a sanitized production snapshot is full of **absolute production R2
+URLs**, because the sanitizer preserves them byte-for-byte (see *Sanitization contract*). DEV must
+keep reading them and must never write over or delete the objects behind them.
+
+### The invariant
+
+> **An environment may only delete or overwrite an object in its own bucket.**
+>
+> Read access to another environment's objects is allowed. Write and delete are not, whatever the
+> database says.
+
+Enforced by two independent mechanisms. Either one alone stops a production mutation; neither
+relies on the credential being incapable of it.
+
+| | Mechanism | Catches |
+|---|---|---|
+| 1 | `GuardAgainstProductionBucket` in `AddStorageServices` | The whole environment being pointed at the production bucket |
+| 2 | `StorageOriginResolver` via `BaseCloudflareStorageService.ResolveDeletableKey` | An individual delete aimed at an object this environment does not own |
+
+### 1. The bucket guard
+
+`appsettings.json` commits `Cloudflare:R2:Bucket` as `rtub` — **the production bucket** — so an
+environment that forgets to override it inherits production's bucket and every upload and delete
+lands there. No per-object check can catch that: the bucket genuinely is the one configured.
+
+`AddStorageServices` therefore refuses to build the container when **all** of these hold:
+
+- the environment is not `Production`, **and**
+- `Cloudflare:R2:Bucket` equals `Cloudflare:R2:ProductionBucket` (committed alongside it), **and**
+- an R2 credential is actually configured.
+
+The credential condition is what lets the integration-test host boot on the committed settings:
+with no credential the S3 client cannot reach any bucket, so there is nothing to refuse. It is a
+capability check rather than an allow-list of environment names — anything calling itself `Test`
+while holding real credentials is still refused.
+
+Production is never checked, so it cannot be stopped from starting by this guard.
+
+### 2. The per-object ownership check
+
+`StorageObjectOrigin` classifies a stored URL by comparing its normalized `scheme://host[:port]`
+against the configured origins:
+
+| Origin | Meaning | Delete |
+|---|---|---|
+| `CurrentEnvironment` | under `Cloudflare:R2:PublicUrl` | **permitted** |
+| `ProductionReference` | under `Cloudflare:R2:ReferencePublicUrl` | refused |
+| `External` | any other host | refused |
+| `Unknown` | not an absolute http/https URL at all | refused — **fail closed** |
+
+Every delete-by-URL path now calls `ResolveDeletableKey` instead of `ExtractObjectKeyFromUrl`.
+The latter reads the URL's *path* and ignores its *host*, so on a cloned database it happily
+returned a production key. A refusal logs at Warning (object key only, never the full URL — no
+foreign host reaches the log) and the caller drops the database reference without issuing any
+remote call.
+
+Production is unaffected: its stored URLs sit under its own public origin, so they resolve to
+`CurrentEnvironment` and `ResolveDeletableKey` returns exactly what `ExtractObjectKeyFromUrl`
+always did. Production configures no reference origin at all.
+
+`StorageOriginResolver` is built inside `BaseCloudflareStorageService` from the `IConfiguration`
+it already receives, so **no constructor and no DI registration of the eleven media services
+changed.**
+
+### Replacing a production-backed file in DEV
+
+1. the production object is left untouched — no delete is issued;
+2. the replacement is uploaded to the DEV bucket;
+3. the database row is updated to the DEV public URL.
+
+The old production URL simply stops being referenced. Inherited URLs are **never rewritten** to
+DEV URLs as a batch operation.
+
+### Public media
+
+Public files are served straight from their absolute URL and need no credential. The only thing
+that had to change is the **CSP**: `img-src`/`media-src` previously admitted just
+`Cloudflare:R2:PublicUrl`, so inherited production media was blocked in DEV.
+
+`Cloudflare:R2:ReferencePublicUrl` adds **one exact origin**, to `img-src` and `media-src` only —
+never to `script-src`, `connect-src`, `frame-src` or `default-src`. It goes through the same
+`NormalizeOrigin` as every other configured source, so a wildcard, a non-http scheme, injected
+header text or a bare host all contribute nothing rather than something permissive. It is dropped
+when it duplicates the environment's own origin.
+
+Production sets no such key, so its policy is byte-identical to what unit 025 shipped — pinned by
+a test.
+
+`CdnProxyController` needed no change: it takes a *path*, not a URL, and always prefixes the
+current environment's `PublicUrl`, so it can only ever fetch from this environment's bucket.
+
+### Private files
+
+Pre-signed paths are the case where reading a production object genuinely needs a credential.
+Three are affected, and the problem is real, not theoretical:
+
+| | Stored as | Why DEV misses it |
+|---|---|---|
+| Documents | object **key**, `docs/{Environment}/…` | the key carries `Production`, which the DEV bucket does not hold |
+| Album audio | derived key, `albums/{album}/{song}.mp3` | **no environment segment** — same key in both buckets |
+| Lyric PDFs | derived key, `lyrics/{album}/{song}.pdf` | **no environment segment** |
+
+`IReferenceStorageService` is the read-only path. It has **no** upload, delete, copy or move
+member, and `ReferenceStorageService` deliberately does **not** derive from `BaseStorageService`
+— that base carries `PutObjectAsync`, `DeleteObjectAsync`, `DeleteObjectsBatchAsync` and
+`CopyObjectAsync`, and inheriting it would put all four on a type whose entire purpose is that it
+cannot mutate production. It calls exactly two S3 operations, `GetObjectMetadata` and
+`GetPreSignedURL` (always `HttpVerb.GET`), and there is no third.
+
+Two gates keep it off: it refuses to configure itself when the environment **is Production**, and
+it needs all four of `Cloudflare:R2:Reference:{AccountId,AccessKeyId,SecretAccessKey,Bucket}`.
+Unconfigured it builds no S3 client at all and answers "not found" to everything.
+
+Reads try the current bucket first and fall back to the reference. The normal storage services
+keep read/write/delete against **this environment's bucket only** — nothing was given generic
+write access to both buckets.
+
+> The reference credential must be a **read-only token scoped to the production bucket**. Never
+> the production application's own write token.
+
+Receipts needed nothing: they are public URLs, covered by the CSP reference origin.
+
+### Required configuration NAMES
+
+Names only; no value belongs in this repository.
+
+| Name | Where | Holds |
+|---|---|---|
+| `Cloudflare:R2:ProductionBucket` | committed (`appsettings.json`) | Production bucket name, for the guard to compare against. Not a secret — `Cloudflare:R2:Bucket` was already committed. |
+| `Cloudflare:R2:ReferencePublicUrl` | DEV/Staging only | Production public base URL. Environment-specific, so it is configured on the App Service, never committed. |
+| `Cloudflare:R2:Reference:AccountId` | DEV/Staging only | Production account id |
+| `Cloudflare:R2:Reference:AccessKeyId` | DEV/Staging only | **Read-only** token scoped to the production bucket |
+| `Cloudflare:R2:Reference:SecretAccessKey` | DEV/Staging only | ditto |
+| `Cloudflare:R2:Reference:Bucket` | DEV/Staging only | Production bucket name |
+
+`rtub-dev` must also carry its **own** `Cloudflare__R2__Bucket`; the bucket guard refuses to start
+otherwise.
+
+### Future contract — Owner Storage Maintenance page
+
+**Not implemented.** Recorded here so it is built to the same invariant. It should reuse the
+existing `BaseStorageService.ListObjectsAsync` and `DeleteObjectsBatchAsync`.
+
+**Production**
+- orphan scan compares production bucket objects against **production** database references;
+- deletion may affect production objects only after explicit Owner confirmation.
+
+**DEV**
+- orphan scan compares DEV bucket objects against **DEV-owned** database references only — a
+  reference is DEV-owned when `StorageOriginResolver.Resolve` returns `CurrentEnvironment`;
+- inherited `ProductionReference` rows are **excluded from DEV orphan calculations entirely**.
+  Counting them would report every production object as a DEV orphan;
+- "Delete all DEV files" operates on the DEV bucket only, and must never enumerate or delete
+  production as part of that action.

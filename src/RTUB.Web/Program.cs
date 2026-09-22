@@ -185,7 +185,7 @@ public class Program
         services.AddFinanceServices();
         services.AddBettingServices();
         services.AddEmailServices();
-        services.AddStorageServices();
+        services.AddStorageServices(builder.Configuration, builder.Environment);
         services.AddDatabaseBackupServices(builder.Configuration);
         services.AddMemberQueryServices();
         services.AddMemberServices();

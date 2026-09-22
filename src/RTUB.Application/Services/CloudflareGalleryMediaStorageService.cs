@@ -99,11 +99,21 @@ public class CloudflareGalleryMediaStorageService : BaseCloudflareStorageService
 
     public async Task DeleteMediaAsync(string mediaUrl)
     {
+        // Ownership check, not a bare key extraction: on a DEV database cloned from production
+        // this URL can point at the production bucket, which this environment must never delete
+        // from. Anything not owned here is refused (and logged) and the reference is dropped.
+        //
+        // This also replaces a `mediaUrl.Replace($"{_publicUrl}/", "")`, which silently produced
+        // the whole absolute URL as the "key" whenever the URL was not under _publicUrl - exactly
+        // the inherited-production case - and then issued a delete with it.
+        var key = ResolveDeletableKey(mediaUrl, nameof(DeleteMediaAsync));
+        if (string.IsNullOrEmpty(key))
+        {
+            return;
+        }
+
         try
         {
-            // Extract key from URL
-            var key = mediaUrl.Replace($"{_publicUrl}/", "");
-
             var request = new DeleteObjectRequest
             {
                 BucketName = _bucketName,
