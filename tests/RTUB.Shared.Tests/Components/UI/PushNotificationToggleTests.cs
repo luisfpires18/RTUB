@@ -409,22 +409,28 @@ public class PushNotificationToggleTests : BunitContext
     }
 
     /// <summary>
-    /// The PROD failure mode against the REAL JSRuntime timeout logic, scaled down: the default timeout
-    /// is 50 ms (production: 60 s) and setPushSubscription never answers. A token-less call is cancelled
-    /// after 50 ms; this one must still be pending - switch disabled, no error - many timeouts later, and
-    /// end quietly only when the component is disposed.
+    /// The PROD failure mode against the REAL JSRuntime timeout logic, with no clock: the toggle boots
+    /// with no default timeout, then the default timeout is set to zero - a zero-delay
+    /// CancellationTokenSource is born cancelled, so from then on every token-less call is timed out
+    /// before it is sent (production's 60 s, already elapsed). setPushSubscription never answers; the
+    /// component's call must still be pending - switch disabled, no error - and end quietly only when
+    /// the component is disposed.
     /// </summary>
     [Fact]
     public async Task PendingSubscribe_OutlivesTheJsInteropDefaultTimeout_UntilDisposed()
     {
-        // Arrange
-        Services.AddSingleton<IJSRuntime>(new BrowserThatNeverAnswersSubscribe(defaultTimeout: TimeSpan.FromMilliseconds(50)));
+        // Arrange - the boot calls carry no timeout, so a slow runner cannot cancel them
+        var browser = new BrowserThatNeverAnswersSubscribe();
+        Services.AddSingleton<IJSRuntime>(browser);
         var cut = Render<PushNotificationToggle>();
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
+        browser.ExpireDefaultTimeout();
+        browser.InvokeAsync<bool>("pwaHelper.setPushSubscription", true).AsTask().IsCanceled.Should().BeTrue(
+            "control: the same call WITHOUT a token is now timed out before it reaches the browser");
+
         // Act
         Switch(cut).Change(true);
-        await Task.Delay(TimeSpan.FromMilliseconds(500)); // ten default timeouts
 
         // Assert - still waiting on the browser
         Switch(cut).HasAttribute("disabled").Should().BeTrue("the browser has not answered; the request is still running");
@@ -507,7 +513,8 @@ public class PushNotificationToggleTests : BunitContext
     /// </summary>
     private sealed class BrowserThatNeverAnswersSubscribe : JSRuntime
     {
-        public BrowserThatNeverAnswersSubscribe(TimeSpan defaultTimeout) => DefaultAsyncTimeout = defaultTimeout;
+        /// <summary>From now on every call made without a token has already timed out.</summary>
+        public void ExpireDefaultTimeout() => DefaultAsyncTimeout = TimeSpan.Zero;
 
         protected override void BeginInvokeJS(long taskId, string identifier, string? argsJson, JSCallResultType resultType, long targetInstanceId)
         {
