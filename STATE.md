@@ -3,13 +3,23 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-22_
+_Last updated: 2026-09-23_
 
 ## Phase
-**Unit 030 - production release pipeline.** Repository work (S1-S6) is **complete, uncommitted, on
-`chore/030/production-release-pipeline`** (branched from `dev` at `b9288ef0`), awaiting owner review.
-**No Azure resource, GitHub setting or production app was changed.** The production path goes live
-only through the owner actions below, then a `dev → master` merge.
+**Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
+`8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
+goes live only through the owner actions below, then a `dev → master` merge.
+
+**Open: `fix/030/ios-pwa-media-association`** (from `dev` @ `8bc9b61d`, uncommitted). iPhone PWA: the
+lock-screen card shows RTUB's song, but tapping it can open another installed web app (LoreX). Most
+likely iOS/WebKit Home Screen routing behaviour: RTUB-side identity and navigation causes were checked
+and excluded. RTUB's manifest `id` `/` resolves to its own origin root, which LoreX (another origin,
+`id` `/app`) cannot share; one manifest, one service-worker registration, one Apple title. `id` kept:
+under the manifest spec a different id describes a distinct app, not a replacement for existing
+installs. Fixed here: the album player's lock-screen session is released on ✕ and on leaving the page,
+and bound again to each new `<audio>` (it used to stay on the removed one). Tests: identity contract in
+`PwaManifestTests` (+2), lifecycle in `SongsPageTests` (+2). Next: owner DEV check on an iPhone, then
+PR → `dev`, before step 14.
 
 ## Where things are
 | Topic | Doc |
@@ -56,7 +66,8 @@ only through the owner actions below, then a `dev → master` merge.
   expect a commit that is not deployed.
 
 ## Owner actions - in this order
-Nothing below has been done. Items 1-11 do not touch the running production app; 12 restarts it.
+As of 2026-09-22 nothing below had been done; step 1's merge has since landed (PR #203). Items 1-11 do
+not touch the running production app; 12 restarts it.
 
 1. Review, commit, PR `chore/030/production-release-pipeline` → `dev`, merge. **Deploy • DEV** runs the
    new path: check it is green and `https://rtub-dev.azurewebsites.net/api/version` shows
@@ -116,6 +127,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by fix/030 (iOS media association):
+- `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and
+  `apple-mobile-web-app-status-bar-style` from `App.razor` (identical values, harmless).
+
 Raised by 030:
 - `UpdateCardStatusEnumValues` and `NerbaOrderEventRequired` migration classes have no `[Migration]`
   attribute, so EF has never run them anywhere. Both hold destructive SQL; do not "fix" them by adding

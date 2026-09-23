@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -88,6 +90,42 @@ public class PwaManifestTests : IntegrationTestBase
         content.Should().Contain("\"categories\"", "manifest should contain categories field for better discoverability");
     }
 
+    /// <summary>
+    /// The manifest id is the installed app's identity, and the spec resolves it against the
+    /// start_url's origin: "/" already means "https://&lt;RTUB host&gt;/", unique to RTUB and never
+    /// equal to an app on another origin. It has shipped since #452 (2025-12), so installed copies
+    /// know RTUB by exactly this URL; any other id - or none, which falls back to start_url
+    /// "/?utm_source=pwa" - describes a distinct application under the spec, not a replacement for
+    /// the installed one. fix/030 (iOS Now Playing card opening another web app) checked it and kept
+    /// it: RTUB-side identity causes were excluded; that routing is most likely iOS/WebKit behaviour.
+    /// </summary>
+    [Fact]
+    public async Task Manifest_IdentityIsTheOriginRoot_AndStartUrlIsInScope()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/manifest.webmanifest");
+        using var manifest = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var json = manifest.RootElement;
+
+        // Resolve as the manifest spec does: start_url and scope against the manifest URL,
+        // id against the start_url's origin, a missing id falling back to start_url.
+        var manifestUrl = response.RequestMessage!.RequestUri!;
+        var origin = new Uri(manifestUrl, "/");
+        var startUrl = new Uri(manifestUrl, json.GetProperty("start_url").GetString());
+        var scope = new Uri(manifestUrl, json.GetProperty("scope").GetString());
+        var id = json.TryGetProperty("id", out var idValue) && !string.IsNullOrEmpty(idValue.GetString())
+            ? new Uri(new Uri(startUrl, "/"), idValue.GetString())
+            : startUrl;
+
+        // Assert
+        id.Should().Be(origin,
+            "every installed RTUB already carries the origin root as its identity; under the manifest spec " +
+            "a different one describes a distinct application, not a replacement for the installed RTUB");
+        scope.Should().Be(origin, "RTUB owns its whole origin, matching the service worker scope '/'");
+        new Uri(startUrl, "/").Should().Be(origin, "a cross-origin start_url invalidates the manifest");
+        startUrl.AbsolutePath.Should().StartWith(scope.AbsolutePath, "start_url must be inside scope");
+    }
+
     [Fact]
     public async Task ServiceWorker_IsAccessible()
     {
@@ -168,6 +206,28 @@ public class PwaManifestTests : IntegrationTestBase
         response.IsSuccessStatusCode.Should().BeTrue();
         content.Should().Contain("<link rel=\"manifest\" href=\"/manifest.webmanifest\"",
             "home page should contain manifest link in head for Chrome/Android detection");
+    }
+
+    /// <summary>
+    /// One manifest and one apple-mobile-web-app-title per page, the title agreeing with the
+    /// manifest short_name, so RTUB declares a single identity and name to Safari and Chromium.
+    /// </summary>
+    [Fact]
+    public async Task HomePage_DeclaresOneManifestAndOneAppleTitleMatchingShortName()
+    {
+        // Arrange & Act
+        var html = await _client.GetStringAsync("/");
+        using var manifest = JsonDocument.Parse(await _client.GetStringAsync("/manifest.webmanifest"));
+        var shortName = manifest.RootElement.GetProperty("short_name").GetString();
+
+        // Assert
+        Regex.Matches(html, @"<link\b[^>]*\brel=""manifest""").Should().ContainSingle(
+            "HTML uses only the first manifest link in tree order; a second one is dead or a silent override");
+
+        var appleTitle = Regex.Matches(html, @"<meta\b[^>]*\bname=""apple-mobile-web-app-title""[^>]*>")
+            .Should().ContainSingle("RTUB declares one Apple web app title").Which.Value;
+        Regex.Match(appleTitle, @"\bcontent=""([^""]*)""").Groups[1].Value.Should().Be(shortName,
+            "the Apple web app title and the manifest short_name must name the same app");
     }
 
     [Fact]
