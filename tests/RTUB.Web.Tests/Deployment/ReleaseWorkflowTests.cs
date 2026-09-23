@@ -61,6 +61,28 @@ public class ReleaseWorkflowTests
         job.Should().Contain("release.sh bump-check");
     }
 
+    /// <summary>
+    /// Both version guards read the previous VERSION through <c>release.sh previous-version</c>,
+    /// which treats only a 404 at an existing commit (legacy master, before 2.0.0) as the first
+    /// versioned release and fails on anything else. The inline <c>gh api ... 2>/dev/null || true</c>
+    /// it replaced passed a 404's JSON body to bump-check as the previous version (PR #205), and
+    /// would have passed a network or 5xx failure off as a first release. Its behaviour is covered
+    /// by the release.sh self-test; this pins that both workflows use it, under <c>set -e</c>.
+    /// </summary>
+    [Theory]
+    [InlineData("ci.yml", "version-bump", "$BASE_SHA")]
+    [InlineData("deploy-prod.yml", "version", "$BEFORE")]
+    public void VersionGuards_ReadThePreviousVersionFailClosed(string workflow, string job, string reference)
+    {
+        var guard = Job(Read($".github/workflows/{workflow}"), job);
+
+        guard.Should().Contain("set -euo pipefail", "a failed read must stop the step before bump-check");
+        guard.Should().Contain($"previous=$(bash scripts/release.sh previous-version \"$REPO\" \"{reference}\")");
+        guard.Should().Contain("bash scripts/release.sh bump-check \"$previous\"");
+        guard.Should().NotContainAny(new[] { "gh api", "|| true", "2>/dev/null" },
+            "the previous VERSION is read only through the fail-closed reader");
+    }
+
     [Fact]
     public void DeployDev_RunsOnDevPushes_AfterCi_AndDeploysOnlyRtubDev()
     {

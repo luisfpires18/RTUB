@@ -1,8 +1,12 @@
 #!/bin/bash
 
-# Release building blocks for Deploy • DEV and Deploy • PROD. Local only: no Azure, no network.
+# Release building blocks for Deploy • DEV and Deploy • PROD. No Azure; the only network call is
+# previous-version's read-only GitHub API request (gh).
 #
 #   release.sh version                          print the root VERSION, validated byte for byte
+#   release.sh previous-version <owner/repo> <ref>
+#                                               print VERSION as of <ref> on GitHub; "-" when
+#                                               that commit has none (first versioned release)
 #   release.sh bump-check <previous> <new>      new must be a higher SemVer than previous
 #                                               (previous "-" = no earlier release)
 #   release.sh package <publish-dir> <zip>      zip a publish tree, then verify the zip
@@ -55,6 +59,30 @@ cmd_version() {
         die "VERSION must be a single line"
     fi
     echo "$content"
+}
+
+# The previous release's VERSION, read from GitHub. "-" only when GitHub answers 404 for VERSION
+# at a commit that exists: legacy master (before 2.0.0) has no VERSION, which makes this the first
+# versioned release. Every other failure - auth, rate limit, network, an unknown commit or
+# repository, an empty file - exits 1, so a failed read can never pass as a first release.
+cmd_previous_version() {
+    [ $# -eq 2 ] || { echo "usage: release.sh previous-version <owner/repo> <ref>" >&2; exit 2; }
+    local repo=$1 ref=$2 body err content not_found='HTTP 404([^0-9]|$)'
+    body=$(mktemp)
+    if err=$(gh api -H "Accept: application/vnd.github.raw+json" \
+            "repos/$repo/contents/VERSION?ref=$ref" 2>&1 >"$body"); then
+        content=$(tr -d '\r\n' < "$body")
+        rm -f "$body"
+        [ -n "$content" ] || die "VERSION at $ref is empty"
+        echo "$content"
+        return 0
+    fi
+    rm -f "$body"
+    [[ "$err" =~ $not_found ]] || { echo "$err" >&2; die "cannot read VERSION at $ref in $repo"; }
+    gh api --silent "repos/$repo/commits/$ref" >/dev/null 2>&1 ||
+        die "VERSION lookup answered 404 and $repo has no commit $ref either; not a first release"
+    echo "No VERSION at $ref: first versioned release" >&2
+    echo "-"
 }
 
 # 0 when $2 > $1 by SemVer precedence. Numeric per component - 1.10.0 > 1.9.0.
@@ -437,17 +465,68 @@ PY
     [[ "$out" == *"20250404000000_Third"* ]] && echo "  OK    names the migration that stays applied" \
         || { echo "  FAIL  schema-gate did not name the migration"; rc=1; }
 
+    echo "previous-version + bump-check, as both workflows run them (fake gh)"
+    mkdir -p "$tmp/bin"
+    cat > "$tmp/bin/gh" <<'GH'
+#!/bin/bash
+# The two reads previous-version makes. FAKE_GH picks the answer; FAKE_REF is the only commit.
+error() { echo "{\"message\":\"$1\",\"status\":\"$2\"}"; echo "gh: $1 (HTTP $2)" >&2; exit 1; }
+raw="api -H Accept: application/vnd.github.raw+json repos/o/r/contents/VERSION?ref="
+case "$*" in
+    "$raw$FAKE_REF")
+        case "$FAKE_GH" in
+            present)      printf '2.0.0\n' ;;
+            crlf)         printf '2.0.0\r\n' ;;
+            empty)        ;;
+            missing)      error "Not Found" 404 ;;
+            unauthorized) error "Bad credentials" 401 ;;
+            rate-limited) error "API rate limit exceeded" 403 ;;
+            server-error) echo "gh: HTTP 502" >&2; exit 1 ;;
+            offline)      echo "error connecting to api.github.com" >&2; exit 1 ;;
+            *)            echo "fake gh: unknown FAKE_GH '$FAKE_GH'" >&2; exit 90 ;;
+        esac ;;
+    "$raw"*)                                    error "No commit found for the ref" 404 ;;
+    "api --silent repos/o/r/commits/$FAKE_REF") ;;
+    "api --silent repos/o/r/commits/"*)         error "No commit found for SHA" 422 ;;
+    *) echo "fake gh: unexpected call: $*" >&2; exit 91 ;;
+esac
+GH
+    chmod +x "$tmp/bin/gh"
+    # A real gh would read GitHub with this machine's credentials. Refuse to run a single case
+    # unless the fake resolves first, and leave a real one no token or login to use anyway.
+    export PATH="$tmp/bin:$PATH" GH_CONFIG_DIR="$tmp/gh-config" FAKE_REF="$sha"
+    unset GH_TOKEN GITHUB_TOKEN
+    [ "$(command -v gh)" = "$tmp/bin/gh" ] ||
+        die "self-test: fake gh does not resolve first on PATH ($(command -v gh)); aborting"
+
+    guard() { # answer new [ref]
+        local previous
+        previous=$(FAKE_GH=$1 bash "$0" previous-version o/r "${3:-$sha}") || return
+        bash "$0" bump-check "$previous" "$2"
+    }
+    expect "master without VERSION -> first release" 0 guard missing 2.0.0
+    expect "master on 2.0.0, new 2.0.1"              0 guard present 2.0.1
+    expect "master on 2.0.0, new 2.0.0 refused"      1 guard present 2.0.0
+    expect "master on 2.0.0 with CRLF, new 2.0.1"    0 guard crlf 2.0.1
+    expect "404 for an unknown commit refused"       1 guard missing 2.0.0 feedface
+    expect "HTTP 401 refused"                        1 guard unauthorized 2.0.0
+    expect "HTTP 403 (rate limit) refused"           1 guard rate-limited 2.0.0
+    expect "HTTP 502 refused"                        1 guard server-error 2.0.0
+    expect "no connection refused"                   1 guard offline 2.0.0
+    expect "empty VERSION refused"                   1 guard empty 2.0.0
+
     [ "$rc" -eq 0 ] && echo "release self-test PASSED" || echo "release self-test FAILED"
     exit "$rc"
 }
 
 case "${1:-}" in
     version)      shift; cmd_version "$@" ;;
+    previous-version) shift; cmd_previous_version "$@" ;;
     bump-check)   shift; cmd_bump_check "$@" ;;
     package)      shift; cmd_package "$@" ;;
     verify)       shift; cmd_verify "$@" ;;
     manifest)     shift; cmd_manifest "$@" ;;
     schema-gate)  shift; cmd_schema_gate "$@" ;;
     --self-test)  self_test ;;
-    *) sed -n '3,21p' "$0"; exit 2 ;;
+    *) sed -n '3,24p' "$0"; exit 2 ;;
 esac

@@ -37,6 +37,8 @@ jobs:
 
       # Fails fast - before a ten-minute build - when VERSION was not bumped. The archive
       # refuses a reused version anyway; this just says so earlier and more clearly.
+      # A previous commit without VERSION (legacy master) is the first versioned release;
+      # any other failure to read it fails this step (release.sh previous-version).
       - name: VERSION must be higher than the previous master commit's
         id: check
         env:
@@ -46,12 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           version=$(bash scripts/release.sh version)
-          previous=""
+          previous=-
           if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
-            previous=$(gh api -H "Accept: application/vnd.github.raw+json" \
-              "repos/$REPO/contents/VERSION?ref=$BEFORE" 2>/dev/null | tr -d '\r\n' || true)
+            previous=$(bash scripts/release.sh previous-version "$REPO" "$BEFORE")
           fi
-          bash scripts/release.sh bump-check "${previous:--}" "$version"
+          bash scripts/release.sh bump-check "$previous" "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   ci:
