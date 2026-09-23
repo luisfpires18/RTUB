@@ -1,47 +1,46 @@
-name: CI
+name: CI • Build & Test
+
+# Build and test only. Nothing here deploys.
+#
+#   pull_request -> dev / master   runs on its own, for the PR check
+#   workflow_call                  Deploy • DEV and Deploy • PROD run it first, on the exact
+#                                  commit they are about to package, and deploy only if it passes
+#
+# Branch model (docs/release-and-rollback.md):
+#   feat/fix/chore -> dev -> Deploy • DEV            (automatic)
+#   dev -> master         -> Deploy • PROD           (automatic; VERSION must go up)
+#   master -> dev         after every production release, and after every hotfix
+#   hotfix/* -> master    -> Deploy • PROD -> master back into dev
 
 on:
   pull_request:
-    branches: [main, master, dev]
-  push:
-    branches: [main, master, dev]
+    branches: [dev, master]
+  workflow_call:
 
-# Branch model (see STATE.md / CLAUDE.md "Git model"):
-#   work branch -> PR -> dev -> CI -> Azure DEV (rtub-dev)  [deploy-dev job below]
-#   dev         -> manual merge to master -> Azure PROD (rtub)  [build-and-test job]
-#
-# NOTE (production only, Azure-side prerequisite): Basic Auth Publishing
-# Credentials must be enabled on the PRODUCTION App Service (Portal ->
-# Configuration -> General settings -> "Basic Auth Publishing Credentials" =
-# On) BEFORE a publish profile can be downloaded/used. If this is off, the
-# publish-profile secret won't work even if it looks valid. The DEV deployment
-# does NOT use a publish profile - it authenticates with OIDC federation
-# against a user-assigned managed identity, so Basic Auth can stay off there.
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-
-      - name: Setup Node (for PixiJS bundle build during publish)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
       - name: Restore dependencies
         run: dotnet restore
 
+      # Also validates VERSION: Directory.Build.props fails the build unless it is
+      # MAJOR.MINOR.PATCH.
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
@@ -58,237 +57,42 @@ jobs:
             --coverage --coverage-output-format cobertura
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
           path: coverage/**/*.cobertura.xml
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
           path: coverage/**/*.trx
 
-      # Deploy only runs on a direct push to master (never on PRs), after
-      # build+test above have already passed in this same job.
-      - name: Publish
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: dotnet publish src/RTUB.Web/RTUB.csproj --no-restore --configuration Release --output ./publish
-        # dotnet publish's BeforePublish target runs `npm ci` + vite build for
-        # the Pixi bundles automatically; output dir contains only the
-        # framework-dependent runtime payload, not obj/ caches or NuGet/npm caches.
-
-      - name: Deploy to Azure App Service
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: rtub
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
-
-  # --------------------------------------------------------------------------
-  # Azure DEV / staging deployment. Runs ONLY on a direct push to dev, and only
-  # after build-and-test above has gone green on that same commit ("needs").
-  # Never runs on a pull request and never touches the production app.
-  #
-  # It re-publishes rather than reusing build-and-test's output on purpose: the
-  # publish/deploy steps in that job are guarded by refs/heads/master and are
-  # left byte-identical so this unit cannot regress the production path. The
-  # extra couple of minutes buys that isolation.
-  # --------------------------------------------------------------------------
-  deploy-dev:
-    name: Deploy to Azure DEV
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+  # A pull request into master is a release (dev -> master) or a hotfix. Either way it becomes
+  # a new production version, so VERSION must be higher than master's. Caught here, on the PR,
+  # instead of after a ten-minute build on master. Deploy • PROD checks again on the push.
+  version-bump:
+    name: VERSION is bumped
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
     runs-on: ubuntu-latest
-
-    # Holds the non-secret Azure identifiers (AZURE_CLIENT_ID, AZURE_TENANT_ID,
-    # AZURE_SUBSCRIPTION_ID). No approval gate: dev deploys automatically.
-    environment:
-      name: development
-      url: https://rtub-dev.azurewebsites.net
-
-    # id-token is what makes OIDC federation work. No publish profile, no
-    # client secret, nothing long-lived stored in the repository.
     permissions:
-      id-token: write
       contents: read
-
-    # Two dev pushes in quick succession would otherwise race each other into
-    # the same App Service. A second push queues behind the first instead.
-    # cancel-in-progress is deliberately FALSE: cancelling mid-upload would
-    # leave App Service holding a half-transferred package.
-    concurrency:
-      group: deploy-dev
-      cancel-in-progress: false
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          sparse-checkout: scripts
 
-      # Required, not optional: RTUB.csproj's BuildPixiTS target runs
-      # `npm ci --ignore-scripts` + `npm run build:pixi` on BeforePublish, so
-      # `dotnet publish` fails outright without Node on the runner.
-      # Node 22 is the repo's local toolchain version and satisfies vite 6 and
-      # cross-env 10. Node 20 went end-of-life in April 2026.
-      - name: Setup Node (PixiJS bundle build runs during publish)
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-
-      # RID-specific, but still framework-dependent: App Service supplies the
-      # .NET 10 runtime, we supply only linux-x64 assets.
-      #
-      # `-r linux-x64` is scoped to THIS step deliberately. There is no
-      # RuntimeIdentifier property in Directory.Build.props or any csproj, so
-      # Windows development and every test project are untouched.
-      #
-      # Two things it buys:
-      #   - The publish drops from ~330 MB to ~267 MB, because runtimes/ (22
-      #     RIDs, 72 MB of native assets for platforms this app will never run
-      #     on) disappears entirely.
-      #   - Native libraries land at the publish ROOT rather than under
-      #     runtimes/linux-x64/native/. That is the directory the host always
-      #     probes, and it removes the deep many-file subtree that a partial
-      #     deployment is most likely to truncate.
-      - name: Publish (linux-x64, framework-dependent)
+      - name: Compare with master
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          dotnet publish src/RTUB.Web/RTUB.csproj \
-            --configuration Release \
-            -r linux-x64 \
-            --self-contained false \
-            --output ./publish
-
-      # Deploy guard. RTUB calls QuestPDF.Settings at Program.cs:48, before any
-      # service is registered, so a missing libQuestPdfSkia.so is not a degraded
-      # feature - the container aborts with DllNotFoundException and exit 134.
-      # libe_sqlite3.so is the same class of dependency one step later.
-      #
-      # Checked against ./publish, relative to the workspace - no absolute path.
-      # Both layouts are accepted so this stays correct if the publish command
-      # above ever goes back to being RID-less.
-      - name: Verify Linux native assets are present
-        run: |
-          set -u
-          missing=0
-          for lib in libQuestPdfSkia.so libe_sqlite3.so; do
-            found=""
-            for candidate in "./publish/$lib" "./publish/runtimes/linux-x64/native/$lib"; do
-              [ -f "$candidate" ] && { found="$candidate"; break; }
-            done
-
-            if [ -z "$found" ]; then
-              echo "::error::$lib is missing from the publish output"
-              missing=1
-              continue
-            fi
-
-            if [ ! -s "$found" ]; then
-              echo "::error::$found is empty"
-              missing=1
-              continue
-            fi
-
-            if ! file -L "$found" | grep -q 'ELF 64-bit.*x86-64'; then
-              echo "::error::$found is not a linux-x64 ELF shared object"
-              file -L "$found"
-              missing=1
-              continue
-            fi
-
-            echo "  OK  $found ($(stat -c%s "$found") bytes)"
-          done
-          [ "$missing" -eq 0 ] || exit 1
-
-      # Static files are served from ./publish/wwwroot. If that directory does not
-      # reach the App Service, the app still starts and /health still answers 200 —
-      # it just logs "The WebRootPath was not found" and 404s every asset, which is
-      # exactly how unit 027's first working deployment failed. Assert the two files
-      # the PWA contract depends on, plus a floor on the asset count so a truncated
-      # copy is caught too.
-      - name: Verify wwwroot static assets are present
-        run: |
-          set -u
-          root=./publish/wwwroot
-
-          [ -d "$root" ] || { echo "::error::$root is missing from the publish output"; exit 1; }
-
-          missing=0
-          for asset in manifest.webmanifest service-worker.js offline.html; do
-            if [ -s "$root/$asset" ]; then
-              echo "  OK  wwwroot/$asset"
-            else
-              echo "::error::wwwroot/$asset is missing or empty"
-              missing=1
-            fi
-          done
-
-          count=$(find "$root" -type f | wc -l)
-          echo "  wwwroot file count: $count"
-          if [ "$count" -lt 500 ]; then
-            echo "::error::only $count files under wwwroot - expected several hundred, tree looks truncated"
-            missing=1
-          fi
-
-          [ "$missing" -eq 0 ] || exit 1
-
-      - name: Azure login (OIDC federated credential)
-        uses: azure/login@v3
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Azure DEV App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: rtub-dev
-          package: ./publish
-
-      # Deployment smoke test. Asserts the four deployment-visible contracts
-      # units 025 and 026 established, so a bad deploy fails the run rather
-      # than sitting there silently broken:
-      #   1. /health answers 200 anonymously - the app booted and can reach
-      #      SQLite. Polled, because a cold start is slow.
-      #   2. HTML documents still carry Content-Security-Policy.
-      #   3. /service-worker.js still carries NO CSP header. A CSP served with
-      #      a worker script governs the worker's own fetches and would break
-      #      the cross-origin caching the SW does.
-      #   4. The manifest is served.
-      #
-      # Headers are read with `-D -` on a normal GET rather than with `-I`:
-      # HEAD is not the request path a browser takes, and the CSP header is
-      # attached from OnStarting based on the response Content-Type.
-      - name: Smoke test
-        run: |
-          set -u
-          base=https://rtub-dev.azurewebsites.net
-
-          code=000
-          for _ in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/health") || code=000
-            [ "$code" = "200" ] && break
-            sleep 10
-          done
-          [ "$code" = "200" ] || { echo "::error::/health returned $code"; exit 1; }
-
-          curl -fsS -o /dev/null --max-time 30 "$base/login" \
-            || { echo "::error::/login unreachable"; exit 1; }
-          curl -fsS -o /dev/null --max-time 30 "$base/manifest.webmanifest" \
-            || { echo "::error::manifest unreachable"; exit 1; }
-
-          html_csp=$(curl -s -o /dev/null -D - --max-time 30 "$base/login" \
-            | grep -ci '^content-security-policy:' || true)
-          [ "$html_csp" -ge 1 ] || { echo "::error::no Content-Security-Policy on HTML"; exit 1; }
-
-          sw_csp=$(curl -s -o /dev/null -D - --max-time 30 "$base/service-worker.js" \
-            | grep -ci '^content-security-policy:' || true)
-          [ "$sw_csp" -eq 0 ] || { echo "::error::Content-Security-Policy present on /service-worker.js"; exit 1; }
-
-          echo "Smoke test passed against $base"
+          set -euo pipefail
+          new=$(bash scripts/release.sh version)
+          previous=$(gh api -H "Accept: application/vnd.github.raw+json" \
+            "repos/$REPO/contents/VERSION?ref=$BASE_SHA" 2>/dev/null | tr -d '\r\n' || true)
+          bash scripts/release.sh bump-check "${previous:--}" "$new"

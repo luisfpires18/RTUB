@@ -1,0 +1,192 @@
+name: Rollback • PROD
+
+# Manual only. Redeploys an ALREADY ARCHIVED production release - by its version, e.g. 2.0.0 -
+# to rtub, then proves that exact version and commit is the one answering. It never builds:
+# there is no .NET, no Node and no publish anywhere in this file. Also the way to redeploy the
+# current version (e.g. after switching run-from-package on).
+#
+# An app rollback never touches the database. If the live release applied migrations the target
+# does not know, this refuses unless you tick allow_newer_schema - read
+# docs/release-and-rollback.md first. A destructive migration needs a database restore instead.
+#
+#   gh workflow run rollback-prod.yml --ref master -f version=2.0.0 -f confirm=2.0.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Archived release to deploy, e.g. 2.0.0'
+        required: true
+        type: string
+      confirm:
+        description: 'Type the same version again'
+        required: true
+        type: string
+      allow_newer_schema:
+        description: 'Deploy even though the live database has migrations this release does not know (N-1 rule; see the runbook)'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Only list the archive and check the target; deploy nothing'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Deploy archived release to rtub
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://rtub.azurewebsites.net
+
+    permissions:
+      id-token: write
+      contents: read
+
+    # Shared with Deploy • PROD, so a rollback and a release never overlap.
+    concurrency:
+      group: production
+      cancel-in-progress: false
+
+    env:
+      BASE_URL: https://rtub.azurewebsites.net
+      RELEASE_STORAGE_ACCOUNT: ${{ vars.RELEASE_STORAGE_ACCOUNT }}
+
+    steps:
+      # Inputs travel through the environment, never interpolated into the script: `${{ }}`
+      # inside `run:` is pasted in as text, so a quote in an input would become shell.
+      - name: Check the request
+        env:
+          VERSION: ${{ inputs.version }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
+            { echo "::error::version must be MAJOR.MINOR.PATCH, e.g. 2.0.0"; exit 1; }
+          [ "$CONFIRM" = "$VERSION" ] ||
+            { echo "::error::confirm must repeat the version exactly ($VERSION)"; exit 1; }
+          [ "$GITHUB_REF" = "refs/heads/master" ] ||
+            { echo "::error::Run this from master (--ref master), not $GITHUB_REF"; exit 1; }
+          [ -n "$RELEASE_STORAGE_ACCOUNT" ] ||
+            { echo "::error::The production environment has no RELEASE_STORAGE_ACCOUNT variable"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Checkout scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts
+            .github
+
+      - name: Azure login (OIDC federated credential)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Archived releases
+        run: |
+          set -euo pipefail
+          bash scripts/release-archive.sh list | tee "$RUNNER_TEMP/archived.txt"
+
+      - name: Fetch ${{ inputs.version }} from the archive
+        id: target
+        run: |
+          set -euo pipefail
+          bash scripts/release-archive.sh get "$VERSION" "$RUNNER_TEMP/release"
+          manifest="$RUNNER_TEMP/release/release.json"
+          echo "commit=$(jq -r .commit "$manifest")" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(jq -r .sha256 "$manifest")" >> "$GITHUB_OUTPUT"
+          # Explicit comparison: jq's // would treat false itself as missing.
+          echo "legacy=$(jq -r 'if .versionEndpoint == false then "true" else "false" end' "$manifest")" >> "$GITHUB_OUTPUT"
+
+      - name: Read the live release
+        id: live
+        run: |
+          json=$(curl -s --max-time 30 "$BASE_URL/api/version" || true)
+          live=$(printf '%s' "$json" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+          echo "version=$live" >> "$GITHUB_OUTPUT"
+          echo "Live now: ${live:-<unknown: no /api/version>}"
+
+      # Fails closed: an unknown live release, or one whose migrations the target does not know,
+      # needs an explicit allow_newer_schema.
+      - name: Schema check against the live release
+        env:
+          LIVE: ${{ steps.live.outputs.version }}
+          ALLOW: ${{ inputs.allow_newer_schema }}
+        run: |
+          set -uo pipefail
+          if [ -z "$LIVE" ]; then
+            rc=5
+            echo "The live build does not report its version, so its migrations cannot be compared."
+          else
+            bash scripts/release-archive.sh manifest "$LIVE" "$RUNNER_TEMP/live.json"
+            rc=$?
+            if [ "$rc" -eq 0 ]; then
+              bash scripts/release.sh schema-gate "$RUNNER_TEMP/live.json" "$RUNNER_TEMP/release/release.json"
+              rc=$?
+            elif [ "$rc" -eq 4 ]; then
+              rc=5
+              echo "Live version $LIVE is not in the archive, so its migrations cannot be compared."
+            fi
+          fi
+          case "$rc" in
+            0) ;;
+            3|5)
+              if [ "$ALLOW" = "true" ]; then
+                echo "::warning::allow_newer_schema is set: deploying $VERSION anyway."
+              else
+                echo "::error::Refusing: re-run with allow_newer_schema only if the runbook's N-1 rule holds."
+                exit 1
+              fi ;;
+            *) exit "$rc" ;;
+          esac
+
+      - name: Dry run - nothing deployed
+        if: inputs.dry_run
+        env:
+          LIVE: ${{ steps.live.outputs.version }}
+        run: echo "Dry run. $VERSION is archived, verified and would be deployed over ${LIVE:-the live build}."
+
+      - name: Deploy and verify rtub
+        if: ${{ !inputs.dry_run }}
+        uses: ./.github/actions/deploy-and-verify
+        with:
+          app-name: rtub
+          package: ${{ runner.temp }}/release/rtub-${{ inputs.version }}.zip
+          expect-version: ${{ inputs.version }}
+          expect-commit: ${{ steps.target.outputs.commit }}
+          legacy: ${{ steps.target.outputs.legacy }}
+
+      - name: Summary
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          LIVE: ${{ steps.live.outputs.version }}
+          COMMIT: ${{ steps.target.outputs.commit }}
+          SHA256: ${{ steps.target.outputs.sha256 }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          {
+            echo "## Rollback • PROD — ${VERSION:-?} (${STATUS}$([ "$DRY_RUN" = true ] && echo ', dry run'))"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Target version | \`${VERSION:-?}\` |"
+            echo "| Target commit | \`${COMMIT:-?}\` |"
+            echo "| Artifact SHA-256 | \`${SHA256:-?}\` |"
+            echo "| Live before this run | \`${LIVE:-unknown}\` |"
+            echo ""
+            echo "Archived releases:"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/archived.txt" 2>/dev/null || echo "(not listed)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

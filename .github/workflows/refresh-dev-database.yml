@@ -1,4 +1,4 @@
-name: Refresh Azure DEV database
+name: Database • Refresh DEV from PROD
 
 # MANUAL ONLY. No push, no pull_request, no schedule - deliberately. This workflow
 # replaces the Azure DEV database, and nothing should be able to trigger that as a

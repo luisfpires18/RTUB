@@ -28,7 +28,9 @@ Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (service
 - EF Core: one context per operation via `IDbContextFactory<ApplicationDbContext>`.
 
 ## Git model
-- `master` = production. `dev` = integration. Work branches merge into `dev`.
+- `dev` = GitHub default + integration branch. `feat`/`fix`/`chore` branches merge into `dev` → Deploy • DEV.
+- `master` = production. A `dev → master` PR (merged with a **merge commit**) is a release → Deploy • PROD. Root `VERSION` (SemVer) must go up.
+- After **every** production release, and after every `hotfix/*` → `master`, merge `master` back into `dev`, then bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → 2.0.1, or 2.1.0/3.0.0 if planned) — never leave `dev` on a released number.
 - Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence.
 - Never push, merge, open PRs, touch remotes, delete branches, or force-push without explicit authorization in the current request.
 - Never discard or reset pre-existing working-tree changes.
@@ -54,6 +56,7 @@ Run only what the change can break.
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
+| Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |
 | Role guidance for AI agents | `.github/agents/` |
