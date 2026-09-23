@@ -25,6 +25,7 @@
 @inject RTUB.Web.Services.MediaQueueService MediaQueueService
 @inject IJSRuntime JSRuntime
 @inject IAuditLogService AuditLogService
+@implements IAsyncDisposable
 
 @if (album == null)
 {
@@ -1225,10 +1226,14 @@ else
         
         currentAudioUrl = null;
         currentSongTitle = null;
+        // Closing removes <audio>; the next song renders a new element, which the PWA media
+        // session must be initialised against again instead of keeping the removed one.
+        pwaMediaSessionInitialized = false;
         
-        // Clear media session metadata when playback stops
+        // Release the lock-screen session (handlers and metadata) when playback stops
         try
         {
+            await MediaSession.CleanupPwaMediaSessionAsync();
             await MediaSession.ClearMetadataAsync();
         }
         catch (Exception ex)
@@ -1237,6 +1242,28 @@ else
         }
         
         StateHasChanged();
+    }
+
+    // Leaving the page removes <audio>, which stops playback. The lock-screen session goes with
+    // it, so no handler or metadata outlives the player it belonged to.
+    public async ValueTask DisposeAsync()
+    {
+        if (currentAudioUrl is null) return; // No player: never played, or ✕ already released it
+
+        try
+        {
+            await MediaSession.CleanupPwaMediaSessionAsync();
+            await MediaSession.ClearMetadataAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone: the page and its media session went with it
+        }
+        catch (Exception ex)
+        {
+            // Disposal exceptions are fatal to the circuit; a stale lock-screen card is not
+            Logger.LogWarning(ex, "Failed to release media session when leaving the album page");
+        }
     }
     
     private async Task<string> GetCurrentUserId()

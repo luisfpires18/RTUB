@@ -2,9 +2,11 @@ using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
+using Microsoft.JSInterop.Infrastructure;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -452,6 +454,112 @@ public class SongsPageTests : PageTestBase
             cut.Markup.Should().NotContain("Third Song", "should hide non-matching songs");
         }
     }
+
+    #endregion
+
+    #region Lock-screen Media Session Lifecycle
+
+    private static readonly TimeSpan MediaSessionTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// ✕ removes the &lt;audio&gt; and the next song renders a new one. The lock-screen session must
+    /// be released on ✕ and bound again for the new element. Before fix/030 it stayed bound to the
+    /// removed element, so lock-screen pause/next/seek acted on audio that was no longer on screen.
+    /// </summary>
+    [Fact]
+    public async Task ClosingThePlayer_ThenPlayingAgain_RebindsLockScreenSessionToTheNewAudio()
+    {
+        // Arrange
+        var handlersBound = SetupInstalledPwaWithPlayableSongs();
+        var cut = RenderPlayableSongs();
+        await cut.FindAll("button[title='Reproduzir']")[0].ClickAsync(new MouseEventArgs());
+        (await handlersBound.WaitAsync(MediaSessionTimeout)).Should().BeTrue("the first song binds the lock-screen session");
+        var beforeClose = JsCalls().Length;
+
+        // Act
+        await cut.Find("button[aria-label='Fechar player de áudio']").ClickAsync(new MouseEventArgs());
+        cut.FindAll("#rtub-audio-player").Should().BeEmpty("closing the player removes the audio element");
+        await cut.FindAll("button[title='Reproduzir']")[1].ClickAsync(new MouseEventArgs());
+
+        // Assert
+        (await handlersBound.WaitAsync(MediaSessionTimeout)).Should().BeTrue(
+            "the next song renders a new audio element, and the lock-screen session must be bound to it");
+        cut.FindAll("#rtub-audio-player").Should().ContainSingle();
+        JsCalls().Skip(beforeClose).Should().ContainInOrder(
+            new[] { "pwaMediaSession.cleanup", "pwaMediaSession.init", "pwaMediaSession.bindHandlers" },
+            "✕ must release the session of the removed element before the next song binds its own");
+    }
+
+    /// <summary>
+    /// Leaving the album page removes the player, which stops playback. Its lock-screen handlers
+    /// and metadata must go with it instead of staying bound to audio that is on no page at all.
+    /// </summary>
+    [Fact]
+    public async Task LeavingTheAlbumPage_WhilePlaying_ReleasesTheLockScreenSession()
+    {
+        // Arrange
+        var handlersBound = SetupInstalledPwaWithPlayableSongs();
+        var cut = RenderPlayableSongs();
+        await cut.FindAll("button[title='Reproduzir']")[0].ClickAsync(new MouseEventArgs());
+        (await handlersBound.WaitAsync(MediaSessionTimeout)).Should().BeTrue("the song binds the lock-screen session");
+        var beforeLeaving = JsCalls().Length;
+
+        // Act
+        await DisposeComponentsAsync();
+
+        // Assert
+        JsCalls().Skip(beforeLeaving).Should().Contain(
+            new[] { "pwaMediaSession.cleanup", "rtubMediaSession.clearMetadata" },
+            "no lock-screen handler or metadata may outlive the player it belonged to");
+    }
+
+    /// <summary>
+    /// Installed-PWA mode with two playable songs. The returned semaphore is released every time the
+    /// lock-screen handlers are bound - the last step of initialising the session for an element.
+    /// </summary>
+    private SemaphoreSlim SetupInstalledPwaWithPlayableSongs()
+    {
+        var songs = new List<Song>
+        {
+            CreateTestSong(1, "Song 1", TestAlbumId, trackNumber: 1),
+            CreateTestSong(2, "Song 2", TestAlbumId, trackNumber: 2)
+        };
+        songs.ForEach(song => song.HasMusic = true);
+        _mockSongService
+            .Setup(x => x.GetSongsByAlbumIdAsync(TestAlbumId))
+            .ReturnsAsync(songs);
+        _mockAudioStorageService
+            .Setup(x => x.GetAudioUrlAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<string>()))
+            .ReturnsAsync("https://audio.example/song.mp3");
+
+        MockJSRuntime
+            .Setup(x => x.InvokeAsync<bool>("pwaMediaSession.detectPwaMode", It.IsAny<object?[]?>()))
+            .ReturnsAsync(true);
+        MockJSRuntime
+            .Setup(x => x.InvokeAsync<bool>("pwaMediaSession.init", It.IsAny<object?[]?>()))
+            .ReturnsAsync(true);
+
+        var handlersBound = new SemaphoreSlim(0);
+        MockJSRuntime
+            .Setup(x => x.InvokeAsync<IJSVoidResult>("pwaMediaSession.bindHandlers", It.IsAny<object?[]?>()))
+            .Callback(() => handlersBound.Release())
+            .Returns(default(ValueTask<IJSVoidResult>));
+        return handlersBound;
+    }
+
+    private IRenderedComponent<Songs> RenderPlayableSongs()
+    {
+        var cut = Render<Songs>(parameters => parameters
+            .Add(p => p.AlbumId, TestAlbumId));
+        cut.WaitForState(() => cut.FindAll("button[title='Reproduzir']").Count == 2, MediaSessionTimeout);
+        return cut;
+    }
+
+    /// <summary>The JavaScript functions the page invoked, in call order.</summary>
+    private string[] JsCalls() => MockJSRuntime.Invocations
+        .Where(invocation => invocation.Method.Name == nameof(IJSRuntime.InvokeAsync))
+        .Select(invocation => (string)invocation.Arguments[0])
+        .ToArray();
 
     #endregion
 
