@@ -60,6 +60,10 @@ nothing else: no `v`, no prerelease, no build metadata, one line. It is what you
   check *VERSION is bumped* (in **CI • Build & Test**, PRs into `master` only) and the first job
   of **Deploy • PROD** both refuse otherwise. A version whose deploy failed is still spent - it may
   already be archived - so the fix goes out as the next PATCH.
+- The one exception is the first versioned release: `master` before 2.0.0 has no `VERSION` file,
+  and both checks accept that as "no earlier release". They do so only when GitHub answers 404 for
+  `VERSION` at a commit that exists; any other failure to read it fails the check
+  (`release.sh previous-version`).
 - `Directory.Build.props` reads `VERSION` into every build and fails the build if it is not
   `MAJOR.MINOR.PATCH`. The SDK appends the full commit SHA, so `/api/version` reports both.
 - DEV builds report `<VERSION>-dev.<run number>` - a SemVer prerelease of the version `dev` is
@@ -107,6 +111,7 @@ MAJOR, in which case raise it again before the `dev → master` PR.
 
 ```
 version    VERSION is valid SemVer and higher than the previous master commit's
+           (none there - legacy master - is the first versioned release)
 ci         CI • Build & Test, on this exact commit
 package    the ONLY build: dotnet publish -r linux-x64 --self-contained false (Node 22),
            ONE zip, guards run on that zip, release.json written. No Azure token in this job.

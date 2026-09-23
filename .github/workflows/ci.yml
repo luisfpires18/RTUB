@@ -72,6 +72,8 @@ jobs:
   # A pull request into master is a release (dev -> master) or a hotfix. Either way it becomes
   # a new production version, so VERSION must be higher than master's. Caught here, on the PR,
   # instead of after a ten-minute build on master. Deploy • PROD checks again on the push.
+  # Legacy master (before 2.0.0) has no VERSION: previous-version prints "-" for that, the first
+  # versioned release, and fails on any other API error rather than guess.
   version-bump:
     name: VERSION is bumped
     if: github.event_name == 'pull_request' && github.base_ref == 'master'
@@ -93,6 +95,5 @@ jobs:
         run: |
           set -euo pipefail
           new=$(bash scripts/release.sh version)
-          previous=$(gh api -H "Accept: application/vnd.github.raw+json" \
-            "repos/$REPO/contents/VERSION?ref=$BASE_SHA" 2>/dev/null | tr -d '\r\n' || true)
-          bash scripts/release.sh bump-check "${previous:--}" "$new"
+          previous=$(bash scripts/release.sh previous-version "$REPO" "$BASE_SHA")
+          bash scripts/release.sh bump-check "$previous" "$new"
