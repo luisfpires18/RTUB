@@ -739,27 +739,17 @@ dotnet test tests/RTUB.Application.Tests
 
 ### Azure Deployment
 
-The project includes Azure deployment configuration (`.deployment` file).
+Production and DEV are deployed only by GitHub Actions - never by a manual or Visual Studio
+publish, which would bypass the release archive and the smoke test:
 
-#### Prerequisites
-- Azure App Service
-- SQL Server or continue using SQLite
+- merge into `dev` → **Deploy • DEV** (`rtub-dev`)
+- bump the root `VERSION` (SemVer), merge `dev` → `master` → **Deploy • PROD** (`rtub`)
+- **Rollback • PROD** redeploys any archived version, e.g. `2.0.0`, without rebuilding
+- `GET /api/version` reports the running version and commit
 
-#### Deployment Steps
-
-1. **Publish the application:**
-```bash
-dotnet publish src/RTUB.Web -c Release -o ./publish
-```
-
-2. **Configure Azure App Service:**
-   - Set connection strings in Configuration
-   - Configure environment variables
-   - Enable HTTPS only
-
-3. **Deploy:**
-   - Use Azure CLI, GitHub Actions, or Visual Studio publish
-   - The application will auto-migrate the database on startup
+How to release, roll back, hotfix and restore the database: [`docs/release-and-rollback.md`](docs/release-and-rollback.md).
+Environments, workflows and App Service settings: [`docs/ci-cd-and-azure-environments.md`](docs/ci-cd-and-azure-environments.md).
+The application migrates its SQLite database on startup, after taking a pre-migration snapshot.
 
 ### Production Configuration
 

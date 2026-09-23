@@ -1,0 +1,262 @@
+name: Deploy • PROD
+
+# Every push to master deploys production - rtub and nothing else.
+#
+#   VERSION went up? -> CI • Build & Test -> package ONE zip
+#     -> archive it (private, immutable: a version is written once, never overwritten)
+#     -> read it BACK from the archive -> deploy those exact bytes
+#     -> smoke proves the version AND commit that answer -> tag v<version> (best effort)
+#
+# The deploy job fetches its zip from the archive exactly the way Rollback • PROD does, so every
+# release exercises the rollback path. No automatic rollback: a failed smoke fails the run and
+# the summary names the Rollback • PROD command for the previous version.
+#
+# Release, versioning, rollback and database rules: docs/release-and-rollback.md.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Release version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+
+      # Fails fast - before a ten-minute build - when VERSION was not bumped. The archive
+      # refuses a reused version anyway; this just says so earlier and more clearly.
+      - name: VERSION must be higher than the previous master commit's
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          version=$(bash scripts/release.sh version)
+          previous=""
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            previous=$(gh api -H "Accept: application/vnd.github.raw+json" \
+              "repos/$REPO/contents/VERSION?ref=$BEFORE" 2>/dev/null | tr -d '\r\n' || true)
+          fi
+          bash scripts/release.sh bump-check "${previous:--}" "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: CI • Build & Test
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  # The only job that builds. It holds no Azure token: npm and NuGet code runs here, so it gets
+  # read access to the repository and nothing else.
+  package:
+    name: Package (build once)
+    needs: [version, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha256: ${{ steps.package.outputs.sha256 }}
+      artifact: ${{ steps.package.outputs.artifact }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Package
+        id: package
+        uses: ./.github/actions/package-release
+        with:
+          channel: production
+
+      - name: The package carries the release version
+        env:
+          PACKAGED: ${{ steps.package.outputs.version }}
+          RELEASE: ${{ needs.version.outputs.version }}
+        run: '[ "$PACKAGED" = "$RELEASE" ] || { echo "::error::packaged $PACKAGED, release is $RELEASE"; exit 1; }'
+
+  deploy:
+    name: Deploy rtub
+    needs: [version, package]
+    runs-on: ubuntu-latest
+
+    # Holds the production identity's non-secret identifiers (AZURE_CLIENT_ID, AZURE_TENANT_ID,
+    # AZURE_SUBSCRIPTION_ID) and RELEASE_STORAGE_ACCOUNT. Restricted to the master branch; the
+    # federated credential only accepts this environment. No secrets, no approval gate.
+    environment:
+      name: production
+      url: https://rtub.azurewebsites.net
+
+    permissions:
+      id-token: write
+      contents: read
+
+    # Shared with Rollback • PROD: a deploy and a rollback never overlap. Never cancelled
+    # mid-deploy, which would leave App Service holding a half-transferred package.
+    concurrency:
+      group: production
+      cancel-in-progress: false
+
+    env:
+      BASE_URL: https://rtub.azurewebsites.net
+      VERSION: ${{ needs.version.outputs.version }}
+      RELEASE_STORAGE_ACCOUNT: ${{ vars.RELEASE_STORAGE_ACCOUNT }}
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts
+            .github
+
+      - name: Refuse without a release archive
+        run: |
+          [ -n "$RELEASE_STORAGE_ACCOUNT" ] || {
+            echo "::error::The production environment has no RELEASE_STORAGE_ACCOUNT variable. Nothing is deployed without an archived, immutable artifact."
+            exit 1
+          }
+
+      - name: Download the package
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.package.outputs.artifact }}
+          path: ${{ runner.temp }}/incoming
+
+      - name: Verify it is the zip that was built
+        env:
+          SHA256: ${{ needs.package.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          echo "$SHA256  $RUNNER_TEMP/incoming/rtub-$VERSION.zip" | sha256sum -c -
+
+      - name: Azure login (OIDC federated credential)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Create-only. The same version with the same commit and bytes is a no-op (a re-run);
+      # anything else - another commit, or this commit rebuilt into different bytes - fails.
+      - name: Archive ${{ needs.version.outputs.version }}
+        run: |
+          bash scripts/release-archive.sh put "$VERSION" \
+            "$RUNNER_TEMP/incoming/rtub-$VERSION.zip" "$RUNNER_TEMP/incoming/release.json"
+
+      - name: Fetch ${{ needs.version.outputs.version }} back from the archive
+        id: release
+        run: |
+          set -euo pipefail
+          bash scripts/release-archive.sh get "$VERSION" "$RUNNER_TEMP/release"
+          commit=$(jq -r .commit "$RUNNER_TEMP/release/release.json")
+          [ "$commit" = "$GITHUB_SHA" ] || { echo "::error::archived $VERSION is commit $commit, this push is $GITHUB_SHA"; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(jq -r .sha256 "$RUNNER_TEMP/release/release.json")" >> "$GITHUB_OUTPUT"
+
+      - name: Read the live release
+        id: live
+        run: |
+          json=$(curl -s --max-time 30 "$BASE_URL/api/version" || true)
+          live=$(printf '%s' "$json" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+          echo "version=$live" >> "$GITHUB_OUTPUT"
+          echo "Live before deploy: ${live:-<no /api/version - a build from before 2.0.0>}"
+
+      # A forward release knows every migration the live one applied. If it does not, a
+      # migration was reverted or deleted - never deploy over that silently.
+      - name: Schema check against the live release
+        env:
+          LIVE: ${{ steps.live.outputs.version }}
+        run: |
+          set -uo pipefail
+          if [ -z "$LIVE" ]; then
+            echo "::notice::The live build has no /api/version; there is no archived manifest to compare with."
+            exit 0
+          fi
+          bash scripts/release-archive.sh manifest "$LIVE" "$RUNNER_TEMP/live.json"
+          rc=$?
+          if [ "$rc" -eq 4 ]; then
+            echo "::warning::Live version $LIVE is not in the archive; schema check skipped."
+            exit 0
+          fi
+          [ "$rc" -eq 0 ] || exit "$rc"
+          bash scripts/release.sh schema-gate "$RUNNER_TEMP/live.json" "$RUNNER_TEMP/release/release.json"
+
+      - name: Deploy and verify rtub
+        uses: ./.github/actions/deploy-and-verify
+        with:
+          app-name: rtub
+          package: ${{ runner.temp }}/release/rtub-${{ needs.version.outputs.version }}.zip
+          expect-version: ${{ needs.version.outputs.version }}
+          expect-commit: ${{ steps.release.outputs.commit }}
+
+      - name: Summary
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          LIVE: ${{ steps.live.outputs.version }}
+          SHA256: ${{ steps.release.outputs.sha256 }}
+        run: |
+          {
+            echo "## Deploy • PROD — ${VERSION} (${STATUS})"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Version | \`${VERSION}\` |"
+            echo "| Commit | \`${GITHUB_SHA}\` (\`${GITHUB_SHA:0:7}\`) |"
+            echo "| Artifact SHA-256 | \`${SHA256:-not archived}\` |"
+            echo "| Archive | \`releases/${VERSION}/rtub-${VERSION}.zip\` |"
+            echo "| Live before this run | \`${LIVE:-pre-2.0.0 build}\` |"
+            if [ "$STATUS" != "success" ] && [ -n "$LIVE" ]; then
+              echo ""
+              echo "**Not rolled back automatically.** To go back to ${LIVE}:"
+              echo ""
+              echo '```bash'
+              echo "gh workflow run rollback-prod.yml --ref master -f version=${LIVE} -f confirm=${LIVE}"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Best effort, after the release is live and verified. Rollback never needs the tag - it reads
+  # the archive - so a failure here is a warning, not a failed release. The token can write
+  # repository contents, so this job checks nothing out and runs no third-party code.
+  tag:
+    name: Tag v${{ needs.version.outputs.version }}
+    needs: [version, deploy]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: v${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          existing=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha 2>/dev/null || true)
+          if [ -n "$existing" ]; then
+            if [ "$existing" = "$GITHUB_SHA" ]; then
+              echo "$TAG already points at $GITHUB_SHA"
+            else
+              echo "::warning::$TAG already exists at $existing, not $GITHUB_SHA - left alone"
+            fi
+            exit 0
+          fi
+          gh api -X POST "repos/$REPO/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" > /dev/null
+          echo "Tagged $TAG at $GITHUB_SHA"

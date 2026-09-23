@@ -1,0 +1,57 @@
+name: Deploy and verify
+description: >
+  Deploys one zip to one App Service and proves that exact build is the one answering: waits for
+  GET /api/version to report the expected version and commit, then runs the deployment smoke
+  contracts (/health, /login, manifest, service worker without CSP, CSP on HTML, still up).
+  Expects the repository (scripts/) to be checked out and az to be logged in.
+
+inputs:
+  app-name:
+    description: App Service name (rtub-dev or rtub)
+    required: true
+  package:
+    description: Path to the zip to deploy - deployed as is, never re-zipped
+    required: true
+  expect-version:
+    description: Version /api/version must report
+    required: false
+    default: ''
+  expect-commit:
+    description: Full commit SHA /api/version must report
+    required: false
+    default: ''
+  legacy:
+    description: "'true' for a release built before /api/version existed: wait for its 404 instead"
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Refuse to deploy without an expected build
+      shell: bash
+      env:
+        EXPECT_VERSION: ${{ inputs.expect-version }}
+        EXPECT_COMMIT: ${{ inputs.expect-commit }}
+        LEGACY: ${{ inputs.legacy }}
+      run: |
+        if [ "$LEGACY" != "true" ] && { [ -z "$EXPECT_VERSION" ] || [ -z "$EXPECT_COMMIT" ]; }; then
+          echo "::error::expect-version and expect-commit are both required: smoke must prove WHICH build answers"
+          exit 1
+        fi
+
+    - name: Deploy ${{ inputs.app-name }}
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ inputs.app-name }}
+        package: ${{ inputs.package }}
+
+    - name: Smoke test ${{ inputs.app-name }}
+      shell: bash
+      env:
+        APP: ${{ inputs.app-name }}
+        SKIP_AZ: '1'
+        EXPECT_VERSION: ${{ inputs.legacy != 'true' && inputs.expect-version || '' }}
+        EXPECT_COMMIT: ${{ inputs.legacy != 'true' && inputs.expect-commit || '' }}
+        EXPECT_LEGACY: ${{ inputs.legacy == 'true' && '1' || '0' }}
+      run: bash "$GITHUB_WORKSPACE/scripts/smoke-azure.sh"

@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Shared
@@ -27,13 +28,12 @@
                 <p class="lead page-header-subtitle text-light-theme">Gestão de boards de tarefas e atuações.</p>
             </div>
             <div class="page-header-right d-none d-xl-flex">
-                <AuthorizeView Roles="Admin,Mod">
-                    <Authorized>
-                        <button class="btn btn-success" @onclick="OpenCreateBoardModal">
-                            <i class="bi bi-plus-lg"></i> Criar Quadro
-                        </button>
-                    </Authorized>
-                </AuthorizeView>
+                @if (canManageLogistics)
+                {
+                    <button class="btn btn-success" @onclick="OpenCreateBoardModal">
+                        <i class="bi bi-plus-lg"></i> Criar Quadro
+                    </button>
+                }
             </div>
         </div>
 
@@ -57,11 +57,20 @@
                 }
                 else if (!boards.Any() && (completedBoards == null || !completedBoards.Any()))
                 {
-                    <EmptyState Title="Nenhum quadro criado ainda"
-                               Message="Crie o seu primeiro quadro para começar a organizar tarefas."
-                               Icon="bi-kanban"
-                               ActionText="Criar Quadro"
-                               OnAction="OpenCreateBoardModal" />
+                    @if (canManageLogistics)
+                    {
+                        <EmptyState Title="Nenhum quadro criado ainda"
+                                   Message="Crie o seu primeiro quadro para começar a organizar tarefas."
+                                   Icon="bi-kanban"
+                                   ActionText="Criar Quadro"
+                                   OnAction="OpenCreateBoardModal" />
+                    }
+                    else
+                    {
+                        <EmptyState Title="Nenhum quadro criado ainda"
+                                   Message="Ainda não existem quadros de logística."
+                                   Icon="bi-kanban" />
+                    }
                 }
                 else
                 {
@@ -74,8 +83,8 @@
                             {
                                 <div class="col-12 col-sm-6 col-lg-4 col-xl-3" @key="board.Id">
                                     <BoardCard Board="@board"
-                                               ShowActions="@canDoAction"
-                                               ShowFinishButton="@canDoAction"
+                                               ShowActions="@canManageLogistics"
+                                               ShowFinishButton="@canManageLogistics"
                                                OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
                                                OnEdit="@(() => OpenEditBoardModal(board))"
                                                OnDelete="@(() => OpenDeleteBoardModal(board))"
@@ -109,8 +118,8 @@
                             {
                                 <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                                     <BoardCard Board="@board"
-                                               ShowActions="@canDoAction"
-                                               ShowFinishButton="@canDoAction"
+                                               ShowActions="@canManageLogistics"
+                                               ShowFinishButton="@canManageLogistics"
                                                OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
                                                OnEdit="@(() => OpenEditBoardModal(board))"
                                                OnDelete="@(() => OpenDeleteBoardModal(board))"
@@ -245,9 +254,9 @@
     private int completedPageSize = 4;
     private int completedTotalCount = 0;
     private string searchTerm = string.Empty;
-    private bool isMod = false;
-    private bool isAdmin = false;
-    private bool canDoAction = false;
+    // LogisticsAuthorization.CanManage. Hiding a button is not a permission check, so every
+    // mutating handler below re-checks this before calling a service.
+    private bool canManageLogistics = false;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Board modal state
@@ -276,7 +285,7 @@
     private void BuildMobileNavItems()
     {
         var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canDoAction)
+        if (canManageLogistics)
             items.Add(new("action-create", "Criar Quadro", "bi-plus-lg"));
         mobileNavItems = items;
     }
@@ -290,13 +299,11 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        isMod = user.IsInRole("Mod");
-        isAdmin = user.IsInRole("Admin");
-        canDoAction = isMod || isAdmin;
-        
+        canManageLogistics = LogisticsAuthorization.CanManage(user);
+
         // Check access permission for Gestão pages
         var currentUser = await UserManager.GetUserAsync(user);
-        if (currentUser != null && !isAdmin && !isMod)
+        if (currentUser != null && !canManageLogistics)
         {
             // Block Leitão members
             if (currentUser.IsLeitao())
@@ -345,6 +352,7 @@
 
     private void OpenCreateBoardModal()
     {
+        if (!canManageLogistics) return;
         editingBoard = null;
         boardName = string.Empty;
         boardDescription = string.Empty;
@@ -356,6 +364,7 @@
 
     private void OpenEditBoardModal(BoardEntity board)
     {
+        if (!canManageLogistics) return;
         editingBoard = board;
         boardName = board.Name;
         boardDescription = board.Description;
@@ -386,7 +395,7 @@
 
     private async Task SaveBoard()
     {
-        if (string.IsNullOrWhiteSpace(boardName))
+        if (!canManageLogistics || string.IsNullOrWhiteSpace(boardName))
             return;
 
         try
@@ -416,6 +425,7 @@
 
     private void OpenDeleteBoardModal(BoardEntity board)
     {
+        if (!canManageLogistics) return;
         deletingBoard = board;
         modals.Open(ModalType.DeleteBoard);
     }
@@ -428,7 +438,7 @@
 
     private async Task ConfirmDeleteBoard()
     {
-        if (deletingBoard == null)
+        if (!canManageLogistics || deletingBoard == null)
             return;
 
         try
@@ -458,6 +468,7 @@
 
     private async Task FinishBoard(BoardEntity board)
     {
+        if (!canManageLogistics) return;
         try
         {
             await BoardService.MarkBoardAsCompletedAsync(board.Id);
@@ -471,6 +482,7 @@
 
     private async Task ReopenBoard(BoardEntity board)
     {
+        if (!canManageLogistics) return;
         try
         {
             await BoardService.MarkBoardAsNotCompletedAsync(board.Id);

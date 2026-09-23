@@ -231,6 +231,19 @@ public class Program
 
                     if (pendingMigrations.Any())
                     {
+                        // An existing database is about to change shape: take a restore point
+                        // first. Throws on failure, and the catch below rethrows, so a database
+                        // is never migrated without one. A fresh database has nothing to protect.
+                        var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
+                        if (appliedMigrations.Any())
+                        {
+                            var snapshot = PreMigrationSnapshot.Take(
+                                connectionString, pendingMigrations.Last(), DateTime.UtcNow);
+                            logger.LogInformation(
+                                "Pre-migration snapshot {Snapshot} taken before applying {Count} migration(s) after {LastApplied}",
+                                snapshot, pendingMigrations.Count(), appliedMigrations.Last());
+                        }
+
                         await db.Database.MigrateAsync();
                         logger.LogInformation("Database migrations applied successfully");
                     }
@@ -489,6 +502,16 @@ public class Program
 
         // --------- Health Checks ---------
         app.MapHealthChecks("/health");
+
+        // --------- Build identity ---------
+        // Deploy and rollback smoke tests poll this until the exact version AND commit they just
+        // deployed answer, which is what proves the new build is serving rather than an old
+        // instance that is still up. Under /api/, so the service worker never caches it.
+        app.MapGet("/api/version", (HttpContext context) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            return Results.Json(RTUB.Web.Services.BuildInfo.Current);
+        }).AllowAnonymous();
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
         // RequireRateLimiting below caps attempts per client IP; it complements, and does not

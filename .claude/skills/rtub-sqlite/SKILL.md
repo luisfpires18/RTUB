@@ -73,6 +73,15 @@ dotnet ef migrations add <Name> --project src/RTUB.Web
 - Migrations and seeding run at startup in `Program.cs`, guarded by
   `app.Environment.EnvironmentName != "Test"` and only when `GetPendingMigrationsAsync()` is
   non-empty.
+- Before migrating a database that already has migration history, `Program.cs` calls
+  `PreMigrationSnapshot.Take` (`src/RTUB.Application/Services/PreMigrationSnapshot.cs`): online
+  backup → `journal_mode=DELETE` → validated → `<db dir>/backups/pre-migration/`, newest 5 kept.
+  It **throws** when it cannot, which aborts startup before anything is migrated. Do not catch it.
+- Every migration must work with the previous production release (N-1, expand/contract): an app
+  rollback never changes the schema. Rule and restore procedure: `docs/release-and-rollback.md`.
+- Only classes carrying `[Migration("…")]` are migrations. `UpdateCardStatusEnumValues` and
+  `NerbaOrderEventRequired` have no attribute and have never run anywhere; the release manifest
+  lists attribute IDs, not file names.
 
 ## Tests — two different databases
 

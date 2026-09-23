@@ -163,7 +163,15 @@ lease in the shared SQLite file, which is a true leader election.
 ### Operational notes
 
 - **`Always On` must be enabled** on the App Service, or the process recycles while idle
-  and the schedule never fires.
+  and the schedule never fires. There is no catch-up: a process that is not alive at 03:30 UTC
+  skips that day entirely (`CalculateNextRunTime`). **As of 2026-09-22 production `rtub` has
+  Always On off**, so production backups may have been silently skipped; enabling it is an owner
+  action, and `current.db`'s Last-Modified is the thing to check.
+- The daily backup is not the release restore point: it can be a day old and rotates away the
+  previous state within ~48 h. Before migrating an existing database the app takes its own
+  pre-migration snapshot (`PreMigrationSnapshot`, same online-backup and validation code as
+  here) under `/home/site/data/backups/pre-migration/`, keeping five; see
+  `docs/release-and-rollback.md` → *Database*.
 - SQLite lives on the `/home` Azure Files share; the temp snapshot goes to
   `Path.GetTempPath()` (`/tmp`, ephemeral) so backups don't double persistent storage.
 - Live database was ~18 MB when this was built, so a single `PutObject` is right. Past
@@ -191,7 +199,8 @@ these Azure App Settings:
 
 `current.db` is a plain SQLite file. Download it, run `PRAGMA quick_check;` locally, stop
 the App Service, replace `app.db`, and delete any stale `app.db-wal` / `app.db-shm`
-sidecars before starting up again.
+sidecars before starting up again. Step by step, including the pre-migration snapshots and which
+app release to deploy afterwards: `docs/release-and-rollback.md` → *Restoring the database*.
 
 ## Refreshing Azure DEV from a sanitized production snapshot
 
@@ -369,12 +378,13 @@ curl sends for a large body. Authentication is the OIDC managed identity's own A
 (`az account get-access-token`), masked in the log — no publish profile and no Basic Auth
 publishing credential, which stay off on `rtub-dev`.
 
-> **Not yet exercised against the live App Service.** Kudu VFS requires
-> `Microsoft.Web/sites/publish/Action` on `rtub-dev`, which `Website Contributor` grants
-> through `Microsoft.Web/sites/*` — but the `rtub-dev-deploy` identity has not actually made
-> a VFS call yet. If the first run returns 401/403, the smallest fix is a role assignment
-> carrying that single action on the `rtub-dev` site, **not** broadening the identity to
-> subscription or resource-group `Contributor`.
+**Proven.** The first real `workflow_dispatch` run succeeded on 2026-09-22 (run
+`35773286498`, from `dev`, which is the default branch and therefore where the workflow is
+dispatchable). The `rtub-dev-deploy` identity's `Website Contributor` on the `rtub-dev` site
+covered both Kudu VFS (`Microsoft.Web/sites/publish/Action`) and the settings read
+(`Microsoft.Web/sites/config/list/Action`); no role was added. Should a later run ever return
+401/403, grant the single missing action on the `rtub-dev` site - never broaden the identity to
+resource-group or subscription `Contributor`.
 
 ### Required secret and variable NAMES
 
@@ -393,7 +403,8 @@ workflow.
 
 ### Rules
 
-- **Manual only.** `.github/workflows/refresh-dev-database.yml` triggers on
+- **Manual only.** `.github/workflows/refresh-dev-database.yml` (**Database • Refresh DEV from
+  PROD** in the Actions sidebar) triggers on
   `workflow_dispatch` alone — no `push`, no `pull_request`, no `schedule` — and requires the
   word `REFRESH` to be typed as an input.
 - **No production database, sanitized or otherwise, is ever committed.** `.gitignore`

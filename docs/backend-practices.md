@@ -150,6 +150,10 @@ var userDict = users.ToDictionary(u => u.Id);
 - Include Designer.cs files
 - Test migrations on development database
 - Review generated SQL before applying
+- Keep every migration compatible with the previous production release (expand/contract).
+  An app rollback never touches the schema, so the release before yours must still run
+  against it. The rule, and what to do for a destructive change, is in
+  `docs/release-and-rollback.md` → *Migrations: the N-1 rule*.
 
 ```bash
 dotnet ef migrations add AddIsLockedToActivity --project src/RTUB.Web

@@ -1,38 +1,75 @@
 # CI/CD and Azure environments
 
-Authoritative description of how RTUB is built, tested and deployed. Setting **names** are
-documented here; **values are never** — they live in Azure App Service configuration and GitHub
-environment variables/secrets.
+How RTUB is built, tested and deployed, and what each Azure environment is. Setting and secret
+**names** are documented here; **values never are** - they live in Azure App Service configuration
+and GitHub environment variables/secrets.
 
-## Branch and deployment model
+Releasing, versions, rollback and the database rules: **`docs/release-and-rollback.md`**.
+Why it is built this way: `docs/architecture/adr/0001-production-release-and-rollback.md`.
 
-```
-work branch  --PR-->  dev  --CI-->  Azure DEV (rtub-dev)  -->  manual testing
-                       |
-                       +--manual merge-->  master  --CI-->  Azure PROD (rtub)
-```
+## Environments at a glance
 
-`dev` deploys automatically once CI is green. `master` is production and is only ever reached by a
-deliberate merge. There is no approval gate on DEV: it is meant to be cheap to redeploy.
-
-Feature and chore branches are never deployed. They only get build + test, via the pull request.
-
-## Workflow
-
-Everything lives in a single file, `.github/workflows/ci.yml`, with two jobs.
-
-| Job | Triggers | Does |
+| | DEV | PROD |
 | --- | --- | --- |
-| `build-and-test` | PR to `dev`/`master`/`main`, push to `dev`/`master`/`main` | restore, Release build, all five test suites, coverage + TRX artifacts. On a **push to master only**, also publishes and deploys to production. |
-| `deploy-dev` | push to `dev`, `needs: build-and-test` | publish, Azure OIDC login, deploy to `rtub-dev`, smoke test. |
+| Branch | `dev` (GitHub default branch) | `master` |
+| Deployed by | **Deploy • DEV**, every push to `dev` | **Deploy • PROD**, every push to `master`; **Rollback • PROD** by hand |
+| App Service | `rtub-dev` → `https://rtub-dev.azurewebsites.net` | `rtub` → `https://rtub.azurewebsites.net` |
+| Plan | `ASP-rtub-dev`, **Basic B1**, Linux, Italy North (own plan) | `ASP-rtubgroup-848b`, **Basic B1**, Linux, Italy North |
+| Runtime | `DOTNETCORE\|10.0` | `DOTNETCORE\|10.0` |
+| `ASPNETCORE_ENVIRONMENT` | `Staging` | `Production` |
+| GitHub environment | `development` | `production` † (deployment branch: `master` only) |
+| Azure identity | `rtub-dev-deploy` - Website Contributor on `rtub-dev` | `rtub-prod-deploy` † - Website Contributor on `rtub`, Storage Blob Data Contributor on the release archive † |
+| Artifact | one zip per push, workflow artifact of that run (1 day) | one zip per release, archived privately and immutably as `releases/<version>/` |
+| `/api/version` | `<VERSION>-dev.<run>` + commit | `<VERSION>` + commit |
+| Rollback | push again | **Rollback • PROD** redeploys any archived version |
+| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` | adopted after the first OIDC release (`STATE.md`) |
+| Database | `Data Source=/home/site/data/<file>.db` - **read the live setting; never hardcode it** (`rtub-dev-v3.db` as of 2026-09-22) | `Data Source=/home/site/data/app.db` |
+| Daily backup | off (`DatabaseBackup__Enabled=false`) | on, to the private `rtub-db` R2 bucket at 03:30 UTC |
+| Pre-migration snapshot | yes | yes |
+| Always On | off | **off - must be on for the daily backup to run** (owner action) |
+| `healthCheckPath` | unset | unset |
+| Basic auth publishing | SCM off, FTP off | SCM **on** until the publish profile is retired, FTP off |
 
-`deploy-dev` re-runs `dotnet publish` instead of consuming an artifact from `build-and-test`. That
-is deliberate: the production publish/deploy steps inside `build-and-test` are guarded by
-`github.ref == 'refs/heads/master'` and were left byte-identical, so nothing in this pipeline can
-regress the production path. The cost is roughly two extra minutes per dev push.
+† Not created yet: owner actions, in order, in `STATE.md`. Until they exist Deploy • PROD fails before deploying anything.
 
-`deploy-dev` carries `concurrency: { group: deploy-dev, cancel-in-progress: true }` so two quick
-pushes to `dev` cannot race each other into the same App Service.
+Both App Services and both plans are in resource group `rtub_group`, subscription *Azure for
+Students* (tenant `ipbpt.onmicrosoft.com`). DEV is on its own plan so it can never take CPU or
+memory from production, whose B1 already runs at roughly 78% average memory.
+
+## Workflows
+
+The Actions sidebar is meant to be read without opening anything:
+
+| Workflow | File | Trigger | Does |
+| --- | --- | --- | --- |
+| **CI • Build & Test** | `ci.yml` | PRs into `dev`/`master`; called by both deploy workflows | restore, Release build, all five test suites, coverage + TRX artifacts. PRs into `master` also run *VERSION is bumped*. Deploys nothing. |
+| **Deploy • DEV** | `deploy-dev.yml` | push to `dev` | CI → package one zip → deploy to `rtub-dev` → smoke. |
+| **Deploy • PROD** | `deploy-prod.yml` | push to `master` | VERSION check → CI → package one zip → archive → read back → schema gate → deploy to `rtub` → smoke → tag. |
+| **Rollback • PROD** | `rollback-prod.yml` | manual only | redeploy an archived version to `rtub` → smoke. Never builds. |
+| **Database • Refresh DEV from PROD** | `refresh-dev-database.yml` | manual only | sanitized production backup → `rtub-dev` (unit 029, `docs/cloudflare-r2-and-database-backups.md`). |
+
+Shared pieces, so nothing is implemented twice:
+
+| Piece | Used by |
+| --- | --- |
+| `.github/actions/package-release` - the only `dotnet publish` | Deploy • DEV, Deploy • PROD |
+| `.github/actions/deploy-and-verify` - `azure/webapps-deploy@v3` + smoke with the expected build | Deploy • DEV, Deploy • PROD, Rollback • PROD |
+| `scripts/release.sh` - version, bump check, package, zip guards, `release.json`, schema gate | the above |
+| `scripts/release-archive.sh` - the archive: create-only put, verified get, list | Deploy • PROD, Rollback • PROD |
+| `scripts/smoke-azure.sh` - read-only smoke (`smoke-azure-dev.sh` pins it to `rtub-dev`) | all four deploying workflows |
+
+`ReleaseWorkflowTests` pins this: the five names, the triggers, one `dotnet publish`, no publish
+profile, no app-settings call in a production workflow, a rollback that cannot build, and a smoke
+test that always expects a version and a commit.
+
+**Concurrency.** `deploy-dev` queues DEV deploys (`cancel-in-progress: false` - cancelling
+mid-upload would leave half a package). Deploy • PROD's deploy job and Rollback • PROD share the
+group `production`: they never overlap. GitHub keeps only the newest *pending* run per group, so a
+push to `master` while a rollback is waiting replaces the waiting rollback.
+
+**The repository is public, so workflow logs are public.** `az webapp config appsettings set` and
+`list` print every setting, secrets included; production workflows make no app-settings call at all.
+Workflow inputs reach scripts through `env:`, never by `${{ }}` interpolation into a `run:` body.
 
 ## Test execution
 
@@ -43,423 +80,181 @@ dotnet test --no-build --configuration Release \
   --coverage --coverage-output-format cobertura
 ```
 
-This **does** discover and run all five suites. The repo migrated to xUnit v3 and the Microsoft
-Testing Platform in unit 011, and `global.json` carries the switch that makes `dotnet test` drive
-MTP rather than VSTest:
+This discovers and runs all five suites: `global.json` carries
+`{ "test": { "runner": "Microsoft.Testing.Platform" } }`, which makes `dotnet test` drive MTP rather
+than VSTest (unit 011). Report filenames are left unset on purpose: all five projects write into one
+results directory and MTP assigns unique names.
 
-```json
-{ "test": { "runner": "Microsoft.Testing.Platform" } }
-```
+Baseline (unit 030): **4855 total, 0 failed**. On Windows 66 are skipped; on the Linux runner six of
+those (the bash script self-tests) run, leaving 60.
 
-Without that entry `dotnet test` falls back to the VSTest host, finds no VSTest adapter in an
-xUnit v3 project and reports zero tests. With it, the command above is correct as written — no
-`dotnet run --project`, no invoking the built test executables by hand.
+## Build and packaging
 
-Report filenames are deliberately left unset. All five projects write into one results directory
-and MTP assigns unique names; a fixed name would have them overwrite each other.
+**Node is required for publish.** `RTUB.csproj`'s `BuildPixiTS` target runs `npm ci
+--ignore-scripts` + `npm run build:pixi` before publish. CI uses **Node 22** (Node 20 left
+maintenance in April 2026; 22 satisfies `vite ^6`, `cross-env ^10`, `typescript ^5.7` as pinned).
+`dotnet build` and `dotnet test` do not need Node.
 
-Current baseline: **4713 total, 0 failed, 4653 succeeded, 60 skipped.**
-
-## Node
-
-Node is **required** for publish, not optional. `src/RTUB.Web/RTUB.csproj` has:
-
-```xml
-<Target Name="BuildPixiTS" BeforeTargets="BeforePublish" Condition="Exists('package.json')">
-  <Exec Command="npm ci --ignore-scripts" ... />
-  <Exec Command="npm run build:pixi" ... />
-</Target>
-```
-
-so `dotnet publish` fails outright on a runner without Node. `dotnet build` and `dotnet test` do
-not need it.
-
-**Node 22** is the CI version. Node 20 reached end of life in April 2026. 22 is the repo's local
-toolchain version and satisfies `vite ^6`, `cross-env ^10` and `typescript ^5.7` as they are
-pinned today — no frontend dependency was upgraded to accommodate it. Node 24 is the next step
-when 22 leaves maintenance (April 2027).
-
-## Azure DEV environment
-
-| Thing | Value |
-| --- | --- |
-| Subscription | `Azure for Students` (tenant `ipbpt.onmicrosoft.com`) |
-| Resource group | `rtub_group` (same as production) |
-| App Service | `rtub-dev` → `https://rtub-dev.azurewebsites.net` |
-| Plan | `ASP-rtub-dev` — **Free F1, Linux, Italy North** (production is on its own Basic B1 plan, `ASP-rtubgroup-848b`) |
-| Runtime | `DOTNETCORE|10.0` |
-| Environment | `ASPNETCORE_ENVIRONMENT=Staging` |
-| HTTPS only | on |
-| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` |
-| Health check path | **unset — deliberately, see below** |
-
-The DEV app runs on its **own** App Service Plan so DEV load cannot starve production of CPU or
-RAM. That matters more than it sounds: production's B1 plan already sits at roughly **78% average
-memory**, so a second RTUB sharing it would be a production risk, not a saving.
-
-### Free F1 limits, and the trap one of them sets
-
-Per plan, per day: 60 CPU-minutes, ~165 MB egress, 1 GB memory, and — the one that bites —
-**15 worker stop requests** (`WPStopRequests`). Also no Always On, so the app unloads after ~20
-minutes idle and the next request pays a cold start including the EF Core migration check.
-
-Every restart counts against that allowance of 15, and **every App Service configuration write
-restarts the app**. A handful of `az webapp config` calls while setting the environment up will
-spend a third of a day's budget on their own.
-
-**Do not set `healthCheckPath` on an app that has no working code deployed yet.** Azure then
-probes the path every minute, gets a failure, and restarts the instance — which on Free tier
-burns the stop-request allowance within the hour and leaves the site `403 Site Disabled` until
-00:00 UTC. That is exactly how unit 027's first attempt at bringing `rtub-dev` up died: the health
-check was armed seven minutes before the first deployment, the deployment then failed, and the
-restart loop ran for ninety minutes. `WPStopRequests` reached **36 against a limit of 15** while
-`CpuTime` and `BytesSent` were both still at zero.
-
-So the health check path is **left unset on Free tier**. Azure's health-check feature needs Basic
-or higher to do anything useful anyway — with one Free instance there is nothing to fail over to.
-`/health` is still the right endpoint for the CI smoke test, which polls it directly. Set
-`healthCheckPath` only if DEV is later moved to a Basic plan, and only after a deploy has
-succeeded.
-
-### Native assets: why DEV publishes RID-specific
-
-RTUB has two native dependencies that must be present as **linux-x64** binaries, and one of them
-is loaded before anything else in the app:
-
-| Library | Package | Loaded at |
-| --- | --- | --- |
-| `libQuestPdfSkia.so` | QuestPDF | `Program.cs:48`, `QuestPDF.Settings.License = …` |
-| `libe_sqlite3.so` | SQLitePCLRaw | first `DbContext` use |
-
-QuestPDF's is set before a single service is registered, so if it is missing the container does
-not start degraded — it aborts with `DllNotFoundException: Unable to load shared library
-'QuestPdfSkia'` and exits **134**. That is not a QuestPDF bug and not a missing-runtime-asset bug
-in the package: a plain `dotnet publish -c Release` produces the file correctly.
-
-The DEV publish is RID-specific anyway:
+**linux-x64, framework-dependent**, in `.github/actions/package-release` only:
 
 ```bash
 dotnet publish src/RTUB.Web/RTUB.csproj -c Release -r linux-x64 --self-contained false
 ```
 
-| | `-c Release` (portable) | `-r linux-x64 --self-contained false` |
+| | portable (`-c Release`) | `-r linux-x64 --self-contained false` |
 | --- | --- | --- |
 | Size | 330.5 MB / 1291 files | **266.6 MB** / 1263 files |
-| `runtimes/` | 22 RIDs, 71.8 MB | **absent** |
-| `libQuestPdfSkia.so` | `runtimes/linux-x64/native/` | **publish root** |
-| `libe_sqlite3.so` | `runtimes/linux-x64/native/` | **publish root** |
-| deps.json target | `.NETCoreApp,Version=v10.0` | `.NETCoreApp,Version=v10.0/linux-x64` |
-| deps.json section | `runtimeTargets`, keyed by RID | `native` |
+| `runtimes/` | 22 RIDs, 71.8 MB | absent |
+| `libQuestPdfSkia.so`, `libe_sqlite3.so` | under `runtimes/linux-x64/native/` | **publish root** |
 
-Both produce the byte-identical binary — same ELF x86-64 BuildID. Only the location differs.
+The RID is scoped to that one command - no `RuntimeIdentifier` anywhere in the build - so Windows
+development and the test projects are untouched. The zip is ~230 MB (mostly `wwwroot/sprites`).
 
-What the RID-specific publish buys is 64 MB less payload and native libraries sitting in the
-publish root, the directory the host always probes, instead of a deep `runtimes/` subtree that a
-partial deployment can truncate. `-r linux-x64` is scoped to that one workflow step. There is no
-`RuntimeIdentifier` property in `Directory.Build.props` or any `.csproj`, so Windows development
-and all five test projects are unaffected.
+**Native libraries are startup-fatal.** `QuestPDF.Settings.License` is set at the top of
+`Program.cs`, before any service exists; a missing `libQuestPdfSkia.so` aborts the container with
+`DllNotFoundException` and exit 134. `libe_sqlite3.so` fails the same way one step later.
 
-QuestPDF 2024.10.3 ships no `qpdf`/`libqpdf` native library — `QuestPdfSkia` is the only one.
+**The guards run on the zip** (`scripts/release.sh verify`), not on the folder: `RTUB.dll`, deps and
+runtimeconfig present; both native libraries present, non-empty and ELF64 x86-64; manifest,
+service worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
+path-traversal entry names. Its `--self-test` proves each refusal.
 
-### Deploy guards
+**Never package with `Compress-Archive`.** It writes entry names with backslashes; Linux unpacks
+`wwwroot\manifest.webmanifest` as one flat file. With run-from-package the app still starts and
+answers `/health`, but every static asset 404s ("The WebRootPath was not found"); without it Kudu's
+rsync fails with `Invalid argument (22)`. Python's `zipfile` also hides the problem when *reading*
+on Windows (it rewrites `os.sep`), so the guard reads `orig_filename`. `release.sh package` writes
+with `zipfile`, whose rewrite is correct on write.
 
-`deploy-dev` will not call `azure/webapps-deploy` until it has verified the publish output. Two
-steps, both relative to the workspace, nothing absolute.
+## Run from package
 
-**Native libraries.** For each of `libQuestPdfSkia.so` and `libe_sqlite3.so`: exists, non-empty,
-and `file` reports `ELF 64-bit … x86-64`. Accepts either layout — publish root or
-`runtimes/linux-x64/native/` — so it stays correct if the publish command is ever changed back to
-RID-less. Verified against four fixtures: RID-specific tree (pass), portable tree (pass), missing
-library (fail), zero-byte library (fail).
+`WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
+Microsoft's current documentation excludes only Python and Java; an older "Windows only" quote this
+document used to carry is obsolete. `rtub-dev` runs this way.
 
-**Static assets.** `publish/wwwroot` exists, `manifest.webmanifest`, `service-worker.js` and
-`offline.html` are present and non-empty, and the tree holds at least 500 files. The floor is
-there because a *partial* copy is the failure mode that actually happened, and three surviving
-files would otherwise pass. Verified against four fixtures: full tree (pass, 1204 files), no
-`wwwroot` (fail), three-file tree (fail on the count), missing `service-worker.js` (fail).
+With it, a zip deploy stores the zip as-is in `/home/data/SitePackages/` and restarts the app, which
+mounts the zip read-only as `/home/site/wwwroot`: only complete deployments ever run, and there is no
+extract-and-rsync step to truncate. Nothing in RTUB writes into `wwwroot` at runtime, and SQLite
+lives under `/home/site/data`, so read-only costs nothing.
 
-Neither guard can catch a deployment that is correct on the runner and wrong on the App Service —
-that is what the post-deploy smoke test is for.
+Observed on `rtub-dev` (2026-09-22): exactly the last five zips are kept, named
+`yyyyMMddHHmmss.zip`, and there is **no `packagename.txt`** - so that folder is not a way to roll
+back. Rollback uses the release archive instead (ADR 0001). Kudu keeps five by default
+(`SCM_MAX_ZIP_PACKAGE_COUNT`).
 
-### Packaging: never use `Compress-Archive`
-
-**Use `./scripts/package-azure-dev.sh`.** It packages and then refuses to emit an archive Azure
-Linux cannot unpack.
-
-PowerShell's `Compress-Archive` writes entry names with **backslash** separators on Windows. The
-ZIP specification (APPNOTE 4.4.17.1) requires forward slashes. Linux unpacks such an archive into
-files whose names literally contain `\`, so `wwwroot/manifest.webmanifest` arrives as one flat
-file called `wwwroot\manifest.webmanifest`. Two failures follow, and they look unrelated:
-
-- **Ordinary deployment fails outright.** Backslash is not legal on the SMB-backed `/home` share,
-  so Kudu's rsync rejects every such entry and the deploy returns HTTP 400:
-
-  ```
-  rsync: [generator] recv_generator: failed to stat
-  "/home/site/wwwroot/LatoFont\Lato-Black.ttf": Invalid argument (22)
-  ```
-
-- **With run-from-package it fails silently instead.** The ~39 root-level entries have no
-  separator, so the app starts, migrates, seeds and answers `/health` with 200 — but
-  `/home/site/wwwroot/wwwroot` never exists, the log says `The WebRootPath was not found`, and
-  **every static asset 404s**.
-
-The trap is that this is nearly invisible to verification. Python's `zipfile` does
-`filename.replace(os.sep, "/")` when **reading**, so on Windows any `zipfile`-based check converts
-the bad names on the way in and reports "conformant" every time. Verify by parsing the central
-directory bytes — which is what the script does.
-
-CI is unaffected: `azure/webapps-deploy` packages `./publish` on `ubuntu-latest`, where the
-separator is already `/`.
-
-### Do not use run-from-package on Linux either
-
-Separately from the above, **`WEBSITE_RUN_FROM_PACKAGE=1` must not be set on this app.**
-Microsoft's documentation is explicit: *"The run from package feature is currently Windows only
-and is not yet supported in App Service for Linux."* `rtub-dev` and `rtub` are both Linux
-(`DOTNETCORE|10.0`); on Linux the setting only has meaning as a blob **URL**.
-
-Unit 027 set it to `1` to dodge a Kudu rsync failure. That was treating the symptom — the rsync
-was failing on the backslash names above — and it converted a loud failure into a quiet one. The
-original rsync trouble also no longer applies: the RID-specific publish is ~267 MB with no
-`runtimes/` subtree, versus the ~334 MB portable payload.
-
-**Recovering an app that has been in this state** also means clearing the stale share underneath
-the old mount: `/home/site/wwwroot` there still held an old *Windows* publish (`RTUB.exe`,
-`web.config`, `hostingstart.html`, no subdirectories at all).
-
-### Environment semantics
-
-`Staging` is not `Development`. `Program.cs` branches on `IsDevelopment()`, so under `Staging` the
-app behaves like production: HSTS on, exception handler page, response compression on, 30-day
-static-file caching, no HTTPS redirection middleware (TLS terminates at the Azure front end).
-`ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` is what makes `Request.Scheme` read `https` behind
-that front end — the app never calls `UseForwardedHeaders()` itself.
-
-`Staging` is also **not** `Test`: migrations and seeding *do* run on startup. There is no
-`appsettings.Staging.json`, so `appsettings.json` defaults apply — which is why
-`DatabaseBackup:Enabled` defaults to `false` and DEV never touches the production backup bucket.
-
-## Database
-
-DEV has its own SQLite file on durable storage, on its own App Service, on its own plan. Nothing
-is shared with production.
-
-| | Production | DEV |
-| --- | --- | --- |
-| `ConnectionStrings__SqliteConnection` | `Data Source=/home/site/data/app.db` | `Data Source=/home/site/data/<file>.db` — `rtub-dev-v3.db` as of 2026-09-22. **Read the live setting; never copy this cell into code.** The DEV refresh workflow resolves it at run time. |
-| `DatabaseBackup__Enabled` | `true` | `false` |
-
-`/home` is the Azure Files share mounted into the container. It survives restarts, redeploys and
-scale operations. Never point the connection string at a path outside `/home` — anything else is
-on the container's ephemeral layer and is lost on the next restart.
-
-`Program.cs` creates the directory if it does not exist, then applies any pending EF Core
-migrations before seeding.
-
-### Seeding
-
-`SeedData.InitializeAsync` only seeds when the database has **no users at all**. Which seed runs
-is decided by `SeedData:SeedFullDataset`:
-
-| `SeedData:SeedFullDataset` | Result | Also requires |
-| --- | --- | --- |
-| unset / `false` | Owner account only — the production path | `AdminUser:Password` |
-| `true` | Owner account **plus** the full development member dataset | `AdminUser:Password` **and** `SeedData:MemberPassword` |
-
-Before unit 027 this was a hardcoded `var isEmptyDb = true;`. It became configuration because
-Azure DEV wants the full dataset and production must not have it. Hardcoding `false` instead would
-have armed the bulk member seed on any fresh database anywhere, including a future production
-restore. Unset, behaviour is identical to the old hardcoded value.
-
-DEV sets `SeedData__SeedFullDataset=true`. Production sets nothing and is unaffected.
-
-**Only `true` and `false` are accepted** (case-insensitive). Absent counts as `false`. Anything
-else — `1`, `0`, `yes`, or an empty string — throws out of `GetValue<bool>` and the app refuses to
-start. That is deliberate: a typo in the portal stops the host instead of silently choosing a
-seed. Verified against `Microsoft.Extensions.Configuration.Binder` for both the in-memory and the
-environment-variable provider:
-
-| Value | `isEmptyDb` | Result |
-| --- | --- | --- |
-| absent | `true` | owner-only — **production** |
-| `false` / `False` | `true` | owner-only |
-| `true` / `True` / `TRUE` | `false` | full dataset — **DEV** |
-| `""`, `1`, `0`, `yes` | — | `InvalidOperationException`, app does not start |
+An app running a *local* package cannot later be switched to a remote package URL (Microsoft); not
+needed here.
 
 ## GitHub Actions → Azure authentication
 
-DEV uses **OIDC federation against a user-assigned managed identity**. No publish profile, no
-client secret, nothing long-lived in the repository.
+OIDC federation against user-assigned managed identities. No publish profile, no client secret,
+nothing long-lived in the repository.
 
-| Thing | Value |
-| --- | --- |
-| Identity | `rtub-dev-deploy` (user-assigned managed identity, `rtub_group`) |
-| Federated credential | `github-dev-env` |
-| Issuer | `https://token.actions.githubusercontent.com` |
-| Subject | `repo:luisfpires18/RTUB:environment:development` |
-| Audience | `api://AzureADTokenExchange` |
-| Role | `Website Contributor`, scoped to the `rtub-dev` site only |
+| | DEV | PROD |
+| --- | --- | --- |
+| Identity | `rtub-dev-deploy` | `rtub-prod-deploy` |
+| Federated credential | `github-dev-env` | `github-production-env` |
+| Subject | `repo:luisfpires18/RTUB:environment:development` | `repo:luisfpires18/RTUB:environment:production` |
+| Issuer / audience | `https://token.actions.githubusercontent.com` / `api://AzureADTokenExchange` | same |
+| Roles | Website Contributor on the `rtub-dev` site | Website Contributor on the `rtub` site; Storage Blob Data Contributor on the archive container |
 
-A **user-assigned managed identity** was chosen over an Entra app registration on purpose: it is
-an ordinary Azure resource, so it is created, scoped and deleted with the rest of `rtub_group` and
-needs no directory-level administration, and it can never grow a client secret.
+The subject is the *environment* form because the deploying jobs declare `environment:`; a
+branch-form credential would not match. A job needs `permissions: { id-token: write }` to mint the
+token; in Deploy • PROD only the deploy job has it - the build job runs npm and NuGet code and gets
+read access to the repository only.
 
-The subject is the *environment* form, not the branch form, because the `deploy-dev` job declares
-`environment: development` — GitHub then issues the token with
-`repo:<owner>/<repo>:environment:<name>` as the subject. A branch-form credential would not match.
+Environment **variables** (identifiers, not secrets): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
+`AZURE_SUBSCRIPTION_ID` on both; `RELEASE_STORAGE_ACCOUNT` on `production`. The `development`
+environment also holds the four refresh secrets listed in the backups document.
 
-The identity's `Website Contributor` assignment is scoped to `rtub-dev` alone. It cannot touch the
-production app, the production plan, or anything else in the subscription.
+## Azure DEV notes
 
-The job needs `permissions: { id-token: write, contents: read }` for GitHub to mint the token.
+- DEV was created on Free F1 and moved to **B1** by the owner after the unit 027 incident below.
+  Return it to F1 only after deciding the Free-tier limits are acceptable.
+- **Never set `healthCheckPath` on an app that has no working code yet.** Azure probes it every
+  minute and restarts the instance on failure. On F1, with 15 worker stop requests per day, unit
+  027's DEV disabled itself within the hour (`WPStopRequests` 36/15, `403 Site Disabled` until
+  00:00 UTC) while CPU and egress were still at zero. On B1 it is merely pointless with one
+  instance.
+- `Staging` behaves like production (`!IsDevelopment()`): HSTS, exception page, response
+  compression, 30-day static caching. It is not `Test`: migrations and seeding run at startup.
+  There is no `appsettings.Staging.json`.
+- **DEV holds real personal data** after a refresh (unit 029): treat access to it as
+  production-equivalent, and never give it production R2 or backup credentials.
 
-### Non-secret identifiers
+## Database
 
-Stored as **variables** (not secrets) on the `development` GitHub environment. Client, tenant and
-subscription IDs are identifiers, not credentials; the federated-credential subject is what
-actually gates access.
+`/home` is the Azure Files share mounted into the container: it survives restarts, redeploys and
+scaling. Never point `ConnectionStrings__SqliteConnection` outside `/home` - anything else is on the
+container's ephemeral layer.
 
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
+`Program.cs` creates the database directory if needed, takes a pre-migration snapshot when an
+existing database has pending migrations, applies them, then seeds. Rules and restore procedure:
+`docs/release-and-rollback.md` → *Database*.
+
+### Seeding
+
+`SeedData.InitializeAsync` seeds only when the database has **no users at all**.
+`SeedData:SeedFullDataset` decides what:
+
+| Value | Result | Also requires |
+| --- | --- | --- |
+| unset / `false` | Owner account only - the production path | `AdminUser:Password` |
+| `true` | Owner **plus** the full development member dataset - DEV | `AdminUser:Password` **and** `SeedData:MemberPassword` |
+
+Only `true`/`false` (any case) are accepted; `1`, `yes` or an empty string throw and the app refuses
+to start, so a portal typo cannot silently pick a seed.
 
 ## App Service setting names
 
-Names only. Values live in Azure.
+Names only; values live in Azure. None of these are in the repository or applied by a deploy.
 
-### Required for the DEV app to start
+| Name | DEV | PROD | Note |
+| --- | --- | --- | --- |
+| `ASPNETCORE_ENVIRONMENT` | `Staging` | `Production` | |
+| `ASPNETCORE_URLS`, `WEBSITES_PORT` | set | set | must agree |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | `true` | real client address and scheme behind the Azure front end |
+| `ConnectionStrings__SqliteConnection` | set | set | under `/home/site/data` |
+| `WEBSITE_RUN_FROM_PACKAGE` | `1` | `1` after cutover | see above |
+| `AdminUser__Password` | set | not needed while users exist | startup-fatal on an empty database |
+| `SeedData__SeedFullDataset`, `SeedData__MemberPassword` | set | absent | |
+| `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |
+| `Cloudflare__R2__AccountId`, `…AccessKeyId`, `…SecretAccessKey`, `…Bucket`, `…PublicUrl` | DEV bucket, bucket-scoped token | production | **required**: the home page resolves storage services |
+| `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
+| `WebPush__Vapid*`, `EmailSettings__*` | optional | set | absence disables the feature, not startup |
 
-| Name | Note |
-| --- | --- |
-| `ASPNETCORE_ENVIRONMENT` | `Staging` |
-| `ASPNETCORE_URLS` | must match `WEBSITES_PORT` |
-| `WEBSITES_PORT` | the port the container listens on |
-| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` — correct scheme behind the Azure front end |
-| `ConnectionStrings__SqliteConnection` | must be under `/home` |
-| `AdminUser__Password` | **startup-fatal on a fresh database.** `SeedMembersAsync` throws if unset. Not needed once the database has users. |
+**R2 is required, not optional.** `Index.razor` (`@page "/"`) resolves `ISlideshowService` →
+`CloudflareImageStorageService` → `IAmazonS3`; without credentials the app starts and `/health`
+answers 200, but `/` returns 500. `IAmazonS3` reaches 13 domain services through 11 storage
+services. Making it optional was rejected: it would turn real storage failures into silence.
 
-### Required because DEV opts into the full seed
-
-| Name | Note |
-| --- | --- |
-| `SeedData__SeedFullDataset` | `true` |
-| `SeedData__MemberPassword` | **startup-fatal on a fresh database** when the flag above is `true`. No default exists. |
-
-### Required — Cloudflare R2
-
-**R2 is not optional.** An earlier revision of this document claimed DEV could omit it because
-the `IAmazonS3` client is a lazy singleton that only throws when first resolved. The first half is
-true; the conclusion was wrong. It is resolved on the **home page**:
-
-```
-Index.razor  @page "/"
-  └─ @inject ISlideshowService
-       └─ SlideshowService(… IImageStorageService …)
-            └─ CloudflareImageStorageService(… IAmazonS3 …)
-                 └─ factory throws: "Cloudflare R2 credentials not configured"
-```
-
-`IAmazonS3` is constructor-injected into **11** `Cloudflare*StorageService` classes, which are in
-turn constructor-injected into **13** domain services — `AlbumService`, `CommentService`,
-`EventService`, `InstrumentService`, `ItemTypeConfigService`, `LogisticsCardService`,
-`NaipeService`, `PostService`, `ProductService`, `SlideshowService`, `SongService`,
-`TransactionService`, `UserProfileService`. Between them those cover most routable pages. The app
-starts fine and `/health` answers 200 — then `/` returns 500.
-
-Making it optional was considered and rejected: it would require every one of those services to
-tolerate a no-op storage client, which changes application semantics broadly and converts real
-storage failures into silence. These are required settings:
-
-| Name | Note |
-| --- | --- |
-| `Cloudflare__R2__AccountId` | |
-| `Cloudflare__R2__AccessKeyId` | |
-| `Cloudflare__R2__SecretAccessKey` | |
-| `Cloudflare__R2__Bucket` | **use a separate DEV bucket** |
-| `Cloudflare__R2__PublicUrl` | also feeds the CSP `img-src`/`media-src` sources |
-
-**Never give DEV production R2 credentials.** Create a separate DEV bucket and issue an R2 API
-token scoped to that bucket alone. DEV then cannot read, overwrite or delete production media even
-by accident, and the token can be rolled without touching production.
-
-### Optional — absence degrades a feature, it does not stop startup
-
-| Group | Names | Missing in DEV means |
-| --- | --- | --- |
-| Web Push / VAPID | `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | push disabled via `WebPushOptions.IsConfigured()`; in-app inbox messages still work |
-| Email | `EmailSettings__SmtpServer`, `EmailSettings__SmtpPort`, `EmailSettings__SmtpUsername`, `EmailSettings__SmtpPassword`, `EmailSettings__EnableSsl`, `EmailSettings__SenderEmail`, `EmailSettings__SenderName`, `EmailSettings__RecipientEmail` | outbound mail fails on send |
-| Database backup | `DatabaseBackup__Enabled`, `DatabaseBackup__AccessKeyId`, `DatabaseBackup__SecretAccessKey`, `DatabaseBackup__Bucket`, `DatabaseBackup__AccountId` | DEV sets `Enabled=false`; nothing else is read |
-| Application Insights | `APPLICATIONINSIGHTS_CONNECTION_STRING` and the `ApplicationInsightsAgent_*` / `XDT_*` family | no telemetry |
-
-**Never give DEV production backup credentials either.**
-
-### `RemoteNavigationManager already initialized` is a symptom, not a bug
-
-It appears only in the frame `ExceptionHandlerMiddleware[3] — "An exception was thrown attempting
-to execute the error handler"`, immediately after an unhandled exception, and always with
-`EndpointHtmlRenderer.InitializeStandardComponentServicesAsync` at the top of its stack.
-
-`UseExceptionHandler("/Error")` re-executes the pipeline to render `/Error` as a Razor component
-on the *same* `HttpContext`, whose `RemoteNavigationManager` the first render attempt already
-initialized. No first exception, no second render, no message. Fix the underlying exception and it
-disappears; there is nothing independent to fix here.
+`RemoteNavigationManager already initialized` in a log is fallout from an earlier unhandled
+exception (`UseExceptionHandler` re-rendering `/Error` on the same `HttpContext`), not a bug of its
+own.
 
 ## Deployment smoke test
 
-The same checks exist in two places: the `Smoke test` step of `deploy-dev`, which runs on every
-dev deploy, and `scripts/smoke-azure-dev.sh`, which you run by hand. The script is read-only — it
-never writes App Service configuration and never starts the app; if the site is stopped it prints
-the start command and exits, because on Free tier every restart spends part of a 15/day
-allowance.
+`scripts/smoke-azure.sh` (read-only), run by `.github/actions/deploy-and-verify` after every deploy
+and rollback with the build it expects:
 
-`deploy-dev` asserts the deployment-visible contracts from units 025 and 026 after every deploy,
-so a bad deploy fails the run instead of sitting there quietly broken:
+1. **Waits until `/api/version` reports the expected version AND commit** (up to 10 minutes). Until
+   the restart happens, the old instance keeps answering `/health` with 200 - the smoke test used
+   to be able to pass against it. A release built before `/api/version` existed is recognised by
+   its 404 instead.
+2. `/health`, `/login`, `/manifest.webmanifest`, `/service-worker.js` all 200.
+3. HTML carries `Content-Security-Policy`; `/service-worker.js` carries **none** (a CSP served with a
+   worker script governs the worker's own fetches and breaks its cross-origin caching).
+4. Still up five seconds later, still the same build.
 
-1. `/health` returns 200 anonymously (polled, up to five minutes for a Free-tier cold start).
-2. `/login` and `/manifest.webmanifest` are reachable.
-3. HTML documents carry a `Content-Security-Policy` header.
-4. `/service-worker.js` carries **no** `Content-Security-Policy` header. A CSP served with a
-   worker script governs that worker's own fetches and would break the cross-origin caching the
-   service worker does.
+By hand: `SKIP_AZ=1 APP=rtub EXPECT_VERSION=2.0.0 EXPECT_COMMIT=<sha> ./scripts/smoke-azure.sh`.
+Without `SKIP_AZ` it also reads site state and `healthCheckPath` with `az` - reads only; if the
+site is stopped it prints the start command and exits.
 
-## `/health`
+## `/api/version` and `/health`
 
-`app.MapHealthChecks("/health")` with a single `AddDbContextCheck<ApplicationDbContext>("database")`.
-It is anonymous, read-only and does not mutate state, which is exactly what Azure's health check
-and the CI smoke test need. `service-worker.js` lists `/health` in `NEVER_CACHE_PREFIXES`, so it
-is network-only from the PWA's perspective and `offline.js` can rely on it. Do not expand it into
-a health subsystem and do not put it behind authorization.
-
-It is **suitable** for App Service's `healthCheckPath`, but see the Free-tier warning above before
-wiring it there: on Free tier a failing probe restarts the instance, and the restart allowance is
-small enough that an app which is not yet deployed will disable itself.
-
-## Production
-
-Production deployment was **not changed** by unit 027 and still works exactly as before:
-
-- `master` push → `build-and-test` → `dotnet publish` → `azure/webapps-deploy@v3` to app `rtub`
-- authenticated with the `AZURE_WEBAPP_PUBLISH_PROFILE` repository secret
-- which requires **Basic Auth Publishing Credentials = On** on the production App Service
-
-Production still pins `actions/checkout@v4`, `actions/setup-dotnet@v4`, `actions/setup-node@v4`
-(Node 20) and `actions/upload-artifact@v4`. Those are stale, and modernizing them along with
-migrating production to OIDC is the next deployment unit — deliberately not folded into this one,
-so a DEV pipeline change can never take production down.
-
-### Production carries the same native-asset packaging risk
-
-It works today, but nothing in the production path defends it. Recorded for unit 028, **not
-changed in 027**:
-
-- Production publishes **portable** (`-c Release`, no RID), so its `libQuestPdfSkia.so` and
-  `libe_sqlite3.so` live under `runtimes/linux-x64/native/` inside a 72 MB, 22-RID subtree, and
-  the payload is ~330 MB rather than ~267 MB.
-- Production has **no `WEBSITE_RUN_FROM_PACKAGE`**, so it deploys through Kudu's extract-and-rsync
-  path — the same transport that truncated DEV's `wwwroot`.
-- Production has **no deploy guard**. A partial transfer that drops `runtimes/` would produce the
-  identical `DllNotFoundException` at `Program.cs:48` and exit 134, on the production site.
-
-Production App Service is Linux (`DOTNETCORE|10.0`), so `-r linux-x64 --self-contained false`
-applies to it unchanged. Migrating it is a production deployment change and belongs in 028.
+- `GET /api/version` → `{"version":"2.0.0","commit":"<40-hex>"}`. Anonymous, `Cache-Control:
+  no-store`, JSON (so no CSP), under `/api/` so the service worker never caches it. Version and
+  commit only - the repository is public, so the commit reveals nothing new.
+- `GET /health` → `MapHealthChecks` with one `AddDbContextCheck`. Anonymous, read-only,
+  network-only for the service worker (`offline.js` uses it as its reachability probe). Do not grow
+  it into a health subsystem or put it behind authorization.

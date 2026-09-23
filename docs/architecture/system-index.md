@@ -69,6 +69,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `src/RTUB.Application/Services/Cloudflare*StorageService.cs` | Per-domain Cloudflare R2 storage services (images, audio, documents, media, receipts, …). |
 | `src/RTUB.Application/Services/Storage/` | Shared storage abstractions. |
 | `src/RTUB.Application/Services/DatabaseBackupBackgroundService.cs` | Scheduled SQLite backup to object storage. |
+| `src/RTUB.Application/Services/PreMigrationSnapshot.cs` | Startup restore point before migrating an existing database; fails closed, keeps five. |
 | `src/RTUB.Application/Services/DatabaseSanitizer.cs` | Offline sanitizer: production snapshot → DEV-safe copy. Never writes to its source. |
 | `src/RTUB.Application/Services/Storage/StorageObjectOrigin.cs` | Storage ownership: classifies a stored URL as this environment's, a production reference, external or unknown. |
 | `src/RTUB.Application/Services/Storage/ReferenceStorageService.cs` | **Read-only** view of the production bucket for DEV/Staging. No upload, delete or copy member exists. |
@@ -105,15 +106,23 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 
 | Path | Responsibility |
 | --- | --- |
-| `.github/workflows/ci.yml` | Build, test, production deploy (`master` push) and Azure DEV deploy (`dev` push). |
-| `.github/workflows/refresh-dev-database.yml` | **Manual only** (`workflow_dispatch`): refreshes Azure DEV from a sanitized production snapshot. Never writes to the `rtub-db` bucket. |
-| `docs/ci-cd-and-azure-environments.md` | Branch/deploy model, test command, Node version, Azure DEV + production topology, OIDC, setting names. |
-| `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook and central build/package versioning. |
+| `VERSION` | The release version, SemVer `MAJOR.MINOR.PATCH`. Stamped into every build by `Directory.Build.props`. |
+| `.github/workflows/ci.yml` | **CI • Build & Test**: build + all suites on PRs; called by both deploy workflows. PRs into `master` also require a VERSION bump. |
+| `.github/workflows/deploy-dev.yml` | **Deploy • DEV**: push to `dev` → CI → one zip → `rtub-dev` → smoke. |
+| `.github/workflows/deploy-prod.yml` | **Deploy • PROD**: push to `master` → CI → one zip → private immutable archive → deploy the archived bytes to `rtub` → smoke → tag. |
+| `.github/workflows/rollback-prod.yml` | **Rollback • PROD**: manual; redeploys an archived version. Never builds. |
+| `.github/workflows/refresh-dev-database.yml` | **Database • Refresh DEV from PROD**: manual; sanitized production snapshot → `rtub-dev`. Never writes to `rtub-db`. |
+| `.github/actions/package-release/` | The only `dotnet publish` (linux-x64, framework-dependent) → one guarded zip. |
+| `.github/actions/deploy-and-verify/` | `azure/webapps-deploy` + smoke that waits for the expected version and commit. |
+| `docs/release-and-rollback.md` | **Runbook**: branch model, versions, releasing, archive, rollback, hotfix, database rules and restore. |
+| `docs/ci-cd-and-azure-environments.md` | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC identities, setting names, smoke. |
+| `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook (inert), central build settings + version stamping, central package versions. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
-| `scripts/` | Operational helper scripts, run by hand. |
-| `scripts/smoke-azure-dev.sh` | Read-only Azure DEV smoke test: `/health`, CSP on HTML, no CSP on the service worker. Writes nothing. |
+| `scripts/release.sh` | version / bump-check / package / zip guards / `release.json` / schema gate. `--self-test`. |
+| `scripts/release-archive.sh` | The release archive: create-only put, verified get, list. `--self-test` against a fake `az`. |
+| `scripts/smoke-azure.sh` | Read-only smoke: expected version + commit, `/health`, CSP contracts. `smoke-azure-dev.sh` pins it to `rtub-dev`. |
 | `scripts/resolve-dev-db-path.sh` | Validates rtub-dev's `ConnectionStrings__SqliteConnection` and emits the Kudu path of the file the app actually opens. Fails closed; `--self-test`. |
-| `scripts/package-azure-dev.sh` | Packages a publish tree for Azure Linux and rejects backslash separators — never use `Compress-Archive`. |
+| `src/RTUB.Web/Services/BuildInfo.cs` | Version + commit behind `GET /api/version`. |
 
 ## Architecture decisions
 
