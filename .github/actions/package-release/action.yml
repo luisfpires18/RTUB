@@ -1,0 +1,113 @@
+name: Package release
+description: >
+  The one place RTUB is published. Builds the linux-x64 framework-dependent publish, packages it
+  into ONE zip, runs the deploy guards against that zip, and uploads it as this run's artifact.
+  Deploy • DEV and Deploy • PROD both use it; Rollback • PROD never does - it only redeploys
+  archived zips. Expects the repository to be checked out.
+
+inputs:
+  channel:
+    description: "'dev' (version gets -dev.<run>) or 'production' (plain VERSION, plus release.json)"
+    required: true
+
+outputs:
+  version:
+    description: The version this build reports on /api/version
+    value: ${{ steps.version.outputs.version }}
+  commit:
+    description: Full commit SHA the zip was built from
+    value: ${{ github.sha }}
+  sha256:
+    description: SHA-256 of the zip
+    value: ${{ steps.package.outputs.sha256 }}
+  artifact:
+    description: Name of the uploaded workflow artifact holding the zip (and release.json)
+    value: ${{ steps.package.outputs.artifact }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: '10.0.x'
+
+    # Required, not optional: RTUB.csproj's BuildPixiTS target runs `npm ci --ignore-scripts`
+    # + `npm run build:pixi` on BeforePublish. Node 22 is the repo's toolchain version.
+    - name: Setup Node (PixiJS bundle build runs during publish)
+      uses: actions/setup-node@v7
+      with:
+        node-version: '22'
+
+    # VERSION is the release version; Directory.Build.props stamps it into every assembly.
+    # DEV builds add a prerelease suffix so they can never be mistaken for a release.
+    - name: Resolve version
+      id: version
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        RUN_NUMBER: ${{ github.run_number }}
+      run: |
+        set -euo pipefail
+        base=$(bash scripts/release.sh version)
+        case "$CHANNEL" in
+          production) version=$base; suffix="" ;;
+          dev)        version="$base-dev.$RUN_NUMBER"; suffix="dev.$RUN_NUMBER" ;;
+          *)          echo "::error::channel must be dev or production, not '$CHANNEL'"; exit 1 ;;
+        esac
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
+        echo "Building $version from $GITHUB_SHA"
+
+    # RID-specific but framework-dependent: App Service supplies .NET 10, we supply only the
+    # linux-x64 assets. Natives land at the publish root, there is no 22-RID runtimes/ tree,
+    # and the payload is ~64 MB smaller than a portable publish. Scoped to this step: no
+    # RuntimeIdentifier anywhere in the build, so Windows development and tests are untouched.
+    - name: Publish (linux-x64, framework-dependent)
+      shell: bash
+      env:
+        SUFFIX: ${{ steps.version.outputs.suffix }}
+      run: |
+        set -euo pipefail
+        dotnet publish src/RTUB.Web/RTUB.csproj \
+          --configuration Release \
+          -r linux-x64 \
+          --self-contained false \
+          --output "$RUNNER_TEMP/publish" \
+          ${SUFFIX:+-p:VersionSuffix=$SUFFIX}
+
+    # One zip per build. The guards (native libraries are linux-x64 ELF, PWA assets present,
+    # wwwroot not truncated, no backslash or traversal entry names) run on this zip - the
+    # exact bytes that get archived and deployed - not on the folder it came from.
+    - name: Package and verify the zip
+      id: package
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ steps.version.outputs.version }}
+        RUN_ID: ${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        out="$RUNNER_TEMP/package"
+        zip="$out/rtub-$VERSION.zip"
+        bash scripts/release.sh package "$RUNNER_TEMP/publish" "$zip"
+        if [ "$CHANNEL" = production ]; then
+          bash scripts/release.sh manifest "$zip" "$VERSION" "$GITHUB_SHA" "$RUN_ID" \
+            src/RTUB.Web/Migrations "$out/release.json"
+        fi
+        sha=$(sha256sum "$zip" | cut -d' ' -f1)
+        echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+        echo "artifact=rtub-package" >> "$GITHUB_OUTPUT"
+        echo "zip: rtub-$VERSION.zip  $(stat -c%s "$zip") bytes  sha256 $sha"
+
+    # Transport to the deploy job of this same run only. The repository is public, so any
+    # signed-in GitHub user could download it: one day, then gone. The durable copy of a
+    # production release is the private archive, written by Deploy • PROD.
+    - name: Upload the package for the deploy job
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.package.outputs.artifact }}
+        path: ${{ runner.temp }}/package/
+        retention-days: 1
+        compression-level: 0
+        if-no-files-found: error

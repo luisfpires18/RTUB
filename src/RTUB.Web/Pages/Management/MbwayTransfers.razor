@@ -40,7 +40,7 @@
     </div>
 </div>
 
-<div class="mb-3 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.12); border: 1px solid rgba(168, 142, 229, 0.35);">
+<div class="u-tile-lilac-soft mb-3 px-3 py-2 rounded">
     <i class="bi bi-info-circle text-purple me-1"></i>
     <span class="text-purple">As transferências MBWAY não são contabilizadas nos totais dos relatórios.</span>
 </div>
@@ -166,15 +166,14 @@ else
                                    Compact="true" />
                         @if (filteredMembers.Any())
                         {
-                            <div class="list-group mt-2" style="max-height: 250px; overflow-y: auto; background-color: #1e2030; border-color: rgba(var(--bs-primary-rgb), 0.3);">
+                            <div class="u-scroll-panel-navy list-group mt-2">
                                 @foreach (var member in filteredMembers.Take(10))
                                 {
-                                    <button type="button" class="list-group-item list-group-item-action"
-                                            style="background-color: #1e2030; color: #fff; border-color: rgba(255,255,255,0.08);"
+                                    <button type="button" class="u-panel-navy list-group-item list-group-item-action"
                                             @onclick="@(() => SelectMember(member))">
                                         <div class="d-flex align-items-center">
                                             <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" />
+                                                 class="u-w-32 u-h-32 u-of-cover rounded-circle me-2" />
                                             <div>
                                                 <strong>@(member.Nickname ?? member.UserName)</strong>
                                                 @if (!string.IsNullOrEmpty(member.FirstName))
@@ -190,7 +189,7 @@ else
                         }
                         @if (!string.IsNullOrEmpty(editingTransfer?.MemberUserId))
                         {
-                            <div class="mt-2 mb-0 px-3 py-2 rounded" style="background-color: rgba(168, 142, 229, 0.15); border: 1px solid rgba(168, 142, 229, 0.4);">
+                            <div class="u-tile-lilac mt-2 mb-0 px-3 py-2 rounded">
                                 <i class="bi bi-person-check text-purple me-1"></i>
                                 <strong class="text-purple">Membro selecionado:</strong>
                                 <span>@GetMemberName(editingTransfer.MemberUserId)</span>

@@ -1,0 +1,308 @@
+name: Database • Refresh DEV from PROD
+
+# MANUAL ONLY. No push, no pull_request, no schedule - deliberately. This workflow
+# replaces the Azure DEV database, and nothing should be able to trigger that as a
+# side effect of ordinary development.
+#
+# What it does:
+#   rtub-db/database/current.db (production backup, READ-ONLY)
+#     -> download to the runner            (immutable input, never written back)
+#     -> sanitize into a SEPARATE file     (tools/RTUB.DbSanitizer)
+#     -> validate the sanitized copy       (fails closed; nothing ships unverified)
+#     -> resolve the database file rtub-dev ACTUALLY opens, from its own
+#        ConnectionStrings__SqliteConnection - never a hardcoded file name
+#     -> replace that file on rtub-dev, keeping a rollback copy
+#     -> start rtub-dev and run the committed smoke checks
+#
+# PRODUCTION IS NEVER MUTATED. This workflow only ever issues a GET against the
+# rtub-db bucket, and it never touches the production App Service. The R2
+# credential it uses must be a dedicated READ-ONLY token scoped to rtub-db alone -
+# not the write-capable credential the backup service runs with.
+#
+# See docs/cloudflare-r2-and-database-backups.md, "Refreshing Azure DEV from a
+# sanitized production snapshot".
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type REFRESH to confirm the Azure DEV database will be replaced'
+        required: true
+        default: ''
+
+jobs:
+  refresh:
+    name: Sanitized production snapshot -> Azure DEV
+    runs-on: ubuntu-latest
+
+    # Same environment the deploy-dev job in ci.yml uses, so the existing OIDC
+    # federated credential (subject repo:...:environment:development) matches and
+    # the non-secret Azure identifiers are already there as variables.
+    environment:
+      name: development
+      url: https://rtub-dev.azurewebsites.net
+
+    permissions:
+      id-token: write
+      contents: read
+
+    # A second refresh must never overlap a first one mid-upload. cancel-in-progress
+    # is false for the same reason it is false in deploy-dev: cancelling between the
+    # stop and the start would leave DEV down with a half-written database.
+    concurrency:
+      group: refresh-dev-database
+      cancel-in-progress: false
+
+    # DEV_DB_PATH is deliberately NOT defined here. It used to be, as a literal file
+    # name, which went stale the moment rtub-dev was re-pointed at a fresh database:
+    # the workflow then backed up and replaced an empty file the app never opened.
+    # It is now resolved from rtub-dev's own configuration by the "Resolve" step
+    # below and exported through $GITHUB_ENV. Do not add a default back.
+    env:
+      APP: rtub-dev
+      GROUP: rtub_group
+      BASE_URL: https://rtub-dev.azurewebsites.net
+
+    steps:
+      - name: Confirm the destructive intent
+        # Passed through the environment rather than interpolated into the script:
+        # `${{ }}` inside a run block is substituted as text, so a quote in the
+        # input would be shell, not data.
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRM" != "REFRESH" ]; then
+            echo "::error::This workflow replaces the Azure DEV database. Re-run it and type REFRESH to confirm."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # ----------------------------------------------------------------------
+      # 1. Read the production snapshot. GET only.
+      # ----------------------------------------------------------------------
+      - name: Download the production snapshot from Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_DB_READONLY_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_DB_READONLY_SECRET_ACCESS_KEY }}
+          # The endpoint embeds the Cloudflare account id, so it is a secret, not
+          # a variable, and never appears in the repository.
+          R2_ENDPOINT: ${{ secrets.R2_DB_ENDPOINT }}
+          AWS_DEFAULT_REGION: auto
+          # AWS CLI >= 2.23 sends and demands CRC32 checksums by default, which R2
+          # does not implement. Without these two the transfer fails outright.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -euo pipefail
+          aws s3 cp \
+            --endpoint-url "$R2_ENDPOINT" \
+            s3://rtub-db/database/current.db \
+            "$RUNNER_TEMP/snapshot.db"
+          echo "Snapshot: $(stat -c%s "$RUNNER_TEMP/snapshot.db") bytes"
+
+      # ----------------------------------------------------------------------
+      # 2. Sanitize into a NEW file, then validate it. Both happen inside the
+      #    tool: it deletes its own output and exits non-zero if any check fails,
+      #    so a database that has not been proven sanitized never reaches Azure.
+      # ----------------------------------------------------------------------
+      - name: Sanitize the snapshot into a separate file
+        env:
+          # Read from the environment by the tool. Never a command-line argument:
+          # that would put it in the runner's process list and in the command echo.
+          RTUB_DEV_PASSWORD: ${{ secrets.DEV_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          dotnet run --project tools/RTUB.DbSanitizer --configuration Release -- \
+            --source "$RUNNER_TEMP/snapshot.db" \
+            --destination "$RUNNER_TEMP/sanitized.db"
+          echo "Sanitized: $(stat -c%s "$RUNNER_TEMP/sanitized.db") bytes"
+
+      # ----------------------------------------------------------------------
+      # 3. Azure DEV. Same OIDC identity ci.yml's deploy-dev job uses.
+      # ----------------------------------------------------------------------
+      - name: Azure login (OIDC federated credential)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Which SQLite file rtub-dev opens is decided by rtub-dev's own
+      # ConnectionStrings__SqliteConnection and by nothing else, so that is what this
+      # reads. Runs BEFORE the stop: a missing, ambiguous or unexpected setting fails
+      # the run with rtub-dev still up and nothing touched.
+      - name: Resolve the DEV database path from rtub-dev's configuration
+        run: |
+          set -euo pipefail
+
+          # The validator first proves it still rejects every malformed shape, so it
+          # is never trusted in a broken state. Failures print on stderr.
+          bash scripts/resolve-dev-db-path.sh --self-test > /dev/null
+
+          # One value, selected server-side. The full settings list carries secrets and
+          # is never printed - and neither is the connection string itself.
+          connection_string=$(az webapp config appsettings list \
+            --name "$APP" --resource-group "$GROUP" \
+            --query "[?name=='ConnectionStrings__SqliteConnection'].value | [0]" \
+            --output tsv)
+          if [ -n "$connection_string" ]; then
+            echo "::add-mask::$connection_string"
+          fi
+
+          # An entry of the same name on the Connection strings blade reaches the app as
+          # the SAME configuration key, and which of the two wins is not defined. If both
+          # exist we cannot know which file the app opens, so refuse. Only a count is
+          # read back - never a value.
+          shadowing=$(az webapp config connection-string list \
+            --name "$APP" --resource-group "$GROUP" \
+            --query "length([?name=='SqliteConnection'])" \
+            --output tsv)
+          if [ "$shadowing" != "0" ]; then
+            echo "::error::rtub-dev also defines 'SqliteConnection' on its Connection strings blade, so the database it opens is ambiguous. Remove one of the two."
+            exit 1
+          fi
+
+          # Fails closed unless the value is exactly Data Source=/home/site/data/<file>.db.
+          # Passed through the environment, never an argument.
+          dev_db_path=$(SQLITE_CONNECTION_STRING="$connection_string" bash scripts/resolve-dev-db-path.sh)
+
+          # Safe to append: the validator only ever emits site/data/<allow-listed name>.db,
+          # so no newline can smuggle a second variable into $GITHUB_ENV.
+          echo "DEV_DB_PATH=$dev_db_path" >> "$GITHUB_ENV"
+          echo "DEV database: /home/$dev_db_path"
+
+      # SQLite must not be open while its file is swapped underneath it. Stopping
+      # also flushes and checkpoints whatever WAL the running app still holds.
+      - name: Stop rtub-dev
+        run: |
+          set -euo pipefail
+          az webapp stop --name "$APP" --resource-group "$GROUP"
+          echo "app_stopped=1" >> "$GITHUB_ENV"
+          # App Service takes a moment to actually tear the worker down.
+          sleep 20
+
+      # Kudu's VFS API is the supported way to read and write a single file under
+      # /home. It is used here rather than `az webapp deploy --type static` because
+      # the rollback copy needs a GET and the sidecars need a DELETE, and this keeps
+      # all three on one documented endpoint and one token. No shell is invoked on
+      # the App Service: /api/command is deliberately not used.
+      - name: Replace the DEV database
+        run: |
+          set -euo pipefail
+
+          # Resolved by the step above and nowhere else. Unset or empty would turn every
+          # VFS call below into one against the /home root, so refuse outright.
+          : "${DEV_DB_PATH:?DEV_DB_PATH was not resolved - refusing to touch the DEV database}"
+
+          TOKEN=$(az account get-access-token --query accessToken -o tsv)
+          echo "::add-mask::$TOKEN"
+
+          SCM="https://${APP}.scm.azurewebsites.net/api/vfs"
+
+          kudu() { # METHOD PATH [curl args...]
+            local method=$1 path=$2
+            shift 2
+            curl -sS --fail-with-body -X "$method" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "If-Match: *" \
+              -H "Expect:" \
+              "$SCM/$path" "$@"
+          }
+
+          # 3a. Rollback copy, kept on the App Service share so a rollback is one
+          #     PUT rather than a re-run of this workflow. Deliberately NOT uploaded
+          #     as a workflow artifact: it is a whole database.
+          if kudu GET "$DEV_DB_PATH" -o "$RUNNER_TEMP/rollback.db"; then
+            echo "rollback_available=1" >> "$GITHUB_ENV"
+            kudu PUT "${DEV_DB_PATH}.rollback" -T "$RUNNER_TEMP/rollback.db"
+            echo "Rollback copy: /home/${DEV_DB_PATH}.rollback ($(stat -c%s "$RUNNER_TEMP/rollback.db") bytes)"
+          else
+            echo "No existing DEV database at /home/${DEV_DB_PATH} - nothing to roll back to."
+          fi
+
+          # 3b. The one destructive moment. Flagged BEFORE it runs so a failure
+          #     part-way through still triggers the rollback step below.
+          echo "replacement_started=1" >> "$GITHUB_ENV"
+          kudu PUT "$DEV_DB_PATH" -T "$RUNNER_TEMP/sanitized.db"
+          echo "Replaced /home/${DEV_DB_PATH}"
+
+          # 3c. The old -wal/-shm describe pages of a database that no longer
+          #     exists. SQLite would try to recover them into the new file.
+          for sidecar in "${DEV_DB_PATH}-wal" "${DEV_DB_PATH}-shm"; do
+            kudu DELETE "$sidecar" && echo "Removed /home/$sidecar" || echo "No /home/$sidecar"
+          done
+
+      # Only on a failed replacement, and only when there was something to go back
+      # to. Puts DEV back on the database it was running before this workflow.
+      - name: Roll the DEV database back
+        if: failure() && env.replacement_started == '1' && env.rollback_available == '1'
+        run: |
+          set -euo pipefail
+          : "${DEV_DB_PATH:?DEV_DB_PATH was not resolved - refusing to touch the DEV database}"
+
+          TOKEN=$(az account get-access-token --query accessToken -o tsv)
+          echo "::add-mask::$TOKEN"
+
+          SCM="https://${APP}.scm.azurewebsites.net/api/vfs"
+          kudu() {
+            local method=$1 path=$2
+            shift 2
+            curl -sS --fail-with-body -X "$method" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "If-Match: *" \
+              -H "Expect:" \
+              "$SCM/$path" "$@"
+          }
+
+          kudu PUT "$DEV_DB_PATH" -T "$RUNNER_TEMP/rollback.db"
+          for sidecar in "${DEV_DB_PATH}-wal" "${DEV_DB_PATH}-shm"; do
+            kudu DELETE "$sidecar" || true
+          done
+          echo "::warning::DEV was rolled back to the database it had before this run."
+
+      # always(), so a failure between the stop and here never leaves DEV down.
+      - name: Start rtub-dev
+        if: always() && env.app_stopped == '1'
+        run: az webapp start --name "$APP" --resource-group "$GROUP"
+
+      # First boot after a refresh runs EF migrations against the snapshot, which
+      # is normally a few migrations behind dev. That is the intended path and it
+      # is slow, hence the poll.
+      - name: Wait for rtub-dev to come back
+        if: always() && env.app_stopped == '1'
+        run: |
+          set -uo pipefail
+          code=000
+          for _ in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BASE_URL/health") || code=000
+            [ "$code" = "200" ] && break
+            sleep 15
+          done
+          [ "$code" = "200" ] || { echo "::error::/health returned $code after the refresh"; exit 1; }
+          echo "/health = 200"
+
+      # The committed script, so the refresh is held to exactly the same
+      # deployment contracts as a dev deploy. SKIP_AZ keeps it to the HTTP checks -
+      # the site state was just asserted by the poll above.
+      - name: Smoke test
+        if: always() && env.app_stopped == '1'
+        env:
+          SKIP_AZ: '1'
+        # Invoked through bash: the script is committed mode 644, and changing that
+        # is not this unit's business.
+        run: bash ./scripts/smoke-azure-dev.sh
+
+      # Belt and braces. The runner is ephemeral, but a snapshot of the production
+      # database should not sit on it a moment longer than it has to, and nothing
+      # here is ever uploaded as an artifact.
+      - name: Remove the local database copies
+        if: always()
+        run: rm -f "$RUNNER_TEMP/snapshot.db" "$RUNNER_TEMP/sanitized.db" "$RUNNER_TEMP/rollback.db"

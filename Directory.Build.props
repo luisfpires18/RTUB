@@ -1,12 +1,4 @@
 <Project>
-  <!-- 
-    Suppress warnings for transitive dependencies:
-    - NU1903: Old vulnerable .NETCore runtime packages (Microsoft.NETCore.App, Microsoft.NETCore.Jit)
-      that come from older packages like Microsoft.AspNetCore.Http.Abstractions 2.2.0.
-      These packages are excluded from the build and publish output. The actual runtime uses .NET 10.0 libraries.
-    - NETSDK1206: Version-specific runtime identifiers in Libuv package.
-      The package contains deprecated RID-specific assets that are not used in modern .NET versions.
-  -->
   <PropertyGroup>
     <!-- C# Language and Analysis Settings -->
     <LangVersion>latest</LangVersion>
@@ -14,8 +6,23 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    
-    <!-- Suppress specific warnings -->
-    <NoWarn>$(NoWarn);NU1903;NETSDK1206</NoWarn>
   </PropertyGroup>
+
+  <!--
+    Release version. The root VERSION file is the only place it is written: MAJOR.MINOR.PATCH,
+    nothing else. Every build reads it, so a local build, a DEV build and a production build all
+    report the same number; CI adds only a VersionSuffix for DEV (2.0.0-dev.N). The SDK appends the
+    commit SHA to the informational version, which is what GET /api/version serves.
+    See docs/release-and-rollback.md.
+  -->
+  <PropertyGroup>
+    <RtubVersionFile>$(MSBuildThisFileDirectory)VERSION</RtubVersionFile>
+    <VersionPrefix Condition="Exists('$(RtubVersionFile)')">$([System.IO.File]::ReadAllText('$(RtubVersionFile)').Trim())</VersionPrefix>
+  </PropertyGroup>
+
+  <Target Name="ValidateRtubVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(RtubVersionFile)')" Text="The root VERSION file is missing. It must hold MAJOR.MINOR.PATCH." />
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(VersionPrefix)', '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'))"
+           Text="VERSION must be MAJOR.MINOR.PATCH with no leading zeros, prerelease or build metadata; found '$(VersionPrefix)'." />
+  </Target>
 </Project>

@@ -520,14 +520,31 @@ dotnet run
 
 #### Local Development
 
-For local development, sensitive configuration values should be stored in `appsettings.Development.json` (which is git-ignored):
+For local development, store secrets with [.NET User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), **not** in `appsettings.Development.json`.
+
+> **`appsettings.Development.json` is NOT git-ignored** — there is no rule for it in `.gitignore`, so anything put there can be committed by accident. Keep credentials out of it.
+
+User Secrets are stored outside the repository, per developer, and are loaded automatically in the Development environment. `src/RTUB.Web/RTUB.csproj` already declares a `UserSecretsId`, so no setup is needed beyond setting values:
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "AdminUser:Password" "<owner-password>"
+```
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "SeedData:MemberPassword" "<member-seed-password>"
+```
+
+Replace each `<...>` placeholder with a real value of your own. `AdminUser:Password` is required the first time you start against an empty database; `SeedData:MemberPassword` is required only for the full member seed (see below). The same command sets any other secret, for example `EmailSettings:SmtpPassword` or `IDrive:SecretKey`.
+
+List what is set with `dotnet user-secrets list --project src/RTUB.Web/RTUB.csproj`.
+
+Non-secret local settings can still live in `appsettings.Development.json`:
 
 ```json
 {
   "AdminUser": {
     "Username": "your-username",
-    "Email": "your-email@example.com",
-    "Password": "YourPassword123!"
+    "Email": "your-email@example.com"
   },
   "EmailSettings": {
     "SmtpServer": "smtp.gmail.com",
@@ -539,14 +556,57 @@ For local development, sensitive configuration values should be stored in `appse
   },
   "IDrive": {
     "Endpoint": "s3.endpoint.example.com",
-    "Bucket": "your-bucket",
-    "AccessKey": "your-access-key",
-    "SecretKey": "your-secret-key"
+    "Bucket": "your-bucket"
   }
 }
 ```
 
-**Note:** For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
+#### Resetting a local development database (destructive, opt-in)
+
+`SeedData.ResetDevDataAsync` sanitises a local development database: it clears every push
+subscription, resets **every** user's password to one configured value, and rewrites every email
+to `{UserName}@rtub.pt`.
+
+**It is destructive and disabled by default.** It runs only when the host environment is
+`Development` **or** `Staging` — the Azure DEV App Service — **and** `DevelopmentDataReset:Enabled`
+is `true`. The environment check is an allow-list and comes first, so `Production`, `Test` and any
+other environment never run it whatever the configuration says. A normal startup with the setting
+absent or `false` does not touch any password, email or push subscription.
+
+`Staging` is included deliberately: Azure DEV carries a seeded member dataset that exists to be
+reset to one shared development password on demand. Never enable it against a database whose
+credentials matter.
+
+Switch it on for a single intentional reset with User Secrets:
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Enabled" "true"
+```
+
+```bash
+dotnet user-secrets set --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Password" "<development-reset-password>"
+```
+
+- Replace `<development-reset-password>` with a real value of your own. There is no default and no
+  hardcoded hash; the password is required whenever `Enabled` is `true` and is validated **before**
+  anything is written, so a missing value leaves the database untouched rather than half reset. The
+  value is never written to a log or an error message.
+- Use it **only** when you intend to sanitise or reset your local development users. It overwrites
+  the passwords seeded from `AdminUser:Password` and `SeedData:MemberPassword`.
+- **Set `Enabled` back to `false` (or remove it) once the reset has run**, otherwise every
+  subsequent startup resets the database again:
+
+```bash
+dotnet user-secrets remove --project src/RTUB.Web/RTUB.csproj "DevelopmentDataReset:Enabled"
+```
+
+- **Never put `DevelopmentDataReset:Password` in a tracked `appsettings` file.** User Secrets only.
+
+#### Seeding a full development database
+
+By default the application bootstraps the Owner account only. To create the full member dataset on a **fresh** database, set `isEmptyDb` to `false` in `SeedData.InitializeAsync` (`src/RTUB.Application/Data/SeedData.cs`) and make sure both `AdminUser:Password` and `SeedData:MemberPassword` are set as User Secrets first. Seeding fails with a clear error, creating no users at all, if either is missing.
+
+**Note:** Keep `SmtpPassword`, `IDrive:AccessKey` and `IDrive:SecretKey` in User Secrets, not in the file above. For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
 
 #### Production Deployment
 
@@ -560,7 +620,24 @@ For production, **do not include credentials in JSON files**. Instead, use envir
 **Admin User Configuration:**
 - `AdminUser__Username` - Default admin username
 - `AdminUser__Email` - Default admin email
-- `AdminUser__Password` - Default admin password
+- `AdminUser__Password` - Admin/Owner password. **Required** the first time the application
+  starts against an empty database: the Owner account is created from this value and there is no
+  default. Seeding fails with a clear error if it is missing, blank or left as a placeholder. Not
+  needed once the database has users.
+
+**Seed Data Configuration:**
+- `SeedData__MemberPassword` - Password given to every member created by the bulk member seed.
+  Only required when that seed is switched on (`isEmptyDb` set to `false` in
+  `SeedData.InitializeAsync`) to build a full development database. There is no default, and it is
+  validated before any user is written.
+
+**Development Data Reset (local Development only):**
+- `DevelopmentDataReset__Enabled` - Opt-in switch for the destructive local reset described above.
+  Defaults to off. **Ignored outside the `Development` environment** — setting it on a `Production`
+  or `Staging` host (including the Azure DEV App Service) does nothing.
+- `DevelopmentDataReset__Password` - Password every user is reset to when the switch is on.
+  Required whenever `Enabled` is `true`, validated before any write, and never logged. There is no
+  default. Keep it in User Secrets, not in a tracked `appsettings` file.
 
 **IDrive/S3 Configuration:**
 - `IDrive__AccessKey` - S3-compatible storage access key
@@ -662,27 +739,17 @@ dotnet test tests/RTUB.Application.Tests
 
 ### Azure Deployment
 
-The project includes Azure deployment configuration (`.deployment` file).
+Production and DEV are deployed only by GitHub Actions - never by a manual or Visual Studio
+publish, which would bypass the release archive and the smoke test:
 
-#### Prerequisites
-- Azure App Service
-- SQL Server or continue using SQLite
+- merge into `dev` → **Deploy • DEV** (`rtub-dev`)
+- bump the root `VERSION` (SemVer), merge `dev` → `master` → **Deploy • PROD** (`rtub`)
+- **Rollback • PROD** redeploys any archived version, e.g. `2.0.0`, without rebuilding
+- `GET /api/version` reports the running version and commit
 
-#### Deployment Steps
-
-1. **Publish the application:**
-```bash
-dotnet publish src/RTUB.Web -c Release -o ./publish
-```
-
-2. **Configure Azure App Service:**
-   - Set connection strings in Configuration
-   - Configure environment variables
-   - Enable HTTPS only
-
-3. **Deploy:**
-   - Use Azure CLI, GitHub Actions, or Visual Studio publish
-   - The application will auto-migrate the database on startup
+How to release, roll back, hotfix and restore the database: [`docs/release-and-rollback.md`](docs/release-and-rollback.md).
+Environments, workflows and App Service settings: [`docs/ci-cd-and-azure-environments.md`](docs/ci-cd-and-azure-environments.md).
+The application migrates its SQLite database on startup, after taking a pre-migration snapshot.
 
 ### Production Configuration
 

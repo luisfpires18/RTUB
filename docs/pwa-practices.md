@@ -21,9 +21,14 @@ This document outlines Progressive Web App (PWA) development best practices for 
 - Include maskable icons for Android
 - Add shortcuts for common actions
 - Set proper `scope` and `start_url`
+- Keep `"id": "/"` unchanged. It is the installed app's identity and resolves against the origin
+  (`https://<host>/`), so it is already RTUB-specific. Changing or removing it (removal falls back
+  to `start_url`) gives a different identity, which the manifest spec treats as a distinct
+  application rather than a replacement for the RTUB already installed. Pinned by `PwaManifestTests`.
 
 ```json
 {
+  "id": "/",
   "name": "RTUB - Real Tuna Universitária de Bragança",
   "short_name": "RTUB",
   "start_url": "/?utm_source=pwa",
@@ -254,6 +259,12 @@ self.addEventListener('fetch', (event) => {
 - Test in Safari
 - Follow App Store guidelines
 
+ℹ️ **Lock-screen Now Playing:** the page supplies only `MediaMetadata` (title, album, artwork; it has
+no URL) and the play/pause/next/previous/seek handlers; no Media Session action fires when the card
+itself is tapped. With several Home Screen web apps installed, a tap has opened another one (fix/030).
+RTUB-side identity and navigation causes were checked and excluded, so this is most likely iOS/WebKit
+Home Screen routing behaviour.
+
 ## Testing
 
 ### PWA Testing Checklist
@@ -266,7 +277,7 @@ self.addEventListener('fetch', (event) => {
 - [ ] Icons display properly
 - [ ] Shortcuts work
 - [ ] Share target works (if implemented)
-- [ ] Push notifications work (if implemented)
+- [ ] Push notifications work (implemented — see `.claude/skills/rtub-push/SKILL.md`)
 - [ ] App works in standalone mode
 
 ## Code Quality

@@ -1,0 +1,78 @@
+/*
+ * Meetings page styles.
+ *
+ * Extracted from the component's inline <style> block (unit 024) so a strict
+ * style-src needs no 'unsafe-inline'. Imported last in site.css to keep the
+ * same cascade position the inline block had.
+ */
+
+.meeting-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .meeting-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .meeting-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1025px) {
+    .meeting-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.enrollment-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.heading-purple {
+    color: var(--bs-primary);
+}
+
+.heading-danger {
+    color: var(--bs-danger);
+}
+
+.enrollment-card-badges-row {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.member-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.member-item {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.member-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    cursor: pointer;
+}
+
+.member-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.clickable-row:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}

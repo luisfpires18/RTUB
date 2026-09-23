@@ -3,6 +3,8 @@ namespace RTUB.Web.Services;
 /// <summary>
 /// Singleton service that broadcasts admin-triggered refresh events
 /// to all active Blazor Server circuits (e.g. after a DB-level balance reset).
+/// Triggered in-process from admin pages only. It deliberately has no HTTP endpoint:
+/// a cookie-authenticated POST with no body is CSRF-reachable, and nothing ever called it.
 /// </summary>
 public class AdminRefreshService
 {

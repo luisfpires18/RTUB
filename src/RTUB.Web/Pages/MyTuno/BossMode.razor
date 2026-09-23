@@ -98,7 +98,7 @@
                             </span>
                             @if (totalLeitaoDropped > 0)
                             {
-                                <span class="reward-tag reward-tag--drink" style="color: #ff9800;">
+                                <span class="u-c-orange reward-tag reward-tag--drink">
                                     <i class="bi bi-piggy-bank"></i> @totalLeitaoDropped Leitão
                                 </span>
                             }
@@ -246,13 +246,13 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <i class="u-c-indigo bi bi-coin"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
                             @if (totalLeitaoDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span class="u-fs-100">🐷</span>
                                     <span>+@Fmt(totalLeitaoDropped) Leitão</span>
                                 </div>
                             }
@@ -294,7 +294,7 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
+                                    <i class="u-c-cyan bi bi-lightning-charge-fill"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
@@ -303,7 +303,7 @@
                                 var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
                                 var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    <i class="u-c-violet bi bi-music-note"></i>
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
@@ -373,9 +373,8 @@
                                 var isLocked = c.UnlockStage > consumableHighestStage;
                                 var isDisabled = isLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
 
-                                <div class="buff-item-card buff-item-card--@c.CssVariant @(isLocked ? "buff-item-card--locked" : "") @(isDisabled && !isLocked ? "buff-item-card--disabled" : "")"
+                                <div class="buff-item-card buff-item-card--@c.CssVariant @(isLocked ? "buff-item-card--locked" : "") @(isDisabled && !isLocked ? "buff-item-card--disabled" : "") @(isDisabled ? "u-cursor-not-allowed" : "cursor-pointer")"
                                      @onclick="async () => { if (!isDisabled) await c.UseAction(); }"
-                                     style="cursor: @(isDisabled ? "not-allowed" : "pointer")"
                                      title="@(isLocked ? $"Desbloqueia no Stage {c.UnlockStage}" : c.Desc)">
                                     <div class="buff-item-card__qty">
                                         @if (isLocked)
@@ -390,7 +389,7 @@
                                     <div class="buff-item-card__icon">
                                         @if (isLocked)
                                         {
-                                            <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                            <i class="u-op-40 bi bi-lock-fill"></i>
                                         }
                                         else if (c.Using)
                                         {
@@ -437,13 +436,13 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <i class="u-c-indigo bi bi-coin"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
                             @if (totalLeitaoDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span class="u-fs-100">🐷</span>
                                     <span>+@Fmt(totalLeitaoDropped) Leitão</span>
                                 </div>
                             }
@@ -485,7 +484,7 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
+                                    <i class="u-c-cyan bi bi-lightning-charge-fill"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
@@ -494,7 +493,7 @@
                                 var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
                                 var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    <i class="u-c-violet bi bi-music-note"></i>
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }

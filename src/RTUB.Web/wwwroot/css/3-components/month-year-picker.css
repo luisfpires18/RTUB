@@ -1,0 +1,64 @@
+/*
+ * MonthYearPicker component styles.
+ *
+ * Extracted from the component's inline <style> block (unit 024) so a strict
+ * style-src needs no 'unsafe-inline'. Imported last in site.css to keep the
+ * same cascade position the inline block had.
+ */
+
+/* Hide disabled placeholder options to prevent hover effects */
+.month-year-picker option[disabled] {
+    display: none;
+}
+
+/* Mobile responsiveness - improve touch targets on small screens */
+.month-year-picker-wrapper .form-select {
+    min-height: 44px; /* iOS recommended minimum touch target size */
+    font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 768px) {
+    .month-year-picker-wrapper .form-select {
+        min-height: 48px;
+        font-size: 16px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .month-year-picker-wrapper .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .month-year-picker-wrapper .col-6 {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+}
+
+/* Extra small screens - stack dropdowns vertically if needed */
+@media (max-width: 360px) {
+    .month-year-picker-wrapper .col-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .month-year-picker-wrapper .row {
+        row-gap: 0.5rem;
+    }
+}
+
+/* Improve focus visibility for accessibility */
+.month-year-picker:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .month-year-picker option {
+        background-color: #212529;
+        color: #fff;
+    }
+}

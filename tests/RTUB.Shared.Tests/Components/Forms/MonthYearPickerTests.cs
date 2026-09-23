@@ -368,10 +368,36 @@ public class MonthYearPickerTests : BunitContext
         var cut = Render<MonthYearPicker>(parameters => parameters
             .Add(p => p.Label, "Test"));
 
-        // Assert
-        cut.Markup.Should().Contain(".month-year-picker option[disabled]",
-            "CSS should include rule to hide disabled placeholder options");
-        cut.Markup.Should().Contain("display: none",
-            "disabled options should have display: none to prevent hover effects");
+        // Assert. The component must still render the hook the rule targets: a
+        // disabled placeholder <option> inside .month-year-picker.
+        cut.Markup.Should().Contain("month-year-picker",
+            "the select must carry the class the hiding rule targets");
+        cut.Find("select.month-year-picker option[disabled]").Should().NotBeNull(
+            "the placeholder option must still be rendered disabled");
+
+        // The rule itself moved out of an inline <style> block in unit 024, so it is
+        // pinned in the stylesheet that now owns it rather than in the markup.
+        ReadStylesheet("month-year-picker.css").Should().Contain(".month-year-picker option[disabled]",
+            "the stylesheet should keep the rule that hides disabled placeholder options");
+    }
+
+    /// <summary>
+    /// Reads a stylesheet from wwwroot/css/3-components by walking up to the repo root.
+    /// </summary>
+    private static string ReadStylesheet(string fileName)
+    {
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
+        {
+            directory = directory.Parent;
+        }
+
+        if (directory == null)
+        {
+            throw new InvalidOperationException("Could not find repository root");
+        }
+
+        return File.ReadAllText(Path.Combine(
+            directory.FullName, "src", "RTUB.Web", "wwwroot", "css", "3-components", fileName));
     }
 }

@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -60,11 +60,12 @@ public class CloudflareImageStorageService : BaseCloudflareStorageService<Cloudf
             return;
         }
 
-        // Extract object key from the public URL
-        var objectKey = ExtractObjectKeyFromUrl(imageUrl);
+        // Ownership check, not a bare key extraction: on a DEV database cloned from production
+        // this URL can point at the production bucket, which this environment must never delete
+        // from. Anything not owned here is refused (and logged) and the reference is dropped.
+        var objectKey = ResolveDeletableKey(imageUrl, nameof(DeleteImageAsync));
         if (string.IsNullOrEmpty(objectKey))
         {
-            _logger.LogWarning("Could not extract object key from URL: {ImageUrl}", imageUrl);
             return;
         }
 

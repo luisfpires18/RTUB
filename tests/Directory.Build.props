@@ -1,0 +1,27 @@
+<Project>
+
+  <!-- Chain to the repo-root props; MSBuild stops at the first Directory.Build.props it finds. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!--
+      xUnit1051 is a new xUnit v3 analyzer: it wants TestContext.Current.CancellationToken
+      passed to every call that accepts a CancellationToken. It fires 1634 times across the
+      existing suite and TreatWarningsAsErrors turns each into a build error. Suppressed here
+      so unit 011 stays a runner/toolchain migration; adopting the rule is a separate unit.
+    -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Shared test helpers, source-linked into every test project rather than given a project of
+      their own: it is one static class, and a real project would need the whole package and
+      reference chain for nothing. tests/Shared is outside every project cone, so it does not
+      collide with the SDK's default Compile glob.
+    -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Using Include="RTUB.Tests" />
+  </ItemGroup>
+
+</Project>

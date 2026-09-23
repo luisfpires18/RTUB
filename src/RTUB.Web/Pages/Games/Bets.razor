@@ -587,10 +587,10 @@
                 {
                     var isWinning = selectedBet.WinningOptionId.HasValue && selectedBet.WinningOptionId.Value == option.Id;
                     var isUserOption = GetUserBet(selectedBet.Id)?.BetOptionId == option.Id;
-                    var optionStyle = isWinning ? "background-color: #28a745; color: white;" : 
-                                     (isUserOption ? "background-color: #8a2be2; color: white;" : "background-color: #6c757d; color: white;");
-                    
-                    <div class="alert mb-2" style="@optionStyle">
+                    var optionClass = isWinning ? "bet-option--winning"
+                                     : (isUserOption ? "bet-option--mine" : "bet-option--other");
+
+                    <div class="alert mb-2 @optionClass">
                         <div class="d-flex justify-content-between align-items-center">
                             <span>
                                 @option.Title

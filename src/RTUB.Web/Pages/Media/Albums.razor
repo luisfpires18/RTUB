@@ -695,7 +695,7 @@ else
         if (key.StartsWith("section-"))
         {
             activeMobileSection = key;
-            await JS.InvokeVoidAsync("eval", $"document.getElementById('{key}')?.scrollIntoView({{behavior:'smooth',block:'start'}})");
+            await JS.InvokeVoidAsync("rtubScroll.toElement", key);
         }
         else if (key == "action-statistics")
         {

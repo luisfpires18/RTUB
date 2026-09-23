@@ -1,0 +1,11 @@
+/*
+ * Report page styles.
+ *
+ * Extracted from the component's inline <style> block (unit 024) so a strict
+ * style-src needs no 'unsafe-inline'. Imported last in site.css to keep the
+ * same cascade position the inline block had.
+ */
+
+.activity-accordion-button::after {
+    display: none;
+}

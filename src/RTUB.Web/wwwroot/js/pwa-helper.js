@@ -295,8 +295,11 @@ window.pwaHelper = {
     /**
      * Fetches push notification status from the server
      * Returns push status data or null if unavailable
+     * @param {boolean} [syncOptOut=true] - when true (the default, and what every existing
+     *   caller gets), the local opted-out cache is reconciled with the server's record.
+     *   Pass false for a read-only status fetch with no local side effect.
      */
-    getPushStatus: async function() {
+    getPushStatus: async function(syncOptOut = true) {
         try {
             const response = await fetch('/api/push/status', { credentials: 'include' });
             
@@ -320,7 +323,7 @@ window.pwaHelper = {
 
             // Keep the local opted-out cache in sync with the server's record,
             // which is the source of truth (survives reinstall/relogin/cross-device).
-            if (data && typeof data.isOptedOut === 'boolean') {
+            if (syncOptOut && data && typeof data.isOptedOut === 'boolean') {
                 if (data.isOptedOut) {
                     this.markOptedOut();
                 } else {
@@ -372,6 +375,63 @@ window.pwaHelper = {
             console.error('Error subscribing to push:', e);
             return false;
         }
+    },
+
+    /**
+     * Subscribes to or unsubscribes from push notifications through the active manager.
+     * Unlike subscribeToPush, failures are NOT swallowed - the error propagates so the
+     * caller can surface it to the user.
+     * @param {boolean} enable - true to subscribe, false to unsubscribe
+     * @returns {Promise<boolean>} true if the operation succeeded
+     */
+    setPushSubscription: async function(enable) {
+        const method = enable ? 'subscribe' : 'unsubscribe';
+        const manager = window.rtubPushManager;
+        if (manager && typeof manager[method] === 'function') {
+            return await manager[method]();
+        }
+        throw new Error('RTUB Push manager not available or ' + method + ' method missing');
+    },
+
+    /**
+     * Checks whether the active push manager currently holds a subscription.
+     * Returns false when no manager has been initialized.
+     */
+    isSubscribedToPush: async function() {
+        const manager = window.rtubPushManager;
+        if (manager && typeof manager.isSubscribed === 'function') {
+            return await manager.isSubscribed();
+        }
+        return false;
+    },
+
+    /**
+     * Validates the current subscription and re-creates it if it was rotated or expired.
+     * Returns: 'active', 'refreshed', 'missing', or 'error' (also 'error' with no manager).
+     */
+    validateAndRefreshPushSubscription: async function() {
+        const manager = window.rtubPushManager;
+        if (manager && typeof manager.validateAndRefreshSubscription === 'function') {
+            return await manager.validateAndRefreshSubscription();
+        }
+        return 'error';
+    },
+
+    /**
+     * Checks whether the browser notification permission has already been granted.
+     */
+    isPushPermissionGranted: function() {
+        return 'Notification' in window && Notification.permission === 'granted';
+    },
+
+    /**
+     * Android-installed-app check: Android device AND running in PWA/TWA mode.
+     * Android 13+ can block notifications at OS level even with browser permission granted,
+     * which is why this combination gets an extra hint in the UI.
+     */
+    isAndroidPwa: function() {
+        const ua = navigator.userAgent || '';
+        return /Android/i.test(ua) && this.isPwaMode() === true;
     },
 
     /**

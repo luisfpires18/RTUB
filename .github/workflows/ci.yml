@@ -1,77 +1,99 @@
-name: CI
+name: CI • Build & Test
+
+# Build and test only. Nothing here deploys.
+#
+#   pull_request -> dev / master   runs on its own, for the PR check
+#   workflow_call                  Deploy • DEV and Deploy • PROD run it first, on the exact
+#                                  commit they are about to package, and deploy only if it passes
+#
+# Branch model (docs/release-and-rollback.md):
+#   feat/fix/chore -> dev -> Deploy • DEV            (automatic)
+#   dev -> master         -> Deploy • PROD           (automatic; VERSION must go up)
+#   master -> dev         after every production release, and after every hotfix
+#   hotfix/* -> master    -> Deploy • PROD -> master back into dev
 
 on:
   pull_request:
-    branches: [main, master]
-  push:
-    branches: [main, master]
+    branches: [dev, master]
+  workflow_call:
 
-# NOTE (Azure-side prerequisite): Basic Auth Publishing Credentials must be
-# enabled on the App Service (Portal -> Configuration -> General settings ->
-# "Basic Auth Publishing Credentials" = On) BEFORE a publish profile can be
-# downloaded/used. If this is off, the publish-profile secret won't work
-# even if it looks valid.
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-
-      - name: Setup Node (for PixiJS bundle build during publish)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
       - name: Restore dependencies
         run: dotnet restore
 
+      # Also validates VERSION: Directory.Build.props fails the build unless it is
+      # MAJOR.MINOR.PATCH.
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # Microsoft.Testing.Platform runner (see global.json "test.runner").
+      # TRX comes from xUnit's built-in reporter; coverage from
+      # Microsoft.Testing.Extensions.CodeCoverage. Report filenames are left
+      # unset on purpose: all 5 projects write into one results directory and
+      # MTP auto-assigns unique names, so a fixed name would overwrite.
       - name: Run tests with coverage
         run: |
           dotnet test --no-build --configuration Release \
-            --collect:"XPlat Code Coverage" \
             --results-directory ./coverage \
-            --logger "trx;LogFileName=test-results.trx"
+            --report-xunit-trx \
+            --coverage --coverage-output-format cobertura
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
-          path: coverage/**/coverage.cobertura.xml
+          path: coverage/**/*.cobertura.xml
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
           path: coverage/**/*.trx
 
-      # Deploy only runs on a direct push to master (never on PRs), after
-      # build+test above have already passed in this same job.
-      - name: Publish
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: dotnet publish src/RTUB.Web/RTUB.csproj --no-restore --configuration Release --output ./publish
-        # dotnet publish's BeforePublish target runs `npm ci` + vite build for
-        # the Pixi bundles automatically; output dir contains only the
-        # framework-dependent runtime payload, not obj/ caches or NuGet/npm caches.
+  # A pull request into master is a release (dev -> master) or a hotfix. Either way it becomes
+  # a new production version, so VERSION must be higher than master's. Caught here, on the PR,
+  # instead of after a ten-minute build on master. Deploy • PROD checks again on the push.
+  # Legacy master (before 2.0.0) has no VERSION: previous-version prints "-" for that, the first
+  # versioned release, and fails on any other API error rather than guess.
+  version-bump:
+    name: VERSION is bumped
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
-      - name: Deploy to Azure App Service
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: azure/webapps-deploy@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
         with:
-          app-name: rtub
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
+          sparse-checkout: scripts
+
+      - name: Compare with master
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          new=$(bash scripts/release.sh version)
+          previous=$(bash scripts/release.sh previous-version "$REPO" "$BASE_SHA")
+          bash scripts/release.sh bump-check "$previous" "$new"

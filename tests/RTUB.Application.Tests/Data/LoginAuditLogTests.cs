@@ -69,7 +69,7 @@ public class LoginAuditLogTests : IDisposable
             EmailConfirmed = true
         };
 
-        var result = await _userManager.CreateAsync(user, "Password123!");
+        var result = await _userManager.CreateAsync(user, TestSecret.NewPassword());
         result.Succeeded.Should().BeTrue();
 
         // Clear audit logs from user creation
@@ -111,7 +111,7 @@ public class LoginAuditLogTests : IDisposable
             EmailConfirmed = true
         };
 
-        var result = await _userManager.CreateAsync(user, "Password123!");
+        var result = await _userManager.CreateAsync(user, TestSecret.NewPassword());
         result.Succeeded.Should().BeTrue();
 
         // Clear audit logs from user creation

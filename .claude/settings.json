@@ -1,10 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet ef migrations add AddNerbaOrderEventId --project src/RTUB.Application --startup-project src/RTUB.Web)",
-      "Bash(dotnet ef migrations add AddNerbaOrderEventId)",
-      "Bash(dotnet ef database update)",
-      "Bash(git remote *)"
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm run build:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
     ]
+  },
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": true
   }
 }

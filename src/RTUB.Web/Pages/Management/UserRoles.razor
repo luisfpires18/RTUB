@@ -32,7 +32,7 @@
 @* Ref instances for mobile nav \u2014 no modal, just async work *@
 @if (isCurrentUserOwner)
 {
-    <div style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;">
+    <div class="u-visually-collapsed">
         <SyncChatGroupsButton @ref="syncChatRef" OnSyncCompleted="HandleSyncCompleted" />
         <SyncMemberStatusButton @ref="syncStatusRef" OnSyncCompleted="HandleSyncCompleted" />
     </div>

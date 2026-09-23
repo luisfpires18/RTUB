@@ -106,14 +106,16 @@ public class RoleBadgeTests : BunitContext
     }
 
     [Fact]
-    public void RoleBadge_AppliesCustomColorStyle_ForMemberRole()
+    public void RoleBadge_AppliesCustomColorClass_ForMemberRole()
     {
         // Arrange & Act
         var cut = Render<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
-        // Assert
-        cut.Markup.Should().Contain("#007bff", "Member role should have custom blue color #007bff");
+        // Assert. Unit 024 moved the blue out of an inline style attribute into a
+        // modifier class; the colour itself is pinned in InlineStylePolicyTests.
+        cut.Markup.Should().Contain("role-badge--member",
+            "Member role should carry the modifier class that colours it blue");
     }
 
     [Fact]
@@ -157,8 +159,8 @@ public class RoleBadgeTests : BunitContext
     [InlineData("Owner", "bi-star-fill", "Owner", "bg-danger")]
     [InlineData("Admin", "bi-shield-fill", "Admin", "bg-success")]
     [InlineData("Mod", "bi-shield-check", "Mod", "bg-warning")]
-    [InlineData("Member", "bi-person-fill", "Member", "#007bff")]
-    public void RoleBadge_AppliesCorrectIconAndClass_ForEachRole(string role, string expectedIcon, string expectedText, string expectedClassOrColor)
+    [InlineData("Member", "bi-person-fill", "Member", "role-badge--member")]
+    public void RoleBadge_AppliesCorrectIconAndClass_ForEachRole(string role, string expectedIcon, string expectedText, string expectedClass)
     {
         // Arrange & Act
         var cut = Render<RoleBadge>(parameters => parameters
@@ -167,7 +169,7 @@ public class RoleBadgeTests : BunitContext
         // Assert
         cut.Markup.Should().Contain(expectedIcon, $"role {role} should display icon {expectedIcon}");
         cut.Markup.Should().Contain(expectedText, $"role {role} should display text {expectedText}");
-        cut.Markup.Should().Contain(expectedClassOrColor, $"role {role} should have {expectedClassOrColor}");
+        cut.Markup.Should().Contain(expectedClass, $"role {role} should have {expectedClass}");
     }
 
     [Fact]

@@ -44,7 +44,7 @@ public class QuestionRepositoryTests : IClassFixture<DatabaseFixture>, IDisposab
             new ApplicationUser { Id = OtherMemberId, UserName = "othermember", NormalizedUserName = "OTHERMEMBER", Email = "other@test.com", SecurityStamp = Guid.NewGuid().ToString(), FirstName = "Other", LastName = "Member", Nickname = "othermember" },
         };
         foreach (var u in users)
-            u.PasswordHash = hasher.HashPassword(u, "Test@1234");
+            u.PasswordHash = hasher.HashPassword(u, TestSecret.NewPassword());
 
         // Only seed if not already present (fixture is shared across test methods)
         var existingIds = _context.Users.Select(u => u.Id).ToHashSet();

@@ -51,15 +51,19 @@ window.pwaMediaSession = {
             return false;
         }
         
-        // Get audio element reference
-        this.audioElement = document.getElementById(audioElementId);
-        if (!this.audioElement) {
+        // Get audio element reference. Closing the player removes <audio> and the next song
+        // renders a new one, so init runs once per element; a repeat call for the same element
+        // (two quick taps) must not attach its listeners twice.
+        const audioElement = document.getElementById(audioElementId);
+        if (!audioElement) {
             console.warn('Audio element not found:', audioElementId);
             return false;
         }
         
-        // Attach event listeners to audio element
-        this.attachAudioEventListeners();
+        if (audioElement !== this.audioElement) {
+            this.audioElement = audioElement;
+            this.attachAudioEventListeners();
+        }
         
         console.log('PWA Media Session initialized');
         return true;
@@ -351,6 +355,9 @@ window.pwaMediaSession = {
         if (!this.isPwaMode) return;
         if (!('mediaSession' in navigator)) return;
         
+        // The element is leaving the page; init binds whichever <audio> is rendered next
+        this.audioElement = null;
+
         try {
             // Clear handlers
             navigator.mediaSession.setActionHandler('play', null);

@@ -261,22 +261,7 @@ else
                 // Initialize carousel if slides exist
                 if (slides != null && slides.Any())
                 {
-                    await JSRuntime.InvokeVoidAsync("eval", @"
-                        (function() {
-                            const carouselElement = document.getElementById('homeCarousel');
-                            if (carouselElement && window.bootstrap) {
-                                const carousel = new bootstrap.Carousel(carouselElement, {
-                                    ride: 'carousel',
-                                    interval: 5000,
-                                    pause: 'hover',
-                                    wrap: true,
-                                    touch: true,
-                                    keyboard: true
-                                });
-                                carousel.cycle();
-                            }
-                        })();
-                    ");
+                    await JSRuntime.InvokeVoidAsync("rtubHome.initCarousel");
                 }
 
                 // Initialize scroll-spy
@@ -284,27 +269,7 @@ else
                 await JSRuntime.InvokeVoidAsync("rtubScrollSpy.init", dotNetRef, sectionIds);
 
                 // Trigger scroll-reveal: mark visible sections as in-view, observe the rest
-                await JSRuntime.InvokeVoidAsync("eval", @"
-                    (function() {
-                        var sections = document.querySelectorAll('.portal-section');
-                        var revealObserver = new IntersectionObserver(function(entries) {
-                            entries.forEach(function(entry) {
-                                if (entry.isIntersecting) {
-                                    entry.target.classList.add('in-view');
-                                    revealObserver.unobserve(entry.target);
-                                }
-                            });
-                        }, { threshold: 0.05, rootMargin: '0px 0px 80px 0px' });
-                        sections.forEach(function(section) {
-                            var rect = section.getBoundingClientRect();
-                            if (rect.top < window.innerHeight + 80 && rect.bottom > 0) {
-                                section.classList.add('in-view');
-                            } else {
-                                revealObserver.observe(section);
-                            }
-                        });
-                    })();
-                ");
+                await JSRuntime.InvokeVoidAsync("rtubHome.revealSections");
             }
             catch (TaskCanceledException) { }
             catch (Microsoft.JSInterop.JSDisconnectedException) { }

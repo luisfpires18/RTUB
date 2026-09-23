@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -59,10 +59,12 @@ public class CloudflareEventVideoStorageService : BaseCloudflareStorageService<C
             return;
         }
 
-        var objectKey = ExtractObjectKeyFromUrl(videoUrl);
+        // Ownership check, not a bare key extraction: on a DEV database cloned from production
+        // this URL can point at the production bucket, which this environment must never delete
+        // from. Anything not owned here is refused (and logged) and the reference is dropped.
+        var objectKey = ResolveDeletableKey(videoUrl, nameof(DeleteVideoAsync));
         if (string.IsNullOrEmpty(objectKey))
         {
-            _logger.LogWarning("Could not extract object key from URL: {VideoUrl}", videoUrl);
             return;
         }
 

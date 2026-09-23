@@ -1,8 +1,11 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +31,34 @@ namespace RTUB.Web.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Name of the rate limiting policy applied to <c>POST /auth/login</c>.</summary>
+    public const string LoginRateLimitPolicy = "login";
+
+    private const string LoginRateLimitSection = "LoginRateLimit";
+
+    /// <summary>
+    /// Login attempts allowed per client IP per window. Identity locks an account after 5 failures,
+    /// so this sits just above that: a single fumbling user is never throttled, while one client
+    /// probing a list of accounts is capped well below a useful credential-stuffing rate.
+    /// </summary>
+    private const int DefaultLoginPermitLimit = 10;
+
+    /// <summary>Matched to <c>Lockout.DefaultLockoutTimeSpan</c> so both limits tell one story.</summary>
+    private const double DefaultLoginWindowMinutes = 5;
+
+    /// <summary>
+    /// Cache-key prefix for the <c>LastLoginDate</c> write throttle, keyed by <b>user id</b>.
+    /// Deliberately separate from the authentication-log throttle in the same handler: one limits
+    /// how often a line is logged, this one limits how often a row is written.
+    /// </summary>
+    public const string ActivityWriteCachePrefix = "activity-lastlogin:";
+
+    /// <summary>
+    /// How long a successful <c>LastLoginDate</c> write suppresses the next one for the same user.
+    /// Well under the one-hour bucket the presence UI renders, so the throttle is invisible there.
+    /// </summary>
+    public static readonly TimeSpan ActivityWriteThrottle = TimeSpan.FromMinutes(5);
+
     /// <summary>
     /// Registers repositories for data access
     /// Implements Repository pattern following DIP
@@ -345,10 +376,68 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Guards against a non-production environment being pointed at the production bucket.
+    /// </summary>
+    /// <remarks>
+    /// <c>appsettings.json</c> commits <c>Cloudflare:R2:Bucket</c> as the production bucket name,
+    /// so an environment that forgets to override it inherits production's bucket and every
+    /// upload and delete lands there. No per-object ownership check can catch that - the bucket
+    /// really is the one configured - so it is refused at startup instead, before any service can
+    /// be resolved. Production itself is never checked and is unaffected.
+    /// </remarks>
+    private static void GuardAgainstProductionBucket(IConfiguration configuration, IHostEnvironment environment)
+    {
+        if (environment.IsProduction())
+        {
+            return;
+        }
+
+        var bucket = configuration["Cloudflare:R2:Bucket"];
+        var productionBucket = configuration["Cloudflare:R2:ProductionBucket"];
+
+        if (string.IsNullOrWhiteSpace(bucket) || string.IsNullOrWhiteSpace(productionBucket))
+        {
+            return;
+        }
+
+        // Only an environment that can actually reach R2 is worth refusing. With no credential
+        // the S3 client cannot touch any bucket, production's included, so there is nothing to
+        // guard - which is what lets the integration-test host run on the committed settings.
+        //
+        // Deliberately a capability check, not an allow-list of environment names: exempting
+        // "Test" by name would exempt anything that called itself Test, credentials and all.
+        if (string.IsNullOrWhiteSpace(configuration["Cloudflare:R2:AccessKeyId"]) ||
+            string.IsNullOrWhiteSpace(configuration["Cloudflare:R2:SecretAccessKey"]))
+        {
+            return;
+        }
+
+        if (string.Equals(bucket.Trim(), productionBucket.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Environment '{environment.EnvironmentName}' is configured with Cloudflare:R2:Bucket = "
+                + "the production bucket. A non-production environment must have its own bucket: every "
+                + "upload and every delete it performs would otherwise be applied to production data. "
+                + "Set Cloudflare__R2__Bucket to this environment's own bucket.");
+        }
+    }
+
+    /// <summary>
     /// Registers storage services (images, audio, lyrics, documents)
     /// </summary>
-    public static IServiceCollection AddStorageServices(this IServiceCollection services)
+    public static IServiceCollection AddStorageServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
+        GuardAgainstProductionBucket(configuration, environment);
+
+        // Read-only view of the production bucket, for a non-production app running on a
+        // sanitized production snapshot. Always registered, but inert unless the environment is
+        // non-production AND a dedicated Cloudflare:R2:Reference:* credential is configured - so
+        // in production it holds no client and answers "not found" to everything.
+        services.AddSingleton<IReferenceStorageService, ReferenceStorageService>();
+
         services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
         services.AddScoped<IAudioStorageService, CloudflareAudioStorageService>();
         services.AddScoped<ILyricStorageService, CloudflareLyricStorageService>();
@@ -471,6 +560,66 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers the per-client rate limiter for <c>POST /auth/login</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is a named policy only - there is deliberately no <c>GlobalLimiter</c>, so nothing is
+    /// throttled except the endpoints that opt in with <c>RequireRateLimiting</c>.
+    ///
+    /// It complements, and does not replace, Identity's per-account lockout
+    /// (<see cref="AddIdentityServices"/>): lockout stops repeated guesses against one account,
+    /// this stops one client walking many accounts (credential stuffing), which lockout never sees.
+    ///
+    /// Partitioning is on <c>Connection.RemoteIpAddress</c> only. The request's own headers are
+    /// never read: <c>X-Forwarded-For</c> is caller-controlled, so trusting it here would let an
+    /// attacker mint a fresh budget per request and allocate a limiter per forged value. Behind a
+    /// reverse proxy, <c>RemoteIpAddress</c> must be corrected by the host (on Azure App Service,
+    /// the <c>ASPNETCORE_FORWARDEDHEADERS_ENABLED</c> app setting), not by parsing headers here.
+    /// </remarks>
+    public static IServiceCollection AddLoginRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(LoginRateLimitSection);
+        var permitLimit = section.GetValue("PermitLimit", DefaultLoginPermitLimit);
+        var window = TimeSpan.FromMinutes(section.GetValue("WindowMinutes", DefaultLoginWindowMinutes));
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy(LoginRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    // A null RemoteIpAddress collapses into this one shared bucket rather than
+                    // creating a partition, so the partition count stays bounded by the number of
+                    // real peers and can never be grown by anything a caller supplies.
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = window,
+                        // No queue: a rejected attempt is answered immediately instead of holding
+                        // the request open, which is what a flood would otherwise exploit.
+                        QueueLimit = 0
+                    }));
+
+            // Only the login policy exists, so this callback is reached only by a login rejection.
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter =
+                        ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
+                }
+
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await context.HttpContext.Response.WriteAsync(
+                    "Demasiadas tentativas de login. Tente novamente mais tarde.", cancellationToken);
+            };
+        });
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings / scaling.config.json
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
@@ -565,7 +714,10 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Configures cookie authentication events: security-stamp validation, role-change logout,
-    /// expulsion check, and session logging
+    /// expulsion check, and session logging, followed by Identity's own
+    /// <see cref="SecurityStampValidator"/> so the framework's principal refresh and cookie renewal
+    /// still happen. RTUB's checks run on every request; the framework's refresh stays gated by
+    /// <see cref="SecurityStampValidatorOptions.ValidationInterval"/>.
     /// </summary>
     public static IServiceCollection AddCookieAuthenticationServices(this IServiceCollection services)
     {
@@ -615,6 +767,34 @@ public static class ServiceCollectionExtensions
                         return;
                     }
 
+                    // Identity's own cookie validation, composed with the checks above rather than
+                    // replaced by them. AddIdentity installs SecurityStampValidator.ValidatePrincipalAsync
+                    // as OnValidatePrincipal; assigning this whole CookieAuthenticationEvents object
+                    // used to drop it, and with it the principal refresh Identity performs after a
+                    // successful stamp check — so role and profile claim changes never reached a live
+                    // session and the cookie was never renewed. This call runs the configured
+                    // ISecurityStampValidator, which rebuilds the principal from the database
+                    // (SignInManager.CreateUserPrincipalAsync -> ReplacePrincipal + ShouldRenew) once
+                    // SecurityStampValidatorOptions.ValidationInterval has elapsed — 30 minutes by
+                    // default, deliberately left at the framework default here.
+                    //
+                    // The order matters and the RTUB checks must stay in front of it:
+                    //  - they run on EVERY request, whereas the framework gates its own stamp read
+                    //    behind ValidationInterval, so no RTUB check is diluted to that cadence;
+                    //  - they read the principal as it arrived in the cookie. A refresh rebuilds it
+                    //    from the database, scrubbing exactly the stale "Admin" claim the role probe
+                    //    above exists to catch: running the framework first would silently downgrade
+                    //    such a session instead of rejecting it, and only on the requests where a
+                    //    refresh happened to fall due.
+                    //
+                    // The framework repeats the stamp check above, but costs nothing for it:
+                    // UserManager.GetUserAsync resolves off the request-scoped DbContext's change
+                    // tracker, which the check above has already populated. A refresh request pays
+                    // only for the rebuild itself — two SELECTs, once per user per ValidationInterval.
+                    await SecurityStampValidator.ValidatePrincipalAsync(context);
+                    if (context.Principal is null)
+                        return;
+
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
                     var cookieUserAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
                     var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
@@ -630,6 +810,19 @@ public static class ServiceCollectionExtensions
                         });
                     }
 
+                    // LastLoginDate is, despite its name, a last-authenticated-activity stamp: it
+                    // backs the online / "Recente" presence UI, which buckets at one hour. This
+                    // handler runs on every authenticated request, so the write is throttled to one
+                    // per ActivityWriteThrottle per user — far finer than the UI can render, and it
+                    // keeps routine requests off the write path entirely.
+                    var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrWhiteSpace(userId))
+                        return;
+
+                    var activityCacheKey = $"{ActivityWriteCachePrefix}{userId}";
+                    if (cache.TryGetValue(activityCacheKey, out _))
+                        return;
+
                     try
                     {
                         var db = context.HttpContext?.RequestServices?.GetService<ApplicationDbContext>();
@@ -638,10 +831,6 @@ public static class ServiceCollectionExtensions
                             logger.LogWarning("ApplicationDbContext not available in OnValidatePrincipal");
                             return;
                         }
-
-                        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                        if (string.IsNullOrWhiteSpace(userId))
-                            return;
 
                         var now = DateTime.UtcNow;
                         for (int attempt = 1; ; attempt++)
@@ -654,15 +843,25 @@ public static class ServiceCollectionExtensions
                                     WHERE Id = {userId};");
                                 break;
                             }
+                            // 6 is SQLITE_LOCKED, not SQLITE_BUSY (5). SQLITE_BUSY is already
+                            // absorbed by "PRAGMA busy_timeout = 30000" in SqliteConnectionInterceptor;
+                            // busy_timeout does not cover SQLITE_LOCKED, which is why it is retried here.
                             catch (Microsoft.Data.Sqlite.SqliteException ex) when (attempt < 3 && ex.SqliteErrorCode == 6)
                             {
                                 await Task.Delay(50 * (int)Math.Pow(2, attempt - 1));
                             }
                         }
+
+                        // Only once the write has actually succeeded — a failed update must not
+                        // suppress the next request's attempt.
+                        cache.Set(activityCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = ActivityWriteThrottle
+                        });
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error while initializing LastLoginDate for {UserName}", userName);
+                        logger.LogError(ex, "Error while updating LastLoginDate for {UserName}", userName);
                     }
                 }
             };

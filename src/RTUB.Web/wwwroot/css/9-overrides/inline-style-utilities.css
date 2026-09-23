@@ -1,0 +1,438 @@
+/*
+ * Inline-style replacement utilities (unit 024).
+ *
+ * Every rule here replaces a markup style="..." attribute that a strict
+ * style-src would block. Imported LAST in site.css on purpose: an inline
+ * style attribute beat every stylesheet rule at equal specificity, so these
+ * classes are placed last to keep the same cascade position without
+ * resorting to !important.
+ *
+ * Generated from the audited attribute inventory - one rule per distinct
+ * declaration (atoms) or per distinct multi-declaration set (composites).
+ */
+
+/* ---- atoms ---- */
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.u-bc-w15 {
+    border-color: rgba(255,255,255,0.15);
+}
+
+.u-bg-1e {
+    background-color: #1e1e1e;
+}
+
+.u-bg-purple {
+    background-color: #6f42c1;
+}
+
+.u-break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.u-c-aaa {
+    color: #aaa;
+}
+
+.u-c-amber {
+    color: #ffc107;
+}
+
+.u-c-amber-bright {
+    color: #ff9500;
+}
+
+.u-c-cyan {
+    color: #0dcaf0;
+}
+
+.u-c-eee {
+    color: #eee;
+}
+
+.u-c-gold {
+    color: #ffd700;
+}
+
+.u-c-gold-dim {
+    color: #c0a040;
+}
+
+.u-c-gray {
+    color: #adb5bd;
+}
+
+.u-c-indigo {
+    color: #7c4dff;
+}
+
+.u-c-magenta {
+    color: #e040fb;
+}
+
+.u-c-orange {
+    color: #ff9800;
+}
+
+.u-c-pink {
+    color: #f8bbd0;
+}
+
+.u-c-primary {
+    color: var(--bs-primary);
+}
+
+.u-c-violet {
+    color: #a855f7;
+}
+
+.u-c-w20 {
+    color: rgba(255,255,255,0.2);
+}
+
+.u-c-w30 {
+    color: rgba(255,255,255,0.3);
+}
+
+.u-c-w35 {
+    color: rgba(255,255,255,0.35);
+}
+
+.u-c-warning {
+    color: var(--bs-warning);
+}
+
+.u-c-white {
+    color: #ffffff;
+    color: #fff;
+}
+
+.u-flex-1 {
+    flex: 1;
+}
+
+.u-fs-100 {
+    font-size: 1rem;
+}
+
+.u-fs-110 {
+    font-size: 1.1rem;
+}
+
+.u-fs-120 {
+    font-size: 1.2rem;
+}
+
+.u-fs-150 {
+    font-size: 1.5rem;
+}
+
+.u-fs-200 {
+    font-size: 2rem;
+}
+
+.u-fs-250 {
+    font-size: 2.5rem;
+}
+
+.u-fs-300 {
+    font-size: 3rem;
+}
+
+.u-fs-50 {
+    font-size: 0.5rem;
+}
+
+.u-fs-55 {
+    font-size: 0.55rem;
+}
+
+.u-fs-60 {
+    font-size: 0.6rem;
+}
+
+.u-fs-65 {
+    font-size: 0.65rem;
+}
+
+.u-fs-70 {
+    font-size: 0.7rem;
+}
+
+.u-fs-75 {
+    font-size: 0.75rem;
+}
+
+.u-fs-80 {
+    font-size: 0.8rem;
+}
+
+.u-fs-85 {
+    font-size: 0.85rem;
+}
+
+.u-fs-90 {
+    font-size: 0.9rem;
+}
+
+.u-fw-600 {
+    font-weight: 600;
+}
+
+.u-fw-700 {
+    font-weight: 700;
+}
+
+.u-glow-gold-4 {
+    text-shadow: 0 0 4px #ffd700;
+}
+
+.u-glow-gold-6 {
+    text-shadow: 0 0 6px #ffd700;
+}
+
+.u-glow-warn-2 {
+    filter: drop-shadow(0 0 2px var(--bs-warning));
+}
+
+.u-glow-warn-4 {
+    filter: drop-shadow(0 0 4px var(--bs-warning));
+}
+
+.u-grad-bronze {
+    background: linear-gradient(135deg, #d4a017, #b8860b);
+}
+
+.u-grad-crimson {
+    background: linear-gradient(135deg, #dc3545, #a71d2a);
+}
+
+.u-grad-flame {
+    background: linear-gradient(135deg, #ff6b35, #ff9500);
+}
+
+.u-grad-slate {
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+.u-grad-violet {
+    background: linear-gradient(135deg, #6610f2, #4a0ea3);
+}
+
+.u-h-14 {
+    height: 14px;
+}
+
+.u-h-16 {
+    height: 16px;
+}
+
+.u-h-22 {
+    height: 22px;
+}
+
+.u-h-28 {
+    height: 28px;
+}
+
+.u-h-32 {
+    height: 32px;
+}
+
+.u-h-36 {
+    height: 36px;
+}
+
+.u-h-56 {
+    height: 56px;
+}
+
+.u-h-64 {
+    height: 64px;
+}
+
+.u-ls-wide {
+    letter-spacing: 0.05em;
+}
+
+.u-maxh-100 {
+    max-height: 100px;
+}
+
+.u-maxh-200 {
+    max-height: 200px;
+}
+
+.u-maxw-full {
+    max-width: 100%;
+}
+
+.u-minw-0 {
+    min-width: 0;
+}
+
+.u-of-contain {
+    object-fit: contain;
+}
+
+.u-of-cover {
+    object-fit: cover;
+}
+
+.u-op-40 {
+    opacity: 0.4;
+}
+
+.u-op-60 {
+    opacity: 0.6;
+}
+
+.u-op-70 {
+    opacity: 0.7;
+}
+
+.u-rounded-circle {
+    border-radius: 50%;
+}
+
+.u-va-middle {
+    vertical-align: middle;
+}
+
+.u-va-n2 {
+    vertical-align: -2px;
+}
+
+.u-w-120 {
+    width: 120px;
+}
+
+.u-w-14 {
+    width: 14px;
+}
+
+.u-w-16 {
+    width: 16px;
+}
+
+.u-w-22 {
+    width: 22px;
+}
+
+.u-w-28 {
+    width: 28px;
+}
+
+.u-w-32 {
+    width: 32px;
+}
+
+.u-w-36 {
+    width: 36px;
+}
+
+.u-w-40 {
+    width: 40px;
+}
+
+.u-w-56 {
+    width: 56px;
+}
+
+.u-w-64 {
+    width: 64px;
+}
+
+.u-ws-pre-line {
+    white-space: pre-line;
+}
+
+/* ---- composites ---- */
+
+.u-btn-gold-xs {
+    font-size: 0.6rem;
+    background: linear-gradient(135deg, #ffd700, #daa520);
+    color: #1a1200;
+    font-weight: 700;
+    border: none;
+}
+
+.u-card-dark-outline {
+    background-color: #151516;
+    border: 2px solid #2f2f2f;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.u-grad-orange {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: #fff;
+}
+
+.u-grad-purple {
+    background: linear-gradient(135deg, #8e44ad, #6f42c1);
+    color: #fff;
+}
+
+.u-panel-grad-orange {
+    background: linear-gradient(180deg, #e67e22, #d35400, #b8450a);
+    border-color: rgba(230, 126, 34, 0.4);
+}
+
+.u-panel-grad-purple {
+    background: linear-gradient(180deg, #8e44ad, #6f42c1, #5a32a3);
+    border-color: rgba(142, 68, 173, 0.4);
+}
+
+.u-panel-navy {
+    background-color: #1e2030;
+    color: #fff;
+    border-color: rgba(255,255,255,0.08);
+}
+
+.u-rare-tab-badge {
+    background: linear-gradient(135deg, #ffd700, #daa520);
+    color: #1a1200;
+    font-size: 0.55rem;
+    vertical-align: top;
+    animation: rare-tab-pulse 2s ease-in-out infinite;
+}
+
+.u-scroll-panel-navy {
+    max-height: 250px;
+    overflow-y: auto;
+    background-color: #1e2030;
+    border-color: rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.u-tile-gold {
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    min-width: 90px;
+}
+
+.u-tile-gold-soft {
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.25);
+}
+
+.u-tile-lilac {
+    background-color: rgba(168, 142, 229, 0.15);
+    border: 1px solid rgba(168, 142, 229, 0.4);
+}
+
+.u-tile-lilac-soft {
+    background-color: rgba(168, 142, 229, 0.12);
+    border: 1px solid rgba(168, 142, 229, 0.35);
+}
+
+.u-visually-collapsed {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}

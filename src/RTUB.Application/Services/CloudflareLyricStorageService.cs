@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -18,18 +18,24 @@ namespace RTUB.Application.Services;
 public class CloudflareLyricStorageService : BaseCloudflareStorageService<CloudflareLyricStorageService>, ILyricStorageService
 {
     private readonly int _urlExpirationMinutes;
+    private readonly IReferenceStorageService? _referenceStorage;
 
     public CloudflareLyricStorageService(
         IAmazonS3 s3Client,
         IConfiguration configuration,
         IHostEnvironment hostEnvironment,
         ILogger<CloudflareLyricStorageService> logger,
-        IOptions<StorageOptions>? storageOptions = null)
+        IOptions<StorageOptions>? storageOptions = null,
+        IReferenceStorageService? referenceStorage = null)
         : base(s3Client, configuration, hostEnvironment, logger)
     {
         _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
+        _referenceStorage = referenceStorage;
     }
 
+    // lyrics/ keys carry no environment segment, so a DEV bucket does not hold the production
+    // PDFs a cloned database points at. Current bucket first, read-only production reference
+    // second; the reference is unconfigured in production, so this is a no-op there.
     public async Task<string?> GetLyricPdfUrlAsync(string albumTitle, string songTitle)
     {
         var objectKey = GetObjectKey(albumTitle, songTitle);
@@ -39,13 +45,22 @@ public class CloudflareLyricStorageService : BaseCloudflareStorageService<Cloudf
             ContentType = "application/pdf"
         };
 
-        return await GeneratePreSignedUrlAsync(objectKey, _urlExpirationMinutes, headerOverrides);
+        var url = await GeneratePreSignedUrlAsync(objectKey, _urlExpirationMinutes, headerOverrides);
+        if (url != null || _referenceStorage == null)
+        {
+            return url;
+        }
+
+        return await _referenceStorage.GetPreSignedUrlAsync(
+            objectKey, _urlExpirationMinutes, contentType: "application/pdf");
     }
 
     public async Task<bool> LyricPdfExistsAsync(string albumTitle, string songTitle)
     {
         var objectKey = GetObjectKey(albumTitle, songTitle);
-        return await ObjectExistsAsync(objectKey);
+
+        return await ObjectExistsAsync(objectKey)
+            || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(objectKey));
     }
 
     private string GetObjectKey(string albumTitle, string songTitle)

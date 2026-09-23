@@ -186,7 +186,7 @@
                             <img src="@(score.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
                                  alt="@(score.UserNickname ?? score.UserName)" 
                                  class="stats-avatar"
-                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                 data-avatar-fallback />
                             <div class="stats-card-content">
                                 <div class="stats-card-title">@(score.UserNickname ?? score.UserName)</div>
                                 @if (selectedGameKey != "bmr-bebe-mais-rui" && selectedGameKey != "tomato-thrower" && selectedGameKey != "passaro-maluco")

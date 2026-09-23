@@ -7,16 +7,43 @@
 
 // Cache version - increment when updating service worker
 // Bumping this forces old caches to be deleted and new assets to be fetched
-const CACHE_VERSION = 'rtub-v2.6.0';
+// v2.7.0 bumped deliberately, not mechanically: up to v2.6.0 this worker persisted
+// *application HTML* (including authenticated pages) into DYNAMIC_CACHE and precached
+// '/'. Existing clients therefore hold private HTML on disk. The activate handler
+// deletes every `rtub-` cache outside the current set, so bumping the version is what
+// actually purges those entries from installed clients.
+const CACHE_VERSION = 'rtub-v2.7.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
-const OFFLINE_PAGE = '/offline';
 
-// Assets to cache on install for offline support
+// Paths that must never reach a cache, in either direction.
+// Matched as prefixes against url.pathname, case-insensitively.
+//   /api/      - JSON endpoints, many authenticated and user-specific
+//   /auth/     - sign-in / sign-out / challenge round trips
+//   /_blazor   - Blazor Server negotiate + long-poll fallback
+//   /hubs/     - SignalR hubs
+//   /health    - liveness probe, must always hit the origin
+// Before v2.7.0 these fell through to the document branch (`!pathname.includes('.')`
+// matches '/api/push/status', '/health', '/hubs/notifications', ...) and were cached.
+const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/_blazor', '/hubs/', '/health'];
+
+function isNeverCached(pathname) {
+    const path = pathname.toLowerCase();
+    return NEVER_CACHE_PREFIXES.some((prefix) => path === prefix.replace(/\/$/, '') || path.startsWith(prefix));
+}
+
+// Assets to cache on install for offline support.
+// NOTE: '/' is deliberately NOT precached. It is application HTML whose content depends
+// on the signed-in user, so persisting it leaks private content to a later visitor or to
+// the same device after logout. offline.html is the only document fallback we need.
 const STATIC_ASSETS = [
-    '/',
     '/offline.html',
+    // offline.html loads its script and stylesheet externally (no inline JS, no inline
+    // CSS); both must be precached or the fallback page renders unstyled and without
+    // its connection-status behaviour.
+    '/js/offline.js',
+    '/css/offline.css',
     '/icons/rtub-logo-192.png',
     '/icons/rtub-logo-512.png',
     '/icons/rtub-badge-96.png',
@@ -34,12 +61,14 @@ self.addEventListener('install', (event) => {
                 console.log('[Service Worker] Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
             })
-            .then(() => self.skipWaiting())
             .catch((error) => {
                 console.error('[Service Worker] Failed to cache static assets:', error);
-                // Skip waiting even if caching fails
-                return self.skipWaiting();
             })
+            // Deliberately NO forced activation here. Doing it on install made every new
+            // worker take over immediately, claim clients and trigger a reload, which
+            // defeated the "Nova versão disponível / Atualizar" prompt entirely.
+            // The worker now waits; it activates only via the SKIP_WAITING message that
+            // sw-register.js posts after the user chooses "Atualizar".
     );
 });
 
@@ -91,9 +120,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Skip non-GET requests and Blazor SignalR connections
-    // Pass through to network without caching
-    if (request.method !== 'GET' || url.pathname.includes('/_blazor')) {
+    const isSameOrigin = url.origin === self.location.origin;
+
+    // Network-only, never cached in either direction:
+    //  - non-GET requests (mutations; the Cache API cannot store them anyway)
+    //  - our own /api, /auth, /_blazor, /hubs and /health paths
+    // The prefix test is scoped to same-origin so a third-party URL that happens to
+    // carry an '/api/...' path is judged on its own merits further down.
+    if (request.method !== 'GET' || (isSameOrigin && isNeverCached(url.pathname))) {
         event.respondWith(fetch(request));
         return;
     }
@@ -145,7 +179,11 @@ self.addEventListener('fetch', (event) => {
                                     }
                                     return response;
                                 })
-                                .catch(() => cached); // Fallback to cache on error
+                                // Fallback to cache on error. DYNAMIC_CACHE only holds
+                                // scripts already fetched once online, so fall back to a
+                                // cross-cache lookup to reach precached STATIC_ASSETS
+                                // (e.g. /js/offline.js, needed by the offline page).
+                                .catch(() => cached || caches.match(request));
                             
                             return cached || fetchPromise;
                         });
@@ -154,34 +192,31 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Default: Network First, Cache Fallback for HTML pages
-    if (request.destination === 'document' || url.pathname === '/' || 
-        !url.pathname.includes('.')) {
+    // Documents / navigations: Network Only, with offline.html as the failure fallback.
+    //
+    // The response is returned straight through and is NEVER written to a cache. Almost
+    // every page here is authenticated and user-specific; before v2.7.0 each 200 was
+    // persisted into DYNAMIC_CACHE, so a later offline visit - or the same device after
+    // logout - could be served another session's rendered HTML. The offline experience
+    // only needs offline.html, so there is nothing to gain by keeping the documents.
+    // Scoped to same-origin: a cross-origin extension-less URL is not one of our pages,
+    // and answering it with our offline.html would be worse than letting it fail.
+    if (isSameOrigin &&
+        (request.destination === 'document' || url.pathname === '/' ||
+         !url.pathname.includes('.'))) {
         event.respondWith(
-            fetch(request)
-                .then((response) => {
-                    if (response && response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(DYNAMIC_CACHE).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return response;
-                })
-                .catch(() => {
-                    return caches.match(request)
-                        .then((cached) => {
-                            // Return cached page or offline fallback
-                            if (cached) {
-                                return cached;
-                            }
-                            // For navigation requests, return offline page
-                            if (request.mode === 'navigate') {
-                                return caches.match('/offline.html') || caches.match('/');
-                            }
-                            return caches.match('/');
-                        });
-                })
+            fetch(request).catch(() => {
+                return caches.match('/offline.html').then((offline) => {
+                    return offline || new Response(
+                        'Sem ligacao.',
+                        {
+                            status: 503,
+                            statusText: 'Service Unavailable',
+                            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                        }
+                    );
+                });
+            })
         );
         return;
     }

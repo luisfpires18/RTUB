@@ -138,13 +138,13 @@
                             }
                             @if (totalFitabDropped > 0)
                             {
-                                <span class="reward-tag reward-tag--drink" style="color: #e040fb;">
+                                <span class="u-c-magenta reward-tag reward-tag--drink">
                                     <i class="bi bi-lightning-fill"></i> @totalFitabDropped FITAB
                                 </span>
                             }
                             @if (totalLeitaoDropped > 0)
                             {
-                                <span class="reward-tag reward-tag--drink" style="color: #ff9800;">
+                                <span class="u-c-orange reward-tag reward-tag--drink">
                                     <i class="bi bi-piggy-bank"></i> @totalLeitaoDropped Leitão
                                 </span>
                             }
@@ -156,7 +156,7 @@
                             }
                             @if (totalRareSetDropped.Count > 0)
                             {
-                                <span class="reward-tag reward-tag--rare" style="color: #ffd700; text-shadow: 0 0 6px #ffd700;">
+                                <span class="u-c-gold u-glow-gold-6 reward-tag reward-tag--rare">
                                     <i class="bi bi-gem"></i> @totalRareSetDropped.Count Equipamento Raro
                                 </span>
                             }
@@ -214,7 +214,7 @@
                                 <span>+@Fmt(totalXPEarned) XP</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <i class="u-c-indigo bi bi-coin"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
                             @if (totalFinosDropped > 0)
@@ -255,21 +255,21 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
+                                    <i class="u-c-cyan bi bi-lightning-charge-fill"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
                             @if (totalFitabDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-fill" style="color: #e040fb;"></i>
+                                    <i class="u-c-magenta bi bi-lightning-fill"></i>
                                     <span>+@totalFitabDropped FITAB</span>
                                 </div>
                             }
                             @if (totalLeitaoDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-piggy-bank" style="color: #ff9800;"></i>
+                                    <i class="u-c-orange bi bi-piggy-bank"></i>
                                     <span>+@totalLeitaoDropped Leitão</span>
                                 </div>
                             }
@@ -285,7 +285,7 @@
                                     }
                                     else
                                     {
-                                        <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                        <i class="u-c-violet bi bi-music-note"></i>
                                     }
                                     <span>+@qty @instrumentName</span>
                                 </div>
@@ -296,9 +296,9 @@
                                 var rareName = rareSlotKey != null
                                     && ScalingConfig.Value.StageMode.RareSet.Pieces.TryGetValue(rareSlotKey, out var pc)
                                     ? pc.Name : rareType.ToString();
-                                <div class="defeat-reward-row" style="color: #ffd700; text-shadow: 0 0 4px #ffd700;">
-                                    <i class="bi bi-gem" style="color: #ffd700;"></i>
-                                    <span>+1 @rareName <small style="opacity:.7">(Equipamento Raro)</small></span>
+                                <div class="u-c-gold u-glow-gold-4 defeat-reward-row">
+                                    <i class="u-c-gold bi bi-gem"></i>
+                                    <span>+1 @rareName <small class="u-op-70">(Equipamento Raro)</small></span>
                                 </div>
                             }
                         </div>

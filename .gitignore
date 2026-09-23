@@ -180,6 +180,11 @@ DocProject/Help/html
 # Click-Once directory
 publish/
 publish2/
+# Local `dotnet publish -o` output. A linux-x64 publish is ~270 MB.
+publish-linux/
+# Hand-built deployment packages and downloaded App Service logs.
+rtub-dev.zip
+rtub-dev-logs.zip
 
 # Publish Web Output
 *.[Pp]ublish.xml
@@ -268,7 +273,11 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
-# SQLite database files
+# SQLite database files.
+# This also covers every file the DEV snapshot refresh touches — the downloaded
+# production snapshot, the sanitized copy and any rollback copy. A production
+# database, sanitized or not, must never be committed. See
+# docs/cloudflare-r2-and-database-backups.md.
 *.db
 *.db-shm
 *.db-wal
@@ -374,3 +383,10 @@ FodyWeavers.xsd
 
 # Backup files
 src/RTUB.Web/Pages/MyTuno/*.bak
+
+# Claude Code local machine overrides (not repo config)
+.claude/settings.local.json
+
+# Graphify generated knowledge graph (~84 MB: 38 MB graph.json + AST cache).
+# Rebuilt locally with `graphify extract . --code-only`; never committed.
+graphify-out/

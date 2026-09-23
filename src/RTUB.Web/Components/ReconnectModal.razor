@@ -25,7 +25,9 @@
                 <span class="visually-hidden">A restabelecer ligação...</span>
             </div>
         </div>
-        <button class="btn btn-primary reconnect-reload" type="button" onclick="location.reload()">
+        @* Reload is wired by /js/blazorStartup.js (delegated on .reconnect-reload). It cannot be
+           a Blazor @@onclick handler: this modal only appears once the circuit is already down. *@
+        <button class="btn btn-primary reconnect-reload" type="button">
             Recarregar
         </button>
     </div>

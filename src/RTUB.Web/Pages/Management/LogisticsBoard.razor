@@ -11,6 +11,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
@@ -56,13 +57,12 @@
                         <button class="btn btn-purple" @onclick="OpenCreateReminderModal">
                             <i class="bi bi-bell"></i> Criar Lembrete
                         </button>
-                        <AuthorizeView Roles="Admin" Context="adminAuthContext">
-                            <Authorized>
-                                <button class="btn btn-success" @onclick="OpenCreateListModal">
-                                    <i class="bi bi-plus-lg"></i> Adicionar Lista
-                                </button>
-                            </Authorized>
-                        </AuthorizeView>
+                        @if (canManageLogistics)
+                        {
+                            <button class="btn btn-success" @onclick="OpenCreateListModal">
+                                <i class="bi bi-plus-lg"></i> Adicionar Lista
+                            </button>
+                        }
                     </div>
                 </div>
                 
@@ -92,11 +92,20 @@
 
             @if (!lists.Any())
             {
-                <EmptyState Title="Nenhuma lista criada ainda"
-                           Message="Crie sua primeira lista para começar a organizar tarefas."
-                           Icon="bi-list-ul"
-                           ActionText="Criar Lista"
-                           OnAction="OpenCreateListModal" />
+                @if (canManageLogistics)
+                {
+                    <EmptyState Title="Nenhuma lista criada ainda"
+                               Message="Crie sua primeira lista para começar a organizar tarefas."
+                               Icon="bi-list-ul"
+                               ActionText="Criar Lista"
+                               OnAction="OpenCreateListModal" />
+                }
+                else
+                {
+                    <EmptyState Title="Nenhuma lista criada ainda"
+                               Message="Este quadro ainda não tem listas."
+                               Icon="bi-list-ul" />
+                }
             }
             else
             {
@@ -106,34 +115,33 @@
                         <div class="kanban-list" data-list-id="@list.Id" @key="list.Id">
                             <div class="kanban-list-header position-relative d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">@list.Name</h5>
-                                <AuthorizeView Roles="Admin" Context="listAdminContext">
-                                    <Authorized>
-                                        <div class="d-flex gap-1">
-                                            <button class="btn btn-sm btn-success" 
-                                                    @onclick="() => OpenCreateCardModal(list.Id)" 
-                                                    title="Adicionar Cartão">
-                                                <i class="bi bi-plus-lg"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-light" 
-                                                    @onclick="() => OpenEditListModal(list)" 
-                                                    title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" 
-                                                    @onclick="() => OpenDeleteListModal(list)" 
-                                                    title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </Authorized>
-                                </AuthorizeView>
+                                @if (canManageLogistics)
+                                {
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-success"
+                                                @onclick="() => OpenCreateCardModal(list.Id)"
+                                                title="Adicionar Cartão">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-light"
+                                                @onclick="() => OpenEditListModal(list)"
+                                                title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => OpenDeleteListModal(list)"
+                                                title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
                             </div>
                             <div class="kanban-cards" data-list-id="@list.Id">
                                 @foreach (var card in GetFilteredCards(list.Cards))
                                 {
-                                    <div class="kanban-card @GetCardStatusClass(card.Status) @(isAdmin || isMod ? "clickable" : "")" @key="card.Id" 
-                                         data-card-id="@card.Id" 
-                                         draggable="true"
+                                    <div class="kanban-card @GetCardStatusClass(card.Status) @(canManageLogistics ? "clickable" : "")" @key="card.Id"
+                                         data-card-id="@card.Id"
+                                         draggable="@(canManageLogistics ? "true" : "false")"
                                          @onclick="() => HandleCardClick(card)">
                                         <div class="card-status-bar @GetCardStatusBarClass(card.Status)">
                                             <i class="bi bi-@GetCardStatusIcon(card.Status) me-1"></i>
@@ -168,7 +176,7 @@
                                             <div class="card-footer-section">
                                                 @foreach (var label in GetCardLabels(card))
                                                 {
-                                                    <span class="badge badge-label" style="background-color: @label.Color; color: white;">@label.Text</span>
+                                                    <span class="badge badge-label u-swatch-bg u-c-white" data-swatch="@label.Color">@label.Text</span>
                                                 }
                                                 @if (card.Event != null)
                                                 {
@@ -401,7 +409,7 @@
                     {
                         @foreach (var label in cardLabels)
                         {
-                            <span class="badge d-inline-flex align-items-center badge-padded" style="background-color: @label.Color;" @key="label.Id">
+                            <span class="badge d-inline-flex align-items-center badge-padded u-swatch-bg" data-swatch="@label.Color" @key="label.Id">
                                 @label.Text
                                 <button type="button" class="btn-close btn-close-white ms-2 btn-close-small" @onclick="() => RemoveLabel(label)" aria-label="Remover etiqueta"></button>
                             </span>
@@ -646,13 +654,12 @@
         }
     </Sections>
     <FooterContent>
-        <AuthorizeView Roles="Admin" Context="deleteCardContext">
-            <Authorized>
-                <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard" aria-label="Eliminar cartão">
-                    <i class="bi bi-trash me-2"></i>Eliminar
-                </button>
-            </Authorized>
-        </AuthorizeView>
+        @if (canManageLogistics)
+        {
+            <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard" aria-label="Eliminar cartão">
+                <i class="bi bi-trash me-2"></i>Eliminar
+            </button>
+        }
         <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal" aria-label="Voltar Atrás">
             <i class="bi bi-arrow-left me-2"></i>Fechar
         </button>
@@ -891,8 +898,10 @@
     private string logisticsFileInputId = $"logistics-file-{Guid.NewGuid():N}";
     private string? logisticsFileName;
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
-    private bool isMod = false;
-    private bool isAdmin = false;
+    // LogisticsAuthorization.CanManage. Hiding a button is not a permission check, so every
+    // handler that persists a change re-checks this before calling a service. Reminders are
+    // deliberately not gated: every member may create them.
+    private bool canManageLogistics = false;
     private DotNetObjectReference<LogisticsBoard>? _kanbanDotNetRef;
 
     // Mobile bottom nav
@@ -956,7 +965,7 @@
             new("action-reminder", "Lembrete", "bi-bell")
         };
 
-        if (isAdmin)
+        if (canManageLogistics)
         {
             items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
         }
@@ -982,7 +991,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && lists.Any())
+        // Drag and drop is card management; a member never gets the .NET reference it calls.
+        if (firstRender && canManageLogistics && lists.Any())
         {
             try
             {
@@ -996,9 +1006,7 @@
     private async Task CheckUserRole()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        isMod = user.IsInRole("Mod");
-        isAdmin = user.IsInRole("Admin");
+        canManageLogistics = LogisticsAuthorization.CanManage(authState.User);
     }
 
     private async Task LoadData()
@@ -1087,6 +1095,7 @@
     // List operations
     private void OpenCreateListModal()
     {
+        if (!canManageLogistics) return;
         editingList = null;
         listName = string.Empty;
         modals.Open(ModalType.List);
@@ -1094,6 +1103,7 @@
 
     private void OpenEditListModal(LogisticsList list)
     {
+        if (!canManageLogistics) return;
         editingList = list;
         listName = list.Name;
         modals.Open(ModalType.List);
@@ -1108,7 +1118,7 @@
 
     private async Task SaveList()
     {
-        if (string.IsNullOrWhiteSpace(listName))
+        if (!canManageLogistics || string.IsNullOrWhiteSpace(listName))
             return;
 
         try
@@ -1134,6 +1144,7 @@
 
     private void OpenDeleteListModal(LogisticsList list)
     {
+        if (!canManageLogistics) return;
         deletingList = list;
         modals.Open(ModalType.DeleteList);
     }
@@ -1146,7 +1157,7 @@
 
     private async Task ConfirmDeleteList()
     {
-        if (deletingList == null)
+        if (!canManageLogistics || deletingList == null)
             return;
 
         try
@@ -1164,6 +1175,7 @@
     // Card operations
     private void OpenCreateCardModal(int listId)
     {
+        if (!canManageLogistics) return;
         editingCard = null;
         currentListId = listId;
         cardTitle = string.Empty;
@@ -1176,6 +1188,7 @@
 
     private void OpenEditCardModal(LogisticsCard card)
     {
+        if (!canManageLogistics) return;
         editingCard = card;
         currentListId = card.ListId;
         cardTitle = card.Title;
@@ -1208,7 +1221,7 @@
 
     private async Task SaveCard()
     {
-        if (string.IsNullOrWhiteSpace(cardTitle))
+        if (!canManageLogistics || string.IsNullOrWhiteSpace(cardTitle))
             return;
 
         try
@@ -1242,7 +1255,7 @@
     // Handle card click - extracted for better readability
     private async Task HandleCardClick(LogisticsCard card)
     {
-        if (isAdmin || isMod)
+        if (canManageLogistics)
         {
             await OpenCardDetailsModal(card);
         }
@@ -1251,6 +1264,7 @@
     // Card details modal
     private async Task OpenCardDetailsModal(LogisticsCard card)
     {
+        if (!canManageLogistics) return;
         selectedCard = card;
         uploadErrorMessage = null;
         uploadSuccessMessage = null;
@@ -1338,7 +1352,7 @@
 
     private async Task UpdateCardStatus(CardStatus status)
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         await CardService.SetCardStatusAsync(selectedCard.Id, status);
         selectedCard.Status = status;
         await LoadData();
@@ -1363,7 +1377,7 @@
 
     private async void SaveLabels()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
         await CardService.SetCardLabelsAsync(selectedCard.Id, json);
         await LoadData();
@@ -1401,7 +1415,7 @@
 
     private async void SaveChecklist()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
         await CardService.SetCardChecklistAsync(selectedCard.Id, json);
     }
@@ -1428,7 +1442,7 @@
 
     private async void SaveAttachments()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
         await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
     }
@@ -1442,7 +1456,7 @@
 
     private async Task UploadFile()
     {
-        if (selectedFile == null || selectedCard == null || board == null) return;
+        if (!canManageLogistics || selectedFile == null || selectedCard == null || board == null) return;
 
         uploadErrorMessage = null;
         uploadSuccessMessage = null;
@@ -1512,7 +1526,7 @@
 
     private async Task RemoveDocument(DocumentMetadata doc)
     {
-        if (selectedCard == null || board == null) return;
+        if (!canManageLogistics || selectedCard == null || board == null) return;
         
         try
         {
@@ -1564,7 +1578,7 @@
 
     private async Task SaveFiles()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(uploadedFiles ?? new List<FileItem>());
         // Store in Details field for now - could be moved to separate field later
         await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, 
@@ -1600,13 +1614,13 @@
     // Details text method
     private async Task UpdateCardDetails()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, cardDetailsText);
     }
 
     private async Task UpdateCardTitle()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         var trimmed = (cardEditTitle ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(trimmed) || trimmed == selectedCard.Title)
         {
@@ -1619,7 +1633,7 @@
 
     private async Task UpdateCardDates()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         DateTime? start = string.IsNullOrEmpty(cardStartDate) ? null : DateTime.Parse(cardStartDate);
         DateTime? due = string.IsNullOrEmpty(cardDueDate) ? null : DateTime.Parse(cardDueDate);
         await CardService.SetCardDatesAsync(selectedCard.Id, start, due, null);
@@ -1628,7 +1642,7 @@
     // Member assignment methods
     private async Task AssignUser(ApplicationUser user)
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         
         try
         {
@@ -1646,7 +1660,7 @@
 
     private async Task RemoveAssignment(LogisticsCardAssignment assignment)
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         
         try
         {
@@ -1664,7 +1678,7 @@
     // Legacy method for backward compatibility with old single-assignment system
     private async Task RemoveAssignedUser()
     {
-        if (selectedCard == null) return;
+        if (!canManageLogistics || selectedCard == null) return;
         await CardService.AssignCardToUserAsync(selectedCard.Id, null);
         selectedCard.AssignedToUserId = null;
         selectedCard.AssignedToUser = null;
@@ -1674,6 +1688,7 @@
     // Card delete methods
     private void DeleteCurrentCard()
     {
+        if (!canManageLogistics) return;
         if (selectedCard != null)
         {
             deletingCard = selectedCard;
@@ -1684,6 +1699,7 @@
 
     private void OpenDeleteCardModal(LogisticsCard card)
     {
+        if (!canManageLogistics) return;
         deletingCard = card;
         modals.Open(ModalType.DeleteCard);
     }
@@ -1696,7 +1712,7 @@
 
     private async Task ConfirmDeleteCard()
     {
-        if (deletingCard == null) return;
+        if (!canManageLogistics || deletingCard == null) return;
         
         try
         {
@@ -1713,6 +1729,11 @@
     [JSInvokable]
     public async Task OnCardMoved(int cardId, int newListId, int newPosition)
     {
+        // Callable from the browser console by anyone holding the reference, so refuse loudly:
+        // the rejected promise is what makes kanban.js revert its optimistic DOM move.
+        if (!canManageLogistics)
+            throw new UnauthorizedAccessException("Only Admin and Mod may move Logistics cards.");
+
         try
         {
             await CardService.MoveCardAsync(cardId, newListId, newPosition);

@@ -208,7 +208,7 @@
                                     <img src="@GetNavbarAvatarUrl()" 
                                          alt="@currentUser.Nickname" 
                                          class="navbar-avatar me-2"
-                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                         data-avatar-fallback />
                                     <span>@currentUser.Nickname</span>
                                     <UnreadMessagesBadge CssClass="navbar-message-badge" />
                                 }
@@ -232,6 +232,7 @@
                                 <li><hr class="dropdown-divider" /></li>
                                 <li>
                                     <form method="post" action="/auth/logout" @formname="LogoutForm" class="logout-form">
+                                        <AntiforgeryToken />
                                         <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sair</button>
                                     </form>
                                 </li>
@@ -313,6 +314,10 @@
 <VersionedAsset Path="/js/roleBadge.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/scrollToTop.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/scrollSpy.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/dynamicStyle.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/scrollHelper.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/home.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/mediaPreview.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/kanban.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/unreadMessages.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/messageScroller.js" Type="VersionedAsset.AssetType.Js" />
@@ -339,37 +344,10 @@
 <VersionedAsset Path="/js/pixiSurviveMode.js" Type="VersionedAsset.AssetType.Js" />
 @* Service Worker registration for PWA support *@
 <VersionedAsset Path="/js/sw-register.js" Type="VersionedAsset.AssetType.Js" />
-<script>
-    // Configure Blazor to use absolute path for SignalR hub
-    // This prevents 404 errors when on /admin/* or other sub-paths
-    // Server timeout and keep-alive match server-side HubOptions for stable stage farming sessions
-    Blazor.start({
-        circuit: {
-            configureSignalR: function (builder) {
-                builder.withUrl("/_blazor");
-                builder.withServerTimeout(300000);
-                builder.withKeepAliveInterval(15000);
-            }
-        }
-    });
-
-    // Auto-dismiss Bootstrap offcanvas on mobile when a navigation link is clicked.
-    // Without this, the offcanvas backdrop persists after Blazor navigates via SignalR,
-    // causing the page to appear dimmed until the user taps the backdrop.
-    document.addEventListener('click', function (e) {
-        // Ignore dropdown toggle buttons — they manage their own open/close state
-        if (e.target.closest('[data-bs-toggle="dropdown"]')) return;
-
-        var link = e.target.closest('#topNav a[href], #topNav button[type="submit"]');
-        if (!link) return;
-
-        var offcanvasEl = document.getElementById('topNav');
-        if (offcanvasEl && offcanvasEl.classList.contains('show')) {
-            var instance = bootstrap.Offcanvas.getInstance(offcanvasEl);
-            if (instance) instance.hide();
-        }
-    });
-</script>
+@* Blazor circuit startup. Must stay after blazor.web.js (autostart="false") - both are
+   classic scripts, so document order guarantees the `Blazor` global exists. *@
+<VersionedAsset Path="/js/blazorStartup.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/navOffcanvas.js" Type="VersionedAsset.AssetType.Js" />
 
 @code {
     private ApplicationUser? currentUser;
