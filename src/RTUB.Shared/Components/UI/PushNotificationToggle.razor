@@ -1,6 +1,7 @@
 @namespace RTUB.Shared
 @using Microsoft.Extensions.Logging
 @using RTUB.Application.DTOs
+@implements IDisposable
 @inject IJSRuntime JSRuntime
 @inject ILogger<PushNotificationToggle> Logger
 
@@ -15,10 +16,12 @@
     else if (HasAccess)
     {
         <div class="form-check form-switch">
+            @* While a request runs the switch shows what was asked for - the browser has already
+               moved it. Afterwards it shows the outcome, so a failed request re-renders it back. *@
             <input class="form-check-input"
                    type="checkbox"
                    id="pushNotificationSwitch"
-                   checked="@IsSubscribed"
+                   checked="@(IsProcessing ? RequestedState : IsSubscribed)"
                    @onchange="HandleToggleChange"
                    disabled="@IsProcessing">
             <label class="form-check-label text-white-full" for="pushNotificationSwitch">
@@ -57,10 +60,17 @@
 </div>
 
 @code {
+    // Passed to setPushSubscription. Blazor Server's 60 s JS-interop default (CircuitOptions.
+    // JSInteropDefaultCallTimeout) applies only to calls made WITHOUT a token, and a browser promise
+    // cannot be cancelled: timing out re-enabled the switch while the first request was still running.
+    // With this token the switch stays disabled until the browser answers; disposal ends the wait.
+    private readonly CancellationTokenSource _lifetime = new();
+
     private bool IsLoading { get; set; } = true;
     private bool HasAccess { get; set; } = false;
     private bool IsSubscribed { get; set; } = false;
     private bool IsProcessing { get; set; } = false;
+    private bool RequestedState { get; set; } = false;
     private bool ShowAndroidHint { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
@@ -124,7 +134,15 @@
 
     private async Task HandleToggleChange(ChangeEventArgs e)
     {
+        // One subscribe/unsubscribe at a time. The switch is disabled while one runs, but a tap can
+        // reach the server before the disabled switch reaches the browser.
+        if (IsProcessing)
+        {
+            return;
+        }
+
         var isChecked = (bool)(e.Value ?? false);
+        RequestedState = isChecked;
         ClearMessages();
 
         if (isChecked)
@@ -144,7 +162,7 @@
 
         try
         {
-            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", true);
+            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", _lifetime.Token, true);
 
             if (success)
             {
@@ -152,6 +170,10 @@
                 SuccessMessage = "Successfully subscribed to push notifications!";
                 ClearMessageAfterDelay(() => SuccessMessage = null);
             }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            // Disposed mid-call (navigation, circuit teardown): not a subscription failure.
         }
         catch (Exception ex)
         {
@@ -162,7 +184,10 @@
         finally
         {
             IsProcessing = false;
-            StateHasChanged();
+            if (!_lifetime.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
         }
     }
 
@@ -173,7 +198,7 @@
 
         try
         {
-            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", false);
+            var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.setPushSubscription", _lifetime.Token, false);
 
             if (success)
             {
@@ -181,6 +206,10 @@
                 SuccessMessage = "Successfully unsubscribed from push notifications.";
                 ClearMessageAfterDelay(() => SuccessMessage = null);
             }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            // Disposed mid-call (navigation, circuit teardown): not an unsubscribe failure.
         }
         catch (Exception ex)
         {
@@ -191,7 +220,10 @@
         finally
         {
             IsProcessing = false;
-            StateHasChanged();
+            if (!_lifetime.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
         }
     }
 
@@ -206,8 +238,19 @@
         _ = Task.Run(async () =>
         {
             await Task.Delay(delayMs);
+            if (_lifetime.IsCancellationRequested)
+            {
+                return; // disposed meanwhile: nothing left to render
+            }
             clearAction();
             await InvokeAsync(StateHasChanged);
         });
+    }
+
+    public void Dispose()
+    {
+        // Cancels a subscribe/unsubscribe still waiting on the browser - see the catch filters.
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 }

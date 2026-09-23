@@ -1,8 +1,11 @@
+using AngleSharp.Dom;
 using Bunit;
 using Bunit.TestDoubles;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
+using Microsoft.JSInterop.Infrastructure;
 using Moq;
 using RTUB.Application.DTOs;
 using RTUB.Shared;
@@ -325,5 +328,212 @@ public class PushNotificationToggleTests : BunitContext
         stringArguments.Should().NotContain(
             s => s.Contains("function", StringComparison.Ordinal) || s.Contains("=>", StringComparison.Ordinal),
             "arguments must be data, not JavaScript source");
+    }
+
+    // ---------- one operation at a time, and how it ends (hotfix 2.0.1) ----------
+    //
+    // PROD: a subscribe whose browser side never answered hit Blazor Server's 60 s JS-interop
+    // default, was logged as an error, and re-enabled the switch while the browser was still
+    // working - and the switch still showed ON, so the next tap sent an unsubscribe. The tests
+    // above complete every JS call at once, so none of that was reachable. These hold it open.
+
+    [Fact]
+    public void SecondToggle_WhileAnOperationRuns_StartsNoSecondOperation()
+    {
+        // Arrange
+        var (cut, setSubscription) = RenderReadyToggle();
+
+        // Act - taps that reach the server before the disabled switch reaches the browser
+        Switch(cut).Change(true);
+        Switch(cut).Change(false);
+        Switch(cut).Change(true);
+
+        // Assert
+        InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle("one subscribe/unsubscribe at a time");
+        Switch(cut).HasAttribute("disabled").Should().BeTrue();
+
+        setSubscription.SetResult(true);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"));
+        InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle();
+        Switch(cut).HasAttribute("checked").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Disposal_WhileSubscribing_CancelsTheCall_WithoutAnErrorOrARetry()
+    {
+        // Arrange
+        var (cut, setSubscription) = RenderReadyToggle();
+        Switch(cut).Change(true);
+        var call = InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle().Subject;
+
+        call.CancellationToken.Should().NotBeNull(
+            "the component must own the call through a token (a token-less call only ends on the 60 s default)");
+
+        // Act - navigation or circuit teardown disposes the component mid-call
+        await DisposeComponentsAsync();
+        call.CancellationToken!.Value.IsCancellationRequested.Should().BeTrue(
+            "disposal must cancel the JS call this component owns");
+        setSubscription.SetCanceled(); // what JSRuntime does to a call whose token was cancelled
+        await Renderer.Dispatcher.InvokeAsync(() => { }); // let the component observe it
+
+        // Assert
+        InvocationsOf("pwaHelper.setPushSubscription").Should().ContainSingle("a cancelled call is not retried");
+        VerifyLogged(LogLevel.Error, Times.Never());
+        VerifyLogged(LogLevel.Warning, Times.Never());
+    }
+
+    /// <summary>
+    /// Only a token-less JS call gets Blazor Server's 60 s default timeout. Both operations must pass
+    /// a token, and the same one - the component's lifetime token. A per-call token would be a per-call
+    /// timeout again (CancelAfter, or the TimeSpan overload), re-enabling the switch mid-request.
+    /// </summary>
+    [Fact]
+    public void SubscribeAndUnsubscribe_PassTheComponentLifetimeToken_NotAPerCallTimeout()
+    {
+        // Arrange
+        var (cut, setSubscription) = RenderReadyToggle();
+        setSubscription.SetResult(true);
+
+        // Act
+        Switch(cut).Change(true);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"));
+        Switch(cut).Change(false);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully unsubscribed"));
+
+        // Assert
+        var tokens = InvocationsOf("pwaHelper.setPushSubscription").Select(call => call.CancellationToken).ToList();
+        tokens.Should().HaveCount(2).And.OnlyContain(token => token.HasValue,
+            "a token-less call gets the 60 s default timeout");
+        tokens[0].Should().Be(tokens[1], "one token for the component's lifetime, not one per call");
+        tokens[0]!.Value.IsCancellationRequested.Should().BeFalse("only disposal cancels it");
+    }
+
+    /// <summary>
+    /// The PROD failure mode against the REAL JSRuntime timeout logic, with no clock: the toggle boots
+    /// with no default timeout, then the default timeout is set to zero - a zero-delay
+    /// CancellationTokenSource is born cancelled, so from then on every token-less call is timed out
+    /// before it is sent (production's 60 s, already elapsed). setPushSubscription never answers; the
+    /// component's call must still be pending - switch disabled, no error - and end quietly only when
+    /// the component is disposed.
+    /// </summary>
+    [Fact]
+    public async Task PendingSubscribe_OutlivesTheJsInteropDefaultTimeout_UntilDisposed()
+    {
+        // Arrange - the boot calls carry no timeout, so a slow runner cannot cancel them
+        var browser = new BrowserThatNeverAnswersSubscribe();
+        Services.AddSingleton<IJSRuntime>(browser);
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+
+        browser.ExpireDefaultTimeout();
+        browser.InvokeAsync<bool>("pwaHelper.setPushSubscription", true).AsTask().IsCanceled.Should().BeTrue(
+            "control: the same call WITHOUT a token is now timed out before it reaches the browser");
+
+        // Act
+        Switch(cut).Change(true);
+
+        // Assert - still waiting on the browser
+        Switch(cut).HasAttribute("disabled").Should().BeTrue("the browser has not answered; the request is still running");
+        cut.Markup.Should().NotContain("Failed to subscribe");
+        VerifyLogged(LogLevel.Error, Times.Never());
+
+        // Act - leaving the page is what ends the wait
+        await DisposeComponentsAsync();
+        await Renderer.Dispatcher.InvokeAsync(() => { });
+
+        // Assert
+        VerifyLogged(LogLevel.Error, Times.Never());
+        VerifyLogged(LogLevel.Warning, Times.Never());
+    }
+
+    [Fact]
+    public void GenuineFailure_IsLoggedAndShown_AndTheSwitchIsRenderedBackOff()
+    {
+        // Arrange
+        var (cut, setSubscription) = RenderReadyToggle();
+
+        // Act
+        Switch(cut).Change(true);
+        Switch(cut).HasAttribute("checked").Should().BeTrue(
+            "while it runs the switch shows the requested state, as the browser already does - so a " +
+            "failure below is a real change Blazor sends back to the page");
+        setSubscription.SetException(new JSException("Notification permission denied"));
+        cut.WaitForState(() => cut.Markup.Contains("Failed to subscribe"));
+
+        // Assert
+        Switch(cut).HasAttribute("checked").Should().BeFalse("a failed subscribe renders OFF");
+        Switch(cut).HasAttribute("disabled").Should().BeFalse("processing resets");
+        cut.Markup.Should().Contain("alert-danger");
+        VerifyLogged(LogLevel.Error, Times.Once());
+    }
+
+    [Fact]
+    public void Retry_AfterAGenuineFailure_IsOneFreshAttempt()
+    {
+        // Arrange
+        var (cut, setSubscription) = RenderReadyToggle();
+        Switch(cut).Change(true);
+        setSubscription.SetException(new JSException("push service unavailable"));
+        cut.WaitForState(() => cut.Markup.Contains("Failed to subscribe"));
+
+        // Act - one new tap
+        setSubscription.SetResult(true);
+        Switch(cut).Change(true);
+        cut.WaitForState(() => cut.Markup.Contains("Successfully subscribed"));
+
+        // Assert
+        InvocationsOf("pwaHelper.setPushSubscription").Should().HaveCount(2, "the failed attempt and one retry");
+        Switch(cut).HasAttribute("checked").Should().BeTrue();
+    }
+
+    /// <summary>A ready, unsubscribed toggle whose setPushSubscription call stays pending until the test settles it.</summary>
+    private (IRenderedComponent<PushNotificationToggle> Cut, JSRuntimeInvocationHandler<bool> SetSubscription) RenderReadyToggle()
+    {
+        SetupAccess(Available);
+        var setSubscription = JSInterop.Setup<bool>("pwaHelper.setPushSubscription", _ => true);
+        var cut = Render<PushNotificationToggle>();
+        cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
+        return (cut, setSubscription);
+    }
+
+    private static IElement Switch(IRenderedComponent<PushNotificationToggle> cut) => cut.Find("#pushNotificationSwitch");
+
+    private void VerifyLogged(LogLevel level, Times times) =>
+        _mockLogger.Verify(logger => logger.Log(
+            level,
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), times);
+
+    /// <summary>
+    /// The real Microsoft.JSInterop base class - with its DefaultAsyncTimeout handling - standing in for a
+    /// browser whose permission prompt or push registration hangs: the boot calls answer at once,
+    /// setPushSubscription never does.
+    /// </summary>
+    private sealed class BrowserThatNeverAnswersSubscribe : JSRuntime
+    {
+        /// <summary>From now on every call made without a token has already timed out.</summary>
+        public void ExpireDefaultTimeout() => DefaultAsyncTimeout = TimeSpan.Zero;
+
+        protected override void BeginInvokeJS(long taskId, string identifier, string? argsJson, JSCallResultType resultType, long targetInstanceId)
+        {
+            var result = identifier switch
+            {
+                "pwaHelper.getPushStatus" => """{"isEnabled":true,"isConfigured":true}""",
+                "pwaHelper.initializePushManager" => "true",
+                "pwaHelper.isSubscribedToPush" => "false",
+                _ => null
+            };
+
+            if (result != null)
+            {
+                DotNetDispatcher.EndInvokeJS(this, $"[{taskId},true,{result}]");
+            }
+        }
+
+        protected override void EndInvokeDotNet(DotNetInvocationInfo invocationInfo, in DotNetInvocationResult invocationResult)
+        {
+        }
     }
 }
