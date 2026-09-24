@@ -164,9 +164,8 @@ lease in the shared SQLite file, which is a true leader election.
 
 - **`Always On` must be enabled** on the App Service, or the process recycles while idle
   and the schedule never fires. There is no catch-up: a process that is not alive at 03:30 UTC
-  skips that day entirely (`CalculateNextRunTime`). **As of 2026-09-22 production `rtub` has
-  Always On off**, so production backups may have been silently skipped; enabling it is an owner
-  action, and `current.db`'s Last-Modified is the thing to check.
+  skips that day entirely (`CalculateNextRunTime`). Production `rtub` has Always On **on**
+  (checked 2026-09-24); `current.db`'s Last-Modified is the thing to check.
 - The daily backup is not the release restore point: it can be a day old and rotates away the
   previous state within ~48 h. Before migrating an existing database the app takes its own
   pre-migration snapshot (`PreMigrationSnapshot`, same online-backup and validation code as
