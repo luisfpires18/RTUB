@@ -660,6 +660,8 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
             configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.AfterHoursOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.AfterHoursOptions.SectionName));
 
         return services;
     }
@@ -997,7 +999,11 @@ public static class ServiceCollectionExtensions
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
+            o.AddPolicy(RTUB.Security.AfterHoursAuthorization.Policy, p => p
+                .RequireAuthenticatedUser()
+                .AddRequirements(new RTUB.Security.AfterHoursEnabledRequirement()));
         });
+        services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RTUB.Security.AfterHoursEnabledHandler>();
         services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
 
         if (!environment.IsDevelopment())
