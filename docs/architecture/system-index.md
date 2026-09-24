@@ -91,6 +91,17 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `src/RTUB.Web/scaling.config.json` | Enemy/stage scaling configuration. |
 | `docs/my_tuno/` | Game domain docs: equipment, weapons, scaling, survive mode, upgrade costs. |
 
+## After Hours
+
+Separate game; shares nothing with MyTuno gameplay. Gated by `AfterHours:Enabled` (default off).
+
+| Path | Responsibility |
+| --- | --- |
+| `src/RTUB.Application/Configuration/AfterHoursOptions.cs` | Feature flag options (`AfterHours` section). |
+| `src/RTUB.Web/Security/AfterHoursAuthorization.cs` | The `AfterHours` policy: authenticated + enabled. Used by route and nav. |
+| `src/RTUB.Web/Pages/AfterHours/` | Pages; `_Imports.razor` applies the policy to the whole folder. |
+| `docs/after_hours/README.md` | Isolation rules, gate contract, folder ownership. |
+
 ## Tests
 
 | Path | Responsibility |

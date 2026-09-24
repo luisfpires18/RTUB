@@ -88,6 +88,9 @@
                                 <li><NavLink class="dropdown-item" href="/my-tuno"><i class="bi bi-joystick"></i> My Tuno</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/games"><i class="bi bi-controller"></i> Mini Jogos</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/bets"><i class="bi bi-cash-coin"></i> Apostas</NavLink></li>
+                                <AuthorizeView Policy="@RTUB.Security.AfterHoursAuthorization.Policy" Context="afterHoursAuthContext">
+                                    <li><NavLink class="dropdown-item" href="/after-hours"><i class="bi bi-moon-stars"></i> After Hours</NavLink></li>
+                                </AuthorizeView>
                             </ul>
                         </li>
                         

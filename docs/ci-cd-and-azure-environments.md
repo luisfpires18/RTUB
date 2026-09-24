@@ -218,6 +218,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `AdminUser__Password` | set | not needed while users exist | startup-fatal on an empty database |
 | `SeedData__SeedFullDataset`, `SeedData__MemberPassword` | set | absent | |
 | `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |
+| `AfterHours__Enabled` | `true` | **unset** | After Hours feature gate; unset or `false` keeps the game closed. Never set in PROD until the After Hours release - see `docs/after_hours/README.md` |
 | `Cloudflare__R2__AccountId`, `…AccessKeyId`, `…SecretAccessKey`, `…Bucket`, `…PublicUrl` | DEV bucket, bucket-scoped token | production | **required**: the home page resolves storage services |
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
 | `WebPush__Vapid*`, `EmailSettings__*` | optional | set | absence disables the feature, not startup |

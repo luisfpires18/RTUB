@@ -1,0 +1,22 @@
+/* Structure only. Colours derive from the inherited text colour so the final After Hours
+   palette can be applied later without restructuring this page. */
+.after-hours-page {
+    max-width: 720px;
+}
+
+.after-hours-panel {
+    padding: 1.5rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 0.75rem;
+    text-align: center;
+}
+
+.after-hours-panel-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.after-hours-panel-note {
+    margin-bottom: 0;
+    opacity: 0.7;
+}
