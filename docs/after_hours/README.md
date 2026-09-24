@@ -4,7 +4,8 @@ RTUB After Hours is an English-language, text-first browser crime RPG for authen
 members. It lives inside the RTUB application but is a **separate game**: it is not MyTuno, not an
 extension of MyTuno, and shares none of its gameplay systems.
 
-Status: foundation only (AH-001). Nothing is playable. The route shows a static landing page.
+Status: foundation (AH-001) plus cycles and per-cycle player state (AH-002). Nothing is playable yet. The
+landing page shows the active cycle and the player's starting state, or "No active cycle".
 
 ## Numbering
 
@@ -22,8 +23,8 @@ After Hours **may reuse** RTUB infrastructure:
 
 - identity: `ApplicationUser` (its `Id` is the player key), roles, cookie authentication, authorization
 - the app shell (`MainLayout`) and generic shared UI (`RTUB.Shared/Components/Common/*`, `LoadingSpinner`, `Alert`)
-- `FiscalYear` as a year identity (from AH-002)
-- `ApplicationDbContext` via `IDbContextFactory`, SQLite, the migrations project (from AH-002)
+- `FiscalYear` as a year identity
+- `ApplicationDbContext` via `IDbContextFactory`, SQLite, the migrations project
 - options, DI, logging and test conventions
 
 After Hours **must not use**:
@@ -86,10 +87,12 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Gate | `src/RTUB.Web/Security/AfterHoursAuthorization.cs` | `RTUB.Security` | AH-001 |
 | Pages | `src/RTUB.Web/Pages/AfterHours/` | `RTUB.Pages.AfterHours` | AH-001 |
 | Page components | `src/RTUB.Web/Pages/AfterHours/Components/` | `RTUB.Pages.AfterHours.Components` | later |
-| Entities | `src/RTUB.Core/Entities/AfterHours/` | `RTUB.Core.Entities.AfterHours` | AH-002 |
+| Entities, enums | `src/RTUB.Core/Entities/AfterHours/`, `src/RTUB.Core/Enums/AfterHours/` | `RTUB.Core.Entities.AfterHours`, `RTUB.Core.Enums.AfterHours` | AH-002 |
 | Services, interfaces | `src/RTUB.Application/Services/AfterHours/`, `Interfaces/AfterHours/` | `...Services.AfterHours` | AH-002 |
 | DbContext partial | `src/RTUB.Application/Data/ApplicationDbContext.AfterHours.cs` | `RTUB.Application.Data` | AH-002 |
+| EF mapping | `src/RTUB.Application/Data/Configurations/AfterHours/` | `RTUB.Application.Data.Configurations.AfterHours` | AH-002 |
 | Tests | `tests/RTUB.Integration.Tests/Pages/AfterHoursGateTests.cs`, `tests/RTUB.Web.Tests/Security/AfterHoursAuthorizationTests.cs` | | AH-001 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCycleStateTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/` | | AH-002 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -99,10 +102,41 @@ The final After Hours palette and branding are **not decided yet**. The landing 
 on purpose: its scoped CSS derives colours from the inherited text colour, so branding can be applied
 later without restructuring the page.
 
-## Open item for AH-002: cycle boundaries
+## Cycles
 
-`FiscalYear` holds only `StartYear`/`EndYear`, with no dates, and `FiscalYearHelper` works out the current
-year from the server's local `DateTime.Today`. Neither is precise enough to be an authoritative
-boundary. AH-002 must add an After Hours-specific cycle model linked to `FiscalYear`, with **explicit
-UTC start and end instants**, allowing both a `Pilot` and a `Live` cycle for the same `FiscalYear`.
-Do not derive authoritative cycle boundaries from `FiscalYearHelper`.
+`GameCycle` (table `AfterHoursGameCycles`) is one playable period.
+
+- **Year identity** comes from `FiscalYearId`. A fiscal year may hold any number of cycles, for example
+  a Pilot and a Live one. Cycles are finished, never deleted: they are history.
+- **Kind**: `Pilot` or `Live` (`GameCycleKind`).
+- **Boundaries**: `StartUtc` (inclusive) and `EndUtc` (exclusive), exact UTC instants stored on the cycle.
+  The academic year runs September to August in Europe/Lisbon, but that is presentation only. Authoritative
+  boundaries are never derived from `FiscalYear`, `FiscalYearHelper` or `DateTime.Today`.
+  `GameCycle.Create` rejects non-UTC values and an end that is not after the start. The database rejects
+  the latter too (`CK_AfterHoursGameCycles_EndAfterStart`).
+- **Status**: `Scheduled` → `Active` → `Finished` (`GameCycleStatus`). Transitions are explicit calls on
+  `IGameCycleService`; there is no automatic start, rollover or background job.
+- **At most one Active cycle**: filtered unique index `IX_AfterHoursGameCycles_SingleActive`.
+  The *playable* cycle is the Active one while `StartUtc <= now < EndUtc`; an Active cycle outside its
+  boundaries is not playable. `IGameCycleService.GetActiveCycleAsync` returns null when nothing is playable.
+- Application-enforced only: the order of status transitions. Overlap between cycles' boundaries is not
+  constrained; only the single-Active rule decides which cycle is authoritative.
+
+## Player cycle state
+
+`PlayerCycleState` (table `AfterHoursPlayerCycleStates`) is a player's annual gameplay power for one cycle.
+Identity (`ApplicationUser`) and history stay outside it; a new cycle starts a new row.
+
+- **One row per cycle and user**: unique index `IX_AfterHoursPlayerCycleStates_Cycle_User`.
+- **Starting values** (constants on the entity, never taken from a client): Level 1, XP 0, wallet 400,
+  bank 0, energy 240 of max 240, heat 0, Toughness/Stealth/Smarts/Charisma rank 4.
+- **Cash** is After Hours money only, stored as whole units (`long`). Check constraints keep wallet,
+  bank, energy and heat non-negative.
+- **Energy and heat** are stored as "value as of timestamp" (`Energy` + `EnergyUpdatedAtUtc`,
+  `Heat` + `HeatUpdatedAtUtc`, UTC). Regeneration and decay are computed from elapsed time and written back
+  when the value changes; nothing ticks them in the background.
+- **Creation**: `IPlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId)` is idempotent. When two
+  tabs create at once, the unique index rejects the second insert and the service returns the row that won.
+  With no playable cycle it returns null and creates nothing, neither a state nor a cycle.
+- Excluded from the audit log, like other gameplay state. Cycle records are audited.
+- A cycle with player states cannot be deleted (`Restrict`); deleting a user deletes their states (`Cascade`).

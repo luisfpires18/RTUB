@@ -67,5 +67,6 @@ public static class AuditConfiguration
         "SurviveModeProgress",
         "StageEnemy",
         "ForgedWeapon",
+        "PlayerCycleState",
     };
 }

@@ -1,5 +1,12 @@
 @page "/after-hours"
 @rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IGameCycleService GameCycleService
 
 <PageTitle>After Hours - RTUB</PageTitle>
 
@@ -12,8 +19,47 @@
     </div>
 
     <section class="after-hours-panel">
-        <h2 class="after-hours-panel-title">In development</h2>
-        <p>After Hours is being built and is not playable yet.</p>
-        <p class="after-hours-panel-note">Check back soon.</p>
+        @if (!loaded)
+        {
+            <LoadingSpinner />
+        }
+        else if (cycle is null || state is null)
+        {
+            <h2 class="after-hours-panel-title">No active cycle</h2>
+            <p class="after-hours-panel-note">There is no After Hours cycle running right now. Check back soon.</p>
+        }
+        else
+        {
+            <h2 class="after-hours-panel-title">@cycle.Kind cycle · @cycle.FiscalYear?.FiscalYearString</h2>
+            <dl class="after-hours-stats">
+                <dt>Level</dt><dd>@state.Level</dd>
+                <dt>Cash</dt><dd>$@state.WalletCash</dd>
+                <dt>Bank</dt><dd>$@state.BankCash</dd>
+                <dt>Energy</dt><dd>@state.Energy / @state.MaxEnergy</dd>
+                <dt>Heat</dt><dd>@state.Heat</dd>
+            </dl>
+            <p class="after-hours-panel-note">In development: nothing is playable yet.</p>
+        }
     </section>
 </div>
+
+@code {
+    private bool loaded;
+    private GameCycle? cycle;
+    private PlayerCycleState? state;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // The folder policy guarantees an authenticated user; resolution is server-side only.
+        if (userId is not null)
+        {
+            cycle = await GameCycleService.GetActiveCycleAsync();
+            state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+        }
+
+        loaded = true;
+    }
+}
