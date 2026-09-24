@@ -1,3 +1,5 @@
+using RTUB.Core.Helpers.AfterHours;
+
 namespace RTUB.Core.Entities.AfterHours;
 
 /// <summary>
@@ -43,8 +45,97 @@ public class PlayerCycleState : BaseEntity
     public int Smarts { get; set; }
     public int Charisma { get; set; }
 
+    /// <summary>Jailed while this is in the future. Null or past means free; no job clears it.</summary>
+    public DateTime? JailUntilUtc { get; set; }
+
+    /// <summary>UTC date of the last cover job taken below the high-heat threshold.</summary>
+    public DateOnly? CoverJobDailyUsedOn { get; set; }
+
+    public static readonly TimeSpan EnergyRegenInterval = TimeSpan.FromMinutes(6);
+    public static readonly TimeSpan HeatDecayInterval = TimeSpan.FromMinutes(10);
+
     // For EF Core
     public PlayerCycleState() { }
+
+    public bool IsJailedAt(DateTime utcNow) => JailUntilUtc > utcNow;
+
+    /// <summary>Brings energy and heat up to <paramref name="utcNow"/>. Deterministic and repeatable.</summary>
+    public void Reconcile(DateTime utcNow)
+    {
+        ReconcileEnergy(utcNow);
+        ReconcileHeat(utcNow);
+    }
+
+    /// <summary>
+    /// +1 energy per whole <see cref="EnergyRegenInterval"/>. The timestamp advances only by the
+    /// whole intervals used, so a partial interval carries over. At max energy the clock is pinned
+    /// to now: a full bar banks no hidden regeneration.
+    /// </summary>
+    public void ReconcileEnergy(DateTime utcNow)
+    {
+        if (Energy >= MaxEnergy)
+        {
+            Energy = MaxEnergy;
+            if (utcNow > EnergyUpdatedAtUtc) EnergyUpdatedAtUtc = utcNow;
+            return;
+        }
+
+        var points = WholeIntervals(EnergyUpdatedAtUtc, utcNow, EnergyRegenInterval);
+        if (points == 0) return;
+
+        if (Energy + points >= MaxEnergy)
+        {
+            Energy = MaxEnergy;
+            EnergyUpdatedAtUtc = utcNow;
+        }
+        else
+        {
+            Energy += (int)points;
+            EnergyUpdatedAtUtc += EnergyRegenInterval * points;
+        }
+    }
+
+    /// <summary>-1 heat per whole <see cref="HeatDecayInterval"/>, same carry-over rule as energy; at 0 the clock is pinned to now.</summary>
+    public void ReconcileHeat(DateTime utcNow)
+    {
+        if (Heat <= 0)
+        {
+            Heat = 0;
+            if (utcNow > HeatUpdatedAtUtc) HeatUpdatedAtUtc = utcNow;
+            return;
+        }
+
+        var points = WholeIntervals(HeatUpdatedAtUtc, utcNow, HeatDecayInterval);
+        if (points == 0) return;
+
+        if (Heat - points <= 0)
+        {
+            Heat = 0;
+            HeatUpdatedAtUtc = utcNow;
+        }
+        else
+        {
+            Heat -= (int)points;
+            HeatUpdatedAtUtc += HeatDecayInterval * points;
+        }
+    }
+
+    /// <summary>Adds (or removes) heat on a reconciled state; never below 0.</summary>
+    public void AddHeat(int delta, DateTime utcNow)
+    {
+        Heat = Math.Max(0, Heat + delta);
+        if (Heat == 0) HeatUpdatedAtUtc = utcNow;
+    }
+
+    /// <summary>Adds XP and derives the level from the cumulative total.</summary>
+    public void AddXp(long xp)
+    {
+        XP += xp;
+        Level = AfterHoursLevels.LevelForXp(XP);
+    }
+
+    private static long WholeIntervals(DateTime from, DateTime to, TimeSpan interval) =>
+        to > from ? (to - from).Ticks / interval.Ticks : 0;
 
     /// <summary>
     /// The fixed starting state. Values are server-defined; nothing here comes from a client.

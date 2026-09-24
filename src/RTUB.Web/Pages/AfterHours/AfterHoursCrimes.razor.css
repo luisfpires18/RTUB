@@ -1,0 +1,78 @@
+/* Structure only; colours derive from the inherited text colour (branding is not decided yet).
+   Mobile-first: one column, full-width controls. */
+.after-hours-page {
+    max-width: 720px;
+}
+
+.after-hours-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.25rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.after-hours-muted,
+.after-hours-note {
+    opacity: 0.7;
+}
+
+.after-hours-alert {
+    font-weight: 600;
+    text-align: center;
+}
+
+.after-hours-result {
+    padding: 0.75rem 1rem;
+    border-left: 3px solid currentColor;
+}
+
+.after-hours-approach {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.after-hours-crimes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.after-hours-card {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 0.75rem;
+}
+
+.after-hours-card p {
+    margin: 0.25rem 0 0.75rem;
+}
+
+.after-hours-card .btn {
+    margin-right: 0.5rem;
+}
+
+.after-hours-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.after-hours-card-head h2 {
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.after-hours-chance {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.after-hours-locked {
+    opacity: 0.5;
+}

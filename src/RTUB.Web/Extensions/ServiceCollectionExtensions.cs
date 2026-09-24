@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
@@ -343,6 +344,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IGameCycleService, RTUB.Application.Services.AfterHours.GameCycleService>();
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService, RTUB.Application.Services.AfterHours.PlayerCycleStateService>();
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService, RTUB.Application.Services.AfterHours.AfterHoursActionService>();
+        services.AddSingleton<RTUB.Application.Interfaces.AfterHours.IAfterHoursDice, RTUB.Application.Services.AfterHours.AfterHoursDice>();
+        services.TryAddSingleton(TimeProvider.System);
 
         return services;
     }

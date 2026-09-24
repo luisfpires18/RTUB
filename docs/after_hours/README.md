@@ -4,8 +4,12 @@ RTUB After Hours is an English-language, text-first browser crime RPG for authen
 members. It lives inside the RTUB application but is a **separate game**: it is not MyTuno, not an
 extension of MyTuno, and shares none of its gameplay systems.
 
-Status: foundation (AH-001) plus cycles and per-cycle player state (AH-002). Nothing is playable yet. The
-landing page shows the active cycle and the player's starting state, or "No active cycle".
+Status: foundation (AH-001), cycles and per-cycle player state (AH-002), and the core solo loop (AH-003):
+crimes, jail, cover jobs, bank, XP and levels. `/after-hours` is the dashboard (stats, bank);
+`/after-hours/crimes` is the crime list and cover job.
+
+**Temporary DEV limitation:** crimes pay cash and XP only. Cargo rewards arrive with AH-004; nothing
+cargo-related is modelled or awarded yet.
 
 ## Numbering
 
@@ -93,6 +97,8 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | EF mapping | `src/RTUB.Application/Data/Configurations/AfterHours/` | `RTUB.Application.Data.Configurations.AfterHours` | AH-002 |
 | Tests | `tests/RTUB.Integration.Tests/Pages/AfterHoursGateTests.cs`, `tests/RTUB.Web.Tests/Security/AfterHoursAuthorizationTests.cs` | | AH-001 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCycleStateTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/` | | AH-002 |
+| Pure rules | `src/RTUB.Core/Helpers/AfterHours/` (levels, crime catalogue and odds, jail policy, actions) | `RTUB.Core.Helpers.AfterHours` | AH-003 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursActionTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRulesTests.cs` | | AH-003 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -140,3 +146,79 @@ Identity (`ApplicationUser`) and history stay outside it; a new cycle starts a n
   With no playable cycle it returns null and creates nothing, neither a state nor a cycle.
 - Excluded from the audit log, like other gameplay state. Cycle records are audited.
 - A cycle with player states cannot be deleted (`Restrict`); deleting a user deletes their states (`Cascade`).
+
+## Time: energy and heat
+
+All time comes from `TimeProvider` (registered as `TimeProvider.System`); business code never reads
+`DateTime.UtcNow`. State is reconciled on every load and inside every action, by the same code
+(`PlayerCycleState.Reconcile`); reads return a reconciled copy and write nothing.
+
+- **Energy**: +1 per whole 6 minutes, up to `MaxEnergy` (240, so empty to full is 24 h). The
+  timestamp advances only by the whole intervals used, so a partial interval carries over (13 min →
+  +2, 1 min kept). At max energy the timestamp is pinned to now: a full bar banks no hidden reserve.
+- **Heat**: −1 per whole 10 minutes, never below 0, same carry-over rule; at 0 the timestamp is pinned
+  to now. Crimes are refused at heat ≥ 80 (after reconciliation).
+
+## XP and levels
+
+Cumulative XP to reach level L is `12·(L−1)³ + 88·(L−1)` (L2 100, L5 1,120, L10 9,540, L20 83,980),
+capped at level 20; XP keeps accumulating at the cap. `AfterHoursLevels` is the only implementation.
+The manual's table disagrees with the formula from L8 up; the owner chose the formula (AH-003).
+
+## Crimes
+
+Catalogue C01–C12 from Game Manual v2 lives in `CrimeCatalogue` (server-owned). A request carries only
+a crime id and an approach; cost, chance, rewards, heat and skill are always read server-side.
+
+- Chance = base + 2·(skill − 4) − 2·⌊heat / 10⌋ + approach, clamped 15–95. Roll 1–100; success when
+  roll ≤ chance.
+- Approaches: Careful +8 pts, cash ×0.8, heat ½ rounded up; Standard as listed; Bold −8 pts, cash
+  ×1.25, XP ×1.1, heat +4.
+- Rounding (`CrimeRules`): integer arithmetic, half up (35 × 1.25 → 44, 26 × 1.1 → 29, 26 × 0.25 → 7).
+- Success: −energy, +cash, +XP, +heat. Failure: −energy, +25% of the adjusted XP, no cash, +heat,
+  then a jail roll.
+- Refused when: level too low, in jail, heat ≥ 80, not enough energy.
+
+### Jail — AH-003 implementation choice (not in Game Manual v2)
+
+The manual gives no numbers. `JailPolicy` holds the temporary formulas, using the heat the crime was
+attempted at:
+
+- chance on a failed crime: `10 + RequiredLevel + ⌊heat / 5⌋` %, clamped 10–60;
+- duration: `2 + ⌊RequiredLevel / 5⌋ + ⌊heat / 20⌋` minutes, at most 8.
+
+Stored as `PlayerCycleState.JailUntilUtc`; the player is free once it passes, with no job. Jail blocks
+crimes and cover jobs (the latter is also an AH-003 choice); the bank stays usable.
+
+## Cover jobs
+
+Manual: 10 energy, −15 heat (never below 0). **AH-003 choices:** +20 cash, +12 XP; "high heat" is
+heat ≥ 50. At high heat a cover job can be repeated; below 50 it is limited to one per UTC calendar day,
+tracked in `PlayerCycleState.CoverJobDailyUsedOn`. High-heat jobs do not use up the daily one.
+
+## Bank
+
+Wallet cash is exposed (to future PvP); bank cash is protected. Deposit: wallet −amount, fee
+⌈2% of amount⌉, bank +(amount − fee); refused if the bank would get nothing. Withdrawal: bank −amount,
+wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched: never Fidelis, finance
+`Transaction`, `MemberDebt` or MB Way.
+
+## Actions: receipts, idempotency, concurrency
+
+`IAfterHoursActionService` (crime, cover job, deposit, withdraw) is the only way state changes.
+
+- **Idempotency key.** Every request carries a client key (≤ 64 chars). The pages create one per
+  attempt and keep it until the attempt completes, so a double submit replays rather than repeats.
+- **Receipt.** An accepted action writes a `PlayerActionReceipt` (`AfterHoursPlayerActionReceipts`)
+  with the request, dice roll and chance, jail result and every delta, in the **same transaction** as
+  the state change. A retry with the same key returns that receipt (`Replayed`), without running the
+  rules or rolling dice again. The same key with a different request is refused. Unique index
+  `(PlayerCycleStateId, IdempotencyKey)` is the backstop. Refusals write nothing and have no receipt.
+- **Concurrency.** Each action is one SQLite write transaction (`BEGIN IMMEDIATE`, the default for
+  Microsoft.Data.Sqlite): receipt lookup, state load, reconciliation, rules, dice, update and receipt
+  insert all run under the database write lock, so tabs and devices are serialized and each sees the
+  previous result — no double spend, no lost update, no negative balance (the check constraints stay as
+  a last line). Lock contention (`SQLITE_BUSY`/`LOCKED`) or a lost unique race rolls back and retries the
+  whole action; nothing is committed before that.
+- **Dice** (`IAfterHoursDice`) are server-side only, never seeded or influenced by a client.
+- Receipts are excluded from the audit log.
