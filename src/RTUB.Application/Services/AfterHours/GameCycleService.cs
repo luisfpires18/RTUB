@@ -8,7 +8,7 @@ using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services.AfterHours;
 
-public class GameCycleService(IDbContextFactory<ApplicationDbContext> contextFactory) : IGameCycleService
+public class GameCycleService(IDbContextFactory<ApplicationDbContext> contextFactory, TimeProvider clock) : IGameCycleService
 {
     public async Task<GameCycle?> GetActiveCycleAsync()
     {
@@ -20,7 +20,7 @@ public class GameCycleService(IDbContextFactory<ApplicationDbContext> contextFac
             .Include(c => c.FiscalYear)
             .SingleOrDefaultAsync(c => c.Status == GameCycleStatus.Active);
 
-        return cycle is not null && cycle.IsPlayableAt(DateTime.UtcNow) ? cycle : null;
+        return cycle is not null && cycle.IsPlayableAt(clock.GetUtcNow().UtcDateTime) ? cycle : null;
     }
 
     public async Task<GameCycle> CreateCycleAsync(int fiscalYearId, GameCycleKind kind, DateTime startUtc, DateTime endUtc)

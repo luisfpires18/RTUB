@@ -1,0 +1,159 @@
+@page "/after-hours/crimes"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IAfterHoursActionService Actions
+@inject TimeProvider Clock
+
+<PageTitle>Crimes - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-lightning"></i> Crimes</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null)
+    {
+        <p class="after-hours-note">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        <div class="after-hours-status">
+            <span>Level @state.Level</span>
+            <span><i class="bi bi-battery-half"></i> @state.Energy / @state.MaxEnergy</span>
+            <span><i class="bi bi-fire"></i> Heat @state.Heat</span>
+            <span><i class="bi bi-wallet2"></i> $@state.WalletCash</span>
+        </div>
+
+        @if (state.IsJailedAt(Now))
+        {
+            <p class="after-hours-alert" role="status"><i class="bi bi-lock"></i> In jail for @AfterHoursText.JailRemaining(state, Now). Crimes and cover jobs wait until you are out.</p>
+        }
+        else if (state.Heat >= CrimeRules.HeatBlockThreshold)
+        {
+            <p class="after-hours-alert" role="status"><i class="bi bi-fire"></i> Too much heat. Crimes are off until it drops below @CrimeRules.HeatBlockThreshold.</p>
+        }
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        <section class="after-hours-card">
+            <div class="after-hours-card-head">
+                <h2>Cover job</h2>
+                <span class="after-hours-muted">−@AfterHoursActions.CoverJobEnergyCost energy</span>
+            </div>
+            <p class="after-hours-muted">Honest work to cool off: −@AfterHoursActions.CoverJobHeatReduction heat, +$@AfterHoursActions.CoverJobCash, +@AfterHoursActions.CoverJobXp XP. Once a day, or as often as you need while heat is @AfterHoursActions.CoverJobHighHeat or more.</p>
+            @{ var coverBlock = AfterHoursActions.CoverJobBlockReason(state, Now); }
+            <button class="btn btn-outline-light" disabled="@(busy || coverBlock is not null)" @onclick="CoverJobAsync">Work a shift</button>
+            @if (coverBlock is not null)
+            {
+                <span class="after-hours-muted">@coverBlock</span>
+            }
+        </section>
+
+        <div class="after-hours-approach" role="radiogroup" aria-label="Approach">
+            @foreach (var option in Enum.GetValues<CrimeApproach>())
+            {
+                <button type="button" role="radio" aria-checked="@(approach == option ? "true" : "false")"
+                        class="btn @(approach == option ? "btn-primary" : "btn-outline-light")"
+                        @onclick="() => approach = option">@option</button>
+            }
+        </div>
+
+        <ul class="after-hours-crimes">
+            @foreach (var crime in CrimeCatalogue.All)
+            {
+                if (state.Level < crime.RequiredLevel)
+                {
+                    <li @key="crime.Id" class="after-hours-card after-hours-locked">
+                        <div class="after-hours-card-head">
+                            <h2>@crime.Name</h2>
+                            <span><i class="bi bi-lock"></i> Level @crime.RequiredLevel</span>
+                        </div>
+                    </li>
+                    continue;
+                }
+
+                var odds = CrimeRules.Odds(crime, approach, state);
+                var block = AfterHoursActions.CrimeBlockReason(state, crime, Now);
+                <li @key="crime.Id" class="after-hours-card">
+                    <div class="after-hours-card-head">
+                        <h2>@crime.Name</h2>
+                        <span class="after-hours-chance">@odds.Chance%</span>
+                    </div>
+                    <p class="after-hours-muted">
+                        −@crime.EnergyCost energy · +$@odds.Cash · +@odds.Xp XP · +@odds.Heat heat · @crime.Skill
+                    </p>
+                    <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => CommitAsync(crime.Id)">Do it</button>
+                    @if (block is not null)
+                    {
+                        <span class="after-hours-muted">@block</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private CrimeApproach approach = CrimeApproach.Standard;
+    private string? message;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+        }
+
+        loaded = true;
+    }
+
+    private Task CommitAsync(string crimeId) => RunAsync(key => Actions.CommitCrimeAsync(userId!, crimeId, approach, key));
+
+    private Task CoverJobAsync() => RunAsync(key => Actions.TakeCoverJobAsync(userId!, key));
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            state = result.State ?? state;
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

@@ -4,9 +4,12 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using RTUB.Application.Interfaces.AfterHours
 @using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Helpers.AfterHours
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IGameCycleService GameCycleService
+@inject IAfterHoursActionService Actions
+@inject TimeProvider Clock
 
 <PageTitle>After Hours - RTUB</PageTitle>
 
@@ -18,40 +21,88 @@
         </div>
     </div>
 
-    <section class="after-hours-panel">
-        @if (!loaded)
-        {
-            <LoadingSpinner />
-        }
-        else if (cycle is null || state is null)
-        {
+    @if (!loaded)
+    {
+        <section class="after-hours-panel"><LoadingSpinner /></section>
+    }
+    else if (cycle is null || state is null)
+    {
+        <section class="after-hours-panel">
             <h2 class="after-hours-panel-title">No active cycle</h2>
             <p class="after-hours-panel-note">There is no After Hours cycle running right now. Check back soon.</p>
-        }
-        else
-        {
+        </section>
+    }
+    else
+    {
+        <section class="after-hours-panel">
             <h2 class="after-hours-panel-title">@cycle.Kind cycle · @cycle.FiscalYear?.FiscalYearString</h2>
             <dl class="after-hours-stats">
                 <dt>Level</dt><dd>@state.Level</dd>
-                <dt>Cash</dt><dd>$@state.WalletCash</dd>
+                <dt>XP</dt>
+                <dd>
+                    @state.XP
+                    @if (state.Level < AfterHoursLevels.MaxLevel)
+                    {
+                        <span class="after-hours-muted">/ @AfterHoursLevels.XpForLevel(state.Level + 1)</span>
+                        <progress class="after-hours-bar" value="@(state.XP - AfterHoursLevels.XpForLevel(state.Level))"
+                                  max="@(AfterHoursLevels.XpForLevel(state.Level + 1) - AfterHoursLevels.XpForLevel(state.Level))"></progress>
+                    }
+                </dd>
+                <dt>Wallet</dt><dd>$@state.WalletCash</dd>
                 <dt>Bank</dt><dd>$@state.BankCash</dd>
-                <dt>Energy</dt><dd>@state.Energy / @state.MaxEnergy</dd>
+                <dt>Energy</dt>
+                <dd>
+                    @state.Energy / @state.MaxEnergy
+                    <progress class="after-hours-bar" value="@state.Energy" max="@state.MaxEnergy"></progress>
+                </dd>
                 <dt>Heat</dt><dd>@state.Heat</dd>
             </dl>
-            <p class="after-hours-panel-note">In development: nothing is playable yet.</p>
+
+            @if (state.IsJailedAt(Now))
+            {
+                <p class="after-hours-alert" role="status"><i class="bi bi-lock"></i> In jail for @AfterHoursText.JailRemaining(state, Now).</p>
+            }
+
+            <a class="btn btn-primary" href="/after-hours/crimes"><i class="bi bi-lightning"></i> Crimes</a>
+        </section>
+
+        <section class="after-hours-panel">
+            <h2 class="after-hours-panel-title">Bank</h2>
+            <p class="after-hours-panel-note">Wallet cash can be taken from you. Banked cash is safe. Deposits cost @AfterHoursActions.DepositFeePercent% (rounded up); withdrawals are free.</p>
+            <div class="after-hours-bank">
+                <label class="visually-hidden" for="ah-bank-amount">Amount</label>
+                <input id="ah-bank-amount" class="form-control" type="number" min="1" step="1" inputmode="numeric" @bind="amount" />
+                <button class="btn btn-outline-light" disabled="@busy" @onclick="DepositAsync">Deposit</button>
+                <button class="btn btn-outline-light" disabled="@busy" @onclick="WithdrawAsync">Withdraw</button>
+            </div>
+        </section>
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
         }
-    </section>
+    }
 </div>
 
 @code {
     private bool loaded;
+    private bool busy;
+    private string? userId;
     private GameCycle? cycle;
     private PlayerCycleState? state;
+    private long amount;
+    private string? message;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         // The folder policy guarantees an authenticated user; resolution is server-side only.
         if (userId is not null)
@@ -61,5 +112,26 @@
         }
 
         loaded = true;
+    }
+
+    private Task DepositAsync() => RunAsync(key => Actions.DepositAsync(userId!, amount, key));
+
+    private Task WithdrawAsync() => RunAsync(key => Actions.WithdrawAsync(userId!, amount, key));
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            state = result.State ?? state;
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 }

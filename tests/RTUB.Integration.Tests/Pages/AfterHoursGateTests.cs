@@ -108,6 +108,18 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     }
 
     [Fact]
+    public async Task ChildRoute_Crimes_IsRefused()
+    {
+        var (client, _) = await CookieTestSession.SignInAsync(
+            Factory, $"ah-off-crimes-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.5", "Member");
+
+        var response = await client.GetAsync("/after-hours/crimes");
+
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Forbidden);
+        (await ReadBodyAsync(response)).Should().NotContain("Lift a phone outside the bar");
+    }
+
+    [Fact]
     public async Task Navigation_HasNoAfterHoursEntry_ForASignedInMember()
     {
         var (client, _) = await CookieTestSession.SignInAsync(
@@ -235,8 +247,16 @@ public class AfterHoursEnabledTests : AfterHoursGateTestsBase, IClassFixture<Aft
         var after = await ReadBodyAsync(await client.GetAsync("/after-hours"));
         after.Should().Contain("Pilot cycle · 2900-2901");
         after.Should().MatchRegex(@"<dt[^>]*>Level</dt>\s*<dd[^>]*>1</dd>");
-        after.Should().MatchRegex(@"<dt[^>]*>Cash</dt>\s*<dd[^>]*>\$400</dd>");
-        after.Should().MatchRegex(@"<dt[^>]*>Energy</dt>\s*<dd[^>]*>240 / 240</dd>");
+        after.Should().MatchRegex(@"<dt[^>]*>Wallet</dt>\s*<dd[^>]*>\$400</dd>");
+        after.Should().MatchRegex(@"<dt[^>]*>Energy</dt>\s*<dd[^>]*>\s*240 / 240");
+        after.Should().Contain("href=\"/after-hours/crimes\"");
+
+        var crimes = await client.GetAsync("/after-hours/crimes");
+        crimes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var crimesHtml = await ReadBodyAsync(crimes);
+        crimesHtml.Should().Contain("Lift a phone outside the bar");
+        crimesHtml.Should().Contain("82%", "C01 at Standard with starting skills and no heat");
+        crimesHtml.Should().MatchRegex(@"Collect a debt after rehearsal</h2>\s*<span[^>]*><i[^>]*></i> Level 2", "C02 is shown locked");
     }
 }
 
