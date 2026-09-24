@@ -16,6 +16,23 @@
     margin-bottom: 0.75rem;
 }
 
+.after-hours-stats {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    justify-content: center;
+    gap: 0.25rem 1.5rem;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.after-hours-stats dt {
+    font-weight: 600;
+}
+
+.after-hours-stats dd {
+    margin-bottom: 0;
+}
+
 .after-hours-panel-note {
     margin-bottom: 0;
     opacity: 0.7;

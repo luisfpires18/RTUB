@@ -337,6 +337,17 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers After Hours services. Pages that use them are gated by the AfterHours policy.
+    /// </summary>
+    public static IServiceCollection AddAfterHoursServices(this IServiceCollection services)
+    {
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IGameCycleService, RTUB.Application.Services.AfterHours.GameCycleService>();
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService, RTUB.Application.Services.AfterHours.PlayerCycleStateService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers finance and transaction services
     /// </summary>
     public static IServiceCollection AddFinanceServices(this IServiceCollection services)

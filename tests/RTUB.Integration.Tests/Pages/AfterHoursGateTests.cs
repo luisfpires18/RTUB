@@ -207,6 +207,37 @@ public class AfterHoursEnabledTests : AfterHoursGateTestsBase, IClassFixture<Aft
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await ReadBodyAsync(response)).Should().NotContain(NavLink);
     }
+
+    /// <summary>
+    /// The only test in this class that creates a cycle, so "no active cycle" is observable first.
+    /// </summary>
+    [Fact]
+    public async Task LandingPage_ShowsNoActiveCycle_ThenTheStartingState()
+    {
+        var (client, _) = await CookieTestSession.SignInAsync(Factory, "ah-on-state", "10.50.3.3", "Member");
+
+        var before = await ReadBodyAsync(await client.GetAsync("/after-hours"));
+        before.Should().Contain("No active cycle");
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RTUB.Application.Data.ApplicationDbContext>();
+            var fiscalYear = RTUB.Core.Entities.FiscalYear.Create(2900, 2901);
+            db.FiscalYears.Add(fiscalYear);
+            await db.SaveChangesAsync();
+
+            var cycles = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IGameCycleService>();
+            var cycle = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Pilot,
+                DateTime.UtcNow.AddDays(-1), DateTime.UtcNow.AddDays(30));
+            await cycles.ActivateAsync(cycle.Id);
+        }
+
+        var after = await ReadBodyAsync(await client.GetAsync("/after-hours"));
+        after.Should().Contain("Pilot cycle · 2900-2901");
+        after.Should().MatchRegex(@"<dt[^>]*>Level</dt>\s*<dd[^>]*>1</dd>");
+        after.Should().MatchRegex(@"<dt[^>]*>Cash</dt>\s*<dd[^>]*>\$400</dd>");
+        after.Should().MatchRegex(@"<dt[^>]*>Energy</dt>\s*<dd[^>]*>240 / 240</dd>");
+    }
 }
 
 /// <summary>

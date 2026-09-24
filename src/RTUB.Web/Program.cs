@@ -182,6 +182,7 @@ public class Program
         services.AddQuestionServices();
         services.AddRankingServices();
         services.AddGameServices();
+        services.AddAfterHoursServices();
         services.AddFinanceServices();
         services.AddBettingServices();
         services.AddEmailServices();
