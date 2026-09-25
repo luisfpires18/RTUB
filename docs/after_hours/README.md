@@ -5,9 +5,10 @@ members. It lives inside the RTUB application but is a **separate game**: it is 
 extension of MyTuno, and shares none of its gameplay systems.
 
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
-crimes, jail, cover jobs, bank, XP and levels, and cargo with buyer contracts (AH-004).
-`/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime list and cover job;
-`/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts.
+crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
+with equipment (AH-005). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
+`/after-hours/training` and `/after-hours/equipment` are training and gear.
 
 ## Numbering
 
@@ -98,6 +99,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Pure rules | `src/RTUB.Core/Helpers/AfterHours/` (levels, crime catalogue and odds, jail policy, actions) | `RTUB.Core.Helpers.AfterHours` | AH-003 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursActionTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRulesTests.cs` | | AH-003 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCargoTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursCargoRulesTests.cs` | | AH-004 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursTrainingGearTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursTrainingGearRulesTests.cs` | | AH-005 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -204,15 +206,16 @@ wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched
 
 ## Actions: receipts, idempotency, concurrency
 
-`IAfterHoursActionService` (crime, cover job, deposit, withdraw, fence sale, contract delivery) is the
-only way player state changes. All After Hours writes, including contract rotation, go through
+`IAfterHoursActionService` (crime, cover job, deposit, withdraw, fence sale, contract delivery, training,
+gear purchase, equip, unequip) is the only way player state changes. All After Hours writes, including contract rotation, go through
 `AfterHoursWriteTransaction`.
 
 - **Idempotency key.** Every request carries a client key (≤ 64 chars). The pages create one per
   attempt and keep it until the attempt completes, so a double submit replays rather than repeats.
 - **Receipt.** An accepted action writes a `PlayerActionReceipt` (`AfterHoursPlayerActionReceipts`)
   with the request, dice roll and chance, jail result and every delta (including the one cargo type it
-  moved, `CargoType` + `CargoDelta`), in the **same transaction** as
+  moved, `CargoType` + `CargoDelta`; the skill trained and its new rank, `Skill` + `SkillRankAfter`; the
+  gear item bought or (un)equipped, `GearKey`), in the **same transaction** as
   the state change. A retry with the same key returns that receipt (`Replayed`), without running the
   rules or rolling dice again. The same key with a different request is refused. Unique index
   `(PlayerCycleStateId, IdempotencyKey)` is the backstop. Refusals write nothing and have no receipt.
@@ -292,3 +295,43 @@ premiums (about 27–33% over the fence value).
 | T08 | The Bar Owner | 4 spirits | 130 | 25 | 100 |
 | T09 | Wedding Caterer | 8 spirits | 255 | 45 | 200 |
 | T10 | The Gallery Fixer | 2 art pieces | 210 | 40 | 160 |
+
+## Training
+
+**Game Manual v2 rules:** one training point per day, at most 3 stored. Raising a skill by one rank
+costs 1 point, 20 energy and `120 + 40·(rank − 4)` **wallet** cash (never bank). Skills cap at
+`min(12, 4 + ⌊level / 2⌋)`: level 1 → 4, level 4 → 6, level 12 → 10, level 16+ → 12. Training is
+refused with no point, too little energy, too little wallet cash, or the skill at its cap
+(`TrainingRules`, `AfterHoursActions.TrainSkill`).
+
+**Reconciliation (AH-005 choice):** `PlayerCycleState.TrainingPoints` is the stored count as of
+`TrainingPointsDay`, a calendar day in **Europe/Lisbon** (`LisbonCalendar`, IANA zone, daylight saving
+included). Like energy and heat it is reconciled lazily on every read and inside every action: each
+Lisbon day that has started since `TrainingPointsDay` adds one point, up to 3, and the day moves to
+today, so a day can never grant twice. A new cycle state starts with **1 point, anchored to its creation
+day** (today's point, no backlog). States created before AH-005 have no day yet; their first
+reconciliation grants 1 point and anchors to that day. The count is kept within 0–3 by the rules;
+there is no database check (adding one would rebuild the state table).
+
+## Equipment
+
+Three slots: Weapon, Outfit, VehicleTool (`GearSlot`; named "gear" to stay apart from MyTuno's
+`EquipmentSlot`). Names, tiers and unlock levels follow the manual; **prices are AH-005 defaults** (the
+manual gives ranges), tunable in `GearCatalogue`. The catalogue is server-owned and never persisted.
+
+| Tier | Unlock level | Weapon | Outfit | Vehicle / tool |
+| --- | ---: | --- | --- | --- |
+| 1 | 3 | Brass Knuckles — 400 | Hooded Jacket — 500 | Lockpick Kit — 600 |
+| 2 | 10 | Switchblade — 2,000 | Armored Jacket — 2,750 | Modified Scooter — 3,500 |
+| 3 | 16 | Compact Pistol — 9,000 | Tailored Protection — 12,000 | Getaway Car — 15,000 |
+| 4 | 20 | Collector Weapon — 40,000 | Reinforced Suit — 50,000 | Specialist Rig — 60,000 |
+
+- **Owning:** `PlayerGear` (`AfterHoursPlayerGear`), one row per state and item (unique index
+  `IX_AfterHoursPlayerGear_State_Item`), with slot and tier copied from the catalogue. Bought with wallet
+  cash only, once per cycle; it stays owned for the cycle whether equipped or not.
+- **Equipping:** `PlayerCycleState.EquippedWeaponKey` / `EquippedOutfitKey` / `EquippedVehicleToolKey`,
+  one column per slot, so at most one item per slot by construction. Equip replaces the slot's item;
+  unequip empties it; only owned items can be equipped. A purchase auto-equips when its slot is empty
+  (AH-005 choice).
+- **For PvP (AH-006):** strength reads `GearCatalogue.BestOwnedTiers` — the best tier **owned** per slot,
+  ignoring what is equipped. No PvP power is computed yet.

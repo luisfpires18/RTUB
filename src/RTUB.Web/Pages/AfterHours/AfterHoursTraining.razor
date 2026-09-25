@@ -1,0 +1,120 @@
+@page "/after-hours/training"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IAfterHoursActionService Actions
+@inject TimeProvider Clock
+
+<PageTitle>Training - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-barbell"></i> Training</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        var cap = TrainingRules.SkillCap(state.Level);
+        <div class="after-hours-status">
+            <span>Level @state.Level</span>
+            <span><i class="bi bi-star"></i> @state.TrainingPoints / @TrainingRules.MaxStoredPoints points</span>
+            <span><i class="bi bi-battery-half"></i> @state.Energy / @state.MaxEnergy</span>
+            <span><i class="bi bi-wallet2"></i> $@state.WalletCash</span>
+        </div>
+        <p class="after-hours-muted after-hours-center">
+            One training point a day (Lisbon time), up to @TrainingRules.MaxStoredPoints stored.
+            Skill cap at level @state.Level: <strong>@cap</strong>.
+            @if (state.TrainingPoints < TrainingRules.MaxStoredPoints && state.TrainingPointsDay is { } day)
+            {
+                <span>Next point in @AfterHoursText.TimeLeft(LisbonCalendar.NextMidnightUtc(day), Now).</span>
+            }
+        </p>
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        <ul class="after-hours-list">
+            @foreach (var skill in Enum.GetValues<PlayerSkill>())
+            {
+                var rank = CrimeRules.SkillRank(state, skill);
+                var block = AfterHoursActions.TrainingBlockReason(state, skill);
+                <li @key="skill" class="after-hours-card">
+                    <div class="after-hours-card-head">
+                        <h2>@skill</h2>
+                        <span class="after-hours-rank">@rank / @cap</span>
+                    </div>
+                    <p class="after-hours-muted">
+                        Next rank: 1 point · −@TrainingRules.EnergyCost energy · −$@TrainingRules.CashCost(rank)
+                    </p>
+                    <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => TrainAsync(skill)">Train</button>
+                    @if (block is not null)
+                    {
+                        <span class="after-hours-muted">@block</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private string? message;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+        }
+
+        loaded = true;
+    }
+
+    private async Task TrainAsync(PlayerSkill skill)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await Actions.TrainSkillAsync(userId, skill, pendingKey);
+            state = result.State ?? state;
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

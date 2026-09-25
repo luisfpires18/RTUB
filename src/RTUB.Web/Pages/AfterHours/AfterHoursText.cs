@@ -24,6 +24,14 @@ public static class AfterHoursText
                 $"Withdrew {r.WalletDelta} to your wallet.",
             PlayerActionKind.FenceSale =>
                 $"The fence took {-r.CargoDelta} {CargoCatalogue.Name(r.CargoType!.Value, -r.CargoDelta)}. +{r.WalletDelta} cash.",
+            PlayerActionKind.TrainSkill =>
+                $"{r.Skill} trained to {r.SkillRankAfter}. {r.EnergyDelta} energy, -${-r.WalletDelta}.",
+            PlayerActionKind.PurchaseGear =>
+                $"Bought {GearCatalogue.Find(r.GearKey)?.Name} for ${-r.WalletDelta}.",
+            PlayerActionKind.EquipGear =>
+                $"Equipped {GearCatalogue.Find(r.GearKey)?.Name}.",
+            PlayerActionKind.UnequipGear =>
+                $"Unequipped {GearCatalogue.Find(r.GearKey)?.Name}.",
             PlayerActionKind.ContractDelivery =>
                 $"Delivered {-r.CargoDelta} {CargoCatalogue.Name(r.CargoType!.Value, -r.CargoDelta)}. +{r.WalletDelta} cash, +{r.XpDelta} XP.",
             _ => "Done."

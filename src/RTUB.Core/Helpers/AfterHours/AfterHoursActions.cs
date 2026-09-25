@@ -35,6 +35,10 @@ public static class AfterHoursActions
     public static string WithdrawRequest(long amount) => $"withdraw:{amount}";
     public static string FenceRequest(CargoType cargo, int quantity) => $"fence:{cargo}:{quantity}";
     public static string ContractRequest(int buyerContractId) => $"contract:{buyerContractId}";
+    public static string TrainRequest(PlayerSkill skill) => $"train:{skill}";
+    public static string PurchaseGearRequest(string itemKey) => $"gear-buy:{itemKey}";
+    public static string EquipGearRequest(string itemKey) => $"gear-equip:{itemKey}";
+    public static string UnequipGearRequest(string itemKey) => $"gear-unequip:{itemKey}";
 
     /// <param name="rollPercent">Server dice: 1..100 inclusive. Success when roll ≤ chance.</param>
     public static ActionAttempt CommitCrime(
@@ -217,6 +221,97 @@ public static class AfterHoursActions
         receipt.CargoDelta = -contract.Quantity;
         receipt.WalletDelta = contract.CashReward;
         receipt.XpDelta = contract.XpReward;
+        return Finish(state, receipt);
+    }
+
+    /// <summary>Why this skill cannot be trained now, or null. Expects a reconciled state.</summary>
+    public static string? TrainingBlockReason(PlayerCycleState state, PlayerSkill skill)
+    {
+        var rank = CrimeRules.SkillRank(state, skill);
+        if (rank >= TrainingRules.SkillCap(state.Level)) return "At your current cap. Level up to train further.";
+        if (state.TrainingPoints < 1) return "No training points. You get one each day.";
+        if (state.Energy < TrainingRules.EnergyCost) return "Not enough energy.";
+        if (state.WalletCash < TrainingRules.CashCost(rank)) return "Not enough cash in your wallet.";
+        return null;
+    }
+
+    /// <summary>Raises one skill by 1: -1 training point, -20 energy, -(120 + 40(rank - 4)) wallet cash.</summary>
+    public static ActionAttempt TrainSkill(PlayerCycleState state, PlayerSkill skill, DateTime utcNow)
+    {
+        if (!Enum.IsDefined(skill)) return ActionAttempt.Reject("Unknown skill.");
+
+        state.Reconcile(utcNow);
+        if (TrainingBlockReason(state, skill) is { } blocked) return ActionAttempt.Reject(blocked);
+
+        var rank = CrimeRules.SkillRank(state, skill);
+        var cost = TrainingRules.CashCost(rank);
+        var receipt = Begin(state, PlayerActionKind.TrainSkill, TrainRequest(skill));
+        receipt.Succeeded = true;
+        state.TrainingPoints -= 1;
+        state.Energy -= TrainingRules.EnergyCost;
+        state.WalletCash -= cost;
+        CrimeRules.SetSkillRank(state, skill, rank + 1);
+        receipt.Skill = skill;
+        receipt.SkillRankAfter = rank + 1;
+        receipt.EnergyDelta = -TrainingRules.EnergyCost;
+        receipt.WalletDelta = -cost;
+        return Finish(state, receipt);
+    }
+
+    /// <summary>Why this item cannot be bought now, or null.</summary>
+    public static string? PurchaseBlockReason(PlayerCycleState state, GearItem item)
+    {
+        if (state.OwnsGear(item.Key)) return "You already own this.";
+        if (state.Level < item.UnlockLevel) return $"Requires level {item.UnlockLevel}.";
+        if (state.WalletCash < item.Price) return "Not enough cash in your wallet.";
+        return null;
+    }
+
+    /// <summary>
+    /// Buys an item with wallet cash; it stays owned for the cycle. If nothing is equipped in its slot
+    /// it is equipped straight away (AH-005 choice).
+    /// </summary>
+    public static ActionAttempt PurchaseGear(PlayerCycleState state, string itemKey)
+    {
+        var item = GearCatalogue.Find(itemKey);
+        if (item is null) return ActionAttempt.Reject("Unknown item.");
+        if (PurchaseBlockReason(state, item) is { } blocked) return ActionAttempt.Reject(blocked);
+
+        var receipt = Begin(state, PlayerActionKind.PurchaseGear, PurchaseGearRequest(item.Key));
+        receipt.Succeeded = true;
+        state.WalletCash -= item.Price;
+        state.Gear.Add(new PlayerGear { PlayerCycleStateId = state.Id, ItemKey = item.Key, Slot = item.Slot, Tier = item.Tier });
+        if (state.EquippedKey(item.Slot) is null) state.SetEquipped(item.Slot, item.Key);
+        receipt.GearKey = item.Key;
+        receipt.WalletDelta = -item.Price;
+        return Finish(state, receipt);
+    }
+
+    /// <summary>Equips an owned item, replacing whatever was in its slot.</summary>
+    public static ActionAttempt EquipGear(PlayerCycleState state, string itemKey)
+    {
+        var item = GearCatalogue.Find(itemKey);
+        if (item is null) return ActionAttempt.Reject("Unknown item.");
+        if (!state.OwnsGear(item.Key)) return ActionAttempt.Reject("You don't own this.");
+        if (state.EquippedKey(item.Slot) == item.Key) return ActionAttempt.Reject("Already equipped.");
+
+        var receipt = Begin(state, PlayerActionKind.EquipGear, EquipGearRequest(item.Key));
+        receipt.Succeeded = true;
+        state.SetEquipped(item.Slot, item.Key);
+        receipt.GearKey = item.Key;
+        return Finish(state, receipt);
+    }
+
+    public static ActionAttempt UnequipGear(PlayerCycleState state, string itemKey)
+    {
+        var item = GearCatalogue.Find(itemKey);
+        if (item is null) return ActionAttempt.Reject("Unknown item.");
+        if (state.EquippedKey(item.Slot) != item.Key) return ActionAttempt.Reject("That item is not equipped.");
+
+        var receipt = Begin(state, PlayerActionKind.UnequipGear, UnequipGearRequest(item.Key));
+        receipt.Succeeded = true;
+        state.SetEquipped(item.Slot, null);
+        receipt.GearKey = item.Key;
         return Finish(state, receipt);
     }
 

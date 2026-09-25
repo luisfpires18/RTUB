@@ -13,6 +13,7 @@ public class PlayerActionReceiptConfiguration : IEntityTypeConfiguration<PlayerA
         builder.Property(r => r.IdempotencyKey).IsRequired().HasMaxLength(64);
         builder.Property(r => r.Request).IsRequired().HasMaxLength(64);
         builder.Property(r => r.CrimeId).HasMaxLength(8);
+        builder.Property(r => r.GearKey).HasMaxLength(16);
         builder.Property(r => r.JailUntilUtc).HasConversion(GameCycleConfiguration.Utc);
 
         // One accepted action per key per player state; the backstop behind the in-transaction lookup.

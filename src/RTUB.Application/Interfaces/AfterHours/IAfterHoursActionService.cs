@@ -29,6 +29,10 @@ public interface IAfterHoursActionService
     Task<AfterHoursActionResult> WithdrawAsync(string userId, long amount, string idempotencyKey);
     Task<AfterHoursActionResult> SellToFenceAsync(string userId, CargoType cargo, int quantity, string idempotencyKey);
     Task<AfterHoursActionResult> DeliverContractAsync(string userId, int buyerContractId, string idempotencyKey);
+    Task<AfterHoursActionResult> TrainSkillAsync(string userId, PlayerSkill skill, string idempotencyKey);
+    Task<AfterHoursActionResult> PurchaseGearAsync(string userId, string itemKey, string idempotencyKey);
+    Task<AfterHoursActionResult> EquipGearAsync(string userId, string itemKey, string idempotencyKey);
+    Task<AfterHoursActionResult> UnequipGearAsync(string userId, string itemKey, string idempotencyKey);
 }
 
 /// <summary>Server-side dice. Never seeded or driven by a client.</summary>

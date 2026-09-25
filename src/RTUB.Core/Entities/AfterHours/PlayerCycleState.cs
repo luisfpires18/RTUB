@@ -55,6 +55,24 @@ public class PlayerCycleState : BaseEntity
     /// <summary>Cargo held this cycle, one row per type. Load it with the state before changing it.</summary>
     public List<PlayerCargo> Cargo { get; set; } = [];
 
+    /// <summary>Stored training points (0..3) as of <see cref="TrainingPointsDay"/>.</summary>
+    public int TrainingPoints { get; set; }
+
+    /// <summary>
+    /// Lisbon calendar day the points were last brought up to. A new state starts with that day's
+    /// single point, anchored to its creation day. Null only on states created before AH-005: their
+    /// first reconciliation grants one point, never a backlog.
+    /// </summary>
+    public DateOnly? TrainingPointsDay { get; set; }
+
+    /// <summary>Gear bought this cycle. Load it with the state before changing it.</summary>
+    public List<PlayerGear> Gear { get; set; } = [];
+
+    // Equipped gear, one column per slot: at most one equipped item per slot by construction.
+    public string? EquippedWeaponKey { get; set; }
+    public string? EquippedOutfitKey { get; set; }
+    public string? EquippedVehicleToolKey { get; set; }
+
     public static readonly TimeSpan EnergyRegenInterval = TimeSpan.FromMinutes(6);
     public static readonly TimeSpan HeatDecayInterval = TimeSpan.FromMinutes(10);
 
@@ -68,7 +86,48 @@ public class PlayerCycleState : BaseEntity
     {
         ReconcileEnergy(utcNow);
         ReconcileHeat(utcNow);
+        ReconcileTraining(utcNow);
     }
+
+    /// <summary>
+    /// +1 training point per Lisbon calendar day since <see cref="TrainingPointsDay"/>, stored up to
+    /// <see cref="TrainingRules.MaxStoredPoints"/>. Never more than one point per day.
+    /// </summary>
+    public void ReconcileTraining(DateTime utcNow)
+    {
+        var today = LisbonCalendar.DateOf(utcNow);
+        if (TrainingPointsDay is not { } day)
+        {
+            TrainingPoints = Math.Max(TrainingPoints, 1);
+            TrainingPointsDay = today;
+            return;
+        }
+
+        if (today <= day) return;
+        TrainingPoints = Math.Min(TrainingRules.MaxStoredPoints, TrainingPoints + (today.DayNumber - day.DayNumber));
+        TrainingPointsDay = today;
+    }
+
+    public string? EquippedKey(GearSlot slot) => slot switch
+    {
+        GearSlot.Weapon => EquippedWeaponKey,
+        GearSlot.Outfit => EquippedOutfitKey,
+        GearSlot.VehicleTool => EquippedVehicleToolKey,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Unknown slot")
+    };
+
+    public void SetEquipped(GearSlot slot, string? itemKey)
+    {
+        switch (slot)
+        {
+            case GearSlot.Weapon: EquippedWeaponKey = itemKey; break;
+            case GearSlot.Outfit: EquippedOutfitKey = itemKey; break;
+            case GearSlot.VehicleTool: EquippedVehicleToolKey = itemKey; break;
+            default: throw new ArgumentOutOfRangeException(nameof(slot), slot, "Unknown slot");
+        }
+    }
+
+    public bool OwnsGear(string itemKey) => Gear.Any(g => g.ItemKey == itemKey);
 
     /// <summary>
     /// +1 energy per whole <see cref="EnergyRegenInterval"/>. The timestamp advances only by the
@@ -182,6 +241,8 @@ public class PlayerCycleState : BaseEntity
             EnergyUpdatedAtUtc = utcNow,
             Heat = 0,
             HeatUpdatedAtUtc = utcNow,
+            TrainingPoints = 1,
+            TrainingPointsDay = LisbonCalendar.DateOf(utcNow),
             Toughness = StartingSkillRank,
             Stealth = StartingSkillRank,
             Smarts = StartingSkillRank,
