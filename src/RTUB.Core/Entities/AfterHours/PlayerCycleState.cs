@@ -1,3 +1,4 @@
+using RTUB.Core.Enums.AfterHours;
 using RTUB.Core.Helpers.AfterHours;
 
 namespace RTUB.Core.Entities.AfterHours;
@@ -50,6 +51,9 @@ public class PlayerCycleState : BaseEntity
 
     /// <summary>UTC date of the last cover job taken below the high-heat threshold.</summary>
     public DateOnly? CoverJobDailyUsedOn { get; set; }
+
+    /// <summary>Cargo held this cycle, one row per type. Load it with the state before changing it.</summary>
+    public List<PlayerCargo> Cargo { get; set; } = [];
 
     public static readonly TimeSpan EnergyRegenInterval = TimeSpan.FromMinutes(6);
     public static readonly TimeSpan HeatDecayInterval = TimeSpan.FromMinutes(10);
@@ -132,6 +136,24 @@ public class PlayerCycleState : BaseEntity
     {
         XP += xp;
         Level = AfterHoursLevels.LevelForXp(XP);
+    }
+
+    public int CargoQuantity(CargoType cargo) =>
+        Cargo.FirstOrDefault(c => c.CargoType == cargo)?.Quantity ?? 0;
+
+    /// <summary>Adds (or, with a negative amount, removes) cargo. Callers check the quantity first.</summary>
+    public void AddCargo(CargoType cargo, int quantity)
+    {
+        var row = Cargo.FirstOrDefault(c => c.CargoType == cargo);
+        if (row is null)
+        {
+            row = new PlayerCargo { PlayerCycleStateId = Id, CargoType = cargo };
+            Cargo.Add(row);
+        }
+
+        if (row.Quantity + quantity < 0)
+            throw new InvalidOperationException($"Cargo {cargo} would go negative.");
+        row.Quantity += quantity;
     }
 
     private static long WholeIntervals(DateTime from, DateTime to, TimeSpan interval) =>

@@ -49,6 +49,7 @@ public class PlayerCycleStateService(
         await using var context = await contextFactory.CreateDbContextAsync();
         return await context.AfterHoursPlayerCycleStates
             .AsNoTracking()
+            .Include(s => s.Cargo)
             .SingleOrDefaultAsync(s => s.GameCycleId == cycleId && s.UserId == userId);
     }
 }

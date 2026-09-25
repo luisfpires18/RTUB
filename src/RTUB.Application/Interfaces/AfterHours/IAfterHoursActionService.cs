@@ -27,6 +27,8 @@ public interface IAfterHoursActionService
     Task<AfterHoursActionResult> TakeCoverJobAsync(string userId, string idempotencyKey);
     Task<AfterHoursActionResult> DepositAsync(string userId, long amount, string idempotencyKey);
     Task<AfterHoursActionResult> WithdrawAsync(string userId, long amount, string idempotencyKey);
+    Task<AfterHoursActionResult> SellToFenceAsync(string userId, CargoType cargo, int quantity, string idempotencyKey);
+    Task<AfterHoursActionResult> DeliverContractAsync(string userId, int buyerContractId, string idempotencyKey);
 }
 
 /// <summary>Server-side dice. Never seeded or driven by a client.</summary>

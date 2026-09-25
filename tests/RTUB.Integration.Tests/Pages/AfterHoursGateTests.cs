@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -107,16 +108,18 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
         await ShouldBeRefusedAsync(await client.GetAsync(path));
     }
 
-    [Fact]
-    public async Task ChildRoute_Crimes_IsRefused()
+    [Theory]
+    [InlineData("crimes", 5, "Lift a phone outside the bar")]
+    [InlineData("cargo", 6, "Fence pays")]
+    public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
-            Factory, $"ah-off-crimes-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.5", "Member");
+            Factory, $"ah-off-{route}-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.{ip}", "Member");
 
-        var response = await client.GetAsync("/after-hours/crimes");
+        var response = await client.GetAsync($"/after-hours/{route}");
 
         response.StatusCode.Should().BeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Forbidden);
-        (await ReadBodyAsync(response)).Should().NotContain("Lift a phone outside the bar");
+        (await ReadBodyAsync(response)).Should().NotContain(pageText);
     }
 
     [Fact]
@@ -257,6 +260,14 @@ public class AfterHoursEnabledTests : AfterHoursGateTestsBase, IClassFixture<Aft
         crimesHtml.Should().Contain("Lift a phone outside the bar");
         crimesHtml.Should().Contain("82%", "C01 at Standard with starting skills and no heat");
         crimesHtml.Should().MatchRegex(@"Collect a debt after rehearsal</h2>\s*<span[^>]*><i[^>]*></i> Level 2", "C02 is shown locked");
+        crimesHtml.Should().Contain("+ 1 phone", "C01 shows its cargo reward");
+        after.Should().Contain("href=\"/after-hours/cargo\"");
+
+        var cargo = await client.GetAsync("/after-hours/cargo");
+        cargo.StatusCode.Should().Be(HttpStatusCode.OK);
+        var cargoHtml = await ReadBodyAsync(cargo);
+        cargoHtml.Should().Contain("Fence pays $80 each");
+        Regex.Matches(cargoHtml, "Pays <strong[^>]*>").Count.Should().Be(3, "three buyer contracts per rotation");
     }
 }
 

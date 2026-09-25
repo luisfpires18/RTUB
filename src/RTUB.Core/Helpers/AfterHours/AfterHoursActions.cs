@@ -33,6 +33,8 @@ public static class AfterHoursActions
     public const string CoverJobRequest = "cover";
     public static string DepositRequest(long amount) => $"deposit:{amount}";
     public static string WithdrawRequest(long amount) => $"withdraw:{amount}";
+    public static string FenceRequest(CargoType cargo, int quantity) => $"fence:{cargo}:{quantity}";
+    public static string ContractRequest(int buyerContractId) => $"contract:{buyerContractId}";
 
     /// <param name="rollPercent">Server dice: 1..100 inclusive. Success when roll ≤ chance.</param>
     public static ActionAttempt CommitCrime(
@@ -62,6 +64,12 @@ public static class AfterHoursActions
             state.WalletCash += odds.Cash;
             receipt.WalletDelta = odds.Cash;
             receipt.XpDelta = odds.Xp;
+            if (crime.Cargo is { } cargo)
+            {
+                state.AddCargo(cargo, crime.CargoQuantity);
+                receipt.CargoType = cargo;
+                receipt.CargoDelta = crime.CargoQuantity;
+            }
         }
         else
         {
@@ -163,6 +171,52 @@ public static class AfterHoursActions
         state.WalletCash += amount;
         receipt.BankDelta = -amount;
         receipt.WalletDelta = amount;
+        return Finish(state, receipt);
+    }
+
+    /// <summary>Sells cargo at the base fence: quantity × the server's price. Always available.</summary>
+    public static ActionAttempt SellToFence(PlayerCycleState state, CargoType cargo, int quantity)
+    {
+        if (!Enum.IsDefined(cargo)) return ActionAttempt.Reject("Unknown cargo.");
+        if (quantity <= 0) return ActionAttempt.Reject("Enter a quantity above zero.");
+        if (state.CargoQuantity(cargo) < quantity) return ActionAttempt.Reject("You don't have that much.");
+
+        var cash = quantity * CargoCatalogue.FencePrice(cargo);
+        var receipt = Begin(state, PlayerActionKind.FenceSale, FenceRequest(cargo, quantity));
+        receipt.Succeeded = true;
+        state.AddCargo(cargo, -quantity);
+        state.WalletCash += cash;
+        receipt.CargoType = cargo;
+        receipt.CargoDelta = -quantity;
+        receipt.WalletDelta = cash;
+        return Finish(state, receipt);
+    }
+
+    /// <summary>Why this player cannot deliver this contract now, or null.</summary>
+    public static string? ContractBlockReason(PlayerCycleState state, BuyerContract contract, bool alreadyCompleted, DateTime utcNow)
+    {
+        if (contract.GameCycleId != state.GameCycleId) return "That contract is not part of this cycle.";
+        if (!contract.IsOpenAt(utcNow)) return "That contract has expired.";
+        if (alreadyCompleted) return "You already delivered this contract.";
+        if (state.CargoQuantity(contract.CargoType) < contract.Quantity)
+            return $"You need {contract.Quantity} {CargoCatalogue.Name(contract.CargoType, contract.Quantity)}.";
+        return null;
+    }
+
+    /// <summary>Delivers a buyer contract: −cargo, +cash, +XP. The caller records the completion row.</summary>
+    public static ActionAttempt DeliverContract(PlayerCycleState state, BuyerContract contract, bool alreadyCompleted, DateTime utcNow)
+    {
+        if (ContractBlockReason(state, contract, alreadyCompleted, utcNow) is { } blocked) return ActionAttempt.Reject(blocked);
+
+        var receipt = Begin(state, PlayerActionKind.ContractDelivery, ContractRequest(contract.Id));
+        receipt.Succeeded = true;
+        state.AddCargo(contract.CargoType, -contract.Quantity);
+        state.WalletCash += contract.CashReward;
+        state.AddXp(contract.XpReward);
+        receipt.CargoType = contract.CargoType;
+        receipt.CargoDelta = -contract.Quantity;
+        receipt.WalletDelta = contract.CashReward;
+        receipt.XpDelta = contract.XpReward;
         return Finish(state, receipt);
     }
 

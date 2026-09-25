@@ -1,0 +1,165 @@
+@page "/after-hours/cargo"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IBuyerContractService BuyerContractService
+@inject IAfterHoursActionService Actions
+@inject TimeProvider Clock
+
+<PageTitle>Cargo - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-box-seam"></i> Cargo &amp; buyers</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        <div class="after-hours-status">
+            <span>Level @state.Level</span>
+            <span><i class="bi bi-wallet2"></i> $@state.WalletCash</span>
+        </div>
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        <h2 class="after-hours-section">Buyers</h2>
+        @if (contracts.Count == 0)
+        {
+            <p class="after-hours-muted">No buyers right now.</p>
+        }
+        <ul class="after-hours-list">
+            @foreach (var view in contracts)
+            {
+                var contract = view.Contract;
+                var block = AfterHoursActions.ContractBlockReason(state, contract, view.Completed, Now);
+                <li @key="contract.Id" class="after-hours-card @(view.Completed ? "after-hours-done" : null)">
+                    <div class="after-hours-card-head">
+                        <h3>@contract.BuyerName</h3>
+                        <span class="after-hours-muted">@AfterHoursText.TimeLeft(contract.ExpiresAtUtc, Now) left</span>
+                    </div>
+                    <p>
+                        Wants <strong>@AfterHoursText.CargoLabel(contract.CargoType, contract.Quantity)</strong>
+                        (you have @state.CargoQuantity(contract.CargoType)).
+                        Pays <strong>$@contract.CashReward</strong> + @contract.XpReward XP.
+                    </p>
+                    @if (view.Completed)
+                    {
+                        <span><i class="bi bi-check2"></i> Delivered</span>
+                    }
+                    else
+                    {
+                        <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => DeliverAsync(contract.Id)">Deliver</button>
+                        @if (block is not null)
+                        {
+                            <span class="after-hours-muted">@block</span>
+                        }
+                    }
+                </li>
+            }
+        </ul>
+        <p class="after-hours-muted">New buyers every 12 hours (00:00 and 12:00 UTC).</p>
+
+        <h2 class="after-hours-section">Cargo</h2>
+        <ul class="after-hours-list">
+            @foreach (var cargo in CargoCatalogue.All)
+            {
+                var owned = state.CargoQuantity(cargo);
+                <li @key="cargo" class="after-hours-card">
+                    <div class="after-hours-card-head">
+                        <h3>@AfterHoursText.CargoLabel(cargo, owned)</h3>
+                        <span class="after-hours-muted">Fence pays $@CargoCatalogue.FencePrice(cargo) each</span>
+                    </div>
+                    @if (owned > 0)
+                    {
+                        <div class="after-hours-sell">
+                            <label class="visually-hidden" for="ah-sell-@cargo">Quantity</label>
+                            <input id="ah-sell-@cargo" class="form-control" type="number" min="1" max="@owned" step="1" inputmode="numeric"
+                                   value="@SellQuantity(cargo, owned)" @onchange="e => SetSellQuantity(cargo, e.Value)" />
+                            <button class="btn btn-outline-light" disabled="@busy" @onclick="() => SellAsync(cargo, SellQuantity(cargo, owned))">Sell</button>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private IReadOnlyList<BuyerContractView> contracts = [];
+    private readonly Dictionary<CargoType, int> sellQuantities = new();
+    private string? message;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+            contracts = await BuyerContractService.GetCurrentContractsAsync(userId);
+        }
+
+        loaded = true;
+    }
+
+    private int SellQuantity(CargoType cargo, int owned) =>
+        sellQuantities.TryGetValue(cargo, out var quantity) ? quantity : owned;
+
+    private void SetSellQuantity(CargoType cargo, object? value) =>
+        sellQuantities[cargo] = int.TryParse(value?.ToString(), out var quantity) ? quantity : 0;
+
+    private Task SellAsync(CargoType cargo, int quantity) =>
+        RunAsync(key => Actions.SellToFenceAsync(userId!, cargo, quantity, key));
+
+    private Task DeliverAsync(int contractId) =>
+        RunAsync(key => Actions.DeliverContractAsync(userId!, contractId, key));
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            state = result.State ?? state;
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+            sellQuantities.Clear();
+            contracts = await BuyerContractService.GetCurrentContractsAsync(userId);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}
