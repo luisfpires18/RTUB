@@ -5,7 +5,7 @@ namespace RTUB.Application.Interfaces.AfterHours;
 
 /// <summary>
 /// After Hours cycle records. No automatic scheduling or rollover: every transition is an
-/// explicit call.
+/// explicit call. Finishing is the rollover service's job (it archives).
 /// </summary>
 public interface IGameCycleService
 {
@@ -24,6 +24,6 @@ public interface IGameCycleService
     /// </summary>
     Task ActivateAsync(int cycleId);
 
-    /// <summary>Active -> Finished. Throws InvalidOperationException if the cycle is not Active.</summary>
-    Task FinishAsync(int cycleId);
+    // No FinishAsync (removed in AH-010): a cycle is finished only by IAfterHoursRolloverService, which archives
+    // it in the same transaction, so no path can leave a Finished cycle without a yearbook.
 }

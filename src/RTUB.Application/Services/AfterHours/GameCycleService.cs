@@ -52,18 +52,6 @@ public class GameCycleService(IDbContextFactory<ApplicationDbContext> contextFac
         }
     }
 
-    public async Task FinishAsync(int cycleId)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync();
-        var cycle = await FindAsync(context, cycleId);
-
-        if (cycle.Status != GameCycleStatus.Active)
-            throw new InvalidOperationException($"Cycle {cycleId} is {cycle.Status}; only an Active cycle can be finished.");
-
-        cycle.Status = GameCycleStatus.Finished;
-        await context.SaveChangesAsync();
-    }
-
     private static async Task<GameCycle> FindAsync(ApplicationDbContext context, int cycleId) =>
         await context.AfterHoursGameCycles.FindAsync(cycleId)
             ?? throw new EntityNotFoundException(nameof(GameCycle), cycleId);

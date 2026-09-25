@@ -120,10 +120,11 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [InlineData("objectives", 12, "Daily objectives pay XP")]
     [InlineData("leaderboards", 13, "Annual score")]
     [InlineData("yearbook", 16, "archived")]
+    [InlineData("admin", 17, "Pilot readiness")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
-            Factory, $"ah-off-{route.Replace('/', '-')}-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.{ip}", "Member");
+            Factory, $"ah-off-route-{route.Replace('/', '-')}-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.{ip}", "Member");
 
         var response = await client.GetAsync($"/after-hours/{route}");
 
@@ -550,4 +551,44 @@ public class AfterHoursYearbookPagesTests : AfterHoursGateTestsBase, IClassFixtu
         UserId = userId, DisplayName = name, Level = 7, XP = 900, Toughness = 4, Stealth = 4, Smarts = 4, Charisma = 4,
         AnnualScore = score, Rank = rank, ScoringWeeks = 4, IsChampion = champion
     };
+}
+
+/// <summary>
+/// AH-010: the admin page and its navigation entry through the real host. Owner only, on top of the After Hours
+/// gate; the Admin role is not enough (the narrowest role already used for dangerous operations).
+/// </summary>
+public class AfterHoursAdminPagesTests : AfterHoursGateTestsBase, IClassFixture<AfterHoursEnabledFactory>
+{
+    public AfterHoursAdminPagesTests(AfterHoursEnabledFactory factory) : base(factory)
+    {
+    }
+
+    [Theory]
+    [InlineData("Member", 1)]
+    [InlineData("Admin", 2)]
+    public async Task AdminPage_IsRefused_AndHidden_ForNonOwners(string role, int ip)
+    {
+        var (client, _) = await CookieTestSession.SignInAsync(Factory, $"ah-admin-{role.ToLowerInvariant()}", $"10.50.8.{ip}", role);
+
+        var response = await client.GetAsync("/after-hours/admin");
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Forbidden);
+        (await ReadBodyAsync(response)).Should().NotContain("Pilot readiness");
+
+        var home = await ReadBodyAsync(await client.GetAsync("/after-hours"));
+        home.Should().Contain(LandingMarker).And.NotContain("href=\"/after-hours/admin\"");
+    }
+
+    [Fact]
+    public async Task AdminPage_RendersForTheOwner_WithTheNavigationEntry()
+    {
+        var (client, _) = await CookieTestSession.SignInAsync(Factory, "ah-admin-owner", "10.50.8.3", "Owner");
+
+        var response = await client.GetAsync("/after-hours/admin");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var html = await ReadBodyAsync(response);
+        html.Should().Contain("After Hours admin").And.Contain("Pilot readiness").And.Contain("Economy and gameplay tuning")
+            .And.Contain("Suspicious PvP").And.Contain("Cosmetic awards").And.Contain("BankDepositFeePercent").And.Contain("Start a Pilot");
+
+        (await ReadBodyAsync(await client.GetAsync("/after-hours"))).Should().Contain("href=\"/after-hours/admin\"");
+    }
 }

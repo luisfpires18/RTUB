@@ -24,31 +24,39 @@ public partial class AfterHoursActionService(
 {
     public const int MaxIdempotencyKeyLength = 64;
 
-    private delegate Task<ActionAttempt> Action(ApplicationDbContext context, PlayerCycleState state, DateTime utcNow);
+    private delegate Task<ActionAttempt> Action(ApplicationDbContext context, PlayerCycleState state, DateTime utcNow, ActionEnvironment env);
+
+    /// <summary>The playable cycle and the tuning snapshot, both read once per action inside its transaction.</summary>
+    private sealed record ActionEnvironment(GameCycle Cycle, AfterHoursTuning Tuning)
+    {
+        /// <summary>Catch-up XP multiplier for this player, from their level before the action (AH-010).</summary>
+        public decimal CatchUp(PlayerCycleState state, DateTime utcNow) =>
+            CatchUpRules.XpMultiplier(Cycle.StartUtc, state.Level, utcNow, Tuning);
+    }
 
     public Task<AfterHoursActionResult> CommitCrimeAsync(string userId, string crimeId, CrimeApproach approach, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.CrimeRequest(crimeId, approach),
-            (_, state, now) => Task.FromResult(AfterHoursActions.CommitCrime(state, crimeId, approach, now, dice.RollPercent)));
+            (_, state, now, env) => Task.FromResult(AfterHoursActions.CommitCrime(state, crimeId, approach, now, dice.RollPercent, env.Tuning, env.CatchUp(state, now))));
 
     public Task<AfterHoursActionResult> TakeCoverJobAsync(string userId, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.CoverJobRequest,
-            (_, state, now) => Task.FromResult(AfterHoursActions.TakeCoverJob(state, now)));
+            (_, state, now, env) => Task.FromResult(AfterHoursActions.TakeCoverJob(state, now, env.Tuning, env.CatchUp(state, now))));
 
     public Task<AfterHoursActionResult> DepositAsync(string userId, long amount, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.DepositRequest(amount),
-            (_, state, _) => Task.FromResult(AfterHoursActions.Deposit(state, amount)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.Deposit(state, amount, env.Tuning)));
 
     public Task<AfterHoursActionResult> WithdrawAsync(string userId, long amount, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.WithdrawRequest(amount),
-            (_, state, _) => Task.FromResult(AfterHoursActions.Withdraw(state, amount)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.Withdraw(state, amount)));
 
     public Task<AfterHoursActionResult> SellToFenceAsync(string userId, CargoType cargo, int quantity, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.FenceRequest(cargo, quantity),
-            (_, state, _) => Task.FromResult(AfterHoursActions.SellToFence(state, cargo, quantity)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.SellToFence(state, cargo, quantity, env.Tuning)));
 
     public Task<AfterHoursActionResult> DeliverContractAsync(string userId, int buyerContractId, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.ContractRequest(buyerContractId),
-            async (context, state, now) =>
+            async (context, state, now, env) =>
             {
                 var contract = await context.AfterHoursBuyerContracts.AsNoTracking()
                     .SingleOrDefaultAsync(c => c.Id == buyerContractId);
@@ -57,7 +65,7 @@ public partial class AfterHoursActionService(
 
                 var alreadyCompleted = await context.AfterHoursBuyerContractCompletions
                     .AnyAsync(c => c.BuyerContractId == buyerContractId && c.PlayerCycleStateId == state.Id);
-                var attempt = AfterHoursActions.DeliverContract(state, contract, alreadyCompleted, now);
+                var attempt = AfterHoursActions.DeliverContract(state, contract, alreadyCompleted, now, env.Tuning);
                 if (attempt.Receipt is not null)
                 {
                     // Same transaction as the cargo, cash and receipt; unique per contract and player.
@@ -73,23 +81,23 @@ public partial class AfterHoursActionService(
 
     public Task<AfterHoursActionResult> TrainSkillAsync(string userId, PlayerSkill skill, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.TrainRequest(skill),
-            (_, state, now) => Task.FromResult(AfterHoursActions.TrainSkill(state, skill, now)));
+            (_, state, now, env) => Task.FromResult(AfterHoursActions.TrainSkill(state, skill, now, env.Tuning)));
 
     public Task<AfterHoursActionResult> PurchaseGearAsync(string userId, string itemKey, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.PurchaseGearRequest(itemKey),
-            (_, state, _) => Task.FromResult(AfterHoursActions.PurchaseGear(state, itemKey)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.PurchaseGear(state, itemKey, env.Tuning)));
 
     public Task<AfterHoursActionResult> EquipGearAsync(string userId, string itemKey, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.EquipGearRequest(itemKey),
-            (_, state, _) => Task.FromResult(AfterHoursActions.EquipGear(state, itemKey)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.EquipGear(state, itemKey)));
 
     public Task<AfterHoursActionResult> UnequipGearAsync(string userId, string itemKey, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.UnequipGearRequest(itemKey),
-            (_, state, _) => Task.FromResult(AfterHoursActions.UnequipGear(state, itemKey)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.UnequipGear(state, itemKey)));
 
     public Task<AfterHoursActionResult> SaveDefenceAsync(string userId, PvpTactic tactic, string? weapon, string? outfit, string? vehicleTool, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.DefenceRequest(tactic, weapon, outfit, vehicleTool),
-            (_, state, _) => Task.FromResult(AfterHoursActions.SaveDefence(state, tactic, weapon, outfit, vehicleTool)));
+            (_, state, _, env) => Task.FromResult(AfterHoursActions.SaveDefence(state, tactic, weapon, outfit, vehicleTool)));
 
     /// <summary>
     /// One PvP attack. The attacker is the authenticated user; the only identity from the client is
@@ -100,7 +108,7 @@ public partial class AfterHoursActionService(
         string userId, int defenderStateId, PvpTactic tactic, RiskStance stance,
         string? weapon, string? outfit, string? vehicleTool, string idempotencyKey) =>
         RunAsync(userId, idempotencyKey, AfterHoursActions.AttackRequest(defenderStateId, tactic, stance, weapon, outfit, vehicleTool),
-            async (context, state, now) =>
+            async (context, state, now, env) =>
             {
                 if (new[] { weapon, outfit, vehicleTool }.Any(k => k?.Length > 16))
                     return ActionAttempt.Reject("Unknown item.");
@@ -118,7 +126,7 @@ public partial class AfterHoursActionService(
                     .Select(b => (DateTime?)b.AcceptedAtUtc)
                     .FirstOrDefaultAsync();
 
-                return AfterHoursActions.Attack(state, defender, tactic, stance, weapon, outfit, vehicleTool, lastAttack, now, dice.RollPercent);
+                return AfterHoursActions.Attack(state, defender, tactic, stance, weapon, outfit, vehicleTool, lastAttack, now, dice.RollPercent, env.Tuning);
             });
 
     private async Task<AfterHoursActionResult> RunAsync(string userId, string idempotencyKey, string request, Action action)
@@ -130,6 +138,7 @@ public partial class AfterHoursActionService(
         return await AfterHoursWriteTransaction.RunAsync(contextFactory, async (context, transaction) =>
         {
             var now = clock.GetUtcNow().UtcDateTime;
+            var tuning = await AfterHoursTuningService.LoadAsync(context);
 
             var prior = await context.AfterHoursPlayerActionReceipts
                 .AsNoTracking()
@@ -141,7 +150,7 @@ public partial class AfterHoursActionService(
                     .Include(s => s.Cargo)
                     .Include(s => s.Gear)
                     .SingleAsync(s => s.Id == prior.PlayerCycleStateId);
-                priorState.Reconcile(now);
+                priorState.Reconcile(now, tuning);
                 return prior.Request == request
                     ? new AfterHoursActionResult(prior, priorState, null, Replayed: true)
                     : new AfterHoursActionResult(null, priorState, "That request key was already used for a different action.");
@@ -164,7 +173,7 @@ public partial class AfterHoursActionService(
                 await context.SaveChangesAsync();
             }
 
-            var result = await action(context, state, now);
+            var result = await action(context, state, now, new ActionEnvironment(cycle, tuning));
             if (result.Receipt is null)
             {
                 // Refused: roll back, including any reconciliation, and report the reconciled view.
@@ -176,7 +185,7 @@ public partial class AfterHoursActionService(
             result.Receipt.IdempotencyKey = idempotencyKey;
             context.AfterHoursPlayerActionReceipts.Add(result.Receipt);
             // Objective progress, completions and rewards for this accepted action: same transaction.
-            await ObjectiveTracker.RecordAsync(context, cycle, state, result.Receipt, now);
+            await ObjectiveTracker.RecordAsync(context, cycle, state, result.Receipt, now, tuning);
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
             return new AfterHoursActionResult(result.Receipt, state, null);

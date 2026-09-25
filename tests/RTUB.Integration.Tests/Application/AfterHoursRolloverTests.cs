@@ -334,7 +334,8 @@ public class AfterHoursRolloverTests : IClassFixture<AfterHoursRolloverFactory>
         await FluentActions.Invoking(() => Rollover().RolloverLiveAsync(scheduled.Id))
             .Should().ThrowAsync<InvalidOperationException>().WithMessage("*is Scheduled*");
 
-        await Cycles().FinishAsync(live.Id);
+        await using (var db = await DbAsync())
+            await db.AfterHoursGameCycles.Where(c => c.Id == live.Id).ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, GameCycleStatus.Finished)); // a legacy unarchived finish
         await FluentActions.Invoking(() => Rollover().RolloverLiveAsync(live.Id))
             .Should().ThrowAsync<InvalidOperationException>().WithMessage("*is Finished*");
 
@@ -521,12 +522,11 @@ public class AfterHoursRolloverTests : IClassFixture<AfterHoursRolloverFactory>
         return (await CycleAsync(cycle.Id), fiscalYear);
     }
 
-    /// <summary>Test isolation only: the raw primitive, not a rollover.</summary>
+    /// <summary>Test isolation only: a raw status change, not a rollover.</summary>
     private async Task FinishActiveAsync()
     {
         await using var db = await DbAsync();
-        var active = await db.AfterHoursGameCycles.SingleOrDefaultAsync(c => c.Status == GameCycleStatus.Active);
-        if (active is not null) await Cycles().FinishAsync(active.Id);
+        await db.AfterHoursGameCycles.Where(c => c.Status == GameCycleStatus.Active).ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, GameCycleStatus.Finished));
     }
 
     private async Task<FiscalYear> FiscalYearAsync(int start, int end)

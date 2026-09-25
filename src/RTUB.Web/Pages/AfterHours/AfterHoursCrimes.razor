@@ -9,6 +9,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IAfterHoursActionService Actions
+@inject IAfterHoursTuningService TuningService
+@inject IGameCycleService GameCycleService
 @inject TimeProvider Clock
 
 <PageTitle>Crimes - After Hours - RTUB</PageTitle>
@@ -42,9 +44,14 @@
         {
             <p class="after-hours-alert" role="status"><i class="bi bi-lock"></i> In jail for @AfterHoursText.JailRemaining(state, Now). Crimes and cover jobs wait until you are out.</p>
         }
-        else if (state.Heat >= CrimeRules.HeatBlockThreshold)
+        else if (state.Heat >= tuning.CrimeHeatBlockThreshold)
         {
-            <p class="after-hours-alert" role="status"><i class="bi bi-fire"></i> Too much heat. Crimes are off until it drops below @CrimeRules.HeatBlockThreshold.</p>
+            <p class="after-hours-alert" role="status"><i class="bi bi-fire"></i> Too much heat. Crimes are off until it drops below @tuning.CrimeHeatBlockThreshold.</p>
+        }
+
+        @if (XpMultiplier > 1m)
+        {
+            <p class="after-hours-result" role="status"><i class="bi bi-rocket-takeoff"></i> Catch-up: crimes and cover jobs pay ×@XpMultiplier.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) XP until you reach level @tuning.CatchUpLevelCeiling.</p>
         }
 
         @if (message is not null)
@@ -55,10 +62,10 @@
         <section class="after-hours-card">
             <div class="after-hours-card-head">
                 <h2>Cover job</h2>
-                <span class="after-hours-muted">−@AfterHoursActions.CoverJobEnergyCost energy</span>
+                <span class="after-hours-muted">−@tuning.CoverJobEnergyCost energy</span>
             </div>
-            <p class="after-hours-muted">Honest work to cool off: −@AfterHoursActions.CoverJobHeatReduction heat, +$@AfterHoursActions.CoverJobCash, +@AfterHoursActions.CoverJobXp XP. Once a day, or as often as you need while heat is @AfterHoursActions.CoverJobHighHeat or more.</p>
-            @{ var coverBlock = AfterHoursActions.CoverJobBlockReason(state, Now); }
+            <p class="after-hours-muted">Honest work to cool off: −@tuning.CoverJobHeatReduction heat, +$@tuning.CoverJobCashReward, +@CatchUpRules.Apply(tuning.CoverJobXpReward, XpMultiplier) XP. Once a day, or as often as you need while heat is @tuning.CoverJobHighHeatThreshold or more.</p>
+            @{ var coverBlock = AfterHoursActions.CoverJobBlockReason(state, Now, tuning); }
             <button class="btn btn-outline-light" disabled="@(busy || coverBlock is not null)" @onclick="CoverJobAsync">Work a shift</button>
             @if (coverBlock is not null)
             {
@@ -90,14 +97,14 @@
                 }
 
                 var odds = CrimeRules.Odds(crime, approach, state);
-                var block = AfterHoursActions.CrimeBlockReason(state, crime, Now);
+                var block = AfterHoursActions.CrimeBlockReason(state, crime, Now, tuning);
                 <li @key="crime.Id" class="after-hours-card">
                     <div class="after-hours-card-head">
                         <h2>@crime.Name</h2>
                         <span class="after-hours-chance">@odds.Chance%</span>
                     </div>
                     <p class="after-hours-muted">
-                        −@crime.EnergyCost energy · +$@odds.Cash@(crime.Cargo is { } cargo ? $" + {AfterHoursText.CargoLabel(cargo, crime.CargoQuantity)}" : "") · +@odds.Xp XP · +@odds.Heat heat · @crime.Skill
+                        −@crime.EnergyCost energy · +$@tuning.CrimeCash(odds.Cash)@(crime.Cargo is { } cargo ? $" + {AfterHoursText.CargoLabel(cargo, crime.CargoQuantity)}" : "") · +@CatchUpRules.Apply(odds.Xp, XpMultiplier) XP · +@odds.Heat heat · @crime.Skill
                     </p>
                     <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => CommitAsync(crime.Id)">Do it</button>
                     @if (block is not null)
@@ -115,6 +122,8 @@
     private bool busy;
     private string? userId;
     private PlayerCycleState? state;
+    private GameCycle? cycle;
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
     private CrimeApproach approach = CrimeApproach.Standard;
     private string? message;
 
@@ -124,6 +133,9 @@
 
     private DateTime Now => Clock.GetUtcNow().UtcDateTime;
 
+    /// <summary>Preview only; the server decides at the moment of the action.</summary>
+    private decimal XpMultiplier => cycle is null || state is null ? 1m : CatchUpRules.XpMultiplier(cycle.StartUtc, state.Level, Now, tuning);
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -131,6 +143,8 @@
         if (userId is not null)
         {
             state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+            cycle = await GameCycleService.GetActiveCycleAsync();
+            tuning = await TuningService.GetAsync();
         }
 
         loaded = true;

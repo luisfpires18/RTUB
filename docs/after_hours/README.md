@@ -7,12 +7,14 @@ extension of MyTuno, and shares none of its gameplay systems.
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
 crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
 with equipment (AH-005), PvP (AH-006), families (AH-007), objectives with championships (AH-008), and the
-yearbook with cycle rollover (AH-009). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+yearbook with cycle rollover (AH-009), and admin, tuning and pilot readiness (AH-010). `/after-hours` is the
+dashboard (stats, bank, family, awards); `/after-hours/crimes` is the crime
 list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
 `/after-hours/training` and `/after-hours/equipment` are training and gear; `/after-hours/pvp` is PvP
 (status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle;
 `/after-hours/family` is the family page; `/after-hours/objectives` and `/after-hours/leaderboards` are
-objectives and championship standings; `/after-hours/yearbook` is the archive of finished cycles.
+objectives and championship standings; `/after-hours/yearbook` is the archive of finished cycles;
+`/after-hours/admin` is the Owner-only operations page.
 
 ## Numbering
 
@@ -108,6 +110,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursFamilyTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursFamilyRulesTests.cs`, `AfterHoursFamilyPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-007 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursObjectiveTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursObjectiveRulesTests.cs`, `AfterHoursObjectivePagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-008 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursRolloverTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRolloverRulesTests.cs`, `AfterHoursYearbookPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-009 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursAdminTests.cs`, `AfterHoursAdminCycleTests.cs`, `AfterHoursPilotJourneyTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursTuningRulesTests.cs`, `AfterHoursAdminPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-010 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -131,8 +134,8 @@ later without restructuring the page.
   the latter too (`CK_AfterHoursGameCycles_EndAfterStart`).
 - **Status**: `Scheduled` → `Active` → `Finished` (`GameCycleStatus`). Transitions are explicit calls on
   `IGameCycleService`, or a rollover (`IAfterHoursRolloverService`, AH-009) that archives a cycle as it finishes
-  it; there is no automatic start, rollover or background job. `IGameCycleService.FinishAsync` is the raw
-  primitive and archives nothing: finish real cycles through the rollover service.
+  it; there is no automatic start, rollover or background job. There is no other way to finish a cycle:
+  AH-010 removed the unarchived `IGameCycleService.FinishAsync` (only tests used it).
 - **At most one Active cycle**: filtered unique index `IX_AfterHoursGameCycles_SingleActive`.
   The *playable* cycle is the Active one while `StartUtc <= now < EndUtc`; an Active cycle outside its
   boundaries is not playable. `IGameCycleService.GetActiveCycleAsync` returns null when nothing is playable.
@@ -377,7 +380,7 @@ manual gives ranges), tunable in `GearCatalogue`. The catalogue is server-owned 
   Ambush > Negotiation > Setup > Counterattack > Ambush; other pairs are neutral.
 - Every attack is **atomic and idempotent** (below).
 
-### AH-006 implementation defaults (not in the manual; tune in `PvpRules`)
+### AH-006 implementation defaults (not in the manual; the timers and energy are tunable since AH-010)
 
 - Attack costs **20 energy**. After every accepted attack the attacker waits **5 minutes** (cooldown).
 - A beaten defender recovers for **15 minutes**; a beaten attacker for **10 / 15 / 30 minutes**
@@ -640,8 +643,8 @@ that fails before commit leaves the source Active and nothing else written.
   year and UTC boundaries are explicit (the first Live cycle may cover only part of an academic year): UTC,
   end after start, an existing fiscal year, and an end in the future.
 - Refused: the wrong kind (a Live cycle through the Pilot path or the reverse), a Scheduled source, a source
-  Finished without an archive (for example by `FinishAsync`), and a new cycle that would already be over.
-  There is no "force" override; AH-010 decides whether admins need one.
+  Finished without an archive (a legacy state; the unarchived finish no longer exists), and a new cycle that
+  would already be over. There is no override that skips these checks (see "Force rollover", AH-010).
 - **Idempotent.** A cycle has at most one archive (unique `GameCycleId`) and a target is started by at most
   one archive (unique `NextGameCycleId`). Calls serialize on the write lock; a later call finds the archive
   and returns the same `RolloverResult` with `Replayed = true`, changing nothing. A Pilot transition repeated
@@ -687,6 +690,196 @@ or Live.
 - The yearbook is **read-only** for players (behind the After Hours gate, like every page in the folder) and
   lists archives newest first; the running cycle stays on `/after-hours/leaderboards`. Dates show as Lisbon
   days.
-- Rollover has **no player-facing page or endpoint**. AH-010 binds it to owner/admin tooling and decides any
-  scheduling; a hosted job would have to check `AfterHours:Enabled` itself.
+- Rollover has **no player-facing page or endpoint**. AH-010 exposes it on the Owner-only admin page; there is
+  still no scheduler (a hosted job would have to check `AfterHours:Enabled` itself).
 - The migration only adds the four yearbook tables. Existing (DEV) cycles are not archived retroactively.
+
+## Admin, tuning and pilot readiness (AH-010)
+
+### Authorization
+
+`/after-hours/admin` needs **both** the After Hours gate (folder policy: signed in and `AfterHours:Enabled`)
+**and** the RTUB **`Owner`** role (`[Authorize(Roles = "Owner")]` on the page). `Owner` is the narrowest role the
+app already uses for dangerous operational pages (audit log, database viewer, user roles); `Admin` is not
+enough. There is no separate After Hours admin user system. Every `IAfterHoursAdminService` method checks the
+role again in the database (`AspNetUserRoles`) and throws `UnauthorizedAccessException` otherwise, so hidden
+buttons are never the only protection. The dashboard's Admin link (`Components/AdminLink.razor`) renders only
+for `Owner`.
+
+### Database-backed tuning
+
+`AfterHoursTuningSetting` (`AfterHoursTuningSettings`): `Key` (unique), `Value` (invariant text),
+`UpdatedAtUtc`, `UpdatedByUserId`. No row means the default, so a fresh database plays exactly as before;
+nothing is seeded. Typed access only: `AfterHoursTuning` (Core) is an immutable snapshot and
+`IAfterHoursTuningService` reads it; gameplay never reads raw strings.
+
+- **Validation:** each key has explicit bounds (`AfterHoursTuning.Settings`); writes are refused before
+  anything is stored. A row that fails validation on read (hand-edited, unknown key) is **ignored** — play uses
+  the default — and is listed as a warning and a failed readiness check.
+- **Snapshot per action:** the action service reads the tuning once, inside the action's write transaction,
+  and passes the same snapshot to the rules, the reconciliation and the objective tracker. Reads (pages, PvP
+  targets, the state view) load it once per request.
+- **Concurrency:** writes run in a write transaction on the unique key; concurrent edits update one row. Each
+  action sees one whole snapshot (old or new), never a mix within the action.
+- **History:** the rows are audited through the normal audit log (not excluded), plus `UpdatedAtUtc` /
+  `UpdatedByUserId` on the row. Reset deletes the override through the audited path.
+- **Future only:** stored receipts, battles, objective rewards and the yearbook are never recalculated.
+- **Cadence changes:** energy and heat reconcile from the stored timestamp with the cadence in force *at
+  reconciliation time*; a partial interval carries over; no history is migrated. So after changing
+  `EnergyRegenMinutesPerPoint`, the time since a player's last update is counted at the new rate. Lowering
+  `TrainingPointStorageCap` stops growth but never removes stored points.
+
+| Key | Default | Range | Group |
+| --- | ---: | --- | --- |
+| BankDepositFeePercent | 2 | 0–100 | Economy |
+| FamilyCreationCost | 1500 | 0–1,000,000 | Economy |
+| CrimeCashMultiplier | 1.0 | 0.25–4.0 | Economy |
+| BaseFenceCashMultiplier | 1.0 | 0.25–4.0 | Economy |
+| BuyerContractCashMultiplier | 1.0 | 0.25–4.0 | Economy |
+| TrainingCashCostMultiplier | 1.0 | 0.25–4.0 | Economy |
+| EquipmentPriceMultiplier | 1.0 | 0.25–4.0 | Economy |
+| EnergyRegenMinutesPerPoint | 6 | 1–1440 | Time |
+| HeatDecayMinutesPerPoint | 10 | 1–1440 | Time |
+| CrimeHeatBlockThreshold | 80 | 10–1000 | Time |
+| CoverJobEnergyCost | 10 | 0–240 | Time |
+| CoverJobHeatReduction | 15 | 0–1000 | Time |
+| CoverJobHighHeatThreshold | 50 | 0–1000 | Time |
+| CoverJobCashReward | 20 | 0–100,000 | Time |
+| CoverJobXpReward | 12 | 0–100,000 | Time |
+| PvpEnabled | true | true/false | PvP |
+| PvpAttackEnergyCost | 20 | 0–240 | PvP |
+| PvpGlobalCooldownMinutes | 5 | 1–1440 | PvP |
+| PvpDefenderProtectionHours | 6 | 1–168 | PvP |
+| PvpSameTargetCooldownHours | 24 | 1–168 | PvP |
+| PvpNewPlayerProtectionHours | 72 | 1–720 | PvP |
+| PvpRecoveryCautiousMinutes / Standard / Reckless | 10 / 15 / 30 | 1–1440 | PvP |
+| TrainingEnergyCost | 20 | 0–240 | Training |
+| TrainingPointStorageCap | 3 | 1–30 | Training |
+| CatchUpStartCycleDay | 42 | 0–366 | Catch-up |
+| CatchUpLevelCeiling | 12 | 1–20 | Catch-up |
+| CatchUpXpMultiplier | 1.5 | 1–5 | Catch-up |
+
+Defaults are the canonical Game Manual v2 values and the earlier units' defaults (the constants on
+`AfterHoursActions`, `PvpRules`, `TrainingRules`, `FamilyRules`, `CrimeRules` remain as those defaults).
+The ranges are AH-010 choices.
+
+**Economy multipliers.** Cash inflation is the manual's main economy risk, so the five largest cash sources
+and sinks have a global multiplier over their **static catalogue base values** (the catalogues themselves stay
+in code and are never rewritten):
+
+- `CrimeCashMultiplier`: the wallet cash of a successful crime = approach-adjusted catalogue cash × multiplier.
+  XP, cargo, heat and success chance are unchanged.
+- `BaseFenceCashMultiplier`: a sale pays (catalogue unit price × quantity) × multiplier, rounded half up once
+  on the total (3 phones at 15 × 1.1 = 49.5 → 50, not 17 × 3 = 51). The Cargo page shows the catalogue unit
+  price with the multiplier and the exact total on the Sell button. Quantities are unchanged, and PvP loot still
+  values cargo at the catalogue price.
+- `BuyerContractCashMultiplier`: the cash paid on delivery = the contract's stored reward × multiplier. The
+  contract row (requirement, XP, stored reward) is not rewritten.
+- `TrainingCashCostMultiplier`: the wallet fee = the rank formula `120 + 40·(rank − 4)` × multiplier.
+- `EquipmentPriceMultiplier`: the purchase price = catalogue price × multiplier.
+
+All round half up like every crime multiplier, and all apply to future accepted actions only: the receipt
+stores the amount actually paid or charged, so replays stay exact after a change, and the weekly crime-cash
+objective counts the cash actually paid (the same receipt). With every multiplier at 1.0 the values are exactly
+the catalogue's. Player pages show the effective amounts.
+
+**Static code, not settings** (structural or content, deliberately not tunable in AH-010): level cap 20 and
+the XP curve, family size 4 and level 5 to create, the catalogue base values and structure (crimes, cargo,
+contract templates and rotation, gear), jail formulas, skill caps, PvP loot formulas, round scoring, tactic
+matchups, beaten-defender recovery (15 min), objective definitions, weekly caps and best-12 scoring. Individual
+items are changed in code; the multipliers above scale whole economies live.
+
+### Catch-up XP
+
+Game Manual v2 section 20: crimes and cover jobs pay ×1.5 XP to players below level 12 after cycle day 42.
+
+- **AH-010 boundary:** active from exactly `StartUtc + 42 days` (`now >= StartUtc + CatchUpStartCycleDay days`),
+  inactive one tick before. Eligibility is the level **before** the action, so the action that reaches level
+  12 still gets it; the next does not.
+- Applied to the crime's XP (success XP, or the 25% failure XP) and the cover job's XP, rounded half up like
+  every crime multiplier, before it is added. The receipt stores the XP actually granted, so a replay returns it.
+- Never multiplies cash, cargo, heat, contract XP, daily objective XP, PvP, weekly points or skills; weekly
+  objectives count cash, energy and crimes, which catch-up does not change. The crimes page shows a banner
+  and the multiplied XP while it applies.
+
+### PvP pause
+
+`PvpEnabled = false` refuses new attacks in the rules **before** reconciliation, energy, dice, cooldowns,
+protection, battle or receipt, with "PvP is temporarily paused. Attacks are switched off for now." Reports,
+recent battles, target lists, saved defences and everything else keep working.
+
+### Cycle controls
+
+- **Start a Pilot:** fiscal year, start and end in Lisbon time (converted to UTC). UI default: now → +10 days
+  (an AH-010 default inside the manual's 7–14). A length outside 7–14 days needs an explicit tick. Creation
+  and activation are one write transaction and refused while any cycle is Active. No player states are created.
+- **End Pilot → start Live:** the admin gives the Live fiscal year and Lisbon start/end, reads a summary
+  (Pilot finishes now; non-official archive; no trophies; power resets; families persist; treasuries start at
+  0), confirms, and the page calls `IAfterHoursRolloverService.TransitionPilotToLiveAsync`. Repeating it
+  returns the stored result.
+- **Annual Live rollover:** the page shows the source, the resolved next fiscal year and the Lisbon
+  boundaries, or the blocker (missing / ambiguous fiscal year, or the date it becomes available), and calls
+  `RolloverLiveAsync`.
+- **"Force rollover" (AH-010 interpretation):** a manual, Owner-only invocation of the **same** safe rollover,
+  for when automation has not run. It bypasses scheduling only — never the source-kind check, the fiscal year
+  resolution, the Live end-of-cycle rule, the single-active rule, the archive or idempotency. An emergency
+  time-boundary override would need its own recovery design.
+- **Fiscal year blocker:** After Hours never creates RTUB fiscal years. They are created by the Owner in
+  Finance (`FiscalYearService`, which only allows the current or past academic years), so the next year can
+  only be created once its September has started (in the server's local date). The admin page shows the
+  expected next year and whether it exists.
+- **Finished cycles without an archive** (legacy DEV data) are reported as a warning. They are not rebuilt
+  automatically.
+
+### Suspicious PvP (read-only)
+
+Battles of the last 7 days with attacker, defender, time, effective powers and ratio, loot multiplier, wallet
+stolen, cargo base value stolen, same family at battle time (from membership history), the attacker → defender
+count and wins. **Review flags** (AH-010 defaults; hints, not proof): the same attacker → defender pair
+3+ times in the window; loot multiplier ≤ 0.25; attacks between two players that change direction at least
+twice (A→B, B→A, A→B). Flagged rows sort first. Nothing is banned, reversed or rescored.
+
+### Cosmetic awards
+
+`AfterHoursCosmeticAward` (`AfterHoursCosmeticAwards`): recipient `UserId` (a historical value, not a foreign
+key), recipient name snapshot, title (2–40 characters, trimmed), optional description (≤ 160), granted at / by,
+optional fiscal year and archive, revoked at / by. The Owner grants and revokes (revoking is idempotent; rows are
+never deleted). Active titles show on the player's dashboard. No stats, bonuses, rarity or automatic champion
+awards: yearbook champions are separate. Awards are not cycle state, so they survive rollovers, and — like the
+yearbook — they survive deletion of the account.
+
+### Readiness checklist
+
+The admin page computes it on request (no health service, no schema). **READY** when every blocking check
+passes; it means technically ready for **private pilot testing**, not a Production launch sign-off.
+
+| Check | Blocking |
+| --- | --- |
+| After Hours enabled in this environment | yes |
+| Database schema answers (AH-010 tables) | yes |
+| Active cycle exists / playable now / boundaries valid | yes |
+| PvP enabled or explicitly paused | no (reported) |
+| No invalid tuning overrides | yes |
+| Family cap 4 and level cap 20 still structural | yes |
+| Bank fee resolves | yes |
+| Next fiscal year exists | no (warning) |
+| Rollover service resolves | yes |
+| No finished cycle without an archive | no (warning) |
+| Objectives and standings answer | yes |
+| Yearbook query answers | yes |
+
+Warnings also cover: an Active cycle outside its window, and After Hours enabled in Production. The status
+shows no connection strings, keys or other secrets.
+
+### UX cleanup (AH-010)
+
+Dashboard: level, XP progress, wallet, bank, energy, heat, jail and PvP recovery, current family, cycle end
+(Lisbon), cosmetic titles, links to every section, and the Owner-only Admin link. Pages show live tuned values
+(fees, costs, thresholds). "Cargo & Buyers" is named the same everywhere; the leaderboard points to the
+yearbook for final champions.
+
+### Deferred (not in the first release)
+
+Heists, territory, player trading, auction house, deep family politics, family upgrades (no catalogue in the
+manual), scheduling/automation of rollovers, a time-boundary emergency override, material winner rewards, and
+database-editable content catalogues. See `PILOT_CHECKLIST.md` for running the private pilot.

@@ -27,4 +27,6 @@ public partial class ApplicationDbContext
     public DbSet<YearbookPlayerEntry> AfterHoursYearbookPlayers { get; set; } = null!;
     public DbSet<YearbookFamilyEntry> AfterHoursYearbookFamilies { get; set; } = null!;
     public DbSet<YearbookFamilyMember> AfterHoursYearbookFamilyMembers { get; set; } = null!;
+    public DbSet<AfterHoursTuningSetting> AfterHoursTuningSettings { get; set; } = null!;
+    public DbSet<AfterHoursCosmeticAward> AfterHoursCosmeticAwards { get; set; } = null!;
 }

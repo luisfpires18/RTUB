@@ -9,6 +9,9 @@
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IGameCycleService GameCycleService
 @inject IAfterHoursActionService Actions
+@inject IAfterHoursTuningService TuningService
+@inject IFamilyService FamilyService
+@inject IYearbookService YearbookService
 @inject TimeProvider Clock
 
 <PageTitle>After Hours - RTUB</PageTitle>
@@ -31,12 +34,14 @@
             <h2 class="after-hours-panel-title">No active cycle</h2>
             <p class="after-hours-panel-note">There is no After Hours cycle running right now. Check back soon.</p>
             <a class="btn btn-outline-light" href="/after-hours/yearbook"><i class="bi bi-journal-bookmark"></i> Yearbook</a>
+            <AdminLink />
         </section>
     }
     else
     {
         <section class="after-hours-panel">
             <h2 class="after-hours-panel-title">@cycle.Kind cycle · @cycle.FiscalYear?.FiscalYearString</h2>
+            <p class="after-hours-panel-note">Ends @LisbonCalendar.ToLisbon(cycle.EndUtc).ToString("d MMM yyyy, HH:mm", System.Globalization.CultureInfo.InvariantCulture) (Lisbon)@(family is null ? "" : $" · Family: {family}")</p>
             <dl class="after-hours-stats">
                 <dt>Level</dt><dd>@state.Level</dd>
                 <dt>XP</dt>
@@ -63,10 +68,23 @@
             {
                 <p class="after-hours-alert" role="status"><i class="bi bi-lock"></i> In jail for @AfterHoursText.JailRemaining(state, Now).</p>
             }
+            @if (state.PvpRecoveryUntilUtc > Now)
+            {
+                <p class="after-hours-alert" role="status"><i class="bi bi-bandaid"></i> Recovering from a fight for @AfterHoursText.TimeLeft(state.PvpRecoveryUntilUtc.Value, Now).</p>
+            }
+            @if (awards.Count > 0)
+            {
+                <p class="after-hours-awards">
+                    @foreach (var award in awards)
+                    {
+                        <span @key="award.Id" class="after-hours-award" title="@award.Description"><i class="bi bi-award"></i> @award.Title</span>
+                    }
+                </p>
+            }
 
             <div class="after-hours-links">
                 <a class="btn btn-primary" href="/after-hours/crimes"><i class="bi bi-lightning"></i> Crimes</a>
-                <a class="btn btn-outline-light" href="/after-hours/cargo"><i class="bi bi-box-seam"></i> Cargo &amp; buyers</a>
+                <a class="btn btn-outline-light" href="/after-hours/cargo"><i class="bi bi-box-seam"></i> Cargo &amp; Buyers</a>
                 <a class="btn btn-outline-light" href="/after-hours/training"><i class="bi bi-barbell"></i> Training</a>
                 <a class="btn btn-outline-light" href="/after-hours/equipment"><i class="bi bi-shield"></i> Equipment</a>
                 <a class="btn btn-outline-light" href="/after-hours/pvp"><i class="bi bi-crosshair"></i> PvP</a>
@@ -74,12 +92,13 @@
                 <a class="btn btn-outline-light" href="/after-hours/objectives"><i class="bi bi-list-check"></i> Objectives</a>
                 <a class="btn btn-outline-light" href="/after-hours/leaderboards"><i class="bi bi-trophy"></i> Leaderboards</a>
                 <a class="btn btn-outline-light" href="/after-hours/yearbook"><i class="bi bi-journal-bookmark"></i> Yearbook</a>
+                <AdminLink />
             </div>
         </section>
 
         <section class="after-hours-panel">
             <h2 class="after-hours-panel-title">Bank</h2>
-            <p class="after-hours-panel-note">Wallet cash can be taken from you. Banked cash is safe. Deposits cost @AfterHoursActions.DepositFeePercent% (rounded up); withdrawals are free.</p>
+            <p class="after-hours-panel-note">Wallet cash can be taken from you. Banked cash is safe. Deposits cost @tuning.BankDepositFeePercent% (rounded up); withdrawals are free.</p>
             <div class="after-hours-bank">
                 <label class="visually-hidden" for="ah-bank-amount">Amount</label>
                 <input id="ah-bank-amount" class="form-control" type="number" min="1" step="1" inputmode="numeric" @bind="amount" />
@@ -101,6 +120,9 @@
     private string? userId;
     private GameCycle? cycle;
     private PlayerCycleState? state;
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
+    private string? family;
+    private IReadOnlyList<AfterHoursCosmeticAward> awards = [];
     private long amount;
     private string? message;
 
@@ -120,6 +142,10 @@
         {
             cycle = await GameCycleService.GetActiveCycleAsync();
             state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+            tuning = await TuningService.GetAsync();
+            awards = await YearbookService.GetActiveAwardsAsync(userId);
+            if (state is not null)
+                family = (await FamilyService.GetOverviewAsync(userId))?.Family?.Name;
         }
 
         loaded = true;

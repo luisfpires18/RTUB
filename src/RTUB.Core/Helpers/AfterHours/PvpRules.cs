@@ -17,13 +17,15 @@ public sealed record PvpFight(IReadOnlyList<PvpBattleRound> Rounds, int Attacker
 /// </summary>
 public static class PvpRules
 {
-    // Game Manual v2
+    public const string PausedMessage = "PvP is temporarily paused. Attacks are switched off for now.";
+
+    // Game Manual v2 (defaults; the live values come from AfterHoursTuning, AH-010)
     public static readonly TimeSpan NewPlayerProtection = TimeSpan.FromHours(72);
     public static readonly TimeSpan DefeatedDefenderProtection = TimeSpan.FromHours(6);
     public static readonly TimeSpan SameTargetWindow = TimeSpan.FromHours(24);
     public const int Rounds = 3;
 
-    // AH-006 defaults
+    // AH-006 defaults (attack energy, cooldown and attacker recoveries are tunable in AfterHoursTuning, AH-010)
     public const int AttackEnergy = 20;
     public static readonly TimeSpan AttackCooldown = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan DefeatedDefenderRecovery = TimeSpan.FromMinutes(15);
@@ -89,13 +91,17 @@ public static class PvpRules
     };
 
     /// <summary>AH-006 default attacker recovery after losing: Cautious 10, Standard 15, Reckless 30 minutes.</summary>
-    public static TimeSpan AttackerRecovery(RiskStance stance) => stance switch
+    public static TimeSpan AttackerRecovery(RiskStance stance, AfterHoursTuning? tuning = null)
     {
-        RiskStance.Cautious => TimeSpan.FromMinutes(10),
-        RiskStance.Standard => TimeSpan.FromMinutes(15),
-        RiskStance.Reckless => TimeSpan.FromMinutes(30),
-        _ => throw new ArgumentOutOfRangeException(nameof(stance), stance, "Unknown stance")
-    };
+        tuning ??= AfterHoursTuning.Default;
+        return stance switch
+        {
+            RiskStance.Cautious => TimeSpan.FromMinutes(tuning.PvpRecoveryCautiousMinutes),
+            RiskStance.Standard => TimeSpan.FromMinutes(tuning.PvpRecoveryStandardMinutes),
+            RiskStance.Reckless => TimeSpan.FromMinutes(tuning.PvpRecoveryRecklessMinutes),
+            _ => throw new ArgumentOutOfRangeException(nameof(stance), stance, "Unknown stance")
+        };
+    }
 
     // ------------------------------------------------------------------ battle
 
@@ -191,31 +197,37 @@ public static class PvpRules
     // ------------------------------------------------------------------ restrictions
 
     /// <summary>New-player protection: until 72 h after the state was created, unless the player has already attacked.</summary>
-    public static bool HasNewPlayerProtection(PlayerCycleState state, DateTime utcNow) =>
-        state.PvpInitiatedAtUtc is null && utcNow < state.CreatedAt + NewPlayerProtection;
+    public static bool HasNewPlayerProtection(PlayerCycleState state, DateTime utcNow, AfterHoursTuning? tuning = null) =>
+        state.PvpInitiatedAtUtc is null && utcNow < NewPlayerProtectionEndsUtc(state, tuning);
 
-    public static bool IsProtected(PlayerCycleState state, DateTime utcNow) =>
-        HasNewPlayerProtection(state, utcNow) || state.PvpProtectedUntilUtc > utcNow;
+    public static DateTime NewPlayerProtectionEndsUtc(PlayerCycleState state, AfterHoursTuning? tuning = null) =>
+        state.CreatedAt + TimeSpan.FromHours((tuning ?? AfterHoursTuning.Default).PvpNewPlayerProtectionHours);
+
+    public static bool IsProtected(PlayerCycleState state, DateTime utcNow, AfterHoursTuning? tuning = null) =>
+        HasNewPlayerProtection(state, utcNow, tuning) || state.PvpProtectedUntilUtc > utcNow;
 
     /// <summary>Why this player cannot start an attack now, or null. Expects a reconciled state.</summary>
-    public static string? AttackerBlockReason(PlayerCycleState attacker, DateTime utcNow)
+    public static string? AttackerBlockReason(PlayerCycleState attacker, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
+        tuning ??= AfterHoursTuning.Default;
+        if (!tuning.PvpEnabled) return PausedMessage;
         if (attacker.IsJailedAt(utcNow)) return "You are in jail.";
         if (attacker.PvpRecoveryUntilUtc > utcNow) return "You are still recovering from a beating.";
         if (attacker.PvpCooldownUntilUtc > utcNow) return "You just fought. Wait for your cooldown.";
-        if (attacker.Energy < AttackEnergy) return "Not enough energy.";
+        if (attacker.Energy < tuning.PvpAttackEnergyCost) return "Not enough energy.";
         return null;
     }
 
     /// <summary>Why this target cannot be attacked now, or null.</summary>
-    public static string? TargetBlockReason(PlayerCycleState attacker, PlayerCycleState target, DateTime? lastAttackOnTargetUtc, DateTime utcNow)
+    public static string? TargetBlockReason(PlayerCycleState attacker, PlayerCycleState target, DateTime? lastAttackOnTargetUtc, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
+        tuning ??= AfterHoursTuning.Default;
         if (target.Id == attacker.Id || target.UserId == attacker.UserId) return "You can't attack yourself.";
         if (target.GameCycleId != attacker.GameCycleId) return "That player is not in this cycle.";
-        if (HasNewPlayerProtection(target, utcNow)) return "That player is new and still protected.";
+        if (HasNewPlayerProtection(target, utcNow, tuning)) return "That player is new and still protected.";
         if (target.PvpProtectedUntilUtc > utcNow) return "That player was beaten recently and is protected.";
-        if (lastAttackOnTargetUtc is { } last && utcNow < last + SameTargetWindow)
-            return "You already attacked that player in the last 24 hours.";
+        if (lastAttackOnTargetUtc is { } last && utcNow < last + TimeSpan.FromHours(tuning.PvpSameTargetCooldownHours))
+            return $"You already attacked that player in the last {tuning.PvpSameTargetCooldownHours} hours.";
         return null;
     }
 }

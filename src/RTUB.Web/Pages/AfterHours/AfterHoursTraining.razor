@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IAfterHoursActionService Actions
+@inject IAfterHoursTuningService TuningService
 @inject TimeProvider Clock
 
 <PageTitle>Training - After Hours - RTUB</PageTitle>
@@ -34,14 +35,14 @@
         var cap = TrainingRules.SkillCap(state.Level);
         <div class="after-hours-status">
             <span>Level @state.Level</span>
-            <span><i class="bi bi-star"></i> @state.TrainingPoints / @TrainingRules.MaxStoredPoints points</span>
+            <span><i class="bi bi-star"></i> @state.TrainingPoints / @tuning.TrainingPointStorageCap points</span>
             <span><i class="bi bi-battery-half"></i> @state.Energy / @state.MaxEnergy</span>
             <span><i class="bi bi-wallet2"></i> $@state.WalletCash</span>
         </div>
         <p class="after-hours-muted after-hours-center">
-            One training point a day (Lisbon time), up to @TrainingRules.MaxStoredPoints stored.
+            One training point a day (Lisbon time), up to @tuning.TrainingPointStorageCap stored.
             Skill cap at level @state.Level: <strong>@cap</strong>.
-            @if (state.TrainingPoints < TrainingRules.MaxStoredPoints && state.TrainingPointsDay is { } day)
+            @if (state.TrainingPoints < tuning.TrainingPointStorageCap && state.TrainingPointsDay is { } day)
             {
                 <span>Next point in @AfterHoursText.TimeLeft(LisbonCalendar.NextMidnightUtc(day), Now).</span>
             }
@@ -56,14 +57,14 @@
             @foreach (var skill in Enum.GetValues<PlayerSkill>())
             {
                 var rank = CrimeRules.SkillRank(state, skill);
-                var block = AfterHoursActions.TrainingBlockReason(state, skill);
+                var block = AfterHoursActions.TrainingBlockReason(state, skill, tuning);
                 <li @key="skill" class="after-hours-card">
                     <div class="after-hours-card-head">
                         <h2>@skill</h2>
                         <span class="after-hours-rank">@rank / @cap</span>
                     </div>
                     <p class="after-hours-muted">
-                        Next rank: 1 point · −@TrainingRules.EnergyCost energy · −$@TrainingRules.CashCost(rank)
+                        Next rank: 1 point · −@tuning.TrainingEnergyCost energy · −$@tuning.TrainingCost(rank)
                     </p>
                     <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => TrainAsync(skill)">Train</button>
                     @if (block is not null)
@@ -77,6 +78,7 @@
 </div>
 
 @code {
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
     private bool loaded;
     private bool busy;
     private string? userId;
@@ -96,6 +98,7 @@
         if (userId is not null)
         {
             state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+            tuning = await TuningService.GetAsync();
         }
 
         loaded = true;

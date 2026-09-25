@@ -1,4 +1,5 @@
 @using RTUB.Security
+@using RTUB.Pages.AfterHours.Components
 @* The After Hours feature gate. Every component in this folder, and in any folder below it,
    inherits this policy: authenticated user AND AfterHours:Enabled. Do not override it on a page. *@
 @attribute [Authorize(Policy = AfterHoursAuthorization.Policy)]
