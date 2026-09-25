@@ -266,11 +266,8 @@ public class AfterHoursCycleStateTests : IntegrationTestBase
     private async Task FinishActiveCycleAsync()
     {
         await using var db = await DbAsync();
-        var active = await db.AfterHoursGameCycles.SingleOrDefaultAsync(c => c.Status == GameCycleStatus.Active);
-        if (active is not null)
-        {
-            await Cycles().FinishAsync(active.Id);
-        }
+        // Test isolation only (there is no unarchived finish in the application any more).
+        await db.AfterHoursGameCycles.Where(c => c.Status == GameCycleStatus.Active).ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, GameCycleStatus.Finished));
     }
 
     /// <summary>Finishes whatever is active, then starts a new cycle around now.</summary>

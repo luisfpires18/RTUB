@@ -16,14 +16,15 @@ namespace RTUB.Application.Services.AfterHours;
 public partial class AfterHoursActionService
 {
     public Task<AfterHoursActionResult> CreateFamilyAsync(string userId, string name, string? motto, string idempotencyKey) =>
-        RunAsync(userId, idempotencyKey, FamilyRules.CreateRequest(name, motto), async (context, state, now) =>
+        RunAsync(userId, idempotencyKey, FamilyRules.CreateRequest(name, motto), async (context, state, now, env) =>
         {
             if (FamilyRules.ValidateName(name, out var trimmedName) is { } badName) return ActionAttempt.Reject(badName);
             if (FamilyRules.ValidateMotto(motto, out var trimmedMotto) is { } badMotto) return ActionAttempt.Reject(badMotto);
             if (state.Level < FamilyRules.CreateLevel) return ActionAttempt.Reject($"Creating a family requires level {FamilyRules.CreateLevel}.");
             if (await ActiveMembershipAsync(context, state.UserId) is not null) return ActionAttempt.Reject("You are already in a family.");
             if (await CooldownReasonAsync(context, state.UserId, now) is { } cooling) return ActionAttempt.Reject(cooling);
-            if (state.WalletCash < FamilyRules.CreateCost) return ActionAttempt.Reject("Not enough cash in your wallet.");
+            var cost = env.Tuning.FamilyCreationCost;
+            if (state.WalletCash < cost) return ActionAttempt.Reject("Not enough cash in your wallet.");
 
             var normalized = FamilyRules.NormalizeName(trimmedName);
             if (await context.AfterHoursFamilies.AnyAsync(f => f.NormalizedName == normalized))
@@ -39,18 +40,18 @@ public partial class AfterHoursActionService
             };
             context.AfterHoursFamilies.Add(family);
             context.AfterHoursFamilyMemberships.Add(new FamilyMembership { Family = family, UserId = state.UserId, Role = FamilyRole.Boss, JoinedAtUtc = now });
-            state.WalletCash -= FamilyRules.CreateCost;
+            state.WalletCash -= cost;
             await context.SaveChangesAsync(); // assigns the family id for the cycle state and the receipt
             await EnsureFamilyCycleStateAsync(context, family.Id, state.GameCycleId);
 
-            return AfterHoursActions.Accepted(state, PlayerActionKind.CreateFamily, FamilyRules.CreateRequest(name, motto), family.Id, -FamilyRules.CreateCost);
+            return AfterHoursActions.Accepted(state, PlayerActionKind.CreateFamily, FamilyRules.CreateRequest(name, motto), family.Id, -cost);
         });
 
     /// <summary>Boss only. The target is identified by their player state in the current cycle.</summary>
     public Task<AfterHoursActionResult> InviteToFamilyAsync(string userId, int targetStateId, string idempotencyKey)
     {
         var request = $"family-invite:{targetStateId}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var boss = await ActiveMembershipAsync(context, state.UserId);
             if (boss is null || boss.Role != FamilyRole.Boss) return ActionAttempt.Reject("Only the family Boss can invite.");
@@ -78,7 +79,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> CancelFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey)
     {
         var request = $"family-cancel:{invitationId}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var boss = await ActiveMembershipAsync(context, state.UserId);
             var invitation = await context.AfterHoursFamilyInvitations.SingleOrDefaultAsync(i => i.Id == invitationId);
@@ -94,7 +95,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> AcceptFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey)
     {
         var request = $"family-accept:{invitationId}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var invitation = await context.AfterHoursFamilyInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.InvitedUserId == state.UserId);
             if (invitation is null) return ActionAttempt.Reject("Unknown invitation.");
@@ -122,7 +123,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> DeclineFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey)
     {
         var request = $"family-decline:{invitationId}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var invitation = await context.AfterHoursFamilyInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.InvitedUserId == state.UserId);
             if (invitation is null) return ActionAttempt.Reject("Unknown invitation.");
@@ -139,7 +140,7 @@ public partial class AfterHoursActionService
     /// invitations are cancelled, the name stays reserved.
     /// </summary>
     public Task<AfterHoursActionResult> LeaveFamilyAsync(string userId, string idempotencyKey) =>
-        RunAsync(userId, idempotencyKey, "family-leave", async (context, state, now) =>
+        RunAsync(userId, idempotencyKey, "family-leave", async (context, state, now, env) =>
         {
             var membership = await ActiveMembershipAsync(context, state.UserId);
             if (membership is null) return ActionAttempt.Reject("You are not in a family.");
@@ -165,7 +166,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> TransferFamilyBossAsync(string userId, int targetMembershipId, string idempotencyKey)
     {
         var request = $"family-boss:{targetMembershipId}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var boss = await ActiveMembershipAsync(context, state.UserId);
             if (boss is null || boss.Role != FamilyRole.Boss) return ActionAttempt.Reject("Only the family Boss can transfer leadership.");
@@ -185,7 +186,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> SetFamilyRoleAsync(string userId, int targetMembershipId, FamilyRole role, string idempotencyKey)
     {
         var request = $"family-role:{targetMembershipId}:{(int)role}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             if (role is not (FamilyRole.Member or FamilyRole.Enforcer or FamilyRole.Fixer))
                 return ActionAttempt.Reject("Use Transfer Boss to change the Boss.");
@@ -201,7 +202,7 @@ public partial class AfterHoursActionService
     }
 
     public Task<AfterHoursActionResult> UpdateFamilyProfileAsync(string userId, string name, string? motto, string idempotencyKey) =>
-        RunAsync(userId, idempotencyKey, FamilyRules.ProfileRequest(name, motto), async (context, state, now) =>
+        RunAsync(userId, idempotencyKey, FamilyRules.ProfileRequest(name, motto), async (context, state, now, env) =>
         {
             if (FamilyRules.ValidateName(name, out var trimmedName) is { } badName) return ActionAttempt.Reject(badName);
             if (FamilyRules.ValidateMotto(motto, out var trimmedMotto) is { } badMotto) return ActionAttempt.Reject(badMotto);
@@ -222,7 +223,7 @@ public partial class AfterHoursActionService
     public Task<AfterHoursActionResult> DonateToFamilyAsync(string userId, long amount, string idempotencyKey)
     {
         var request = $"family-donate:{amount}";
-        return RunAsync(userId, idempotencyKey, request, async (context, state, now) =>
+        return RunAsync(userId, idempotencyKey, request, async (context, state, now, env) =>
         {
             var membership = await ActiveMembershipAsync(context, state.UserId);
             if (membership is null) return ActionAttempt.Reject("You are not in a family.");

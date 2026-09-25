@@ -399,9 +399,8 @@ public class AfterHoursFamilyTests : IClassFixture<AfterHoursPlayFactory>
         await using (var db = await DbAsync())
             oldCycle = (await db.AfterHoursGameCycles.SingleAsync(c => c.Status == GameCycleStatus.Active)).Id;
 
-        using var scope = _factory.Services.CreateScope();
-        var cycles = scope.ServiceProvider.GetRequiredService<IGameCycleService>();
-        await cycles.FinishAsync(oldCycle);
+        await using (var db = await DbAsync())
+            await db.AfterHoursGameCycles.Where(c => c.Id == oldCycle).ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, GameCycleStatus.Finished));
         await _factory.EnsureActiveCycleAsync(); // a second cycle
 
         (await Actions().DonateToFamilyAsync(boss.UserId, 40, "cy2")).Accepted.Should().BeTrue("the new cycle's state is created with its own wallet");

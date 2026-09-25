@@ -11,6 +11,7 @@
 @inject IPvpService PvpService
 @inject IAfterHoursActionService Actions
 @inject NavigationManager Navigation
+@inject IAfterHoursTuningService TuningService
 @inject TimeProvider Clock
 
 <PageTitle>PvP - After Hours - RTUB</PageTitle>
@@ -33,13 +34,13 @@
     }
     else
     {
-        var attackBlock = PvpRules.AttackerBlockReason(state, Now);
+        var attackBlock = PvpRules.AttackerBlockReason(state, Now, tuning);
 
         <section class="after-hours-card">
             <h2>You</h2>
             <dl class="after-hours-facts">
                 <dt>Effective power</dt><dd>@PvpRules.EffectivePower(state)</dd>
-                <dt>Energy</dt><dd>@state.Energy / @state.MaxEnergy (attack −@PvpRules.AttackEnergy)</dd>
+                <dt>Energy</dt><dd>@state.Energy / @state.MaxEnergy (attack −@tuning.PvpAttackEnergyCost)</dd>
                 <dt>Status</dt><dd>@(attackBlock ?? "Ready to fight")</dd>
                 <dt>Target protection</dt><dd>@ProtectionText(state)</dd>
             </dl>
@@ -150,6 +151,7 @@
 </div>
 
 @code {
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
     private bool loaded;
     private bool busy;
     private string? userId;
@@ -194,6 +196,7 @@
     private async Task LoadAsync()
     {
         state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId!);
+        tuning = await TuningService.GetAsync();
         targets = await PvpService.GetTargetsAsync(userId!);
         battles = await PvpService.GetRecentBattlesAsync(userId!);
     }
@@ -220,8 +223,8 @@
 
     private string ProtectionText(PlayerCycleState s)
     {
-        if (PvpRules.HasNewPlayerProtection(s, Now))
-            return $"New player: {AfterHoursText.TimeLeft(s.CreatedAt + PvpRules.NewPlayerProtection, Now)} left (ends if you attack)";
+        if (PvpRules.HasNewPlayerProtection(s, Now, tuning))
+            return $"New player: {AfterHoursText.TimeLeft(PvpRules.NewPlayerProtectionEndsUtc(s, tuning), Now)} left (ends if you attack)";
         if (s.PvpProtectedUntilUtc > Now)
             return $"Recently beaten: {AfterHoursText.TimeLeft(s.PvpProtectedUntilUtc.Value, Now)} left";
         return "None: you can be attacked";

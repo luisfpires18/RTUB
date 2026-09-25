@@ -1,5 +1,8 @@
 namespace RTUB.Application.Interfaces.AfterHours;
 
+/// <summary>The Live cycle an annual rollover would start.</summary>
+public sealed record NextLiveCycle(int FiscalYearId, string FiscalYearLabel, DateTime StartUtc, DateTime EndUtc);
+
 /// <summary>What a rollover did. A repeated equivalent call returns the same ids with <see cref="Replayed"/> set.</summary>
 public sealed record RolloverResult(int ArchiveId, int SourceCycleId, int TargetCycleId, bool Replayed);
 

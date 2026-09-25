@@ -1,0 +1,421 @@
+@page "/after-hours/admin"
+@rendermode InteractiveServer
+@* Owner only, on top of the folder's After Hours gate (both attributes must pass). The admin service checks
+   the role again on every call, so nothing here relies on hiding buttons. *@
+@attribute [Authorize(Roles = RTUB.Application.Services.AfterHours.AfterHoursAdminService.OwnerRole)]
+@using System.Globalization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Application.Services.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAfterHoursAdminService Admin
+@inject IAfterHoursTuningService TuningService
+@inject TimeProvider Clock
+
+<PageTitle>Admin - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-sliders"></i> After Hours admin</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a> · Owner only</p>
+        </div>
+    </div>
+
+    @if (message is not null)
+    {
+        <p class="after-hours-result" role="status">@message</p>
+    }
+
+    @if (status is null)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        <nav class="after-hours-admin-nav" aria-label="Sections">
+            <a href="/after-hours/admin#status">Status</a> · <a href="/after-hours/admin#tuning">Tuning</a> · <a href="/after-hours/admin#cycles">Cycles</a> ·
+            <a href="/after-hours/admin#pvp">PvP safety</a> · <a href="/after-hours/admin#review">Suspicious PvP</a> ·
+            <a href="/after-hours/admin#awards">Awards</a> · <a href="/after-hours/admin#readiness">Readiness</a>
+        </nav>
+
+        @* ------------------------------------------------------------ 1. status *@
+        <section id="status" class="after-hours-card">
+            <h2>Status</h2>
+            <dl class="after-hours-admin-dl">
+                <dt>Feature</dt><dd>@(status.FeatureEnabled ? "Enabled" : "Disabled") (@status.EnvironmentName)</dd>
+                @if (status.Active is { } a)
+                {
+                    <dt>Active cycle</dt><dd>#@a.Id · @a.Kind · @a.Status · @a.FiscalYearLabel</dd>
+                    <dt>UTC</dt><dd>@Utc(a.StartUtc) → @Utc(a.EndUtc)</dd>
+                    <dt>Lisbon</dt><dd>@Lisbon(a.StartUtc) → @Lisbon(a.EndUtc)</dd>
+                    <dt>Playable now</dt><dd>@(a.PlayableNow ? "Yes" : "No")</dd>
+                    <dt>Players / families</dt><dd>@a.Players / @a.Families</dd>
+                }
+                else
+                {
+                    <dt>Active cycle</dt><dd>None</dd>
+                }
+                <dt>Tuning overrides</dt><dd>@status.OverrideCount</dd>
+                <dt>PvP</dt><dd>@(status.Tuning.PvpEnabled ? "Enabled" : "PAUSED")</dd>
+            </dl>
+            @foreach (var warning in status.Warnings)
+            {
+                <p class="after-hours-alert"><i class="bi bi-exclamation-triangle"></i> @warning</p>
+            }
+            <details>
+                <summary>All cycles (@status.Cycles.Count)</summary>
+                <ul class="after-hours-admin-list">
+                    @foreach (var c in status.Cycles)
+                    {
+                        <li @key="c.Id">#@c.Id · @c.Kind · @c.Status · @c.FiscalYearLabel · @Lisbon(c.StartUtc) → @Lisbon(c.EndUtc) · @c.Players players · @(c.ArchiveId is { } id ? $"archive #{id}" : c.Status == GameCycleStatus.Finished ? "NO ARCHIVE" : "not archived")</li>
+                    }
+                </ul>
+            </details>
+        </section>
+
+        @* ------------------------------------------------------------ 2. tuning *@
+        <section id="tuning" class="after-hours-card">
+            <h2>Economy and gameplay tuning</h2>
+            <p class="after-hours-muted">Changes apply to future actions only; stored receipts, battles, objectives and the yearbook never change. Crime, gear, contract and objective catalogues, the XP curve, the level cap (20) and the family cap (4) are code, not settings.</p>
+            @foreach (var group in settings.GroupBy(s => s.Setting.Group))
+            {
+                <h3 class="after-hours-section">@group.Key</h3>
+                <ul class="after-hours-admin-list">
+                    @foreach (var row in group)
+                    {
+                        <li @key="row.Setting.Key" class="after-hours-admin-setting">
+                            <label for="t-@row.Setting.Key">@row.Setting.Label <span class="after-hours-muted">(@row.Setting.Range; default @row.DefaultValue)</span></label>
+                            <div class="after-hours-admin-inline">
+                                <input id="t-@row.Setting.Key" class="form-control" @bind="edits[row.Setting.Key]" />
+                                <button class="btn btn-sm btn-primary" disabled="@busy" @onclick="() => SaveTuningAsync(row.Setting.Key)">Save</button>
+                                @if (row.OverrideValue is not null)
+                                {
+                                    <button class="btn btn-sm btn-outline-light" disabled="@busy" @onclick="() => ResetTuningAsync(row.Setting.Key)">Reset</button>
+                                }
+                            </div>
+                            <span class="after-hours-muted">
+                                In use: @row.EffectiveValue@(row.OverrideValue is null ? " (default)" : $" · override by {row.UpdatedByUserId} at {Utc(row.UpdatedAtUtc!.Value)}")
+                            </span>
+                            @if (row.InvalidReason is not null)
+                            {
+                                <span class="after-hours-alert">Stored value "@row.OverrideValue" is ignored: @row.InvalidReason</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        @* ------------------------------------------------------------ 3. cycles *@
+        <section id="cycles" class="after-hours-card">
+            <h2>Cycle controls</h2>
+
+            <h3 class="after-hours-section">Start a Pilot</h3>
+            @if (status.Active is not null)
+            {
+                <p class="after-hours-muted">A cycle is Active. Only one can be; roll it over first.</p>
+            }
+            else
+            {
+                <div class="after-hours-admin-form">
+                    <label>Fiscal year <select class="form-select" @bind="pilotFiscalYearId">@FiscalYearOptions()</select></label>
+                    <label>Start (Lisbon) <input class="form-control" type="datetime-local" @bind="pilotStart" /></label>
+                    <label>End (Lisbon) <input class="form-control" type="datetime-local" @bind="pilotEnd" /></label>
+                    <label class="after-hours-admin-check"><input type="checkbox" @bind="pilotUnusual" /> Allow a length outside @AfterHoursAdminService.PilotMinDays–@AfterHoursAdminService.PilotMaxDays days</label>
+                    <button class="btn btn-primary" disabled="@busy" @onclick="CreatePilotAsync">Create and start Pilot</button>
+                </div>
+            }
+
+            @if (status.Active is { Kind: GameCycleKind.Pilot } pilot)
+            {
+                <h3 class="after-hours-section">End Pilot → start Live</h3>
+                <div class="after-hours-admin-form">
+                    <label>Live fiscal year <select class="form-select" @bind="liveFiscalYearId">@FiscalYearOptions()</select></label>
+                    <label>Live start (Lisbon) <input class="form-control" type="datetime-local" @bind="liveStart" /></label>
+                    <label>Live end (Lisbon) <input class="form-control" type="datetime-local" @bind="liveEnd" /></label>
+                </div>
+                <ul class="after-hours-admin-summary">
+                    <li>Pilot #@pilot.Id becomes Finished now, even before its planned end.</li>
+                    <li>Its yearbook archive is non-official: Pilot scores never become trophies.</li>
+                    <li>Gameplay power resets: everyone starts the Live cycle at level 1 with 400 cash.</li>
+                    <li>Family identity and membership persist; every treasury starts at 0.</li>
+                </ul>
+                <label class="after-hours-admin-check"><input type="checkbox" @bind="confirmPilot" /> I have read this</label>
+                <button class="btn btn-warning" disabled="@(busy || !confirmPilot)" @onclick="PilotToLiveAsync">End Pilot and start Live</button>
+            }
+
+            @if (status.LiveRollover is { } roll)
+            {
+                <h3 class="after-hours-section">Annual Live rollover</h3>
+                <p>
+                    Source: cycle #@roll.SourceCycleId, ends @Lisbon(roll.SourceEndUtc) (Lisbon).
+                    @if (roll.Next is { } next)
+                    {
+                        <span>Next: @next.FiscalYearLabel, @Lisbon(next.StartUtc) → @Lisbon(next.EndUtc) (Lisbon).</span>
+                    }
+                </p>
+                @if (roll.Blocker is not null)
+                {
+                    <p class="after-hours-alert">@roll.Blocker</p>
+                }
+                <p class="after-hours-muted">
+                    "Force rollover" runs this same safe rollover by hand when automation has not. It never skips the end-of-cycle rule,
+                    the fiscal year check, the archive or the one-active-cycle rule.
+                </p>
+                <label class="after-hours-admin-check"><input type="checkbox" @bind="confirmLive" /> Archive the cycle and start the next one</label>
+                <button class="btn btn-warning" disabled="@(busy || !roll.AvailableNow || !confirmLive)" @onclick="RolloverLiveAsync">Force rollover</button>
+            }
+        </section>
+
+        @* ------------------------------------------------------------ 4. PvP safety *@
+        <section id="pvp" class="after-hours-card">
+            <h2>PvP safety</h2>
+            <p>PvP attacks are <strong>@(status.Tuning.PvpEnabled ? "enabled" : "paused")</strong>. Pausing refuses new attacks only; reports, defences and everything else keep working.</p>
+            @if (status.Tuning.PvpEnabled)
+            {
+                <button class="btn btn-danger" disabled="@busy" @onclick="() => SetPvpAsync(false)">Pause PvP</button>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled="@busy" @onclick="() => SetPvpAsync(true)">Resume PvP</button>
+            }
+        </section>
+
+        @* ------------------------------------------------------------ 5. suspicious PvP *@
+        <section id="review" class="after-hours-card">
+            <h2>Suspicious PvP (last 7 days)</h2>
+            <p class="after-hours-muted">Review flags: same pair ≥ @AfterHoursAdminService.PairRepeatFlag times, loot multiplier ≤ 0.25, or attacks alternating between two players. Hints for a person to review, not proof; nothing is changed automatically.</p>
+            @if (pvp.Count == 0)
+            {
+                <p class="after-hours-muted">No battles.</p>
+            }
+            <div class="after-hours-admin-table">
+                <table class="table table-sm">
+                    <thead><tr><th>When (UTC)</th><th>Attacker → defender</th><th>Won</th><th>Power d/a</th><th>Loot ×</th><th>Wallet</th><th>Cargo value</th><th>Same family</th><th>Pair / wins</th><th>Review flags</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in pvp)
+                        {
+                            <tr @key="r.BattleId">
+                                <td>@Utc(r.AcceptedAtUtc)</td>
+                                <td>@r.AttackerName → @r.DefenderName</td>
+                                <td>@(r.AttackerWon ? "Yes" : "No")</td>
+                                <td>@r.DefenderPower/@r.AttackerPower (@r.PowerRatio.ToString("0.00", CultureInfo.InvariantCulture))</td>
+                                <td>@r.LootMultiplier.ToString("0.####", CultureInfo.InvariantCulture)</td>
+                                <td>@r.WalletStolen</td>
+                                <td>@r.CargoValueStolen</td>
+                                <td>@(r.SameFamilyAtBattle ? "Yes" : "No")</td>
+                                <td>@r.PairCount / @r.PairWins</td>
+                                <td>@string.Join("; ", r.Flags)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        @* ------------------------------------------------------------ 6. awards *@
+        <section id="awards" class="after-hours-card">
+            <h2>Cosmetic awards</h2>
+            <p class="after-hours-muted">A text title shown on the player's After Hours dashboard. No gameplay effect. Survives rollovers.</p>
+            <div class="after-hours-admin-form">
+                <label>Player
+                    <select class="form-select" @bind="awardUserId">
+                        <option value="">Choose…</option>
+                        @foreach (var p in recipients)
+                        {
+                            <option @key="p.UserId" value="@p.UserId">@p.Name</option>
+                        }
+                    </select>
+                </label>
+                <label>Title (@AfterHoursCosmeticAwardLimits) <input class="form-control" maxlength="40" @bind="awardTitle" /></label>
+                <label>Description (optional, ≤ 160) <input class="form-control" maxlength="160" @bind="awardDescription" /></label>
+                <label>Fiscal year (optional) <select class="form-select" @bind="awardFiscalYearId"><option value="0">None</option>@FiscalYearOptions()</select></label>
+                <button class="btn btn-primary" disabled="@busy" @onclick="GrantAsync">Grant</button>
+            </div>
+            <ul class="after-hours-admin-list">
+                @foreach (var view in awards)
+                {
+                    var award = view.Award;
+                    <li @key="award.Id">
+                        <strong>@award.Title</strong> → @award.RecipientName
+                        <span class="after-hours-muted">· @Utc(award.GrantedAtUtc) by @(view.GrantedByName ?? award.GrantedByUserId)@(award.RevokedAtUtc is { } revoked ? $" · revoked {Utc(revoked)}" : "")</span>
+                        @if (award.RevokedAtUtc is null)
+                        {
+                            <button class="btn btn-sm btn-outline-light" disabled="@busy" @onclick="() => RevokeAsync(award.Id)">Revoke</button>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+
+        @* ------------------------------------------------------------ 7. readiness *@
+        <section id="readiness" class="after-hours-card">
+            <h2>Pilot readiness: @(status.Ready ? "READY" : "BLOCKED")</h2>
+            <p class="after-hours-muted">READY means technically ready for private pilot testing, not a sign-off for a Production launch.
+                Current fiscal year: @(status.Active?.FiscalYearLabel ?? "none") · expected next: @(status.ExpectedNextFiscalYear ?? "n/a") (@(status.NextFiscalYearExists ? "exists" : "missing: create it in Finance")).</p>
+            <ul class="after-hours-admin-list">
+                @foreach (var check in status.Readiness)
+                {
+                    <li @key="check.Name">@(check.Passed ? "✔" : check.Blocking ? "✖" : "⚠") <strong>@check.Name</strong> <span class="after-hours-muted">@check.Detail@(check.Blocking ? "" : " (warning)")</span></li>
+                }
+            </ul>
+        </section>
+    }
+</div>
+
+@code {
+    private const string AfterHoursCosmeticAwardLimits = "2–40";
+
+    private string? actorId;
+    private bool busy;
+    private string? message;
+    private AfterHoursAdminStatus? status;
+    private IReadOnlyList<TuningSettingView> settings = [];
+    private Dictionary<string, string> edits = new();
+    private IReadOnlyList<SuspiciousPvpRow> pvp = [];
+    private IReadOnlyList<CosmeticAwardView> awards = [];
+    private IReadOnlyList<AwardRecipientOption> recipients = [];
+
+    private int pilotFiscalYearId;
+    private DateTime pilotStart;
+    private DateTime pilotEnd;
+    private bool pilotUnusual;
+
+    private int liveFiscalYearId;
+    private DateTime liveStart;
+    private DateTime liveEnd;
+    private bool confirmPilot;
+    private bool confirmLive;
+
+    private string awardUserId = string.Empty;
+    private string awardTitle = string.Empty;
+    private string? awardDescription;
+    private int awardFiscalYearId;
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        actorId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // AH-010 UI defaults: a Pilot starts now and runs 10 days (inside the recommended 7–14).
+        var lisbonNow = LisbonCalendar.ToLisbon(Now);
+        pilotStart = liveStart = new DateTime(lisbonNow.Year, lisbonNow.Month, lisbonNow.Day, lisbonNow.Hour, lisbonNow.Minute, 0);
+        pilotEnd = pilotStart.AddDays(AfterHoursAdminService.PilotDefaultDays);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (actorId is null) return;
+        status = await Admin.GetStatusAsync(actorId);
+        settings = await TuningService.GetSettingsAsync();
+        edits = settings.ToDictionary(s => s.Setting.Key, s => s.OverrideValue ?? s.EffectiveValue);
+        pvp = await Admin.GetRecentPvpAsync(actorId);
+        awards = await Admin.GetAwardsAsync(actorId);
+        recipients = await Admin.GetAwardRecipientsAsync(actorId);
+
+        var academicStart = LisbonCalendar.DateOf(Now) is var d && d.Month >= 9 ? d.Year : d.Year - 1;
+        var current = status.FiscalYears.FirstOrDefault(f => f.StartYear == academicStart) ?? status.FiscalYears.FirstOrDefault();
+        if (pilotFiscalYearId == 0) pilotFiscalYearId = current?.Id ?? 0;
+        if (liveFiscalYearId == 0)
+        {
+            liveFiscalYearId = status.Active?.FiscalYearId ?? current?.Id ?? 0;
+            var year = status.FiscalYears.FirstOrDefault(f => f.Id == liveFiscalYearId);
+            liveEnd = year is null ? liveStart.AddYears(1) : LisbonCalendar.ToLisbon(RolloverRules.SeptemberStartUtc(year.StartYear + 1));
+        }
+    }
+
+    private RenderFragment FiscalYearOptions() => __builder =>
+    {
+        foreach (var f in status?.FiscalYears ?? [])
+        {
+            <option @key="f.Id" value="@f.Id">@f.Label</option>
+        }
+    };
+
+    private Task SaveTuningAsync(string key) => RunAsync(async () =>
+    {
+        var stored = await Admin.SetTuningAsync(actorId!, key, edits[key]);
+        return $"{key} set to {stored}.";
+    });
+
+    private Task ResetTuningAsync(string key) => RunAsync(async () =>
+    {
+        await Admin.ResetTuningAsync(actorId!, key);
+        return $"{key} reset to its default.";
+    });
+
+    private Task SetPvpAsync(bool enabled) => RunAsync(async () =>
+    {
+        await Admin.SetPvpEnabledAsync(actorId!, enabled);
+        return enabled ? "PvP resumed." : "PvP paused. New attacks are refused.";
+    });
+
+    private Task CreatePilotAsync() => RunAsync(async () =>
+    {
+        var cycle = await Admin.CreatePilotAsync(actorId!, pilotFiscalYearId, LisbonCalendar.ToUtc(pilotStart), LisbonCalendar.ToUtc(pilotEnd), pilotUnusual);
+        return $"Pilot #{cycle.Id} created and started.";
+    });
+
+    private Task PilotToLiveAsync() => RunAsync(async () =>
+    {
+        var result = await Admin.TransitionPilotToLiveAsync(actorId!, status!.Active!.Id, liveFiscalYearId, LisbonCalendar.ToUtc(liveStart), LisbonCalendar.ToUtc(liveEnd));
+        confirmPilot = false;
+        return result.Replayed
+            ? $"Already done: Pilot #{result.SourceCycleId} → Live #{result.TargetCycleId}."
+            : $"Pilot #{result.SourceCycleId} archived (non-official, archive #{result.ArchiveId}); Live #{result.TargetCycleId} started.";
+    });
+
+    private Task RolloverLiveAsync() => RunAsync(async () =>
+    {
+        var result = await Admin.RolloverLiveAsync(actorId!, status!.LiveRollover!.SourceCycleId);
+        confirmLive = false;
+        return result.Replayed
+            ? $"Already done: #{result.SourceCycleId} → #{result.TargetCycleId}."
+            : $"Cycle #{result.SourceCycleId} archived (archive #{result.ArchiveId}); Live #{result.TargetCycleId} started.";
+    });
+
+    private Task GrantAsync() => RunAsync(async () =>
+    {
+        var award = await Admin.GrantAwardAsync(actorId!, awardUserId, awardTitle, awardDescription, awardFiscalYearId == 0 ? null : awardFiscalYearId, null);
+        awardTitle = string.Empty;
+        awardDescription = null;
+        return $"\"{award.Title}\" granted to {award.RecipientName}.";
+    });
+
+    private Task RevokeAsync(int awardId) => RunAsync(async () =>
+    {
+        await Admin.RevokeAwardAsync(actorId!, awardId);
+        return "Award revoked.";
+    });
+
+    /// <summary>One operation at a time; refusals are shown, never swallowed.</summary>
+    private async Task RunAsync(Func<Task<string>> operation)
+    {
+        if (busy || actorId is null) return;
+        busy = true;
+        try
+        {
+            message = await operation();
+            await ReloadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or UnauthorizedAccessException or RTUB.Core.Exceptions.EntityNotFoundException)
+        {
+            message = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static string Utc(DateTime utc) => utc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC";
+
+    private static string Lisbon(DateTime utc) => LisbonCalendar.ToLisbon(utc).ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
+}

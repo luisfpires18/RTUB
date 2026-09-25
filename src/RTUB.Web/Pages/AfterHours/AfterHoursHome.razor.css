@@ -75,3 +75,17 @@
     justify-content: center;
     gap: 0.5rem;
 }
+
+.after-hours-awards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.after-hours-award {
+    padding: 0.1rem 0.6rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.85rem;
+}

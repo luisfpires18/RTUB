@@ -15,7 +15,7 @@ namespace RTUB.Application.Services.AfterHours;
 /// </summary>
 internal static class ObjectiveTracker
 {
-    public static async Task RecordAsync(ApplicationDbContext context, GameCycle cycle, PlayerCycleState actor, PlayerActionReceipt receipt, DateTime now)
+    public static async Task RecordAsync(ApplicationDbContext context, GameCycle cycle, PlayerCycleState actor, PlayerActionReceipt receipt, DateTime now, AfterHoursTuning tuning)
     {
         var metrics = ObjectiveRules.ActorMetrics(receipt);
         var battle = receipt.PvpBattle;
@@ -30,7 +30,7 @@ internal static class ObjectiveTracker
 
         var familyPvpWin = false;
         if (battle is { AttackerWon: true })
-            familyPvpWin = await CreditPvpWinAsync(context, cycle, actor, battle, familyId, week, now);
+            familyPvpWin = await CreditPvpWinAsync(context, cycle, actor, battle, familyId, week, now, tuning);
 
         await AdvanceDailyAsync(context, cycle, actor, day, metrics, now);
         if (battle is { AttackerWon: false } && FindTracked(context, battle.DefenderStateId) is { } defender)
@@ -76,11 +76,11 @@ internal static class ObjectiveTracker
     /// Returns whether it also counts for the attacker's family (first win over that target by the family).
     /// </summary>
     private static async Task<bool> CreditPvpWinAsync(ApplicationDbContext context, GameCycle cycle, PlayerCycleState attacker,
-        PvpBattle battle, int? familyId, int week, DateTime now)
+        PvpBattle battle, int? familyId, int week, DateTime now, AfterHoursTuning tuning)
     {
         var defender = FindTracked(context, battle.DefenderStateId)
             ?? await context.AfterHoursPlayerCycleStates.AsNoTracking().SingleAsync(s => s.Id == battle.DefenderStateId);
-        if (PvpRules.HasNewPlayerProtection(defender, battle.AcceptedAtUtc))
+        if (PvpRules.HasNewPlayerProtection(defender, battle.AcceptedAtUtc, tuning))
             return false;
         var defenderFamily = await ActiveFamilyAsync(context, defender.UserId);
         if (familyId is not null && familyId == defenderFamily)

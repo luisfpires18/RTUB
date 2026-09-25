@@ -10,6 +10,7 @@
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IFamilyService FamilyService
 @inject IAfterHoursActionService Actions
+@inject IAfterHoursTuningService TuningService
 @inject TimeProvider Clock
 
 <PageTitle>Family - After Hours - RTUB</PageTitle>
@@ -79,7 +80,7 @@
                             <input class="form-control" maxlength="@FamilyRules.MottoMaxLength" @bind="newMotto" />
                         </label>
                     </div>
-                    <p class="after-hours-muted">Costs $@FamilyRules.CreateCost.ToString("N0") from your wallet (you have $@state.WalletCash.ToString("N0")).</p>
+                    <p class="after-hours-muted">Costs $@tuning.FamilyCreationCost.ToString("N0") from your wallet (you have $@state.WalletCash.ToString("N0")).</p>
                     <button class="btn btn-primary" disabled="@(busy || overview.JoinAllowedFromUtc is not null)" @onclick="() => RunAsync(k => Actions.CreateFamilyAsync(userId!, newName, newMotto, k))">Create family</button>
                 }
             </section>
@@ -204,6 +205,7 @@
 </div>
 
 @code {
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
     private bool loaded;
     private bool busy;
     private string? userId;
@@ -237,6 +239,7 @@
     private async Task LoadAsync()
     {
         state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId!);
+        tuning = await TuningService.GetAsync();
         overview = await FamilyService.GetOverviewAsync(userId!);
         editName = overview?.Family?.Name ?? string.Empty;
         editMotto = overview?.Family?.Motto;

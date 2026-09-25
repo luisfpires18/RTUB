@@ -351,6 +351,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IObjectiveService, RTUB.Application.Services.AfterHours.ObjectiveService>();
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursRolloverService, RTUB.Application.Services.AfterHours.AfterHoursRolloverService>();
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IYearbookService, RTUB.Application.Services.AfterHours.YearbookService>();
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursTuningService, RTUB.Application.Services.AfterHours.AfterHoursTuningService>();
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursAdminService, RTUB.Application.Services.AfterHours.AfterHoursAdminService>();
         services.AddSingleton<RTUB.Application.Interfaces.AfterHours.IAfterHoursDice, RTUB.Application.Services.AfterHours.AfterHoursDice>();
         services.TryAddSingleton(TimeProvider.System);
 

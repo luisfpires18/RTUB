@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IPlayerCycleStateService PlayerCycleStateService
 @inject IAfterHoursActionService Actions
+@inject IAfterHoursTuningService TuningService
 
 <PageTitle>Equipment - After Hours - RTUB</PageTitle>
 
@@ -65,7 +66,7 @@
                         </div>
                         @if (locked)
                         {
-                            <p><i class="bi bi-lock"></i> Level @item.UnlockLevel · $@item.Price</p>
+                            <p><i class="bi bi-lock"></i> Level @item.UnlockLevel · $@tuning.GearPrice(item)</p>
                         }
                         else if (equipped)
                         {
@@ -79,8 +80,8 @@
                         }
                         else
                         {
-                            var block = AfterHoursActions.PurchaseBlockReason(state, item);
-                            <p>$@item.Price</p>
+                            var block = AfterHoursActions.PurchaseBlockReason(state, item, tuning);
+                            <p>$@tuning.GearPrice(item)</p>
                             <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => RunAsync(key => Actions.PurchaseGearAsync(userId!, item.Key, key))">Buy</button>
                             @if (block is not null)
                             {
@@ -95,6 +96,7 @@
 </div>
 
 @code {
+    private AfterHoursTuning tuning = AfterHoursTuning.Default;
     private bool loaded;
     private bool busy;
     private string? userId;
@@ -114,6 +116,7 @@
         if (userId is not null)
         {
             state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+            tuning = await TuningService.GetAsync();
         }
 
         loaded = true;

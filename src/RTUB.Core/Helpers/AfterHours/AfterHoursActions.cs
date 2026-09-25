@@ -19,14 +19,15 @@ public sealed record ActionAttempt(PlayerActionReceipt? Receipt, string? Error)
 public static class AfterHoursActions
 {
     // Cover jobs. Energy cost and heat reduction are Game Manual v2; the high-heat threshold,
-    // cash and XP are AH-003 implementation choices (the manual does not give them).
+    // cash and XP are AH-003 implementation choices (the manual does not give them). These are the
+    // defaults: the live values come from AfterHoursTuning (AH-010).
     public const int CoverJobEnergyCost = 10;
     public const int CoverJobHeatReduction = 15;
     public const int CoverJobHighHeat = 50;
     public const long CoverJobCash = 20;
     public const long CoverJobXp = 12;
 
-    /// <summary>Deposit fee, Game Manual v2. Withdrawals are free (AH-003 choice).</summary>
+    /// <summary>Deposit fee default, Game Manual v2 (live value: AfterHoursTuning). Withdrawals are free (AH-003 choice).</summary>
     public const int DepositFeePercent = 2;
 
     public static string CrimeRequest(string crimeId, CrimeApproach approach) => $"crime:{crimeId}:{approach}";
@@ -48,15 +49,18 @@ public static class AfterHoursActions
         $"defence:{(int)tactic}:{weapon ?? "-"}:{outfit ?? "-"}:{vehicleTool ?? "-"}";
 
     /// <param name="rollPercent">Server dice: 1..100 inclusive. Success when roll ≤ chance.</param>
+    /// <param name="xpMultiplier">Catch-up (AH-010): applied to the XP this crime pays, success or failure; never to cash, cargo or heat.</param>
     public static ActionAttempt CommitCrime(
-        PlayerCycleState state, string crimeId, CrimeApproach approach, DateTime utcNow, Func<int> rollPercent)
+        PlayerCycleState state, string crimeId, CrimeApproach approach, DateTime utcNow, Func<int> rollPercent,
+        AfterHoursTuning? tuning = null, decimal xpMultiplier = 1m)
     {
+        tuning ??= AfterHoursTuning.Default;
         var crime = CrimeCatalogue.Find(crimeId);
         if (crime is null) return ActionAttempt.Reject("Unknown crime.");
         if (!Enum.IsDefined(approach)) return ActionAttempt.Reject("Unknown approach.");
 
-        state.Reconcile(utcNow);
-        if (CrimeBlockReason(state, crime, utcNow) is { } blocked) return ActionAttempt.Reject(blocked);
+        state.Reconcile(utcNow, tuning);
+        if (CrimeBlockReason(state, crime, utcNow, tuning) is { } blocked) return ActionAttempt.Reject(blocked);
 
         var odds = CrimeRules.Odds(crime, approach, state);
         var heatBefore = state.Heat;
@@ -72,9 +76,10 @@ public static class AfterHoursActions
 
         if (receipt.Succeeded)
         {
-            state.WalletCash += odds.Cash;
-            receipt.WalletDelta = odds.Cash;
-            receipt.XpDelta = odds.Xp;
+            var cash = tuning.CrimeCash(odds.Cash);
+            state.WalletCash += cash;
+            receipt.WalletDelta = cash;
+            receipt.XpDelta = CatchUpRules.Apply(odds.Xp, xpMultiplier);
             if (crime.Cargo is { } cargo)
             {
                 state.AddCargo(cargo, crime.CargoQuantity);
@@ -84,7 +89,7 @@ public static class AfterHoursActions
         }
         else
         {
-            receipt.XpDelta = odds.FailureXp;
+            receipt.XpDelta = CatchUpRules.Apply(odds.FailureXp, xpMultiplier);
             if (rollPercent() <= JailPolicy.Chance(crime.RequiredLevel, heatBefore))
             {
                 state.JailUntilUtc = utcNow + JailPolicy.Duration(crime.RequiredLevel, heatBefore);
@@ -104,62 +109,64 @@ public static class AfterHoursActions
     /// is limited to one per UTC calendar day, and only those low-heat uses count against the day.
     /// Blocked in jail (AH-003 choice).
     /// </summary>
-    public static ActionAttempt TakeCoverJob(PlayerCycleState state, DateTime utcNow)
+    public static ActionAttempt TakeCoverJob(PlayerCycleState state, DateTime utcNow, AfterHoursTuning? tuning = null, decimal xpMultiplier = 1m)
     {
-        state.Reconcile(utcNow);
-        if (CoverJobBlockReason(state, utcNow) is { } blocked) return ActionAttempt.Reject(blocked);
+        tuning ??= AfterHoursTuning.Default;
+        state.Reconcile(utcNow, tuning);
+        if (CoverJobBlockReason(state, utcNow, tuning) is { } blocked) return ActionAttempt.Reject(blocked);
 
         var today = DateOnly.FromDateTime(utcNow);
-        var highHeat = state.Heat >= CoverJobHighHeat;
+        var highHeat = state.Heat >= tuning.CoverJobHighHeatThreshold;
 
         var receipt = Begin(state, PlayerActionKind.CoverJob, CoverJobRequest);
         receipt.Succeeded = true;
 
-        state.Energy -= CoverJobEnergyCost;
-        receipt.EnergyDelta = -CoverJobEnergyCost;
+        state.Energy -= tuning.CoverJobEnergyCost;
+        receipt.EnergyDelta = -tuning.CoverJobEnergyCost;
 
         var heatBefore = state.Heat;
-        state.AddHeat(-CoverJobHeatReduction, utcNow);
+        state.AddHeat(-tuning.CoverJobHeatReduction, utcNow);
         receipt.HeatDelta = state.Heat - heatBefore;
 
-        state.WalletCash += CoverJobCash;
-        receipt.WalletDelta = CoverJobCash;
-        receipt.XpDelta = CoverJobXp;
-        state.AddXp(CoverJobXp);
+        state.WalletCash += tuning.CoverJobCashReward;
+        receipt.WalletDelta = tuning.CoverJobCashReward;
+        receipt.XpDelta = CatchUpRules.Apply(tuning.CoverJobXpReward, xpMultiplier);
+        state.AddXp(receipt.XpDelta);
 
         if (!highHeat) state.CoverJobDailyUsedOn = today;
         return Finish(state, receipt);
     }
 
     /// <summary>Why this crime cannot be attempted now, or null. Expects a reconciled state.</summary>
-    public static string? CrimeBlockReason(PlayerCycleState state, CrimeDefinition crime, DateTime utcNow)
+    public static string? CrimeBlockReason(PlayerCycleState state, CrimeDefinition crime, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
         if (state.Level < crime.RequiredLevel) return $"Requires level {crime.RequiredLevel}.";
         if (state.IsJailedAt(utcNow)) return "You are in jail.";
-        if (state.Heat >= CrimeRules.HeatBlockThreshold) return "Too much heat. Lie low first.";
+        if (state.Heat >= (tuning ?? AfterHoursTuning.Default).CrimeHeatBlockThreshold) return "Too much heat. Lie low first.";
         if (state.Energy < crime.EnergyCost) return "Not enough energy.";
         return null;
     }
 
     /// <summary>Why a cover job cannot be taken now, or null. Expects a reconciled state.</summary>
-    public static string? CoverJobBlockReason(PlayerCycleState state, DateTime utcNow)
+    public static string? CoverJobBlockReason(PlayerCycleState state, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
+        tuning ??= AfterHoursTuning.Default;
         if (state.IsJailedAt(utcNow)) return "You are in jail.";
-        if (state.Energy < CoverJobEnergyCost) return "Not enough energy.";
-        if (state.Heat < CoverJobHighHeat && state.CoverJobDailyUsedOn == DateOnly.FromDateTime(utcNow))
+        if (state.Energy < tuning.CoverJobEnergyCost) return "Not enough energy.";
+        if (state.Heat < tuning.CoverJobHighHeatThreshold && state.CoverJobDailyUsedOn == DateOnly.FromDateTime(utcNow))
             return "You already worked a cover job today.";
         return null;
     }
 
-    public static long DepositFee(long amount) => (amount * DepositFeePercent + 99) / 100;
+    public static long DepositFee(long amount, int feePercent = DepositFeePercent) => (amount * feePercent + 99) / 100;
 
-    /// <summary>Wallet −amount; bank +(amount − ⌈2% of amount⌉). Refused when the bank would get nothing.</summary>
-    public static ActionAttempt Deposit(PlayerCycleState state, long amount)
+    /// <summary>Wallet −amount; bank +(amount − ⌈fee% of amount⌉). Refused when the bank would get nothing.</summary>
+    public static ActionAttempt Deposit(PlayerCycleState state, long amount, AfterHoursTuning? tuning = null)
     {
         if (amount <= 0) return ActionAttempt.Reject("Enter an amount above zero.");
         if (state.WalletCash < amount) return ActionAttempt.Reject("Not enough cash in your wallet.");
 
-        var net = amount - DepositFee(amount);
+        var net = amount - DepositFee(amount, (tuning ?? AfterHoursTuning.Default).BankDepositFeePercent);
         if (net <= 0) return ActionAttempt.Reject("That deposit is too small to cover the fee.");
 
         var receipt = Begin(state, PlayerActionKind.Deposit, DepositRequest(amount));
@@ -185,14 +192,14 @@ public static class AfterHoursActions
         return Finish(state, receipt);
     }
 
-    /// <summary>Sells cargo at the base fence: quantity × the server's price. Always available.</summary>
-    public static ActionAttempt SellToFence(PlayerCycleState state, CargoType cargo, int quantity)
+    /// <summary>Sells cargo at the base fence: the catalogue total for the quantity × the fence multiplier, rounded once. Always available.</summary>
+    public static ActionAttempt SellToFence(PlayerCycleState state, CargoType cargo, int quantity, AfterHoursTuning? tuning = null)
     {
         if (!Enum.IsDefined(cargo)) return ActionAttempt.Reject("Unknown cargo.");
         if (quantity <= 0) return ActionAttempt.Reject("Enter a quantity above zero.");
         if (state.CargoQuantity(cargo) < quantity) return ActionAttempt.Reject("You don't have that much.");
 
-        var cash = quantity * CargoCatalogue.FencePrice(cargo);
+        var cash = (tuning ?? AfterHoursTuning.Default).FencePayout(cargo, quantity);
         var receipt = Begin(state, PlayerActionKind.FenceSale, FenceRequest(cargo, quantity));
         receipt.Succeeded = true;
         state.AddCargo(cargo, -quantity);
@@ -215,62 +222,64 @@ public static class AfterHoursActions
     }
 
     /// <summary>Delivers a buyer contract: −cargo, +cash, +XP. The caller records the completion row.</summary>
-    public static ActionAttempt DeliverContract(PlayerCycleState state, BuyerContract contract, bool alreadyCompleted, DateTime utcNow)
+    public static ActionAttempt DeliverContract(PlayerCycleState state, BuyerContract contract, bool alreadyCompleted, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
         if (ContractBlockReason(state, contract, alreadyCompleted, utcNow) is { } blocked) return ActionAttempt.Reject(blocked);
 
         var receipt = Begin(state, PlayerActionKind.ContractDelivery, ContractRequest(contract.Id));
         receipt.Succeeded = true;
         state.AddCargo(contract.CargoType, -contract.Quantity);
-        state.WalletCash += contract.CashReward;
+        var cash = (tuning ?? AfterHoursTuning.Default).ContractCash(contract.CashReward);
+        state.WalletCash += cash;
         state.AddXp(contract.XpReward);
         receipt.CargoType = contract.CargoType;
         receipt.CargoDelta = -contract.Quantity;
-        receipt.WalletDelta = contract.CashReward;
+        receipt.WalletDelta = cash;
         receipt.XpDelta = contract.XpReward;
         return Finish(state, receipt);
     }
 
     /// <summary>Why this skill cannot be trained now, or null. Expects a reconciled state.</summary>
-    public static string? TrainingBlockReason(PlayerCycleState state, PlayerSkill skill)
+    public static string? TrainingBlockReason(PlayerCycleState state, PlayerSkill skill, AfterHoursTuning? tuning = null)
     {
         var rank = CrimeRules.SkillRank(state, skill);
         if (rank >= TrainingRules.SkillCap(state.Level)) return "At your current cap. Level up to train further.";
         if (state.TrainingPoints < 1) return "No training points. You get one each day.";
-        if (state.Energy < TrainingRules.EnergyCost) return "Not enough energy.";
-        if (state.WalletCash < TrainingRules.CashCost(rank)) return "Not enough cash in your wallet.";
+        if (state.Energy < (tuning ?? AfterHoursTuning.Default).TrainingEnergyCost) return "Not enough energy.";
+        if (state.WalletCash < (tuning ?? AfterHoursTuning.Default).TrainingCost(rank)) return "Not enough cash in your wallet.";
         return null;
     }
 
     /// <summary>Raises one skill by 1: -1 training point, -20 energy, -(120 + 40(rank - 4)) wallet cash.</summary>
-    public static ActionAttempt TrainSkill(PlayerCycleState state, PlayerSkill skill, DateTime utcNow)
+    public static ActionAttempt TrainSkill(PlayerCycleState state, PlayerSkill skill, DateTime utcNow, AfterHoursTuning? tuning = null)
     {
         if (!Enum.IsDefined(skill)) return ActionAttempt.Reject("Unknown skill.");
+        tuning ??= AfterHoursTuning.Default;
 
-        state.Reconcile(utcNow);
-        if (TrainingBlockReason(state, skill) is { } blocked) return ActionAttempt.Reject(blocked);
+        state.Reconcile(utcNow, tuning);
+        if (TrainingBlockReason(state, skill, tuning) is { } blocked) return ActionAttempt.Reject(blocked);
 
         var rank = CrimeRules.SkillRank(state, skill);
-        var cost = TrainingRules.CashCost(rank);
+        var cost = tuning.TrainingCost(rank);
         var receipt = Begin(state, PlayerActionKind.TrainSkill, TrainRequest(skill));
         receipt.Succeeded = true;
         state.TrainingPoints -= 1;
-        state.Energy -= TrainingRules.EnergyCost;
+        state.Energy -= tuning.TrainingEnergyCost;
         state.WalletCash -= cost;
         CrimeRules.SetSkillRank(state, skill, rank + 1);
         receipt.Skill = skill;
         receipt.SkillRankAfter = rank + 1;
-        receipt.EnergyDelta = -TrainingRules.EnergyCost;
+        receipt.EnergyDelta = -tuning.TrainingEnergyCost;
         receipt.WalletDelta = -cost;
         return Finish(state, receipt);
     }
 
     /// <summary>Why this item cannot be bought now, or null.</summary>
-    public static string? PurchaseBlockReason(PlayerCycleState state, GearItem item)
+    public static string? PurchaseBlockReason(PlayerCycleState state, GearItem item, AfterHoursTuning? tuning = null)
     {
         if (state.OwnsGear(item.Key)) return "You already own this.";
         if (state.Level < item.UnlockLevel) return $"Requires level {item.UnlockLevel}.";
-        if (state.WalletCash < item.Price) return "Not enough cash in your wallet.";
+        if (state.WalletCash < (tuning ?? AfterHoursTuning.Default).GearPrice(item)) return "Not enough cash in your wallet.";
         return null;
     }
 
@@ -278,19 +287,21 @@ public static class AfterHoursActions
     /// Buys an item with wallet cash; it stays owned for the cycle. If nothing is equipped in its slot
     /// it is equipped straight away (AH-005 choice).
     /// </summary>
-    public static ActionAttempt PurchaseGear(PlayerCycleState state, string itemKey)
+    public static ActionAttempt PurchaseGear(PlayerCycleState state, string itemKey, AfterHoursTuning? tuning = null)
     {
         var item = GearCatalogue.Find(itemKey);
         if (item is null) return ActionAttempt.Reject("Unknown item.");
-        if (PurchaseBlockReason(state, item) is { } blocked) return ActionAttempt.Reject(blocked);
+        tuning ??= AfterHoursTuning.Default;
+        if (PurchaseBlockReason(state, item, tuning) is { } blocked) return ActionAttempt.Reject(blocked);
+        var price = tuning.GearPrice(item);
 
         var receipt = Begin(state, PlayerActionKind.PurchaseGear, PurchaseGearRequest(item.Key));
         receipt.Succeeded = true;
-        state.WalletCash -= item.Price;
+        state.WalletCash -= price;
         state.Gear.Add(new PlayerGear { PlayerCycleStateId = state.Id, ItemKey = item.Key, Slot = item.Slot, Tier = item.Tier });
         if (state.EquippedKey(item.Slot) is null) state.SetEquipped(item.Slot, item.Key);
         receipt.GearKey = item.Key;
-        receipt.WalletDelta = -item.Price;
+        receipt.WalletDelta = -price;
         return Finish(state, receipt);
     }
 
@@ -367,17 +378,20 @@ public static class AfterHoursActions
     public static ActionAttempt Attack(
         PlayerCycleState attacker, PlayerCycleState defender, PvpTactic tactic, RiskStance stance,
         string? weapon, string? outfit, string? vehicleTool, DateTime? lastAttackOnTargetUtc,
-        DateTime utcNow, Func<int> rollPercent)
+        DateTime utcNow, Func<int> rollPercent, AfterHoursTuning? tuning = null)
     {
+        tuning ??= AfterHoursTuning.Default;
+        // Emergency pause (AH-010): refused before anything is reconciled, spent, rolled or recorded.
+        if (!tuning.PvpEnabled) return ActionAttempt.Reject(PvpRules.PausedMessage);
         if (!Enum.IsDefined(tactic)) return ActionAttempt.Reject("Unknown tactic.");
         if (!Enum.IsDefined(stance)) return ActionAttempt.Reject("Unknown stance.");
 
         if (defender.Id == attacker.Id || defender.UserId == attacker.UserId) return ActionAttempt.Reject("You can't attack yourself.");
 
-        attacker.Reconcile(utcNow);
-        if (PvpRules.AttackerBlockReason(attacker, utcNow) is { } attackerBlocked)
+        attacker.Reconcile(utcNow, tuning);
+        if (PvpRules.AttackerBlockReason(attacker, utcNow, tuning) is { } attackerBlocked)
             return ActionAttempt.Reject(attackerBlocked);
-        if (PvpRules.TargetBlockReason(attacker, defender, lastAttackOnTargetUtc, utcNow) is { } targetBlocked)
+        if (PvpRules.TargetBlockReason(attacker, defender, lastAttackOnTargetUtc, utcNow, tuning) is { } targetBlocked)
             return ActionAttempt.Reject(targetBlocked);
         if (ValidateLoadout(attacker, weapon, outfit, vehicleTool, out var attackerTiers) is { } invalid)
             return ActionAttempt.Reject(invalid);
@@ -423,11 +437,11 @@ public static class AfterHoursActions
         var receipt = Begin(attacker, PlayerActionKind.PvpAttack, AttackRequest(defender.Id, tactic, stance, weapon, outfit, vehicleTool));
         receipt.PvpBattle = battle;
 
-        attacker.Energy -= PvpRules.AttackEnergy;
-        receipt.EnergyDelta = -PvpRules.AttackEnergy;
+        attacker.Energy -= tuning.PvpAttackEnergyCost;
+        receipt.EnergyDelta = -tuning.PvpAttackEnergyCost;
         if (attacker.PvpInitiatedAtUtc is null)
         {
-            battle.EndedAttackerNewPlayerProtection = PvpRules.HasNewPlayerProtection(attacker, utcNow);
+            battle.EndedAttackerNewPlayerProtection = PvpRules.HasNewPlayerProtection(attacker, utcNow, tuning);
             attacker.PvpInitiatedAtUtc = utcNow;
         }
 
@@ -460,14 +474,14 @@ public static class AfterHoursActions
             }
 
             defender.PvpRecoveryUntilUtc = battle.DefenderRecoveryUntilUtc = utcNow + PvpRules.DefeatedDefenderRecovery;
-            defender.PvpProtectedUntilUtc = battle.DefenderProtectedUntilUtc = utcNow + PvpRules.DefeatedDefenderProtection;
+            defender.PvpProtectedUntilUtc = battle.DefenderProtectedUntilUtc = utcNow + TimeSpan.FromHours(tuning.PvpDefenderProtectionHours);
         }
         else
         {
-            attacker.PvpRecoveryUntilUtc = battle.AttackerRecoveryUntilUtc = utcNow + PvpRules.AttackerRecovery(stance);
+            attacker.PvpRecoveryUntilUtc = battle.AttackerRecoveryUntilUtc = utcNow + PvpRules.AttackerRecovery(stance, tuning);
         }
 
-        attacker.PvpCooldownUntilUtc = battle.AttackerCooldownUntilUtc = utcNow + PvpRules.AttackCooldown;
+        attacker.PvpCooldownUntilUtc = battle.AttackerCooldownUntilUtc = utcNow + TimeSpan.FromMinutes(tuning.PvpGlobalCooldownMinutes);
         return Finish(attacker, receipt);
     }
 

@@ -1,0 +1,6 @@
+@* The After Hours admin entry: rendered only for the Owner role, the same role the admin page requires.
+   Hiding it is convenience only; the page and the admin service both check the role themselves. *@
+@using Microsoft.AspNetCore.Components.Authorization
+<AuthorizeView Roles="@RTUB.Application.Services.AfterHours.AfterHoursAdminService.OwnerRole">
+    <a class="btn btn-outline-warning" href="/after-hours/admin"><i class="bi bi-sliders"></i> Admin</a>
+</AuthorizeView>
