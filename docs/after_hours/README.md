@@ -6,11 +6,12 @@ extension of MyTuno, and shares none of its gameplay systems.
 
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
 crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
-with equipment (AH-005), PvP (AH-006), and families (AH-007). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+with equipment (AH-005), PvP (AH-006), families (AH-007), and objectives with championships (AH-008). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
 list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
 `/after-hours/training` and `/after-hours/equipment` are training and gear; `/after-hours/pvp` is PvP
 (status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle;
-`/after-hours/family` is the family page.
+`/after-hours/family` is the family page; `/after-hours/objectives` and `/after-hours/leaderboards` are
+objectives and championship standings.
 
 ## Numbering
 
@@ -104,6 +105,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursTrainingGearTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursTrainingGearRulesTests.cs` | | AH-005 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursPvpTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursPvpRulesTests.cs`, `AfterHoursPvpPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-006 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursFamilyTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursFamilyRulesTests.cs`, `AfterHoursFamilyPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-007 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursObjectiveTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursObjectiveRulesTests.cs`, `AfterHoursObjectivePagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-008 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -495,3 +497,101 @@ The manual says the treasury "buys family upgrades" but gives no upgrade list, c
 AH-007 therefore stores the treasury correctly on the annual `FamilyCycleState` and **does not invent any
 upgrade or bonus**. Upgrades will attach to that row once their values are decided. Heists, family
 objectives, scoring, leaderboards and PvP family bonuses are later units.
+
+## Objectives and championships
+
+`/after-hours/objectives` and `/after-hours/leaderboards`. Catalogue and scoring in `ObjectiveCatalogue`,
+action-to-progress rules in `ObjectiveRules`, persistence in `ObjectiveTracker`, reads in `IObjectiveService`.
+
+### Game Manual v2 rules
+
+- Three layers: **daily** objectives (small rewards, no championship points), **weekly individual**
+  objectives and **weekly family** objectives. Objectives complete and pay out automatically: there is no
+  claim button.
+- Two championships, **Individual** and **Family**. Neither scores raw XP, cash or level: each scores
+  weekly objective points, and the annual score is the **sum of the best 12 weekly scores** (all of them
+  when there are fewer than 12). The running week counts provisionally.
+- Individual weekly caps: **40** solo crime, **20** cargo/contracts, **20** PvP, **20** family
+  participation, **100** in total.
+- PvP scoring guards against farming weak targets, and **same-family** PvP scores nothing.
+- **Family points stay with the family where they were earned.** Leaving or switching family moves nothing.
+
+### How progress is recorded
+
+Progress only ever comes from accepted actions. The action service calls `ObjectiveTracker` for every
+accepted action, inside that action's write transaction, after the rules have accepted it and before its
+single save. The tracker reads what the action did from its receipt (and battle): crimes (success, cash,
+energy), cover jobs (energy; heat actually reduced), training energy, fence sales, contract deliveries,
+PvP battles and family donations. Bank moves, gear, and the family creation cost count for nothing.
+Because it runs in the same transaction, progress, completion, XP and points commit or roll back with
+the action; a replayed key returns before the tracker runs, and a refused action never reaches it. The
+family is the one the player belongs to **at that moment, under the write lock**, and its id is stored on
+the family's rows.
+
+**Persistence** (target, XP and points are copied when a row is created and never recalculated, so
+tuning the catalogue never changes history):
+
+- `PlayerObjectiveProgress` (`AfterHoursPlayerObjectiveProgress`): state, daily or weekly, the Lisbon
+  day number or the week index, objective key; unique per that instance. Progress stays within 0..target.
+- `FamilyObjectiveProgress` (`AfterHoursFamilyObjectiveProgress`): family, cycle, week, objective key;
+  unique.
+- `PvpObjectiveCredit` (`AfterHoursPvpObjectiveCredits`): one row per qualifying attacker win. Filtered unique
+  indexes allow one individual credit per attacker and target per week, and one family credit per family
+  and target per week.
+
+Daily completion awards its XP to the player at once (normal XP and level rules; no catch-up). Weekly
+completion stores its points. Scores and standings are computed from stored awarded points when read;
+there is no separate annual total column.
+
+**Rollout:** tracking starts with AH-008. Actions accepted before it, including earlier DEV testing,
+are not backfilled.
+
+### AH-008 implementation defaults (not in the manual)
+
+- **Game weeks:** week 1 starts at `GameCycle.StartUtc`; each week is the next 7 days as a UTC [start, end)
+  interval; the last one is cut short by the cycle end. No calendar or ISO weeks.
+- **Daily objectives** reset at Lisbon midnight. Each day shows 3 of the 5, the same for every player:
+  templates `DayNumber mod 5` and the next two. Rewards are XP only (no cash, deliberately):
+
+  | Key | Objective | Target | XP |
+  | --- | --- | ---: | ---: |
+  | D01 | Working Night: successful crimes | 3 | 15 |
+  | D02 | Cool It: a cover job that reduces heat | 1 | 10 |
+  | D03 | Burn the Clock: energy spent on crimes, cover jobs, training, PvP | 60 | 15 |
+  | D04 | Move the Goods: cargo units fenced or delivered | 1 | 10 |
+  | D05 | Settle a Score: a PvP win as attacker or defender | 1 | 15 |
+
+- **Weekly individual sets** alternate: odd weeks A, even weeks B.
+
+  | Category | Set A | Set B | Points |
+  | --- | --- | --- | ---: |
+  | Solo crime | 12 successful crimes | 15 successful crimes | 20 |
+  | Solo crime | 1,500 cash from successful crimes | 240 energy spent on crimes | 20 |
+  | Cargo/contracts | fence 10 cargo units | complete 2 buyer contracts | 20 |
+  | PvP | qualified PvP points (below) | same | up to 20 |
+  | Family participation | donate 1,000 to your family | 10 successful crimes while in a family | 20 |
+
+- **Individual PvP points:** only attacker wins; the target must be outside the attacker's family at battle
+  time and not new-player protected; a target counts once per attacker per week; each counts
+  **⌊10 × the battle's loot multiplier⌋** (so weaker targets are worth less), and the category stops at 20.
+  PvP loot itself is unchanged.
+- **Family weekly sets** alternate with the same parity; each objective is worth 25, the family cap is **100**:
+
+  | Set A | Set B |
+  | --- | --- |
+  | members complete 30 successful crimes | members complete 40 successful crimes |
+  | donate 3,000 to the treasury | donate 2,000 to the treasury |
+  | fence 20 cargo units | complete 4 buyer contracts |
+  | 4 qualified PvP wins on distinct outside targets | same |
+
+  A family PvP win needs an attacker win, the attacker in the family and the target outside it at battle
+  time, and a target not new-player protected. A target counts once per family per week. Power
+  difference does not change the family count.
+- The family score counts **family objectives only**, never the sum of members' individual scores.
+- **Ties:** equal annual scores share a rank (1, 1, 3); names only order the display. Nobody is declared
+  champion: final awards and tie handling are AH-009.
+
+### Not in AH-008
+
+Catch-up XP (manual section 20) is carried to AH-010. Heist objectives wait for heists. Yearbook, final
+awards and rollover are later units.

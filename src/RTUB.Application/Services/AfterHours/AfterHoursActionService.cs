@@ -175,6 +175,8 @@ public partial class AfterHoursActionService(
             result.Receipt.PlayerCycleStateId = state.Id;
             result.Receipt.IdempotencyKey = idempotencyKey;
             context.AfterHoursPlayerActionReceipts.Add(result.Receipt);
+            // Objective progress, completions and rewards for this accepted action: same transaction.
+            await ObjectiveTracker.RecordAsync(context, cycle, state, result.Receipt, now);
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
             return new AfterHoursActionResult(result.Receipt, state, null);

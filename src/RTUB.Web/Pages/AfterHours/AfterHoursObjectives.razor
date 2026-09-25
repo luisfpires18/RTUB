@@ -1,0 +1,120 @@
+@page "/after-hours/objectives"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IObjectiveService ObjectiveService
+@inject TimeProvider Clock
+
+<PageTitle>Objectives - After Hours - RTUB</PageTitle>
+
+@* Everything here is read from stored progress; objectives complete and pay out by themselves. *@
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-list-check"></i> Objectives</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a> · <a href="/after-hours/leaderboards">Leaderboards</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (overview is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        <h2 class="after-hours-section">Today</h2>
+        <p class="after-hours-muted">New objectives in @AfterHoursText.TimeLeft(overview.NextDailyResetUtc, Now) (midnight, Lisbon). Daily objectives pay XP, not championship points.</p>
+        <ul class="after-hours-list">
+            @foreach (var o in overview.Daily)
+            {
+                <li @key="o.Definition.Key" class="after-hours-card @(o.Completed ? "after-hours-done" : null)">
+                    <div class="after-hours-card-head">
+                        <h3>@o.Definition.Title</h3>
+                        <span class="after-hours-muted">+@o.Definition.XpReward XP</span>
+                    </div>
+                    <p>@o.Definition.Description</p>
+                    <progress class="after-hours-bar" value="@o.Progress" max="@o.Target"></progress>
+                    <span class="after-hours-muted">@(o.Completed ? "Done" : $"{o.Progress} / {o.Target}")</span>
+                </li>
+            }
+        </ul>
+
+        <h2 class="after-hours-section">Week @overview.Week.Index · @overview.WeeklyScore / @ObjectiveCatalogue.IndividualWeeklyCap</h2>
+        <p class="after-hours-muted">Ends @overview.Week.EndUtc.ToString("dd MMM HH:mm") UTC (in @AfterHoursText.TimeLeft(overview.Week.EndUtc, Now)).</p>
+        <dl class="after-hours-facts">
+            @foreach (var (category, score) in overview.CategoryScores)
+            {
+                <dt>@CategoryName(category)</dt><dd>@score / @ObjectiveCatalogue.CategoryCap(category)</dd>
+            }
+        </dl>
+        <ul class="after-hours-list">
+            @foreach (var o in overview.Weekly)
+            {
+                <li @key="o.Definition.Key" class="after-hours-card @(o.Completed ? "after-hours-done" : null)">
+                    <div class="after-hours-card-head">
+                        <h3>@o.Definition.Title</h3>
+                        <span class="after-hours-muted">@CategoryName(o.Definition.Category!.Value) · @(o.Definition.Key == ObjectiveCatalogue.PvpObjectiveKey ? $"{o.PointsAwarded} / 20 pts" : $"{o.Definition.Points} pts")</span>
+                    </div>
+                    <p>@o.Definition.Description</p>
+                    <progress class="after-hours-bar" value="@o.Progress" max="@o.Target"></progress>
+                    <span class="after-hours-muted">@(o.Completed ? "Done" : $"{o.Progress} / {o.Target}")</span>
+                </li>
+            }
+        </ul>
+
+        @if (overview.Family is { } family)
+        {
+            <h2 class="after-hours-section">@family.FamilyName · @family.WeeklyScore / @ObjectiveCatalogue.FamilyWeeklyCap</h2>
+            <p class="after-hours-muted">Shared by the family. Progress stays with the family it was earned for.</p>
+            <ul class="after-hours-list">
+                @foreach (var o in family.Objectives)
+                {
+                    <li @key="o.Definition.Key" class="after-hours-card @(o.Completed ? "after-hours-done" : null)">
+                        <div class="after-hours-card-head">
+                            <h3>@o.Definition.Title</h3>
+                            <span class="after-hours-muted">@o.Definition.Points pts</span>
+                        </div>
+                        <p>@o.Definition.Description</p>
+                        <progress class="after-hours-bar" value="@o.Progress" max="@o.Target"></progress>
+                        <span class="after-hours-muted">@(o.Completed ? "Done" : $"{o.Progress} / {o.Target}")</span>
+                    </li>
+                }
+            </ul>
+        }
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private ObjectivesOverview? overview;
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            overview = await ObjectiveService.GetOverviewAsync(userId);
+        }
+
+        loaded = true;
+    }
+
+    private static string CategoryName(ObjectiveCategory category) => category switch
+    {
+        ObjectiveCategory.SoloCrime => "Solo crimes",
+        ObjectiveCategory.CargoContracts => "Cargo & contracts",
+        ObjectiveCategory.Pvp => "PvP",
+        _ => "Family participation"
+    };
+}

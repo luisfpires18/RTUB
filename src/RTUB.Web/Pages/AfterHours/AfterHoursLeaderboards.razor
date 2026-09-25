@@ -1,0 +1,82 @@
+@page "/after-hours/leaderboards"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IObjectiveService ObjectiveService
+
+<PageTitle>Leaderboards - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-trophy"></i> Leaderboards</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a> · <a href="/after-hours/objectives">Objectives</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (boards is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        <p class="after-hours-muted">
+            Annual score = your best @ObjectiveCatalogue.BestWeeks weekly scores. Week @boards.CurrentWeek is still running and counts provisionally.
+            Equal scores share a place; no champion is decided yet.
+        </p>
+
+        <div class="after-hours-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected="@(showFamilies ? "false" : "true")" class="btn @(showFamilies ? "btn-outline-light" : "btn-primary")" @onclick="() => showFamilies = false">Individual</button>
+            <button type="button" role="tab" aria-selected="@(showFamilies ? "true" : "false")" class="btn @(showFamilies ? "btn-primary" : "btn-outline-light")" @onclick="() => showFamilies = true">Family</button>
+        </div>
+
+        var rows = showFamilies ? boards.Families : boards.Individual;
+        @if (rows.Count == 0)
+        {
+            <p class="after-hours-muted">Nobody on the board yet.</p>
+        }
+        <ol class="after-hours-board">
+            @foreach (var row in rows)
+            {
+                <li @key="row.Id" class="after-hours-card @(row.IsMine ? "after-hours-mine" : null)">
+                    <div class="after-hours-card-head">
+                        <h3><span class="after-hours-rank">#@row.Rank</span> @row.Name</h3>
+                        <span class="after-hours-score">@row.AnnualScore</span>
+                    </div>
+                    <p class="after-hours-muted">
+                        This week @row.CurrentWeekScore · @row.ScoringWeeks scoring week@(row.ScoringWeeks == 1 ? "" : "s")
+                        @if (row.CountedWeeks.Count > 0)
+                        {
+                            <span>· counting weeks @string.Join(", ", row.CountedWeeks)</span>
+                        }
+                    </p>
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool showFamilies;
+    private Leaderboards? boards;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            boards = await ObjectiveService.GetLeaderboardsAsync(userId);
+        }
+
+        loaded = true;
+    }
+}
