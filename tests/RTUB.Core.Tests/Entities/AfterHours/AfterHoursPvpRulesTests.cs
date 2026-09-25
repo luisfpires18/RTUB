@@ -124,23 +124,77 @@ public class AfterHoursPvpRulesTests
 
     // ------------------------------------------------------------------ loot
 
+    private static decimal Dec(string value) => decimal.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+
     [Theory]
     [InlineData(20, 40, "0.25")]
     [InlineData(40, 20, "1")]
     [InlineData(40, 40, "1")]
-    [InlineData(16, 30, "0.2844")]
     [InlineData(1, 100, "0.0001")]
-    public void LootMultiplier_RatioSquared_CappedAtOne_Truncated(int defender, int attacker, string expected) =>
-        PvpRules.LootMultiplier(defender, attacker).Should().Be(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture));
+    public void LootMultiplier_RatioSquared_CappedAtOne(int defender, int attacker, string expected) =>
+        PvpRules.LootMultiplier(defender, attacker).Should().Be(Dec(expected));
+
+    [Fact]
+    public void LootMultiplier_IsNotRoundedToFourPlaces()
+    {
+        var ratio = 16m / 30m;
+        var multiplier = PvpRules.LootMultiplier(16, 30);
+
+        multiplier.Should().Be(ratio * ratio);
+        multiplier.Should().NotBe(0.2844m);
+        multiplier.Should().BeGreaterThan(0.28444444m);
+    }
 
     [Theory]
     [InlineData(3_000, "1", 300)]
     [InlineData(10_000, "1", 500)]
     [InlineData(10_000, "0.25", 125)]
     [InlineData(9, "1", 0)]
-    [InlineData(999, "0.2844", 28)]
-    public void WalletLoot_TenPercent_CappedAt500_TimesMultiplier(long wallet, string multiplier, long stolen) =>
-        PvpRules.WalletLoot(wallet, decimal.Parse(multiplier, System.Globalization.CultureInfo.InvariantCulture)).Should().Be(stolen);
+    [InlineData(19, "0.6", 1)]      // 1.9 × 0.6 = 1.14 → 1 (flooring 1.9 first would give 0)
+    [InlineData(1_015, "0.5", 50)]  // 101.5 × 0.5 = 50.75 → 50
+    [InlineData(1_015, "0.4", 40)]  // 101.5 × 0.4 = 40.6 → 40
+    [InlineData(1_019, "0.5", 50)]  // 101.9 × 0.5 = 50.95 → 50
+    [InlineData(6_000, "0.75", 375)] // capped at 500 before the multiplier
+    public void WalletLoot_TenPercent_CappedAt500_TimesMultiplier_FlooredOnce(long wallet, string multiplier, long stolen) =>
+        PvpRules.WalletLoot(wallet, Dec(multiplier)).Should().Be(stolen);
+
+    [Fact]
+    public void WalletLoot_KeepsTheFractionalTenPercent_UntilTheFinalFloor()
+    {
+        // 10% of 1,015 is 101.5; × 0.44… (16/24)² = 45.11 → 45. Flooring the 10% first gives 44.
+        var multiplier = PvpRules.LootMultiplier(16, 24);
+
+        PvpRules.WalletLoot(1_015, multiplier).Should().Be(45);
+        ((long)decimal.Floor(101 * multiplier)).Should().Be(44, "the old floor-first order would have lost a coin");
+    }
+
+    [Fact]
+    public void WalletLoot_UsesTheFullMultiplier_NotAFourPlaceTruncation()
+    {
+        // (17/18)² = 0.891975… × 472 = 421.01 → 421; truncated to 0.8919 it would give 420.98 → 420.
+        var multiplier = PvpRules.LootMultiplier(17, 18);
+
+        PvpRules.WalletLoot(4_720, multiplier).Should().Be(421);
+        ((long)decimal.Floor(472 * 0.8919m)).Should().Be(420);
+    }
+
+    [Fact]
+    public void CargoBudget_FollowsTheSameFinalFloorRule()
+    {
+        // 15 art pieces = 1,200 base value → 240 (under the 250 cap) × (19/22)² = 179.008… → 179.
+        // A 4-place truncated multiplier (0.7458) would give 178.99 → 178.
+        var defender = Player(2);
+        defender.AddCargo(CargoType.ArtPiece, 15);
+        var multiplier = PvpRules.LootMultiplier(19, 22);
+
+        PvpRules.CargoBudget(defender.Cargo, multiplier).Should().Be(179);
+        ((long)decimal.Floor(240 * 0.7458m)).Should().Be(178);
+        PvpRules.CargoBudget(defender.Cargo, 1m).Should().Be(240);
+
+        var capped = Player(3);
+        capped.AddCargo(CargoType.ArtPiece, 20); // 1,600 → 320, capped at 250 before the multiplier
+        PvpRules.CargoBudget(capped.Cargo, 0.5m).Should().Be(125);
+    }
 
     [Fact]
     public void Cargo_BudgetIsTwentyPercent_CappedAt250_AndSelectionIsHighestPriceFirst()
@@ -250,12 +304,11 @@ public class AfterHoursPvpRulesTests
         battle.AttackerWon.Should().BeTrue();
         battle.AttackerEffectivePower.Should().Be(24 + 4 + 1);
         battle.DefenderEffectivePower.Should().Be(16);
-        battle.LootMultiplier.Should().Be(Math.Round(256m / 841m, 4, MidpointRounding.ToZero));
-        battle.WalletStolen.Should().Be((long)decimal.Floor(300 * battle.LootMultiplier));
+        battle.LootMultiplier.Should().Be((16m / 29m) * (16m / 29m));
+        battle.WalletStolen.Should().Be(91, "⌊min(3,000 × 0.10, 500) × (16/29)²⌋ = ⌊91.32⌋");
         (a.WalletCash, d.WalletCash, d.BankCash).Should().Be((400 + battle.WalletStolen, 3_000 - battle.WalletStolen, 9_999L));
 
-        var cargoBudget = (long)decimal.Floor(60 * battle.LootMultiplier); // ⌊300 × 20%⌋ = 60 → 18
-        cargoBudget.Should().Be(18);
+        PvpRules.CargoBudget(d.Cargo, battle.LootMultiplier).Should().Be(18, "300 base value × 0.20 = 60 × (16/29)² = 18.26");
         battle.Cargo.Should().BeEmpty("18 buys nothing: the cheapest owned cargo costs 30");
 
         (a.Energy, receipt.EnergyDelta).Should().Be((220, -20));

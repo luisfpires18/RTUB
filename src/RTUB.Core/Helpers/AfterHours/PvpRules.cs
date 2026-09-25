@@ -146,25 +146,27 @@ public static class PvpRules
     // ------------------------------------------------------------------ loot (Game Manual v2)
 
     /// <summary>
-    /// min(1, (defender power / attacker power)²), computed in decimal and truncated to 4 places so it
-    /// is stored and replayed exactly. No lower bound.
+    /// ratio = defender power / attacker power; multiplier = min(1, ratio × ratio), in decimal and
+    /// not rounded (the battle stores the full decimal). No lower bound.
     /// </summary>
     public static decimal LootMultiplier(int defenderEffectivePower, int attackerEffectivePower)
     {
-        decimal d = defenderEffectivePower, a = attackerEffectivePower;
-        var squared = d * d / (a * a);
-        return Math.Min(1m, Math.Round(squared, 4, MidpointRounding.ToZero));
+        var ratio = (decimal)defenderEffectivePower / attackerEffectivePower;
+        return Math.Min(1m, ratio * ratio);
     }
 
-    /// <summary>⌊min(⌊wallet × 10%⌋, 500) × multiplier⌋. Wallet only; the bank is never touched.</summary>
+    /// <summary>
+    /// ⌊min(wallet × 0.10, 500) × multiplier⌋: only the final amount is floored. Wallet only; the bank
+    /// is never touched.
+    /// </summary>
     public static long WalletLoot(long defenderWallet, decimal multiplier) =>
-        (long)decimal.Floor(Math.Min(defenderWallet / 10, 500) * multiplier);
+        (long)decimal.Floor(Math.Min(defenderWallet * 0.10m, 500m) * multiplier);
 
-    /// <summary>⌊min(⌊cargo base value × 20%⌋, 250) × multiplier⌋.</summary>
+    /// <summary>⌊min(cargo base value × 0.20, 250) × multiplier⌋: only the final budget is floored.</summary>
     public static long CargoBudget(IEnumerable<PlayerCargo> defenderCargo, decimal multiplier)
     {
         var value = defenderCargo.Sum(c => c.Quantity * CargoCatalogue.FencePrice(c.CargoType));
-        return (long)decimal.Floor(Math.Min(value / 5, 250) * multiplier);
+        return (long)decimal.Floor(Math.Min(value * 0.20m, 250m) * multiplier);
     }
 
     /// <summary>
