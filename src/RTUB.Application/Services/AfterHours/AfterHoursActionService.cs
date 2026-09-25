@@ -71,6 +71,22 @@ public class AfterHoursActionService(
                 return attempt;
             });
 
+    public Task<AfterHoursActionResult> TrainSkillAsync(string userId, PlayerSkill skill, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.TrainRequest(skill),
+            (_, state, now) => Task.FromResult(AfterHoursActions.TrainSkill(state, skill, now)));
+
+    public Task<AfterHoursActionResult> PurchaseGearAsync(string userId, string itemKey, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.PurchaseGearRequest(itemKey),
+            (_, state, _) => Task.FromResult(AfterHoursActions.PurchaseGear(state, itemKey)));
+
+    public Task<AfterHoursActionResult> EquipGearAsync(string userId, string itemKey, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.EquipGearRequest(itemKey),
+            (_, state, _) => Task.FromResult(AfterHoursActions.EquipGear(state, itemKey)));
+
+    public Task<AfterHoursActionResult> UnequipGearAsync(string userId, string itemKey, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.UnequipGearRequest(itemKey),
+            (_, state, _) => Task.FromResult(AfterHoursActions.UnequipGear(state, itemKey)));
+
     private async Task<AfterHoursActionResult> RunAsync(string userId, string idempotencyKey, string request, Action action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
@@ -88,6 +104,7 @@ public class AfterHoursActionService(
             {
                 var priorState = await context.AfterHoursPlayerCycleStates.AsNoTracking()
                     .Include(s => s.Cargo)
+                    .Include(s => s.Gear)
                     .SingleAsync(s => s.Id == prior.PlayerCycleStateId);
                 priorState.Reconcile(now);
                 return prior.Request == request
@@ -102,6 +119,7 @@ public class AfterHoursActionService(
 
             var state = await context.AfterHoursPlayerCycleStates
                 .Include(s => s.Cargo)
+                .Include(s => s.Gear)
                 .SingleOrDefaultAsync(s => s.GameCycleId == cycle.Id && s.UserId == userId);
             if (state is null)
             {

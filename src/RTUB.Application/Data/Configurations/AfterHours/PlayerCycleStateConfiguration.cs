@@ -23,6 +23,9 @@ public class PlayerCycleStateConfiguration : IEntityTypeConfiguration<PlayerCycl
         builder.Property(s => s.EnergyUpdatedAtUtc).HasConversion(GameCycleConfiguration.Utc);
         builder.Property(s => s.HeatUpdatedAtUtc).HasConversion(GameCycleConfiguration.Utc);
         builder.Property(s => s.JailUntilUtc).HasConversion(GameCycleConfiguration.Utc);
+        builder.Property(s => s.EquippedWeaponKey).HasMaxLength(16);
+        builder.Property(s => s.EquippedOutfitKey).HasMaxLength(16);
+        builder.Property(s => s.EquippedVehicleToolKey).HasMaxLength(16);
 
         // One annual state per player per cycle; also what makes first-time creation race-safe.
         builder.HasIndex(s => new { s.GameCycleId, s.UserId })

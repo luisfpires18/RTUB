@@ -42,6 +42,13 @@ public class PlayerActionReceipt : BaseEntity
     public CargoType? CargoType { get; set; }
     public int CargoDelta { get; set; }
 
+    /// <summary>Training: the skill raised and its rank afterwards.</summary>
+    public PlayerSkill? Skill { get; set; }
+    public int? SkillRankAfter { get; set; }
+
+    /// <summary>Gear purchase, equip or unequip: the catalogue key of the item.</summary>
+    public string? GearKey { get; set; }
+
     public int LevelBefore { get; set; }
     public int LevelAfter { get; set; }
 }

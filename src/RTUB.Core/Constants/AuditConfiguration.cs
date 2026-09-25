@@ -70,6 +70,7 @@ public static class AuditConfiguration
         "PlayerCycleState",
         "PlayerActionReceipt",
         "PlayerCargo",
+        "PlayerGear",
         "BuyerContract",
         "BuyerContractCompletion",
     };

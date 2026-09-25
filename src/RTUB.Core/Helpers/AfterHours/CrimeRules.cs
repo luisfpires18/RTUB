@@ -60,6 +60,18 @@ public static class CrimeRules
         _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, "Unknown skill")
     };
 
+    public static void SetSkillRank(PlayerCycleState state, PlayerSkill skill, int rank)
+    {
+        switch (skill)
+        {
+            case PlayerSkill.Toughness: state.Toughness = rank; break;
+            case PlayerSkill.Stealth: state.Stealth = rank; break;
+            case PlayerSkill.Smarts: state.Smarts = rank; break;
+            case PlayerSkill.Charisma: state.Charisma = rank; break;
+            default: throw new ArgumentOutOfRangeException(nameof(skill), skill, "Unknown skill");
+        }
+    }
+
     /// <summary><c>value × num / den</c> for non-negative values, rounded half up.</summary>
     internal static long RoundHalfUp(long value, long num, long den) => (2 * value * num + den) / (2 * den);
 }

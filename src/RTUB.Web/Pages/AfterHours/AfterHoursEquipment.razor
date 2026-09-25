@@ -1,0 +1,138 @@
+@page "/after-hours/equipment"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IAfterHoursActionService Actions
+
+<PageTitle>Equipment - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-shield"></i> Equipment</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        <div class="after-hours-status">
+            <span>Level @state.Level</span>
+            <span><i class="bi bi-wallet2"></i> $@state.WalletCash</span>
+        </div>
+
+        <dl class="after-hours-loadout">
+            @foreach (var slot in Enum.GetValues<GearSlot>())
+            {
+                <dt>@SlotName(slot)</dt>
+                <dd>@(GearCatalogue.Find(state.EquippedKey(slot))?.Name ?? "Nothing")</dd>
+            }
+        </dl>
+        <p class="after-hours-muted after-hours-center">Bought gear stays yours for the whole cycle, equipped or not.</p>
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        @foreach (var slot in Enum.GetValues<GearSlot>())
+        {
+            <h2 class="after-hours-section">@SlotName(slot)</h2>
+            <ul class="after-hours-list">
+                @foreach (var item in GearCatalogue.All.Where(i => i.Slot == slot))
+                {
+                    var owned = state.OwnsGear(item.Key);
+                    var equipped = state.EquippedKey(slot) == item.Key;
+                    var locked = !owned && state.Level < item.UnlockLevel;
+                    <li @key="item.Key" class="after-hours-card @(locked ? "after-hours-locked" : null)">
+                        <div class="after-hours-card-head">
+                            <h3>@item.Name</h3>
+                            <span class="after-hours-muted">Tier @item.Tier</span>
+                        </div>
+                        @if (locked)
+                        {
+                            <p><i class="bi bi-lock"></i> Level @item.UnlockLevel · $@item.Price</p>
+                        }
+                        else if (equipped)
+                        {
+                            <p><i class="bi bi-check2"></i> Equipped</p>
+                            <button class="btn btn-outline-light" disabled="@busy" @onclick="() => RunAsync(key => Actions.UnequipGearAsync(userId!, item.Key, key))">Unequip</button>
+                        }
+                        else if (owned)
+                        {
+                            <p>Owned</p>
+                            <button class="btn btn-primary" disabled="@busy" @onclick="() => RunAsync(key => Actions.EquipGearAsync(userId!, item.Key, key))">Equip</button>
+                        }
+                        else
+                        {
+                            var block = AfterHoursActions.PurchaseBlockReason(state, item);
+                            <p>$@item.Price</p>
+                            <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => RunAsync(key => Actions.PurchaseGearAsync(userId!, item.Key, key))">Buy</button>
+                            @if (block is not null)
+                            {
+                                <span class="after-hours-muted">@block</span>
+                            }
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private string? message;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private static string SlotName(GearSlot slot) => slot == GearSlot.VehicleTool ? "Vehicle / tool" : slot.ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId);
+        }
+
+        loaded = true;
+    }
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            state = result.State ?? state;
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

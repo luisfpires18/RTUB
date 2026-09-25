@@ -111,6 +111,8 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [Theory]
     [InlineData("crimes", 5, "Lift a phone outside the bar")]
     [InlineData("cargo", 6, "Fence pays")]
+    [InlineData("training", 7, "training point a day")]
+    [InlineData("equipment", 8, "Brass Knuckles")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
@@ -268,6 +270,15 @@ public class AfterHoursEnabledTests : AfterHoursGateTestsBase, IClassFixture<Aft
         var cargoHtml = await ReadBodyAsync(cargo);
         cargoHtml.Should().Contain("Fence pays $80 each");
         Regex.Matches(cargoHtml, "Pays <strong[^>]*>").Count.Should().Be(3, "three buyer contracts per rotation");
+        after.Should().Contain("href=\"/after-hours/training\"").And.Contain("href=\"/after-hours/equipment\"");
+
+        var training = await ReadBodyAsync(await client.GetAsync("/after-hours/training"));
+        training.Should().Contain("1 / 3 points");
+        training.Should().Contain("At your current cap", "level 1 caps skills at their starting rank");
+
+        var equipment = await ReadBodyAsync(await client.GetAsync("/after-hours/equipment"));
+        equipment.Should().Contain("Brass Knuckles").And.Contain("Specialist Rig");
+        equipment.Should().Contain("Level 3 · $400");
     }
 }
 
