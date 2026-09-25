@@ -117,7 +117,7 @@ public class AfterHoursActionTests : IClassFixture<AfterHoursPlayFactory>
         results.Count(r => r.Accepted).Should().Be(24, "240 energy buys exactly 24 crimes at 10");
         results.Where(r => !r.Accepted).Should().OnlyContain(r => r.Error == "Not enough energy.");
         var state = await LoadStateAsync(user);
-        (state.Energy, state.WalletCash, state.XP, state.Heat).Should().Be((0, 400L + 24 * 35, 24 * 20L, 24 * 3));
+        (state.Energy, state.WalletCash, state.XP - await ObjectiveXpAsync(state.Id), state.Heat).Should().Be((0, 400L + 24 * 35, 24 * 20L, 24 * 3));
         (await ReceiptsAsync(user)).Should().HaveCount(24);
     }
 
@@ -186,7 +186,7 @@ public class AfterHoursActionTests : IClassFixture<AfterHoursPlayFactory>
         var state = await LoadStateAsync(user);
         state.WalletCash.Should().Be(400 + receipts.Sum(r => r.WalletDelta));
         state.BankCash.Should().Be(receipts.Sum(r => r.BankDelta));
-        state.XP.Should().Be(receipts.Sum(r => r.XpDelta));
+        state.XP.Should().Be(receipts.Sum(r => r.XpDelta) + await ObjectiveXpAsync(state.Id));
         state.Energy.Should().Be(240 + receipts.Sum(r => r.EnergyDelta));
         state.Heat.Should().Be(60 + receipts.Sum(r => r.HeatDelta));
         state.WalletCash.Should().BeGreaterThanOrEqualTo(0);
@@ -243,6 +243,13 @@ public class AfterHoursActionTests : IClassFixture<AfterHoursPlayFactory>
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /// <summary>XP awarded by daily objectives (AH-008), which arrives on top of the actions' own XP.</summary>
+    private async Task<long> ObjectiveXpAsync(int stateId)
+    {
+        await using var db = await DbAsync();
+        return await db.AfterHoursPlayerObjectiveProgress.Where(r => r.PlayerCycleStateId == stateId).SumAsync(r => r.XpAwarded);
+    }
 
     private IAfterHoursActionService Actions() =>
         _factory.Services.CreateScope().ServiceProvider.GetRequiredService<IAfterHoursActionService>();

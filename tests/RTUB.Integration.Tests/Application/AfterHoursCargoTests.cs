@@ -207,8 +207,8 @@ public class AfterHoursCargoTests : IClassFixture<AfterHoursPlayFactory>
         var state = await StateAsync(user);
         (await CargoAsync(user, contract.CargoType)).Should().Be(1);
         state.WalletCash.Should().Be(400 + contract.CashReward);
-        state.XP.Should().Be(contract.XpReward);
-        state.Level.Should().Be(AfterHoursLevels.LevelForXp(contract.XpReward));
+        state.XP.Should().Be(contract.XpReward + await ObjectiveXpAsync(state.Id), "plus any daily objective XP (AH-008)");
+        state.Level.Should().Be(AfterHoursLevels.LevelForXp(state.XP));
         (await Contracts().GetCurrentContractsAsync(user)).Single(c => c.Contract.Id == contract.Id).Completed.Should().BeTrue();
         await using var db = await DbAsync();
         (await db.AfterHoursBuyerContractCompletions.CountAsync(c => c.BuyerContractId == contract.Id && c.PlayerCycleStateId == state.Id))
@@ -277,6 +277,13 @@ public class AfterHoursCargoTests : IClassFixture<AfterHoursPlayFactory>
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /// <summary>XP awarded by daily objectives (AH-008), which arrives on top of the actions' own XP.</summary>
+    private async Task<long> ObjectiveXpAsync(int stateId)
+    {
+        await using var db = await DbAsync();
+        return await db.AfterHoursPlayerObjectiveProgress.Where(r => r.PlayerCycleStateId == stateId).SumAsync(r => r.XpAwarded);
+    }
 
     private IAfterHoursActionService Actions() =>
         _factory.Services.CreateScope().ServiceProvider.GetRequiredService<IAfterHoursActionService>();

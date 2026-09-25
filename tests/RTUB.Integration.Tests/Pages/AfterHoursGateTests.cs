@@ -117,6 +117,8 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [InlineData("pvp", 9, "Attack setup")]
     [InlineData("pvp/report/1", 10, "Battle report")]
     [InlineData("family", 11, "Create a family")]
+    [InlineData("objectives", 12, "Daily objectives pay XP")]
+    [InlineData("leaderboards", 13, "Annual score")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
@@ -426,5 +428,43 @@ public class AfterHoursFamilyPagesTests : AfterHoursGateTestsBase, IClassFixture
         page.Should().Contain("ah-fam-low", "the Boss can invite current-cycle players");
         page.Should().Contain("Leave and disband");
         page.Should().NotContain("$400", "another player's wallet is never shown");
+    }
+}
+
+/// <summary>Objectives and leaderboards through the real host, on their own database.</summary>
+public class AfterHoursObjectivePagesTests : AfterHoursGateTestsBase, IClassFixture<AfterHoursEnabledFactory>
+{
+    public AfterHoursObjectivePagesTests(AfterHoursEnabledFactory factory) : base(factory)
+    {
+    }
+
+    [Fact]
+    public async Task ObjectivesAndLeaderboards_RenderFromStoredProgress()
+    {
+        var (client, user) = await CookieTestSession.SignInAsync(Factory, "ah-obj-player", "10.50.6.1", "Member");
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RTUB.Application.Data.ApplicationDbContext>();
+            var fiscalYear = RTUB.Core.Entities.FiscalYear.Create(2500, 2501);
+            db.FiscalYears.Add(fiscalYear);
+            await db.SaveChangesAsync();
+            var cycles = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IGameCycleService>();
+            var cycle = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Pilot,
+                DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddDays(30));
+            await cycles.ActivateAsync(cycle.Id);
+            var result = await scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService>()
+                .CommitCrimeAsync(user.Id, "C01", RTUB.Core.Enums.AfterHours.CrimeApproach.Careful, "page-crime");
+            result.Accepted.Should().BeTrue(result.Error);
+        }
+
+        var objectives = await ReadBodyAsync(await client.GetAsync("/after-hours/objectives"));
+        objectives.Should().Contain("Today").And.Contain("Week 1").And.Contain("Solo crimes");
+        var today = RTUB.Core.Helpers.AfterHours.ObjectiveCatalogue.DailyFor(RTUB.Core.Helpers.AfterHours.LisbonCalendar.DateOf(DateTime.UtcNow));
+        foreach (var daily in today) objectives.Should().Contain(daily.Title);
+        objectives.Should().NotContain("Crew Hustle", "no family section without a family");
+
+        var boards = await ReadBodyAsync(await client.GetAsync("/after-hours/leaderboards"));
+        boards.Should().Contain("ah-obj-player").And.Contain("#1").And.Contain("Individual").And.Contain("Family");
+        boards.Should().NotContain("Champion");
     }
 }

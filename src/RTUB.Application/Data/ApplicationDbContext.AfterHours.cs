@@ -18,6 +18,9 @@ public partial class ApplicationDbContext
     public DbSet<FamilyMembership> AfterHoursFamilyMemberships { get; set; } = null!;
     public DbSet<FamilyInvitation> AfterHoursFamilyInvitations { get; set; } = null!;
     public DbSet<FamilyCycleState> AfterHoursFamilyCycleStates { get; set; } = null!;
+    public DbSet<PlayerObjectiveProgress> AfterHoursPlayerObjectiveProgress { get; set; } = null!;
+    public DbSet<FamilyObjectiveProgress> AfterHoursFamilyObjectiveProgress { get; set; } = null!;
+    public DbSet<PvpObjectiveCredit> AfterHoursPvpObjectiveCredits { get; set; } = null!;
     public DbSet<BuyerContract> AfterHoursBuyerContracts { get; set; } = null!;
     public DbSet<BuyerContractCompletion> AfterHoursBuyerContractCompletions { get; set; } = null!;
 }
