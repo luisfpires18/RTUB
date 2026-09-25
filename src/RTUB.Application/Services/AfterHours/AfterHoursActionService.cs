@@ -17,7 +17,7 @@ public sealed class AfterHoursDice : IAfterHoursDice
 /// receipt lookup, state load, reconciliation, rules, dice, state update and receipt insert all
 /// happen under the database write lock. Nothing is written for a refusal.
 /// </summary>
-public class AfterHoursActionService(
+public partial class AfterHoursActionService(
     IDbContextFactory<ApplicationDbContext> contextFactory,
     TimeProvider clock,
     IAfterHoursDice dice) : IAfterHoursActionService

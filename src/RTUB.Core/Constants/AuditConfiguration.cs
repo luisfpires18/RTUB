@@ -72,6 +72,10 @@ public static class AuditConfiguration
         "PlayerCargo",
         "PlayerGear",
         "PvpBattle",
+        "Family",
+        "FamilyMembership",
+        "FamilyInvitation",
+        "FamilyCycleState",
         "BuyerContract",
         "BuyerContractCompletion",
     };

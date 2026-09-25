@@ -36,6 +36,18 @@ public interface IAfterHoursActionService
     Task<AfterHoursActionResult> SaveDefenceAsync(string userId, PvpTactic tactic, string? weapon, string? outfit, string? vehicleTool, string idempotencyKey);
     Task<AfterHoursActionResult> AttackAsync(string userId, int defenderStateId, PvpTactic tactic, RiskStance stance,
         string? weapon, string? outfit, string? vehicleTool, string idempotencyKey);
+
+    // Families (AH-007): identity and membership are persistent; treasury is per cycle.
+    Task<AfterHoursActionResult> CreateFamilyAsync(string userId, string name, string? motto, string idempotencyKey);
+    Task<AfterHoursActionResult> InviteToFamilyAsync(string userId, int targetStateId, string idempotencyKey);
+    Task<AfterHoursActionResult> CancelFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey);
+    Task<AfterHoursActionResult> AcceptFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey);
+    Task<AfterHoursActionResult> DeclineFamilyInvitationAsync(string userId, int invitationId, string idempotencyKey);
+    Task<AfterHoursActionResult> LeaveFamilyAsync(string userId, string idempotencyKey);
+    Task<AfterHoursActionResult> TransferFamilyBossAsync(string userId, int targetMembershipId, string idempotencyKey);
+    Task<AfterHoursActionResult> SetFamilyRoleAsync(string userId, int targetMembershipId, FamilyRole role, string idempotencyKey);
+    Task<AfterHoursActionResult> UpdateFamilyProfileAsync(string userId, string name, string? motto, string idempotencyKey);
+    Task<AfterHoursActionResult> DonateToFamilyAsync(string userId, long amount, string idempotencyKey);
 }
 
 /// <summary>Server-side dice. Never seeded or driven by a client.</summary>

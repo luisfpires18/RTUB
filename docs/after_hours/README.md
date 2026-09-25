@@ -6,10 +6,11 @@ extension of MyTuno, and shares none of its gameplay systems.
 
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
 crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
-with equipment (AH-005), and PvP (AH-006). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+with equipment (AH-005), PvP (AH-006), and families (AH-007). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
 list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
 `/after-hours/training` and `/after-hours/equipment` are training and gear; `/after-hours/pvp` is PvP
-(status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle.
+(status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle;
+`/after-hours/family` is the family page.
 
 ## Numbering
 
@@ -102,6 +103,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCargoTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursCargoRulesTests.cs` | | AH-004 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursTrainingGearTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursTrainingGearRulesTests.cs` | | AH-005 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursPvpTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursPvpRulesTests.cs`, `AfterHoursPvpPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-006 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursFamilyTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursFamilyRulesTests.cs`, `AfterHoursFamilyPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-007 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -209,7 +211,8 @@ wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched
 ## Actions: receipts, idempotency, concurrency
 
 `IAfterHoursActionService` (crime, cover job, deposit, withdraw, fence sale, contract delivery, training,
-gear purchase, equip, unequip, save defence, PvP attack) is the only way player state changes. All After Hours writes, including contract rotation, go through
+gear purchase, equip, unequip, save defence, PvP attack, and the family actions) is the only way player
+state changes. All After Hours writes, including contract rotation, go through
 `AfterHoursWriteTransaction`.
 
 - **Idempotency key.** Every request carries a client key (≤ 64 chars). The pages create one per
@@ -419,3 +422,76 @@ same battle and changes nothing (no energy, dice, loot, or new timers); the same
 refused. Because attacks serialize on the write lock, the second of two racing attacks sees the first:
 cooldown, a defender's new protection, the 24-hour history and spent energy all hold. Saving a defence
 writes its four fields in one update, so a mix of two saves cannot happen.
+
+## Families
+
+Game crews only: unrelated to real RTUB mentors/padrinhos, RTUB roles, MyTuno or any real membership.
+Reads in `IFamilyService`; every change is an `IAfterHoursActionService` action (one write transaction
+with a receipt; the receipt records `FamilyId`). Rules in `FamilyRules`.
+
+### Game Manual v2 rules
+
+- At most **4 active members**.
+- Creating a family needs **level 5** and **1,500 cash**.
+- Members donate to the family **treasury**.
+- After **leaving**, a player waits **72 hours** before joining or creating a family (from exactly
+  `LeftAtUtc + 72 h`). Declining an invitation starts no cooldown.
+- Roles **Boss, Enforcer, Fixer, Member**. The Boss edits name and motto, sends and cancels invitations,
+  sets roles and transfers leadership. Enforcer and Fixer carry no permissions yet: they are reserved for
+  heists and family objectives in later units.
+- **Family identity and membership persist** across academic years; **treasury is per cycle** and resets.
+
+### Model
+
+- **Persistent** (no cycle foreign key): `Family` (`AfterHoursFamilies`; unique `NormalizedName` =
+  trimmed, upper-invariant name), `FamilyMembership` (`AfterHoursFamilyMemberships`; history rows with
+  `JoinedAtUtc` / `LeftAtUtc`, active = no `LeftAtUtc`), `FamilyInvitation` (`AfterHoursFamilyInvitations`;
+  status and resolution time kept as history).
+- **Annual:** `FamilyCycleState` (`AfterHoursFamilyCycleStates`), one row per family and cycle, created
+  lazily with a 0 treasury (check constraint ≥ 0). This is the rollover boundary: later upgrades and
+  family score belong here too. A family entering a new cycle gets a new row; its identity and
+  memberships are untouched. Nothing about families is stored on `PlayerCycleState`.
+- **Database guarantees:** one active membership per user (filtered unique index); at most one active
+  Boss per family (filtered unique index; the transfer demotes, saves, then promotes inside one
+  transaction); one pending invitation per family and player (filtered unique index); unique name.
+  The 4-member cap is checked under the write lock at acceptance.
+- The leave cooldown is derived from the latest `LeftAtUtc` in the membership history, so it survives
+  cycle changes.
+- **For AH-008:** a family's id never changes and memberships keep their dates, so points can be attributed
+  to the family a player belonged to when they earned them. No score columns or tables exist yet.
+
+### Flows
+
+- **Create:** level 5, not in a family, no cooldown, valid unique name, 1,500 in the wallet → wallet −1,500,
+  family, Boss membership, this cycle's treasury row, receipt.
+- **Invite** (Boss only): a player with a state in the current cycle, not yourself, not in any family, no
+  pending invitation from your family. Several families may invite the same player. Invitations do not
+  reserve a place.
+- **Accept:** checked at that moment: still pending, family not disbanded, not in a family, no cooldown,
+  fewer than 4 active members. Joins as Member, opens this cycle's treasury row if needed, marks the
+  invitation accepted and **cancels the player's other pending invitations**. Decline and Boss cancel
+  only close that invitation.
+- **Roles:** the Boss sets another active member to Member, Enforcer or Fixer; never to Boss (that is
+  Transfer Boss) and never their own role. **Transfer Boss:** the chosen member becomes Boss and the old
+  Boss becomes Member, so there is always exactly one Boss.
+- **Leave:** members leave freely (history kept, cooldown starts). A Boss with other members must
+  transfer first.
+- **Donate:** any member, amount ≥ 1, from the wallet, into this cycle's treasury.
+
+### AH-007 implementation defaults (not in the manual)
+
+- The 1,500 creation cost and all donations come from the **wallet**; the bank is never used. The manual
+  only says "cash".
+- Names 3–24 characters, mottos optional and at most 120, both trimmed; no profanity filter.
+- Invitations **do not expire**.
+- A Boss who is the **last member** may leave: that **disbands** the family (`DisbandedAtUtc`), cancels its
+  pending invitations, keeps all history and cycle rows, and starts the Boss's cooldown. Families are never
+  deleted, a disbanded family takes no members, and its **name stays reserved**.
+- No donation fee, no withdrawals or refunds.
+
+### Source gap: family upgrades
+
+The manual says the treasury "buys family upgrades" but gives no upgrade list, costs, levels or effects.
+AH-007 therefore stores the treasury correctly on the annual `FamilyCycleState` and **does not invent any
+upgrade or bonus**. Upgrades will attach to that row once their values are decided. Heists, family
+objectives, scoring, leaderboards and PvP family bonuses are later units.

@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -115,6 +116,7 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [InlineData("equipment", 8, "Brass Knuckles")]
     [InlineData("pvp", 9, "Attack setup")]
     [InlineData("pvp/report/1", 10, "Battle report")]
+    [InlineData("family", 11, "Create a family")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
@@ -374,5 +376,55 @@ public class AfterHoursPvpPagesTests : AfterHoursGateTestsBase, IClassFixture<Af
         var pvp = await ReadBodyAsync(await attackerClient.GetAsync("/after-hours/pvp"));
         pvp.Should().Contain("Effective power").And.Contain("Attack setup").And.Contain("You attacked ah-pvp-d");
         pvp.Should().NotContain("$400", "targets never show another player's cash");
+    }
+}
+
+/// <summary>The family page through the real host, on its own database.</summary>
+public class AfterHoursFamilyPagesTests : AfterHoursGateTestsBase, IClassFixture<AfterHoursEnabledFactory>
+{
+    public AfterHoursFamilyPagesTests(AfterHoursEnabledFactory factory) : base(factory)
+    {
+    }
+
+    [Fact]
+    public async Task FamilyPage_ShowsCreateOrLock_ThenTheFamily_WithoutMoneyOfOthers()
+    {
+        var (bossClient, boss) = await CookieTestSession.SignInAsync(Factory, "ah-fam-boss", "10.50.5.1", "Member");
+        var (lowClient, low) = await CookieTestSession.SignInAsync(Factory, "ah-fam-low", "10.50.5.2", "Member");
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RTUB.Application.Data.ApplicationDbContext>();
+            var fiscalYear = RTUB.Core.Entities.FiscalYear.Create(2600, 2601);
+            db.FiscalYears.Add(fiscalYear);
+            await db.SaveChangesAsync();
+            var cycles = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IGameCycleService>();
+            var cycle = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Pilot,
+                DateTime.UtcNow.AddDays(-1), DateTime.UtcNow.AddDays(30));
+            await cycles.ActivateAsync(cycle.Id);
+
+            var states = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService>();
+            await states.GetOrCreateForActiveCycleAsync(low.Id);
+            var bossState = await states.GetOrCreateForActiveCycleAsync(boss.Id);
+            var row = await db.AfterHoursPlayerCycleStates.SingleAsync(s => s.Id == bossState!.Id);
+            (row.Level, row.WalletCash) = (5, 2_000);
+            await db.SaveChangesAsync();
+        }
+
+        (await ReadBodyAsync(await bossClient.GetAsync("/after-hours/family"))).Should().Contain("Create a family").And.Contain("$1,500");
+        (await ReadBodyAsync(await lowClient.GetAsync("/after-hours/family"))).Should().Contain("Unlocks at level 5");
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var created = await scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService>()
+                .CreateFamilyAsync(boss.Id, "Night Shift", "Loyal after dark", "page-family");
+            created.Accepted.Should().BeTrue(created.Error);
+        }
+
+        var page = await ReadBodyAsync(await bossClient.GetAsync("/after-hours/family"));
+        page.Should().Contain("Night Shift").And.Contain("Loyal after dark").And.Contain("1 / 4").And.Contain("$0 this cycle");
+        page.Should().Contain("ah-fam-low", "the Boss can invite current-cycle players");
+        page.Should().Contain("Leave and disband");
+        page.Should().NotContain("$400", "another player's wallet is never shown");
     }
 }

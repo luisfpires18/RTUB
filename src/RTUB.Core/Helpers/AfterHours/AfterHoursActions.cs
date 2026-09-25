@@ -471,6 +471,19 @@ public static class AfterHoursActions
         return Finish(attacker, receipt);
     }
 
+    /// <summary>
+    /// An accepted receipt for an action whose checks need the database and so live in the application
+    /// service (families). The caller has already applied the change.
+    /// </summary>
+    public static ActionAttempt Accepted(PlayerCycleState state, PlayerActionKind action, string request, int? familyId, long walletDelta = 0)
+    {
+        var receipt = Begin(state, action, request);
+        receipt.Succeeded = true;
+        receipt.FamilyId = familyId;
+        receipt.WalletDelta = walletDelta;
+        return Finish(state, receipt);
+    }
+
     private static PlayerActionReceipt Begin(PlayerCycleState state, PlayerActionKind action, string request) =>
         new() { PlayerCycleStateId = state.Id, Action = action, Request = request, LevelBefore = state.Level };
 
