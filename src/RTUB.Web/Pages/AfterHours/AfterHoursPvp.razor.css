@@ -1,0 +1,107 @@
+/* Structure only; colours derive from the inherited text colour (branding is not decided yet).
+   Mobile-first: one column, full-width controls. */
+.after-hours-page {
+    max-width: 720px;
+}
+
+.after-hours-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.25rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.after-hours-muted {
+    opacity: 0.7;
+}
+
+.after-hours-result {
+    padding: 0.75rem 1rem;
+    border-left: 3px solid currentColor;
+}
+
+.after-hours-section {
+    font-size: 1.15rem;
+    margin: 1.25rem 0 0.75rem;
+}
+
+.after-hours-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.after-hours-card {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 0.75rem;
+}
+
+.after-hours-card p {
+    margin: 0.25rem 0 0.75rem;
+}
+
+.after-hours-card .btn {
+    margin-right: 0.5rem;
+}
+
+.after-hours-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.after-hours-card-head h2,
+.after-hours-card-head h3 {
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.after-hours-done {
+    opacity: 0.6;
+}
+
+.after-hours-center {
+    text-align: center;
+}
+
+.after-hours-locked {
+    opacity: 0.5;
+}
+
+.after-hours-card h2 {
+    font-size: 1.1rem;
+}
+
+.after-hours-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    margin: 0;
+}
+
+.after-hours-facts dt {
+    font-weight: 600;
+}
+
+.after-hours-facts dd {
+    margin-bottom: 0;
+}
+
+.after-hours-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.after-hours-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}

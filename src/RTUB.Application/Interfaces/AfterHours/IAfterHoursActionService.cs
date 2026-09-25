@@ -33,6 +33,9 @@ public interface IAfterHoursActionService
     Task<AfterHoursActionResult> PurchaseGearAsync(string userId, string itemKey, string idempotencyKey);
     Task<AfterHoursActionResult> EquipGearAsync(string userId, string itemKey, string idempotencyKey);
     Task<AfterHoursActionResult> UnequipGearAsync(string userId, string itemKey, string idempotencyKey);
+    Task<AfterHoursActionResult> SaveDefenceAsync(string userId, PvpTactic tactic, string? weapon, string? outfit, string? vehicleTool, string idempotencyKey);
+    Task<AfterHoursActionResult> AttackAsync(string userId, int defenderStateId, PvpTactic tactic, RiskStance stance,
+        string? weapon, string? outfit, string? vehicleTool, string idempotencyKey);
 }
 
 /// <summary>Server-side dice. Never seeded or driven by a client.</summary>

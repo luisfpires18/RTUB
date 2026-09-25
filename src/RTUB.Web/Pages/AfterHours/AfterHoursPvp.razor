@@ -1,0 +1,260 @@
+@page "/after-hours/pvp"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IPvpService PvpService
+@inject IAfterHoursActionService Actions
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+
+<PageTitle>PvP - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-crosshair"></i> PvP</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        var attackBlock = PvpRules.AttackerBlockReason(state, Now);
+
+        <section class="after-hours-card">
+            <h2>You</h2>
+            <dl class="after-hours-facts">
+                <dt>Effective power</dt><dd>@PvpRules.EffectivePower(state)</dd>
+                <dt>Energy</dt><dd>@state.Energy / @state.MaxEnergy (attack −@PvpRules.AttackEnergy)</dd>
+                <dt>Status</dt><dd>@(attackBlock ?? "Ready to fight")</dd>
+                <dt>Target protection</dt><dd>@ProtectionText(state)</dd>
+            </dl>
+        </section>
+
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        <section class="after-hours-card">
+            <h2>Defence</h2>
+            <p class="after-hours-muted">
+                @(state.DefenceTactic is null
+                    ? "Not saved: you defend with Counterattack and whatever you have equipped."
+                    : $"Saved: {state.DefenceTactic} with {LoadoutText(state.DefenceWeaponKey, state.DefenceOutfitKey, state.DefenceVehicleToolKey)}.")
+            </p>
+            <div class="after-hours-form">
+                <label>Tactic
+                    <select class="form-select" @bind="defenceTactic">
+                        @foreach (var t in Enum.GetValues<PvpTactic>()) { <option value="@t">@t</option> }
+                    </select>
+                </label>
+                @foreach (var slot in Enum.GetValues<GearSlot>())
+                {
+                    var s = slot;
+                    <label>@SlotName(s)
+                        <select class="form-select" value="@defenceGear[s]" @onchange="e => defenceGear[s] = e.Value?.ToString() ?? string.Empty">
+                            <option value="">None</option>
+                            @foreach (var item in Owned(s)) { <option value="@item.Key">@item.Name (tier @item.Tier)</option> }
+                        </select>
+                    </label>
+                }
+            </div>
+            <button class="btn btn-outline-light" disabled="@busy" @onclick="SaveDefenceAsync">Save defence</button>
+        </section>
+
+        <section class="after-hours-card">
+            <h2>Attack setup</h2>
+            <div class="after-hours-form">
+                <label>Tactic
+                    <select class="form-select" @bind="attackTactic">
+                        @foreach (var t in Enum.GetValues<PvpTactic>()) { <option value="@t">@t</option> }
+                    </select>
+                </label>
+                <label>Risk
+                    <select class="form-select" @bind="stance">
+                        @foreach (var r in Enum.GetValues<RiskStance>()) { <option value="@r">@r</option> }
+                    </select>
+                </label>
+                @foreach (var slot in Enum.GetValues<GearSlot>())
+                {
+                    var s = slot;
+                    <label>@SlotName(s)
+                        <select class="form-select" value="@attackGear[s]" @onchange="e => attackGear[s] = e.Value?.ToString() ?? string.Empty">
+                            <option value="">None</option>
+                            @foreach (var item in Owned(s)) { <option value="@item.Key">@item.Name (tier @item.Tier)</option> }
+                        </select>
+                    </label>
+                }
+            </div>
+            <p class="after-hours-muted">Ambush beats Negotiation, Negotiation beats Setup, Setup beats Counterattack, Counterattack beats Ambush.</p>
+        </section>
+
+        <h2 class="after-hours-section">Targets</h2>
+        @if (targets.Count == 0)
+        {
+            <p class="after-hours-muted">Nobody else is playing this cycle yet.</p>
+        }
+        <ul class="after-hours-list">
+            @foreach (var target in targets)
+            {
+                var block = target.BlockReason ?? attackBlock;
+                <li @key="target.StateId" class="after-hours-card @(target.BlockReason is not null ? "after-hours-locked" : null)">
+                    <div class="after-hours-card-head">
+                        <h3>@target.DisplayName</h3>
+                        <span class="after-hours-muted">Level @target.Level · power @target.EffectivePower</span>
+                    </div>
+                    <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => AttackAsync(target.StateId)">Attack</button>
+                    @if (block is not null)
+                    {
+                        <span class="after-hours-muted">@block</span>
+                    }
+                </li>
+            }
+        </ul>
+
+        <h2 class="after-hours-section">Recent battles</h2>
+        @if (battles.Count == 0)
+        {
+            <p class="after-hours-muted">No battles yet.</p>
+        }
+        <ul class="after-hours-list">
+            @foreach (var view in battles)
+            {
+                var b = view.Battle;
+                var mine = b.AttackerUserId == userId;
+                var won = mine == b.AttackerWon;
+                <li @key="b.Id" class="after-hours-card">
+                    <a href="/after-hours/pvp/report/@b.Id">
+                        @(mine ? $"You attacked {view.DefenderName}" : $"{view.AttackerName} attacked you")
+                    </a>
+                    <span class="after-hours-muted">· @(won ? "won" : "lost") · @b.AcceptedAtUtc.ToString("dd MMM HH:mm") UTC</span>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private IReadOnlyList<PvpTargetView> targets = [];
+    private IReadOnlyList<PvpBattleView> battles = [];
+    private string? message;
+
+    private PvpTactic defenceTactic = PvpRules.DefaultDefenceTactic;
+    private readonly Dictionary<GearSlot, string> defenceGear = new() { [GearSlot.Weapon] = "", [GearSlot.Outfit] = "", [GearSlot.VehicleTool] = "" };
+    private PvpTactic attackTactic = PvpTactic.Ambush;
+    private RiskStance stance = RiskStance.Standard;
+    private readonly Dictionary<GearSlot, string> attackGear = new() { [GearSlot.Weapon] = "", [GearSlot.Outfit] = "", [GearSlot.VehicleTool] = "" };
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            await LoadAsync();
+            if (state is not null)
+            {
+                defenceTactic = state.DefenceTactic ?? PvpRules.DefaultDefenceTactic;
+                foreach (var slot in Enum.GetValues<GearSlot>())
+                {
+                    defenceGear[slot] = (state.DefenceTactic is null ? state.EquippedKey(slot) : DefenceKey(state, slot)) ?? "";
+                    attackGear[slot] = state.EquippedKey(slot) ?? "";
+                }
+            }
+        }
+
+        loaded = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId!);
+        targets = await PvpService.GetTargetsAsync(userId!);
+        battles = await PvpService.GetRecentBattlesAsync(userId!);
+    }
+
+    private IEnumerable<GearItem> Owned(GearSlot slot) =>
+        GearCatalogue.All.Where(i => i.Slot == slot && state!.OwnsGear(i.Key));
+
+    private static string? DefenceKey(PlayerCycleState s, GearSlot slot) => slot switch
+    {
+        GearSlot.Weapon => s.DefenceWeaponKey,
+        GearSlot.Outfit => s.DefenceOutfitKey,
+        _ => s.DefenceVehicleToolKey
+    };
+
+    private static string SlotName(GearSlot slot) => slot == GearSlot.VehicleTool ? "Vehicle / tool" : slot.ToString();
+
+    private static string? Key(string value) => string.IsNullOrEmpty(value) ? null : value;
+
+    private static string LoadoutText(string? weapon, string? outfit, string? vehicle)
+    {
+        var names = new[] { weapon, outfit, vehicle }.Select(k => GearCatalogue.Find(k)?.Name).OfType<string>().ToList();
+        return names.Count == 0 ? "no gear" : string.Join(", ", names);
+    }
+
+    private string ProtectionText(PlayerCycleState s)
+    {
+        if (PvpRules.HasNewPlayerProtection(s, Now))
+            return $"New player: {AfterHoursText.TimeLeft(s.CreatedAt + PvpRules.NewPlayerProtection, Now)} left (ends if you attack)";
+        if (s.PvpProtectedUntilUtc > Now)
+            return $"Recently beaten: {AfterHoursText.TimeLeft(s.PvpProtectedUntilUtc.Value, Now)} left";
+        return "None: you can be attacked";
+    }
+
+    private Task SaveDefenceAsync() =>
+        RunAsync(key => Actions.SaveDefenceAsync(userId!, defenceTactic,
+            Key(defenceGear[GearSlot.Weapon]), Key(defenceGear[GearSlot.Outfit]), Key(defenceGear[GearSlot.VehicleTool]), key));
+
+    private Task AttackAsync(int defenderStateId) =>
+        RunAsync(key => Actions.AttackAsync(userId!, defenderStateId, attackTactic, stance,
+            Key(attackGear[GearSlot.Weapon]), Key(attackGear[GearSlot.Outfit]), Key(attackGear[GearSlot.VehicleTool]), key));
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            pendingKey = Guid.NewGuid().ToString("N");
+            if (result.Receipt?.PvpBattle is { } battle)
+            {
+                Navigation.NavigateTo($"/after-hours/pvp/report/{battle.Id}");
+                return;
+            }
+
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

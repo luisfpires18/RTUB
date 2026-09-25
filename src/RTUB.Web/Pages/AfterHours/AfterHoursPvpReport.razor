@@ -1,0 +1,134 @@
+@page "/after-hours/pvp/report/{BattleId:int}"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPvpService PvpService
+
+<PageTitle>Battle report - After Hours - RTUB</PageTitle>
+
+@* Everything below is read from the stored battle: nothing is recalculated or rerolled. *@
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-file-earmark-text"></i> Battle report</h1>
+            <p class="page-header-subtitle"><a href="/after-hours/pvp">PvP</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (view is null)
+    {
+        <p class="after-hours-muted">Report not found.</p>
+    }
+    else
+    {
+        var b = view.Battle;
+        var youAttacked = b.AttackerUserId == userId;
+        var youWon = youAttacked == b.AttackerWon;
+
+        <section class="after-hours-card">
+            <h2>@view.AttackerName attacked @view.DefenderName</h2>
+            <p class="after-hours-outcome">@(youWon ? "You won." : "You lost.")</p>
+            <p class="after-hours-muted">@b.AcceptedAtUtc.ToString("dd MMM yyyy HH:mm") UTC</p>
+        </section>
+
+        <section class="after-hours-card">
+            <h2>Sides</h2>
+            <table class="after-hours-table">
+                <thead><tr><th></th><th>@view.AttackerName</th><th>@view.DefenderName</th></tr></thead>
+                <tbody>
+                    <tr><th>Tactic</th><td>@b.AttackerTactic</td><td>@b.DefenderTactic@(b.DefenderUsedSavedDefence ? "" : " (default)")</td></tr>
+                    <tr><th>Weapon</th><td>@Gear(b.AttackerWeaponKey)</td><td>@Gear(b.DefenderWeaponKey)</td></tr>
+                    <tr><th>Outfit</th><td>@Gear(b.AttackerOutfitKey)</td><td>@Gear(b.DefenderOutfitKey)</td></tr>
+                    <tr><th>Vehicle / tool</th><td>@Gear(b.AttackerVehicleToolKey)</td><td>@Gear(b.DefenderVehicleToolKey)</td></tr>
+                    <tr><th>Battle power</th><td>@b.AttackerLoadoutPower</td><td>@b.DefenderLoadoutPower</td></tr>
+                    <tr><th>Tactic bonus</th><td>@b.AttackerSpecialisation</td><td>@b.DefenderSpecialisation</td></tr>
+                    <tr><th>Matchup</th><td>+@b.AttackerMatchupBonus</td><td>+@b.DefenderMatchupBonus</td></tr>
+                    <tr><th>Risk</th><td>@b.RiskStance (@Signed(b.AttackerRiskModifier))</td><td>—</td></tr>
+                    <tr><th>Effective power</th><td>@b.AttackerEffectivePower</td><td>@b.DefenderEffectivePower</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="after-hours-card">
+            <h2>Rounds</h2>
+            <table class="after-hours-table">
+                <thead><tr><th>Round</th><th>Attacker</th><th>Defender</th><th>Damage</th></tr></thead>
+                <tbody>
+                    @foreach (var r in b.Rounds.OrderBy(r => r.Round))
+                    {
+                        <tr @key="r.Round">
+                            <td>@r.Round</td>
+                            <td>@r.AttackerScore (@Signed(r.AttackerRandom))</td>
+                            <td>@r.DefenderScore (@Signed(r.DefenderRandom))</td>
+                            <td>@r.AttackerDamage – @r.DefenderDamage</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <p>Total damage: @b.AttackerTotalDamage – @b.DefenderTotalDamage.
+                @if (b.TieBreakRoll is { } roll)
+                {
+                    <span>Tied: tie-break roll @roll went to the @(b.AttackerWon ? "attacker" : "defender").</span>
+                }
+            </p>
+        </section>
+
+        <section class="after-hours-card">
+            <h2>Outcome</h2>
+            <ul class="after-hours-plain">
+                @if (b.AttackerWon)
+                {
+                    <li>Cash taken: $@b.WalletStolen</li>
+                    <li>Cargo taken: @(b.Cargo.Count == 0 ? "none" : string.Join(", ", b.Cargo.Select(c => AfterHoursText.CargoLabel(c.CargoType, c.Quantity))))</li>
+                    @if (b.LootMultiplier < 1m)
+                    {
+                        <li>Weaker target: loot reduced to @((b.LootMultiplier * 100).ToString("0.##"))%.</li>
+                    }
+                    <li>@view.DefenderName recovers until @Time(b.DefenderRecoveryUntilUtc) and is protected until @Time(b.DefenderProtectedUntilUtc).</li>
+                }
+                else
+                {
+                    <li>No loot: the defender held.</li>
+                    <li>@view.AttackerName recovers until @Time(b.AttackerRecoveryUntilUtc).</li>
+                }
+                <li>@view.AttackerName's next attack: after @Time(b.AttackerCooldownUntilUtc).</li>
+                @if (b.EndedAttackerNewPlayerProtection)
+                {
+                    <li>This first attack ended @view.AttackerName's new-player protection.</li>
+                }
+            </ul>
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter] public int BattleId { get; set; }
+
+    private bool loaded;
+    private string? userId;
+    private PvpBattleView? view;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Null for a missing battle and for one this user was not part of: the same "not found".
+        view = userId is null ? null : await PvpService.GetBattleAsync(userId, BattleId);
+        loaded = true;
+    }
+
+    private static string Gear(string? key) => GearCatalogue.Find(key)?.Name ?? "—";
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString();
+
+    private static string Time(DateTime? utc) => utc is { } t ? $"{t:HH:mm} UTC" : "—";
+}
