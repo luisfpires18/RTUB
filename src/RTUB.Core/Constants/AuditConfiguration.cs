@@ -69,5 +69,8 @@ public static class AuditConfiguration
         "ForgedWeapon",
         "PlayerCycleState",
         "PlayerActionReceipt",
+        "PlayerCargo",
+        "BuyerContract",
+        "BuyerContractCompletion",
     };
 }

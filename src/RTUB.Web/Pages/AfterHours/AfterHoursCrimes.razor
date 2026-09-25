@@ -97,7 +97,7 @@
                         <span class="after-hours-chance">@odds.Chance%</span>
                     </div>
                     <p class="after-hours-muted">
-                        −@crime.EnergyCost energy · +$@odds.Cash · +@odds.Xp XP · +@odds.Heat heat · @crime.Skill
+                        −@crime.EnergyCost energy · +$@odds.Cash@(crime.Cargo is { } cargo ? $" + {AfterHoursText.CargoLabel(cargo, crime.CargoQuantity)}" : "") · +@odds.Xp XP · +@odds.Heat heat · @crime.Skill
                     </p>
                     <button class="btn btn-primary" disabled="@(busy || block is not null)" @onclick="() => CommitAsync(crime.Id)">Do it</button>
                     @if (block is not null)

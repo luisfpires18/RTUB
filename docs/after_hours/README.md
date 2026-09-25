@@ -4,12 +4,10 @@ RTUB After Hours is an English-language, text-first browser crime RPG for authen
 members. It lives inside the RTUB application but is a **separate game**: it is not MyTuno, not an
 extension of MyTuno, and shares none of its gameplay systems.
 
-Status: foundation (AH-001), cycles and per-cycle player state (AH-002), and the core solo loop (AH-003):
-crimes, jail, cover jobs, bank, XP and levels. `/after-hours` is the dashboard (stats, bank);
-`/after-hours/crimes` is the crime list and cover job.
-
-**Temporary DEV limitation:** crimes pay cash and XP only. Cargo rewards arrive with AH-004; nothing
-cargo-related is modelled or awarded yet.
+Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
+crimes, jail, cover jobs, bank, XP and levels, and cargo with buyer contracts (AH-004).
+`/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime list and cover job;
+`/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts.
 
 ## Numbering
 
@@ -99,6 +97,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCycleStateTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/` | | AH-002 |
 | Pure rules | `src/RTUB.Core/Helpers/AfterHours/` (levels, crime catalogue and odds, jail policy, actions) | `RTUB.Core.Helpers.AfterHours` | AH-003 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursActionTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRulesTests.cs` | | AH-003 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCargoTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursCargoRulesTests.cs` | | AH-004 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -175,8 +174,8 @@ a crime id and an approach; cost, chance, rewards, heat and skill are always rea
 - Approaches: Careful +8 pts, cash ×0.8, heat ½ rounded up; Standard as listed; Bold −8 pts, cash
   ×1.25, XP ×1.1, heat +4.
 - Rounding (`CrimeRules`): integer arithmetic, half up (35 × 1.25 → 44, 26 × 1.1 → 29, 26 × 0.25 → 7).
-- Success: −energy, +cash, +XP, +heat. Failure: −energy, +25% of the adjusted XP, no cash, +heat,
-  then a jail roll.
+- Success: −energy, +cash, +XP, +heat, +the crime's cargo. Failure: −energy, +25% of the adjusted XP,
+  no cash, no cargo, +heat, then a jail roll.
 - Refused when: level too low, in jail, heat ≥ 80, not enough energy.
 
 ### Jail — AH-003 implementation choice (not in Game Manual v2)
@@ -205,12 +204,15 @@ wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched
 
 ## Actions: receipts, idempotency, concurrency
 
-`IAfterHoursActionService` (crime, cover job, deposit, withdraw) is the only way state changes.
+`IAfterHoursActionService` (crime, cover job, deposit, withdraw, fence sale, contract delivery) is the
+only way player state changes. All After Hours writes, including contract rotation, go through
+`AfterHoursWriteTransaction`.
 
 - **Idempotency key.** Every request carries a client key (≤ 64 chars). The pages create one per
   attempt and keep it until the attempt completes, so a double submit replays rather than repeats.
 - **Receipt.** An accepted action writes a `PlayerActionReceipt` (`AfterHoursPlayerActionReceipts`)
-  with the request, dice roll and chance, jail result and every delta, in the **same transaction** as
+  with the request, dice roll and chance, jail result and every delta (including the one cargo type it
+  moved, `CargoType` + `CargoDelta`), in the **same transaction** as
   the state change. A retry with the same key returns that receipt (`Replayed`), without running the
   rules or rolling dice again. The same key with a different request is refused. Unique index
   `(PlayerCycleStateId, IdempotencyKey)` is the backstop. Refusals write nothing and have no receipt.
@@ -222,3 +224,71 @@ wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched
   whole action; nothing is committed before that.
 - **Dice** (`IAfterHoursDice`) are server-side only, never seeded or influenced by a client.
 - Receipts are excluded from the audit log.
+
+## Cargo
+
+Game Manual v2. Stable ids: `CargoType` (stored as int). Prices are server-owned (`CargoCatalogue`).
+
+| Cargo | Base fence price |
+| --- | ---: |
+| Phone | 15 |
+| Electronics | 30 |
+| Ticket bundle | 20 |
+| Spirits | 25 |
+| Art piece | 80 |
+
+Crime cargo (successes only): C01 1 phone · C02 none · C03 1 electronics · C04 1 ticket bundle ·
+C05 none · C06 2 spirits · C07 2 electronics · C08 3 electronics · C09 3 spirits · C10 3 ticket bundles ·
+C11 4 electronics · C12 2 art pieces. The award is part of the crime's transaction and receipt, so a
+replayed key never adds cargo twice.
+
+**Persistence:** `PlayerCargo` (`AfterHoursPlayerCargo`), loaded as `PlayerCycleState.Cargo`. One row
+per state and type (unique index `IX_AfterHoursPlayerCargo_State_Type`), quantity never negative (check
+constraint). Cargo belongs to the cycle's state, so a new cycle starts empty. No trading.
+
+**Fence** (always available): the player picks a type and quantity; the server pays quantity × base
+price. Refused for zero, negative or more than owned. Receipt kind `FenceSale`.
+
+## Buyer contracts
+
+NPC buyers want a quantity of one cargo for cash and XP. A `BuyerContract`
+(`AfterHoursBuyerContracts`) belongs to a cycle and a rotation window, and is offered to every player of
+that cycle. Its name, cargo, quantity and rewards are copied from the template when created. Completion is
+**per player**: `BuyerContractCompletion` (`AfterHoursBuyerContractCompletions`), unique per contract and
+player state. One player delivering never uses the contract up for anyone else.
+
+**Delivery** (receipt kind `ContractDelivery`) checks, in one transaction: the contract is in the
+player's cycle, now is inside `[AvailableFromUtc, ExpiresAtUtc)`, the player has not delivered it,
+and holds enough cargo. It then removes the cargo, pays cash and XP (level from the AH-003 curve),
+records the completion and the receipt.
+
+### Rotation — AH-004 implementation defaults (not Game Manual v2)
+
+The manual only says contracts rotate. `BuyerContractRules` holds the defaults:
+
+- windows of **12 hours**, aligned to 00:00 and 12:00 UTC;
+- **3 contracts** per window, each expiring at the end of its window;
+- slot k of window w uses template `(3·w + k) mod 10`: deterministic, all ten come round in turn.
+
+Rotation is lazy and persisted: the first request in a window creates its three rows in a write
+transaction; every later request reads them. The unique index
+`IX_AfterHoursBuyerContracts_Cycle_Window_Slot` stops concurrent first visits creating duplicates. No
+background job.
+
+### Templates — AH-004 implementation defaults
+
+The Midnight Collector is the manual's example; the others were chosen for AH-004 with conservative
+premiums (about 27–33% over the fence value).
+
+| Key | Buyer | Wants | Cash | XP | Fence value |
+| --- | --- | --- | ---: | ---: | ---: |
+| T01 | The Midnight Collector | 4 art pieces | 460 | 80 | 320 |
+| T02 | Pawnshop Pedro | 3 phones | 60 | 15 | 45 |
+| T03 | The Repair Stall | 5 phones | 100 | 25 | 75 |
+| T04 | Night Market Vendor | 4 electronics | 155 | 30 | 120 |
+| T05 | The Crypto Kid | 8 electronics | 310 | 55 | 240 |
+| T06 | The Ticket Tout | 3 ticket bundles | 80 | 20 | 60 |
+| T07 | Festival Promoter | 6 ticket bundles | 155 | 35 | 120 |
+| T08 | The Bar Owner | 4 spirits | 130 | 25 | 100 |
+| T09 | Wedding Caterer | 8 spirits | 255 | 45 | 200 |
+| T10 | The Gallery Fixer | 2 art pieces | 210 | 40 | 160 |

@@ -345,6 +345,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IGameCycleService, RTUB.Application.Services.AfterHours.GameCycleService>();
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService, RTUB.Application.Services.AfterHours.PlayerCycleStateService>();
         services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService, RTUB.Application.Services.AfterHours.AfterHoursActionService>();
+        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IBuyerContractService, RTUB.Application.Services.AfterHours.BuyerContractService>();
         services.AddSingleton<RTUB.Application.Interfaces.AfterHours.IAfterHoursDice, RTUB.Application.Services.AfterHours.AfterHoursDice>();
         services.TryAddSingleton(TimeProvider.System);
 

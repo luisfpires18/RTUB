@@ -38,6 +38,10 @@ public class PlayerActionReceipt : BaseEntity
     public int HeatDelta { get; set; }
     public int EnergyDelta { get; set; }
 
+    /// <summary>The one cargo type the action moved, if any, and by how much (+ gained, − spent).</summary>
+    public CargoType? CargoType { get; set; }
+    public int CargoDelta { get; set; }
+
     public int LevelBefore { get; set; }
     public int LevelAfter { get; set; }
 }
