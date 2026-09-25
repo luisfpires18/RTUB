@@ -1,0 +1,261 @@
+@page "/after-hours/family"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Enums.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IPlayerCycleStateService PlayerCycleStateService
+@inject IFamilyService FamilyService
+@inject IAfterHoursActionService Actions
+@inject TimeProvider Clock
+
+<PageTitle>Family - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-people"></i> Family</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a></p>
+        </div>
+    </div>
+
+    @if (!loaded)
+    {
+        <LoadingSpinner />
+    }
+    else if (state is null || overview is null)
+    {
+        <p class="after-hours-muted">There is no After Hours cycle running right now.</p>
+    }
+    else
+    {
+        @if (message is not null)
+        {
+            <p class="after-hours-result" role="status">@message</p>
+        }
+
+        @if (overview.Family is null)
+        {
+            @if (overview.JoinAllowedFromUtc is { } from)
+            {
+                <p class="after-hours-alert" role="status">You left a family recently. You can join or create one in @AfterHoursText.TimeLeft(from, Now).</p>
+            }
+
+            <h2 class="after-hours-section">Invitations</h2>
+            @if (overview.IncomingInvitations.Count == 0)
+            {
+                <p class="after-hours-muted">No invitations right now.</p>
+            }
+            <ul class="after-hours-list">
+                @foreach (var invite in overview.IncomingInvitations)
+                {
+                    <li @key="invite.InvitationId" class="after-hours-card">
+                        <div class="after-hours-card-head">
+                            <h3>@invite.FamilyName</h3>
+                            <span class="after-hours-muted">from @invite.OtherName</span>
+                        </div>
+                        <button class="btn btn-primary" disabled="@(busy || overview.JoinAllowedFromUtc is not null)" @onclick="() => RunAsync(k => Actions.AcceptFamilyInvitationAsync(userId!, invite.InvitationId, k))">Accept</button>
+                        <button class="btn btn-outline-light" disabled="@busy" @onclick="() => RunAsync(k => Actions.DeclineFamilyInvitationAsync(userId!, invite.InvitationId, k))">Decline</button>
+                    </li>
+                }
+            </ul>
+
+            <h2 class="after-hours-section">Create a family</h2>
+            <section class="after-hours-card">
+                @if (state.Level < FamilyRules.CreateLevel)
+                {
+                    <p><i class="bi bi-lock"></i> Unlocks at level @FamilyRules.CreateLevel (you are level @state.Level).</p>
+                }
+                else
+                {
+                    <div class="after-hours-form">
+                        <label>Name (@FamilyRules.NameMinLength–@FamilyRules.NameMaxLength)
+                            <input class="form-control" maxlength="@FamilyRules.NameMaxLength" @bind="newName" />
+                        </label>
+                        <label>Motto (optional)
+                            <input class="form-control" maxlength="@FamilyRules.MottoMaxLength" @bind="newMotto" />
+                        </label>
+                    </div>
+                    <p class="after-hours-muted">Costs $@FamilyRules.CreateCost.ToString("N0") from your wallet (you have $@state.WalletCash.ToString("N0")).</p>
+                    <button class="btn btn-primary" disabled="@(busy || overview.JoinAllowedFromUtc is not null)" @onclick="() => RunAsync(k => Actions.CreateFamilyAsync(userId!, newName, newMotto, k))">Create family</button>
+                }
+            </section>
+        }
+        else
+        {
+            var family = overview.Family;
+            var me = overview.Me!;
+            var isBoss = me.Role == FamilyRole.Boss;
+
+            <section class="after-hours-card">
+                <h2>@family.Name</h2>
+                @if (family.Motto is not null)
+                {
+                    <p class="after-hours-muted">“@family.Motto”</p>
+                }
+                <dl class="after-hours-facts">
+                    <dt>Your role</dt><dd>@me.Role</dd>
+                    <dt>Members</dt><dd>@overview.Members.Count / @FamilyRules.MaxActiveMembers</dd>
+                    <dt>Treasury</dt><dd>$@overview.Treasury.ToString("N0") this cycle</dd>
+                </dl>
+            </section>
+
+            <h2 class="after-hours-section">Members</h2>
+            <ul class="after-hours-list">
+                @foreach (var member in overview.Members)
+                {
+                    <li @key="member.MembershipId" class="after-hours-card">
+                        <div class="after-hours-card-head">
+                            <h3>@member.DisplayName</h3>
+                            <span class="after-hours-muted">@member.Role · level @(member.Level?.ToString() ?? "—") · joined @member.JoinedAtUtc.ToString("dd MMM yyyy")</span>
+                        </div>
+                        @if (isBoss && member.MembershipId != me.MembershipId)
+                        {
+                            <div class="after-hours-actions">
+                                @foreach (var role in new[] { FamilyRole.Member, FamilyRole.Enforcer, FamilyRole.Fixer })
+                                {
+                                    <button class="btn btn-sm @(member.Role == role ? "btn-primary" : "btn-outline-light")" disabled="@(busy || member.Role == role)"
+                                            @onclick="() => RunAsync(k => Actions.SetFamilyRoleAsync(userId!, member.MembershipId, role, k))">@role</button>
+                                }
+                                <button class="btn btn-sm btn-outline-light" disabled="@busy" @onclick="() => RunAsync(k => Actions.TransferFamilyBossAsync(userId!, member.MembershipId, k))">Make Boss</button>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+
+            <section class="after-hours-card">
+                <h2>Donate</h2>
+                <p class="after-hours-muted">From your wallet ($@state.WalletCash.ToString("N0")) to this cycle's treasury. Donations can't be taken back.</p>
+                <div class="after-hours-inline">
+                    <label class="visually-hidden" for="ah-donate">Amount</label>
+                    <input id="ah-donate" class="form-control" type="number" min="1" step="1" inputmode="numeric" @bind="donation" />
+                    <button class="btn btn-primary" disabled="@busy" @onclick="() => RunAsync(k => Actions.DonateToFamilyAsync(userId!, donation, k))">Donate</button>
+                </div>
+            </section>
+
+            @if (isBoss)
+            {
+                <section class="after-hours-card">
+                    <h2>Boss</h2>
+                    <div class="after-hours-form">
+                        <label>Name <input class="form-control" maxlength="@FamilyRules.NameMaxLength" @bind="editName" /></label>
+                        <label>Motto <input class="form-control" maxlength="@FamilyRules.MottoMaxLength" @bind="editMotto" /></label>
+                    </div>
+                    <button class="btn btn-outline-light" disabled="@busy" @onclick="() => RunAsync(k => Actions.UpdateFamilyProfileAsync(userId!, editName, editMotto, k))">Save name and motto</button>
+
+                    <h3 class="after-hours-subsection">Invite</h3>
+                    @if (overview.Members.Count >= FamilyRules.MaxActiveMembers)
+                    {
+                        <p class="after-hours-muted">The family is full. Invitations can still be sent, but nobody can join until a place frees up.</p>
+                    }
+                    @if (overview.InviteCandidates.Count == 0)
+                    {
+                        <p class="after-hours-muted">Nobody available to invite.</p>
+                    }
+                    <ul class="after-hours-plain">
+                        @foreach (var candidate in overview.InviteCandidates)
+                        {
+                            <li @key="candidate.StateId">
+                                @candidate.DisplayName <span class="after-hours-muted">level @candidate.Level</span>
+                                <button class="btn btn-sm btn-outline-light" disabled="@busy" @onclick="() => RunAsync(k => Actions.InviteToFamilyAsync(userId!, candidate.StateId, k))">Invite</button>
+                            </li>
+                        }
+                    </ul>
+
+                    @if (overview.OutgoingInvitations.Count > 0)
+                    {
+                        <h3 class="after-hours-subsection">Pending invitations</h3>
+                        <ul class="after-hours-plain">
+                            @foreach (var invite in overview.OutgoingInvitations)
+                            {
+                                <li @key="invite.InvitationId">
+                                    @invite.OtherName
+                                    <button class="btn btn-sm btn-outline-light" disabled="@busy" @onclick="() => RunAsync(k => Actions.CancelFamilyInvitationAsync(userId!, invite.InvitationId, k))">Cancel</button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            }
+
+            <section class="after-hours-card">
+                <h2>Leave</h2>
+                <p class="after-hours-muted">
+                    @if (isBoss && overview.Members.Count > 1)
+                    {
+                        <span>As Boss, make someone else Boss before you leave.</span>
+                    }
+                    else if (isBoss)
+                    {
+                        <span>You are the last member: leaving disbands the family. Its name stays taken.</span>
+                    }
+                    After leaving you must wait @((int)FamilyRules.LeaveCooldown.TotalHours) hours before joining or creating a family.
+                </p>
+                <button class="btn btn-outline-light" disabled="@(busy || (isBoss && overview.Members.Count > 1))" @onclick="() => RunAsync(k => Actions.LeaveFamilyAsync(userId!, k))">
+                    @(isBoss && overview.Members.Count == 1 ? "Leave and disband" : "Leave family")
+                </button>
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private bool loaded;
+    private bool busy;
+    private string? userId;
+    private PlayerCycleState? state;
+    private FamilyOverview? overview;
+    private string? message;
+    private string newName = string.Empty;
+    private string? newMotto;
+    private string editName = string.Empty;
+    private string? editMotto;
+    private long donation;
+
+    // One key per attempted action; kept until the action completes, so a double submit replays
+    // instead of repeating it.
+    private string pendingKey = Guid.NewGuid().ToString("N");
+
+    private DateTime Now => Clock.GetUtcNow().UtcDateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is not null)
+        {
+            await LoadAsync();
+        }
+
+        loaded = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        state = await PlayerCycleStateService.GetOrCreateForActiveCycleAsync(userId!);
+        overview = await FamilyService.GetOverviewAsync(userId!);
+        editName = overview?.Family?.Name ?? string.Empty;
+        editMotto = overview?.Family?.Motto;
+    }
+
+    private async Task RunAsync(Func<string, Task<AfterHoursActionResult>> action)
+    {
+        if (busy || userId is null) return;
+        busy = true;
+        try
+        {
+            var result = await action(pendingKey);
+            message = result.Receipt is not null ? AfterHoursText.Describe(result.Receipt) : result.Error;
+            pendingKey = Guid.NewGuid().ToString("N");
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

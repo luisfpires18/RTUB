@@ -52,6 +52,9 @@ public class PlayerActionReceipt : BaseEntity
     /// <summary>PvP attack: the immutable battle this receipt accepted (the battle holds the key).</summary>
     public PvpBattle? PvpBattle { get; set; }
 
+    /// <summary>Family actions: the family acted on (for creation, the family created).</summary>
+    public int? FamilyId { get; set; }
+
     public int LevelBefore { get; set; }
     public int LevelAfter { get; set; }
 }

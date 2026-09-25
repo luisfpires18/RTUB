@@ -36,6 +36,16 @@ public static class AfterHoursText
                 r.Succeeded ? $"You won the fight. +{r.WalletDelta} cash." : "You lost the fight.",
             PlayerActionKind.SaveDefence =>
                 "Defence saved.",
+            PlayerActionKind.CreateFamily => $"Family created. {r.WalletDelta} cash.",
+            PlayerActionKind.InviteToFamily => "Invitation sent.",
+            PlayerActionKind.CancelFamilyInvitation => "Invitation cancelled.",
+            PlayerActionKind.AcceptFamilyInvitation => "You joined the family.",
+            PlayerActionKind.DeclineFamilyInvitation => "Invitation declined.",
+            PlayerActionKind.LeaveFamily => "You left the family.",
+            PlayerActionKind.TransferFamilyBoss => "Leadership transferred.",
+            PlayerActionKind.SetFamilyRole => "Role updated.",
+            PlayerActionKind.UpdateFamilyProfile => "Family details saved.",
+            PlayerActionKind.DonateToFamily => $"Donated {-r.WalletDelta} to the treasury.",
             PlayerActionKind.ContractDelivery =>
                 $"Delivered {-r.CargoDelta} {CargoCatalogue.Name(r.CargoType!.Value, -r.CargoDelta)}. +{r.WalletDelta} cash, +{r.XpDelta} XP.",
             _ => "Done."
