@@ -6,12 +6,13 @@ extension of MyTuno, and shares none of its gameplay systems.
 
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
 crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
-with equipment (AH-005), PvP (AH-006), families (AH-007), and objectives with championships (AH-008). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+with equipment (AH-005), PvP (AH-006), families (AH-007), objectives with championships (AH-008), and the
+yearbook with cycle rollover (AH-009). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
 list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
 `/after-hours/training` and `/after-hours/equipment` are training and gear; `/after-hours/pvp` is PvP
 (status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle;
 `/after-hours/family` is the family page; `/after-hours/objectives` and `/after-hours/leaderboards` are
-objectives and championship standings.
+objectives and championship standings; `/after-hours/yearbook` is the archive of finished cycles.
 
 ## Numbering
 
@@ -106,6 +107,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursPvpTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursPvpRulesTests.cs`, `AfterHoursPvpPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-006 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursFamilyTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursFamilyRulesTests.cs`, `AfterHoursFamilyPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-007 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursObjectiveTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursObjectiveRulesTests.cs`, `AfterHoursObjectivePagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-008 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursRolloverTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRolloverRulesTests.cs`, `AfterHoursYearbookPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-009 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -128,7 +130,9 @@ later without restructuring the page.
   `GameCycle.Create` rejects non-UTC values and an end that is not after the start. The database rejects
   the latter too (`CK_AfterHoursGameCycles_EndAfterStart`).
 - **Status**: `Scheduled` → `Active` → `Finished` (`GameCycleStatus`). Transitions are explicit calls on
-  `IGameCycleService`; there is no automatic start, rollover or background job.
+  `IGameCycleService`, or a rollover (`IAfterHoursRolloverService`, AH-009) that archives a cycle as it finishes
+  it; there is no automatic start, rollover or background job. `IGameCycleService.FinishAsync` is the raw
+  primitive and archives nothing: finish real cycles through the rollover service.
 - **At most one Active cycle**: filtered unique index `IX_AfterHoursGameCycles_SingleActive`.
   The *playable* cycle is the Active one while `StartUtc <= now < EndUtc`; an Active cycle outside its
   boundaries is not playable. `IGameCycleService.GetActiveCycleAsync` returns null when nothing is playable.
@@ -589,9 +593,100 @@ are not backfilled.
   difference does not change the family count.
 - The family score counts **family objectives only**, never the sum of members' individual scores.
 - **Ties:** equal annual scores share a rank (1, 1, 3); names only order the display. Nobody is declared
-  champion: final awards and tie handling are AH-009.
+  champion on the live board: champions are decided when a cycle is archived (AH-009, below).
 
 ### Not in AH-008
 
-Catch-up XP (manual section 20) is carried to AH-010. Heist objectives wait for heists. Yearbook, final
-awards and rollover are later units.
+Catch-up XP (manual section 20) is carried to AH-010. Heist objectives wait for heists. Yearbook and
+rollover are AH-009; award administration is AH-010.
+
+## Yearbook and rollover
+
+`/after-hours/yearbook` (read-only, `IYearbookService`); transitions in `IAfterHoursRolloverService`; rules in
+`RolloverRules`.
+
+### Canonical rules
+
+- **Power resets, identity persists.** A cycle's gameplay state is its own rows: `PlayerCycleState` (level,
+  XP, skills, wallet, bank, energy, heat, jail, PvP timers, training, defence), its gear and cargo, receipts,
+  objective progress, PvP credits, buyer contracts and completions, and `FamilyCycleState` (treasury and,
+  later, upgrades). The account, `Family`, `FamilyMembership`, the yearbook and PvP battles persist.
+- **Nothing is reset in place.** Rollover never updates, copies or deletes a gameplay row: the old cycle is
+  history. The new cycle creates its own rows lazily through the normal paths: a player's first visit or
+  action calls `PlayerCycleState.CreateInitial` (level 1, XP 0, wallet 400, bank 0, energy 240, heat 0, skills
+  4, 1 training point, no gear, cargo, jail or PvP state); a family's first donation or join opens a 0
+  treasury; contracts and objectives rotate for the new cycle. States are not cloned eagerly.
+- **Family identity and membership persist** across the rollover (same ids, same membership rows); the
+  treasury does not carry over.
+- **Live archives are official; Pilot archives never are.** Pilot results are kept for history and testing
+  and never become champions or trophies.
+- **September rollover:** a Live cycle runs from 1 September 00:00 Europe/Lisbon to the next 1 September,
+  as exact UTC instants (`RolloverRules.SeptemberStartUtc`, via `LisbonCalendar`; summer time, so 23:00 UTC
+  on 31 August).
+
+### Transitions
+
+Both run as **one** `AfterHoursWriteTransaction`: re-check, snapshot, write the archive, finish the source,
+save (freeing the single-Active slot), insert the Active target, link it from the archive, commit. Anything
+that fails before commit leaves the source Active and nothing else written.
+
+- **Live → Live** (`RolloverLiveAsync(sourceCycleId)`): the source must be an Active Live cycle and
+  `now >= EndUtc` (one tick before is refused). The target fiscal year is the existing RTUB `FiscalYear` whose
+  `StartYear` equals the source fiscal year's `EndYear`; none or several → refused, nothing written. Fiscal
+  years are never created or guessed here (the owner creates them in Finance). Target: Live, from 1 September
+  of the fiscal year's `StartYear` to 1 September of its `EndYear`.
+- **Pilot → Live** (`TransitionPilotToLiveAsync(pilotId, fiscalYearId, startUtc, endUtc)`): the source must be
+  an Active Pilot; it **may finish before its `EndUtc`** (pilot length is administrative). The target's fiscal
+  year and UTC boundaries are explicit (the first Live cycle may cover only part of an academic year): UTC,
+  end after start, an existing fiscal year, and an end in the future.
+- Refused: the wrong kind (a Live cycle through the Pilot path or the reverse), a Scheduled source, a source
+  Finished without an archive (for example by `FinishAsync`), and a new cycle that would already be over.
+  There is no "force" override; AH-010 decides whether admins need one.
+- **Idempotent.** A cycle has at most one archive (unique `GameCycleId`) and a target is started by at most
+  one archive (unique `NextGameCycleId`). Calls serialize on the write lock; a later call finds the archive
+  and returns the same `RolloverResult` with `Replayed = true`, changing nothing. A Pilot transition repeated
+  with a different target is refused. Entry rows are unique per archive and user / family, and per family
+  entry and user.
+- Lazy creators never write into a cycle a rollover has just finished: `PlayerCycleStateService` creates a
+  state inside a write transaction that re-checks that the cycle is still Active, and contract rotation does
+  the same. Actions already re-read the active cycle under the lock.
+
+### Archive model
+
+`CycleArchive` (`AfterHoursCycleArchives`): source cycle, kind, fiscal year id and label snapshot, source
+start and end, `ArchivedAtUtc`, `Official`, `NextGameCycleId`. Children:
+
+- `YearbookPlayerEntry` (`AfterHoursYearbookPlayers`), one per `PlayerCycleState` of the cycle: user id,
+  display-name snapshot (nickname, else user name), final level, XP, the four skills, annual score, rank,
+  scoring weeks, family id and name at the cycle's end, champion flag. No wallet, bank, cargo or battle data.
+- `YearbookFamilyEntry` (`AfterHoursYearbookFamilies`), every family with a treasury row or family objective
+  progress in the cycle (disbanded ones too): name snapshot, annual score, rank, scoring weeks, champion flag.
+- `YearbookFamilyMember` (`AfterHoursYearbookFamilyMembers`): the family's roster **at the cycle's end**, from
+  membership history (`JoinedAtUtc <= end < LeftAtUtc`), with name snapshot and role. The end is the cycle's
+  `EndUtc`, or the transition time for a Pilot finished early.
+
+Scores and ranks come from the same code as the live leaderboard (`ObjectiveService.StandingsAsync`: best 12
+weekly scores from stored awarded points). Once written nothing recalculates: renames, family moves and
+catalogue changes leave the archive as it was, and reads never write. PvP battles are **not** copied: they
+already belong to the old cycle and stay there. The archive row is audited; its entry rows are excluded from
+the audit log like other gameplay rows. Entry and roster rows keep `UserId` as a plain historical value, not a
+foreign key: deleting an account removes its live game data (states, memberships) but never its yearbook
+rows, which render from their snapshots alone.
+
+**Winner records** are the entries themselves: the champions of fiscal year X are the `IsChampion` rows of the
+archive with that `FiscalYearId` and `Official = true`; several such rows are co-champions; `Kind` says Pilot
+or Live.
+
+### AH-009 choices (not in the manual)
+
+- **Ties:** competition ranking (100, 100, 80 → 1, 1, 3); no tie-break is invented.
+- **Champions:** in an official archive, every player (and every family) tied for the highest **positive**
+  score is champion. If everyone scored 0, the rankings are archived with no champion. A Pilot never has one.
+- **No material rewards:** winning grants no cash, XP, gear, title or bonus. The manual says awards survive but
+  defines no catalogue; award administration is AH-010.
+- The yearbook is **read-only** for players (behind the After Hours gate, like every page in the folder) and
+  lists archives newest first; the running cycle stays on `/after-hours/leaderboards`. Dates show as Lisbon
+  days.
+- Rollover has **no player-facing page or endpoint**. AH-010 binds it to owner/admin tooling and decides any
+  scheduling; a hosted job would have to check `AfterHours:Enabled` itself.
+- The migration only adds the four yearbook tables. Existing (DEV) cycles are not archived retroactively.

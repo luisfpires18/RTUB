@@ -1,0 +1,79 @@
+/* Structure only; colours derive from the inherited text colour (branding is not decided yet).
+   Mobile-first: one column. */
+.after-hours-page {
+    max-width: 720px;
+}
+
+.after-hours-muted {
+    opacity: 0.7;
+}
+
+.after-hours-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 0.75rem;
+}
+
+.after-hours-card p {
+    margin: 0.25rem 0 0.5rem;
+}
+
+.after-hours-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.after-hours-card-head h2 {
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+.after-hours-badge {
+    padding: 0.1rem 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.after-hours-section {
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem;
+}
+
+.after-hours-board,
+.after-hours-roster {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.after-hours-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    overflow-wrap: anywhere;
+}
+
+.after-hours-row-detail {
+    grid-column: 1 / -1;
+    font-size: 0.9rem;
+}
+
+.after-hours-roster {
+    padding: 0.25rem 0 0 1rem;
+}
+
+.after-hours-rank {
+    opacity: 0.7;
+    margin-right: 0.25rem;
+}
+
+.after-hours-score {
+    font-weight: 700;
+}

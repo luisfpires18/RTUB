@@ -44,6 +44,10 @@ public class BuyerContractService(
     private Task<List<BuyerContract>> CreateWindowAsync(int cycleId, DateTime windowStart) =>
         AfterHoursWriteTransaction.RunAsync(contextFactory, async (context, transaction) =>
         {
+            // Never rotate into a cycle a rollover finished meanwhile: that cycle is history.
+            if (!await context.AfterHoursGameCycles.AnyAsync(c => c.Id == cycleId && c.Status == GameCycleStatus.Active))
+                return [];
+
             // Re-read under the write lock: another request may have created them meanwhile.
             var existing = await LoadWindowAsync(context, cycleId, windowStart);
             var missing = Enumerable.Range(0, BuyerContractRules.ContractsPerRotation)

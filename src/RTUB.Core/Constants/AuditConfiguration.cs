@@ -81,5 +81,8 @@ public static class AuditConfiguration
         "PvpObjectiveCredit",
         "BuyerContract",
         "BuyerContractCompletion",
+        "YearbookPlayerEntry",
+        "YearbookFamilyEntry",
+        "YearbookFamilyMember",
     };
 }

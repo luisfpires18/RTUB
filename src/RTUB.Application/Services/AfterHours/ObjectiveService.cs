@@ -61,39 +61,51 @@ public class ObjectiveService(IDbContextFactory<ApplicationDbContext> contextFac
         var cycle = await ActiveCycleAsync(context, now);
         if (cycle is null) return null;
         var week = ObjectiveCatalogue.WeekOf(cycle, now).Index;
+        var (individual, families) = await StandingsAsync(context, cycle.Id, week, userId);
+        return new Leaderboards(week, individual.Select(p => p.Row).ToList(), families);
+    }
 
+    /// <summary>
+    /// Both championships of a cycle from stored awarded points: every player state of the cycle (with its
+    /// user id), and every family with a treasury row or family objective progress in it. Shared by the
+    /// live leaderboards and the yearbook archive, so both rank exactly the same way.
+    /// </summary>
+    internal static async Task<(IReadOnlyList<(StandingRow Row, string UserId)> Individual, IReadOnlyList<StandingRow> Families)> StandingsAsync(
+        ApplicationDbContext context, int cycleId, int currentWeek, string? userId)
+    {
         // Individual: every player of the cycle, from stored weekly awarded points.
         var players = await context.AfterHoursPlayerCycleStates.AsNoTracking()
-            .Where(s => s.GameCycleId == cycle.Id).Select(s => new { s.Id, s.UserId }).ToListAsync();
+            .Where(s => s.GameCycleId == cycleId).Select(s => new { s.Id, s.UserId }).ToListAsync();
         var weeklyRows = await context.AfterHoursPlayerObjectiveProgress.AsNoTracking()
-            .Where(r => r.GameCycleId == cycle.Id && r.Period == ObjectivePeriod.Weekly && r.PointsAwarded > 0).ToListAsync();
+            .Where(r => r.GameCycleId == cycleId && r.Period == ObjectivePeriod.Weekly && r.PointsAwarded > 0).ToListAsync();
         var names = await context.Users.AsNoTracking()
             .Where(u => players.Select(p => p.UserId).Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => string.IsNullOrWhiteSpace(u.Nickname) ? u.UserName ?? "Unknown" : u.Nickname);
+        var userIds = players.ToDictionary(p => p.Id, p => p.UserId);
         var individual = Rank(players.Select(p =>
         {
             var byWeek = weeklyRows.Where(r => r.PlayerCycleStateId == p.Id).GroupBy(r => r.PeriodKey)
                 .ToDictionary(g => g.Key, g => ObjectiveCatalogue.IndividualWeeklyScore(g));
-            return Row(p.Id, names.GetValueOrDefault(p.UserId, "Unknown"), byWeek, week, p.UserId == userId);
-        }));
+            return Row(p.Id, names.GetValueOrDefault(p.UserId, "Unknown"), byWeek, currentWeek, p.UserId == userId);
+        })).Select(r => (r, userIds[r.Id])).ToList();
 
         // Families: points stay with the family that earned them, whatever the members do later.
         var familyRows = await context.AfterHoursFamilyObjectiveProgress.AsNoTracking()
-            .Where(r => r.GameCycleId == cycle.Id).ToListAsync();
+            .Where(r => r.GameCycleId == cycleId).ToListAsync();
         var familyIds = familyRows.Select(r => r.FamilyId)
-            .Concat(await context.AfterHoursFamilyCycleStates.AsNoTracking().Where(s => s.GameCycleId == cycle.Id).Select(s => s.FamilyId).ToListAsync())
+            .Concat(await context.AfterHoursFamilyCycleStates.AsNoTracking().Where(s => s.GameCycleId == cycleId).Select(s => s.FamilyId).ToListAsync())
             .Distinct().ToList();
         var families = await context.AfterHoursFamilies.AsNoTracking().Where(f => familyIds.Contains(f.Id)).ToListAsync();
-        var myFamily = await context.AfterHoursFamilyMemberships.AsNoTracking()
+        var myFamily = userId is null ? null : await context.AfterHoursFamilyMemberships.AsNoTracking()
             .Where(m => m.UserId == userId && m.LeftAtUtc == null).Select(m => (int?)m.FamilyId).SingleOrDefaultAsync();
         var familyStandings = Rank(families.Select(f =>
         {
             var byWeek = familyRows.Where(r => r.FamilyId == f.Id).GroupBy(r => r.Week)
                 .ToDictionary(g => g.Key, g => ObjectiveCatalogue.FamilyWeeklyScore(g));
-            return Row(f.Id, f.Name, byWeek, week, f.Id == myFamily);
+            return Row(f.Id, f.Name, byWeek, currentWeek, f.Id == myFamily);
         }));
 
-        return new Leaderboards(week, individual, familyStandings);
+        return (individual, familyStandings);
     }
 
     private static StandingRow Row(int id, string name, IReadOnlyDictionary<int, int> byWeek, int currentWeek, bool mine)

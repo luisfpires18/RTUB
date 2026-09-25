@@ -23,4 +23,8 @@ public partial class ApplicationDbContext
     public DbSet<PvpObjectiveCredit> AfterHoursPvpObjectiveCredits { get; set; } = null!;
     public DbSet<BuyerContract> AfterHoursBuyerContracts { get; set; } = null!;
     public DbSet<BuyerContractCompletion> AfterHoursBuyerContractCompletions { get; set; } = null!;
+    public DbSet<CycleArchive> AfterHoursCycleArchives { get; set; } = null!;
+    public DbSet<YearbookPlayerEntry> AfterHoursYearbookPlayers { get; set; } = null!;
+    public DbSet<YearbookFamilyEntry> AfterHoursYearbookFamilies { get; set; } = null!;
+    public DbSet<YearbookFamilyMember> AfterHoursYearbookFamilyMembers { get; set; } = null!;
 }
