@@ -99,6 +99,28 @@ public class AfterHoursPvpTests : IClassFixture<AfterHoursPlayFactory>
     }
 
     [Fact]
+    public async Task Loot_UsesTheFullMultiplier_FloorsOnce_AndReplaysThePersistedResult()
+    {
+        var (attacker, _) = await PlayerAsync(skills: 6);                // power 24
+        var (defender, defenderId) = await PlayerAsync(wallet: 1_015);  // power 16
+
+        var first = await Attack(attacker, defenderId, "exact");
+        var stored = await BattleAsync(first.Receipt!.PvpBattle!.Id);
+
+        var expected = (16m / 24m) * (16m / 24m);
+        stored.LootMultiplier.Should().Be(expected, "the full decimal is stored, not a rounded copy");
+        stored.WalletStolen.Should().Be(45, "⌊101.5 × 0.444…⌋ = 45; flooring the 10% first would give 44");
+        ((await StateAsync(attacker)).WalletCash, (await StateAsync(defender)).WalletCash).Should().Be((445L, 970L));
+
+        var replay = await Attack(attacker, defenderId, "exact");
+        replay.Replayed.Should().BeTrue();
+        replay.Receipt!.PvpBattle!.Id.Should().Be(stored.Id);
+        var reread = await BattleAsync(stored.Id);
+        (reread.LootMultiplier, reread.WalletStolen).Should().Be((expected, 45L));
+        ((await StateAsync(attacker)).WalletCash, (await StateAsync(defender)).WalletCash).Should().Be((445L, 970L));
+    }
+
+    [Fact]
     public async Task Replay_WithAChangedRequest_IsKeyMisuse()
     {
         var (attacker, _) = await PlayerAsync();

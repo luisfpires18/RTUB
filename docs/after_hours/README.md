@@ -357,10 +357,13 @@ manual gives ranges), tunable in `GearCatalogue`. The catalogue is server-owned 
 - **Effective power** = Toughness + Stealth + Smarts + Charisma + 2 × weapon tier + outfit tier +
   vehicle/tool tier, over the **best owned** tier per slot (`GearCatalogue.BestOwnedTiers`), never the
   equipped items, so unequipping cannot make anyone look weak. Used to compare strength and to scale loot.
-- **Loot** (attacker wins only): multiplier = min(1, (defender power / attacker power)²), no lower bound;
-  wallet = ⌊min(⌊wallet × 10%⌋, 500) × multiplier⌋; cargo budget = ⌊min(⌊cargo base value × 20%⌋, 250) ×
-  multiplier⌋, spent on whole items, highest base price first (ties by `CargoType` order), while each full
-  price fits. Cargo moves as cargo, never as cash; tiny holdings can yield nothing.
+- **Loot** (attacker wins only), exactly as the manual writes it, in decimal:
+  ratio = defender power / attacker power; multiplier = min(1, ratio × ratio), with no lower bound and
+  no rounding (the battle stores the full decimal); wallet = ⌊min(wallet × 0.10, 500) × multiplier⌋;
+  cargo budget = ⌊min(cargo base value × 0.20, 250) × multiplier⌋. **Only the final wallet amount and
+  cargo budget are floored.** The budget is spent on whole items, highest base price first (ties by
+  `CargoType` order), while each full price fits. Cargo moves as cargo, never as cash; tiny holdings can
+  yield nothing.
 - **Battle:** three rounds with a chosen tactic and risk stance; the defender uses a saved defence.
   Ambush > Negotiation > Setup > Counterattack > Ambush; other pairs are neutral.
 - Every attack is **atomic and idempotent** (below).
@@ -379,7 +382,6 @@ manual gives ranges), tunable in `GearCatalogue`. The catalogue is server-owned 
   10 + the difference, capped at 30; a tie deals 1 each. Higher total damage wins; equal totals go to one
   50/50 roll. The dice are the existing 1–100 `IAfterHoursDice`: factor = `(roll − 1) mod 5 − 2`
   (uniform), tie-break = attacker on roll ≤ 50.
-- The loot multiplier is computed in decimal and **truncated to 4 decimal places** before use and storage.
 - **No counter-loot:** a winning defender takes nothing from the attacker.
 - **No PvP XP or annual score yet:** those belong to AH-008 (objectives and championships). Reports show
   outcome, rounds, loot, protection and recovery only.
