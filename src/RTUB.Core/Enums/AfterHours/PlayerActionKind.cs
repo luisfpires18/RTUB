@@ -12,5 +12,7 @@ public enum PlayerActionKind
     TrainSkill = 7,
     PurchaseGear = 8,
     EquipGear = 9,
-    UnequipGear = 10
+    UnequipGear = 10,
+    PvpAttack = 11,
+    SaveDefence = 12
 }

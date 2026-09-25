@@ -113,10 +113,12 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [InlineData("cargo", 6, "Fence pays")]
     [InlineData("training", 7, "training point a day")]
     [InlineData("equipment", 8, "Brass Knuckles")]
+    [InlineData("pvp", 9, "Attack setup")]
+    [InlineData("pvp/report/1", 10, "Battle report")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
-            Factory, $"ah-off-{route}-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.{ip}", "Member");
+            Factory, $"ah-off-{route.Replace('/', '-')}-{_ipPrefix.Replace('.', '-')}", $"{_ipPrefix}.{ip}", "Member");
 
         var response = await client.GetAsync($"/after-hours/{route}");
 
@@ -313,3 +315,64 @@ public class AfterHoursMissingConfigFactory() : AfterHoursFactory(null);
 public class AfterHoursDisabledFactory() : AfterHoursFactory("false");
 
 public class AfterHoursEnabledFactory() : AfterHoursFactory("true");
+
+/// <summary>
+/// The PvP pages through the real host, on their own database: the report is readable by the
+/// attacker and the defender only, and the PvP page renders for a member.
+/// </summary>
+public class AfterHoursPvpPagesTests : AfterHoursGateTestsBase, IClassFixture<AfterHoursEnabledFactory>
+{
+    public AfterHoursPvpPagesTests(AfterHoursEnabledFactory factory) : base(factory)
+    {
+    }
+
+    [Fact]
+    public async Task Report_OnlyForItsTwoPlayers_AndPvpPageRenders()
+    {
+        var (attackerClient, attacker) = await CookieTestSession.SignInAsync(Factory, "ah-pvp-a", "10.50.4.1", "Member");
+        var (defenderClient, defender) = await CookieTestSession.SignInAsync(Factory, "ah-pvp-d", "10.50.4.2", "Member");
+        var (strangerClient, _) = await CookieTestSession.SignInAsync(Factory, "ah-pvp-s", "10.50.4.3", "Member");
+
+        int battleId;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RTUB.Application.Data.ApplicationDbContext>();
+            var fiscalYear = RTUB.Core.Entities.FiscalYear.Create(2700, 2701);
+            db.FiscalYears.Add(fiscalYear);
+            await db.SaveChangesAsync();
+            var cycles = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IGameCycleService>();
+            var cycle = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Pilot,
+                DateTime.UtcNow.AddDays(-5), DateTime.UtcNow.AddDays(30));
+            await cycles.ActivateAsync(cycle.Id);
+
+            var states = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService>();
+            await states.GetOrCreateForActiveCycleAsync(attacker.Id);
+            var defenderState = await states.GetOrCreateForActiveCycleAsync(defender.Id);
+            foreach (var row in db.AfterHoursPlayerCycleStates)
+                row.CreatedAt = DateTime.UtcNow.AddDays(-4); // past new-player protection
+            await db.SaveChangesAsync();
+
+            var result = await scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService>()
+                .AttackAsync(attacker.Id, defenderState!.Id, RTUB.Core.Enums.AfterHours.PvpTactic.Ambush,
+                    RTUB.Core.Enums.AfterHours.RiskStance.Standard, null, null, null, "page-attack");
+            result.Accepted.Should().BeTrue();
+            battleId = result.Receipt!.PvpBattle!.Id;
+        }
+
+        var path = $"/after-hours/pvp/report/{battleId}";
+        foreach (var client in new[] { attackerClient, defenderClient })
+        {
+            var html = await ReadBodyAsync(await client.GetAsync(path));
+            html.Should().Contain("ah-pvp-a attacked ah-pvp-d");
+            html.Should().Contain("Rounds").And.Contain("Total damage:");
+        }
+
+        var strangerHtml = await ReadBodyAsync(await strangerClient.GetAsync(path));
+        strangerHtml.Should().Contain("Report not found.");
+        strangerHtml.Should().NotContain("ah-pvp-a attacked");
+
+        var pvp = await ReadBodyAsync(await attackerClient.GetAsync("/after-hours/pvp"));
+        pvp.Should().Contain("Effective power").And.Contain("Attack setup").And.Contain("You attacked ah-pvp-d");
+        pvp.Should().NotContain("$400", "targets never show another player's cash");
+    }
+}

@@ -87,6 +87,40 @@ public class AfterHoursActionService(
         RunAsync(userId, idempotencyKey, AfterHoursActions.UnequipGearRequest(itemKey),
             (_, state, _) => Task.FromResult(AfterHoursActions.UnequipGear(state, itemKey)));
 
+    public Task<AfterHoursActionResult> SaveDefenceAsync(string userId, PvpTactic tactic, string? weapon, string? outfit, string? vehicleTool, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.DefenceRequest(tactic, weapon, outfit, vehicleTool),
+            (_, state, _) => Task.FromResult(AfterHoursActions.SaveDefence(state, tactic, weapon, outfit, vehicleTool)));
+
+    /// <summary>
+    /// One PvP attack. The attacker is the authenticated user; the only identity from the client is
+    /// the target's state id. Defender, history, loot, battle and receipt all change in this one
+    /// write transaction.
+    /// </summary>
+    public Task<AfterHoursActionResult> AttackAsync(
+        string userId, int defenderStateId, PvpTactic tactic, RiskStance stance,
+        string? weapon, string? outfit, string? vehicleTool, string idempotencyKey) =>
+        RunAsync(userId, idempotencyKey, AfterHoursActions.AttackRequest(defenderStateId, tactic, stance, weapon, outfit, vehicleTool),
+            async (context, state, now) =>
+            {
+                if (new[] { weapon, outfit, vehicleTool }.Any(k => k?.Length > 16))
+                    return ActionAttempt.Reject("Unknown item.");
+
+                var defender = await context.AfterHoursPlayerCycleStates
+                    .Include(s => s.Cargo)
+                    .Include(s => s.Gear)
+                    .SingleOrDefaultAsync(s => s.Id == defenderStateId && s.GameCycleId == state.GameCycleId);
+                if (defender is null)
+                    return ActionAttempt.Reject("That player is not in this cycle.");
+
+                var lastAttack = await context.AfterHoursPvpBattles
+                    .Where(b => b.AttackerStateId == state.Id && b.DefenderStateId == defender.Id)
+                    .OrderByDescending(b => b.AcceptedAtUtc)
+                    .Select(b => (DateTime?)b.AcceptedAtUtc)
+                    .FirstOrDefaultAsync();
+
+                return AfterHoursActions.Attack(state, defender, tactic, stance, weapon, outfit, vehicleTool, lastAttack, now, dice.RollPercent);
+            });
+
     private async Task<AfterHoursActionResult> RunAsync(string userId, string idempotencyKey, string request, Action action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
@@ -99,6 +133,7 @@ public class AfterHoursActionService(
 
             var prior = await context.AfterHoursPlayerActionReceipts
                 .AsNoTracking()
+                .Include(r => r.PvpBattle)
                 .FirstOrDefaultAsync(r => r.IdempotencyKey == idempotencyKey && r.PlayerCycleState!.UserId == userId);
             if (prior is not null)
             {

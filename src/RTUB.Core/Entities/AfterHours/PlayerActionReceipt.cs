@@ -49,6 +49,9 @@ public class PlayerActionReceipt : BaseEntity
     /// <summary>Gear purchase, equip or unequip: the catalogue key of the item.</summary>
     public string? GearKey { get; set; }
 
+    /// <summary>PvP attack: the immutable battle this receipt accepted (the battle holds the key).</summary>
+    public PvpBattle? PvpBattle { get; set; }
+
     public int LevelBefore { get; set; }
     public int LevelAfter { get; set; }
 }

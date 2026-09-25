@@ -6,9 +6,10 @@ extension of MyTuno, and shares none of its gameplay systems.
 
 Status: foundation (AH-001), cycles and per-cycle player state (AH-002), the core solo loop (AH-003):
 crimes, jail, cover jobs, bank, XP and levels, cargo with buyer contracts (AH-004), and skill training
-with equipment (AH-005). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
+with equipment (AH-005), and PvP (AH-006). `/after-hours` is the dashboard (stats, bank); `/after-hours/crimes` is the crime
 list and cover job; `/after-hours/cargo` is the cargo inventory, the fence and the buyer contracts;
-`/after-hours/training` and `/after-hours/equipment` are training and gear.
+`/after-hours/training` and `/after-hours/equipment` are training and gear; `/after-hours/pvp` is PvP
+(status, defence, targets, attack setup, recent battles) and `/after-hours/pvp/report/{id}` a stored battle.
 
 ## Numbering
 
@@ -100,6 +101,7 @@ Blazor navigation goes over HTTP (the router is not interactive), so the gate ru
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursActionTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursRulesTests.cs` | | AH-003 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursCargoTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursCargoRulesTests.cs` | | AH-004 |
 | Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursTrainingGearTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursTrainingGearRulesTests.cs` | | AH-005 |
+| Tests | `tests/RTUB.Integration.Tests/Application/AfterHoursPvpTests.cs`, `tests/RTUB.Core.Tests/Entities/AfterHours/AfterHoursPvpRulesTests.cs`, `AfterHoursPvpPagesTests` in `Pages/AfterHoursGateTests.cs` | | AH-006 |
 
 Pages must stay in `RTUB.Web`: the router only scans that assembly.
 
@@ -207,7 +209,7 @@ wallet +amount, **no fee (AH-003 choice)**. Only After Hours columns are touched
 ## Actions: receipts, idempotency, concurrency
 
 `IAfterHoursActionService` (crime, cover job, deposit, withdraw, fence sale, contract delivery, training,
-gear purchase, equip, unequip) is the only way player state changes. All After Hours writes, including contract rotation, go through
+gear purchase, equip, unequip, save defence, PvP attack) is the only way player state changes. All After Hours writes, including contract rotation, go through
 `AfterHoursWriteTransaction`.
 
 - **Idempotency key.** Every request carries a client key (≤ 64 chars). The pages create one per
@@ -335,3 +337,83 @@ manual gives ranges), tunable in `GearCatalogue`. The catalogue is server-owned 
   (AH-005 choice).
 - **For PvP (AH-006):** strength reads `GearCatalogue.BestOwnedTiers` — the best tier **owned** per slot,
   ignoring what is equipped. No PvP power is computed yet.
+
+## PvP
+
+`/after-hours/pvp`. Rules in `PvpRules`, resolution in `AfterHoursActions.Attack`, reads in `IPvpService`.
+
+### Game Manual v2 rules
+
+- Open PvP: targets do not consent and can be offline; attacking yourself is refused.
+- Only **capped wallet cash** and **capped cargo** can be stolen. Bank, XP, equipment, account data and
+  history are never touched.
+- **New-player protection:** 72 h from the state's creation (`CreatedAt`, set from the server clock), or
+  until the player's **first accepted** attack, whichever comes first. A refused attack or opening the page
+  keeps it. `PvpInitiatedAtUtc` is the only thing stored for it. States created before AH-006 use their
+  real `CreatedAt`.
+- A **defender who loses** gets 6 h of protection. The same attacker can hit the same target once per
+  24 h (accepted attacks only; the stored battles are the history). Jail blocks starting attacks.
+  Losing puts a player in **Recovery**, which blocks their own attacks but not crimes.
+- **Effective power** = Toughness + Stealth + Smarts + Charisma + 2 × weapon tier + outfit tier +
+  vehicle/tool tier, over the **best owned** tier per slot (`GearCatalogue.BestOwnedTiers`), never the
+  equipped items, so unequipping cannot make anyone look weak. Used to compare strength and to scale loot.
+- **Loot** (attacker wins only): multiplier = min(1, (defender power / attacker power)²), no lower bound;
+  wallet = ⌊min(⌊wallet × 10%⌋, 500) × multiplier⌋; cargo budget = ⌊min(⌊cargo base value × 20%⌋, 250) ×
+  multiplier⌋, spent on whole items, highest base price first (ties by `CargoType` order), while each full
+  price fits. Cargo moves as cargo, never as cash; tiny holdings can yield nothing.
+- **Battle:** three rounds with a chosen tactic and risk stance; the defender uses a saved defence.
+  Ambush > Negotiation > Setup > Counterattack > Ambush; other pairs are neutral.
+- Every attack is **atomic and idempotent** (below).
+
+### AH-006 implementation defaults (not in the manual; tune in `PvpRules`)
+
+- Attack costs **20 energy**. After every accepted attack the attacker waits **5 minutes** (cooldown).
+- A beaten defender recovers for **15 minutes**; a beaten attacker for **10 / 15 / 30 minutes**
+  (Cautious / Standard / Reckless).
+- **Tactic specialisation:** Ambush (Stealth − 4) + (Toughness − 4); Negotiation (Charisma − 4) +
+  (Smarts − 4); Counterattack (Toughness − 4) + selected gear tiers; Setup (Smarts − 4) + selected gear tiers.
+- A favourable matchup is **+4** to that side's round score (nothing is subtracted from the other).
+- **Risk stance** adds −2 / 0 / +2 to every attacker round score. It does not change loot.
+- **Round:** score = loadout power (the effective-power formula over the gear actually taken) +
+  specialisation + matchup (+ risk for the attacker) + a random factor **−2..+2**. The higher score deals
+  10 + the difference, capped at 30; a tie deals 1 each. Higher total damage wins; equal totals go to one
+  50/50 roll. The dice are the existing 1–100 `IAfterHoursDice`: factor = `(roll − 1) mod 5 − 2`
+  (uniform), tie-break = attacker on roll ≤ 50.
+- The loot multiplier is computed in decimal and **truncated to 4 decimal places** before use and storage.
+- **No counter-loot:** a winning defender takes nothing from the attacker.
+- **No PvP XP or annual score yet:** those belong to AH-008 (objectives and championships). Reports show
+  outcome, rounds, loot, protection and recovery only.
+- The defender has no risk stance. A player who never saved a defence fights with **Counterattack** and
+  whatever is **equipped at that moment**; a saved defence (`DefenceTactic` + three keys on the state) is
+  used as saved, even after equipment changes. Saving costs nothing and is an action with a receipt.
+
+### Persistence
+
+`PvpBattle` (`AfterHoursPvpBattles`) is written once, in the attack's transaction, and never changed: both
+players and states, time, tactics, stance, both loadouts (keys and tiers, whether the defence was saved),
+effective and loadout powers, specialisation, matchup and risk figures, total damage, tie-break roll,
+winner, loot multiplier, cash taken, and every recovery, protection and cooldown it applied. Its three
+`PvpBattleRound` rows keep each round's random factors, scores and damage; `PvpBattleCargo` rows keep the
+cargo moved. A report is rendered from these rows alone: nothing is recalculated or rerolled.
+`PvpBattle.ReceiptId` (unique) links it to the attacker's receipt; the link lives on the battle so the
+receipts table was not altered.
+
+**Reports** (`/after-hours/pvp/report/{id}`) are visible to the attacker and the defender only; anyone else
+gets "Report not found", the same as for a missing battle. The attacker is always the signed-in user; the
+target's state id is the only player identity a request carries. Target lists show name, level and
+effective power, never cash or cargo.
+
+### Atomicity, idempotency, concurrency
+
+An attack is one `IAfterHoursActionService` action: inside one `AfterHoursWriteTransaction` it loads both
+players, reconciles the attacker, checks every restriction (before any energy is spent or die rolled),
+validates the chosen loadout (owned, right slot, tiers from the catalogue), resolves the defender's setup,
+spends energy, ends the attacker's new-player protection if this is their first attack, rolls, moves
+wallet and cargo, applies recovery, protection and cooldown, and inserts the battle and the receipt.
+Nothing is visible until that commits; any failure rolls all of it back.
+
+The receipt's request fingerprint holds the target, tactic, stance and loadout. The same key returns the
+same battle and changes nothing (no energy, dice, loot, or new timers); the same key with any change is
+refused. Because attacks serialize on the write lock, the second of two racing attacks sees the first:
+cooldown, a defender's new protection, the 24-hour history and spent energy all hold. Saving a defence
+writes its four fields in one update, so a mix of two saves cannot happen.

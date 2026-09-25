@@ -32,6 +32,10 @@ public static class AfterHoursText
                 $"Equipped {GearCatalogue.Find(r.GearKey)?.Name}.",
             PlayerActionKind.UnequipGear =>
                 $"Unequipped {GearCatalogue.Find(r.GearKey)?.Name}.",
+            PlayerActionKind.PvpAttack =>
+                r.Succeeded ? $"You won the fight. +{r.WalletDelta} cash." : "You lost the fight.",
+            PlayerActionKind.SaveDefence =>
+                "Defence saved.",
             PlayerActionKind.ContractDelivery =>
                 $"Delivered {-r.CargoDelta} {CargoCatalogue.Name(r.CargoType!.Value, -r.CargoDelta)}. +{r.WalletDelta} cash, +{r.XpDelta} XP.",
             _ => "Done."

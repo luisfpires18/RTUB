@@ -73,6 +73,22 @@ public class PlayerCycleState : BaseEntity
     public string? EquippedOutfitKey { get; set; }
     public string? EquippedVehicleToolKey { get; set; }
 
+    // PvP. New-player protection is derived from CreatedAt (+72 h); this only records whether the
+    // player has ended it early by attacking. All times UTC; a past or null time means "not active".
+    public DateTime? PvpInitiatedAtUtc { get; set; }
+    public DateTime? PvpProtectedUntilUtc { get; set; }
+    public DateTime? PvpRecoveryUntilUtc { get; set; }
+    public DateTime? PvpCooldownUntilUtc { get; set; }
+
+    /// <summary>
+    /// Saved defence. Null tactic = never saved: the defender then fights with Counterattack and
+    /// whatever is equipped at that moment. Once saved, the saved setup is used as is.
+    /// </summary>
+    public PvpTactic? DefenceTactic { get; set; }
+    public string? DefenceWeaponKey { get; set; }
+    public string? DefenceOutfitKey { get; set; }
+    public string? DefenceVehicleToolKey { get; set; }
+
     public static readonly TimeSpan EnergyRegenInterval = TimeSpan.FromMinutes(6);
     public static readonly TimeSpan HeatDecayInterval = TimeSpan.FromMinutes(10);
 
@@ -230,6 +246,9 @@ public class PlayerCycleState : BaseEntity
 
         return new PlayerCycleState
         {
+            // Set from the server clock, not left to the entity default: new-player PvP protection
+            // runs for 72 h from here.
+            CreatedAt = utcNow,
             GameCycleId = gameCycleId,
             UserId = userId,
             Level = StartingLevel,
