@@ -1,0 +1,116 @@
+@page "/after-hours/yearbook"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces.AfterHours
+@using RTUB.Core.Entities.AfterHours
+@using RTUB.Core.Helpers.AfterHours
+@inject IYearbookService YearbookService
+
+<PageTitle>Yearbook - After Hours - RTUB</PageTitle>
+
+<div class="after-hours-page container">
+    <div class="page-header-centered mb-3">
+        <div class="page-header-center">
+            <h1><i class="bi bi-journal-bookmark"></i> Yearbook</h1>
+            <p class="page-header-subtitle"><a href="/after-hours">After Hours</a> · <a href="/after-hours/leaderboards">Current leaderboards</a></p>
+        </div>
+    </div>
+
+    @if (archives is null)
+    {
+        <LoadingSpinner />
+    }
+    else if (archives.Count == 0)
+    {
+        <p class="after-hours-muted">No cycle has been archived yet. Finished cycles appear here.</p>
+    }
+    else
+    {
+        <p class="after-hours-muted">Final standings of finished cycles, frozen when each cycle ended. Equal scores share a place.</p>
+
+        @foreach (var archive in archives)
+        {
+            <section @key="archive.Id" class="after-hours-card">
+                <div class="after-hours-card-head">
+                    <h2>@archive.FiscalYearLabel · @archive.Kind</h2>
+                    <span class="after-hours-badge">@(archive.Official ? "Official" : "Pilot")</span>
+                </div>
+                <p class="after-hours-muted">@Day(archive.StartUtc) to @Day(archive.EndUtc) (Lisbon)</p>
+
+                @if (archive.Official)
+                {
+                    <p>@Champions("Individual", archive.Players.Where(p => p.IsChampion).Select(p => p.DisplayName))</p>
+                    <p>@Champions("Family", archive.Families.Where(f => f.IsChampion).Select(f => f.FamilyName))</p>
+                }
+                else
+                {
+                    <p class="after-hours-muted">Pilot results are non-official test results, kept for history only.</p>
+                }
+
+                <h3 class="after-hours-section">Individual</h3>
+                @if (archive.Players.Count == 0)
+                {
+                    <p class="after-hours-muted">No players.</p>
+                }
+                <ol class="after-hours-board">
+                    @foreach (var p in archive.Players.OrderBy(p => p.Rank).ThenBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        <li @key="p.Id" class="after-hours-row">
+                            <span><span class="after-hours-rank">#@p.Rank</span> @p.DisplayName@(p.IsChampion ? " 🏆" : "")</span>
+                            <span class="after-hours-score">@p.AnnualScore</span>
+                            <span class="after-hours-muted after-hours-row-detail">
+                                Level @p.Level · @p.ScoringWeeks scoring week@(p.ScoringWeeks == 1 ? "" : "s")@(p.FamilyName is null ? "" : $" · {p.FamilyName}")
+                            </span>
+                        </li>
+                    }
+                </ol>
+
+                <h3 class="after-hours-section">Families</h3>
+                @if (archive.Families.Count == 0)
+                {
+                    <p class="after-hours-muted">No families.</p>
+                }
+                <ol class="after-hours-board">
+                    @foreach (var f in archive.Families.OrderBy(f => f.Rank).ThenBy(f => f.FamilyName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        <li @key="f.Id" class="after-hours-row">
+                            <span><span class="after-hours-rank">#@f.Rank</span> @f.FamilyName@(f.IsChampion ? " 🏆" : "")</span>
+                            <span class="after-hours-score">@f.AnnualScore</span>
+                            <details class="after-hours-row-detail">
+                                <summary class="after-hours-muted">@f.ScoringWeeks scoring week@(f.ScoringWeeks == 1 ? "" : "s") · roster (@f.Members.Count)</summary>
+                                <ul class="after-hours-roster">
+                                    @foreach (var m in f.Members)
+                                    {
+                                        <li @key="m.Id">@m.DisplayName <span class="after-hours-muted">@m.Role</span></li>
+                                    }
+                                </ul>
+                            </details>
+                        </li>
+                    }
+                </ol>
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<CycleArchive>? archives;
+
+    protected override async Task OnInitializedAsync()
+    {
+        archives = await YearbookService.GetArchivesAsync();
+    }
+
+    private static string Day(DateTime utc) =>
+        LisbonCalendar.DateOf(utc).ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string Champions(string championship, IEnumerable<string> names)
+    {
+        var list = names.Order(StringComparer.OrdinalIgnoreCase).ToList();
+        return list.Count switch
+        {
+            0 => $"{championship} Championship: no champion (nobody scored).",
+            1 => $"{championship} Champion: {list[0]}",
+            _ => $"{championship} Co-Champions: {string.Join(", ", list)}"
+        };
+    }
+}

@@ -119,6 +119,7 @@ public abstract class AfterHoursDisabledTestsBase : AfterHoursGateTestsBase
     [InlineData("family", 11, "Create a family")]
     [InlineData("objectives", 12, "Daily objectives pay XP")]
     [InlineData("leaderboards", 13, "Annual score")]
+    [InlineData("yearbook", 16, "archived")]
     public async Task ChildRoutes_AreRefused(string route, int ip, string pageText)
     {
         var (client, _) = await CookieTestSession.SignInAsync(
@@ -467,4 +468,86 @@ public class AfterHoursObjectivePagesTests : AfterHoursGateTestsBase, IClassFixt
         boards.Should().Contain("ah-obj-player").And.Contain("#1").And.Contain("Individual").And.Contain("Family");
         boards.Should().NotContain("Champion");
     }
+}
+
+/// <summary>
+/// AH-009: the yearbook renders stored archives only. Archives are inserted directly here (the rollover itself
+/// is proven in AfterHoursRolloverTests); no cycle is active, which the yearbook does not need.
+/// </summary>
+public class AfterHoursYearbookPagesTests : AfterHoursGateTestsBase, IClassFixture<AfterHoursEnabledFactory>
+{
+    public AfterHoursYearbookPagesTests(AfterHoursEnabledFactory factory) : base(factory)
+    {
+    }
+
+    [Fact]
+    public async Task Yearbook_ShowsOfficialCoChampions_AndPilotAsNonOfficial_NewestFirst()
+    {
+        var (client, user) = await CookieTestSession.SignInAsync(Factory, "ah-yearbook-player", "10.50.7.1", "Member");
+        (await ReadBodyAsync(await client.GetAsync("/after-hours/yearbook"))).Should().Contain("No cycle has been archived yet");
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<RTUB.Core.Entities.ApplicationUser>>();
+            var others = new List<string>();
+            foreach (var name in new[] { "ah-yearbook-co", "ah-yearbook-runner" })
+            {
+                var other = new RTUB.Core.Entities.ApplicationUser { UserName = name, Email = $"{name}@test.com", FirstName = "A", LastName = "H", Nickname = name };
+                (await users.CreateAsync(other)).Succeeded.Should().BeTrue();
+                others.Add(other.Id);
+            }
+
+            var db = scope.ServiceProvider.GetRequiredService<RTUB.Application.Data.ApplicationDbContext>();
+            var fiscalYear = RTUB.Core.Entities.FiscalYear.Create(2600, 2601);
+            db.FiscalYears.Add(fiscalYear);
+            var family = new RTUB.Core.Entities.AfterHours.Family { Name = "Night Owls", NormalizedName = "NIGHT OWLS", CreatedByUserId = user.Id };
+            db.AfterHoursFamilies.Add(family);
+            await db.SaveChangesAsync();
+            var cycles = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.AfterHours.IGameCycleService>();
+            var start = RTUB.Core.Helpers.AfterHours.RolloverRules.SeptemberStartUtc(2600);
+            var pilot = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Pilot, start, start.AddDays(30));
+            var live = await cycles.CreateCycleAsync(fiscalYear.Id, RTUB.Core.Enums.AfterHours.GameCycleKind.Live, start.AddDays(30), RTUB.Core.Helpers.AfterHours.RolloverRules.SeptemberStartUtc(2601));
+
+            var pilotArchive = Archive(pilot, official: false);
+            pilotArchive.Players.Add(Entry(user.Id, "Pilot Ace", 1, 90, champion: false));
+            var liveArchive = Archive(live, official: true);
+            liveArchive.Players.AddRange([Entry(user.Id, "Top Dog", 1, 300, true), Entry(others[0], "Co Top", 1, 300, true), Entry(others[1], "Runner Up", 3, 120, false)]);
+            liveArchive.Families.Add(new RTUB.Core.Entities.AfterHours.YearbookFamilyEntry
+            {
+                FamilyId = family.Id, FamilyName = "Night Owls", AnnualScore = 250, Rank = 1, ScoringWeeks = 5, IsChampion = true,
+                Members = [new() { UserId = user.Id, DisplayName = "Top Dog", Role = RTUB.Core.Enums.AfterHours.FamilyRole.Boss }]
+            });
+            db.AfterHoursCycleArchives.AddRange(pilotArchive, liveArchive);
+            await db.SaveChangesAsync();
+
+            RTUB.Core.Entities.AfterHours.CycleArchive Archive(RTUB.Core.Entities.AfterHours.GameCycle cycle, bool official) => new()
+            {
+                GameCycleId = cycle.Id, Kind = cycle.Kind, FiscalYearId = fiscalYear.Id, FiscalYearLabel = "2600-2601",
+                StartUtc = cycle.StartUtc, EndUtc = cycle.EndUtc, ArchivedAtUtc = cycle.EndUtc, Official = official
+            };
+        }
+
+        // A deleted account does not take its history with it: the page renders from the snapshot alone.
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<RTUB.Core.Entities.ApplicationUser>>();
+            (await users.DeleteAsync((await users.FindByNameAsync("ah-yearbook-co"))!)).Succeeded.Should().BeTrue();
+        }
+
+        var html = await ReadBodyAsync(await client.GetAsync("/after-hours/yearbook"));
+
+        html.Should().Contain("2600-2601 · Live").And.Contain("2600-2601 · Pilot").And.Contain("Official");
+        html.Should().Contain("Individual Co-Champions: Co Top, Top Dog").And.Contain("Family Champion: Night Owls");
+        html.Should().Contain("#3</span> Runner Up").And.Contain("Pilot Ace").And.Contain("Pilot results are non-official");
+        html.Should().Contain("1 Sep 2600", "dates are shown as Lisbon days");
+        html.IndexOf("2600-2601 · Live", StringComparison.Ordinal).Should().BeLessThan(html.IndexOf("2600-2601 · Pilot", StringComparison.Ordinal), "newest archive first");
+        var pilotSection = html[html.IndexOf("2600-2601 · Pilot", StringComparison.Ordinal)..];
+        pilotSection.Should().NotContain("Champion").And.NotContain("🏆");
+    }
+
+    private static RTUB.Core.Entities.AfterHours.YearbookPlayerEntry Entry(string userId, string name, int rank, int score, bool champion) => new()
+    {
+        UserId = userId, DisplayName = name, Level = 7, XP = 900, Toughness = 4, Stealth = 4, Smarts = 4, Charisma = 4,
+        AnnualScore = score, Rank = rank, ScoringWeeks = 4, IsChampion = champion
+    };
 }
