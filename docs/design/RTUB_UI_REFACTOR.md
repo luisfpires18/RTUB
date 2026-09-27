@@ -1,0 +1,851 @@
+# RTUB UI Refactor
+
+Audit and polish contract for the product-wide UI/UX refinement of RTUB (Task 001, branch
+`chore/032/ui-refactor-audit`). This document is the input for every later UI refactor task. It
+does not implement anything.
+
+**Evidence tags** used throughout. Every finding carries at least one.
+
+| Tag | Meaning |
+| --- | --- |
+| **V** | Seen in the running application (screenshot or interaction in a browser). |
+| **R** | Measured in the running application (DOM, computed style, accessibility tree). |
+| **S** | Source inspection only. |
+| **A** | Automated tooling (build, test suite, Impeccable detector). |
+| **I** | Inference. Not verified; states what would verify it. |
+
+Priority labels: **BLOCKER/STRUCTURAL** (resolve before broad polish), **HIGH** (repeated, hurts
+important workflows), **MEDIUM** (real usability or consistency problem), **LOW** (polish).
+
+---
+
+## 1. Purpose
+
+- **Improvement-only.** Make the existing RTUB more coherent, polished, responsive, accessible and
+  pleasant. No new product features, no new workflows, no business-rule changes.
+- **Preserve the colors.** The dark near-black + purple identity stays. Colors may be formalized as
+  tokens and applied more consistently; where a pair fails contrast, the fix uses the smallest
+  adjustment, preferably a color RTUB already uses (section 13.2).
+- **Preserve business behavior.** Domain logic, validation semantics, permissions, roles, routing
+  semantics, persistence and APIs are out of scope.
+- **Preserve Blazor.** Blazor Interactive Server on .NET 10 remains the architecture. Nothing here
+  recommends another frontend stack.
+- **Preserve and strengthen RTUB.Shared** as the single home of reusable UI.
+- **Web and installed PWA are both first-class.** Mobile is designed as an app, not as a narrow
+  desktop.
+
+## 2. Audit Method
+
+### 2.1 What was done
+
+| Step | Detail |
+| --- | --- |
+| Repository state | `dev` clean at `3399d533`; audit branch `chore/032/ui-refactor-audit` created from it. |
+| Source | `App.razor`, `MainLayout.razor`, all 62 routable pages (routes, render modes, auth attributes), the whole of `src/RTUB.Shared` (89 Razor components, 3 base classes), the CSS layer (`site.css` + 76 imported files + 88 scoped `.razor.css`), the global scripts, the PWA files (manifest, `sw-register.js`, `offline.html`, `ReconnectModal`), and the test projects. |
+| Build and tests | `dotnet restore`, `dotnet build --no-restore --configuration Release`, `dotnet test --no-build --configuration Release` (the CI commands). Results in section 16.1. |
+| Running app | Local Development run on `https://localhost:58869` against the local `src/RTUB.Web/app.db` (108 users, 45 events, 71 rehearsals, 7 meetings, 7 albums - a sanitized snapshot, all emails `@rtub.pt`). Safety overrides for the run, all process-local environment variables, nothing committed: `EmailSettings__SmtpServer=disabled.invalid` (no mail can leave), `Cloudflare__R2__Bucket=<non-existent audit bucket>` (no storage write can reach the production bucket; also satisfies the production-bucket startup guard), `DatabaseBackup__Enabled=false`, `DevelopmentDataReset__Enabled=false`. |
+| Accounts | Anonymous, then an **Owner** account on the local database (credentials supplied by the owner for local development; not recorded here). A plain-member view was not signed in. |
+| Browser | Claude desktop in-app browser (Chromium). Viewports emulated: **1440×900, 1024×768, 820×1180, 390×844, 360×780**. |
+| Deterministic scan | Impeccable detector over `Pages`, `Shared`, `Components`, RTUB.Shared components and `wwwroot/css` (section 12.3). |
+| Skills used | `impeccable` (audit and critique criteria, heuristics, detector); the built-in browser for inspection; project `CLAUDE.md` / `docs/frontend-practices.md` / `docs/pwa-practices.md` / `.github/agents/rtub-frontend-agent.md`. |
+
+Only navigation, dialog opening, filter changes and form typing were performed. **No save, delete,
+confirmation or submission was made**, except one empty login submit to see native validation. One
+edit form was dirtied and cancelled to test discard behavior.
+
+### 2.2 Coverage
+
+| Area | Coverage | Viewports |
+| --- | --- | --- |
+| App shell, navbar, offcanvas drawer, footer | A - visually inspected | 1440, 1024, 820, 390 |
+| Home / portal (anonymous and Owner) | A | 1440, 390 |
+| Login (incl. empty-submit validation) | A | 1440 |
+| Events list (anonymous + Owner) | A | 1440, 360 |
+| Rehearsals list (empty + populated), details dialog, edit dialog (dirty + cancel), delete confirmation (opened, cancelled) | A | 1440, 1024, 820, 390 |
+| Members directory | A | 1440, 820, 390 |
+| Profile | A | 390 |
+| Meetings (empty states, create dialog opened, not submitted) | A | 390 |
+| Finance list, Finance report | A | 1440, 360 |
+| Messages inbox (list only; message content deliberately not recorded) | A | 390 |
+| MyTuno home, Leaderboard, Logistics list + one board, Music albums, Gallery | A | 390 and/or 1024/1440 |
+| Event enrollments/contacts/discussion, Songs, Naipes, Hall of Fame, Hierarchy, Roles, Calotes, Requests, Questions, Nerba, MBWAY, Inventory, Shop, Bets, mini-games, MyTuno arena/stage/boss/survive, Owner/Admin operations (Emails, Notifications, Images, Labels, Users, Tracing, DB viewer) | B - source only | - |
+| Installed PWA (standalone display mode), real iOS/Android devices, virtual keyboard, offline mode, SW update toast, reconnect UI, push prompts | B - source only (C for real-device behavior) | - |
+| Plain member / Leitão / Caloiro navigation and permissions as rendered | C - not signed in with those roles | - |
+| Remote media (album covers, slideshow, most avatars) | C - blocked locally by the Development CSP (see 19) | - |
+| Light theme | n/a - RTUB is dark-only; no theme switch exists | - |
+
+---
+
+## 3. Current Architecture
+
+| Topic | Finding | Evidence |
+| --- | --- | --- |
+| .NET | All projects `net10.0`; central package management (`Directory.Packages.props`). `global.json` sets only `test.runner: Microsoft.Testing.Platform` - there is **no SDK pin**, so any .NET 10 SDK builds it (the system index says it pins the SDK; recorded as a doc drift in `STATE.md`). | S |
+| Blazor mode | Blazor Web App, **Interactive Server, per page**. 54 of 62 routable pages declare `@rendermode InteractiveServer`; 8 are static SSR (`Login`, `ForgotPassword`, `ResetPassword`, `ConfirmEmail`, `Error`, `Privacy`, `Share`, `Hierarchy`). No global render mode. | S |
+| Startup | `blazor.web.js` with `autostart="false"`, started by `js/blazorStartup.js`. | S |
+| Routing | `App.razor`: `Router` → `AuthorizeRouteView` (default `MainLayout`) + `FocusOnNavigate Selector="h1"`; `RedirectToLogin` for anonymous; inline **English** NotFound/NotAuthorized texts in a Portuguese app. | S |
+| Layout | One `MainLayout` (static SSR): Bootstrap `navbar-expand-lg` with `offcanvas-lg` drawer, `container-xxl rtub-wide` content, footer. Interactive islands inside it: `AnnouncementBanner`, `AndroidModeLogger`, `UnreadMessagesBadge`. Nav visibility (Gestão, Operações, Owner items) is computed in the layout's C# from roles and member category. | S, V |
+| Page-level chrome | 48 pages hand-write a `page-header-centered` header (left / center / right slots). 38 pages render a page-specific `MobileBottomNav` below 1200px. Pages with an app-style shell (Messages, MyTuno modes) hide or replace the global chrome. | S, V |
+| State | Component fields; `MultiModalState` (36 pages) for modal visibility; some filters in the query string (`/rehearsals?fy=2025-2026`); scoped event services (`ProfilePictureUpdateService`). | S, V |
+| Forms | 53 `EditForm`, 116 `InputText`, 103 raw `<input>`; DataAnnotations; `ErrorDisplay` (43 uses) for validation. `FormTextField`/`FormTextArea` exist but only the two Logistics pages use them. | S |
+| Business logic ownership | Application services via DI directly into pages - no HTTP API layer for UI. Large pages orchestrate side effects themselves (e.g. `Rehearsals.razor` has 16 `@inject`s, 11 of them application services or factories, incl. the push factory, push sender and audit log). | S |
+| Page size | Seven pages exceed 2,000 lines: `Meetings` 4,648, `MyTunoHome` 4,294, `Events` 4,282, `Members` 3,550, `Rehearsals` 2,986, `Inbox` 2,114, `Bets` 2,031. `Meetings` hosts 15 `<Modal>` instances. | S |
+| CSS | Bootstrap 5.3 (local) → `site.css` importing **76** files in `1-base/2-layout/3-components/4-pages/9-overrides` → `RTUB.styles.css` (88 scoped files). Tokens: ~25 custom properties in `1-base/variables.css`. | S |
+| JS | **38** scripts loaded by `MainLayout` on every page, including PixiJS 8 (jsDelivr), three game bundles (~325 KB on disk), Leaflet (unpkg) and Cropper (cdnjs). Interop wrappers in `RTUB.Web/Interop` (3). | S |
+| PWA | `manifest.webmanifest` (`id "/"`, standalone, `portrait-primary`, `lang pt`, theme `#3F2A86`); `service-worker.js`; `sw-register.js` with an update toast ("Nova versão disponível!" / Atualizar / Depois); `offline.html`; .NET 10 `ReconnectModal` in Portuguese; `PushNotificationPrompt`, `LoginPopup`, `PlayStorePrompt` on the home page; Android TWA via `assetlinks.json`. | S |
+| Auth | ASP.NET Identity cookie. Roles Owner/Admin/Mod/Member plus member categories (Leitão, Caloiro, Tuno, Veterano, Tunossauro). Login is a static SSR form post; logout is a form post to `/auth/logout`. | S, V |
+| Error handling | No `ErrorBoundary`, no `#blazor-error-ui`. An unhandled exception in an event handler ends the circuit and surfaces as the reconnect dialog. | S, I |
+
+---
+
+## 4. RTUB.Shared Inventory
+
+RTUB.Shared holds 89 Razor components under `Components/` (Badges, Cards, Common, Discussion,
+Email, Forms, Game, Modals, Naipes, Profile, Ranking, Slideshow, Tables, UI, Uploads) and three base
+classes. It references **RTUB.Application**, and 31 components reference Application namespaces
+or services; several inject Application services directly (`IEventService`, `IEnrollmentService`,
+`ISongService`, `IMemberStatusService`, `UserManager<ApplicationUser>`, …), so part of "Shared" is
+data-aware feature UI rather than presentation (section 15.B).
+
+Usage counts are *files / occurrences* across `RTUB.Web` and `RTUB.Shared` (S).
+
+### 4.1 Core presentation components
+
+| Component | Uses | Purpose | Strengths | Problems | Refine? API enough? |
+| --- | --- | --- | --- | --- | --- |
+| `Modals/Modal` | 53 / 129 | Base dialog; full-screen sheet on phones, dialog on desktop. | Widely adopted; phone sheet with bottom action bar is app-like (V); scroll lock; backdrop click does **not** close (safe for forms) (V). | No `role="dialog"`, `aria-modal`, `aria-labelledby` (R); focus not moved in, not trapped, not restored (R); **Escape only works when focus is already inside**, so it normally does nothing (V); background stays in the accessibility tree (R); three "Voltar" buttons in one dialog (hidden mobile back, header arrow, default footer) (R); close arrow sits on the right on desktop (V); no dirty-form hook; not integrated with browser/hardware Back (V); desktop dialogs top-anchored (V). | **Yes, first.** API needs: `aria` wiring, initial-focus target, `CanClose`/dirty guard callback, optional history integration. |
+| `Modals/ConfirmDialog` | 30 / 58 | Yes/no and destructive confirmation on top of `Modal`. | Clear title, names the object ("eliminar o ensaio de 09 Jul 2026?"), secondary Cancel + red confirm (V). | Info icon even for destructive actions (V); `text-danger` warning at small size is 4.23:1 (R); no busy state - confirm runs while buttons stay enabled unless the page passes `Disabled` (S); focus not placed on the safe action (R). | Yes: `Variant` (danger/neutral), `IsBusy`, focus Cancel. |
+| `Modals/DetailsModal` + `InfoSection` | 11 / 12, 10 / 36 | Read-only detail sheet with grouped fields. | Consistent label/value rhythm, icons (V). | Inherits `Modal` issues; large placeholder hero icon when no image (V). | Light refinement. |
+| `Modals/CrudModalManager` | 5 / 5 | Generic create/edit + delete dialog pair. | Removes boilerplate where used. | Low adoption; inherits `Modal`. | Keep; adopt where it fits, do not force. |
+| `Common/EmptyState` | 48 / 92 | Empty lists. | Most consistent state pattern in the app (V). | Default title is English ("No items found") (S); two visual variants in use (icon+title vs icon+title+paragraph) with different icons (`info-circle`, `calendar-x`) (V); `role=""` rendered when not clickable (S). | Yes: PT defaults, `Variant` (inline/section), tone. |
+| `UI/LoadingSpinner` | 46 / 67 | Loading indicator with message. | `role="status"` + visually hidden label (S). | **188 raw `spinner-border` usages** bypass it (S); no skeleton variant except `SongCardSkeleton`. | Yes: inline/button/section sizes; replace raw spinners over time. |
+| `Common/LoadableContent`, `PaginatedList` | 2 / 3, **0** | Loading/empty/content switch; + pagination. | Right idea. | English defaults; `PaginatedList` unused (S). | Either adopt or delete in a later cleanup task (not in this refactor). |
+| `Common/ErrorDisplay` | 30 / 43 | Validation summary card. | Hooks `EditContext` (S). | Summary only - no per-field message pattern; not announced (no live region) (S). | Pair with a field wrapper (13.4). |
+| `UI/Alert` | 20 / 38 | Inline success/error/info/warning messages. | Variants incl. `Purple`. | Dismiss button labelled "Close" (English) (S); used as ad-hoc success toast with `Task.Delay` auto-hide in pages (28 `Task.Delay` in pages) (S). | Keep for inline; add a shared toast (14). |
+| `Tables/SearchBar` | 30 / 49 | Debounced search input. | Consistent pill look (V). | `type="text"`, no label/`aria-label`, placeholder is the only name (R); clear button labelled only by `title` (S). | Yes: `Label` (visually hidden), `type="search"`. |
+| `UI/FilterDropdown` | 16 / 29 | Custom listbox select. | Keyboard handling, `aria-haspopup`/`aria-expanded`, `role="listbox"` (S). | Trigger has no name for *what* is filtered ("2026-2027" only) (R); styles differ from the native `<select>` used for page size and Gallery filters (V). | Yes: `Label` parameter. |
+| `Tables/TablePagination` | 34 / 65 | Pager + page size. | Consistent. | Page size control is a native select with different styling (V). | Light. |
+| `Tables/SortableTableHeader` | 1 / 5 | Sortable `th`. | - | Only 2 `<table>` elements exist in the whole app (S). | Keep. |
+| `UI/MobileBottomNav` | 38 / 39 | Fixed bottom bar below 1200px. | Thumb-reachable, icon + label, 65px targets (R). | Used for **three different jobs** - section navigation (home), page actions (Rehearsals: Adicionar/Vários/Estatísticas/Presenças), filter tabs mixed with actions (Music: Públicos/Privados + Estatísticas + Adicionar) (V); always `aria-label="Navegação do portal"` (R); `aria-selected` on plain buttons (invalid outside tabs) (S); labels 10.4px uppercase (R); `padding-bottom: env(safe-area-inset-bottom, …)` collapses to 0 on devices without an inset (S); docs in the component say ≤767px, CSS says <1200px (S); page header actions and bottom-bar items are two hand-maintained lists with different labels (S). | **Yes, structural** (14). |
+| `Badges/*` (Category, Position, Status, Role, LoginStatus, LockStatus, Person) | 10/36, 9/14, 4/4, … | Member category/position/status chips. | Recognizable RTUB vocabulary (TUNO, VETERANO, TUNOSSAURO) (V). | `bg-warning` + white text is 2.19:1 (R); Status colors come from a helper, not tokens (S). | Token pass only. |
+| `Forms/FormTextField`, `FormTextArea` | 2 / 3, 2 / 2 | Label + input + help text. | Right shape. | Label not associated (no `for`/`id`), required is a visual `*` only, no validation slot, `@onchange` only (S). | Yes - becomes the field wrapper (13.4). |
+| `Forms/MonthYearPicker` | 2 / 6 | Month/year selection. | - | Not visually inspected. | Audit when touched. |
+| `Profile/ProfileField`, `ProfileSection`, `ProfileHeader` | 11/70, 1/3, 1/1 | Profile read/edit sections. | Clear sectioning with collapse + edit affordance (V). | Mostly single-page. | Light. |
+| `Uploads/ImageCropper`, `ImageUploadManager`, `MediaUploadManager` | 7/8, 4/4, 2/2 | Upload + crop flows. | Shared, reused. | Not exercised (no uploads performed). | Audit when touched. |
+| `UI/LabelEditButton` | 6 / 47 | Inline Owner/Admin content-label editing. | Reused. | Icon-only admin affordance in public content. | Light. |
+| `UI/PushNotificationPrompt`, `PushNotificationToggle`, `PlayStorePrompt`, `LoginPopup` | 1 each | PWA/app prompts. | - | Three prompts on the home page can compete on first visit (S, I). | Sequence them (Phase 6). |
+| `Base/MultiModalState` | 36 files | Modal visibility state. | Replaced boolean-flag sprawl. | - | Keep. |
+| `Base/CrudTablePageBase` | 7 files | Search/sort/paginate base. | - | - | Keep. |
+| `Base/ManagedModalPageBase` | **0** | - | - | Unused (S). | Cleanup candidate (not this refactor). |
+
+### 4.2 Domain cards (mostly single-consumer)
+
+`EventCard`, `RehearsalCard`, `AvatarCard`, `MemberCardLite`, `SongCard`, `ReportCard`,
+`TransactionCard`, `MeetingCard`, `BoardCard`, `DocumentCard`, `FolderCard`, `NaipeCard`,
+`BetCard`, `GameCard`, `StageEnemyCard`, `LeaderboardCard`, `RankCard`, `MbwayTransferCard`,
+`NerbaOrderCard`, … Most have one consuming page. They are page-specific business components living
+in Shared; that is acceptable when they are tested there (40 bUnit component test files exist), but
+**they should not be treated as the design system**. They share a repeated, local pattern: a
+decorative header area (placeholder icon when there is no image) with admin icon buttons overlaid
+(edit, delete, cancel, notify), metadata rows, and a row of equal-weight purple action buttons (V).
+`MemberListItem` (compact member row) exists with tests but has **no consumer** (S) - it is exactly
+the mobile member-list row the Members page lacks (7.4).
+
+### 4.3 Duplicated local UI that should use or become shared
+
+| Pattern | Where | Count | Shared direction |
+| --- | --- | --- | --- |
+| Page header (title, icon, subtitle, desktop actions slot) | `page-header-centered` markup | 48 pages | New `PageHeader` (14.1). |
+| Desktop header actions duplicated as bottom-bar items | header `d-none d-xl-flex` + `MobileBottomNav` | ~38 pages | One action list rendered twice (`PageActions`, 14.2). |
+| Raw spinners | `spinner-border` markup | 188 | `LoadingSpinner` variants. |
+| Filter toolbar (search + dropdowns + switch in a flex row) | hand-built wrappers (`filter-search-container`, `filter-dropdown-container`) | ~30 pages | `FilterToolbar` layout (14.6). |
+| Card admin overlay (edit/delete/cancel/notify icon buttons) | Event, Rehearsal, Avatar, Board, Album cards | 5+ card types | `CardActions` with overflow menu (14.4). |
+| Label + input + help + error | `<label class="form-label">` + input | 379 labels, 83 with `for` | `FormField` (evolve `FormTextField`, 13.4). |
+| Success feedback | per-page `…SuccessMessage` + `Alert` + `Task.Delay` | ~37 `…SuccessMessage` references | Shared toast host (14.5). |
+
+---
+
+## 5. Product / Route Inventory
+
+62 routable pages (S). Navigation groups as rendered in `MainLayout` (S, V for Owner and anonymous).
+
+| Area | Routes | Primary task | Primary action | Notable UI | Seen |
+| --- | --- | --- | --- | --- | --- |
+| **Portal / public** | `/` (home), `/request`, `/roles`, `/privacy`, `/gallery`, `/music`, `/events` (anonymous), `/calotes` | Learn about RTUB; contact | "Ver todas as Atuações", "Pedidos" | Carousel, scroll-reveal sections, sticky section pills (desktop) / section bottom bar (phone) | V (home, events, music, gallery) |
+| **Account** | `/login`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/profile` | Sign in; manage own profile | Entrar; edit section | Static SSR forms; profile sections with inline edit | V (login, profile) |
+| **Performances (Atuações)** | `/events`, `/events/{id}/enrollments`, `/contacts`, `/discussion` | See upcoming events, sign up | **"Vou participar"** (member) / "Adicionar Atuação" (admin) | Event cards with up to 11 actions; stats, prizes, my enrollments dialogs | V (list) |
+| **Rehearsals (Ensaios)** | `/rehearsals` | See rehearsals, attendance | Attendance / "Adicionar Ensaio" (admin) | Fiscal-year filter in URL; details, edit, cancel, delete, stats, "Minhas Presenças" dialogs | V |
+| **Sections (Naipes)** | `/naipes`, `/naipes/config` | Section info/media | - | - | S |
+| **Members** | `/members`, `/hierarchy`, `/roles`, `/hall-of-fame`, `/member/map` | Find members | "Ver Detalhes" | 108-member card grid, category/instrument filters, map, birthdays | V (members) |
+| **Ranking** | `/leaderboard` | Compare XP | - | Collapsible cards instead of the standard page header | V |
+| **Games** | `/my-tuno` (+ arena, stages, boss, survive, all characters), `/games` (+4 mini-games), `/bets`, `/inventory`, `/shop` | Play | Game-specific | Own visual world (PixiJS, game HUDs) | V (MyTuno home) |
+| **Management (Gestão)** | `/meetings`, `/documentation`, `/logistics`, `/logistics/{id}`, `/finance`, `/finance/report/{id}`, `/mbway`, `/nerba/*`, `/requests`, `/questions` | Run the association | Create meeting / report / board | Dense dashboards, kanban, 15-dialog Meetings page | V (meetings, finance, report, logistics) |
+| **Operations (Admin/Owner)** | `/emails`, `/notifications`, `/images`, `/labels`, `/users`, `/owner/tracing`, `/owner/db`, `/owner/stage-enemies`, `/owner/weapon-drink-config` | Administer | - | Tools; low traffic | S |
+| **Messages** | `/messages`, `/messages/{id}` | Chat | New message | App-style full-screen shell on phone | V (list) |
+
+---
+
+## 6. Existing Visual System
+
+### 6.1 Color (preserve)
+
+Declared tokens (`1-base/variables.css`, S):
+
+| Role | Value | Notes |
+| --- | --- | --- |
+| Brand primary | `#6f42c1` | Buttons, active nav, accents. White text on it: 6.5:1 (R). |
+| Primary hover | `#5a379c` | Hard-coded in `buttons.css`, not a token. |
+| Link / link hover | `#a88ee5` / `#c7a7ff` | 6.99:1 on the page background (R). |
+| Page background | `#0f0f10` | |
+| Surfaces | `#151516`, `#1a1a1b`, `#1c1c1d` (input), `#212121` (select) | Plus off-token surfaces `#1a1a2e` (23×), `#0f0f1c` (13×), `#111114` (bottom bars), `#1e1e1e`. |
+| Text | `#e2e2e2` | Headings. |
+| Border | `#2f2f2f` | |
+| Success / warning / danger / info | `#00bc8c` / `#f39c12` / `#e74c3c` / `#007bff` | Buttons use Bootstrap's `#28a745`; badges use `#198754`; many rules hard-code `#dc3545`. |
+| Theme color (browser/OS) | `#3F2A86` | Manifest and `<meta name="theme-color">`. |
+| Other purples in CSS | `#6e56cf` (25×), `#7c4dff` (15×), `#8a2be2` (12×), `#651fff` (7×), `#5a32a3`, `#8e6fc7`, `#7c4ddb` | Drift, not identity: all read as "RTUB purple" but differ. |
+| Gold / bronze | `#ffd700`, `#cd7f32` | Ranking medals - legitimate semantic accents. |
+
+CSS-wide totals (S): **1,481 hex literals and 1,444 `rgb/rgba` literals vs 1,012 `var(--…)` uses**;
+314 `!important`.
+
+### 6.2 Typography
+
+- One system font stack (`system-ui, -apple-system, "Segoe UI", Roboto, …`); `Cinzel` in two game
+  rules; no web fonts (S). Keep: it is fast and neutral, and the identity lives in color and
+  vocabulary.
+- Measured on Rehearsals at 1440 (R): h1 40/48 w500 `#e2e2e2`; subtitle 20/30 w300 **pure white**
+  (brighter than the title it sits under); section h2 28px; body 16/24.
+- **73 distinct `font-size` values** (S); the most frequent are 1rem, .75rem, .875rem, 1.25rem,
+  1.5rem, 1.1rem, .9rem, .8rem, .85rem, .95rem, .7rem, .65rem, .6rem. Sizes below .75rem are common
+  in card metadata and bottom-bar labels (10.4px) (R).
+- Global rule makes every `h1` `inline-flex` with `min-height: 44px` (S).
+
+### 6.3 Spacing, shape, elevation
+
+- Spacing: Bootstrap spacer utilities, but `1-base/mobile.css` **redefines `.mt-4`, `.mb-4`,
+  `.mt-5`, `.mb-5`, `.py-4`, `.py-5` with `!important` on phones** and forces `.card { padding:
+  .875rem }` at ≤1024px (S) - global utility semantics change by viewport.
+- Radius: **42 distinct `border-radius` values** (S); top: 50%, 8px, .5rem, 12px, .375rem, 4px, 6px,
+  .75rem, 999px, 1rem, .25rem, 10px, 14px.
+- Shadows: **168 distinct `box-shadow` declarations** (S). Gradients: 220 `linear-gradient`;
+  `backdrop-filter` 15 (S).
+- Breakpoints: 20+ different `@media` widths (768, 767, 767.98, 769, 576, 575.98, 480, 375, 991,
+  991.98, 992, 1023, 1024, 1025, 1199.98, 1200, 1400, 1600, …) (S).
+
+### 6.4 Actions (buttons)
+
+`3-components/buttons.css` defines `.btn { background-color: var(--bs-primary); border…; padding
+…; font-size: 1rem }` (S). Because it sets the property directly on the base class, it overrides
+Bootstrap's variant variables. Measured in the running app (R):
+
+| Class | Renders as |
+| --- | --- |
+| `btn-primary`, `btn` (no variant) | Solid purple |
+| `btn-outline-primary` (49 uses), `btn-outline-secondary` (71), `btn-outline-danger` (30), `btn-warning`, `btn-link` (6) | **Solid purple** - identical to primary |
+| `btn-secondary` | `#343a40` |
+| `btn-success` (74) | `#28a745` - white text 3.13:1 |
+| `btn-danger` (93) | `#e74c3c` - white text 3.82:1 |
+| `btn-sm` (267) | Still 16px at base; only some local rules shrink it |
+
+This single rule is the root of the "everything has the same weight" look (7.1).
+
+### 6.5 Other patterns
+
+- **Icons:** Bootstrap Icons (local), used everywhere; sizes vary per page. Buttons: 95
+  carry a `title`, 40 an `aria-label`; icon-only buttons commonly rely on `title` alone (S, R).
+- **Lists/tables:** almost everything is a card grid; only 2 `<table>` elements exist (S).
+- **Navigation:** top navbar (desktop) / right offcanvas (below 992px); page-level bottom bars below
+  1200px (V).
+- **States:** see section 12.2.
+- **Focus:** `.btn:focus` and `.form-control:focus` draw a 4px `rgba(111,66,193,.5)` halo on
+  `:focus` (not `:focus-visible`); 20 rules remove outlines (S). Halo vs page background ≈1.6:1 (R).
+- **Motion:** 262 transitions, 28 keyframe animations, **0 `prefers-reduced-motion` rules** (S).
+  Home sections start at `opacity: 0` until JavaScript adds `.in-view` (S, V).
+- **Themes:** dark only. Two `prefers-color-scheme: dark` rules exist but no light theme (S). No
+  theme work is proposed.
+
+---
+
+## 7. UX Findings
+
+### 7.1 BLOCKER/STRUCTURAL - base button rule flattens all hierarchy
+
+Every outline/secondary-intent button renders as solid primary purple (6.4, R). Pages that already
+chose the right variant (e.g. Rehearsals card: "Ver" = `btn-outline-primary`, attendees =
+`btn-outline-secondary`) still show two identical purple buttons (V). Page headers show 4 colored
+buttons (2 green + 2 purple) with equal weight (V, Rehearsals/Events/Members at 1440). This must be
+fixed at the foundation before any page-level hierarchy work, or every page fix will fight it.
+
+### 7.2 HIGH - card action overload and destructive actions next to routine ones
+
+- Event card: **11 actions** (edit, delete, push-notify, email-notify, cancel event, details,
+  participants, repertoire, discussion, "Vou participar", "Não vou participar") (R). Two are
+  destructive (delete, cancel) and sit beside routine ones.
+- The member's **primary task** on an event - declaring participation - is two small icon-only
+  buttons at the bottom of the card, below four purple icons (V, 360 and 1440).
+- Rehearsal card: cancel (red), edit (white), delete (red) on every card header; 10 cards on screen
+  = 20 red icons (V). Members directory: edit + delete on each of 108 member cards (V).
+- Finance report activity rows: lock/edit/delete per row (V).
+
+### 7.3 HIGH - equal-weight, repetitive calls to action in grids
+
+Every member card has a full-width primary "Ver Detalhes" (5 identical primary buttons per row on
+desktop; wraps to two lines on phones) (V). The card itself is not the link (S).
+
+### 7.4 MEDIUM - low information density on phones
+
+Rehearsal cards are ~313px tall each at 390px, most of it a decorative icon header (R, V). Members
+use a two-column grid of ~330px cards for 108 people (V). A compact row (`MemberListItem`, already
+in Shared, unused) would show 6-8 members per screen.
+
+### 7.5 MEDIUM - inconsistent page composition
+
+- Most pages: centered h1 + centered subtitle, actions floating right on a separate line (V).
+  Leaderboard: no page header at all, collapsible cards instead (V). Report: back button + title
+  (V). Messages: app shell (V).
+- Section headings under the page title repeat it ("Membros" under "Membros") (V).
+- Mixed icon colors on section headings (green check, purple calendar) (V, Meetings).
+
+### 7.6 MEDIUM - terminology and language drift
+
+- Nav "Tesouraria" opens a page titled "Finanças" (V).
+- "Cancelar" closes a form; "Cancelar ensaio" cancels a rehearsal - same verb for a harmless and a
+  consequential action, adjacent on the same screen (R).
+- English in a Portuguese UI: NotFound/NotAuthorized texts, shared defaults "No items found",
+  "Close"; MyTuno "Daily Reward", "Enemies", "Config" (S, V).
+- "Sem Conexão" (offline page) vs "Ligação Perdida" (reconnect dialog) (S).
+- Money formatted `€5,377.23` / `€-1,774.30` (English format) in a pt-PT product (V).
+
+### 7.7 MEDIUM - navigation affordances that are not links
+
+Finance report card is a clickable `div` without role or tabindex (R); Logistics "Abrir Quadro" is a
+`<button>` that navigates (R). About 37 clickable non-interactive elements exist (S, approximate).
+They cannot be opened in a new tab and are not keyboard reachable.
+
+### 7.8 LOW - smaller observations
+
+- Success is rarely confirmed: e.g. rehearsal edit closes the dialog and reloads with no message
+  (S).
+- The currently selected filter value is not visually distinguished in the open `FilterDropdown`
+  list (V, fiscal year).
+- Decorative placeholder art (calendar, music-note, board icons) fills card headers when there is
+  no image (V).
+
+---
+
+## 8. Responsive Findings
+
+### 8.1 Desktop (1440)
+
+- **STRUCTURAL:** as Owner the navbar needs ~1,486px; the page scrolls horizontally and the user
+  menu is off-screen (R: `scrollWidth 1486` at 1440). Owner sees 11 top-level menu entries plus the category badge and the user menu (R).
+- Header actions sit right-aligned on their own line under a centered title (V).
+- Single-card sections leave most of the row empty (Events current year) (V).
+- Desktop dialogs anchor at the top and keep a small width for 4-field forms (V).
+
+### 8.2 Tablet (1024, 820)
+
+- **STRUCTURAL at 1024:** the navbar is expanded (≥992px) and overflows by ~445px: Gestão,
+  Operações and the user menu are unreachable without horizontal scrolling (R: `scrollWidth 1469`).
+  A Tuno member sees ~10 menu entries plus badge and user menu (S); overflow is likely (I - verify with a member
+  account).
+- Between 992 and 1199px the expanded top nav **and** the page bottom bar are both shown, while the
+  header actions are hidden (V at 1024).
+- 820: hamburger + drawer, three-column member grid, bottom bar; composition is acceptable (V).
+- Installed Android PWA is locked to `portrait-primary` by the manifest (S): tablets in landscape
+  cannot rotate the installed app (I - device check).
+
+### 8.3 Phone (390, 360)
+
+- **HIGH - Finance report at 360:** the page title is clipped ("…2025 - 202"), stat tiles and their
+  edit buttons run past the right edge, activity-row badges wrap one character per line and one
+  badge renders vertically (V). Content is *hidden*, not scrollable, because `html, body {
+  overflow-x: clip }` (mobile.css) masks the overflow (R).
+- **MEDIUM - footer hidden behind the bottom bar:** at max scroll the footer (copyright, privacy
+  link) sits under the fixed bar (R: footer 767-844, bar from 773). The 4.5rem clearance rule is
+  overridden by the footer's Bootstrap `py-3 !important` (R: computed `padding-bottom: 16px`).
+- Primary actions wrap ("Ver Todas as Atuações", "Ver Detalhes") (V).
+- No horizontal page overflow on the phone pages checked, other than content masked by the clip (R).
+
+---
+
+## 9. PWA / Mobile App Experience
+
+| Topic | Finding | Evidence | Priority |
+| --- | --- | --- | --- |
+| Shell | Top bar with brand + purple circular hamburger (top-right); navbar scrolls away; right-side offcanvas drawer lists all items. Primary navigation is in the hardest one-handed reach zone. | V | MEDIUM |
+| Best existing pattern | Messages: full-screen app shell, compact rows, bottom bar, own safe-area handling. The rest of the app should converge towards this level of intent. | V, S | - |
+| Bottom bar semantics | Same component used as section nav, action bar and filter tabs; "Voltar" appears as a bar item on some pages (Report, Messages) and not on others. | V | HIGH |
+| Touch targets | Card icon buttons 32-38px (R); bottom bar 65px (R); nav links 44px (R). | R | MEDIUM |
+| Tap feedback | Global purple tap highlight (two different alphas declared); no pressed state on cards. Server round-trip per tap (Blazor Server) makes missing immediate feedback more noticeable. | S, I | MEDIUM |
+| Safe areas | `apple-mobile-web-app-status-bar-style: black-translucent` without `viewport-fit=cover` in the viewport meta (S). `env(safe-area-inset-*)` is used in ~30 rules but may resolve to 0 without `viewport-fit=cover`, so the navbar can sit under the status bar/notch in the installed iOS app. | S, I (needs a real iPhone) | MEDIUM |
+| Theme color | `#3F2A86` status bar over a near-black navbar. | S, I | LOW |
+| Dialogs | Full-screen sheets with a bottom action bar (Cancelar left, Guardar right) - consistent and thumb-friendly (V). Back arrow on the right of the header; an extra "Voltar" footer on read-only sheets. | V | MEDIUM |
+| Back button | Opening a dialog adds no history entry. Hardware/browser Back with a dialog open changes the page underneath (it removed `?fy=` and re-filtered) and leaves the dialog open (V). From a dialog reached from another page, Back leaves the page and discards the dialog (I). | V, I | HIGH |
+| Keyboard / forms | Inputs are 16px (no iOS zoom) (R). No `autocomplete`, `inputmode` or `enterkeyhint` anywhere (S); no `type="tel"`, 3 `type="email"` (S). Virtual keyboard behaviour with the fixed bottom action bar not testable here (C). | R, S | MEDIUM |
+| Loading | Page data loads after the circuit connects; empty states can flash before data (I). 38 global scripts incl. PixiJS and 3 game bundles on every page (S) lengthen first load on phones. | S, I | MEDIUM |
+| Update | Update toast (PT, `role="alert"`) - good. "Atualizar" reloads immediately; an open unsaved form is discarded (S). | S | MEDIUM |
+| Reconnect / offline | Portuguese reconnect dialog with reload; `offline.html` fallback. Server exceptions also surface as "Ligação Perdida" (no error boundary) (S, I). | S | MEDIUM |
+| Prompts | Push prompt, login popup and Play Store prompt all mount on the home page (S). Not triggered in this session (C). | S | LOW |
+| Pull-to-refresh | Vertical overscroll is not contained; in Android standalone a pull reloads and drops form state (I). | I | LOW |
+
+---
+
+## 10. Accessibility Findings
+
+This is not a WCAG conformance statement. Observed issues only.
+
+| # | Issue | Evidence | Priority |
+| --- | --- | --- | --- |
+| A1 | Dialogs: no `role="dialog"`/`aria-modal`/`aria-labelledby`; focus not moved/trapped/restored; background not inert; Escape does not close. | R, V | HIGH |
+| A2 | Form labels not associated: 296 of 379 `<label>` have no `for` (S). Rehearsal edit: 3 of 4 fields unnamed; Meeting create: all 5 fields unnamed; Login inputs named only by placeholder (R). Required fields not exposed (`aria-required`/`required`) (R). | S, R | HIGH |
+| A3 | 41 of 62 routable pages set no `<PageTitle>` and `App.razor` has no default `<title>`; tabs and assistive tech get the raw URL (S, R via tab titles). | S, R | HIGH |
+| A4 | Contrast (R): `text-secondary` 1.67:1 (15 uses); white on `btn-success` 3.13:1 (74), on `btn-danger` 3.82:1 (93), on `bg-warning` badges 2.19:1 (28); `text-danger`/`text-success` 4.23:1 on the page background. Focus halo ≈1.6:1. | R | HIGH |
+| A5 | `text-muted` is overridden to pure white (240 uses) - no contrast problem, but metadata loses its visual hierarchy. | R, S | MEDIUM |
+| A6 | Focus indicator on `:focus`, not `:focus-visible`; 20 rules remove outlines. | S | MEDIUM |
+| A7 | No skip link; home page has no `h1` (only h2) while `FocusOnNavigate` targets `h1`. | R | MEDIUM |
+| A8 | Icon-only actions commonly named only by `title` (95 buttons carry `title`, 40 `aria-label`); card icon targets 32-38px. | S, R | MEDIUM |
+| A9 | `MobileBottomNav`: fixed "Navegação do portal" label on action bars; `aria-selected` on buttons; 10.4px labels. | R, S | MEDIUM |
+| A10 | Clickable `div` cards without role/tabindex (Finance report card; ~37 sites). | R, S | MEDIUM |
+| A11 | Status changes are not announced: 1 `aria-live` in the whole UI (SW toast); success/error messages rely on visual `Alert`. | S | MEDIUM |
+| A12 | Home carousel auto-advances with no pause control. | S | MEDIUM |
+| A13 | No `prefers-reduced-motion` handling; scroll-reveal sections are invisible until JS runs. | S, V | LOW |
+| A14 | `SearchBar` (`type="text"`, placeholder-only name) and `FilterDropdown` (no filter name) lack labels. | R | MEDIUM |
+| A15 | Participation state conveyed by green/red icon buttons without text on the card. | V | LOW |
+| A16 | Image failure: several components show raw alt text clipped inside circles/covers, and overlaid admin buttons are cut by the collapsed image box (Members, Leaderboard, Music) (V; triggered locally by CSP-blocked media, but the same happens for any failed image). `loading="lazy"` on 19 of 177 images (S). | V, S | LOW |
+
+---
+
+## 11. Form / Data-Loss Risks
+
+| # | Scenario | Result | Evidence | Priority |
+| --- | --- | --- | --- | --- |
+| F1 | Dirty edit dialog → **Cancelar** (or the header back arrow) | Closes immediately, edits discarded, no prompt. Re-opening shows the saved values. | V (Rehearsal edit) | HIGH |
+| F2 | Dirty dialog → **Escape** | Nothing happens (focus is outside the dialog). Safe but inconsistent. | V | LOW |
+| F3 | Dirty dialog → **backdrop click** | Nothing happens. Safe. | V (desktop) | - |
+| F4 | Dialog open → **browser/hardware Back** | Page state underneath changes; dialog stays. Leaving the page drops the dialog and its data silently. | V / I | HIGH |
+| F5 | **Navigate away / reload / close tab** with a dirty form | No guard anywhere: 0 `NavigationLock`, 0 `beforeunload`, 0 `RegisterLocationChangingHandler`. | S | HIGH |
+| F6 | **Circuit loss** (phone backgrounded, network drop) | Blazor Server keeps form state on the server only while the circuit survives; after expiry the reload starts empty. | S, I | MEDIUM |
+| F7 | **SW update** "Atualizar" with a form open | Immediate reload, form discarded. | S | MEDIUM |
+| F8 | **Double submit** | Inconsistent: 45 `disabled="@is…"` bindings exist, but e.g. Rehearsals `SaveEdit` and `ConfirmDelete` have no busy state or try/catch - a double click runs twice; an exception ends the circuit. | S | HIGH |
+| F9 | **Validation** | Mix of native HTML validation (login, English browser bubble), `ErrorDisplay` summaries and ad-hoc messages. No shared per-field error pattern. Not exercised on create forms (submitting could create data and send notifications). | V (login), S | MEDIUM |
+| F10 | **Save/Cancel placement** | Consistent: desktop footer right (Cancelar, Guardar); phone bottom bar (Cancelar left, Guardar right). Keep. | V | - |
+| F11 | **Success confirmation** | Often absent after save (dialog just closes). | S | MEDIUM |
+
+Guards are **not** implemented in Task 001. Which forms get a discard confirmation is listed as an
+owner decision (18).
+
+---
+
+## 12. Component Consistency Issues
+
+### 12.1 Systemic
+
+1. Base `.btn` rule overrides all variants (6.4) - STRUCTURAL.
+2. Tokens exist but are bypassed: 2,925 color literals vs 1,012 token uses; 7 near-identical
+   purples; 3 greens and 2 reds for the same semantic roles (6.1).
+3. 42 radii, 168 shadows, 73 font sizes, 20+ breakpoints (6.2-6.3).
+4. `mobile.css` rewrites Bootstrap utilities and all `.card` padding by viewport with `!important`
+   (6.3), and clips overflow globally (8.3) - both make page CSS fight the base layer.
+5. Page header and bottom bar are re-implemented per page (4.3).
+6. Header actions and bottom-bar actions are separate lists (4.1 `MobileBottomNav`).
+
+### 12.2 States
+
+| State | Current | Quality |
+| --- | --- | --- |
+| Loading | `LoadingSpinner` (67) + raw spinners (188); no skeletons except songs | Inconsistent |
+| Empty | `EmptyState` (92) | Good, needs PT defaults and one variant rule |
+| Error (validation) | `ErrorDisplay`, native bubbles, ad-hoc text | Inconsistent |
+| Error (runtime) | None - circuit ends → reconnect dialog | Missing |
+| Success | Occasional inline `Alert` + timer | Mostly missing |
+| Disabled | Lighter purple for primary only | Weak |
+| Read-only | Lock icons in Finance | Local |
+| No permission | English NotAuthorized text; items hidden from nav | Weak |
+| Destructive confirmation | `ConfirmDialog` | Good; needs danger variant + busy state |
+| Long-running | Per page | Inconsistent |
+
+### 12.3 Deterministic scan (Impeccable detector, A)
+
+19 warnings, 0 errors: 13 "side-stripe" accent borders (`border-left: 3-4px`), 4 layout-property
+transitions (`transition: width` / `max-height`), 2 bounce easings. Several are defensible and
+should stay: medal colors on Leaderboard ranks (`#FFD700`, `#CD7F32`), quoted-reply bars in
+Messages, the history timeline accent. Candidates to revisit: `input-groups-misc.css` (2),
+`dynamic-style-classes.css` (2), `misc-components.css`, `questions.css`, `Emails.razor.css`, and
+the width transitions in `rank-card.css`, `MyTunoHome.razor.css`, `dynamic-style-classes.css`,
+`AuditLog.razor.css`. None is high priority.
+
+---
+
+## 13. Proposed Visual Refinement Direction
+
+RTUB stays a dark, near-black product with a single confident purple. The refinement is about
+**discipline**: one primary per context, quiet secondary actions, fewer colors doing more work,
+clear surfaces, and mobile screens composed for thumbs. No new palette, no new font, no light
+theme, no glassmorphism, no decorative gradients added.
+
+### 13.1 Principles applied to RTUB
+
+- **Task first.** Each page leads with its task (upcoming performances, next rehearsal, the member
+  you are looking for), not with admin tooling.
+- **One obvious primary.** Purple fill is reserved for the primary action of a context. Everything
+  else is outline/ghost.
+- **Destructive last.** Delete/cancel move into an overflow menu or the end of a dialog, never
+  beside routine actions on a card.
+- **Shared over local.** A pattern used on 3+ pages lives in RTUB.Shared.
+- **Mobile is an app.** Bottom bars carry the page's actions consistently; lists are dense;
+  sheets behave with Back.
+- **Accessibility is built into components**, not patched per page.
+
+### 13.2 Color - formalize, do not replace
+
+Introduce semantic tokens that point at **existing** values:
+
+| Token | Value (existing) | Use |
+| --- | --- | --- |
+| `--rtub-bg` | `#0f0f10` | Page |
+| `--rtub-surface-1/2/3` | `#151516` / `#1a1a1b` / `#1c1c1d` | Cards, raised panels, inputs |
+| `--rtub-border` | `#2f2f2f` | Dividers |
+| `--rtub-text` | `#e2e2e2` | Body and headings |
+| `--rtub-text-muted` | `#aaaaaa` (already the footer color; 8.2:1 est.) | Metadata, subtitles |
+| `--rtub-primary` / `-hover` | `#6f42c1` / `#5a379c` | Primary fill |
+| `--rtub-primary-soft` | `rgba(111,66,193,.15)` (existing usage) | Selected/hover backgrounds |
+| `--rtub-accent-text` | `#a88ee5` | Links, active text, focus ring |
+| `--rtub-danger-fill` | `#dc3545` (already used 27×; white 4.53:1) | Filled destructive buttons/badges |
+| `--rtub-danger-text` | `#e74c3c` (current token; ≈5:1 on bg est.) | Red text on dark |
+| `--rtub-success-fill` | `#198754` (already used 13×; white 4.53:1) | Filled success buttons/badges |
+| `--rtub-success-text` | `#00bc8c` (current token; ≈7.8:1 est.) | Green text on dark |
+| `--rtub-warning` | `#f39c12` with **dark text** `#212529` (≈7:1 est.) | Warning badges |
+
+Smallest contrast fixes, all within the current palette: swap fills to the Bootstrap reds/greens
+RTUB already uses; use the lighter existing red/green for text; dark text on warning; muted text
+`#aaa` instead of white; `text-secondary` mapped to muted. The seven drifting purples collapse onto
+`#6f42c1` / `#5a379c` / `#a88ee5` / `#3F2A86`. Ratios marked "est." are calculated from the hex
+values and must be re-measured in Phase 1.
+
+### 13.3 Typography, spacing, shape, elevation
+
+- Keep the system stack. Type scale: 12 / 14 / 16 / 20 / 24 / 32 / 40, weights 400/500/600.
+  Nothing interactive below 12px; bottom-bar labels ≥11px.
+- Subtitles use `--rtub-text-muted`, never brighter than the title.
+- Spacing on the Bootstrap 0.25rem scale; page gutter 16px phone / 24px desktop; section gap 32px;
+  card padding 16px. Remove viewport-dependent redefinitions of utilities.
+- Radius tokens: 6px (controls), 10px (cards), 16px (sheets/dialogs), 999px (pills/avatars).
+- Three elevation levels (flat border, raised card, overlay); surfaces separate by tone before
+  shadow.
+- Breakpoints: Bootstrap's 576/768/992/1200/1400 only; the bottom-bar breakpoint and the nav
+  collapse breakpoint must be the same value.
+
+### 13.4 Actions and forms
+
+- Restore Bootstrap variant behavior (primary = fill; secondary = outline/ghost; danger = fill only
+  inside confirmations); `btn-sm` actually small.
+- `IconButton` with a required accessible label and a 44px hit area (visual size can stay smaller).
+- Cards: at most one visible primary action; routine secondary actions as quiet icon buttons;
+  management actions (edit, notify, cancel, delete) in a `⋯` overflow menu with delete last and
+  separated.
+- Events: participation becomes the visible primary action for members ("Vou" / "Não vou" as a
+  labelled segmented control); counts become metadata, not buttons.
+- Forms: `FormField` wrapper = label (associated), control, help, per-field error, required marker
+  (visual + `aria-required`). Save/Cancel positions stay as they are today (F10).
+
+### 13.5 Lists and tables
+
+- Phones: compact rows for directories (members, meetings, requests) and dense cards for time lists
+  (rehearsals, events): date block + title + one line of metadata + one action.
+- Desktop: keep card grids where imagery matters (events, albums, gallery); use rows/tables for
+  administrative lists (finance activities, users, audit).
+- Money in pt-PT format (`5 377,23 €`), with sign and color plus text for negatives.
+
+### 13.6 Dialogs
+
+Phone: full-screen sheet (keep), back arrow on the **left**, title, one bottom action bar; no
+duplicate "Voltar" buttons. Desktop: centered, sized by content (sm/md/lg), close on the right.
+Both: `role="dialog"`, labelled, focus managed, Escape closes when clean, dirty guard when not, Back
+closes the sheet first.
+
+### 13.7 Navigation
+
+- Keep the existing groups and items. Collapse to the drawer below 1400px (`navbar-expand-xxl`) and
+  tighten item spacing; move the category badge and nickname into the avatar menu so the bar fits
+  at 1440 for Owner.
+- Stronger current-location state in the drawer and in dropdown parents (the parent of an active
+  child is not marked today) (I).
+- Page bottom bars: one role only - the page's primary actions (max 4), consistent order, no
+  "Voltar" item (Back lives in the header). Section navigation on the home page becomes a labelled
+  tab bar with `aria-current`.
+
+### 13.8 Cards
+
+Consistent padding (16px), one radius, one surface tone, image area only when there is an image
+(no placeholder art taking half the card), title → metadata → actions order, whole-card link where
+the card opens a detail.
+
+### 13.9 States and motion
+
+Shared loading (spinner + skeleton), empty, error (boundary + inline), success (toast) and
+confirmation patterns. Motion only for dialog/sheet enter/exit, menu open, toast, and pressed
+feedback, 150-250ms ease-out; every animation has a `prefers-reduced-motion` alternative; content
+is never hidden waiting for a scroll-reveal.
+
+### 13.10 Out of the polish scope by default
+
+MyTuno and the mini-games have their own game visual world (HUDs, PixiJS, Cinzel). Only their shell
+integration (header, safe areas, bottom bar, titles, language) is in scope unless the owner decides
+otherwise (18).
+
+---
+
+## 14. RTUB.Shared Improvement Opportunities
+
+Improve first, create only where repetition proves it.
+
+| Opportunity | Kind | Where duplicated today | Why shared | Reuse proof |
+| --- | --- | --- | --- | --- |
+| 14.0 `Modal` / `ConfirmDialog` / `DetailsModal` refinement | **Improve existing** | 53 + 30 + 11 files | A11y, dirty guard, Back integration fixed once for 129 dialogs | Already used everywhere |
+| 14.1 `PageHeader` (title, icon, subtitle, back, actions slot) | New | `page-header-centered` in 48 pages | One hierarchy and responsive rule for every page | 48 pages |
+| 14.2 `PageActions` (one list → desktop header buttons + mobile bottom bar) | New, **wraps existing `MobileBottomNav`** | ~38 pages keep two lists | Ends label/order drift; fixes bar semantics once | ~38 pages |
+| 14.3 `IconButton` | New | 95 buttons named by `title` vs 40 by `aria-label`; card overlays | Label + 44px target by construction | 20+ components |
+| 14.4 `CardActions` / `OverflowMenu` | New | Event, Rehearsal, Avatar, Board, Album, Report cards | Hierarchy + destructive separation | 6+ cards |
+| 14.5 Toast host + scoped feedback service | New | ~37 ad-hoc `…SuccessMessage` references, 28 `Task.Delay` timers | Announced (`aria-live`), consistent success/error feedback | App-wide |
+| 14.6 `FilterToolbar` layout | New (layout only) | ~30 pages | Consistent search + filter + toggle arrangement and wrapping | ~30 pages |
+| 14.7 `FormField` | **Evolve `FormTextField`/`FormTextArea`** | 379 labels | Label association, required, per-field error | 50+ forms |
+| 14.8 `EmptyState`, `LoadingSpinner`, `ErrorDisplay`, `Alert` | **Improve existing** | 92 / 67 (+188 raw) / 43 / 38 | PT defaults, variants, live regions | Existing |
+| 14.9 `SearchBar`, `FilterDropdown` | **Improve existing** | 49 / 29 | Labels, `type="search"`, selected state | Existing |
+| 14.10 `MemberListItem` | **Adopt existing** | Members page on phones | Dense mobile directory | Members, Hall of Fame, pickers |
+| 14.11 Error boundary component | New (thin) | none | Stop exceptions from ending the circuit silently | App-wide |
+
+Not recommended: generic grid/stack/box primitives, a theming abstraction, wrappers around
+Bootstrap utilities, or moving single-page domain cards around.
+
+---
+
+## 15. Architecture Assessment
+
+### A. Visual / UI issues (fix with CSS + components)
+
+Base `.btn` override; token bypass and color drift; contrast pairs; focus ring; nav overflow at
+1024-1440; global `overflow-x: clip` masking layout bugs; utility redefinition in `mobile.css`;
+card action overload; bottom-bar semantics; footer clearance; low mobile density; image-failure
+states; motion without reduced-motion; language/terminology drift.
+
+### B. Blazor implementation issues (fix inside Blazor)
+
+- Very large page components (7 pages > 2,000 lines, one with 15 dialogs) that mix layout, dialogs
+  and side-effect orchestration (push, audit) - refactor opportunistically **only where a UI task
+  already touches the code**; extracting dialog components per page is the natural unit.
+- No `ErrorBoundary`; handlers without try/catch/busy state.
+- No `NavigationLock` usage.
+- Labels not bound to inputs; clickable `div`s; buttons used for navigation.
+- `ShouldRender` overrides in shared components (`Modal`, `EmptyState`, `StatusBadge`, …) that
+  compare only some parameters - safe today, but a trap when adding parameters (e.g. new `Modal`
+  aria/guard parameters must be included).
+- RTUB.Shared references RTUB.Application and some shared components fetch data themselves. Keep
+  new shared presentation components free of service injection.
+- 38 global scripts incl. game engines on every page - load game/map/cropper scripts only on the
+  pages that need them.
+- 76-file CSS `@import` chain is fetched as 77 separate stylesheet requests on first load;
+  consider bundling when the foundation layer is reorganized.
+
+### C. Genuine architecture limitations
+
+- **Blazor Server needs a live circuit.** Every interaction is a server round-trip, and state lives
+  on the server. Effects: tap latency on mobile networks, form loss when a backgrounded PWA's
+  circuit expires, reconnect dialog on flaky connections. Mitigations inside the current
+  architecture: immediate CSS pressed/disabled feedback, busy states, NavigationLock + dirty guards,
+  short forms, and (owner decision) optional draft persistence for long forms. This does **not**
+  justify a stack change.
+- **Static SSR layout with per-page interactivity.** Layout-level UI that needs state (toast host,
+  app-level bottom tab bar) must be its own interactive component; state shared across pages goes
+  through circuit-scoped services, and enhanced navigation re-renders the static layout. Workable,
+  but it must be designed deliberately (Phase 3).
+
+Nothing found prevents the goals of this refactor.
+
+---
+
+## 16. Testing Strategy for Future Refactor Tasks
+
+### 16.1 Baseline (A)
+
+| Command | Result |
+| --- | --- |
+| `dotnet restore` | OK |
+| `dotnet build --no-restore --configuration Release` | Build succeeded, 0 warnings, 0 errors |
+| `dotnet test --no-build --configuration Release --results-directory <scratch> --report-xunit-trx` | **4,867 total, 4,801 passed, 0 failed, 66 skipped** (all five projects passed) |
+
+Skipped tests are pre-existing and deliberate. Skip attributes by reason in source: 22 "Modal
+renders outside component fragment" (page tests that open dialogs), 14 `UnreadMessagesBadge`
+interactive init, 20 `UserManager.Users` IQueryable mocking (Roles, Members), 2 SQLite concurrency,
+2 JS/dispatcher prompt flows; plus Linux-only shell self-tests skipped on Windows. The dialog skips
+are relevant to this refactor: page-level dialog behavior is currently untested.
+
+### 16.2 What protects the UI today
+
+- 40 bUnit component test files in `RTUB.Shared.Tests` and page tests in `RTUB.Web.Tests`; PWA
+  contract tests (`PwaManifestTests`, `OfflineReachabilityTests`, `ServiceWorkerReliabilityTests`).
+- **Coupling to markup:** 984 `Markup.Should().Contain(...)` string assertions; selectors on class
+  names and titles (`button.modal-close-arrow`, `modal show d-block`, `modal-sm`,
+  `button.btn-primary`, `[title='Eliminar']`, `.kanban-card`, …). Refactoring `Modal`, icon buttons
+  or card markup will break these tests without a behavior change.
+- No browser tests (no Playwright/Selenium), no automated accessibility checks, no visual
+  snapshots.
+
+### 16.3 Rules for every later phase
+
+1. Before touching a shared component, move its tests from class/markup strings to behavior:
+   roles, accessible names, labels (`FindByRole`-style queries via bUnit + AngleSharp selectors on
+   `role`/`aria-*`), and callbacks. Keep assertions on parameters → rendered behavior.
+2. New component APIs get bUnit tests for: accessible name, keyboard (Escape/Enter), focus target,
+   busy/disabled state, dirty guard callbacks.
+3. `dotnet build` + affected test projects per change; full CI command before any "ready" claim.
+4. **Visual validation is separate from tests** and mandatory per phase: 1440, 1024, 820, 390, 360;
+   populated + empty + dialog open + keyboard focus + one destructive confirmation; record what was
+   opened. Use a local run with the safety overrides from 2.1.
+5. Re-run the Impeccable detector on changed markup/CSS once per phase.
+6. Optional (owner decision): a small committed Playwright smoke (screenshots at 5 viewports +
+   axe-core) for the shell and 5 key pages.
+
+---
+
+## 17. Implementation Roadmap
+
+Order follows dependencies: the foundation layer decides how every later screen looks, the shell
+decides every page's frame, shared components decide every dialog and form, and only then are
+workflows rebuilt on top.
+
+### Phase 1 - Visual foundations (tokens and base-layer repair)
+
+- **Objective:** make the base layer trustworthy: semantic tokens on existing colors (13.2), button
+  variants restored, `btn-sm` real, muted/secondary text fixed, focus-visible ring, contrast fixes,
+  type/radius/elevation tokens, breakpoint alignment, remove `mobile.css` utility redefinitions and
+  the global `overflow-x: clip` mask (replace with per-component fixes).
+- **Affected:** `wwwroot/css/1-base/*`, `3-components/buttons.css`, `forms.css`, badges/alerts;
+  touch-ups in pages that relied on the old overrides.
+- **Dependency:** none. Must come first.
+- **UX gain:** hierarchy appears everywhere at once (outline secondaries), readable metadata,
+  accessible contrast and focus.
+- **Tests:** build + Shared/Web tests; update class-string tests touched.
+- **Visual validation:** before/after at 5 viewports on Home, Events, Rehearsals, Members, Finance
+  report, one dialog; contrast re-measured.
+
+### Phase 2 - App shell and navigation
+
+- **Objective:** navbar fits at every width (expand at xxl, compact items, badge/nickname into the
+  avatar menu), skip link, default `<title>` + `PageTitle` on all 41 missing pages, PT
+  NotFound/NotAuthorized, footer clearance, safe-area review (`viewport-fit=cover` decision),
+  drawer current-state, theme-color check.
+- **Affected:** `App.razor`, `MainLayout.razor`, `2-layout/*`, `1-base/mobile.css`, all pages
+  (titles only).
+- **Dependency:** Phase 1 tokens.
+- **UX gain:** no horizontal scroll at 1024/1440, reachable user menu, orientation for assistive
+  tech, correct app chrome in the installed PWA.
+- **Tests:** layout/title tests; integration page tests still green.
+- **Visual validation:** Owner and a member account at 1440/1200/1024/992/820/390/360; installed
+  PWA on one iPhone and one Android device.
+
+### Phase 3 - RTUB.Shared core refinements
+
+- **Objective:** `Modal`/`ConfirmDialog`/`DetailsModal` accessibility + focus + Escape + dirty-guard
+  hook + Back integration; `PageHeader`; `PageActions` over `MobileBottomNav`; `IconButton`;
+  `OverflowMenu`/`CardActions`; toast host + feedback service; `FormField`; `EmptyState`,
+  `LoadingSpinner`, `ErrorDisplay`, `Alert`, `SearchBar`, `FilterDropdown` refinements; error
+  boundary.
+- **Affected:** `src/RTUB.Shared/Components/**`, `modals.css`, layout (toast host).
+- **Dependency:** Phases 1-2.
+- **UX gain:** every dialog, header, action bar and field improves at once in later adoption.
+- **Tests:** behavior-first rewrites of the affected bUnit tests (16.3); new tests for focus,
+  Escape, guards, labels.
+- **Visual validation:** component states in one page each (dialog open, confirm, toast, empty,
+  loading, error) at 1440 and 390; keyboard-only walkthrough.
+
+### Phase 4 - Forms, dialogs and data safety
+
+- **Objective:** adopt the Phase 3 dialog/field/feedback components in create/edit flows;
+  `NavigationLock` on page forms; dirty guard in dialogs (per the owner's policy, 18);
+  busy/disabled states and try/catch around saves and deletes; success feedback; consistent
+  validation display; `autocomplete`/`inputmode`/`type` on relevant fields.
+- **Affected:** the highest-traffic forms first - Rehearsals, Events, Meetings, Profile, Finance
+  report/activities, Logistics, Requests.
+- **Dependency:** Phase 3.
+- **UX gain:** no silent data loss, no double submits, clear feedback.
+- **Tests:** bUnit for guards/busy states on each migrated form.
+- **Visual validation:** dirty-cancel, Escape, Back, reload, double-click, validation error on
+  phone and desktop.
+
+### Phase 5 - Primary member workflows
+
+- **Objective:** recompose Events (participation as the primary action, admin actions to overflow),
+  Rehearsals (dense date-first cards, attendance), Members (compact phone list via
+  `MemberListItem`, card-as-link on desktop), Profile, Leaderboard (standard page header), Home
+  portal (h1, carousel pause, reveal without hiding content).
+- **Dependency:** Phases 3-4.
+- **UX gain:** the tasks members do weekly become obvious and fast on phones.
+- **Tests:** page tests updated to behavior queries.
+- **Visual validation:** each page populated + empty at 5 viewports, member and admin accounts.
+
+### Phase 6 - Management and dense screens
+
+- **Objective:** Finance list/report (360px layout, pt-PT money, row actions), Meetings,
+  Logistics list/board, Questions, Requests, MBWAY, Nerba, Documentation, Operations pages:
+  tables/rows where they fit, filter toolbar, overflow actions.
+- **Dependency:** Phases 3-4 (5 for shared card conventions).
+- **UX gain:** administrative work is scannable and usable on phones.
+- **Tests:** page tests; no business logic change.
+- **Visual validation:** 1440 + 360 minimum per page, long text and large data sets.
+
+### Phase 7 - PWA and mobile polish
+
+- **Objective:** pressed/tap feedback, 44px targets, bottom-bar consistency audit across all 38
+  pages, reduced motion, update toast deferral while a form is dirty, sequencing of home prompts,
+  page-scoped script loading (games/map/cropper), overscroll containment where forms live,
+  image-failure fallbacks, `loading="lazy"`.
+- **Dependency:** Phases 2-6.
+- **UX gain:** the installed app feels deliberate and fast.
+- **Tests:** PWA contract tests stay green; JS changes covered where testable.
+- **Visual validation:** installed PWA on real iOS and Android (safe areas, keyboard over bottom
+  bars, Back, update, offline, reconnect).
+
+### Phase 8 - Consistency and accessibility closeout
+
+- **Objective:** sweep remaining raw spinners, color literals and radii; language/terminology pass;
+  detector re-run; contrast and keyboard sweep of every route; document the resulting system in a
+  `DESIGN.md`-style reference.
+- **Dependency:** all previous phases.
+- **UX gain:** coherent product, no leftover local styles.
+- **Tests:** full CI suite.
+- **Visual validation:** all routes at 1440 and 390; the five-viewport set on key pages.
+
+---
+
+## 18. Deferred Product Decisions
+
+1. **Navigation grouping.** Keep all 11 top-level menu entries (proposed: yes, with a later collapse
+   breakpoint), or regroup (e.g. Classificação under Membros, Galeria/Música under a Media group)?
+2. **Mobile global navigation.** Keep hamburger + drawer as the global nav (proposed), or introduce
+   an app-level bottom tab bar (a new navigation concept)?
+3. **Unsaved-changes policy.** Which forms get a discard confirmation (proposed: every create/edit
+   with more than one field), and should long forms keep local drafts across circuit loss?
+4. **Money and date format.** Switch UI money to pt-PT (`5 377,23 €`)? Affects every finance screen.
+5. **MyTuno / games scope.** Shell-only integration (proposed) or full visual alignment?
+6. **Installed orientation.** Keep `portrait-primary` in the manifest or allow landscape on tablets?
+7. **Browser test tooling.** Commit a Playwright + axe smoke suite (adds a toolchain and CI time) or
+   keep visual validation manual?
+
+## 19. Audit Limitations
+
+- **Remote media** (slideshow, album covers, most avatars) did not load locally: the local
+  Development Content-Security-Policy allows only this environment's R2 public domain, and the
+  sanitized snapshot references production objects. Image-heavy layouts were judged with
+  placeholders/fallbacks. Recorded as a deferred item in `STATE.md`.
+- Only **Owner** and **anonymous** views were rendered; member/Leitão/Caloiro navigation is
+  source-only.
+- **No real devices.** Installed standalone mode, iOS safe areas, virtual keyboard, pull-to-refresh,
+  hardware Back on Android, push prompts and the SW update toast were not exercised.
+- **No writes.** Validation on create forms, success feedback after saves, and error paths were
+  inferred from source rather than triggered.
+- The fiscal year 2026-2027 had no rehearsals or meetings yet; populated states used 2025-2026.
+- Chromium only; no Safari/Firefox rendering check.
+- Contrast ratios marked "est." in 13.2 are computed from hex values, not measured on screen.
+- Counts from `grep` over single lines (e.g. clickable `div`s, labels) are approximate where tags
+  span several lines.

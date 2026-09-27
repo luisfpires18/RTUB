@@ -3,15 +3,17 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-24_
+_Last updated: 2026-09-27_
 
 ## Phase
-**2.0.2 development on `dev`.** No task in flight, no blockers. Unit 030 (production release
-pipeline) is **complete**.
+**2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
+program started: unit 032 (Task 001, audit and polish contract) is complete on
+`chore/032/ui-refactor-audit`, not yet merged. No code changed; no blockers.
 
 ## Where things are
 | Topic | Doc |
 | --- | --- |
+| UI refactor: audit, design direction, shared-component plan, roadmap | `docs/design/RTUB_UI_REFACTOR.md` |
 | Branch model, versions, releasing, archive, rollback, hotfix, database rules and restore | `docs/release-and-rollback.md` |
 | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC, setting names, smoke | `docs/ci-cd-and-azure-environments.md` |
 | Why | `docs/architecture/adr/0001-production-release-and-rollback.md` |
@@ -44,6 +46,15 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
+Raised by 032 (UI audit; UI findings themselves live in `docs/design/RTUB_UI_REFACTOR.md`):
+- Local Development CSP `img-src` allows only this environment's R2 public domain, so a sanitized
+  production snapshot's media (slideshow, covers, avatars) is blocked in local runs.
+- Local run with User Secrets holding R2 credentials is refused by the production-bucket guard
+  unless `Cloudflare__R2__Bucket` is overridden (how the audit ran: doc section 2.1).
+- `global.json` has no SDK pin; `docs/architecture/system-index.md` says it pins the SDK.
+- Unused shared code: `PaginatedList`, `ManagedModalPageBase` (`MemberListItem` is planned for
+  adoption by the UI roadmap, not removal).
+
 Raised by fix/030 (iOS media association):
 - `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and
   `apple-mobile-web-app-status-bar-style` from `App.razor` (identical values, harmless).
@@ -87,6 +98,8 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
+- UI refactor Phase 1 (visual foundations: tokens on existing colors, button variants, contrast,
+  focus) per `docs/design/RTUB_UI_REFACTOR.md` section 17; owner decisions in its section 18.
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today
