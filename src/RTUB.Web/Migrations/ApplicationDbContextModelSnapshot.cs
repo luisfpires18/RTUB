@@ -240,92 +240,6 @@ namespace RTUB.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerActionReceipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Action")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Approach")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("BankDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CrimeId")
-                        .HasMaxLength(8)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("EnergyDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("HeatDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("JailUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Jailed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("LevelAfter")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("LevelBefore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PlayerCycleStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Request")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Succeeded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SuccessChance")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SuccessRoll")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("WalletDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("XpDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerCycleStateId", "IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPlayerActionReceipts_State_Key");
-
-                    b.ToTable("AfterHoursPlayerActionReceipts", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
                 {
                     b.Property<int>("Id")
@@ -337,9 +251,6 @@ namespace RTUB.Migrations
 
                     b.Property<int>("Charisma")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateOnly?>("CoverJobDailyUsedOn")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -360,9 +271,6 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("HeatUpdatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("JailUntilUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Level")
@@ -5048,17 +4956,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("FiscalYear");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerActionReceipt", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", "PlayerCycleState")
-                        .WithMany()
-                        .HasForeignKey("PlayerCycleStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlayerCycleState");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>

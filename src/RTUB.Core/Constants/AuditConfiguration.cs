@@ -68,6 +68,5 @@ public static class AuditConfiguration
         "StageEnemy",
         "ForgedWeapon",
         "PlayerCycleState",
-        "PlayerActionReceipt",
     };
 }
