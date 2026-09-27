@@ -1,232 +1,453 @@
-/* Navbar styling */
+/* ========================================
+   App shell: skip link, header, navigation, account menu, drawer (UI refactor 034)
+   Contract: docs/design/RTUB_UI_REFACTOR.md section 21.
 
-/* Navbar styling */
-.navbar {
-  display: flex;
+   >= 1200px (xl): horizontal navigation. Top-level items are text-only so every role's
+   menu fits from 1200px up without shrinking type; icons stay in menus and the drawer.
+   <  1200px: menu button + right-hand drawer, the same breakpoint at which pages swap their
+   header actions for MobileBottomNav.
+   Current location: NavLink adds .active + aria-current="page"; a menu toggle is .active
+   while one of its routes is the current page (MainLayout.GroupClass). Active is shown by
+   weight plus an indicator or surface, never by color alone.
+   ======================================== */
+
+/* ---------- Skip link ---------- */
+.skip-link {
+  position: absolute;
+  top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  left: calc(0.5rem + env(safe-area-inset-left, 0px));
+  z-index: 1090; /* above the header, drawer (1045) and dialogs (1055) */
+  padding: 0.625rem 1rem;
+  border-radius: var(--rtub-radius);
+  background-color: var(--rtub-primary);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1rem - env(safe-area-inset-top, 0px)));
+}
+
+.skip-link:focus,
+.skip-link:hover {
+  color: #fff;
+  text-decoration: none;
+  transform: none;
+}
+
+/* <main> takes focus only as the skip-link target (tabindex="-1"); it is a region, not a
+   control, so it draws no focus ring of its own. */
+.content-main:focus,
+.content-main:focus-visible {
+  outline: none;
+}
+
+/* Same for the drawer: Bootstrap focuses the dialog container when it opens; the ring then
+   belongs to the controls inside it. */
+.navbar-main .offcanvas:focus-visible {
+  outline: none;
+}
+
+/* ---------- Header ---------- */
+.navbar-main {
+  --bs-navbar-padding-y: 0.375rem;
+  padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  background-color: var(--rtub-bg);
+  border-bottom: 1px solid var(--rtub-border);
+  color: var(--rtub-text);
+}
+
+.navbar-main__inner {
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+}
+
+.navbar-main .navbar-brand {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #121212;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--bs-border-color);
-  color: #fff;
-}
-.navbar .offcanvas,
-.navbar .offcanvas .offcanvas-header,
-.navbar .offcanvas .offcanvas-body {
-  background-color: #121212;
-  color: #fff;
-}
-.navbar .offcanvas .btn-close {
-  filter: invert(1);
-}
-.navbar .offcanvas .offcanvas-header {
-  border-bottom: 1px solid rgba(111, 66, 193, 0.35);
-  background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(18, 18, 18, 0));
-}
-.navbar-brand {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: #fff;
-}
-.navbar-brand:hover { color: var(--bs-link-hover-color); }
-.navbar-nav {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.nav-link {
-  display: block;
-  padding: 0.5rem 0.75rem;
-  color: #eee;
-  border-radius: 0.25rem;
-  /* Minimum touch target size for mobile */
   min-height: 44px;
+  margin-right: 0.75rem;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+
+.navbar-main .navbar-brand:hover,
+.navbar-main .navbar-brand:focus {
+  color: var(--bs-link-hover-color);
+  text-decoration: none;
+}
+
+.navbar-main .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.5rem; /* Add spacing between icon and text */
-}
-
-.nav-link i {
-  /* Ensure icons align consistently */
-  width: 1rem;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.nav-link:hover, .nav-link:focus {
-  background-color: rgba(var(--bs-primary-rgb), 0.2);
-  color: #fff;
-}
-.nav-link:active {
-  color: #fff;
-}
-.nav-link.active {
-  background-color: var(--bs-primary);
-  color: #fff;
-}
-
-.navbar-toggler {
-  border: 1px solid rgba(111, 66, 193, 0.6);
-  border-radius: 999px;
-  padding: 0.45rem 0.6rem;
-}
-.navbar-toggler:focus {
-  box-shadow: 0 0 0 0.15rem rgba(111, 66, 193, 0.35);
-}
-
-/* Navbar dropdown button styling */
-.nav-link.dropdown-toggle[type="button"] {
+  gap: 0.5rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--rtub-radius-sm);
   background: transparent;
-  border: none;
-  cursor: pointer;
+  color: var(--rtub-text);
   font-family: inherit;
-  font-size: inherit;
-  text-align: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-.nav-link.dropdown-toggle[type="button"]:hover,
-.nav-link.dropdown-toggle[type="button"]:focus {
-  background-color: rgba(var(--bs-primary-rgb), 0.2); /* Fallback */
-  background-color: rgba(var(--bs-primary-rgb), 0.2);
+
+.navbar-main .nav-link:hover,
+.navbar-main .nav-link:focus {
+  background-color: rgba(255, 255, 255, 0.06);
   color: #fff;
   text-decoration: none;
 }
-.dropdown-menu {
-  background-color: #1b1b1b;
-  border: 1px solid rgba(111, 66, 193, 0.35);
-  border-radius: 0.75rem;
-  padding: 0.5rem;
-  min-width: 14rem;
-  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.35);
+
+.navbar-main .nav-link.active,
+.navbar-main .nav-link.show {
+  color: #fff;
+}
+
+.navbar-main .nav-link.active {
+  font-weight: 600;
+}
+
+.navbar-main .nav-link i {
+  flex-shrink: 0;
+  width: 1.25rem;
+  text-align: center;
+  color: var(--rtub-accent);
+}
+
+/* ---------- Menus (desktop dropdowns and the account menu) ---------- */
+.navbar-main .dropdown-menu {
+  --bs-dropdown-bg: var(--rtub-surface-alt);
+  --bs-dropdown-border-color: var(--rtub-border);
+  --bs-dropdown-border-radius: var(--rtub-radius-lg);
+  --bs-dropdown-link-color: var(--rtub-text);
+  --bs-dropdown-link-hover-color: #fff;
+  --bs-dropdown-link-hover-bg: rgba(255, 255, 255, 0.06);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-link-active-bg: rgba(111, 66, 193, 0.22);
+  --bs-dropdown-divider-bg: var(--rtub-border);
+  min-width: 13rem;
+  margin-top: 0.375rem;
+  padding: 0.375rem;
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.45);
   z-index: 1045;
 }
-.dropdown-item {
-  color: #f2f2f2 !important;
-  border-radius: 0.5rem;
-  padding: 0.55rem 0.75rem;
+
+.navbar-main .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--rtub-radius-sm);
+  color: var(--rtub-text) !important; /* beats the global a:link color */
+  font-size: 0.9375rem;
   text-decoration: none;
-}
-.dropdown-item:link,
-.dropdown-item:visited {
-  color: #f2f2f2 !important;
-  text-decoration: none;
-}
-.dropdown-item:hover,
-.dropdown-item:focus {
-  background-color: rgba(111, 66, 193, 0.2);
-  color: #fff !important;
-}
-.dropdown-item.active,
-.dropdown-item:active {
-  color: #fff !important;
-}
-.dropdown-divider {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 991.98px) {
-  .navbar .offcanvas {
-    width: min(92vw, 360px);
+/* Restated backgrounds: 1-base/utilities.css paints every dropdown item light on hover and
+   solid purple when active, which suits page menus but not the dark shell menus. */
+.navbar-main .dropdown-item:hover,
+.navbar-main .dropdown-item:focus {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #fff !important;
+  text-decoration: none;
+}
+
+.navbar-main .dropdown-item.active {
+  background-color: rgba(111, 66, 193, 0.22) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.navbar-main .dropdown-item:active {
+  background-color: rgba(111, 66, 193, 0.35) !important;
+}
+
+.navbar-main .dropdown-item i {
+  flex-shrink: 0;
+  width: 1.25rem;
+  text-align: center;
+  color: var(--rtub-accent);
+}
+
+.navbar-main .dropdown-divider {
+  margin: 0.375rem 0.25rem;
+}
+
+/* ---------- Account menu ---------- */
+.navbar-account {
+  margin-left: auto;
+}
+
+.navbar-account__toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.navbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--rtub-primary);
+  transition: border-color 0.15s ease;
+}
+
+.navbar-account__toggle:hover .navbar-avatar,
+.navbar-account__toggle[aria-expanded="true"] .navbar-avatar {
+  border-color: var(--rtub-accent);
+}
+
+.navbar-message-badge {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  box-shadow: 0 0 0 2px var(--rtub-bg);
+  z-index: 1;
+}
+
+.navbar-account__menu {
+  min-width: 15rem;
+}
+
+.navbar-account__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem 0.25rem;
+}
+
+.navbar-account__name {
+  font-weight: 600;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.logout-form {
+  margin: 0;
+}
+
+.navbar-login {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ---------- Menu button (below xl) ---------- */
+.navbar-main .navbar-toggler {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--rtub-radius);
+  background: transparent;
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.navbar-main .navbar-toggler:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Desktop (>= 1200px) ---------- */
+@media (min-width: 1200px) {
+  .navbar-main .navbar-toggler {
+    display: none; /* restated: the base rule above sets display */
   }
-  .pwa-mode .navbar .offcanvas {
-    width: min(60vw, 320px);
+
+  .navbar-main .offcanvas-body {
+    flex-grow: 1;
   }
-  .pwa-mode .navbar {
-    overflow-x: hidden;
+
+  .navbar-main__nav {
+    min-width: 0;
   }
-  .pwa-mode .navbar .offcanvas,
-  .pwa-mode .navbar .offcanvas .offcanvas-body {
-    overflow-x: hidden;
+
+  .navbar-main .navbar-nav {
+    flex-wrap: wrap; /* a future extra item wraps instead of widening the page */
+    gap: 0.125rem;
   }
-  .navbar .offcanvas .navbar-nav {
+
+  .navbar-main .navbar-nav .nav-link {
+    padding: 0.5rem 0.625rem;
+  }
+
+  /* Top-level items are text-only on the bar; the drawer and menus keep their icons. */
+  .navbar-main .navbar-nav > .nav-item > .nav-link > i {
+    display: none;
+  }
+
+  /* Current section: a short indicator under the label. */
+  .navbar-main .navbar-nav > .nav-item > .nav-link.active::before {
+    content: "";
+    position: absolute;
+    left: 0.625rem;
+    right: 0.625rem;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--rtub-accent);
+  }
+
+  .navbar-main .dropdown-toggle::after {
+    margin-left: 0.125rem;
+    opacity: 0.7;
+  }
+}
+
+/* ---------- Drawer (< 1200px) ---------- */
+@media (max-width: 1199.98px) {
+  .navbar-main .offcanvas {
+    --bs-offcanvas-width: min(86vw, 22rem);
+    --bs-offcanvas-bg: var(--rtub-surface);
+    --bs-offcanvas-color: var(--rtub-text);
+    border-left: 1px solid var(--rtub-border);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .navbar-main .offcanvas-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rtub-border);
+  }
+
+  .navbar-main .offcanvas-title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  /* 44px target around Bootstrap's 1rem close glyph. */
+  .navbar-main .offcanvas-header .btn-close {
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    margin: -0.5rem -0.5rem -0.5rem auto;
+    padding: 0;
+    background-size: 1rem;
+  }
+
+  .navbar-main .offcanvas-body {
+    padding: 0.75rem;
+    overscroll-behavior: contain;
+  }
+
+  .navbar-main .navbar-nav {
     flex-direction: column;
-    gap: 0.35rem;
-    padding-top: 0.35rem;
+    gap: 0.125rem;
   }
-  .navbar .offcanvas .nav-link {
-    justify-content: flex-start;
+
+  .navbar-main .navbar-nav .nav-link {
+    width: 100%;
+    min-height: 48px;
     gap: 0.75rem;
-    padding: 0.7rem 0.9rem;
-    background-color: rgba(255, 255, 255, 0.02);
-    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--rtub-radius);
+    font-size: 1rem;
   }
-  .navbar .offcanvas .nav-link i {
-    color: rgba(224, 210, 255, 0.95);
-    font-size: 1.05rem;
+
+  .navbar-main .navbar-nav .nav-link i {
+    font-size: 1.125rem;
   }
-  .navbar .offcanvas .nav-link.active {
-    background: linear-gradient(90deg, rgba(111, 66, 193, 0.65), rgba(111, 66, 193, 0.15));
-    box-shadow: inset 4px 0 0 rgba(166, 100, 255, 0.9);
+
+  .navbar-main .navbar-nav .nav-link.active {
+    background-color: rgba(111, 66, 193, 0.22);
   }
-  .navbar .offcanvas .dropdown-menu {
+
+  .navbar-main .navbar-nav .nav-link.active i {
+    color: #fff;
+  }
+
+  .navbar-main .navbar-nav .dropdown-toggle::after {
+    margin-left: auto;
+    transition: transform 0.15s ease;
+  }
+
+  .navbar-main .navbar-nav .dropdown-toggle.show::after {
+    transform: rotate(180deg);
+  }
+
+  /* A section's items expand in place, indented under their section. */
+  .navbar-main .navbar-nav .dropdown-menu {
     position: static;
     float: none;
     width: 100%;
-    margin-top: 0.35rem;
-    padding: 0;
-    border: none;
+    min-width: 0;
+    margin: 0.125rem 0 0.25rem;
+    padding: 0 0 0 1.25rem;
+    border: 0;
     background: transparent;
     box-shadow: none;
   }
-  .navbar .offcanvas .dropdown-menu.show {
-    display: block;
+
+  .navbar-main .navbar-nav .dropdown-item {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--rtub-radius);
   }
-  .navbar .offcanvas .nav-item.dropdown.show > .dropdown-toggle {
-    background-color: rgba(111, 66, 193, 0.25);
+
+  .navbar-main .navbar-nav .dropdown-item.active i {
     color: #fff;
   }
-  .navbar .offcanvas .dropdown-toggle::after {
-    margin-left: auto;
-  }
-  .navbar .offcanvas .dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.9rem 0.65rem 2.25rem;
-    background-color: rgba(255, 255, 255, 0.02);
-    border-radius: 0.75rem;
-    color: #f2f2f2 !important;
-    text-decoration: none;
-  }
-  .navbar .offcanvas .dropdown-item:link,
-  .navbar .offcanvas .dropdown-item:visited,
-  .navbar .offcanvas .dropdown-item:active,
-  .navbar .offcanvas .dropdown-item.active {
-    color: #fff !important;
-    text-decoration: none;
-  }
-  .navbar .offcanvas .dropdown-item i {
-    color: rgba(224, 210, 255, 0.95);
-    font-size: 1.05rem;
-  }
-  .navbar .offcanvas .dropdown-item:hover,
-  .navbar .offcanvas .dropdown-item:focus {
-    background-color: rgba(111, 66, 193, 0.2);
-    color: #fff;
+
+  /* The account menu is a normal dropdown under the avatar on every width; keep it on screen
+     on the narrowest phones. */
+  .navbar-account__menu {
+    max-width: calc(100vw - 1rem);
   }
 }
 
-@media (display-mode: standalone) and (max-width: 991.98px) {
-  /* No horizontal clipping on html/body here either (UI refactor 033; see
-     1-base/mobile.css). Never `overflow-x: hidden`: iOS Safari then treats html/body
-     as the scroll container and MobileBottomNav (position: fixed; bottom: 0) drifts
-     into the middle of the viewport in the installed PWA. */
+/* Installed app (standalone) below xl: no sideways rubber-banding of the header or drawer.
+   Never `overflow-x: hidden` on html/body: iOS Safari then treats them as the scroll
+   container and MobileBottomNav (position: fixed; bottom: 0) drifts into the middle of the
+   viewport in the installed PWA (see 1-base/mobile.css). */
+@media (display-mode: standalone) and (max-width: 1199.98px) {
   html,
   body {
     overscroll-behavior-x: none;
   }
-  .navbar .offcanvas {
-    width: min(60vw, 320px);
-  }
-  .navbar {
-    overflow-x: hidden;
+
+  .navbar-main,
+  .navbar-main .offcanvas-body {
     overscroll-behavior-x: none;
     touch-action: pan-y;
   }
-  .navbar .offcanvas,
-  .navbar .offcanvas .offcanvas-body {
-    overflow-x: hidden;
-    overscroll-behavior-x: none;
-    touch-action: pan-y;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar-main .nav-link,
+  .navbar-main .navbar-nav .dropdown-toggle::after,
+  .navbar-avatar {
+    transition: none;
   }
 }

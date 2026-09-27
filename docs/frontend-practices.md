@@ -41,7 +41,7 @@ This document outlines frontend development best practices for the RTUB project,
 @attribute [Authorize]
 @inject IMyService MyService
 
-<PageTitle>Example Page</PageTitle>
+<AppTitle>Example Page</AppTitle>  @* renders "Example Page - RTUB"; every routable page sets one *@
 
 <div class="container">
     @* Content *@
@@ -185,8 +185,14 @@ else
 - Use CDN for external libraries when appropriate
 
 ```razor
-<VersionedAsset Path="/css/site.css" Type="VersionedAsset.AssetType.Css" />
+<VersionedAsset Path="/js/app.js" Type="VersionedAsset.AssetType.Js" />
 ```
+
+Global CSS: add the sheet as an `@import` line in `wwwroot/css/site.css` (the ordered list).
+`MainLayout` renders `<GlobalStylesheets />`, which links every listed sheet with its own `?v=`
+content hash; `site.css` itself is never linked. Never add an unversioned local `<link>`/`<script>`:
+unversioned `.css`/`.js` are served `Cache-Control: no-cache`, versioned ones are cached for 30
+days (contract: `docs/design/RTUB_UI_REFACTOR.md` section 21).
 
 ## Accessibility
 
@@ -223,7 +229,7 @@ else
 
 ```razor
 @* In App.razor *@
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
 ```
 
 ### Offline Support

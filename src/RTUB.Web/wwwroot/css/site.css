@@ -2,11 +2,15 @@
  * RTUB Main Stylesheet
  * Custom dark + purple theme for RTUB
  * 
- * This file imports all CSS modules in the correct cascade order:
+ * This file lists all global CSS modules in the correct cascade order:
  * 1. Base - Variables and foundations
  * 2. Layout - Structural components
  * 3. Components - Reusable UI patterns
  * 4. Pages - Page-specific styles
+ *
+ * It is the list, not a linked stylesheet: GlobalStylesheets (RTUB.Web/Components) renders
+ * one versioned <link> per @import below, in this order, so every sheet is cache-busted on
+ * its own. Keep this file to @import lines and comments only (guarded by a test).
  */
 
 /* ========================================

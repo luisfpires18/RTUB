@@ -129,9 +129,12 @@ self.addEventListener('install', (event) => {
 - Set proper viewport meta tag
 - Allow user scaling (accessibility)
 - Set maximum scale appropriately
+- Keep `viewport-fit=cover`: without it iOS reports every `env(safe-area-inset-*)` as 0. Any
+  surface touching a screen edge (header, drawer, fixed bottom bars, full-screen sheets, footer)
+  pads by the matching inset with a `0px` fallback (`docs/design/RTUB_UI_REFACTOR.md` 21.5)
 
 ```razor
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
 ```
 
 ### Touch Icons

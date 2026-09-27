@@ -6,8 +6,11 @@
 <html lang="pt">
 <head>
     <meta charset="utf-8" />
-    @* Viewport optimized for mobile PWA - prevents auto-zoom on inputs with 16px font-size *@
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    @* Viewport optimized for mobile PWA - prevents auto-zoom on inputs with 16px font-size.
+       viewport-fit=cover makes iOS report env(safe-area-inset-*): with the black-translucent
+       status bar below, the installed app draws under the status bar, and the shell pads its
+       header, drawer, footer and bottom bars by those insets (UI refactor 034). *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <base href="/" />
     @* PWA manifest must be in static HTML for Android/Chrome detection *@
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -42,7 +45,8 @@
                         else
                         {
                             <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                                <p role="alert">You are not authorized to access this resource.</p>
+                                <AppTitle>Sem permissão</AppTitle>
+                                <p role="alert">Não tens permissão para aceder a esta página.</p>
                             </LayoutView>
                         }
                     </NotAuthorized>
@@ -51,7 +55,8 @@
             </Found>
             <NotFound>
                 <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                    <p role="alert">Sorry, there's nothing at this address.</p>
+                    <AppTitle>Página não encontrada</AppTitle>
+                    <p role="alert">Não existe nenhuma página neste endereço.</p>
                 </LayoutView>
             </NotFound>
         </Router>
