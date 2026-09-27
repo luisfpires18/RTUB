@@ -192,119 +192,6 @@ namespace RTUB.Migrations
                     b.ToTable("Activities");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.AfterHoursCosmeticAward", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("CycleArchiveId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(160)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("FiscalYearId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("GrantedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("GrantedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RecipientName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("RevokedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RevokedByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CycleArchiveId");
-
-                    b.HasIndex("FiscalYearId");
-
-                    b.HasIndex("UserId", "RevokedAtUtc");
-
-                    b.ToTable("AfterHoursCosmeticAwards", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.AfterHoursTuningSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursTuningSettings_Key");
-
-                    b.ToTable("AfterHoursTuningSettings", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContract", b =>
                 {
                     b.Property<int>("Id")
@@ -6268,19 +6155,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("Report");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.AfterHoursCosmeticAward", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.CycleArchive", null)
-                        .WithMany()
-                        .HasForeignKey("CycleArchiveId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RTUB.Core.Entities.FiscalYear", null)
-                        .WithMany()
-                        .HasForeignKey("FiscalYearId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContract", b =>

@@ -25,27 +25,16 @@ public class AfterHoursRolloverService(IDbContextFactory<ApplicationDbContext> c
             if (now < source.EndUtc)
                 throw new InvalidOperationException($"Cycle {source.Id} is playable until {source.EndUtc:u}; annual rollover waits for its end.");
 
-            var (next, error) = await NextLiveAsync(context, source);
-            return next is null ? throw new InvalidOperationException(error) : new Target(next.FiscalYearId, next.StartUtc, next.EndUtc);
-        });
+            // The fiscal year that starts where the source's ends. Never created or guessed here.
+            var endYear = source.FiscalYear!.EndYear;
+            var next = await context.FiscalYears.AsNoTracking().Where(f => f.StartYear == endYear).ToListAsync();
+            if (next.Count != 1)
+                throw new InvalidOperationException(next.Count == 0
+                    ? $"No RTUB fiscal year starts in {endYear}. Create it before rolling over."
+                    : $"{next.Count} RTUB fiscal years start in {endYear}; the next one is ambiguous.");
 
-    /// <summary>
-    /// The Live cycle an annual rollover of <paramref name="source"/> would start: the one existing RTUB fiscal
-    /// year whose StartYear is the source fiscal year's EndYear, 1 September to 1 September in Lisbon. Never
-    /// creates or guesses a fiscal year; returns the reason instead. Also used by the admin preview.
-    /// </summary>
-    internal static async Task<(NextLiveCycle? Next, string? Error)> NextLiveAsync(ApplicationDbContext context, GameCycle source)
-    {
-        var endYear = source.FiscalYear?.EndYear
-            ?? await context.FiscalYears.Where(f => f.Id == source.FiscalYearId).Select(f => f.EndYear).SingleAsync();
-        var next = await context.FiscalYears.AsNoTracking().Where(f => f.StartYear == endYear).ToListAsync();
-        if (next.Count != 1)
-            return (null, next.Count == 0
-                ? $"No RTUB fiscal year starts in {endYear}. Create it before rolling over."
-                : $"{next.Count} RTUB fiscal years start in {endYear}; the next one is ambiguous.");
-        var year = next[0];
-        return (new NextLiveCycle(year.Id, year.FiscalYearString, RolloverRules.SeptemberStartUtc(year.StartYear), RolloverRules.SeptemberStartUtc(year.EndYear)), null);
-    }
+            return new Target(next[0].Id, RolloverRules.SeptemberStartUtc(next[0].StartYear), RolloverRules.SeptemberStartUtc(next[0].EndYear));
+        });
 
     public Task<RolloverResult> TransitionPilotToLiveAsync(int pilotCycleId, int targetFiscalYearId, DateTime targetStartUtc, DateTime targetEndUtc)
     {
@@ -190,14 +179,6 @@ public class AfterHoursRolloverService(IDbContextFactory<ApplicationDbContext> c
 
 public class YearbookService(IDbContextFactory<ApplicationDbContext> contextFactory) : IYearbookService
 {
-    public async Task<IReadOnlyList<AfterHoursCosmeticAward>> GetActiveAwardsAsync(string userId)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync();
-        return await context.AfterHoursCosmeticAwards.AsNoTracking()
-            .Where(a => a.UserId == userId && a.RevokedAtUtc == null)
-            .OrderByDescending(a => a.GrantedAtUtc).ToListAsync();
-    }
-
     public async Task<IReadOnlyList<CycleArchive>> GetArchivesAsync()
     {
         await using var context = await contextFactory.CreateDbContextAsync();

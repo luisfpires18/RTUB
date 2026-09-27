@@ -33,7 +33,6 @@ public class PvpService(IDbContextFactory<ApplicationDbContext> contextFactory, 
             .Select(g => new { DefenderStateId = g.Key, Last = g.Max(b => b.AcceptedAtUtc) })
             .ToDictionaryAsync(x => x.DefenderStateId, x => (DateTime?)x.Last);
 
-        var tuning = await AfterHoursTuningService.LoadAsync(context);
         var names = await NamesAsync(context, states.Select(s => s.UserId));
         return states
             .Where(s => s.Id != me.Id)
@@ -42,7 +41,7 @@ public class PvpService(IDbContextFactory<ApplicationDbContext> contextFactory, 
                 names.GetValueOrDefault(s.UserId, "Unknown"),
                 s.Level,
                 PvpRules.EffectivePower(s),
-                PvpRules.TargetBlockReason(me, s, lastAttacks.GetValueOrDefault(s.Id), now, tuning)))
+                PvpRules.TargetBlockReason(me, s, lastAttacks.GetValueOrDefault(s.Id), now)))
             .OrderBy(t => t.BlockReason is not null)
             .ThenBy(t => t.DisplayName)
             .ToList();

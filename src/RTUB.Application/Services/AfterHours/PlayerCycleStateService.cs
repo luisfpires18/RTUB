@@ -52,8 +52,7 @@ public class PlayerCycleStateService(
 
         // A read-only view brought up to now; nothing is written. Actions reconcile the stored row
         // to the same result inside their own transaction.
-        await using (var context = await contextFactory.CreateDbContextAsync())
-            state.Reconcile(now, await AfterHoursTuningService.LoadAsync(context));
+        state.Reconcile(now);
         return state;
     }
 

@@ -89,34 +89,27 @@ public class PlayerCycleState : BaseEntity
     public string? DefenceOutfitKey { get; set; }
     public string? DefenceVehicleToolKey { get; set; }
 
-    /// <summary>Default cadence; the live value is <see cref="AfterHoursTuning.EnergyRegenMinutesPerPoint"/>.</summary>
-    public static readonly TimeSpan EnergyRegenInterval = AfterHoursTuning.Default.EnergyRegenInterval;
-
-    /// <summary>Default cadence; the live value is <see cref="AfterHoursTuning.HeatDecayMinutesPerPoint"/>.</summary>
-    public static readonly TimeSpan HeatDecayInterval = AfterHoursTuning.Default.HeatDecayInterval;
+    public static readonly TimeSpan EnergyRegenInterval = TimeSpan.FromMinutes(6);
+    public static readonly TimeSpan HeatDecayInterval = TimeSpan.FromMinutes(10);
 
     // For EF Core
     public PlayerCycleState() { }
 
     public bool IsJailedAt(DateTime utcNow) => JailUntilUtc > utcNow;
 
-    /// <summary>
-    /// Brings energy, heat and training points up to <paramref name="utcNow"/> with the given tuning (defaults
-    /// when null). Deterministic and repeatable. A cadence change applies from the stored timestamps onward.
-    /// </summary>
-    public void Reconcile(DateTime utcNow, AfterHoursTuning? tuning = null)
+    /// <summary>Brings energy and heat up to <paramref name="utcNow"/>. Deterministic and repeatable.</summary>
+    public void Reconcile(DateTime utcNow)
     {
-        tuning ??= AfterHoursTuning.Default;
-        ReconcileEnergy(utcNow, tuning.EnergyRegenInterval);
-        ReconcileHeat(utcNow, tuning.HeatDecayInterval);
-        ReconcileTraining(utcNow, tuning.TrainingPointStorageCap);
+        ReconcileEnergy(utcNow);
+        ReconcileHeat(utcNow);
+        ReconcileTraining(utcNow);
     }
 
     /// <summary>
     /// +1 training point per Lisbon calendar day since <see cref="TrainingPointsDay"/>, stored up to
-    /// <paramref name="storageCap"/> (default <see cref="TrainingRules.MaxStoredPoints"/>). Never more than one point per day.
+    /// <see cref="TrainingRules.MaxStoredPoints"/>. Never more than one point per day.
     /// </summary>
-    public void ReconcileTraining(DateTime utcNow, int storageCap = TrainingRules.MaxStoredPoints)
+    public void ReconcileTraining(DateTime utcNow)
     {
         var today = LisbonCalendar.DateOf(utcNow);
         if (TrainingPointsDay is not { } day)
@@ -127,7 +120,7 @@ public class PlayerCycleState : BaseEntity
         }
 
         if (today <= day) return;
-        TrainingPoints = Math.Max(TrainingPoints, Math.Min(storageCap, TrainingPoints + (today.DayNumber - day.DayNumber)));
+        TrainingPoints = Math.Min(TrainingRules.MaxStoredPoints, TrainingPoints + (today.DayNumber - day.DayNumber));
         TrainingPointsDay = today;
     }
 
@@ -157,9 +150,8 @@ public class PlayerCycleState : BaseEntity
     /// whole intervals used, so a partial interval carries over. At max energy the clock is pinned
     /// to now: a full bar banks no hidden regeneration.
     /// </summary>
-    public void ReconcileEnergy(DateTime utcNow, TimeSpan? regenInterval = null)
+    public void ReconcileEnergy(DateTime utcNow)
     {
-        var interval = regenInterval ?? EnergyRegenInterval;
         if (Energy >= MaxEnergy)
         {
             Energy = MaxEnergy;
@@ -167,7 +159,7 @@ public class PlayerCycleState : BaseEntity
             return;
         }
 
-        var points = WholeIntervals(EnergyUpdatedAtUtc, utcNow, interval);
+        var points = WholeIntervals(EnergyUpdatedAtUtc, utcNow, EnergyRegenInterval);
         if (points == 0) return;
 
         if (Energy + points >= MaxEnergy)
@@ -178,14 +170,13 @@ public class PlayerCycleState : BaseEntity
         else
         {
             Energy += (int)points;
-            EnergyUpdatedAtUtc += interval * points;
+            EnergyUpdatedAtUtc += EnergyRegenInterval * points;
         }
     }
 
     /// <summary>-1 heat per whole <see cref="HeatDecayInterval"/>, same carry-over rule as energy; at 0 the clock is pinned to now.</summary>
-    public void ReconcileHeat(DateTime utcNow, TimeSpan? decayInterval = null)
+    public void ReconcileHeat(DateTime utcNow)
     {
-        var interval = decayInterval ?? HeatDecayInterval;
         if (Heat <= 0)
         {
             Heat = 0;
@@ -193,7 +184,7 @@ public class PlayerCycleState : BaseEntity
             return;
         }
 
-        var points = WholeIntervals(HeatUpdatedAtUtc, utcNow, interval);
+        var points = WholeIntervals(HeatUpdatedAtUtc, utcNow, HeatDecayInterval);
         if (points == 0) return;
 
         if (Heat - points <= 0)
@@ -204,7 +195,7 @@ public class PlayerCycleState : BaseEntity
         else
         {
             Heat -= (int)points;
-            HeatUpdatedAtUtc += interval * points;
+            HeatUpdatedAtUtc += HeatDecayInterval * points;
         }
     }
 
