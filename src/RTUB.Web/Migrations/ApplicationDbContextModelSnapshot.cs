@@ -297,68 +297,6 @@ namespace RTUB.Migrations
                     b.ToTable("AfterHoursBuyerContractCompletions", (string)null);
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.CycleArchive", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("ArchivedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("EndUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FiscalYearId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("FiscalYearLabel")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("NextGameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("Official")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("StartUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FiscalYearId");
-
-                    b.HasIndex("GameCycleId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursCycleArchives_Cycle");
-
-                    b.HasIndex("NextGameCycleId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursCycleArchives_NextCycle");
-
-                    b.ToTable("AfterHoursCycleArchives", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.Family", b =>
                 {
                     b.Property<int>("Id")
@@ -1357,182 +1295,6 @@ namespace RTUB.Migrations
                         {
                             t.HasCheckConstraint("CK_AfterHoursPvpObjectiveCredits_Points", "\"IndividualPoints\" >= 0");
                         });
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookFamilyEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AnnualScore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CycleArchiveId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("FamilyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("FamilyName")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsChampion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Rank")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ScoringWeeks")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FamilyId");
-
-                    b.HasIndex("CycleArchiveId", "FamilyId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursYearbookFamilies_Archive_Family");
-
-                    b.ToTable("AfterHoursYearbookFamilies", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookFamilyMember", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("YearbookFamilyEntryId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("YearbookFamilyEntryId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursYearbookFamilyMembers_Entry_User");
-
-                    b.ToTable("AfterHoursYearbookFamilyMembers", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookPlayerEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AnnualScore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Charisma")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CycleArchiveId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("FamilyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("FamilyName")
-                        .HasMaxLength(24)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsChampion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Rank")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ScoringWeeks")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Smarts")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Stealth")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Toughness")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("XP")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FamilyId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("CycleArchiveId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursYearbookPlayers_Archive_User");
-
-                    b.ToTable("AfterHoursYearbookPlayers", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -6181,26 +5943,6 @@ namespace RTUB.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.CycleArchive", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.FiscalYear", null)
-                        .WithMany()
-                        .HasForeignKey("FiscalYearId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("NextGameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.FamilyCycleState", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.AfterHours.Family", null)
@@ -6399,44 +6141,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("PvpBattle");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookFamilyEntry", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.CycleArchive", null)
-                        .WithMany("Families")
-                        .HasForeignKey("CycleArchiveId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.Family", null)
-                        .WithMany()
-                        .HasForeignKey("FamilyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookFamilyMember", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.YearbookFamilyEntry", null)
-                        .WithMany("Members")
-                        .HasForeignKey("YearbookFamilyEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookPlayerEntry", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.CycleArchive", null)
-                        .WithMany("Players")
-                        .HasForeignKey("CycleArchiveId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.Family", null)
-                        .WithMany()
-                        .HasForeignKey("FamilyId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AlbumAccess", b =>
@@ -7431,13 +7135,6 @@ namespace RTUB.Migrations
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.CycleArchive", b =>
-                {
-                    b.Navigation("Families");
-
-                    b.Navigation("Players");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerActionReceipt", b =>
                 {
                     b.Navigation("PvpBattle");
@@ -7455,11 +7152,6 @@ namespace RTUB.Migrations
                     b.Navigation("Cargo");
 
                     b.Navigation("Rounds");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.YearbookFamilyEntry", b =>
-                {
-                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>

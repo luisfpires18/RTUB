@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces.AfterHours;
 using RTUB.Core.Entities.AfterHours;
-using RTUB.Core.Enums.AfterHours;
 
 namespace RTUB.Application.Services.AfterHours;
 
@@ -23,31 +22,20 @@ public class PlayerCycleStateService(
         var state = await FindAsync(cycle.Id, userId);
         if (state is null)
         {
-            // Created under the write lock, re-checking the cycle: a rollover that finished it in the
-            // meantime is seen here, so no state is ever added to an archived cycle. A concurrent first
-            // visit that won is found instead of inserted twice (the unique index is the backstop).
-            state = await AfterHoursWriteTransaction.RunAsync<PlayerCycleState?>(contextFactory, async (context, transaction) =>
+            await using var context = await contextFactory.CreateDbContextAsync();
+            state = PlayerCycleState.CreateInitial(cycle.Id, userId, now);
+            context.AfterHoursPlayerCycleStates.Add(state);
+            try
             {
-                var stillActive = await context.AfterHoursGameCycles
-                    .AnyAsync(c => c.Id == cycle.Id && c.Status == GameCycleStatus.Active);
-                if (!stillActive)
-                    return null;
-
-                var existing = await context.AfterHoursPlayerCycleStates.AsNoTracking()
-                    .Include(s => s.Cargo)
-                    .Include(s => s.Gear)
-                    .SingleOrDefaultAsync(s => s.GameCycleId == cycle.Id && s.UserId == userId);
-                if (existing is not null)
-                    return existing;
-
-                var created = PlayerCycleState.CreateInitial(cycle.Id, userId, now);
-                context.AfterHoursPlayerCycleStates.Add(created);
                 await context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return created;
-            });
-            if (state is null)
-                return null;
+            }
+            catch (DbUpdateException ex) when (GameCycleService.IsUniqueViolation(ex))
+            {
+                // Another tab or device created it between our read and our insert: the unique
+                // (cycle, user) index kept it to one row, and that row is the answer.
+                state = await FindAsync(cycle.Id, userId)
+                    ?? throw new InvalidOperationException("Player state vanished after a unique conflict.", ex);
+            }
         }
 
         // A read-only view brought up to now; nothing is written. Actions reconcile the stored row
