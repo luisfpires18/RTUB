@@ -243,17 +243,18 @@ public class ServiceWorkerReliabilityTests
         css.Should().MatchRegex(@"bottom:\s*0");
         css.Should().MatchRegex(@"left:\s*0");
         css.Should().MatchRegex(@"right:\s*0");
-        css.Should().MatchRegex(@"padding-bottom:\s*env\(safe-area-inset-bottom",
+        // env() may sit inside max() so devices whose inset is 0 still get a minimum padding.
+        css.Should().MatchRegex(@"padding-bottom:\s*(?:max\([^;]*)?env\(safe-area-inset-bottom",
             "the nav must clear the iOS home indicator");
     }
 
     /// <summary>
-    /// The 026 root cause. 1-base/mobile.css deliberately uses <c>overflow-x: clip</c> on
-    /// html/body because <c>overflow-x: hidden</c> makes iOS Safari treat them as the scroll
-    /// container, and a position: fixed bottom nav then drifts into the middle of the viewport.
-    /// A later sheet (2-layout/navbar.css, inside a display-mode: standalone query) reintroduced
-    /// <c>hidden</c> at equal specificity and silently won on source order - visible only in the
-    /// installed PWA, which is why browser-tab testing never caught it.
+    /// The 026 root cause. <c>overflow-x: hidden</c> on html/body makes iOS Safari treat them as
+    /// the scroll container, and a position: fixed bottom nav then drifts into the middle of the
+    /// viewport. A sheet (2-layout/navbar.css, inside a display-mode: standalone query) once set
+    /// <c>hidden</c> there and silently won on source order - visible only in the installed PWA,
+    /// which is why browser-tab testing never caught it. (Since unit 033 html/body are not clipped
+    /// horizontally at all; see VisualFoundationCssTests.)
     ///
     /// No stylesheet may set overflow-x: hidden on html or body again, in any media query.
     /// </summary>
@@ -273,7 +274,7 @@ public class ServiceWorkerReliabilityTests
             .ToList();
 
         violations.Should().BeEmpty(
-            "overflow-x on html/body must be `clip`, never `hidden`: `hidden` makes iOS Safari " +
+            "overflow-x on html/body must never be `hidden`: it makes iOS Safari " +
             "treat the viewport root as a scroll container and MobileBottomNav (position: fixed) " +
             "drifts away from the bottom edge. Offending file(s): " + string.Join(", ", violations));
     }

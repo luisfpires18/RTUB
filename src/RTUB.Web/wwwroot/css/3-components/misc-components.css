@@ -357,6 +357,9 @@
 
 .content-main {
     min-height: calc(100vh - 56px);
+    /* `main` is a flex item of `.layout.d-flex`; without this it grows to its widest
+       child and lays the whole page out wider than the viewport (UI refactor 033). */
+    min-width: 0;
 }
 
 .footer-main {

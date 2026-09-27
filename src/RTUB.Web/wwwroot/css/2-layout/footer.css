@@ -9,6 +9,20 @@
   border-top: 1px solid var(--bs-border-color);
 }
 
+/* Bottom padding of the layout footer (UI refactor 033). The footer is the last box
+   on every page, so its padding is what keeps page content and the footer text clear
+   of the fixed MobileBottomNav, shown below 1200px on pages that render one. The
+   footer's markup uses pt-3 (not py-3) so this is not overridden by a utility. */
+.footer-main {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 1199.98px) {
+  body:has(.mobile-bottom-nav) .footer-main {
+    padding-bottom: calc(1rem + var(--rtub-bottom-nav-clearance) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .footer-link {
   color: #aaa;
   text-decoration: none;

@@ -7,8 +7,10 @@ _Last updated: 2026-09-27_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program started: unit 032 (Task 001, audit and polish contract) is complete on
-`chore/032/ui-refactor-audit`, not yet merged. No code changed; no blockers.
+program: 032 (Task 001, audit) merged; **033 (Task 002, visual foundations: tokens, button
+system, contrast, focus, no global clipping, bottom-bar clearance) complete on
+`chore/033/ui-visual-foundations`, not yet merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md`
+section 20. No blockers.
 
 ## Where things are
 | Topic | Doc |
@@ -46,6 +48,12 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
+Raised by 033 (detail: `docs/design/RTUB_UI_REFACTOR.md` 20.7-20.8):
+- **Before the next PROD release, decide CSS cache-busting.** `site.css` `@import`s 76 unversioned
+  files and non-Development static files are `max-age=2592000`, so returning browsers can keep old
+  global CSS for up to 30 days after a CSS change ships (options in 20.7).
+- `bg-info` badges (`#007bff`) fail contrast with white and dark text; needs a color decision.
+
 Raised by 032 (UI audit; UI findings themselves live in `docs/design/RTUB_UI_REFACTOR.md`):
 - Local Development CSP `img-src` allows only this environment's R2 public domain, so a sanitized
   production snapshot's media (slideshow, covers, avatars) is blocked in local runs.
@@ -98,8 +106,8 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
-- UI refactor Phase 1 (visual foundations: tokens on existing colors, button variants, contrast,
-  focus) per `docs/design/RTUB_UI_REFACTOR.md` section 17; owner decisions in its section 18.
+- UI refactor Phase 2 (app shell and navigation) per `docs/design/RTUB_UI_REFACTOR.md` section 17,
+  with the cache-busting decision (20.7); owner decisions in its section 18.
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today

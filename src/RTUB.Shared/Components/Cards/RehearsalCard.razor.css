@@ -162,9 +162,15 @@
 
 /* Pending approvals button */
 .btn-pending-approvals {
-    background-color: #f39c12;
-    border-color: #f39c12;
-    color: #fff;
+    background-color: var(--rtub-warning, #f39c12);
+    border-color: var(--rtub-warning, #f39c12);
+    color: var(--rtub-on-warning, #212529); /* white on #f39c12 is 2.2:1 */
+}
+
+.btn-pending-approvals:hover {
+    background-color: var(--rtub-warning-hover, #e67e22);
+    border-color: var(--rtub-warning-hover, #e67e22);
+    color: var(--rtub-on-warning, #212529);
 }
 
 /* Very small screens - further compact mode */

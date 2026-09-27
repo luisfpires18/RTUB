@@ -119,13 +119,13 @@
 .gallery-card:hover,
 .gallery-card:focus {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--bs-primary);
+    box-shadow: 0 0 0 2px var(--rtub-focus-ring, #a88ee5);
     outline: none;
 }
 
 .gallery-card:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--bs-primary);
+    box-shadow: 0 0 0 2px var(--rtub-focus-ring, #a88ee5);
     outline: none;
 }
 

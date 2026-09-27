@@ -20,7 +20,9 @@
         background: #111114;
         border-top: 1px solid rgba(111, 66, 193, 0.25);
         padding: 0.35rem 0;
-        padding-bottom: env(safe-area-inset-bottom, 0.35rem);
+        /* env()'s fallback only applies when the variable is undefined; a device
+           without a home indicator defines it as 0, which left no bottom padding. */
+        padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
         justify-content: space-around;
         align-items: stretch;
         box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
