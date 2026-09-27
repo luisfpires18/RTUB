@@ -379,10 +379,6 @@ namespace RTUB.Migrations
                     b.Property<int>("EnergyDelta")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("GearKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("HeatDelta")
                         .HasColumnType("INTEGER");
 
@@ -410,12 +406,6 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("Skill")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SkillRankAfter")
-                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Succeeded")
                         .HasColumnType("INTEGER");
@@ -513,18 +503,6 @@ namespace RTUB.Migrations
                     b.Property<DateTime>("EnergyUpdatedAtUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("EquippedOutfitKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("EquippedVehicleToolKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("EquippedWeaponKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("GameCycleId")
                         .HasColumnType("INTEGER");
 
@@ -551,12 +529,6 @@ namespace RTUB.Migrations
 
                     b.Property<int>("Toughness")
                         .HasColumnType("INTEGER");
-
-                    b.Property<int>("TrainingPoints")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateOnly?>("TrainingPointsDay")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -593,47 +565,6 @@ namespace RTUB.Migrations
 
                             t.HasCheckConstraint("CK_AfterHoursPlayerCycleStates_WalletCash", "\"WalletCash\" >= 0");
                         });
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerGear", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ItemKey")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PlayerCycleStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Slot")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Tier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerCycleStateId", "ItemKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPlayerGear_State_Item");
-
-                    b.ToTable("AfterHoursPlayerGear", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -5332,15 +5263,6 @@ namespace RTUB.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerGear", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany("Gear")
-                        .HasForeignKey("PlayerCycleStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AlbumAccess", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Album", "Album")
@@ -6336,8 +6258,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
                 {
                     b.Navigation("Cargo");
-
-                    b.Navigation("Gear");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>

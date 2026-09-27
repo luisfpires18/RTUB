@@ -8,9 +8,5 @@ public enum PlayerActionKind
     Deposit = 3,
     Withdraw = 4,
     FenceSale = 5,
-    ContractDelivery = 6,
-    TrainSkill = 7,
-    PurchaseGear = 8,
-    EquipGear = 9,
-    UnequipGear = 10
+    ContractDelivery = 6
 }

@@ -50,7 +50,6 @@ public class PlayerCycleStateService(
         return await context.AfterHoursPlayerCycleStates
             .AsNoTracking()
             .Include(s => s.Cargo)
-            .Include(s => s.Gear)
             .SingleOrDefaultAsync(s => s.GameCycleId == cycleId && s.UserId == userId);
     }
 }
