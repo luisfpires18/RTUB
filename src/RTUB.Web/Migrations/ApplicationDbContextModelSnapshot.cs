@@ -507,21 +507,6 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("DefenceOutfitKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("DefenceTactic")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DefenceVehicleToolKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DefenceWeaponKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Energy")
                         .HasColumnType("INTEGER");
 
@@ -557,18 +542,6 @@ namespace RTUB.Migrations
 
                     b.Property<int>("MaxEnergy")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("PvpCooldownUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("PvpInitiatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("PvpProtectedUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("PvpRecoveryUntilUtc")
-                        .HasColumnType("TEXT");
 
                     b.Property<int>("Smarts")
                         .HasColumnType("INTEGER");
@@ -661,241 +634,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_AfterHoursPlayerGear_State_Item");
 
                     b.ToTable("AfterHoursPlayerGear", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattle", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("AcceptedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("AttackerCooldownUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttackerEffectivePower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerLoadoutPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerMatchupBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AttackerOutfitKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttackerOutfitTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("AttackerRecoveryUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttackerRiskModifier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerSpecialisation")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerTactic")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerTotalDamage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AttackerUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("AttackerVehicleToolKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttackerVehicleToolTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AttackerWeaponKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttackerWeaponTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AttackerWon")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DefenderEffectivePower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderLoadoutPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderMatchupBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DefenderOutfitKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DefenderOutfitTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("DefenderProtectedUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DefenderRecoveryUntilUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DefenderSpecialisation")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderTactic")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderTotalDamage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("DefenderUsedSavedDefence")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DefenderUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DefenderVehicleToolKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DefenderVehicleToolTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DefenderWeaponKey")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DefenderWeaponTier")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("EndedAttackerNewPlayerProtection")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("LootMultiplier")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ReceiptId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RiskStance")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("TieBreakRoll")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("WalletStolen")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameCycleId");
-
-                    b.HasIndex("ReceiptId")
-                        .IsUnique();
-
-                    b.HasIndex("DefenderStateId", "AcceptedAtUtc");
-
-                    b.HasIndex("AttackerStateId", "DefenderStateId", "AcceptedAtUtc");
-
-                    b.ToTable("AfterHoursPvpBattles", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattleCargo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CargoType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PvpBattleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PvpBattleId", "CargoType")
-                        .IsUnique();
-
-                    b.ToTable("AfterHoursPvpBattleCargo", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursPvpBattleCargo_Quantity", "\"Quantity\" > 0");
-                        });
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattleRound", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerDamage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerRandom")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerScore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderDamage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderRandom")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenderScore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PvpBattleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Round")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PvpBattleId", "Round")
-                        .IsUnique();
-
-                    b.ToTable("AfterHoursPvpBattleRounds", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -5603,53 +5341,6 @@ namespace RTUB.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattle", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany()
-                        .HasForeignKey("AttackerStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany()
-                        .HasForeignKey("DefenderStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerActionReceipt", "Receipt")
-                        .WithOne("PvpBattle")
-                        .HasForeignKey("RTUB.Core.Entities.AfterHours.PvpBattle", "ReceiptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Receipt");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattleCargo", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PvpBattle", null)
-                        .WithMany("Cargo")
-                        .HasForeignKey("PvpBattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattleRound", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PvpBattle", null)
-                        .WithMany("Rounds")
-                        .HasForeignKey("PvpBattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AlbumAccess", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Album", "Album")
@@ -6642,23 +6333,11 @@ namespace RTUB.Migrations
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerActionReceipt", b =>
-                {
-                    b.Navigation("PvpBattle");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
                 {
                     b.Navigation("Cargo");
 
                     b.Navigation("Gear");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattle", b =>
-                {
-                    b.Navigation("Cargo");
-
-                    b.Navigation("Rounds");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>

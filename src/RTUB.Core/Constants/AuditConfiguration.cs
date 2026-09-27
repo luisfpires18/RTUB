@@ -71,7 +71,6 @@ public static class AuditConfiguration
         "PlayerActionReceipt",
         "PlayerCargo",
         "PlayerGear",
-        "PvpBattle",
         "BuyerContract",
         "BuyerContractCompletion",
     };
