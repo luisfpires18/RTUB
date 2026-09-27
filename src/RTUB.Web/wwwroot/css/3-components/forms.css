@@ -14,12 +14,19 @@
   border-radius: 0.375rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
+/* Text entry shows focus on click too (the caret goes there), so :focus, not
+   :focus-visible. Border + 1px ring = a 2px --rtub-focus-ring edge (UI refactor 033). */
 .form-control:focus {
   color: #fff;
   background-color: var(--rtub-input-bg);
-  border-color: var(--bs-primary);
+  border-color: var(--rtub-focus-ring);
   outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+  box-shadow: 0 0 0 1px var(--rtub-focus-ring);
+}
+.form-select:focus {
+  border-color: var(--rtub-focus-ring);
+  outline: 0;
+  box-shadow: 0 0 0 1px var(--rtub-focus-ring);
 }
 .form-control::placeholder {
   color: #ffffff !important;

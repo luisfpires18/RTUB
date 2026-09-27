@@ -157,7 +157,7 @@ th:hover {
 }
 
 .form-check-input:focus {
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
@@ -192,7 +192,7 @@ th:hover {
 }
 
 .search-bar:focus-within {
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     background-color: #202331;
 }
 
@@ -233,7 +233,7 @@ th:hover {
 .search-bar__clear:hover,
 .search-bar__clear:focus {
     background: rgba(var(--bs-primary-rgb), 0.2);
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
@@ -257,7 +257,7 @@ th:hover {
 }
 
 .filter-dropdown:focus-within {
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
     background-color: #202331;
 }
@@ -388,7 +388,7 @@ select:focus,
 .form-select:focus {
     background-color: var(--rtub-select-bg);
     color: #ffffff;
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
 }
 

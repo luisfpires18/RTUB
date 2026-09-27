@@ -849,3 +849,203 @@ workflows rebuilt on top.
 - Contrast ratios marked "est." in 13.2 are computed from hex values, not measured on screen.
 - Counts from `grep` over single lines (e.g. clickable `div`s, labels) are approximate where tags
   span several lines.
+
+---
+
+## 20. Implemented: Visual Foundations (unit 033, Task 002)
+
+Durable facts from implementing roadmap Phase 1. Sections 1-19 are the Task 001 audit and stay as
+recorded; this section is the contract later UI tasks build on.
+
+### 20.1 Root causes
+
+| Problem (audit ref) | Root cause | Fix |
+| --- | --- | --- |
+| Every variant looked like primary (6.4, 7.1) | `3-components/buttons.css` set `background-color`, `border`, `color`, `padding` and `font-size` directly on `.btn`. Bootstrap 5.3.3 paints variants and sizes through `--bs-btn-*` variables, so the direct properties won over every variant and over `btn-sm`/`btn-lg`. A second rule, `.btn:hover { background-color: #5a379c }`, turned every button purple on hover. | `.btn` is left to Bootstrap; RTUB variants set only `--bs-btn-*` variables (20.3). |
+| Page content cut off on phones (8.3) | `<main class="content flex-fill">` is a flex item of `.layout.d-flex`. With the default `min-width: auto` it grew to its widest child, so pages were laid out wider than the screen (392px at 390, 390px at 360), and `overflow-x: clip` on `html`, `body` and `.content-main` hid the result. | `.content-main { min-width: 0 }`; the clip rules are gone (20.5). |
+| Badges split one character per line (8.3, Finance report) | Phone-only `.badge { word-break: break-word }` in `3-components/list-groups.css`. | Badges wrap between words only. |
+| Footer hidden behind the bottom bar (8.3) | The 4.5rem clearance existed only at ≤768px (the bar shows below 1200px), was overridden by the footer's `py-3 !important`, and a later `@supports` rule reset it to the safe-area inset. | One rule in `2-layout/footer.css` (20.5); footer markup `py-3` → `pt-3`. |
+| `MobileBottomNav` and phone dialog footers had no bottom padding | `padding-bottom: env(safe-area-inset-bottom, 0.35rem)`: the fallback applies only when the variable is undefined, and it is `0` on devices without a home indicator. | `max(0.35rem, env(safe-area-inset-bottom, 0px))`; same for the dialog footer. |
+| Busy buttons grew on phones | Phone-only `.spinner-border { width/height: 2rem }` also hit `spinner-border-sm` inside buttons. | Rule now skips `.spinner-border-sm`. |
+
+CSS order is unchanged: `bootstrap.min.css` (5.3.3) → `site.css` (76 `@import`s: base, layout,
+components, pages, overrides) → `RTUB.styles.css` (scoped bundles). Nothing moved between files.
+
+### 20.2 Foundation tokens (`1-base/variables.css`)
+
+Every value already existed in RTUB CSS or is a Bootstrap 5.3 value RTUB already relies on. No new
+color was introduced.
+
+| Token | Value | Source / use |
+| --- | --- | --- |
+| `--rtub-bg` | `#0f0f10` | = `--bs-body-bg` |
+| `--rtub-text` | `#e2e2e2` | = `--bs-body-color` |
+| `--rtub-text-muted` | `#aaaaaa` | Existing footer text color; now `text-muted` and `text-secondary` |
+| `--rtub-border` | `#2f2f2f` | = `--bs-border-color` |
+| `--rtub-primary` / `-hover` / `-active` | `#6f42c1` / `#5a379c` / `#5a32a3` | Existing primary and its two existing hover shades |
+| `--rtub-accent` | `#a88ee5` | Link color: purple text and outlines on the dark page |
+| `--rtub-accent-border` | `#8e6fc7` | Existing disabled-primary purple; outline-primary border |
+| `--rtub-focus-ring` | `#a88ee5` | Keyboard focus ring |
+| `--rtub-success-fill` / `--rtub-success-text` | `#198754` / `#00bc8c` | Bootstrap success (white text) / existing RTUB success token (text on dark) |
+| `--rtub-danger-fill` / `--rtub-danger-text` | `#dc3545` / `#e74c3c` | Bootstrap danger (white text) / existing RTUB danger token (text on dark) |
+| `--rtub-warning` / `-hover` / `--rtub-on-warning` | `#f39c12` / `#e67e22` / `#212529` | Existing warning token, existing orange, Bootstrap dark text |
+| `--rtub-neutral-fill` / `-hover` / `--rtub-neutral-border` | `#343a40` / `#495057` / `#6c757d` | Existing `--bs-secondary`, Bootstrap gray-700, existing gray |
+| `--rtub-radius-sm` / `--rtub-radius` / `-lg` / `-pill` | `.375rem` / `.5rem` / `.75rem` / `50rem` | The most used radii (6.3); for upcoming shared components |
+| `--rtub-bottom-nav-clearance` | `5rem` | Bar is ~71px, ~85px with two-line labels (Meetings) |
+
+Existing literals were **not** migrated; code moves to the tokens when a later task touches it. A
+scoped (`.razor.css`) file that uses a new token also gives the literal as fallback, e.g.
+`var(--rtub-focus-ring, #a88ee5)`, because scoped bundles are cache-busted and the global
+sheets are not (20.7).
+
+### 20.3 Button-system contract
+
+- `.btn` = Bootstrap's shape, type scale, spacing and interaction. **No RTUB rule sets
+  `background`, `border`, `color`, `padding` or `font-size` on `.btn` itself** (guarded by
+  `VisualFoundationCssTests.BaseButtonRule_LeavesColorsAndSizingToVariants`).
+- Color comes only from a variant, which sets `--bs-btn-*` variables. Measured in the running app
+  (text contrast against the button, border against the page):
+
+| Variant | Normal | Hover / active | Text contrast |
+| --- | --- | --- | --- |
+| `btn-primary` | `#6f42c1` fill, white | `#5a379c` / `#5a32a3` | 6.51 |
+| `btn-secondary` | `#343a40` fill, white | `#495057` | 11.51 |
+| `btn-outline-primary` | `#a88ee5` text, `#8e6fc7` border (4.79) | fills `#6f42c1` | 6.99 |
+| `btn-outline-secondary` | `#e2e2e2` text, `#6c757d` border (4.09) | fills `#343a40` | 14.79 |
+| `btn-success` / `btn-danger` | Bootstrap `#198754` / `#dc3545`, white | Bootstrap | 4.53 / 4.53 |
+| `btn-outline-danger` / `btn-outline-success` | `#e74c3c` / `#00bc8c` text and border | fill with the `-fill` color | 5.01 / 7.82 |
+| `btn-warning` | `#f39c12` fill, `#212529` text | `#e67e22` | 7.03 |
+| `btn-outline-warning` | `#f39c12` text and border | fills `#f39c12`, dark text | 8.74 |
+| `btn-link` | `#a88ee5`, underlined, no box (Bootstrap via `--bs-link-color`) | `#c7a7ff` | 6.99 |
+| `btn-light`, `btn-outline-light`, `btn-info`, `btn-outline-info` | unchanged (Bootstrap / existing RTUB rules) | | |
+| `btn-purple`, `btn-primary-purple` | legacy primary aliases, unchanged; new code uses `btn-primary` | | 6.51 |
+
+- **Size:** `btn-sm` is Bootstrap's (14px, ~31px tall on desktop; it was 16px / 38px). On phones
+  (≤768px) the existing touch rules keep `.btn` ≥44px and `.btn-sm` ≥38px; at ≤375px `btn-sm`
+  stays smaller than `.btn`.
+- **Disabled:** every variant uses Bootstrap's disabled state (own colors at 0.65 opacity, no
+  pointer events). The primary-only special case (`#8e6fc7` at 0.75) is gone.
+- **Loading:** `spinner-border-sm` inside a button keeps its size on every viewport.
+- **Custom-class buttons** (`music-btn-*`, `admin-btn-*`, `rehearsal-icon-btn`, `enhance-row__btn`,
+  …) paint themselves. A class that paints a background must also paint its `:hover`, because
+  Bootstrap's `.btn:hover` otherwise applies an undefined `--bs-btn-hover-bg` (transparent). The
+  three that relied on the old purple hover got one (`btn-send-reminder`, `btn-pending-approvals`,
+  `u-btn-gold-xs`). `btn-pending-approvals` also moved to dark text on its orange fill.
+- The navbar "Entrar" link was a bare `.btn` that only looked primary because of the old base
+  rule; it is now `btn btn-primary`.
+
+### 20.4 Text, status and focus contract
+
+| Class | Before | After | Contrast (page / card) |
+| --- | --- | --- | --- |
+| `text-muted` | `#ffffff` (forced) | `--rtub-text-muted` | 19.2 (no hierarchy) → 8.25 / 7.49-7.86 |
+| `text-secondary` | `#343a40` | `--rtub-text-muted` | 1.67 → 8.25 |
+| `text-danger` | `#dc3545` | `--rtub-danger-text` | 4.23 → 5.01 / 4.78 |
+| `text-success` | `#198754` | `--rtub-success-text` | 4.23 → 7.82 |
+| `.badge.bg-warning` | white text | `--rtub-on-warning` | 2.19 → 7.03 |
+| `btn-success` fill | `#28a745` | `#198754` | 3.13 → 4.53 |
+| `btn-danger` fill | `#e74c3c` | `#dc3545` | 3.82 → 4.53 |
+
+Focus (`1-base/global.css`, `3-components/buttons.css`, `3-components/forms.css`):
+
+- Keyboard focus is a **2px `--rtub-focus-ring` outline, offset 2px** (6.99:1 on the page) through
+  `:focus-visible`, so pointer clicks show no ring. It applies to every element and is restated for
+  the Bootstrap components that swap outlines for blue box-shadows (`.btn`, `.btn-close`,
+  `.nav-link`, `.navbar-toggler`, `.page-link`, `.accordion-button`, `.list-group-item-action`,
+  `.form-check-input`). Menu items draw it inset (`-2px`).
+- Text inputs and selects show focus on click too (the caret goes there): border plus a 1px ring
+  in `--rtub-focus-ring`. The phone-only faint purple override was removed.
+- A component may remove the outline only if it draws an equal ring in `--rtub-focus-ring`. The
+  interactive cards that already did (`avatar-card`, `member-card-lite`, `activity-card-lite`,
+  `enrollment-card`, `instrument-circle`, gallery and stage-enemy cards) and the SearchBar /
+  FilterDropdown / checkbox focus borders now use the token instead of `--bs-primary` (2.9:1).
+
+### 20.5 Global layout and mobile rules
+
+- **No global horizontal clipping.** `html`, `body` and `.content-main` never get
+  `overflow-x: clip|hidden` (guarded by `VisualFoundationCssTests.RootElements_AreNotClippedHorizontally`;
+  `ServiceWorkerReliabilityTests` still forbids `hidden`, which makes iOS Safari drift the fixed
+  bottom bar). A component that must scroll sideways owns its overflow — e.g. the family tree's
+  `.family-tree-scroll` now scrolls inside itself on phones instead of making the page 15,600px
+  wide.
+- `main` (`.content-main`) has `min-width: 0`, so pages lay out at the viewport width.
+- Bootstrap spacing utilities (`mt-4`, `mb-4`, `mt-5`, `mb-5`, `py-4`, `py-5`) mean the same on every
+  viewport; the phone-only `!important` redefinitions are removed.
+- **Bottom-bar clearance:** below 1200px, on pages that render a `MobileBottomNav`
+  (`body:has(.mobile-bottom-nav)`), the footer's bottom padding is
+  `1rem + --rtub-bottom-nav-clearance + safe-area inset`; elsewhere `1rem + safe-area inset`.
+- Page-level corrections needed once the clip was gone (smallest local fix each): Requests, Shop,
+  Inventory and Members gave the search container an unconditional `min-width: 360px`, now from
+  992px up (as Rehearsals already did); Finance report activity rows let the balance/date/name group
+  shrink and wrap below 768px (containment only; the row redesign stays in Phase 6).
+
+### 20.6 Validation performed
+
+Automated and visual evidence are kept apart.
+
+- **Automated:** the CI command set (16.1), including two new stylesheet-contract tests and one
+  updated PWA contract test (it now accepts `env()` inside `max()`).
+- **Visual:** a temporary Playwright script (not committed) recorded computed style and contrast
+  of every visible `.btn`, `.badge` and muted text, document overflow, and footer-versus-bar
+  position for 6 anonymous and 34 Owner routes at 1440, 1024, 820, 390 and 360, before and after
+  (200 route × viewport captures each). Also: a rendered specimen of every variant and state at
+  1440 and 390; keyboard focus on login, nav, inputs and buttons; a delete confirmation and an
+  edit sheet opened and cancelled; Events, Rehearsals, Members, Finance report, Music, Home and
+  Hierarchy inspected in the Claude desktop browser.
+
+| Measure (same routes and viewports) | Before | After |
+| --- | --- | --- |
+| `main` wider than the viewport | 15 | 0 |
+| Footer text hidden behind the bottom bar | 110 | 2 (Messages' own full-height layout) |
+| Text buttons with contrast < 4.5 (icon-only and social brand buttons excluded) | 218 | 0 |
+| Warning badges < 4.5 | 20 | 0 |
+| `text-muted` rendered as pure white | 367 | 0 |
+| Phone routes wider than the viewport (390 and 360, mobile emulation, final build) | 2 (family tree) | 0 of 80 |
+
+PWA/mobile (emulated, Chromium, touch + mobile viewport): manifest linked and served as
+`application/manifest+json` (standalone, `id "/"`, `portrait-primary`); service worker active at
+scope `/`; offline navigation serves `offline.html`; bottom bar padding 5.6px; footer clear of the
+bar. `display-mode: standalone` could not be emulated in this Chromium (the media query stayed
+false), so the standalone-only CSS is source-verified only. Not verifiable without real devices:
+iOS safe areas, Safari PWA quirks, virtual keyboard over the bottom bar, backgrounding/suspension,
+installed-app lifecycle and OS back navigation.
+
+### 20.7 Deploy note: unversioned `@import`s (needs an owner decision)
+
+`site.css` is cache-busted by `VersionedAsset`, but its 76 `@import`s are requested without a
+version, and outside Development static files are served `Cache-Control: public,max-age=2592000`
+(30 days, `Program.cs`); the service worker then serves CSS stale-while-revalidate. A returning
+browser can keep the **old** global sheets for up to 30 days after this change ships, while the
+scoped bundle and markup are new. The in-app browser reproduced the staleness during validation.
+The mixed state was reviewed from source (not rendered) and is benign: scoped CSS carries literal
+fallbacks, and old global CSS still paints `btn-primary` purple and keeps the footer usable. Options for a decision before
+the next production release: version the `@import` URLs at build time; serve unversioned
+`/css/**` with `no-cache` (ETag revalidation, 304s); or bundle the global CSS into one versioned
+file. Not changed here: it is host caching behavior, outside this task.
+
+### 20.8 Remaining (for later tasks)
+
+- **Gallery, Leaderboard, Tracing at 820px** overflow the viewport (visible before too; tablets were
+  never clipped). Phases 5-6.
+- **Messages at 820-1199px**: its full-height layout sits over the footer. Page-owned, pre-existing.
+- **`bg-info` badges** (`#007bff`, 85 on MyTuno/Games): 3.98:1 with white, 3.88:1 with dark text.
+  No existing RTUB color passes, so this needs a color decision (proposal: Bootstrap's `#0dcaf0`
+  with dark text).
+- **Social buttons on Home** use brand colors (Facebook 4.23, YouTube 4.0, Spotify 2.59 with white):
+  brand identity, left as is.
+- **Tablet touch:** `btn-sm` is ~31px at ≥769px even on touch tablets (phone rules are width-based).
+  Resolve with `IconButton` / `(pointer: coarse)` sizing in Phase 3/7.
+- **Still global, left for component work (Phases 3-5):** `.card` gets extra padding at ≤1024px on
+  top of `.card-body`; `2-layout/grid.css` redefines Bootstrap's row/column gutters (so `g-*` does
+  not affect column padding); a phone-only rule makes every plain `<a>` `inline-flex` (footer and
+  inline links wrap as blocks); the desktop navbar still overflows at 1024-1440px (Phase 2).
+- **Detector:** the only finding on the changed files is the pre-existing side stripe at
+  `misc-components.css:178` (12.3).
+
+### 20.9 Roadmap adjustments
+
+- Phase 1 is done except the deliberate deferrals in 20.8.
+- Before or with Phase 2: decide the cache-busting option in 20.7, so every later CSS phase
+  reaches returning users.
+- Phase 3's `IconButton` owns touch sizing (44px target on `pointer: coarse`), which also resolves
+  the tablet `btn-sm` note.

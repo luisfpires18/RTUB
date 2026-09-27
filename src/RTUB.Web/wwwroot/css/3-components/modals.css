@@ -286,7 +286,7 @@ body.modal-open {
         justify-content: space-around !important;
         align-items: stretch !important;
         padding: 0.25rem 0;
-        padding-bottom: env(safe-area-inset-bottom, 0.25rem);
+        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
         border-top: 1px solid rgba(111, 66, 193, 0.25);
         background: #111114;
         box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
