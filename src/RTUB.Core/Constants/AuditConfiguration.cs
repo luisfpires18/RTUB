@@ -76,9 +76,6 @@ public static class AuditConfiguration
         "FamilyMembership",
         "FamilyInvitation",
         "FamilyCycleState",
-        "PlayerObjectiveProgress",
-        "FamilyObjectiveProgress",
-        "PvpObjectiveCredit",
         "BuyerContract",
         "BuyerContractCompletion",
     };

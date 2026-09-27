@@ -496,66 +496,6 @@ namespace RTUB.Migrations
                     b.ToTable("AfterHoursFamilyMemberships", (string)null);
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.FamilyObjectiveProgress", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FamilyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ObjectiveKey")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PointsAwarded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Progress")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Target")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Week")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameCycleId", "Week");
-
-                    b.HasIndex("FamilyId", "GameCycleId", "Week", "ObjectiveKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursFamilyObjectiveProgress_Instance");
-
-                    b.ToTable("AfterHoursFamilyObjectiveProgress", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursFamilyObjectiveProgress_Points", "\"PointsAwarded\" >= 0");
-
-                            t.HasCheckConstraint("CK_AfterHoursFamilyObjectiveProgress_Progress", "\"Progress\" >= 0 AND \"Progress\" <= \"Target\"");
-                        });
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.GameCycle", b =>
                 {
                     b.Property<int>("Id")
@@ -925,75 +865,6 @@ namespace RTUB.Migrations
                     b.ToTable("AfterHoursPlayerGear", (string)null);
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerObjectiveProgress", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Category")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ObjectiveKey")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Period")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PeriodKey")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PlayerCycleStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PointsAwarded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Progress")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Target")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("XpAwarded")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameCycleId", "Period", "PeriodKey");
-
-                    b.HasIndex("PlayerCycleStateId", "Period", "PeriodKey", "ObjectiveKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPlayerObjectiveProgress_Instance");
-
-                    b.ToTable("AfterHoursPlayerObjectiveProgress", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursPlayerObjectiveProgress_Awards", "\"XpAwarded\" >= 0 AND \"PointsAwarded\" >= 0");
-
-                            t.HasCheckConstraint("CK_AfterHoursPlayerObjectiveProgress_Progress", "\"Progress\" >= 0 AND \"Progress\" <= \"Target\"");
-                        });
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattle", b =>
                 {
                     b.Property<int>("Id")
@@ -1227,74 +1098,6 @@ namespace RTUB.Migrations
                         .IsUnique();
 
                     b.ToTable("AfterHoursPvpBattleRounds", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpObjectiveCredit", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttackerStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("CountsForFamily")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("CountsForIndividual")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DefenderUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("FamilyId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("IndividualPoints")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PvpBattleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Week")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PvpBattleId")
-                        .IsUnique();
-
-                    b.HasIndex("GameCycleId", "Week", "AttackerStateId", "DefenderUserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPvpObjectiveCredits_IndividualTarget")
-                        .HasFilter("\"CountsForIndividual\" = 1");
-
-                    b.HasIndex("GameCycleId", "Week", "FamilyId", "DefenderUserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPvpObjectiveCredits_FamilyTarget")
-                        .HasFilter("\"CountsForFamily\" = 1");
-
-                    b.ToTable("AfterHoursPvpObjectiveCredits", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursPvpObjectiveCredits_Points", "\"IndividualPoints\" >= 0");
-                        });
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -5990,21 +5793,6 @@ namespace RTUB.Migrations
                     b.Navigation("Family");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.FamilyObjectiveProgress", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.Family", null)
-                        .WithMany()
-                        .HasForeignKey("FamilyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.GameCycle", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.FiscalYear", "FiscalYear")
@@ -6064,21 +5852,6 @@ namespace RTUB.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerObjectiveProgress", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany()
-                        .HasForeignKey("PlayerCycleStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpBattle", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
@@ -6124,23 +5897,6 @@ namespace RTUB.Migrations
                         .HasForeignKey("PvpBattleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PvpObjectiveCredit", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PvpBattle", "PvpBattle")
-                        .WithMany()
-                        .HasForeignKey("PvpBattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PvpBattle");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AlbumAccess", b =>
