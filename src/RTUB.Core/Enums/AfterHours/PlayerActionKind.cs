@@ -6,7 +6,5 @@ public enum PlayerActionKind
     Crime = 1,
     CoverJob = 2,
     Deposit = 3,
-    Withdraw = 4,
-    FenceSale = 5,
-    ContractDelivery = 6
+    Withdraw = 4
 }

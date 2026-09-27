@@ -192,111 +192,6 @@ namespace RTUB.Migrations
                     b.ToTable("Activities");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContract", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("AvailableFromUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("BuyerName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CargoType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("CashReward")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("GameCycleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("RotationStartUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Slot")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("TemplateKey")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("XpReward")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameCycleId", "RotationStartUtc", "Slot")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursBuyerContracts_Cycle_Window_Slot");
-
-                    b.ToTable("AfterHoursBuyerContracts", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursBuyerContracts_Window", "\"ExpiresAtUtc\" > \"AvailableFromUtc\"");
-                        });
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContractCompletion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BuyerContractId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CompletedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PlayerCycleStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerCycleStateId");
-
-                    b.HasIndex("BuyerContractId", "PlayerCycleStateId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursBuyerContractCompletions_Contract_State");
-
-                    b.ToTable("AfterHoursBuyerContractCompletions", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.GameCycle", b =>
                 {
                     b.Property<int>("Id")
@@ -358,12 +253,6 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("BankDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CargoDelta")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("CargoType")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
@@ -435,45 +324,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_AfterHoursPlayerActionReceipts_State_Key");
 
                     b.ToTable("AfterHoursPlayerActionReceipts", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCargo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CargoType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PlayerCycleStateId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerCycleStateId", "CargoType")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AfterHoursPlayerCargo_State_Type");
-
-                    b.ToTable("AfterHoursPlayerCargo", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_AfterHoursPlayerCargo_Quantity", "\"Quantity\" >= 0");
-                        });
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
@@ -5189,30 +5039,6 @@ namespace RTUB.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContract", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.GameCycle", null)
-                        .WithMany()
-                        .HasForeignKey("GameCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.BuyerContractCompletion", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.BuyerContract", null)
-                        .WithMany()
-                        .HasForeignKey("BuyerContractId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany()
-                        .HasForeignKey("PlayerCycleStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.GameCycle", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.FiscalYear", "FiscalYear")
@@ -5233,15 +5059,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("PlayerCycleState");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCargo", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.AfterHours.PlayerCycleState", null)
-                        .WithMany("Cargo")
-                        .HasForeignKey("PlayerCycleStateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
@@ -6253,11 +6070,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.Activity", b =>
                 {
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.AfterHours.PlayerCycleState", b =>
-                {
-                    b.Navigation("Cargo");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
