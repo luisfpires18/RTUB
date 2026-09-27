@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
@@ -338,28 +337,6 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers After Hours services. Pages that use them are gated by the AfterHours policy.
-    /// </summary>
-    public static IServiceCollection AddAfterHoursServices(this IServiceCollection services)
-    {
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IGameCycleService, RTUB.Application.Services.AfterHours.GameCycleService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IPlayerCycleStateService, RTUB.Application.Services.AfterHours.PlayerCycleStateService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursActionService, RTUB.Application.Services.AfterHours.AfterHoursActionService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IBuyerContractService, RTUB.Application.Services.AfterHours.BuyerContractService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IPvpService, RTUB.Application.Services.AfterHours.PvpService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IFamilyService, RTUB.Application.Services.AfterHours.FamilyService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IObjectiveService, RTUB.Application.Services.AfterHours.ObjectiveService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursRolloverService, RTUB.Application.Services.AfterHours.AfterHoursRolloverService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IYearbookService, RTUB.Application.Services.AfterHours.YearbookService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursTuningService, RTUB.Application.Services.AfterHours.AfterHoursTuningService>();
-        services.AddScoped<RTUB.Application.Interfaces.AfterHours.IAfterHoursAdminService, RTUB.Application.Services.AfterHours.AfterHoursAdminService>();
-        services.AddSingleton<RTUB.Application.Interfaces.AfterHours.IAfterHoursDice, RTUB.Application.Services.AfterHours.AfterHoursDice>();
-        services.TryAddSingleton(TimeProvider.System);
-
-        return services;
-    }
-
-    /// <summary>
     /// Registers finance and transaction services
     /// </summary>
     public static IServiceCollection AddFinanceServices(this IServiceCollection services)
@@ -683,8 +660,6 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
             configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
-        services.Configure<RTUB.Application.Configuration.AfterHoursOptions>(
-            configuration.GetSection(RTUB.Application.Configuration.AfterHoursOptions.SectionName));
 
         return services;
     }
@@ -1022,11 +997,7 @@ public static class ServiceCollectionExtensions
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
-            o.AddPolicy(RTUB.Security.AfterHoursAuthorization.Policy, p => p
-                .RequireAuthenticatedUser()
-                .AddRequirements(new RTUB.Security.AfterHoursEnabledRequirement()));
         });
-        services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RTUB.Security.AfterHoursEnabledHandler>();
         services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
 
         if (!environment.IsDevelopment())
