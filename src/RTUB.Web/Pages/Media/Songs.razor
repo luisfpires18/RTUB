@@ -27,6 +27,8 @@
 @inject IAuditLogService AuditLogService
 @implements IAsyncDisposable
 
+<AppTitle>@(album is null ? "Música" : $"{album.Title} - Música")</AppTitle>
+
 @if (album == null)
 {
     <p>A carregar...</p>

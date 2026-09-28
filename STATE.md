@@ -7,10 +7,10 @@ _Last updated: 2026-09-27_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program: 032 (Task 001, audit) merged; **033 (Task 002, visual foundations: tokens, button
-system, contrast, focus, no global clipping, bottom-bar clearance) complete on
-`chore/033/ui-visual-foundations`, not yet merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md`
-section 20. No blockers.
+program: 032 (Task 001, audit) and 033 (Task 002, visual foundations) merged; **034 (Task 003, app
+shell and navigation: 1200px shell breakpoint, account menu, drawer a11y, skip link, page titles,
+safe areas, versioned global CSS) complete on `chore/034/ui-app-shell-navigation`, not yet
+merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-21. No blockers.
 
 ## Where things are
 | Topic | Doc |
@@ -48,10 +48,13 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
-Raised by 033 (detail: `docs/design/RTUB_UI_REFACTOR.md` 20.7-20.8):
-- **Before the next PROD release, decide CSS cache-busting.** `site.css` `@import`s 76 unversioned
-  files and non-Development static files are `max-age=2592000`, so returning browsers can keep old
-  global CSS for up to 30 days after a CSS change ships (options in 20.7).
+Raised by 034 (detail: `docs/design/RTUB_UI_REFACTOR.md` 21.7-21.8):
+- Real-device check of the shell: installed iOS app under the status bar (`viewport-fit=cover`),
+  landscape notch insets, Android Back with the drawer open.
+- Unknown URLs return an empty 404 (no status-code page); `Error.razor` is still English.
+
+Raised by 033 (detail: `docs/design/RTUB_UI_REFACTOR.md` 20.7-20.8; the CSS cache-busting item is
+resolved by 034):
 - `bg-info` badges (`#007bff`) fail contrast with white and dark text; needs a color decision.
 
 Raised by 032 (UI audit; UI findings themselves live in `docs/design/RTUB_UI_REFACTOR.md`):
@@ -62,10 +65,6 @@ Raised by 032 (UI audit; UI findings themselves live in `docs/design/RTUB_UI_REF
 - `global.json` has no SDK pin; `docs/architecture/system-index.md` says it pins the SDK.
 - Unused shared code: `PaginatedList`, `ManagedModalPageBase` (`MemberListItem` is planned for
   adoption by the UI roadmap, not removal).
-
-Raised by fix/030 (iOS media association):
-- `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and
-  `apple-mobile-web-app-status-bar-style` from `App.razor` (identical values, harmless).
 
 Raised by 030:
 - `UpdateCardStatusEnumValues` and `NerbaOrderEventRequired` migration classes have no `[Migration]`
@@ -106,8 +105,9 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
-- UI refactor Phase 2 (app shell and navigation) per `docs/design/RTUB_UI_REFACTOR.md` section 17,
-  with the cache-busting decision (20.7); owner decisions in its section 18.
+- UI refactor Phase 3 (RTUB.Shared core: `Modal`/`ConfirmDialog`, `PageHeader`, `PageActions` over
+  `MobileBottomNav`, `IconButton`, toast host, `FormField`) per `docs/design/RTUB_UI_REFACTOR.md`
+  section 17; owner decisions in its section 18.
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today

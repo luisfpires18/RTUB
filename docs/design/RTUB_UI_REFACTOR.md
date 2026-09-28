@@ -1023,6 +1023,8 @@ the next production release: version the `@import` URLs at build time; serve unv
 `/css/**` with `no-cache` (ETag revalidation, 304s); or bundle the global CSS into one versioned
 file. Not changed here: it is host caching behavior, outside this task.
 
+**Resolved by unit 034** (versioned per-sheet links, `no-cache` for unversioned CSS/JS): 21.6.
+
 ### 20.8 Remaining (for later tasks)
 
 - **Gallery, Leaderboard, Tracing at 820px** overflow the viewport (visible before too; tablets were
@@ -1049,3 +1051,200 @@ file. Not changed here: it is host caching behavior, outside this task.
   reaches returning users.
 - Phase 3's `IconButton` owns touch sizing (44px target on `pointer: coarse`), which also resolves
   the tablet `btn-sm` note.
+
+---
+
+## 21. Implemented: App Shell and Navigation (unit 034, Task 003)
+
+Durable facts from implementing roadmap Phase 2 on `chore/034/ui-app-shell-navigation`. Sections
+1-20 stay as recorded; this section is the shell contract later UI tasks build on.
+
+### 21.1 Root causes
+
+| Problem (audit ref) | Root cause | Fix |
+| --- | --- | --- |
+| Desktop navbar overflowed at 1024-1440 (8.1, 8.2, 20.8) | The bar expanded at 992px (`navbar-expand-lg`) with 11 icon + text items for Owner (~1,200px of items) plus the category badge, the nickname and the avatar: 1,465-1,477px wide. A Tuno needed ~1,345px, a Leitão ~1,235px. `container-xxl` is 100% wide below 1400px, so nothing constrained it. | Expand at 1200px (`navbar-expand-xl`); top-level items text-only on the bar; badge and nickname moved into the account menu (21.3). Owner's items end at 1,051px on a 1200px screen. |
+| Expanded top nav and page bottom bar both shown at 992-1199 (8.2) | Nav collapsed at 992, `MobileBottomNav` and the `d-xl-flex` header actions switch at 1200. | One breakpoint: 1200 (21.2). |
+| Account menu unreachable on desktop, buried at the end of the drawer on phones | It was the last item of the overflowing bar, and inside the offcanvas below 992. | Account is its own control in the header on every width. |
+| Parent menu of the current page not marked (13.7) | Only `NavLink` marks itself; the dropdown toggles are buttons. | `MainLayout.GroupClass` marks a menu toggle `active` while one of its routes is current (presentation only). |
+| Keyboard focus on a shell menu item was white on white | `1-base/utilities.css` paints every `.dropdown-menu .dropdown-item:hover/:focus` `#f8f9fa`; the shell forced white text. | Shell menus restate their own backgrounds (scoped to `.navbar-main`). Page dropdowns are unchanged. |
+| 41 routes had no `<title>` (A3) | No title contract; 21 pages set one by hand in three formats. | `AppTitle` (21.4). |
+| No skip link, no `header` landmark (A7) | - | 21.5. |
+| Returning users could run old global CSS for up to 30 days (20.7) | `site.css` was versioned, but a browser fetches `@import` URLs exactly as written: its 76 sub-sheets were unversioned and served `max-age=2592000`; the service worker then revalidated them against that same 30-day HTTP cache. | 21.6. |
+
+### 21.2 Shell structure and breakpoints
+
+- Markup (`Shared/MainLayout.razor`, static SSR): skip link → `<header class="navbar-main">`
+  (brand, drawer `#topNav` holding `<nav aria-label="Principal">`, account menu, menu button) →
+  `AnnouncementBanner` → `<main id="content" tabindex="-1">` → `<footer>`. The shell CSS lives in
+  `2-layout/navbar.css` and `2-layout/footer.css`; the navbar rules that used to be scattered in
+  `1-base/mobile.css`, `3-components/misc-components.css` and `list-groups.css` were removed
+  (including the dead `.navbar-category-*` classes).
+- **One breakpoint, 1200px (Bootstrap xl):**
+
+| Width | Navigation | Page actions |
+| --- | --- | --- |
+| >= 1200 | Horizontal bar: brand, text-only items, account avatar at the right. | Page header buttons (`d-xl-flex`). |
+| < 1200 | Brand, account avatar, menu button; right-hand drawer (`offcanvas-xl`), `min(86vw, 22rem)` wide. | `MobileBottomNav`. |
+
+- The bar fits every role from 1200px up without shrinking type (15px, weight 500). If items
+  are ever added beyond the space, the list wraps (`flex-wrap`) instead of widening the page.
+- Header ~58px; brand 20px/700, tracking 0.06em; the avatar button, the menu button and the
+  drawer close button are 44x44; drawer rows are 48px (sub-items 44px).
+- Information architecture unchanged: same items, same order, same menus, same labels, same
+  role/category conditions (copied verbatim). Only presentation moved: icons are hidden on the
+  desktop bar (kept in menus and the drawer); the category/position badge and nickname moved
+  from the bar into the account menu header; Gestão and Operações menus open right-aligned so
+  they stay on screen at 1200.
+
+### 21.3 Navigation states
+
+| State | Desktop bar | Menus (desktop) | Drawer |
+| --- | --- | --- | --- |
+| Idle | `#e2e2e2` text | `#e2e2e2`, accent icon | `#e2e2e2`, accent icon |
+| Hover / pointer focus | `rgba(255,255,255,.06)` surface, white text | same | same |
+| Keyboard focus | 2px `--rtub-focus-ring` outline (global contract, 20.4); inset in menus | | |
+| Current page (`NavLink` `.active` + `aria-current="page"`) | White, weight 600, 2px accent bar under the label | Soft purple surface `rgba(111,66,193,.22)`, weight 600 | Soft purple surface, weight 600, white icon |
+| Section of the current page (toggle `.active`) | Same as current page | - | Same surface on the section row |
+| Menu open (`.show` / `aria-expanded="true"`) | White text | - | Chevron rotates 180° |
+
+Active is never color alone: weight plus an indicator bar or a surface. The drawer's old
+side-stripe was dropped (craft rule: no colored side stripes).
+
+### 21.4 Page titles
+
+- `Components/AppTitle.razor`: `<AppTitle>Ensaios</AppTitle>` renders `Ensaios - RTUB`;
+  `<AppTitle />` renders `RTUB - Real Tuna Universitária de Bragança` (home, and the MainLayout
+  fallback placed before `@Body` so a page's own title wins). Pages never use `<PageTitle>`.
+- All 62 routable pages declare one. Text is the page's own `<h1>` (or its nav label when it has no
+  h1: Classificação, Mini Jogos, Mensagens). Detail pages use data they already load:
+  `Contactos - <event>`, `Discussão - <event>`, `Inscrições - <event>`, `<board> - Logística`,
+  `<event> - Encomendas Nerba`, `<report title>`, `<album> - Música`; each falls back to the
+  generic label while loading. No data load was added for a title.
+- Titles are set during prerendering (static `HeadOutlet`); a title computed only after the
+  interactive circuit loads data stays at its fallback. Owner pages that had English titles now
+  use their Portuguese h1 (`Histórico de atividades`); the Router's NotAuthorized/NotFound texts
+  are Portuguese with titles `Sem permissão` / `Página não encontrada`.
+- Guarded by `AppTitleTests` (rendered title, and every `@page` file uses `AppTitle`) and
+  `AppShellTests.Page_HasMeaningfulTitle` (exactly one `<title>` per response).
+
+### 21.5 Accessibility, keyboard and safe areas
+
+- **Skip link** "Saltar para o conteúdo": first focusable element of every page, visible only
+  when focused (purple pill, top-left, above everything at z-index 1090). `navOffcanvas.js`
+  handles it in the capture phase and focuses `<main>`: a plain `#content` resolves against
+  `<base href="/">` and Blazor would navigate to the home page. `main` and the drawer draw no
+  focus ring of their own (programmatic focus targets, not controls).
+- Blazor's existing `FocusOnNavigate Selector="h1"` (App.razor) still places focus on the page
+  `<h1>` after a navigation, so on pages with an h1 the first Tab goes into the content; the skip
+  link serves users starting from the top of the document (pages without an h1, browser chrome,
+  Shift+Tab). Deliberately kept.
+- **Landmarks:** one `header`, `nav` "Principal" (the drawer's dialog wraps it below 1200), one
+  `main`, one `footer`. Decorative icons are `aria-hidden`.
+- **Drawer:** Bootstrap owns dialog semantics (`role="dialog"`, `aria-modal`, labelled by its
+  "Navegação" heading), focus trap, Escape, backdrop close, body scroll lock and focus return to
+  the menu button. RTUB adds: Portuguese labels ("Abrir menu de navegação", "Fechar menu") and
+  `aria-expanded` on the menu button kept in sync (`navOffcanvas.js`). Escape closes an expanded
+  section first, then the drawer. A link inside it closes it before navigating (existing).
+- **Menus:** native `<button>` toggles with `aria-expanded` (Bootstrap), arrow keys and Escape
+  (focus returns to the toggle). `aria-haspopup` was removed: these are disclosure menus of links,
+  not ARIA `menu`s. The account button is named "Conta de <nickname>" (plus the unread count).
+- **Safe areas:** `viewport-fit=cover` added to the viewport meta; without it iOS reports every
+  `env(safe-area-inset-*)` as 0, so the existing inset rules were inert and, with the
+  `black-translucent` status bar, the installed iOS app drew the header under the status bar.
+  Insets (all with a `0px` fallback, so nothing changes on devices without them): header top,
+  left and right; drawer top, right, bottom; skip link; footer left, right, bottom;
+  `MobileBottomNav` left and right (bottom was already done); full-screen phone dialog header top
+  (not `modal-sm`). `.content-main` already padded left/right.
+- Standalone query below 1200 keeps overscroll containment on the header and drawer; nothing sets
+  `overflow-x: hidden` on html/body (20.5).
+- Motion: menu/drawer transitions are Bootstrap's; shell transitions are 150ms and switched off
+  under `prefers-reduced-motion`.
+
+### 21.6 Static-asset cache contract
+
+- **Global CSS:** `site.css` is now the ordered *list* of global sheets, never linked itself.
+  `Components/GlobalStylesheets.razor` reads its `@import` lines (cached, re-read when `site.css`
+  changes) and renders one `VersionedAsset` link per sheet, in the same order, so the cascade is
+  identical. Each sheet gets its own content hash (`?v=`, ASP.NET Core `IFileVersionProvider`, the
+  mechanism already used for every other local asset): a deploy that changes a sheet changes its
+  URL, unchanged sheets keep their cached copy. Side effect: the 76 sheets are requested in
+  parallel instead of being discovered after `site.css` downloads.
+- **Server headers** (`Program.cs`, outside Development): versioned URL (`?v=`) → `public,
+  max-age=2592000`; unversioned `.css`/`.js` → `no-cache` (revalidated with ETag/Last-Modified,
+  304 when unchanged: e.g. `_framework/blazor.web.js`, the fingerprinted `_content` scoped
+  bundle, `offline.css`); other static files unchanged (30 days; icons/manifest 1 hour;
+  `service-worker.js` `no-cache`). Nothing is `no-store`.
+- **Service worker:** CSS/JS stay stale-while-revalidate, keyed by full URL. A new `?v=` is a
+  cache miss, so changed CSS arrives on the first load after a deploy. Storing a versioned response
+  now first deletes the other versions of the same path (`cache.delete(request, { ignoreSearch:
+  true })`), so the runtime cache holds one copy per file instead of one per deploy; the
+  pre-034 unversioned copies are removed the same way. `CACHE_VERSION` was not bumped; the offline
+  precache (`offline.html`, `offline.css`, `offline.js`) is untouched and still served.
+- Why not the alternatives in 20.7: `MapStaticAssets` would move every static file (including
+  `/images`, served by `ImagesController`, and the ~180 MB of sprites) onto build-time endpoints and
+  change all cache headers at once; `no-cache` for all CSS alone still left the SW one load behind;
+  a bundler adds a build pipeline.
+- Guarded by `GlobalStylesheetsTests` (site.css holds only imports of existing files, rendered
+  links are versioned and in order, MainLayout uses the component) and
+  `AppShellTests.StaticAsset_CacheControl_FollowsTheVersioningContract` /
+  `GlobalStylesheets_AreLinkedVersioned_InsteadOfSiteCss`.
+
+### 21.7 Validation performed
+
+Automated and visual evidence are kept apart.
+
+- **Automated:** the CI command set (16.1). New: `AppTitleTests` (3), `GlobalStylesheetsTests`
+  (5), `AppShellTests` (11, integration: titles, skip link and landmarks, current page and section,
+  versioned stylesheets, cache headers). `VersionedAssetTests` no longer expects a `site.css` link.
+- **Local run:** Development, against a scratch copy of the local snapshot database with the
+  development data reset pointed at a generated password (so no personal password was used and the
+  real local database was not touched); SMTP disabled, backups off, non-existent R2 bucket.
+  Accounts: anonymous, Owner, Tuno member, Caloiro member, Leitão member.
+- **Measured** (temporary Playwright script, not committed; 322 route × viewport × role captures at
+  1440/1280/1200/1024/820/390/360 over home, login, events, rehearsals, members, finance,
+  meetings, music, gallery, privacy, profile, messages and `/owner/tracing`):
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Page wider than the viewport | 117 | 1 (Gallery at 820, page-owned, 20.8) |
+| Account control not visible in the header (Messages' own phone layout excluded) | 232 | 0 |
+| Expanded top nav shown together with a page bottom bar | 37 | 0 |
+| Empty document title | 287 | 0 |
+
+- **Keyboard and semantics (Chromium, scripted + screenshots):** skip link is the first Tab stop
+  on a page without an h1 and moves focus to `main` without leaving the page; menus open with
+  Enter, move with arrows, close with Escape back to the toggle; drawer at 1024/820/390/360 is a
+  labelled modal dialog, locks body scroll, closes on Escape (section first) and returns focus to
+  the menu button; a drawer link closes it and leaves no backdrop; `aria-expanded` follows the
+  drawer; right-aligned menus end at 1,063px (1440) and 1,051px (1200).
+- **Visual** (screenshots reviewed at every width): desktop bar and menus, account menu for
+  Owner and Leitão, drawer with the current section expanded, phone top bar (signed in and
+  anonymous), footer above the bottom bar, focus states, and the unusual layouts - Messages at
+  390 (header hidden by its own shell) and 820, MyTuno at 390, Hierarchy (static SSR) at 1440,
+  `/owner/db` at 1280, Finance report at 360.
+- **PWA (emulated Chromium):** service worker active at `/`; its runtime cache holds the 76
+  versioned sheets and no unversioned copy; offline navigation still serves `offline.html`.
+- Impeccable detector on the changed shell files: no findings.
+- **Not verified (needs real devices):** iOS installed app under the status bar with
+  `viewport-fit=cover`, landscape notch insets, Safari standalone quirks, Android system Back
+  with the drawer open, virtual keyboard, installed-app lifecycle. `display-mode: standalone`
+  cannot be emulated in this Chromium (20.6).
+
+### 21.8 Remaining (for later tasks)
+
+- Unknown URLs return an empty 404 (no status-code page), so the Router's NotFound content never
+  renders on a full request. A 404 page is new behavior; not added here.
+- `Error.razor` (static error page) still has an English h1 and message.
+- `MobileBottomNav` semantics (three jobs, `aria-selected` on buttons, fixed "Navegação do portal"
+  label) are unchanged - Phase 3 (`PageActions`).
+- The shell dropdowns sit at z-index 1045 as before; dialog layering is Phase 3 (`Modal`).
+- Footer copyright year is a literal "2025" (content, not changed).
+- `theme-color` `#3F2A86` (purple status bar over the near-black header on Android) kept as brand.
+
+### 21.9 Roadmap adjustments
+
+- Phase 2 is done except the real-device checks in 21.7. 20.7 (cache-busting) is resolved.
+- Phase 3 can rely on: the 1200px shell breakpoint (bottom bar, header actions and nav agree),
+  `AppTitle` for any new page, versioned global CSS (a new sheet is one `@import` line in
+  `site.css`), and the shell's safe-area insets.

@@ -470,6 +470,16 @@ public class Program
                             // Cache for 1 hour with must-revalidate to ensure updates are picked up
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
                         }
+                        // An unversioned stylesheet or script (no ?v= content hash, e.g.
+                        // blazor.web.js) keeps the same URL when a deploy changes it, so it must
+                        // be revalidated (ETag/Last-Modified, 304 when unchanged) instead of
+                        // being trusted for 30 days. Versioned URLs change with their content.
+                        else if (!app.Environment.IsDevelopment()
+                                 && !ctx.Context.Request.Query.ContainsKey("v")
+                                 && (path.EndsWith(".css") || path.EndsWith(".js")))
+                        {
+                            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
+                        }
                         // Cache other static files for 30 days in production
                         else if (!app.Environment.IsDevelopment())
                         {

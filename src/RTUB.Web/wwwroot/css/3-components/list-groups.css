@@ -95,12 +95,6 @@
     padding: 0.25em 0.5em;
   }
 
-  /* Improve navbar category badge on mobile */
-  .navbar-category-badge {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.4rem;
-  }
-
   /* Better handling of long text in cards */
   .card-title,
   .card-text {

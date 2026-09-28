@@ -225,6 +225,12 @@ body.modal-open {
         gap: 0.5rem;
     }
 
+    /* A full-screen sheet starts at the top of the screen: clear the status bar/notch of the
+       installed iOS app (viewport-fit=cover, UI refactor 034). 0 elsewhere. */
+    .modal-dialog:not(.modal-sm) .modal-header {
+        padding-top: calc(0.625rem + env(safe-area-inset-top, 0px));
+    }
+
     .modal-title {
         font-size: 1.0625rem;
         font-weight: 600;

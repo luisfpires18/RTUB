@@ -21,7 +21,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 
-<PageTitle>Discussão - @(eventItem?.Name ?? "Evento")</PageTitle>
+<AppTitle>Discussão - @(eventItem?.Name ?? "Evento")</AppTitle>
 
 <div class="discussion-page-wrapper">
     @if (eventItem == null)

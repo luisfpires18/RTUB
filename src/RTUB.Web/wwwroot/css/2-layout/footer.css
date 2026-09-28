@@ -1,12 +1,32 @@
-/* Footer */
-
-/* Footer */
+/* Footer (the layout's <footer class="footer-main">). UI refactor 034 moved its rules here
+   from 3-components/misc-components.css. */
 .footer {
-  background-color: #121212;
-  color: #aaa;
+  background-color: var(--rtub-bg);
+  color: var(--rtub-text-muted);
   padding: 1rem;
+  padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(1rem + env(safe-area-inset-right, 0px));
   text-align: center;
-  border-top: 1px solid var(--bs-border-color);
+  border-top: 1px solid var(--rtub-border);
+}
+
+.footer-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  margin: 0;
+  color: var(--rtub-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* On phones the two parts sit on separate lines; a trailing "|" would dangle. */
+@media (max-width: 575.98px) {
+  .footer-separator {
+    display: none;
+  }
 }
 
 /* Bottom padding of the layout footer (UI refactor 033). The footer is the last box
@@ -24,13 +44,15 @@
 }
 
 .footer-link {
-  color: #aaa;
-  text-decoration: none;
+  color: var(--rtub-text-muted);
+  text-decoration: underline;
+  text-decoration-color: rgba(170, 170, 170, 0.4);
+  text-underline-offset: 0.2em;
   transition: color 0.2s ease;
 }
 
-.footer-link:hover {
+.footer-link:hover,
+.footer-link:focus {
   color: #fff;
   text-decoration: underline;
 }
-
