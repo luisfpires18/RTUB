@@ -10,6 +10,7 @@
 
 <AppTitle />
 
+<AppErrorBoundary>
 <!-- Push Notification Prompt for PWA mode -->
 <PushNotificationPrompt />
 
@@ -160,6 +161,7 @@ else
 {
     <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" AriaLabel="Secções da página" />
 }
+</AppErrorBoundary>
 
 @code {
     private List<Slideshow>? slides;

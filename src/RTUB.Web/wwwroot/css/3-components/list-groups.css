@@ -59,34 +59,10 @@
     font-size: 0.875rem;
   }
 
-  /* Improve alert spacing on mobile */
-  .alert {
-    padding: 0.625rem 1rem;
-    font-size: 0.9rem;
-  }
-
   /* Better breadcrumb display on mobile */
   .breadcrumb {
     font-size: 0.875rem;
     padding: 0.375rem 0;
-  }
-
-  /* Improve empty state display on mobile */
-  .empty-state-container {
-    padding: 1.5rem 1rem;
-  }
-
-  .empty-state-icon {
-    font-size: 1.75rem;
-  }
-
-  /* Error display responsive styles */
-  .error-display-container {
-    padding: 1.5rem 1rem;
-  }
-
-  .error-display-icon {
-    font-size: 1.75rem;
   }
 
   /* Better positioning badge display on mobile */

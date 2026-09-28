@@ -1,0 +1,166 @@
+@namespace RTUB.Shared
+@using System.ComponentModel.DataAnnotations
+@using System.Linq.Expressions
+@using System.Reflection
+@implements IDisposable
+@*
+    Label + control + help + per-field error, with the label associated to the control
+    (contract: docs/design/RTUB_UI_REFACTOR.md section 23.2). The control stays a standard Blazor
+    input or HTML element; it receives its id and descriptions through the context:
+
+        <FormField Label="Localização" Icon="bi-geo-alt" For="() => model.Location" Context="field">
+            <InputText @attributes="field.Attributes" class="form-control" @bind-Value="model.Location" />
+        </FormField>
+
+    Presentation only: it never validates. With For, the field's messages come from the cascaded
+    EditContext (DataAnnotations or whatever the form already uses) and a [Required] property
+    shows the required marker. Without For, pass Required when the page's own rule requires it.
+*@
+
+<div class="form-field @(HasErrors ? "form-field--invalid" : null) @CssClass">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label form-field__label" for="@FieldId">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi @Icon form-field__icon" aria-hidden="true"></i>
+            }
+            <span>@Label</span>
+            @if (IsRequired)
+            {
+                <span class="form-field__required" aria-hidden="true">*</span>
+                <span class="visually-hidden"> (obrigatório)</span>
+            }
+        </label>
+    }
+
+    @ChildContent?.Invoke(_context)
+
+    @if (!string.IsNullOrEmpty(Help))
+    {
+        <p class="form-field__help" id="@HelpId">@Help</p>
+    }
+
+    @if (HasErrors)
+    {
+        <div class="form-field__error" id="@ErrorId">
+            @foreach (var message in _messages)
+            {
+                <p @key="message"><i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i><span>@message</span></p>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Visible label; also the control's accessible name.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Optional decorative Bootstrap icon class (e.g. "bi-geo-alt").</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Help text under the control, linked through aria-describedby.</summary>
+    [Parameter] public string? Help { get; set; }
+
+    /// <summary>The model property, for its validation messages and [Required] marker.</summary>
+    [Parameter] public Expression<Func<object?>>? For { get; set; }
+
+    /// <summary>Required marker. Null: taken from [Required] on For. Never adds validation.</summary>
+    [Parameter] public bool? Required { get; set; }
+
+    /// <summary>Control id. Pass it to keep an existing id; otherwise one is generated.</summary>
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>Extra classes on the field wrapper.</summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    /// <summary>The control. Spread <c>context.Attributes</c> (id, aria-describedby) onto it.</summary>
+    [Parameter] public RenderFragment<FormFieldContext>? ChildContent { get; set; }
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    private readonly string _generatedId = "field-" + Guid.NewGuid().ToString("N")[..8];
+    private EditContext? _subscribedContext;
+    private FieldIdentifier? _field;
+    private string[] _messages = [];
+    private FormFieldContext _context = default!;
+
+    private string FieldId => string.IsNullOrWhiteSpace(Id) ? _generatedId : Id;
+    private string HelpId => FieldId + "-help";
+    private string ErrorId => FieldId + "-error";
+    private bool HasErrors => _messages.Length > 0;
+    private bool IsRequired => Required ?? IsRequiredByModel();
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(_subscribedContext, EditContext))
+        {
+            Unsubscribe();
+            _subscribedContext = EditContext;
+            if (_subscribedContext != null)
+            {
+                _subscribedContext.OnValidationStateChanged += HandleValidationStateChanged;
+            }
+        }
+
+        _field = For != null ? FieldIdentifier.Create(For) : null;
+        _messages = ReadMessages();
+        _context = BuildContext();
+    }
+
+    private void HandleValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        var messages = ReadMessages();
+        if (messages.SequenceEqual(_messages))
+        {
+            return;
+        }
+
+        _messages = messages;
+        _context = BuildContext();
+        StateHasChanged();
+    }
+
+    private string[] ReadMessages() =>
+        _subscribedContext != null && _field is { } field
+            ? _subscribedContext.GetValidationMessages(field).ToArray()
+            : [];
+
+    private FormFieldContext BuildContext()
+    {
+        var describedBy = string.Join(' ', new[]
+        {
+            string.IsNullOrEmpty(Help) ? null : HelpId,
+            HasErrors ? ErrorId : null
+        }.Where(id => id != null));
+
+        var attributes = new Dictionary<string, object> { ["id"] = FieldId };
+        if (describedBy.Length > 0)
+        {
+            attributes["aria-describedby"] = describedBy;
+        }
+
+        return new FormFieldContext(FieldId, describedBy.Length > 0 ? describedBy : null, attributes);
+    }
+
+    private bool IsRequiredByModel()
+    {
+        if (_field is not { } field)
+        {
+            return false;
+        }
+
+        var property = field.Model.GetType().GetProperty(field.FieldName, BindingFlags.Public | BindingFlags.Instance);
+        return property?.GetCustomAttribute<RequiredAttribute>() != null;
+    }
+
+    private void Unsubscribe()
+    {
+        if (_subscribedContext != null)
+        {
+            _subscribedContext.OnValidationStateChanged -= HandleValidationStateChanged;
+        }
+    }
+
+    public void Dispose() => Unsubscribe();
+}

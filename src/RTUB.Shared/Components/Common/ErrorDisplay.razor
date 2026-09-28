@@ -2,24 +2,25 @@
 @using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 @*
-    Reusable error display component for displaying validation errors
-    Features card-style design with red error theme based on EmptyState component
-    Only displays when there are actual validation errors
+    Block error: the validation summary of a form (from the cascaded EditContext) or an
+    operation/load error passed in Errors. Announced when it appears (role="alert"); renders
+    nothing while there is no error. Per-field messages belong to FormField; transient
+    confirmations to the toast (docs/design/RTUB_UI_REFACTOR.md section 23.5).
 *@
 
 @if (HasErrors)
 {
-    <div class="error-display-container">
+    <div class="error-display-container" role="alert">
         <div class="error-display-card">
+            <i class="bi bi-exclamation-octagon-fill error-display-icon" aria-hidden="true"></i>
             <div class="error-display-content">
-                <i class="bi bi-exclamation-triangle-fill error-display-icon"></i>
-                <h5 class="error-display-title">@Title</h5>
-                @if (Errors != null && Errors.Any())
+                <p class="error-display-title">@Title</p>
+                @if (Errors != null && Errors.Any(e => !string.IsNullOrWhiteSpace(e)))
                 {
                     <ul class="error-display-list">
-                        @foreach (var error in Errors)
+                        @foreach (var error in Errors.Where(e => !string.IsNullOrWhiteSpace(e)))
                         {
-                            <li class="error-display-item" @key="@error.GetHashCode()">@error</li>
+                            <li class="error-display-item" @key="error">@error</li>
                         }
                     </ul>
                 }
@@ -33,80 +34,45 @@
 }
 
 @code {
-    /// <summary>
-    /// Main title to display
-    /// </summary>
-    [Parameter]
-    public string Title { get; set; } = "Ocorreram erros de validação";
+    /// <summary>Headline of the error block</summary>
+    [Parameter] public string Title { get; set; } = "Ocorreram erros de validação";
 
-    /// <summary>
-    /// Optional list of error messages to display
-    /// </summary>
-    [Parameter]
-    public IEnumerable<string>? Errors { get; set; }
+    /// <summary>Error messages to show instead of the form's validation summary</summary>
+    [Parameter] public IEnumerable<string>? Errors { get; set; }
 
-    /// <summary>
-    /// EditContext from the parent EditForm (automatically cascaded)
-    /// </summary>
-    [CascadingParameter]
-    public EditContext? EditContext { get; set; }
+    /// <summary>EditContext from the parent EditForm (automatically cascaded)</summary>
+    [CascadingParameter] public EditContext? EditContext { get; set; }
 
-    /// <summary>
-    /// Determines if there are any validation errors to display
-    /// </summary>
-    private bool HasErrors
+    private EditContext? _subscribedContext;
+
+    private bool HasErrors =>
+        Errors?.Any(e => !string.IsNullOrWhiteSpace(e)) == true
+        || EditContext?.GetValidationMessages().Any() == true;
+
+    protected override void OnParametersSet()
     {
-        get
+        if (ReferenceEquals(_subscribedContext, EditContext))
         {
-            if (Errors != null && Errors.Any())
-            {
-                return true;
-            }
+            return;
+        }
 
-            if (EditContext != null)
-            {
-                return EditContext.GetValidationMessages().Any();
-            }
-
-            return false;
+        Unsubscribe();
+        _subscribedContext = EditContext;
+        if (_subscribedContext != null)
+        {
+            _subscribedContext.OnValidationStateChanged += OnValidationStateChanged;
         }
     }
-    
-    private bool _previousHasErrors = false;
-    
-    /// <summary>
-    /// Optimize rendering - only re-render when error state changes
-    /// </summary>
-    protected override bool ShouldRender()
-    {
-        var currentHasErrors = HasErrors;
-        if (currentHasErrors != _previousHasErrors)
-        {
-            _previousHasErrors = currentHasErrors;
-            return true;
-        }
-        return currentHasErrors; // Always render if there are errors (content may have changed)
-    }
 
-    protected override void OnInitialized()
-    {
-        if (EditContext != null)
-        {
-            EditContext.OnValidationStateChanged += OnValidationStateChanged;
-        }
-        _previousHasErrors = HasErrors;
-    }
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e) => StateHasChanged();
 
-    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    private void Unsubscribe()
     {
-        StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        if (EditContext != null)
+        if (_subscribedContext != null)
         {
-            EditContext.OnValidationStateChanged -= OnValidationStateChanged;
+            _subscribedContext.OnValidationStateChanged -= OnValidationStateChanged;
         }
     }
+
+    public void Dispose() => Unsubscribe();
 }

@@ -959,6 +959,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWebUiServices(this IServiceCollection services)
     {
         services.AddScoped<ProfilePictureUpdateService>();
+        // Per-circuit toast queue shared by pages and the layout's ToastHost (UI refactor 036).
+        services.AddScoped<RTUB.Shared.ToastService>();
         services.AddSingleton<MessagesNotificationService>();
         services.AddSingleton<AdminRefreshService>();
         services.AddSingleton<AnnouncementService>();

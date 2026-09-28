@@ -27,6 +27,7 @@
 
 <AppTitle>Finanças</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Finanças" Icon="bi-currency-euro" Subtitle="Relatórios financeiros anuais.">
     <Actions>
         @if (CanCreateReports())
@@ -36,18 +37,16 @@
     </Actions>
 </PageHeader>
 
-<div class="d-flex flex-column flex-lg-row align-items-stretch gap-2 mb-4">
-    <div class="flex-grow-1">
-        <SearchBar
-            @bind-Value="SearchTerm"
-            OnSearch="UpdateSearch"
-            Placeholder="Pesquisar por título ou ano..." />
-    </div>
-</div>
+<FilterToolbar>
+    <SearchBar
+        @bind-Value="SearchTerm"
+        OnSearch="UpdateSearch"
+        Placeholder="Pesquisar por título ou ano..." />
+</FilterToolbar>
 
     @if (AllItems == null)
     {
-        <p>A carregar relatórios...</p>
+        <LoadingSpinner Message="A carregar relatórios..." />
     }
     else if (!FilteredItems.Any())
     {
@@ -118,17 +117,14 @@
                 }
                 else
                 {
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar3 text-primary me-2"></i>Ano Letivo
-                        </label>
-                        <select class="form-select" @bind="fiscalYearInput">
+                    <FormField Label="Ano Letivo" Icon="bi-calendar3" Context="field">
+                        <select @attributes="field.Attributes" class="form-select" @bind="fiscalYearInput">
                             @foreach (var year in availableFiscalYearStartYears)
                             {
                                 <option value="@year">@year-@(year + 1)</option>
                             }
                         </select>
-                    </div>
+                    </FormField>
                 }
             }
 
@@ -171,6 +167,7 @@
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 
 @code {

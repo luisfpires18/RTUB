@@ -20,20 +20,17 @@
                     }
                     else
                     {
-                        <div class="mb-3">
-                            <label class="form-label">Título</label>
-                            <input type="text" class="form-control" @bind="SharedTitle" readonly />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Texto</label>
-                            <textarea class="form-control" rows="3" @bind="SharedText" readonly></textarea>
-                        </div>
+                        <FormField Label="Título" Context="field">
+                            <input @attributes="field.Attributes" type="text" class="form-control" @bind="SharedTitle" readonly />
+                        </FormField>
+                        <FormField Label="Texto" Context="field">
+                            <textarea @attributes="field.Attributes" class="form-control" rows="3" @bind="SharedText" readonly></textarea>
+                        </FormField>
                         @if (!string.IsNullOrEmpty(SharedUrl))
                         {
-                            <div class="mb-3">
-                                <label class="form-label">URL</label>
-                                <input type="text" class="form-control" @bind="SharedUrl" readonly />
-                            </div>
+                            <FormField Label="URL" Context="field">
+                                <input @attributes="field.Attributes" type="text" class="form-control" @bind="SharedUrl" readonly />
+                            </FormField>
                         }
                         <div class="d-flex gap-2">
                             <button class="btn btn-primary" @onclick="CopyToClipboard">

@@ -22,9 +22,11 @@
 @inject IHostEnvironment HostEnvironment
 @inject IJSRuntime JSRuntime
 @inject AuditContext AuditContext
+@inject ToastService Toasts
 
 <AppTitle>Documentação</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Documentação" Icon="bi-file-earmark-text" Subtitle="Documentos e recursos importantes da RTUB organizados por categoria.">
     <Actions>
         @if (canDoAction)
@@ -35,15 +37,13 @@
 </PageHeader>
 
 <!-- Filter Controls -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-        <FilterDropdown SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-    </div>
-</div>
+<FilterToolbar>
+    <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                    OnChange="@OnFiscalYearChanged"
+                    AllItemsLabel="Todos os anos"
+                    Options="@fiscalYearOptions" />
+</FilterToolbar>
 
 @if (isLoading)
 {
@@ -166,14 +166,7 @@ else
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        @if (!string.IsNullOrEmpty(uploadError))
-        {
-            <div class="alert alert-danger">@uploadError</div>
-        }
-        @if (!string.IsNullOrEmpty(uploadSuccess))
-        {
-            <div class="alert alert-success">@uploadSuccess</div>
-        }
+        <Alert Type="Alert.AlertType.Error" Message="@uploadError" />
         <div class="mb-3">
             <label class="form-label fw-semibold">
                 <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Selecionar Ficheiro
@@ -242,6 +235,7 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="@ConfirmDeleteFolder"
                OnCancel="@CancelDeleteFolder" />
+</AppErrorBoundary>
 
 
 @code {
@@ -289,7 +283,6 @@ else
     private string? documentationFileName;
     private bool isUploading = false;
     private string uploadError = "";
-    private string uploadSuccess = "";
     
     // Delete document dialog
     private bool showDeleteDialog = false;
@@ -582,7 +575,6 @@ else
         selectedFile = null;
         documentationFileName = null;
         uploadError = "";
-        uploadSuccess = "";
         modals.Open(ModalType.Upload);
     }
 
@@ -594,7 +586,6 @@ else
         selectedFile = null;
         documentationFileName = null;
         uploadError = "";
-        uploadSuccess = "";
     }
 
     private void HandleFileSelected(InputFileChangeEventArgs e)
@@ -605,14 +596,12 @@ else
             selectedFile = null;
             documentationFileName = null;
             uploadError = "Ficheiro inválido.";
-            uploadSuccess = "";
             return;
         }
 
         selectedFile = file;
         documentationFileName = selectedFile.Name;
         uploadError = "";
-        uploadSuccess = "";
 
         // Validate file extension
         var extension = Path.GetExtension(selectedFile.Name).ToLowerInvariant();
@@ -638,7 +627,6 @@ else
             return;
         
         uploadError = "";
-        uploadSuccess = "";
         isUploading = true;
         
         try
@@ -652,15 +640,13 @@ else
             using var stream = selectedFile.OpenReadStream(maxFileSize);
             await DocumentStorageService.UploadDocumentAsync(selectedFolderPath, selectedFile.Name, stream, contentType);
             
-            uploadSuccess = $"Ficheiro '{selectedFile.Name}' carregado com sucesso!";
-            
+            var uploadedName = selectedFile.Name;
+
             // Reload all documentation to apply fiscal year filters consistently
             await LoadDocumentation();
-            StateHasChanged();
-            
-            // Auto-close after 2 seconds
-            await Task.Delay(2000);
+
             CloseUploadModal();
+            Toasts.ShowSuccess($"Ficheiro '{uploadedName}' carregado com sucesso!");
         }
         catch (Exception ex)
         {

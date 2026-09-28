@@ -29,10 +29,12 @@
 @inject IMemberStatusService MemberStatusService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @inject IOptions<RTUB.Application.Configuration.Toggles> Toggles
+@inject ToastService Toasts
 
 <AppTitle>Meu Perfil</AppTitle>
 
 
+<AppErrorBoundary>
 <div class="profile-page container-fluid w-100 d-flex flex-column align-items-center overflow-hidden">
     <div class="w-100">
         <PageHeader Title="Meu Perfil" Icon="bi-person-circle" />
@@ -40,7 +42,7 @@
 
     @if (user == null)
     {
-        <p class="text-white-full">A carregar...</p>
+        <LoadingSpinner Message="A carregar..." />
     }
     else
     {
@@ -505,7 +507,7 @@
                     @if (!string.IsNullOrEmpty(subscriptionMessage))
                     {
                         <Alert Message="@subscriptionMessage" 
-                               Type="@(subscriptionSuccess ? Alert.AlertType.Success : Alert.AlertType.Error)" 
+                               Type="Alert.AlertType.Error"
                                Dismissible="true"
                                OnDismiss="@(() => subscriptionMessage = null)" 
                                AdditionalClasses="mb-3" />
@@ -558,10 +560,7 @@
             </label>
             <span class="localized-file-name">@(!string.IsNullOrEmpty(profileImageFileName) ? profileImageFileName : "Sem imagem escolhida")</span>
         </div>
-        @if (!string.IsNullOrEmpty(uploadMessage))
-        {
-            <div class="alert alert-success mt-3">@uploadMessage</div>
-        }
+        <Alert Type="Alert.AlertType.Error" Message="@uploadMessage" AdditionalClasses="mt-3 mb-0" />
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Voltar Atrás</button>
@@ -585,34 +584,22 @@
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        @if (!string.IsNullOrEmpty(ChangePasswordMessage))
-        {
-            <div class="alert @(ChangePasswordSucceeded ? "alert-success" : "alert-danger")">@ChangePasswordMessage</div>
-        }
+        <Alert Type="Alert.AlertType.Error" Message="@ChangePasswordMessage" />
         <EditForm Model="passwordModel" OnValidSubmit="ChangePassword" id="changePasswordForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
-            <div class="mb-3">
-                <label class="form-label text-white-full fw-semibold">
-                    <i class="bi bi-key text-primary me-2"></i>Palavra-passe Atual
-                </label>
-                <InputText type="password" class="form-control" @bind-Value="passwordModel.OldPassword" />
-            </div>
+            <FormField Label="Palavra-passe Atual" Icon="bi-key" For="() => passwordModel.OldPassword" Context="field">
+                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.OldPassword" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label text-white-full fw-semibold">
-                    <i class="bi bi-key-fill text-primary me-2"></i>Nova Palavra-passe
-                </label>
-                <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
-            </div>
+            <FormField Label="Nova Palavra-passe" Icon="bi-key-fill" For="() => passwordModel.NewPassword" Context="field">
+                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label text-white-full fw-semibold">
-                    <i class="bi bi-shield-check text-primary me-2"></i>Confirmar Nova Palavra-passe
-                </label>
-                <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
-            </div>
+            <FormField Label="Confirmar Nova Palavra-passe" Icon="bi-shield-check" For="() => passwordModel.ConfirmPassword" Context="field">
+                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
+            </FormField>
 
         </EditForm>
     </BodyContent>
@@ -631,6 +618,7 @@
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private ApplicationUser? user;
@@ -648,7 +636,6 @@
     private string? profileImageFileName;
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
-    private bool ChangePasswordSucceeded;
     private bool isChangingPassword;
     private int imageRefreshTrigger = 0;
     private RTUB.Application.Services.Retirement.RetirementStatusResult? retirementStatusResult;
@@ -721,7 +708,6 @@
     
     // Notification subscription state
     private string? subscriptionMessage;
-    private bool subscriptionSuccess;
 
     public class ChangePasswordModel
     {
@@ -898,8 +884,7 @@
                 
                 imageRefreshTrigger++;
                 
-                uploadMessage = "Foto de perfil atualizada com sucesso!";
-                StateHasChanged();
+                Toasts.ShowSuccess("Foto de perfil atualizada com sucesso!");
                 
                 // Notify MainLayout to reload user data
                 ProfilePictureUpdateService.NotifyProfilePictureUpdated();
@@ -914,11 +899,6 @@
                 {
                     // Silently fail - event service will handle update
                 }
-                
-                // Clear success message after a delay
-                await Task.Delay(2000);
-                uploadMessage = null;
-                StateHasChanged();
             }
         }
         catch (Exception)
@@ -1174,7 +1154,6 @@
     private void OpenChangePasswordModal()
     {
         ChangePasswordMessage = null;
-        ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();
         modals.Open(ModalType.Password);
     }
@@ -1183,7 +1162,6 @@
     {
         modals.Close(ModalType.Password);
         ChangePasswordMessage = null;
-        ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();
     }
 
@@ -1196,7 +1174,6 @@
 
         isChangingPassword = true;
         ChangePasswordMessage = null;
-        ChangePasswordSucceeded = false;
         try
         {
             if (user == null)
@@ -1208,8 +1185,6 @@
             var result = await UserManager.ChangePasswordAsync(user, passwordModel.OldPassword, passwordModel.NewPassword);
             if (result.Succeeded)
             {
-                ChangePasswordSucceeded = true;
-                ChangePasswordMessage = "A sua palavra-passe foi alterada com sucesso.";
                 passwordModel = new ChangePasswordModel();
 
                 // Clear the password change requirement flag
@@ -1220,9 +1195,8 @@
                     await UserManager.UpdateAsync(user);
                 }
 
-                // Close modal after delay if successful
-                await Task.Delay(1500);
                 ClosePasswordModal();
+                Toasts.ShowSuccess("A sua palavra-passe foi alterada com sucesso.");
             }
             else
             {
@@ -1318,7 +1292,6 @@
         if (user == null) return;
 
         subscriptionMessage = null;
-        subscriptionSuccess = false;
 
         try
         {
@@ -1330,20 +1303,12 @@
 
             if (result.Succeeded)
             {
-                subscriptionSuccess = true;
-                subscriptionMessage = newValue 
+                Toasts.ShowSuccess(newValue
                     ? "Notificações por email ativadas com sucesso."
-                    : "Notificações por email desativadas com sucesso.";
-                
-                // Clear message after 3 seconds
-                StateHasChanged();
-                await Task.Delay(3000);
-                subscriptionMessage = null;
-                StateHasChanged();
+                    : "Notificações por email desativadas com sucesso.");
             }
             else
             {
-                subscriptionSuccess = false;
                 subscriptionMessage = "Erro ao atualizar preferências de notificação.";
                 // Revert the change
                 user.Subscribed = !newValue;
@@ -1352,7 +1317,6 @@
         }
         catch (Exception)
         {
-            subscriptionSuccess = false;
             subscriptionMessage = "Erro ao atualizar preferências de notificação.";
             StateHasChanged();
         }

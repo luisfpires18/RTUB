@@ -108,6 +108,31 @@ its own `AriaLabel`.
 </PageHeader>
 ```
 
+### Forms, Feedback and States
+
+Contract: `docs/design/RTUB_UI_REFACTOR.md` section 23.
+
+- **Fields:** wrap each label + control in `FormField`; spread `field.Attributes` (id,
+  `aria-describedby`) onto the control. `For` shows the field's validation messages and the
+  `[Required]` marker; without `For`, pass `Required` only where the page's own rule requires it.
+  `FormField` never validates and never adds the `required` attribute.
+- **Where feedback goes:** `Alert` = inline message tied to a place (form, dialog, section);
+  `ErrorDisplay` = validation summary or a failed load/operation block; `ToastService` =
+  transient confirmation ("Link copiado!"). Never a toast for a confirmation or for an error the
+  user must fix in place. No `Task.Delay` timers for feedback in pages.
+- **States:** `EmptyState` (Portuguese title, optional one action), `LoadingSpinner` with a
+  message saying what loads; busy buttons keep their own `spinner-border-sm`.
+- **Search and filters:** `SearchBar` (give `Label` when the placeholder is not a good name) and
+  `FilterDropdown` (always `Label`) directly inside `FilterToolbar`.
+- **Errors:** every interactive page's markup sits in `AppErrorBoundary`; it does not catch the
+  page's own event handlers, so keep try/catch around saves.
+
+```razor
+<FormField Label="Localização" Icon="bi-geo-alt" For="() => model.Location" Context="field">
+    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="model.Location" />
+</FormField>
+```
+
 ## Layout & Styling
 
 ### CSS Organization
@@ -183,11 +208,7 @@ its own `AriaLabel`.
 ```razor
 @if (isLoading)
 {
-    <div class="text-center p-4">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
+    <LoadingSpinner Message="A carregar ensaios..." />
 }
 else
 {

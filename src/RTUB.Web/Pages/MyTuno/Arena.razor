@@ -32,6 +32,7 @@
 
 <AppTitle>Arena - My Tuno</AppTitle>
 
+<AppErrorBoundary>
 <div class="arena-page">
     <PageHeader Title="Arena" Icon="bi-sword" Subtitle="Escolhe um oponente para lutar." OnBack="GoBack" />
 
@@ -302,6 +303,7 @@
         <Alert Type="Alert.AlertType.Error" Message="@errorMessage" Dismissible="true" OnDismiss="() => errorMessage = string.Empty" />
     }
 </div>
+</AppErrorBoundary>
 
 @code {
     private static string Fmt(long value) => NumberFormatter.Compact(value);

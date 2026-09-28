@@ -17,6 +17,7 @@
 
 <AppTitle>Hall of Fame</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Hall of Fame" Icon="bi-trophy" Subtitle="Os recordistas da RTUB - quem brilha mais em cada categoria." />
 
 @if (isLoading)
@@ -505,6 +506,7 @@ else
         </div>
     </div>
 }
+</AppErrorBoundary>
 @code {
     private bool isLoading = true;
 

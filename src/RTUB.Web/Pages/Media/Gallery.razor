@@ -27,6 +27,7 @@
 
 <AppTitle>Galeria</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Galeria" Icon="bi-images" Subtitle="Memórias da RTUB através dos anos.">
     <Actions>
         <AuthorizeView Roles="Admin,Member, Mod">
@@ -48,7 +49,7 @@
             </div>
             <div class="flex-sm-shrink-0 filter-year-container">
                 <label class="form-label fw-semibold">Ano</label>
-                <FilterDropdown IconClass="bi-calendar3"
+                <FilterDropdown Label="Ano" IconClass="bi-calendar3"
                                AllItemsLabel="Todos os anos"
                                Options="@yearFilterOptions"
                                @bind-SelectedValue="selectedYear"
@@ -56,7 +57,7 @@
             </div>
             <div class="flex-grow-1 search-field-container">
                 <label class="form-label fw-semibold">Pessoas</label>
-                <FilterDropdown IconClass="bi-people"
+                <FilterDropdown Label="Pessoas" IconClass="bi-people"
                                AllItemsLabel="Todas as pessoas"
                                Options="@peopleFilterOptions"
                                @bind-SelectedValue="selectedPersonId"
@@ -159,12 +160,9 @@ else
                 }
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-type text-primary me-2"></i>Título <span class="text-danger">*</span>
-                </label>
-                <InputText class="form-control" @bind-Value="uploadModel.Title" placeholder="Título da media..." />
-            </div>
+            <FormField Label="Título" Icon="bi-type" For="() => uploadModel.Title" Required="true" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="uploadModel.Title" placeholder="Título da media..." />
+            </FormField>
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
@@ -271,12 +269,9 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-type text-primary me-2"></i>Título <span class="text-danger">*</span>
-                    </label>
-                    <InputText class="form-control" @bind-Value="editModel.Title" placeholder="Título da media..." />
-                </div>
+                <FormField Label="Título" Icon="bi-type" For="() => editModel.Title" Required="true" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editModel.Title" placeholder="Título da media..." />
+                </FormField>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
@@ -461,6 +456,7 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseLightbox">Voltar Atrás</button>
     </FooterContent>
 </DetailsModal>
+</AppErrorBoundary>
 
 
 @code {

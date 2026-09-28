@@ -11,7 +11,6 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using RTUB.Shared.Components.Cards
-@implements IDisposable
 @attribute [Authorize]
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
@@ -23,9 +22,11 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject ToastService Toasts
 
 <AppTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</AppTitle>
 
+<AppErrorBoundary>
 <div class="enrollments-page-wrapper">
     @if (selectedEvent == null)
     {
@@ -44,16 +45,6 @@
                     }
                 </Actions>
             </PageHeader>
-                
-                @* Copy Link Feedback Alert *@
-                @if (!string.IsNullOrEmpty(copyLinkFeedbackMessage))
-                {
-                    <Alert Type="@(copyLinkFeedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
-                           Message="@copyLinkFeedbackMessage"
-                           Dismissible="true"
-                           OnDismiss="ClearCopyLinkFeedback"
-                           AdditionalClasses="mb-0" />
-                }
 
         <!-- My Enrollment Section (for non-past, non-cancelled events) -->
         @if (!selectedEvent.IsCancelled && selectedEvent.Date.Date >= DateTime.Today)
@@ -401,6 +392,7 @@
                ConfirmButtonClass="btn-danger"
                OnConfirm="DeleteEnrollment"
                OnCancel="CloseDeleteEnrollmentModal" />
+</AppErrorBoundary>
 
 @code {
     [Parameter]
@@ -444,9 +436,6 @@
     private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
     
     // Copy link feedback variables
-    private string copyLinkFeedbackMessage = string.Empty;
-    private bool copyLinkFeedbackIsError = false;
-    private System.Threading.Timer? _copyLinkFeedbackTimer;
     
     // Add member to enrollment variables
     private List<ApplicationUser> allMembersForEnrollment = new();
@@ -1031,40 +1020,12 @@
         {
             var absoluteUrl = Navigation.ToAbsoluteUri(Navigation.Uri).ToString();
             await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", absoluteUrl);
-            copyLinkFeedbackMessage = "Link copiado!";
-            copyLinkFeedbackIsError = false;
-            
-            // Auto-dismiss success message after 2 seconds
-            _copyLinkFeedbackTimer?.Dispose();
-            _copyLinkFeedbackTimer = new System.Threading.Timer(_ =>
-            {
-                _ = InvokeAsync(() =>
-                {
-                    ClearCopyLinkFeedback();
-                    StateHasChanged();
-                });
-            }, null, 2000, Timeout.Infinite);
+            Toasts.ShowSuccess("Link copiado!");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to copy link: {ex.Message}");
-            copyLinkFeedbackMessage = "Não foi possível copiar o link";
-            copyLinkFeedbackIsError = true;
+            Toasts.ShowError("Não foi possível copiar o link");
         }
-        
-        StateHasChanged();
-    }
-    
-    private void ClearCopyLinkFeedback()
-    {
-        copyLinkFeedbackMessage = string.Empty;
-        copyLinkFeedbackIsError = false;
-        _copyLinkFeedbackTimer?.Dispose();
-        _copyLinkFeedbackTimer = null;
-    }
-    
-    public void Dispose()
-    {
-        _copyLinkFeedbackTimer?.Dispose();
     }
 }

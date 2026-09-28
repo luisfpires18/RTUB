@@ -17,9 +17,11 @@
 @inject IProductReservationService ProductReservationService
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ToastService Toasts
 
 <AppTitle>Loja</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Loja RTUB" Icon="bi-cart" Subtitle="Produtos oficiais da Real Tuna Universitária de Bragança">
     <Actions>
         <AuthorizeView Roles="Admin,Mod">
@@ -31,31 +33,25 @@
 </PageHeader>
 
 <!-- Filter -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-    <div class="flex-grow-1 search-bar-container">
-        <SearchBar @bind-Value="searchTerm"
-                   Placeholder="Pesquisar produtos..."
-                   OnSearch="HandleSearchChanged" />
-    </div>
-    <div class="flex-lg-shrink-0 filter-dropdown-container">
-        <FilterDropdown ShowIcon="true"
-                      AllItemsLabel="Todos os tipos"
-                      Items="@productTypes"
-                      @bind-SelectedValue="selectedType"
-                      OnChange="FilterProducts" />
-    </div>
-    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-        <FilterDropdown SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-    </div>
-</div>
+<FilterToolbar>
+    <SearchBar @bind-Value="searchTerm"
+               Placeholder="Pesquisar produtos..."
+               OnSearch="HandleSearchChanged" />
+    <FilterDropdown Label="Tipo" ShowIcon="true"
+                  AllItemsLabel="Todos os tipos"
+                  Items="@productTypes"
+                  @bind-SelectedValue="selectedType"
+                  OnChange="FilterProducts" />
+    <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                    OnChange="@OnFiscalYearChanged"
+                    AllItemsLabel="Todos os anos"
+                    Options="@fiscalYearOptions" />
+</FilterToolbar>
 
 @if (loading)
 {
-    <p>A carregar produtos...</p>
+    <LoadingSpinner Message="A carregar produtos..." />
 }
 else if (!filteredProducts.Any())
 {
@@ -349,12 +345,10 @@ else
             <EditForm Model="reservationModel" OnValidSubmit="SaveReservation" id="saveReservationForm">
                 <DataAnnotationsValidator />
                 
-                <div class="mb-3">
-                    <label class="form-label">Nome para Apresentação (opcional)</label>
-                    <InputText class="form-control" @bind-Value="reservationModel.DisplayName" 
+                <FormField Label="Nome para Apresentação (opcional)" For="() => reservationModel.DisplayName" Help="Deixe em branco para usar o seu nome de membro" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="reservationModel.DisplayName"
                                placeholder="Como quer que o nome apareça no produto" />
-                    <small class="form-text text-muted">Deixe em branco para usar o seu nome de membro</small>
-                </div>
+                </FormField>
                 
                 <div class="form-check form-switch mb-3">
                     <InputCheckbox class="form-check-input" id="hasSizes" @bind-Value="reservationModel.HasSizes" />
@@ -384,19 +378,7 @@ else
                     </div>
                 }
                 
-                @if (!string.IsNullOrEmpty(reservationError))
-                {
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i> @reservationError
-                    </div>
-                }
-                
-                @if (!string.IsNullOrEmpty(reservationSuccess))
-                {
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> @reservationSuccess
-                    </div>
-                }
+                <Alert Type="Alert.AlertType.Error" Message="@reservationError" />
                 
             </EditForm>
         }
@@ -619,6 +601,7 @@ else
         }
     </BodyContent>
 </ConfirmDialog>
+</AppErrorBoundary>
 
 
 @code {
@@ -661,7 +644,6 @@ else
     private Product? selectedProduct;
     private ReservationModel reservationModel = new();
     private string? reservationError;
-    private string? reservationSuccess;
     
     // View Reservations Modal State (Admin)
     private bool loadingReservations = false;
@@ -991,7 +973,6 @@ else
         selectedProduct = product;
         reservationModel = new ReservationModel();
         reservationError = null;
-        reservationSuccess = null;
         modals.Open(ModalType.Reservation);
     }
     
@@ -1001,7 +982,6 @@ else
         selectedProduct = null;
         reservationModel = new ReservationModel();
         reservationError = null;
-        reservationSuccess = null;
     }
     
     private async Task SaveReservation()
@@ -1017,7 +997,6 @@ else
         
         savingReservation = true;
         reservationError = null;
-        reservationSuccess = null;
         
         try
         {
@@ -1042,14 +1021,11 @@ else
             
             await ProductReservationService.CreateAsync(reservation);
             
-            reservationSuccess = "Reserva criada com sucesso!";
-            
             // Update local cache
             userReservations[selectedProduct.Id] = reservation;
-            
-            // Close modal after a short delay
-            await Task.Delay(1500);
+
             CloseReservationModal();
+            Toasts.ShowSuccess("Reserva criada com sucesso!");
         }
         catch (InvalidOperationException ex)
         {

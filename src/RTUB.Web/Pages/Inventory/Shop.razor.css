@@ -7,12 +7,6 @@
     }
 }
 
-/* Filter dropdown containers */
-.filter-dropdown-container {
-    min-width: 200px;
-    max-width: 240px;
-}
-
 /* Product description display */
 .product-description {
     white-space: pre-line;

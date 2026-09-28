@@ -1,110 +1,58 @@
 @namespace RTUB.Shared
 
 @*
-    FormTextField Component
-    Modern text input field with optional icon, following DetailsModal and Profile design patterns
+    Single-line text field on the shared FormField pattern (label associated, help described).
+    For EditForm fields use FormField directly with InputText and For.
 *@
 
-<div class="form-group @CssClass">
-    @if (!string.IsNullOrEmpty(Label))
-    {
-        <label class="form-label fw-semibold @LabelCssClass">
-            @if (!string.IsNullOrEmpty(Icon))
-            {
-                <i class="bi bi-@Icon text-primary me-2"></i>
-            }
-            @Label
-            @if (Required)
-            {
-                <span class="text-danger ms-1">*</span>
-            }
-        </label>
-    }
-    <input type="text" 
-           class="form-control @InputCssClass" 
-           value="@Value" 
+<FormField Label="@Label" Icon="@(string.IsNullOrEmpty(Icon) ? null : "bi-" + Icon)" Help="@HelpText"
+           Required="@Required" Id="@Id" CssClass="@CssClass" Context="field">
+    <input @attributes="field.Attributes"
+           type="text"
+           class="form-control @InputCssClass"
+           value="@Value"
            @onchange="OnValueChanged"
            placeholder="@Placeholder"
            disabled="@Disabled"
            readonly="@ReadOnly" />
-    @if (!string.IsNullOrEmpty(HelpText))
-    {
-        <small class="form-text text-muted mt-1 d-block">@HelpText</small>
-    }
-</div>
+</FormField>
 
 @code {
-    /// <summary>
-    /// Label text for the input field
-    /// </summary>
-    [Parameter]
-    public string Label { get; set; } = string.Empty;
+    /// <summary>Label text for the input field</summary>
+    [Parameter] public string Label { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Bootstrap icon class name (without "bi-" prefix, e.g., "person", "envelope")
-    /// </summary>
-    [Parameter]
-    public string? Icon { get; set; }
+    /// <summary>Bootstrap icon name without the "bi-" prefix (e.g. "person")</summary>
+    [Parameter] public string? Icon { get; set; }
 
-    /// <summary>
-    /// Current value of the input
-    /// </summary>
-    [Parameter]
-    public string? Value { get; set; }
+    /// <summary>Current value of the input</summary>
+    [Parameter] public string? Value { get; set; }
 
-    /// <summary>
-    /// Event callback when value changes
-    /// </summary>
-    [Parameter]
-    public EventCallback<string?> ValueChanged { get; set; }
+    /// <summary>Event callback when value changes</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>
-    /// Placeholder text for the input
-    /// </summary>
-    [Parameter]
-    public string? Placeholder { get; set; }
+    /// <summary>Placeholder text for the input</summary>
+    [Parameter] public string? Placeholder { get; set; }
 
-    /// <summary>
-    /// Whether the field is required
-    /// </summary>
-    [Parameter]
-    public bool Required { get; set; }
+    /// <summary>Shows the required marker; the page's own rule does the validating</summary>
+    [Parameter] public bool Required { get; set; }
 
-    /// <summary>
-    /// Whether the field is disabled
-    /// </summary>
-    [Parameter]
-    public bool Disabled { get; set; }
+    /// <summary>Whether the field is disabled</summary>
+    [Parameter] public bool Disabled { get; set; }
 
-    /// <summary>
-    /// Whether the field is read-only
-    /// </summary>
-    [Parameter]
-    public bool ReadOnly { get; set; }
+    /// <summary>Whether the field is read-only</summary>
+    [Parameter] public bool ReadOnly { get; set; }
 
-    /// <summary>
-    /// Help text displayed below the input
-    /// </summary>
-    [Parameter]
-    public string? HelpText { get; set; }
+    /// <summary>Help text displayed below the input</summary>
+    [Parameter] public string? HelpText { get; set; }
 
-    /// <summary>
-    /// Additional CSS classes for the form group
-    /// </summary>
-    [Parameter]
-    public string CssClass { get; set; } = string.Empty;
+    /// <summary>Input id; generated when not set</summary>
+    [Parameter] public string? Id { get; set; }
 
-    /// <summary>
-    /// Additional CSS classes for the label
-    /// </summary>
-    [Parameter]
-    public string LabelCssClass { get; set; } = string.Empty;
+    /// <summary>Additional CSS classes for the field wrapper</summary>
+    [Parameter] public string CssClass { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Additional CSS classes for the input
-    /// </summary>
-    [Parameter]
-    public string InputCssClass { get; set; } = string.Empty;
+    /// <summary>Additional CSS classes for the input</summary>
+    [Parameter] public string InputCssClass { get; set; } = string.Empty;
 
     private async Task OnValueChanged(ChangeEventArgs e)
     {

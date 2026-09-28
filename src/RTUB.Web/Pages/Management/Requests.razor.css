@@ -7,15 +7,6 @@
     }
 }
 
-/* Filter dropdown containers */
-.filter-dropdown-container {
-    min-width: 200px;
-}
-
-.filter-dropdown-container-wide {
-    min-width: 240px;
-}
-
 /* Request message display */
 .request-message {
     white-space: pre-line;

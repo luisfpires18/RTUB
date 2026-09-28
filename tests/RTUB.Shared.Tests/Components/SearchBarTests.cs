@@ -17,7 +17,7 @@ public class SearchBarTests : BunitContext
         var cut = Render<SearchBar>();
 
         // Assert
-        var input = cut.Find("input[type='text']");
+        var input = cut.Find("input[type='search']");
         input.Should().NotBeNull();
     }
 
@@ -143,5 +143,40 @@ public class SearchBarTests : BunitContext
         var cut = Render<SearchBar>();
 
         cut.Instance.DebounceDelay.Should().Be(300);
+    }
+
+    [Fact]
+    public void SearchBar_IsNamedByAVisuallyHiddenLabel_DerivedFromPlaceholder()
+    {
+        var cut = Render<SearchBar>(parameters => parameters
+            .Add(p => p.Placeholder, "Pesquisar membros..."));
+
+        var input = cut.Find("input");
+        var label = cut.Find($"label[for='{input.Id}']");
+        label.TextContent.Should().Be("Pesquisar membros");
+        label.ClassList.Should().Contain("visually-hidden");
+    }
+
+    [Fact]
+    public void SearchBar_ExplicitLabel_Wins()
+    {
+        var cut = Render<SearchBar>(parameters => parameters
+            .Add(p => p.Placeholder, "Nome, email...")
+            .Add(p => p.Label, "Pesquisar pedidos"));
+
+        cut.Find("label").TextContent.Should().Be("Pesquisar pedidos");
+    }
+
+    [Fact]
+    public void SearchBar_ClearButton_HasAccessibleName_AndReturnsFocusToTheField()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<SearchBar>(parameters => parameters.Add(p => p.Value, "abc"));
+
+        var clear = cut.Find("button");
+        clear.GetAttribute("aria-label").Should().Be("Limpar pesquisa");
+        clear.Click();
+
+        JSInterop.VerifyFocusAsyncInvoke();
     }
 }

@@ -33,9 +33,11 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Rehearsals> Logger
+@inject ToastService Toasts
 
 <AppTitle>Ensaios</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).">
     <Actions>
         @if (isAdmin)
@@ -49,20 +51,16 @@
 </PageHeader>
 
 <!-- Filter Controls -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-    <div class="flex-grow-1 filter-search-container">
-        <SearchBar @bind-Value="searchTerm"
-                   Placeholder="Pesquisar por tema ou localização..."
-                   OnSearch="@HandleSearchChanged" />
-    </div>
-    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-        <FilterDropdown SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-    </div>
-</div>
+<FilterToolbar>
+    <SearchBar @bind-Value="searchTerm"
+               Placeholder="Pesquisar por tema ou localização..."
+               OnSearch="@HandleSearchChanged" />
+    <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                    OnChange="@OnFiscalYearChanged"
+                    AllItemsLabel="Todos os anos"
+                    Options="@fiscalYearOptions" />
+</FilterToolbar>
 
 @if (loading)
 {
@@ -215,7 +213,7 @@ else
                 @if (isAdmin && isSelectedRehearsalApprovable)
                 {
                     <div class="col-12 col-md-4">
-                        <FilterDropdown
+                        <FilterDropdown Label="Estado da presença"
                             SelectedValue="@attendanceApprovalFilter"
                             SelectedValueChanged="@(value => attendanceApprovalFilter = value)"
                             OnChange="@FilterAttendances"
@@ -531,30 +529,18 @@ else
        Title="Editar Ensaio"
        OnClose="CloseEditModal">
     <BodyContent>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-geo-alt text-primary me-2"></i>Localização
-            </label>
-            <input type="text" class="form-control" @bind="editLocation" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-music-note-list text-primary me-2"></i>Tema (opcional)
-            </label>
-            <input type="text" class="form-control" @bind="editTheme" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-card-text text-primary me-2"></i>Descrição (opcional)
-            </label>
-            <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
-            </label>
-            <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
-        </div>
+        <FormField Label="Localização" Icon="bi-geo-alt" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" @bind="editLocation" />
+        </FormField>
+        <FormField Label="Tema (opcional)" Icon="bi-music-note-list" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" @bind="editTheme" />
+        </FormField>
+        <FormField Label="Descrição (opcional)" Icon="bi-card-text" Context="field">
+            <textarea @attributes="field.Attributes" class="form-control" rows="2" @bind="editDescription"></textarea>
+        </FormField>
+        <FormField Label="Notas (opcional)" Icon="bi-file-text" Context="field">
+            <textarea @attributes="field.Attributes" class="form-control" rows="3" @bind="editNotes"></textarea>
+        </FormField>
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
@@ -625,14 +611,12 @@ else
                 <ErrorDisplay Errors="@(new[] { cancelRehearsalErrorMessage })" />
             }
 
-            <div class="mb-3">
-                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                <textarea class="form-control" rows="4" 
+            <FormField Label="Motivo do Cancelamento" Required="true" Help="Máximo 1000 caracteres" Context="field">
+                <textarea @attributes="field.Attributes" class="form-control" rows="4"
                           @bind="cancelRehearsalReason" 
                           placeholder="Descreva o motivo do cancelamento do ensaio..."
                           maxlength="1000"></textarea>
-                <small class="text-muted">Máximo 1000 caracteres</small>
-            </div>
+            </FormField>
             
             <div class="alert alert-info mt-4 identity-alert-info">
                 <i class="bi bi-info-circle me-2"></i>
@@ -655,47 +639,29 @@ else
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            @if (!string.IsNullOrEmpty(createFeedbackMessage))
-            {
-                <div class="alert @(createFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                    @createFeedbackMessage
-                    <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
-                </div>
-            }
+            <Alert Type="Alert.AlertType.Error"
+                   Message="@createFeedbackMessage"
+                   Dismissible="true"
+                   OnDismiss="@(() => createFeedbackMessage = "")" />
             <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm" id="createRehearsalForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar3 text-primary me-2"></i>Data *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="createRehearsalForm.Date" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
-                    </label>
-                    <InputText class="form-control" @bind-Value="createRehearsalForm.Location" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="2" @bind-Value="createRehearsalForm.Description" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Notas (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
-                </div>
+                <FormField Label="Data" Icon="bi-calendar3" For="() => createRehearsalForm.Date" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Date" />
+                </FormField>
+                <FormField Label="Localização" Icon="bi-geo-alt" For="() => createRehearsalForm.Location" Required="true" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Location" />
+                </FormField>
+                <FormField Label="Tema (Opcional)" Icon="bi-music-note-list" For="() => createRehearsalForm.Theme" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Theme" />
+                </FormField>
+                <FormField Label="Descrição (Opcional)" Icon="bi-card-text" For="() => createRehearsalForm.Description" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="2" @bind-Value="createRehearsalForm.Description" />
+                </FormField>
+                <FormField Label="Notas (Opcional)" Icon="bi-file-text" For="() => createRehearsalForm.Notes" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
+                </FormField>
 
             </EditForm>
         </BodyContent>
@@ -727,7 +693,7 @@ else
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Categoria</label>
-                        <FilterDropdown SelectedValue="@selectedStatsCategoryFilter"
+                        <FilterDropdown Label="Categoria" SelectedValue="@selectedStatsCategoryFilter"
                                         SelectedValueChanged="@(value => selectedStatsCategoryFilter = value)"
                                         OnChange="@FilterStats"
                                         AllItemsLabel="Todos"
@@ -830,47 +796,29 @@ else
            Title="Criar Ensaios (Intervalo)"
            OnClose="CloseDateRangeModal">
         <BodyContent>
-            @if (!string.IsNullOrEmpty(rangeFeedbackMessage))
-            {
-                <div class="alert @(rangeFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                    @rangeFeedbackMessage
-                    <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
-                </div>
-            }
+            <Alert Type="@(rangeFeedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Warning)"
+                   Message="@rangeFeedbackMessage"
+                   Dismissible="true"
+                   OnDismiss="@(() => rangeFeedbackMessage = "")" />
             <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm" id="rangeRehearsalForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar-plus text-primary me-2"></i>Data Início *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
-                    </label>
-                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
-                </div>
+                <FormField Label="Data Início" Icon="bi-calendar-plus" For="() => rangeRehearsalForm.StartDate" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
+                </FormField>
+                <FormField Label="Data Fim" Icon="bi-calendar-check" For="() => rangeRehearsalForm.EndDate" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
+                </FormField>
+                <FormField Label="Localização" Icon="bi-geo-alt" For="() => rangeRehearsalForm.Location" Required="true" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.Location" />
+                </FormField>
+                <FormField Label="Tema (Opcional)" Icon="bi-music-note-list" For="() => rangeRehearsalForm.Theme" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
+                </FormField>
+                <FormField Label="Descrição (Opcional)" Icon="bi-card-text" For="() => rangeRehearsalForm.Description" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
+                </FormField>
                 <p class="text-muted">
                     <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
                 </p>
@@ -1083,17 +1031,13 @@ else
                 else
                 {
                     <!-- Custom Notification Message -->
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
-                        <textarea class="form-control" 
+                    <FormField Label="Mensagem da Notificação" Required="true" Help='A notificação terá o título automático no formato "Ensaio - DD/MMM DayOfWeek". Máximo 500 caracteres.' Context="field">
+                        <textarea @attributes="field.Attributes" class="form-control"
                                   rows="4" 
                                   @bind="customNotificationBody" 
                                   placeholder="Ex: Ensaio importante!"
                                   maxlength="500"></textarea>
-                        <small class="text-muted">
-                            A notificação terá o título automático no formato "Ensaio - DD/MMM DayOfWeek". Máximo 500 caracteres.
-                        </small>
-                    </div>
+                    </FormField>
                     
                     <!-- Filter Option -->
                     <div class="mb-3">
@@ -1137,6 +1081,7 @@ else
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private bool loading = true;
@@ -1268,7 +1213,6 @@ else
     private RehearsalFormModel createRehearsalForm = new();
     private EditForm? createRehearsalEditForm;
     private string createFeedbackMessage = "";
-    private bool createFeedbackIsError = false;
 
     // Range rehearsals
     private RehearsalRangeFormModel rangeRehearsalForm = new();
@@ -2281,7 +2225,6 @@ else
         modals.Close(ModalType.Create);
         // Clear feedback messages when modal closes
         createFeedbackMessage = "";
-        createFeedbackIsError = false;
     }
 
     private async Task SaveNewRehearsal()
@@ -2289,7 +2232,6 @@ else
         try
         {
             createFeedbackMessage = "";
-            createFeedbackIsError = false;
 
             if (createRehearsalEditForm?.EditContext == null) return;
 
@@ -2314,7 +2256,6 @@ else
         catch (Exception ex)
         {
             createFeedbackMessage = $"Erro ao criar ensaio: {ex.Message}";
-            createFeedbackIsError = true;
             StateHasChanged();
         }
     }
@@ -2557,12 +2498,8 @@ else
             }
             else if (created > 0)
             {
-                rangeFeedbackMessage = $"Criados {created} ensaios com sucesso!";
-                rangeFeedbackIsError = false;
-                await LoadData();
-                // Close modal after a short delay to show success message
-                await Task.Delay(1500);
                 CloseDateRangeModal();
+                Toasts.ShowSuccess($"Criados {created} ensaios com sucesso!");
             }
             else if (skipped > 0)
             {

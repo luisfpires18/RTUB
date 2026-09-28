@@ -44,6 +44,8 @@ public abstract class PageTestBase : BunitContext
 
         Services.AddSingleton(MockLoggerFactory.Object);
         Services.AddSingleton(MockJSRuntime.Object);
+        // Pages report transient feedback through the shared toast queue (UI refactor 036).
+        Services.AddScoped<RTUB.Shared.ToastService>();
 
         // Register default mocks for all application interfaces to avoid "no registered service" failures
         // when pages inject newly extracted services.

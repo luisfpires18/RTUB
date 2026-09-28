@@ -31,6 +31,7 @@
 
 <AppTitle>@(board is null ? "Logística" : $"{board.Name} - Logística")</AppTitle>
 
+<AppErrorBoundary>
 <AuthorizeView Context="outerAuthContext">
     <Authorized>
         @if (board == null)
@@ -65,7 +66,7 @@
                 {
                     <div class="d-flex justify-content-center mt-3">
                         <div class="filter-dropdown-narrow">
-                            <FilterDropdown IconClass="bi-tag" 
+                            <FilterDropdown Label="Etiqueta" IconClass="bi-tag"
                                            AllItemsLabel="Todas as Etiquetas"
                                            Items="@availableLabels"
                                            SelectedValue="@selectedLabelFilter"
@@ -684,11 +685,8 @@
                 <i class="bi bi-exclamation-triangle me-2"></i>@reminderErrorMessage
             </div>
         }
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-card-checklist text-primary me-2"></i>Selecionar Cartão
-            </label>
-            <select class="form-select" @bind="selectedReminderCardId">
+        <FormField Label="Selecionar Cartão" Icon="bi-card-checklist" Context="field">
+            <select @attributes="field.Attributes" class="form-select" @bind="selectedReminderCardId">
                 <option value="">-- Selecione um cartão --</option>
                 @if (lists != null)
                 {
@@ -701,25 +699,19 @@
                     }
                 }
             </select>
-        </div>
+        </FormField>
         
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-clock text-primary me-2"></i>Frequência
-            </label>
-            <select class="form-select" @bind="selectedReminderFrequency">
+        <FormField Label="Frequência" Icon="bi-clock" Context="field">
+            <select @attributes="field.Attributes" class="form-select" @bind="selectedReminderFrequency">
                 <option value="@((int)ReminderFrequency.OneTime)">Uma vez</option>
                 <option value="@((int)ReminderFrequency.Daily)">Diariamente</option>
                 <option value="@((int)ReminderFrequency.Weekly)">Semanalmente</option>
             </select>
-        </div>
+        </FormField>
         
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-calendar text-primary me-2"></i>Primeira Data do Lembrete
-            </label>
-            <input type="datetime-local" class="form-control" @bind="nextReminderDate" />
-        </div>
+        <FormField Label="Primeira Data do Lembrete" Icon="bi-calendar" Context="field">
+            <input @attributes="field.Attributes" type="datetime-local" class="form-control" @bind="nextReminderDate" />
+        </FormField>
         
         <div class="mb-3">
             <label class="form-label fw-semibold d-flex align-items-center gap-2 mb-1">
@@ -795,6 +787,7 @@
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     // Helper classes (private to avoid naming conflicts)

@@ -55,6 +55,21 @@ public class AppShellTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Shell_HasCircuitErrorUi_AndToastRegions()
+    {
+        // UI refactor 036 (docs/design/RTUB_UI_REFACTOR.md 23.5, 23.9): Blazor shows
+        // #blazor-error-ui when an exception ends the circuit; the layout's ToastHost prerenders
+        // its live regions so later toasts are announced.
+        var html = await Factory.CreateClient().GetStringAsync("/events");
+
+        var errorUi = Regex.Match(html, @"<div id=""blazor-error-ui""[\s\S]*?</div>\s*</div>").Value;
+        errorUi.Should().Contain("role=\"alert\"").And.Contain("Ocorreu um erro inesperado")
+            .And.Contain("blazor-error-reload").And.Contain("Recarregar");
+        Regex.IsMatch(html, "class=\"toast-stack__region\" role=\"status\" aria-live=\"polite\"").Should().BeTrue();
+        Regex.IsMatch(html, "class=\"toast-stack__region\" role=\"alert\" aria-live=\"assertive\"").Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Shell_MarksTheCurrentPage_AndItsSection()
     {
         var client = await SignedInClientAsync("shell-member");

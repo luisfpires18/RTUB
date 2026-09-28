@@ -16,6 +16,7 @@
 
 <AppTitle>Histórico de atividades</AppTitle>
 
+<AppErrorBoundary>
 <div class="container-fluid audit-log-page">
     <PageHeader Title="Histórico de atividades" Icon="bi-shield-check" Subtitle="Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas">
         <Actions>
@@ -75,7 +76,7 @@
                 <div class="filters-grid row g-3">
                     <div class="filter-group col-12 col-md-6">
                         <label class="form-label">User</label>
-                        <FilterDropdown ShowIcon="false"
+                        <FilterDropdown Label="User" ShowIcon="false"
                                         SelectedValue="@selectedUser"
                                         SelectedValueChanged="@(value => selectedUser = value)"
                                         OnChange="@ApplyFilters"
@@ -84,7 +85,7 @@
                     </div>
                     <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Exclude User</label>
-                        <FilterDropdown ShowIcon="false"
+                        <FilterDropdown Label="Exclude User" ShowIcon="false"
                                         SelectedValue="@excludedUser"
                                         SelectedValueChanged="@(value => excludedUser = value)"
                                         OnChange="@ApplyFilters"
@@ -93,7 +94,7 @@
                     </div>
                     <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Entity Type</label>
-                        <FilterDropdown SelectedValue="@selectedEntityType"
+                        <FilterDropdown Label="Entity Type" SelectedValue="@selectedEntityType"
                                         SelectedValueChanged="@(value => selectedEntityType = value)"
                                         OnChange="@ApplyFilters"
                                         AllItemsLabel="All Entities"
@@ -101,7 +102,7 @@
                     </div>
                     <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Action</label>
-                        <FilterDropdown SelectedValue="@selectedAction"
+                        <FilterDropdown Label="Action" SelectedValue="@selectedAction"
                                         SelectedValueChanged="@(value => selectedAction = value)"
                                         OnChange="@ApplyFilters"
                                         AllItemsLabel="All Actions"
@@ -338,19 +339,15 @@
        ShowChanged="@((show) => modals.Toggle(ModalType.Truncate, show))"
        Title="@(string.IsNullOrWhiteSpace(truncateSelectedUser) ? "Confirm Truncate All" : $"Confirm Truncate by User")">
     <BodyContent>
-        <div class="mb-3">
-            <label class="form-label">User (Optional)</label>
-            <select class="form-select" @bind="truncateSelectedUser">
+        <FormField Label="User (Optional)" Help='Select a user to delete only their logs, or leave as "All Users" to delete all logs.' Context="field">
+            <select @attributes="field.Attributes" class="form-select" @bind="truncateSelectedUser">
                 <option value="">All Users</option>
                 @foreach (var user in availableUsers)
                 {
                     <option value="@user" @key="user">@user</option>
                 }
             </select>
-            <small class="form-text text-muted">
-                Select a user to delete only their logs, or leave as "All Users" to delete all logs.
-            </small>
-        </div>
+        </FormField>
         
         @if (string.IsNullOrWhiteSpace(truncateSelectedUser))
         {
@@ -390,6 +387,7 @@
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 
 @code {

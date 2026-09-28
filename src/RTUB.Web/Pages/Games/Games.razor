@@ -20,6 +20,7 @@
 
 <AppTitle>Mini Jogos</AppTitle>
 
+<AppErrorBoundary>
 <div class="games-container">
     <div class="games-header">
         <h2><i class="bi bi-controller"></i> Jogos</h2>
@@ -28,11 +29,7 @@
 
     @if (loading)
     {
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">A carregar...</span>
-            </div>
-        </div>
+        <LoadingSpinner Message="A carregar jogos..." />
     }
     else if (!filteredGames.Any())
     {
@@ -83,18 +80,12 @@
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-controller text-primary me-2"></i>Título
-                </label>
-                <input type="text" class="form-control" @bind="editingGame.Title" readonly />
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                </label>
-                <textarea class="form-control" rows="3" @bind="editingGame.Description" placeholder="Descrição do jogo..."></textarea>
-            </div>
+            <FormField Label="Título" Icon="bi-controller" Context="field">
+                <input @attributes="field.Attributes" type="text" class="form-control" @bind="editingGame.Title" readonly />
+            </FormField>
+            <FormField Label="Descrição" Icon="bi-text-paragraph" Context="field">
+                <textarea @attributes="field.Attributes" class="form-control" rows="3" @bind="editingGame.Description" placeholder="Descrição do jogo..."></textarea>
+            </FormField>
             <div class="mb-3">
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="gameComingSoon" @bind="editingGame.IsComingSoon" />
@@ -223,6 +214,7 @@
         </FooterContent>
     </Modal>
 }
+</AppErrorBoundary>
 
 @code {
     private List<GameDto> allGames = new();
