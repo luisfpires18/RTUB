@@ -97,6 +97,21 @@ public class AppShellTests : IntegrationTestBase
         response.Headers.CacheControl!.ToString().Replace(" ", string.Empty).Should().Be(cacheControl);
     }
 
+    [Fact]
+    public async Task UnversionedAsset_AfterItsVersionedUrlWasServed_IsStillRevalidated()
+    {
+        // UseResponseCaching keys its server-side cache on the path unless told to vary by query
+        // keys. The 30-day "?v=" response must not also answer the unversioned URL (seen in CI,
+        // where test order put the versioned request first).
+        var client = Factory.CreateClient();
+
+        var versioned = await client.GetAsync("/css/2-layout/footer.css?v=first");
+        var unversioned = await client.GetAsync("/css/2-layout/footer.css");
+
+        versioned.Headers.CacheControl!.ToString().Replace(" ", string.Empty).Should().Be("public,max-age=2592000");
+        unversioned.Headers.CacheControl!.ToString().Replace(" ", string.Empty).Should().Be("no-cache");
+    }
+
     private async Task<HttpClient> SignedInClientAsync(string userName)
     {
         var password = TestSecret.NewPassword();
