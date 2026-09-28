@@ -20,22 +20,15 @@
 
 <AppTitle>Loja</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-cart"></i> Loja RTUB</h1>
-        <p class="lead page-header-subtitle text-light-theme">Produtos oficiais da Real Tuna Universitária de Bragança</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="Loja RTUB" Icon="bi-cart" Subtitle="Produtos oficiais da Real Tuna Universitária de Bragança">
+    <Actions>
         <AuthorizeView Roles="Admin,Mod">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Adicionar Novo Produto">
-                    <i class="bi bi-plus-lg"></i> Adicionar Produto
-                </button>
+                <PageAction Label="Adicionar Produto" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateProductModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 <!-- Filter -->
 <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
@@ -627,8 +620,6 @@ else
     </BodyContent>
 </ConfirmDialog>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Product> products = new();
@@ -639,8 +630,6 @@ else
     private string selectedType = "";
     private bool loading = true;
     private bool isMember = false;
-    private bool isAdminOrMod = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private PaginationHelper<Product> paginationHelper = new() { PageSize = 6 };
 
     // Fiscal year filtering
@@ -708,21 +697,9 @@ else
         selectedFiscalYear = currentFiscalYear;
 
         await LoadProducts();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdminOrMod)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") OpenCreateProductModal();
-    }
 
     private async Task LoadProducts()
     {
@@ -731,7 +708,6 @@ else
         // Check if user is authenticated (member)
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isMember = authState.User.Identity?.IsAuthenticated ?? false;
-        isAdminOrMod = authState.User.IsInRole("Admin") || authState.User.IsInRole("Mod");
         currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
         // Load products based on membership - show all products regardless of stock

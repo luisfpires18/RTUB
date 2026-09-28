@@ -153,12 +153,12 @@
 <!-- #6 Mobile Bottom Nav -->
 @if (isAuthenticated)
 {
-    <MobileBottomNav Items="@appNavItems" OnSelect="HandleAppNavSelect"
+    <MobileBottomNav Items="@appNavItems" OnSelect="HandleAppNavSelect" AriaLabel="Navegação rápida"
                      Badges="@appNavBadges" />
 }
 else
 {
-    <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" />
+    <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" AriaLabel="Secções da página" />
 }
 
 @code {

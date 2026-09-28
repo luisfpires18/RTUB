@@ -21,27 +21,16 @@
 
 <AppTitle>Naipes</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-music-player"></i> Naipes</h1>
-        <p class="lead page-header-subtitle text-light-theme">Conteúdo educativo para cada naipe (vídeos e imagens).</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Naipes" Icon="bi-music-player" Subtitle="Conteúdo educativo para cada naipe (vídeos e imagens).">
+    <Actions>
         @if (isAdmin)
         {
-            <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
-                <i class="bi bi-sliders"></i> Configurar
-            </a>
+            <PageAction Label="Configurar" Icon="bi-sliders" Href="/naipes/config" />
         }
-        <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
-            <i class="bi bi-camera-video"></i> Adicionar Vídeo
-        </button>
-        <button class="btn btn-success" @onclick="() => OpenCreateModal(false)" title="Adicionar Imagem">
-            <i class="bi bi-image"></i> Adicionar Imagem
-        </button>
-    </div>
-</div>
+        <PageAction Label="Adicionar Vídeo" Icon="bi-camera-video" OnClick="@(() => OpenCreateModal(true))" />
+        <PageAction Label="Adicionar Imagem" Icon="bi-image" OnClick="@(() => OpenCreateModal(false))" />
+    </Actions>
+</PageHeader>
 
 <!-- Instrument Type Selector -->
 <div class="instrument-selector-wrapper mb-4">
@@ -342,14 +331,11 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="@ConfirmDelete" />
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // State
     private bool loading = true;
     private bool isAdmin = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private string? currentUserId;
     private AuthenticationState? cachedAuthState;
     private List<NaipeContentDto> allContent = new();
@@ -414,28 +400,9 @@ else
         }
 
         await LoadContent();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdmin)
-            items.Add(new("action-config", "Configurar", "bi-sliders"));
-        items.Add(new("action-add-video", "Adicionar Vídeo", "bi-camera-video"));
-        items.Add(new("action-add-image", "Adicionar Imagem", "bi-image"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-config": Navigation.NavigateTo("/naipes/config"); break;
-            case "action-add-video": OpenCreateModal(true); break;
-            case "action-add-image": OpenCreateModal(false); break;
-        }
-    }
 
     private async Task LoadContent()
     {

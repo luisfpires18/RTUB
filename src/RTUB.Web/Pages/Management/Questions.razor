@@ -26,23 +26,14 @@
     else
     {
         <!-- Page Header -->
-        <div class="page-header-centered">
-            <div class="page-header-left"></div>
-
-            <div class="page-header-center">
-                <h1><i class="bi bi-question-circle"></i> Perguntas</h1>
-                <p class="page-header-subtitle">Faça perguntas aos membros dos Órgãos Sociais</p>
-            </div>
-
-            <div class="page-header-right d-none d-xl-flex">
+        <PageHeader Title="Perguntas" Icon="bi-question-circle" Subtitle="Faça perguntas aos membros dos Órgãos Sociais">
+            <Actions>
                 @if (currentUser != null)
                 {
-                    <button class="btn btn-success" @onclick="OpenCreateQuestionModal" title="Criar Nova Pergunta">
-                        <i class="bi bi-plus-lg"></i> Nova Pergunta
-                    </button>
+                    <PageAction Label="Nova Pergunta" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateQuestionModal" />
                 }
-            </div>
-        </div>
+            </Actions>
+        </PageHeader>
 
         <!-- Search Bar and Filter -->
         <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap flex-lg-nowrap">
@@ -139,8 +130,6 @@
     }
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Create Question Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Create)" 
@@ -495,8 +484,6 @@
     private Question? questionToView;
     private Question? questionToReply;
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -505,28 +492,9 @@
         await LoadMemberFilterOptionsAsync();
         await LoadQuestionsAsync();
         isLoading = false;
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
 
-        if (currentUser != null)
-        {
-            items.Add(new("action-add", "Nova Pergunta", "bi-plus-lg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add")
-        {
-            OpenCreateQuestionModal();
-        }
-    }
 
     private async Task LoadCurrentUserAsync()
     {

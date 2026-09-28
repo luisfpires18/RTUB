@@ -31,30 +31,15 @@
     else
     {
         <!-- Page Header -->
-        <div class="page-header-centered">
-            <div class="page-header-left d-none d-xl-flex">
-                <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-            </div>
-
-            <div class="page-header-center">
-                <h1><i class="bi bi-chat-dots"></i> Discussão</h1>
-                <p class="page-header-subtitle">@eventItem.Name</p>
-            </div>
-
-            <div class="page-header-right d-none d-xl-flex gap-2">
+        <PageHeader Title="Discussão" Icon="bi-chat-dots" Subtitle="@eventItem.Name" OnBack="NavigateBack">
+            <Actions>
                 @if (canCreatePost)
                 {
-                    <button class="btn btn-outline-primary" @onclick="OpenCreateTransportModal" title="Oferecer Transporte">
-                        <i class="bi bi-car-front"></i> Transporte
-                    </button>
-                    <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
-                        <i class="bi bi-plus-lg"></i> Adicionar Post
-                    </button>
+                    <PageAction Label="Transporte" Icon="bi-car-front" OnClick="OpenCreateTransportModal" />
+                    <PageAction Label="Adicionar Post" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreatePostModal" />
                 }
-            </div>
-        </div>
+            </Actions>
+        </PageHeader>
 
         <!-- Search Bar -->
         <SearchBar @bind-Value="searchTerm"
@@ -256,8 +241,6 @@
     }
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Create Post Modal -->
 <Modal Show="@modals.IsOpen(ModalType.CreatePost)"
@@ -449,8 +432,6 @@
     private Dictionary<int, List<ApplicationUser>> filteredPassengerCandidates = new();
     private Dictionary<int, string?> transportErrors = new();
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -459,31 +440,9 @@
         await LoadDiscussionAsync();
         await LoadPostsAsync();
         allMembers = (await TransportationService.GetAllMembersAsync()).ToList();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left")
-        };
 
-        if (canCreatePost)
-        {
-            items.Add(new("action-transport", "Transporte", "bi-car-front"));
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back") NavigateBack();
-        else if (key == "action-transport") OpenCreateTransportModal();
-        else if (key == "action-add") OpenCreatePostModal();
-    }
 
     private async Task LoadEventAsync()
     {

@@ -317,6 +317,7 @@ public class LogisticsAuthorizationTests : PageTestBase
             i.Method.GetGenericArguments().SingleOrDefault() == typeof(IJSVoidResult) &&
             (string)i.Arguments[0] == "initializeKanbanDragDrop");
 
+    // The page's actions as the phone/tablet bar shows them (PageActions, UI refactor 035).
     private static IEnumerable<string> MobileNavLabels<T>(IRenderedComponent<T> cut) where T : Microsoft.AspNetCore.Components.IComponent =>
-        cut.FindAll(".mobile-bottom-nav__btn").Select(b => b.TextContent.Trim());
+        cut.FindAll(".page-action-bar__item").Select(b => b.TextContent.Trim());
 }

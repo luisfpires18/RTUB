@@ -3,26 +3,31 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
-@* 
-    Reusable Modal Component
-    Used across the application for dialogs and modals
+@*
+    Shared dialog (UI refactor 035; contract: docs/design/RTUB_UI_REFACTOR.md section 22).
+
+    Phones (< 768px): full-screen sheet with a bottom action bar; Small dialogs stay a centered
+    box. Larger screens: a dialog sized by Size.
+    Semantics and focus: role="dialog" + aria-modal, named by its title. On open, focus moves to
+    the element marked data-autofocus (else the dialog itself); Tab stays inside; on close focus
+    returns to the control that opened it (modalHelper.js).
+    Dismissal: the close button, Escape (CloseOnEscape, default ShowCloseButton) and the default
+    footer all go through RequestCloseAsync, which asks CanClose first - the hook later
+    unsaved-change guards use. Clicking the backdrop never closes a dialog.
 *@
 
 @if (Show)
 {
     <div class="modal-backdrop show"></div>
-    <div class="modal show d-block" tabindex="-1" @onkeydown="HandleKeyDown">
+    <div class="modal show d-block" id="@_id" tabindex="-1" role="dialog" aria-modal="true"
+         aria-labelledby="@(ShowsTitle ? TitleId : null)"
+         aria-label="@(ShowsTitle || string.IsNullOrEmpty(Title) ? null : Title)"
+         aria-describedby="@AriaDescribedBy">
         <div class="modal-dialog @SizeClass @(Centered ? "modal-dialog-centered" : "")">
             <div class="modal-content">
                 @if (!string.IsNullOrEmpty(Title) || ShowCloseButton || HeaderActions != null)
                 {
                     <div class="modal-header modal-header-primary">
-                        @if (ShowCloseButton)
-                        {
-                            <button type="button" class="modal-mobile-back" @onclick="Close" aria-label="Voltar">
-                                <i class="bi bi-arrow-left"></i> Voltar
-                            </button>
-                        }
                         @if (HeaderActions != null)
                         {
                             <div class="modal-header-actions">
@@ -31,12 +36,15 @@
                         }
                         else if (!string.IsNullOrEmpty(Title))
                         {
-                            <h5 class="modal-title">@Title</h5>
+                            <h2 class="modal-title" id="@TitleId">@Title</h2>
                         }
                         @if (ShowCloseButton)
                         {
-                            <button type="button" class="modal-close-arrow" @onclick="Close" aria-label="Voltar Atrás">
-                                <i class="bi bi-arrow-left"></i>
+                            @* One control: an X at the right on larger screens, a back arrow at the
+                               left of the phone sheet (modals.css). *@
+                            <button type="button" class="modal-close" @onclick="RequestCloseAsync" aria-label="Fechar">
+                                <i class="bi bi-x-lg modal-close__icon-dialog" aria-hidden="true"></i>
+                                <i class="bi bi-arrow-left modal-close__icon-sheet" aria-hidden="true"></i>
                             </button>
                         }
                     </div>
@@ -53,7 +61,7 @@
                 else if (ShowCloseButton)
                 {
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="Close">Voltar Atrás</button>
+                        <button type="button" class="btn btn-secondary" @onclick="RequestCloseAsync">Voltar AtrÃ¡s</button>
                     </div>
                 }
             </div>
@@ -75,7 +83,7 @@
     public EventCallback<bool> ShowChanged { get; set; }
 
     /// <summary>
-    /// Modal title displayed in header
+    /// Modal title displayed in header; also the dialog's accessible name
     /// </summary>
     [Parameter]
     public string? Title { get; set; }
@@ -93,7 +101,7 @@
     public RenderFragment? FooterContent { get; set; }
 
     /// <summary>
-    /// Header actions content (buttons, links, etc.)
+    /// Header actions content (buttons, links, etc.), shown instead of the title heading
     /// </summary>
     [Parameter]
     public RenderFragment? HeaderActions { get; set; }
@@ -105,10 +113,30 @@
     public ModalSize Size { get; set; } = ModalSize.Default;
 
     /// <summary>
-    /// Whether to show close button in header
+    /// Whether the dialog can be dismissed with a close button in its header
     /// </summary>
     [Parameter]
     public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>
+    /// Whether Escape dismisses the dialog. Defaults to <see cref="ShowCloseButton"/>: a dialog
+    /// without a close button is not dismissible unless it opts in.
+    /// </summary>
+    [Parameter]
+    public bool? CloseOnEscape { get; set; }
+
+    /// <summary>
+    /// Asked before any user dismissal (close button, Escape, default footer). Return false to
+    /// keep the dialog open, e.g. while an operation runs or to confirm discarding changes.
+    /// </summary>
+    [Parameter]
+    public Func<Task<bool>>? CanClose { get; set; }
+
+    /// <summary>
+    /// Id of the element that describes the dialog (read after its name), e.g. a confirmation message
+    /// </summary>
+    [Parameter]
+    public string? AriaDescribedBy { get; set; }
 
     /// <summary>
     /// Whether to center the modal vertically
@@ -122,12 +150,14 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
-    private bool _previousShowState = false;
-    private bool _bodyScrollLockApplied = false;
-    
-    // Retry delay for JS interop unlock operations (in milliseconds)
-    private const int JsRetryDelayMs = 50;
-    
+    private readonly string _id = "rtub-dialog-" + Guid.NewGuid().ToString("N")[..10];
+    private string TitleId => _id + "-title";
+    private bool ShowsTitle => HeaderActions == null && !string.IsNullOrEmpty(Title);
+
+    private bool _renderedShow = false;
+    private bool _registered = false;
+    private DotNetObjectReference<Modal>? _selfReference;
+
     private string SizeClass => Size switch
     {
         ModalSize.Small => "modal-sm",
@@ -135,128 +165,81 @@
         ModalSize.ExtraLarge => "modal-xl",
         _ => ""
     };
-    
+
     /// <summary>
-    /// Optimize rendering - only re-render when Show state changes
-    /// Always render when Show changes to ensure OnAfterRenderAsync is called for scroll unlock
+    /// Optimize rendering - only re-render while visible or when Show changed since the last
+    /// render. (The first render skips ShouldRender, so the rendered state is recorded after each
+    /// render; a dialog first rendered open can then still be hidden by its parent.)
     /// </summary>
-    protected override bool ShouldRender()
-    {
-        if (Show != _previousShowState)
-        {
-            _previousShowState = Show;
-            return true;
-        }
-        // Only render if modal is visible (Show == true)
-        // When Show is false and hasn't changed, skip rendering (modal already hidden)
-        return Show;
-    }
-    
-    /// <summary>
-    /// Handle modal show/hide state changes and manage body scroll lock
-    /// Critical: Ensures body scroll is properly unlocked when modal closes
-    /// </summary>
+    protected override bool ShouldRender() => Show || Show != _renderedShow;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Check if body scroll lock state needs to change
-        if (Show && !_bodyScrollLockApplied)
+        _renderedShow = Show;
+
+        if (Show && !_registered)
         {
-            // Modal opened - lock body scroll
-            try
-            {
-                await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
-                _bodyScrollLockApplied = true;
-            }
-            catch (JSException)
-            {
-                // Silent failure is acceptable here - modal will still function without scroll lock
-                // This can occur during prerendering or if JS is disabled
-                // The modal itself remains functional; scroll lock is a UX enhancement
-            }
-            catch (JSDisconnectedException)
-            {
-                // Circuit disconnected - benign, ignore
-                // Modal is being disposed, no action needed
-            }
-            catch (TaskCanceledException)
-            {
-                // User navigated away - benign, ignore
-                // Modal will be cleaned up by Blazor lifecycle
-            }
+            _registered = true;
+            _selfReference ??= DotNetObjectReference.Create(this);
+            await InvokeHelperAsync("modalHelper.openDialog", _id, _selfReference, CloseOnEscape ?? ShowCloseButton);
         }
-        else if (!Show && _bodyScrollLockApplied)
+        else if (!Show && _registered)
         {
-            // Modal closed - unlock body scroll
-            // CRITICAL FIX: Always attempt to unlock scroll when modal is hidden
-            await UnlockBodyScrollAsync();
-        }
-    }
-    
-    /// <summary>
-    /// Helper method to unlock body scroll with proper error handling
-    /// </summary>
-    private async Task UnlockBodyScrollAsync()
-    {
-        if (!_bodyScrollLockApplied)
-        {
-            return;
-        }
-        
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
-            _bodyScrollLockApplied = false;
-        }
-        catch (JSException)
-        {
-            // Try one more time in case of transient JS error
-            // Short delay to allow JS to stabilize
-            try
-            {
-                await Task.Delay(JsRetryDelayMs);
-                await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
-                _bodyScrollLockApplied = false;
-            }
-            catch
-            {
-                // Give up but mark as unlocked to prevent further attempts
-                _bodyScrollLockApplied = false;
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit disconnected - mark as unlocked
-            _bodyScrollLockApplied = false;
-        }
-        catch (TaskCanceledException)
-        {
-            // User navigated away - mark as unlocked
-            _bodyScrollLockApplied = false;
+            _registered = false;
+            await InvokeHelperAsync("modalHelper.closeDialog", _id);
         }
     }
 
-    private async Task Close()
+    /// <summary>Escape pressed while this is the top dialog (modalHelper.js).</summary>
+    [JSInvokable]
+    public Task HandleEscape() => InvokeAsync(async () =>
     {
+        await RequestCloseAsync();
+        // A JS call is not a UI event, so re-render here as the close button's click would.
+        StateHasChanged();
+    });
+
+    private async Task RequestCloseAsync()
+    {
+        if (CanClose != null && !await CanClose())
+        {
+            return;
+        }
+
         Show = false;
         await ShowChanged.InvokeAsync(false);
         await OnClose.InvokeAsync();
     }
-    
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+
+    private async Task InvokeHelperAsync(string identifier, params object?[] args)
     {
-        if (e.Key == "Escape" && ShowCloseButton)
+        try
         {
-            await Close();
+            await JSRuntime.InvokeVoidAsync(identifier, args);
+        }
+        catch (JSException)
+        {
+            // Focus and scroll lock are enhancements; the dialog still works without them.
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone; nothing to restore.
+        }
+        catch (TaskCanceledException)
+        {
+            // Navigated away.
         }
     }
-    
-    /// <summary>
-    /// Ensure body scroll is unlocked when component is disposed
-    /// Critical fix for scroll lock issue when navigating away or component is removed
-    /// </summary>
+
     public async ValueTask DisposeAsync()
     {
-        await UnlockBodyScrollAsync();
+        if (_registered)
+        {
+            _registered = false;
+            await InvokeHelperAsync("modalHelper.closeDialog", _id);
+        }
+
+        _selfReference?.Dispose();
     }
 
     public enum ModalSize

@@ -17,18 +17,7 @@
 
 <AppTitle>Configuração de Naipes</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left d-none d-xl-flex">
-        <a href="/naipes" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i>
-        </a>
-    </div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-sliders"></i> Configuração de Naipes</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir tipos de instrumento para a página Naipes.</p>
-    </div>
-    <div class="page-header-right"></div>
-</div>
+<PageHeader Title="Configuração de Naipes" Icon="bi-sliders" Subtitle="Gerir tipos de instrumento para a página Naipes." BackHref="/naipes" />
 
 @if (loading)
 {
@@ -88,8 +77,6 @@ else
     </div>
 }
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Edit Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Edit)" ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))" Title="@($"Editar {editingConfig?.InstrumentTypeName}")">
@@ -195,19 +182,7 @@ else
     private string imageInputId = $"naipe-type-image-{Guid.NewGuid():N}";
     private int imageRefreshTrigger = 0;
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
-    {
-        new("action-back", "Voltar", "bi-arrow-left")
-    };
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back")
-        {
-            Navigation.NavigateTo("/naipes");
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {

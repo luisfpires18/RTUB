@@ -7,10 +7,11 @@ _Last updated: 2026-09-27_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program: 032, 033 and 034 (Task 003, app shell and navigation) merged. **Deploy • DEV is red on the
-034 merge `ff4c40b9`** (run 36394016593: a cache-contract test caught the server response cache
-answering an unversioned asset with its `?v=` entry); **fix on `fix/034/app-shell-ci`, not yet
-merged.** Task 004 not started. Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-21.
+program: 032-034 merged (034's cache-contract fix too). **035 (Task 004, RTUB.Shared core: accessible
+`Modal`/`ConfirmDialog`, `PageHeader` on 41 pages, `PageActions` replacing duplicated desktop/phone
+action lists on 30 pages, `MobileBottomNav` for navigation only) complete on
+`chore/035/ui-shared-core-components`, not yet merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md`
+sections 20-22.
 
 ## Where things are
 | Topic | Doc |
@@ -48,6 +49,12 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
+Raised by 035 (detail: `docs/design/RTUB_UI_REFACTOR.md` 22.3, 22.11):
+- Browser/hardware Back with a dialog open still changes the page underneath: a history decision
+  for Phase 4 (forms, dialogs and data safety), with `Modal.CanClose` as the guard hook.
+- Albums' phone bar mixes section jumps with actions; `ConfirmDialog` still used for a few info
+  dialogs.
+
 Raised by 034 (detail: `docs/design/RTUB_UI_REFACTOR.md` 21.7-21.8):
 - Real-device check of the shell: installed iOS app under the status bar (`viewport-fit=cover`),
   landscape notch insets, Android Back with the drawer open.
@@ -105,9 +112,9 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
-- UI refactor Phase 3 (RTUB.Shared core: `Modal`/`ConfirmDialog`, `PageHeader`, `PageActions` over
-  `MobileBottomNav`, `IconButton`, toast host, `FormField`) per `docs/design/RTUB_UI_REFACTOR.md`
-  section 17; owner decisions in its section 18.
+- UI refactor Phase 4 (forms, dialogs and data safety: unsaved-change policy on `Modal.CanClose`,
+  dialog/Back behaviour, busy states, success feedback) per `docs/design/RTUB_UI_REFACTOR.md`
+  sections 17 and 22.12; owner decisions in its section 18.
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today

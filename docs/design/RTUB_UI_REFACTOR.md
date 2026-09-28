@@ -1255,3 +1255,185 @@ Automated and visual evidence are kept apart.
 - Phase 3 can rely on: the 1200px shell breakpoint (bottom bar, header actions and nav agree),
   `AppTitle` for any new page, versioned global CSS (a new sheet is one `@import` line in
   `site.css`), and the shell's safe-area insets.
+
+---
+
+## 22. Implemented: RTUB.Shared Core Components (unit 035, Task 004)
+
+Durable facts from implementing roadmap Phase 3's first half on
+`chore/035/ui-shared-core-components`: the dialog primitives and the page header/action pattern.
+Sections 1-21 stay as recorded.
+
+### 22.1 Inventory (before)
+
+| Component / pattern | Use | Finding |
+| --- | --- | --- |
+| `Modal` | 129 in 53 files | No dialog semantics; focus stayed on the page; Escape only worked if focus was already inside (it never was); focus not restored; the page lost its scroll position on close (phones: always to the top, desktop: partly); close control was a left arrow at the right on every size; a hidden duplicate "Voltar" button; `ShouldRender` could not hide a dialog that was first rendered open. |
+| `ConfirmDialog` | 58 in 30 files | Intent from the confirm class only: 46 `btn-danger`, 6 primary, 5 success, 1 warning. Info icon for every intent, including destructive. 9 callers pass `Disabled`; nothing else stopped a double click from confirming twice. 20 use custom body content (some as plain info dialogs). |
+| `DetailsModal`, `CrudModalManager`, `ParticipationModal`, `RepertoireModal`, `MeetingParticipationModal` | 12 / 5 / 1 / 1 / 1 | All built on `Modal` - no parallel dialog implementation. |
+| `page-header-centered` markup | 43 pages | The same left / centered title / right structure written by hand; desktop-only back buttons; right-slot actions hidden below 1200px. |
+| Desktop actions + `MobileBottomNav` items | 33 pages | Two hand-maintained lists per page: different labels ("Propor..." vs "Convocar..."), different conditions (`AuthorizeView` vs code flags) and different visibility (Meetings' AG action disabled on desktop, hidden on phones). |
+| `MobileBottomNav` | 38 pages | Classified: navigation 1 (Home: app bar when signed in, section bar when not), links to sub-pages 1 (MyTuno), section jumps mixed with actions 1 (Albums), own shell 1 (Messages), page actions 34 (16 of them with a "Voltar" item; WeaponDrinkConfig's bar was only "Voltar"). No tabs. Always labelled "Navegação do portal"; `aria-selected` on buttons. |
+
+### 22.2 Modal contract
+
+- **Semantics:** `role="dialog"`, `aria-modal="true"`, named by its title (`<h2 class="modal-title">`
+  via `aria-labelledby`), or by `aria-label` when `HeaderActions` replace the title; optional
+  `AriaDescribedBy`.
+- **Focus (modalHelper.js dialog stack):** on open, focus moves to the element marked
+  `data-autofocus`, else the dialog itself (no ring on the container). Tab and Shift+Tab stay in the
+  top dialog. On close, focus returns to the element that opened it if it is still on the page (a
+  delete button whose card was removed cannot get it back; focus then stays on the page).
+- **Stacking:** dialogs opened from dialogs form a stack; only the top one gets Tab and Escape;
+  closing it returns focus into the one below; the body stays locked until the last closes.
+- **Escape:** handled once, on `window`, after document-level handlers, so a widget that handles
+  Escape itself (an open dropdown) keeps it. It closes the top dialog when `CloseOnEscape` (default:
+  `ShowCloseButton`) - dialogs without a close button stay non-dismissible, as before.
+- **Dismissal hook:** the close button, Escape and the default footer all go through one path that
+  first awaits `CanClose` (`Func<Task<bool>>`). Returning false keeps the dialog open. This is the
+  hook the forms/data-safety phase uses for "discard changes?"; no policy is implemented here.
+  Backdrop clicks still never close a dialog.
+- **Scroll:** the lock keeps the page where it was (the body is offset while it is `position:
+  fixed` below 1025px and the position is restored on close). Measured 900 → 900 at 1440 and 390
+  (before: 900 → 194 and 700 → 0).
+- **Look:** Bootstrap modal variables on RTUB tokens (surface `--rtub-surface-alt`, border
+  `--rtub-border`, radius `--rtub-radius-lg`, 1.25rem padding, overlay shadow); title 18px/600; the
+  purple-tinted header stays. One close control: an X on the right of a dialog, a back arrow on the
+  left of a phone sheet (centered title kept). Footer buttons spaced by a gap. Enter motion only
+  (dialog 180ms rise, phone sheet 220ms slide-up), none under `prefers-reduced-motion`.
+- **Phones:** full-screen sheet with the bottom action bar (kept); its labels are 11px sentence
+  case, like the page action bar. Small dialogs stay centered boxes; their two buttons split the
+  width, confirm on the right. Top inset for the installed iOS app (21.5).
+
+### 22.3 Browser Back with a dialog open - not changed
+
+Back still navigates the page underneath while a dialog stays open (7.x, F4). A generic fix means
+pushing a history entry per dialog and popping it on close, which interacts with Blazor's
+`NavigationManager`, enhanced navigation, pages that keep filters in the query string
+(`/rehearsals?fy=`), dialogs that navigate, and nested dialogs. That is a navigation/history
+decision tied to unsaved-change protection (`NavigationLock`), so it belongs to Phase 4 (forms,
+dialogs and data safety). No history hack was added.
+
+### 22.4 ConfirmDialog
+
+- **Intent from the existing `ConfirmButtonClass`** (no consumer changed): `btn-danger` =
+  destructive (red warning triangle), `btn-warning` = caution (orange), anything else = a plain
+  confirmation (purple question mark). No info icon remains.
+- Cancel (outline, first, initial focus) then the confirm action (last). Escape cancels. The message
+  is the dialog's description.
+- **Busy:** while `OnConfirm` runs both buttons are disabled, the confirm button shows a spinner
+  and `aria-busy`, and Escape/close are refused - a second click cannot confirm twice. The dialog
+  closes when `OnConfirm` completes (unchanged); `Disabled` still works for callers that manage
+  their own state.
+- Custom-body uses (receipts, "Erro", info) keep their content.
+
+### 22.5 Dialog wrappers
+
+`DetailsModal` and the other wrappers inherit the whole contract through `Modal`; `DetailsModal`'s
+name heading is now an `h3` (under the dialog's `h2`). No wrapper needed API changes.
+
+### 22.6 PageHeader
+
+```razor
+<PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="..." BackHref="/..." or OnBack="GoBack">
+    <ChildContent>extra context under the title (badges)</ChildContent>
+    <Actions><PageAction ... /></Actions>
+</PageHeader>
+```
+
+- The page's single `h1` (icon `aria-hidden`), subtitle in `--rtub-text-muted`, optional back link
+  or button (44px, `aria-label="Voltar"`), optional context, actions.
+- Composition: title block at the start, actions at the end from 1200px (wrapping when needed); below
+  1200px the actions are in the bottom bar. Title 24-32px (`clamp`), 600; long titles wrap.
+  Replaces the centered title + separate right-aligned action row.
+- **Adopted by 41 pages** (all `page-header-centered` pages except two). Exceptions: **Songs** keeps
+  its album-cover hero (it uses `PageActions` for its action and shows its back button on every
+  size); **Albums** keeps its header because its phone bar mixes section jumps with actions (see
+  22.8).
+
+### 22.7 PageActions
+
+- One definition, two presentations: `PageAction` children render as header buttons from 1200px
+  and as a fixed bottom bar below (1200px = the shell breakpoint). Each is a labelled
+  `role="group"` ("Ações da página"), never `nav`. The bar hides itself when no action applies to
+  the current user; footer clearance covers it (`body:has(.page-action-bar__item)`).
+- `PageAction`: `Label` (header, accessible name), `ShortLabel` (bar), `Icon`, `Intent`
+  (Secondary default / Primary / Danger), `OnClick` or `Href` (a real link), `Disabled`, `Busy`
+  (spinner, `aria-busy`, not clickable). Visibility stays in the page (`@if`, `AuthorizeView`) -
+  the component never decides authorization.
+- Hierarchy: at most one Primary (purple fill; accent in the bar) - the page's create action; the
+  rest are quiet outlines; destructive actions are Danger (red outline / red bar item) and last.
+  Existing action order kept for familiarity.
+- **30 pages, 55 actions.** Measured: every page shows the same action set in the header (1440)
+  and in the bar (390) for Owner and for a Tuno member (0 mismatches); the member sees none of the
+  admin-only actions.
+- Reconciled divergences (the desktop version won, since it was the reviewed one): labels and
+  conditions come from the desktop markup (`AuthorizeView` roles); Meetings' "Propor Assembleia
+  Geral" is shown disabled on phones too (was hidden there); Inventory's add action is disabled
+  while loading on phones too; AllCharacters' "Reset Data" is shown disabled on phones too (it is
+  still turned off). Icon-only desktop actions (EventEnrollments) gained visible labels.
+- "Voltar" moved from the bar to the header's back affordance on 15 pages, now visible at every size
+  (same targets: each page's existing `GoBack`/`NavigateBack` or the same URL). The tracing page's
+  "Voltar" (to `/`) was dropped: the brand link does the same.
+- Component-owned actions (login statistics, chat/status sync, enrollment statistics) are triggered
+  through the pages' existing hidden `@ref` instances; the sync buttons expose `IsSyncing` so the
+  action shows its busy state as the old desktop button did.
+
+### 22.8 MobileBottomNav responsibility
+
+Navigation only: between app sections (Home, signed in), between a page's own sections (Home,
+public; Albums' "Públicos/Privados"), or a page's views. It is a `nav` with its own `AriaLabel`, the
+current item carries `aria-current`, labels are 11px sentence case. Remaining consumers: Home (2),
+Albums, Messages. **Albums** is a documented exception (its bar also holds two actions; splitting
+it needs a second phone bar or a new section control - a design decision for the Music page task).
+**Messages** keeps its own full-screen shell and state-driven bar. Sub-page links (MyTuno's
+Classificação/Enemies/Config, Report's Calotes/MBWAY/Nerba) are page actions: `Href` links or
+their existing navigation methods.
+
+### 22.9 Supporting primitives
+
+None added beyond `PageHeader`, `PageActions`/`PageAction` (with `PageActionIntent`). An
+`IconButton` was not created: the repeated icon-only buttons are card/admin overlays (Phase 5/6
+card work), not shell or page-level controls, so it would have had no consumer in this task.
+
+### 22.10 Validation performed
+
+- **Automated:** the CI command set (16.1). New/rewritten: `ModalTests` (+7: dialog name, header
+  actions name, Escape default and override, Escape path, `CanClose` veto, leaving the stack),
+  `ConfirmDialogTests` (+5 and 2 moved from class strings to behaviour: danger intent without info
+  icon, plain intent, description, busy guard, Escape cancels, cancel focus), `PageHeaderTests` (10:
+  heading, back link/button, groups not navigation, both presentations, intents, click from either,
+  busy, `Href`, `MobileBottomNav` naming and `aria-current`). Test stubs moved from
+  `lockBodyScroll`/`unlockBodyScroll` to `openDialog`/`closeDialog`; two page tests moved from the
+  old bottom-nav markup to the action bar.
+- **Browser (Chromium, Playwright, local scratch database, Owner and Tuno):** 410 route x viewport x
+  role captures (41 routes x 1440/1024/820/390/360): one `h1` per page, no actions inside `nav`, no
+  header actions below 1200 and no bar at 1200+, no bar together with a navigation bar, no footer
+  behind the bar, header/bar parity. Only findings: Messages at 820-1199 and Gallery at 820
+  (both pre-existing, 20.8). Dialogs: semantics, initial focus (dialog / Cancel), Escape, focus
+  return, Tab containment (0 escapes in 25 Tabs), scroll kept, and the dialog stack exercised in
+  the page (non-dismissible top dialog blocks Escape, focus returns into the lower dialog, lock held
+  until the last closes). Screens reviewed at 1440 and 390: Rehearsals, Events, Members, Meetings,
+  Finance report, Logistics board, Songs, MyTuno, tracing; edit, stats, details and delete
+  confirmation dialogs.
+- Impeccable detector on the changed components and CSS: no findings.
+- **Not verified:** real devices (virtual keyboard over sheets, iOS standalone safe areas, Android
+  Back with a dialog open), screen-reader output (the semantics were checked in the DOM only).
+
+### 22.11 Remaining
+
+- Browser/hardware Back with a dialog open (22.3) - Phase 4.
+- Albums' mixed phone bar (22.8); Messages' own shell.
+- When a dialog's opener is removed (deleting the item it belonged to), focus stays on the page
+  instead of a nearby element.
+- `ConfirmDialog` is still used for a few informational dialogs ("Erro", receipts, prizes); a plain
+  `Modal` fits them better (Phase 4/6 when those pages are touched).
+- The `page-header-centered` CSS stays for Albums and Songs.
+
+### 22.12 Roadmap adjustments
+
+- Phase 3 is done for dialogs, page headers and page actions. Still open from Phase 3: `IconButton`
+  and `OverflowMenu`/`CardActions` (with the card work), toast host, `FormField`, the
+  `EmptyState`/`LoadingSpinner`/`ErrorDisplay`/`Alert`/`SearchBar`/`FilterDropdown` refinements and
+  the error boundary.
+- Phase 4 can build dirty-form guards on `Modal.CanClose` and decide the dialog/Back behaviour.

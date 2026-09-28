@@ -48,39 +48,23 @@
 }
 else
 {
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-calendar3"></i> Reuniões</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir reuniões e assembleias da organização.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Reuniões" Icon="bi-calendar3" Subtitle="Gerir reuniões e assembleias da organização.">
+    <Actions>
         @if (CanManageMeetings())
         {
-            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
-                <i class="bi bi-plus-lg"></i> Criar Reunião
-            </button>
+            <PageAction Label="Criar Reunião" ShortLabel="Criar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
         }
         @if (CanProposeCVMeeting())
         {
-            <button class="btn btn-primary" @onclick="OpenProposalModal" title="Propor Reunião de CV">
-                <i class="bi bi-megaphone"></i> Propor Reunião de CV
-            </button>
+            <PageAction Label="Propor Reunião de CV" ShortLabel="Convocar CV" Icon="bi-megaphone" OnClick="OpenProposalModal" />
         }
         @if (IsDirecaoMember())
         {
-            <button class="btn btn-primary" @onclick="OpenDirecaoProposalModal" title="Propor Reunião Direção">
-                <i class="bi bi-briefcase"></i> Propor Reunião Direção
-            </button>
+            <PageAction Label="Propor Reunião Direção" ShortLabel="Convocar Direção" Icon="bi-briefcase" OnClick="OpenDirecaoProposalModal" />
         }
-        <button class="btn btn-primary" 
-                @onclick="OpenAGProposalModal" 
-                title="Propor Assembleia Geral"
-                disabled="@(!CanProposeAGMeeting())">
-            <i class="bi bi-people"></i> Propor Assembleia Geral
-        </button>
-    </div>
-</div>
+        <PageAction Label="Propor Assembleia Geral" ShortLabel="Convocar AG" Icon="bi-people" OnClick="OpenAGProposalModal" Disabled="@(!CanProposeAGMeeting())" />
+    </Actions>
+</PageHeader>
 
 <!-- Search Box and Fiscal Year Filter -->
 <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
@@ -1756,8 +1740,6 @@ else
                OnCancel="ClosePublishAtaConfirmModal"
                Disabled="@isAtaLoading" />
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Meeting> meetings = new();
@@ -1788,7 +1770,6 @@ else
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
     private bool isAdmin = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Ata modal variables
     private Meeting? ataMeeting;
@@ -2000,33 +1981,9 @@ else
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
         await LoadParticipationsAsync();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (CanManageMeetings())
-            items.Add(new("action-create", "Criar", "bi-plus-lg"));
-        if (CanProposeCVMeeting())
-            items.Add(new("action-propose-cv", "Convocar CV", "bi-megaphone"));
-        if (IsDirecaoMember())
-            items.Add(new("action-propose-dir", "Convocar Direção", "bi-briefcase"));
-        if (CanProposeAGMeeting())
-            items.Add(new("action-propose-ag", "Convocar AG", "bi-people"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-create": await OpenCreateModal(); break;
-            case "action-propose-cv": OpenProposalModal(); break;
-            case "action-propose-dir": OpenDirecaoProposalModal(); break;
-            case "action-propose-ag": if (CanProposeAGMeeting()) OpenAGProposalModal(); break;
-        }
-    }
 
     private async Task LoadParticipationsAsync()
     {

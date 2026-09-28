@@ -29,28 +29,20 @@
 <AppTitle>Apostas</AppTitle>
 
 <div class="bets-page container-fluid">
-    <div class="page-header-centered">
-        <div class="page-header-left"></div>
-        <div class="page-header-center">
-            <h1><i class="bi bi-cash-coin"></i> Apostas</h1>
-            <p class="lead page-header-subtitle text-light-theme">
-                Próximas apostas e resultados anteriores.
-                @if (currentUser != null)
-                {
-                    <br />
-                    <span class="badge bg-success mt-2">
-                        <i class="bi bi-coin me-1"></i>
-                        Saldo: @Fmt(currentUser.FidelisBalance) Fidelis
-                    </span>
-                }
-            </p>
-        </div>
-        <div class="page-header-right d-none d-xl-flex">
-            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
-                <i class="bi bi-plus-lg"></i> Adicionar Aposta
-            </button>
-        </div>
-    </div>
+    <PageHeader Title="Apostas" Icon="bi-cash-coin" Subtitle="Próximas apostas e resultados anteriores.">
+        <ChildContent>
+            @if (currentUser != null)
+            {
+                <span class="badge bg-success mt-2">
+                    <i class="bi bi-coin me-1"></i>
+                    Saldo: @Fmt(currentUser.FidelisBalance) Fidelis
+                </span>
+            }
+        </ChildContent>
+        <Actions>
+            <PageAction Label="Adicionar Aposta" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+        </Actions>
+    </PageHeader>
         
     <!-- Purple Alert - Fidelis information -->
     <Alert Type="Alert.AlertType.Purple" 
@@ -905,8 +897,6 @@
     </FooterContent>
 </Modal>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Helpers
@@ -915,7 +905,6 @@
     // User and auth
     private ApplicationUser? currentUser;
     private bool isAdmin = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-add", "Adicionar", "bi-plus-lg") };
 
     // Bets data
     private List<Bet> futureBets = new();
@@ -1045,10 +1034,6 @@
         // Don't load members on initialization - will be loaded when MATCH modal is opened
     }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") await OpenCreateModal();
-    }
 
     private async Task LoadAllMembers()
     {

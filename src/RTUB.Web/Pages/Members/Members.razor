@@ -42,34 +42,21 @@
 
 <AppTitle>Membros</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-people"></i> Membros</h1>
-        <p class="lead page-header-subtitle text-light-theme">Lista de todos os membros da RTUB.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Membros" Icon="bi-people" Subtitle="Lista de todos os membros da RTUB.">
+    <Actions>
         <AuthorizeView Roles="Admin">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
-                    <i class="bi bi-plus-lg"></i> Adicionar Membro
-                </button>
+                <PageAction Label="Adicionar Membro" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
             </Authorized>
         </AuthorizeView>
         @if (Toggles.Value.MapEnabled)
         {
-            <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
-                <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
-            </button>
+            <PageAction Label="Ver Mapa de Membros" ShortLabel="Mapa" Icon="bi-geo-alt" OnClick="NavigateToMap" />
         }
-        <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
-            <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
-        </button>
-        <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
-            <i class="bi bi-cake2"></i> Aniversários
-        </button>
-    </div>
-</div>
+        <PageAction Label="Gestão de Membros Ativos" ShortLabel="Ativos" Icon="bi-person-badge" OnClick="OpenActiveMembersManagementModal" />
+        <PageAction Label="Aniversários" Icon="bi-cake2" OnClick="OpenAnniversariesModal" />
+    </Actions>
+</PageHeader>
 
 <!-- Search and Controls -->
 <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap search-controls-container mb-4">
@@ -1227,8 +1214,6 @@ else
     </BodyContent>
 </ConfirmDialog>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Cache enum values to avoid repeated allocation on each render
@@ -1420,7 +1405,6 @@ else
     private bool isAdmin = false;
     private bool isOwner = false;
     private bool currentUserIsMagister = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Computed flag: Can the current user edit dates?
     private bool CanEditDates => isOwner || currentUserIsMagister;
@@ -1429,31 +1413,9 @@ else
     {
         await CheckUserRoles();
         await LoadMembers();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdmin)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        if (Toggles.Value.MapEnabled)
-            items.Add(new("action-map", "Mapa", "bi-geo-alt"));
-        items.Add(new("action-active", "Ativos", "bi-person-badge"));
-        items.Add(new("action-birthdays", "Aniversários", "bi-cake2"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add": OpenCreateModal(); break;
-            case "action-map": NavigateToMap(); break;
-            case "action-active": await OpenActiveMembersManagementModal(); break;
-            case "action-birthdays": await OpenAnniversariesModal(); break;
-        }
-    }
 
     private async Task CheckUserRoles()
     {

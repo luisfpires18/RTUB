@@ -15,39 +15,15 @@
 
 <AppTitle>@(eventEntity is null ? "Encomendas Nerba" : $"{eventEntity.Name} - Encomendas Nerba")</AppTitle>
 
-<div class="page-header-centered mb-4">
-    <div class="page-header-left d-none d-xl-flex">
-        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
-            <i class="bi bi-arrow-left"></i>
-        </button>
-    </div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-basket"></i> @(eventEntity?.Name ?? "Encomendas")</h1>
-        <p class="page-header-subtitle">
-            @if (eventEntity != null)
-            {
-                <span>@eventEntity.Date.ToString("dd/MM/yyyy")</span>
-                @if (eventEntity.EndDate.HasValue)
-                {
-                    <span> — @eventEntity.EndDate.Value.ToString("dd/MM/yyyy")</span>
-                }
-                @if (!string.IsNullOrEmpty(eventEntity.Location))
-                {
-                    <span> · @eventEntity.Location</span>
-                }
-            }
-        </p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="@(eventEntity?.Name ?? "Encomendas")" Icon="bi-basket" Subtitle="@HeaderSubtitle" OnBack="GoBack">
+    <Actions>
         <AuthorizeView Roles="Mod,Admin">
             <Authorized>
-                <button class="btn btn-purple" @onclick="OpenAddModal" title="Adicionar Item">
-                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Item</span>
-                </button>
+                <PageAction Label="Adicionar Item" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenAddModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
@@ -289,8 +265,6 @@ else
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     [Parameter]
@@ -315,7 +289,6 @@ else
     private DateTime? selectedDate;
     private List<DateTime> dayTabs = new();
     private readonly SortableTableHelper<NerbaOrder> sortHelper = new() { SortColumn = "item", SortAscending = true };
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     /// <summary>
     /// Bridges the day select string value to editingOrder.OrderDate
@@ -342,7 +315,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadEvent(), LoadOrders(), CheckAuthorization());
-        BuildMobileNavItems();
     }
 
     private void SortBy(string column)
@@ -458,27 +430,7 @@ else
         }
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canEdit)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add":
-                OpenAddModal();
-                break;
-            case "action-back":
-                GoBack();
-                break;
-        }
-    }
 
     private void OpenAddModal()
     {
@@ -584,6 +536,11 @@ else
         currentPage = 1;
         ApplySortAndPagination();
     }
+
+    private string? HeaderSubtitle => eventEntity == null ? null
+        : eventEntity.Date.ToString("dd/MM/yyyy")
+          + (eventEntity.EndDate.HasValue ? " — " + eventEntity.EndDate.Value.ToString("dd/MM/yyyy") : "")
+          + (string.IsNullOrEmpty(eventEntity.Location) ? "" : " · " + eventEntity.Location);
 
     private void GoBack()
     {

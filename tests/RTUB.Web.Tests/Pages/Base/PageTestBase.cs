@@ -27,6 +27,9 @@ public abstract class PageTestBase : BunitContext
         // Setup JSInterop for common JavaScript calls
         JSInterop.SetupVoid("modalHelper.lockBodyScroll");
         JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+        // Modal registers with the dialog stack in modalHelper.js (focus, Escape, scroll lock).
+        JSInterop.SetupVoid("modalHelper.openDialog", _ => true);
+        JSInterop.SetupVoid("modalHelper.closeDialog", _ => true);
         JSInterop.SetupVoid("messageScroller.scrollToBottom");
         JSInterop.SetupVoid("messageScroller.scrollToBottomDelayed");
 

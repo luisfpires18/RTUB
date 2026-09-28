@@ -1,0 +1,46 @@
+/* Page actions (UI refactor 035): header buttons from 1200px, fixed bottom bar below.
+   1200px is the app shell breakpoint (docs/design/RTUB_UI_REFACTOR.md section 21.2). */
+
+.page-actions {
+    display: none;
+}
+
+.page-action-bar {
+    display: none;
+}
+
+@media (min-width: 1200px) {
+    .page-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .page-action-bar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1040;
+        justify-content: space-around;
+        align-items: stretch;
+        padding: 0.35rem 0;
+        padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        background: #111114;
+        border-top: 1px solid rgba(111, 66, 193, 0.25);
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
+    }
+
+    /* No bar when no action applies to this user. */
+    .page-action-bar:not(:has(.page-action-bar__item)) {
+        display: none;
+    }
+}

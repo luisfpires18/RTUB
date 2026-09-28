@@ -16,22 +16,17 @@
 
 <AppTitle>Gestão de Funções de Utilizadores</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-person-gear"></i> Gestão de Funções de Utilizadores</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir funções dos utilizadores entre Member, Admin e Owner.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Gestão de Funções de Utilizadores" Icon="bi-person-gear" Subtitle="Gerir funções dos utilizadores entre Member, Admin e Owner.">
+    <Actions>
         @if (isCurrentUserOwner)
         {
-            <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
-            <SyncMemberStatusButton OnSyncCompleted="HandleSyncCompleted" />
+            <PageAction Label="Sincronizar Grupos" ShortLabel="Sync Chat" Icon="bi-chat-dots" Busy="@(syncChatRef?.IsSyncing ?? false)" OnClick="SyncChatGroups" />
+            <PageAction Label="Sincronizar Estado da Tuna" ShortLabel="Sync Status" Icon="bi-arrow-repeat" Busy="@(syncStatusRef?.IsSyncing ?? false)" OnClick="SyncMemberStatuses" />
         }
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
-@* Ref instances for mobile nav \u2014 no modal, just async work *@
+@* Ref instances the page actions trigger - no modal, just async work *@
 @if (isCurrentUserOwner)
 {
     <div class="u-visually-collapsed">
@@ -277,8 +272,6 @@ else
                OnConfirm="ConfirmRoleChange"
                OnCancel="CancelRoleChange" />
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private Dictionary<string, List<string>> userRolesDict = new();
@@ -286,8 +279,17 @@ else
     private bool isError = false;
     private bool isCurrentUserOwner = false;
     private SyncChatGroupsButton? syncChatRef;
+
+    private async Task SyncChatGroups()
+    {
+        if (syncChatRef != null) await syncChatRef.TriggerAsync();
+    }
+
+    private async Task SyncMemberStatuses()
+    {
+        if (syncStatusRef != null) await syncStatusRef.TriggerAsync();
+    }
     private SyncMemberStatusButton? syncStatusRef;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Edit role modal
     private enum ModalType { EditRole, UserDetails }
@@ -315,28 +317,9 @@ else
         
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isCurrentUserOwner)
-        {
-            items.Add(new("action-sync-chat", "Sync Chat", "bi-chat-dots"));
-            items.Add(new("action-sync-status", "Sync Status", "bi-arrow-repeat"));
-        }
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-sync-chat": if (syncChatRef != null) await syncChatRef.TriggerAsync(); break;
-            case "action-sync-status": if (syncStatusRef != null) await syncStatusRef.TriggerAsync(); break;
-        }
-    }
 
     private void HandleSyncCompleted((bool Success, string Message) result)
     {

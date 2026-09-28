@@ -36,7 +36,7 @@
 else
 {
     <div class="page-header-centered">
-        <div class="page-header-left d-none d-xl-flex">
+        <div class="page-header-left">
             <button class="btn btn-outline-light btn-sm" @onclick="GoBack" aria-label="Voltar">
                 <i class="bi bi-arrow-left"></i>
             </button>
@@ -59,14 +59,15 @@ else
                 <p class="music-text-secondary">@album.Description</p>
             }
         </div>
-        <div class="page-header-right d-none d-xl-flex">
-            <AuthorizeView Roles="Admin,Mod">
-                <Authorized>
-                    <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música" aria-label="Criar Nova Música">
-                        <i class="bi bi-plus-lg"></i> Adicionar Música
-                    </button>
-                </Authorized>
-            </AuthorizeView>
+        <div class="page-header-right">
+            @* Album detail keeps its cover header; its actions use the shared page actions. *@
+            <PageActions>
+                <AuthorizeView Roles="Admin,Mod">
+                    <Authorized>
+                        <PageAction Label="Adicionar Música" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateSongModal" />
+                    </Authorized>
+                </AuthorizeView>
+            </PageActions>
         </div>
     </div>
 
@@ -115,8 +116,6 @@ else
     }
 }
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Fixed Audio Player -->
 @if (!string.IsNullOrEmpty(currentAudioUrl))
@@ -628,8 +627,6 @@ else
     private bool isAdminOrOwner = false;
     private bool isModerator = false;
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
@@ -690,7 +687,6 @@ else
         canDeleteSongs = isAdminOrOwner;
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        BuildMobileNavItems();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -752,32 +748,7 @@ else
         NavigationManager.NavigateTo("/music");
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left")
-        };
 
-        if (canEditSongs)
-        {
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back")
-        {
-            GoBack();
-        }
-        else if (key == "action-add")
-        {
-            OpenCreateSongModal();
-        }
-    }
 
     private async Task OpenEditModal(Song song)
     {

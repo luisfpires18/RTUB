@@ -1,0 +1,78 @@
+/* Page action (UI refactor 035). Header buttons use the Task 002 button variants; this file
+   styles the bottom-bar item only. */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.page-action-bar__item {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.5rem 0.25rem;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: color 0.15s ease;
+}
+
+.page-action-bar__item:hover,
+.page-action-bar__item:focus {
+    color: #fff;
+    text-decoration: none;
+}
+
+.page-action-bar__item:active {
+    color: #c7a7ff;
+}
+
+.page-action-bar__item:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.page-action-bar__item:focus-visible {
+    outline: 2px solid var(--rtub-focus-ring, #a88ee5);
+    outline-offset: -2px;
+    border-radius: var(--rtub-radius-sm, 0.375rem);
+}
+
+.page-action-bar__icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.page-action-bar__label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.page-action-bar__item--primary {
+    color: var(--rtub-accent, #a88ee5);
+}
+
+.page-action-bar__item--danger {
+    color: var(--rtub-danger-text, #e74c3c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-action-bar__item {
+        transition: none;
+    }
+}

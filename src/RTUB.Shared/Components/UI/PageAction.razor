@@ -1,0 +1,109 @@
+@namespace RTUB.Shared
+@*
+    A page action inside PageActions (usually PageHeader's Actions). Renders as a header button
+    (from 1200px) or as a bottom-bar item (below), from the same parameters. A navigation
+    action uses Href; everything else OnClick. Busy shows a spinner and blocks activation.
+*@
+
+@if (Placement == PageActionPlacement.Header)
+{
+    @if (!string.IsNullOrEmpty(Href))
+    {
+        <a class="btn @HeaderClass" href="@Href">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi @Icon" aria-hidden="true"></i>
+            }
+            <span>@Label</span>
+        </a>
+    }
+    else
+    {
+        <button type="button" class="btn @HeaderClass" @onclick="OnClick" disabled="@(Disabled || Busy)"
+                aria-busy="@(Busy ? "true" : null)">
+            @if (Busy)
+            {
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            }
+            else if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi @Icon" aria-hidden="true"></i>
+            }
+            <span>@Label</span>
+        </button>
+    }
+}
+else
+{
+    @if (!string.IsNullOrEmpty(Href))
+    {
+        <a class="page-action-bar__item page-action-bar__item--@IntentName" href="@Href" aria-label="@BarAccessibleName">
+            <i class="bi @Icon page-action-bar__icon" aria-hidden="true"></i>
+            <span class="page-action-bar__label">@BarLabel</span>
+        </a>
+    }
+    else
+    {
+        <button type="button" class="page-action-bar__item page-action-bar__item--@IntentName" @onclick="OnClick"
+                disabled="@(Disabled || Busy)" aria-busy="@(Busy ? "true" : null)" aria-label="@BarAccessibleName">
+            @if (Busy)
+            {
+                <span class="spinner-border spinner-border-sm page-action-bar__icon" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi @Icon page-action-bar__icon" aria-hidden="true"></i>
+            }
+            <span class="page-action-bar__label">@BarLabel</span>
+        </button>
+    }
+}
+
+@code {
+    /// <summary>Label on the header button (and accessible name).</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Shorter label for the bottom bar; defaults to Label.</summary>
+    [Parameter]
+    public string? ShortLabel { get; set; }
+
+    /// <summary>Bootstrap Icons class, e.g. "bi-plus-lg". Required for a readable bottom bar.</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>Visual weight: one Primary per page at most; Danger for destructive actions.</summary>
+    [Parameter]
+    public PageActionIntent Intent { get; set; } = PageActionIntent.Secondary;
+
+    /// <summary>Navigation target. When set the action is a link and OnClick is not used.</summary>
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>The action is running: spinner, not clickable.</summary>
+    [Parameter]
+    public bool Busy { get; set; }
+
+    [CascadingParameter(Name = "PageActionPlacement")]
+    public PageActionPlacement Placement { get; set; } = PageActionPlacement.Header;
+
+    private string HeaderClass => Intent switch
+    {
+        PageActionIntent.Primary => "btn-primary",
+        PageActionIntent.Danger => "btn-outline-danger",
+        _ => "btn-outline-secondary"
+    };
+
+    private string IntentName => Intent.ToString().ToLowerInvariant();
+
+    private string BarLabel => string.IsNullOrEmpty(ShortLabel) ? Label : ShortLabel;
+
+    // The bar shows the short label; the full label stays the accessible name.
+    private string? BarAccessibleName => BarLabel == Label ? null : Label;
+}
