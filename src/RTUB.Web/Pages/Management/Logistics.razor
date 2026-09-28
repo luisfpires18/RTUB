@@ -19,6 +19,7 @@
 
 <AppTitle>Logística</AppTitle>
 
+<AppErrorBoundary>
 <div class="logistics-page-wrapper">
     <div class="logistics-page-container">
         <PageHeader Title="Logística" Icon="bi-kanban" Subtitle="Gestão de boards de tarefas e atuações.">
@@ -32,13 +33,11 @@
 
             <AuthorizeView>
                 <Authorized>
-                    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2 mb-4">
-                        <div class="flex-grow-1">
-                            <SearchBar @bind-Value="searchTerm"
-                                       Placeholder="Pesquisar quadros..."
-                                       OnSearch="HandleSearch" />
-                        </div>
-                    </div>
+                    <FilterToolbar>
+                        <SearchBar @bind-Value="searchTerm"
+                                   Placeholder="Pesquisar quadros..."
+                                   OnSearch="HandleSearch" />
+                    </FilterToolbar>
                 </Authorized>
             </AuthorizeView>
         
@@ -232,6 +231,7 @@
         </div>
     </BodyContent>
 </ConfirmDialog>
+</AppErrorBoundary>
 
 
 @code {

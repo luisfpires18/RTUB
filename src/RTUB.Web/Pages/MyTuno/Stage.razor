@@ -38,6 +38,7 @@
 
 <AppTitle>Stage Mode - My Tuno</AppTitle>
 
+<AppErrorBoundary>
 <div class="stage-page">
     @if (loading)
     {
@@ -340,6 +341,7 @@
         }
     }
 </div>
+</AppErrorBoundary>
 
 @code {
     private Character? character;

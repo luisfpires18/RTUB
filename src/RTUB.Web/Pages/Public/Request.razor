@@ -20,6 +20,7 @@
 <AppTitle>Pedidos</AppTitle>
 
 
+<AppErrorBoundary>
 <h1 class="mb-2"><i class="bi bi-send"></i> Pedidos</h1>
 <p class="lead page-header-subtitle mb-4 text-light-theme">Preencha o formulário abaixo para solicitar a RTUB para o seu evento.</p>
 
@@ -225,21 +226,14 @@
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Título
-                    </label>
-                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
-                </div>
+                <FormField Label="Título" Icon="bi-card-text" For="() => editingLabel.Title" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Conteúdo
-                    </label>
-                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                <FormField Label="Conteúdo" Icon="bi-file-text" For="() => editingLabel.Content" Help="Dica: Use uma linha por item da lista" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="10" @bind-Value="editingLabel.Content"
                                    placeholder="Inserir conteúdo (uma linha por item)..." />
-                    <small class="text-muted">Dica: Use uma linha por item da lista</small>
-                </div>
+                </FormField>
 
             </EditForm>
         }
@@ -249,6 +243,7 @@
         <button type="submit" form="editRequestLabelForm" class="btn btn-success">Guardar</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private RequestEntity request = new();

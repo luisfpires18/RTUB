@@ -17,6 +17,7 @@
 
 <AppTitle>Configuração de Naipes</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Configuração de Naipes" Icon="bi-sliders" Subtitle="Gerir tipos de instrumento para a página Naipes." BackHref="/naipes" />
 
 @if (loading)
@@ -123,13 +124,11 @@ else
             </div>
 
             <!-- Sort Order -->
-            <div class="mb-3">
-                <label class="form-label">Ordem de Exibição</label>
-                <input type="number" class="form-control" 
+            <FormField Label="Ordem de Exibição" Help="Números menores aparecem primeiro." Context="field">
+                <input @attributes="field.Attributes" type="number" class="form-control"
                        @bind="editFormSortOrder" 
                        min="0" max="999" />
-                <small class="text-muted d-block mt-1">Números menores aparecem primeiro.</small>
-            </div>
+            </FormField>
 
             <!-- Visibility -->
             <div class="mb-3">
@@ -161,6 +160,7 @@ else
         </button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 
 @code {

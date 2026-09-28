@@ -23,6 +23,7 @@
 
 <AppTitle>Calotes</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Calotes" Icon="bi-cash-coin" Subtitle="Registo de dívidas de membros à Tuna." OnBack="GoBack">
     <Actions>
         <AuthorizeView Roles="Mod,Admin">
@@ -35,24 +36,20 @@
 
 <div class="d-flex flex-column gap-3 mb-4">
     <!-- Search Box and Fiscal Year Filter -->
-    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
-        <div class="flex-grow-1 filter-search-container">
-            <SearchBar Placeholder="Pesquisar membros..."
-                       @bind-Value="searchTerm"
-                       OnSearch="FilterMembers" />
-        </div>
+    <FilterToolbar CssClass="mb-0">
+        <SearchBar Placeholder="Pesquisar membros..."
+                   @bind-Value="searchTerm"
+                   OnSearch="FilterMembers" />
         @if (fiscalYears.Any())
         {
-            <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedFiscalYear"
-                                SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                                OnChange="@OnFiscalYearChanged"
-                                AllItemsLabel="Selecionar Ano Letivo"
-                                Items="@fiscalYears"
-                                IconClass="bi-calendar-event" />
-            </div>
+            <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Selecionar Ano Letivo"
+                            Items="@fiscalYears"
+                            IconClass="bi-calendar-event" />
         }
-    </div>
+    </FilterToolbar>
 </div>
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -175,17 +172,14 @@ else
         
         @if (!isEditMode)
         {
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-person text-primary me-2"></i>Selecionar Membro
-                </label>
-                <input type="text" 
+            <FormField Label="Selecionar Membro" Icon="bi-person" Context="field">
+                <input @attributes="field.Attributes" type="text"
                        class="form-control" 
                        placeholder="Pesquisar por nome, email ou alcunha..."
                        @bind="memberSearchTerm" 
                        @bind:event="oninput" 
                        @onkeyup="FilterMembersForModal" />
-            </div>
+            </FormField>
             
             @if (filteredMembersForModal.Any())
             {
@@ -244,27 +238,21 @@ else
             </div>
         }
         
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-cash text-primary me-2"></i>Montante (€)
-            </label>
-            <input type="number" 
+        <FormField Label="Montante (€)" Icon="bi-cash" Context="field">
+            <input @attributes="field.Attributes" type="number"
                    class="form-control" 
                    step="0.01"
                    min="0.01"
                    placeholder="0.00"
                    @bind="editAmount" />
-        </div>
+        </FormField>
 
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-file-text text-primary me-2"></i>Descrição (opcional)
-            </label>
-            <input type="text" 
+        <FormField Label="Descrição (opcional)" Icon="bi-file-text" Context="field">
+            <input @attributes="field.Attributes" type="text"
                    class="form-control" 
                    placeholder="Descrição do calote..."
                    @bind="editDescription" />
-        </div>
+        </FormField>
 
     </BodyContent>
     <FooterContent>
@@ -399,6 +387,7 @@ else
         </Sections>
     </DetailsModal>
 }
+</AppErrorBoundary>
 
 @code {
     // URL query parameters

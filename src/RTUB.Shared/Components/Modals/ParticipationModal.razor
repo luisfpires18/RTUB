@@ -69,11 +69,8 @@
 
                     @if (WantToPlay)
                     {
-                        <div class="mb-3">
-                            <label class="form-label text-white-full fw-semibold">
-                                <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento *
-                            </label>
-                            <InputSelect class="form-select form-select-dark" @bind-Value="Instrument" @bind-Value:after="@OnInstrumentChangedInternal">
+                        <FormField Label="Instrumento" Icon="bi-music-note-beamed" For="() => Instrument" Required="true" Context="field">
+                            <InputSelect @attributes="field.Attributes" class="form-select form-select-dark" @bind-Value="Instrument" @bind-Value:after="@OnInstrumentChangedInternal">
                                 <option value="">Selecionar...</option>
                                 @if (AvailableInstruments != null && AvailableInstruments.Any())
                                 {
@@ -90,16 +87,13 @@
                                     }
                                 }
                             </InputSelect>
-                        </div>
+                        </FormField>
                     }
                 }
                 else
                 {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full fw-semibold">
-                            <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento (Opcional)
-                        </label>
-                        <InputSelect class="form-select form-select-dark" @bind-Value="Instrument">
+                    <FormField Label="Instrumento (Opcional)" Icon="bi-music-note-beamed" For="() => Instrument" Context="field">
+                        <InputSelect @attributes="field.Attributes" class="form-select form-select-dark" @bind-Value="Instrument">
                             <option value="">Selecionar...</option>
                             @if (AvailableInstruments != null && AvailableInstruments.Any())
                             {
@@ -116,24 +110,18 @@
                                 }
                             }
                         </InputSelect>
-                    </div>
+                    </FormField>
                 }
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
-                </div>
+                <FormField Label="Notas (opcional)" Icon="bi-file-text" For="() => Notes" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
+                </FormField>
             }
             else
             {
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Motivo (opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
-                </div>
+                <FormField Label="Motivo (opcional)" Icon="bi-file-text" For="() => Notes" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
+                </FormField>
             }
 
         </EditForm>

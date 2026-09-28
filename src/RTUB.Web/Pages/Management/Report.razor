@@ -28,9 +28,10 @@
 
 <AppTitle>@(report?.Title ?? "Relatório")</AppTitle>
 
+<AppErrorBoundary>
 @if (report == null)
 {
-    <p>A carregar...</p>
+    <LoadingSpinner Message="A carregar..." />
 }
 else
 {
@@ -156,7 +157,7 @@ else
 
 @if (activities == null || displayedActivities == null)
     {
-  <p>A carregar atividades...</p>
+  <LoadingSpinner Message="A carregar atividades..." />
     }
     else if (!displayedActivities.Any())
     {
@@ -327,12 +328,9 @@ else
             <DataAnnotationsValidator />
 <ErrorDisplay />
 
-    <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-kanban text-primary me-2"></i>Nome
-                </label>
-       <InputText class="form-control" @bind-Value="editingActivity!.Name" placeholder="Inserir nome..." />
-            </div>
+    <FormField Label="Nome" Icon="bi-kanban" For="() => editingActivity!.Name" Context="field">
+        <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingActivity!.Name" placeholder="Inserir nome..." />
+    </FormField>
 
             <div class="mb-3">
                 <div class="form-check form-switch">
@@ -371,12 +369,9 @@ else
                 }
             </div>
 
-<div class="mb-3">
-    <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição (opcional)
-                </label>
-                <InputTextArea class="form-control" rows="3" @bind-Value="editingActivity!.Description" />
-    </div>
+<FormField Label="Descrição (opcional)" Icon="bi-text-paragraph" For="() => editingActivity!.Description" Context="field">
+    <InputTextArea @attributes="field.Attributes" class="form-control" rows="3" @bind-Value="editingActivity!.Description" />
+</FormField>
 
         </EditForm>
     </BodyContent>
@@ -397,43 +392,28 @@ else
             <DataAnnotationsValidator />
     <ErrorDisplay />
 
-       <div class="mb-3">
-           <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 text-primary me-2"></i>Data
-                </label>
-           <InputDate class="form-control" @bind-Value="editingTransaction!.Date" />
- </div>
+       <FormField Label="Data" Icon="bi-calendar3" For="() => editingTransaction!.Date" Context="field">
+           <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="editingTransaction!.Date" />
+       </FormField>
 
-       <div class="mb-3">
-         <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                </label>
-    <InputText class="form-control" @bind-Value="editingTransaction!.Description" />
-     </div>
+       <FormField Label="Descrição" Icon="bi-text-paragraph" For="() => editingTransaction!.Description" Context="field">
+           <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingTransaction!.Description" />
+       </FormField>
 
-            <div class="mb-3">
-       <label class="form-label fw-semibold">
-                    <i class="bi bi-tag text-primary me-2"></i>Categoria
-                </label>
-      <InputText class="form-control" @bind-Value="editingTransaction!.Category" placeholder="Inserir categoria..." />
-        </div>
+            <FormField Label="Categoria" Icon="bi-tag" For="() => editingTransaction!.Category" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingTransaction!.Category" placeholder="Inserir categoria..." />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-arrow-left-right text-primary me-2"></i>Tipo
-                </label>
-          <InputSelect class="form-select" @bind-Value="editingTransaction!.Type">
-           <option value="Income">Receita</option>
-        <option value="Expense">Despesa</option>
-        </InputSelect>
-  </div>
+            <FormField Label="Tipo" Icon="bi-arrow-left-right" For="() => editingTransaction!.Type" Context="field">
+                <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="editingTransaction!.Type">
+                 <option value="Income">Receita</option>
+                <option value="Expense">Despesa</option>
+                </InputSelect>
+            </FormField>
 
-         <div class="mb-3">
-  <label class="form-label fw-semibold">
-                    <i class="bi bi-currency-euro text-primary me-2"></i>Valor (€)
-                </label>
-           <InputNumber class="form-control" @bind-Value="editingTransaction!.Amount" step="0.01" />
-            </div>
+         <FormField Label="Valor (€)" Icon="bi-currency-euro" For="() => editingTransaction!.Amount" Context="field">
+             <InputNumber @attributes="field.Attributes" class="form-control" @bind-Value="editingTransaction!.Amount" step="0.01" />
+         </FormField>
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
@@ -634,6 +614,7 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseTransactionHistoryModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     [Parameter]

@@ -14,6 +14,7 @@
 
 <AppTitle>Enviar Email de Anúncio</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Enviar Email de Anúncio" Icon="bi-envelope" Subtitle="Enviar anúncios por email para todos os utilizadores subscritos" />
 
     @if (!string.IsNullOrEmpty(message))
@@ -199,6 +200,7 @@
         <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private string title = "";

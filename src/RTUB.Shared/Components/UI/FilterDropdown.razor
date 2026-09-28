@@ -1,45 +1,66 @@
 @namespace RTUB.Shared
-@implements IDisposable
 @using System
 @using System.Linq
 @using Microsoft.AspNetCore.Components.Web
+@*
+    Single-choice filter. The trigger is named "<Label>: <current value>", the list is a listbox
+    whose active option is exposed through aria-activedescendant, and the selected option carries
+    a check (not color alone). Opens with Enter/Space/arrows, moves with arrows/Home/End, selects
+    with Enter/Space, closes with Escape or Tab (focus back to the trigger) or a click outside
+    (docs/design/RTUB_UI_REFACTOR.md section 23.7). Filtering stays in the page.
+*@
 
-<div class="filter-dropdown @AdditionalClasses">
+<div class="filter-dropdown @(isOpen ? "is-open" : null) @(Disabled ? "is-disabled" : null) @AdditionalClasses">
     @if (ShowIcon)
     {
-        <span class="filter-dropdown__icon">
+        <span class="filter-dropdown__icon" aria-hidden="true">
             <i class="bi @(string.IsNullOrWhiteSpace(IconClass) ? "bi-funnel" : IconClass)"></i>
         </span>
     }
 
     <button type="button"
+            @ref="trigger"
+            id="@triggerId"
             class="filter-dropdown__control"
             @onclick="ToggleDropdown"
             @onkeydown="HandleTriggerKeyDown"
             aria-haspopup="listbox"
-            aria-expanded="@isOpen">
+            aria-expanded="@(isOpen ? "true" : "false")"
+            aria-controls="@(isOpen ? panelId : null)"
+            disabled="@Disabled">
+        <span class="visually-hidden">@AccessibleLabel: </span>
         <span class="filter-dropdown__value">@GetDisplayLabel(CurrentValue)</span>
-        <i class="bi bi-chevron-down filter-dropdown__caret"></i>
+        <i class="bi bi-chevron-down filter-dropdown__caret" aria-hidden="true"></i>
     </button>
 
     @if (isOpen)
     {
+        @* Transparent layer: a click anywhere outside the list closes it. *@
+        <div class="filter-dropdown__backdrop" @onclick="CloseDropdown"></div>
         <div class="filter-dropdown__panel"
+             id="@panelId"
              role="listbox"
              tabindex="-1"
+             aria-label="@AccessibleLabel"
+             aria-activedescendant="@(focusedIndex >= 0 ? OptionId(focusedIndex) : null)"
              @ref="optionsPanel"
-             @onkeydown="HandlePanelKeyDown">
+             @onkeydown="HandlePanelKeyDown"
+             @onkeydown:preventDefault="true">
             @foreach (var optionData in options.Select((option, index) => new { option, index }))
             {
                 var isSelected = optionData.option.Value == CurrentValue;
                 var isFocused = optionData.index == focusedIndex;
                 <div class="filter-dropdown__option @(isSelected ? "is-selected" : string.Empty) @(isFocused ? "is-focused" : string.Empty)" @key="@(optionData.option.Value?.GetHashCode() ?? optionData.index)"
+                     id="@OptionId(optionData.index)"
                      role="option"
-                     tabindex="-1"
-                     aria-selected="@isSelected"
+                     aria-selected="@(isSelected ? "true" : "false")"
                      @onmouseenter="() => focusedIndex = optionData.index"
                      @onclick="() => SelectOption(optionData.option.Value ?? string.Empty)">
-                    @optionData.option.Label
+                    <span class="filter-dropdown__option-label">@optionData.option.Label</span>
+                    @if (isSelected)
+                    {
+                        <i class="bi bi-check2 filter-dropdown__check" aria-hidden="true"></i>
+                    }
                 </div>
             }
         </div>
@@ -47,6 +68,10 @@
 </div>
 
 @code {
+    /// <summary>What is filtered (e.g. "Ano letivo"); part of the trigger's accessible name.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
     [Parameter]
     public bool ShowIcon { get; set; } = true;
 
@@ -77,14 +102,22 @@
     [Parameter]
     public bool UseDefaultOption { get; set; } = true;
 
-    private static event Action<Guid>? DropdownOpened;
+    /// <summary>Shows the current value but cannot be opened.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
 
-    private readonly Guid instanceId = Guid.NewGuid();
+    private readonly string triggerId = "filter-" + Guid.NewGuid().ToString("N")[..8];
+    private string panelId => triggerId + "-list";
 
     private bool isOpen;
+    private bool focusPanel;
+    private bool focusTrigger;
     private int focusedIndex = -1;
+    private ElementReference trigger;
     private ElementReference optionsPanel;
     private List<FilterDropdownOption> options = new();
+
+    private string AccessibleLabel => string.IsNullOrWhiteSpace(Label) ? "Filtro" : Label;
 
     private string CurrentValue
     {
@@ -92,27 +125,29 @@
         set => SelectedValue = value;
     }
 
-    protected override void OnInitialized()
-    {
-        DropdownOpened += HandleDropdownOpened;
-    }
+    private string OptionId(int index) => $"{triggerId}-opt-{index}";
 
     protected override void OnParametersSet()
     {
         options = BuildOptions().ToList();
+        if (Disabled && isOpen)
+        {
+            isOpen = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (isOpen)
+        if (focusPanel && isOpen)
         {
+            focusPanel = false;
             await optionsPanel.FocusAsync();
         }
-    }
-
-    public void Dispose()
-    {
-        DropdownOpened -= HandleDropdownOpened;
+        else if (focusTrigger)
+        {
+            focusTrigger = false;
+            await trigger.FocusAsync();
+        }
     }
 
     private IEnumerable<FilterDropdownOption> BuildOptions()
@@ -154,62 +189,35 @@
 
     private void ToggleDropdown()
     {
-        isOpen = !isOpen;
         if (isOpen)
         {
-            if (!options.Any())
-            {
-                focusedIndex = -1;
-            }
-            else
-            {
-                var currentIndex = options.FindIndex(o => o.Value == CurrentValue);
-                focusedIndex = currentIndex >= 0 ? currentIndex : 0;
-            }
-
-            DropdownOpened?.Invoke(instanceId);
+            CloseDropdown();
+        }
+        else
+        {
+            OpenDropdown();
         }
     }
 
-    private async Task HandleTriggerKeyDown(KeyboardEventArgs args)
+    private void OpenDropdown()
     {
-        switch (args.Key)
+        if (Disabled)
         {
-            case "Enter":
-            case " ":
-                ToggleDropdown();
-                if (isOpen)
-                {
-                    await FocusPanelAsync();
-                }
-                break;
-            case "ArrowDown":
-            case "Down":
-                if (!isOpen)
-                {
-                    ToggleDropdown();
-                    await FocusPanelAsync();
-                }
-                else
-                {
-                    MoveFocus(1);
-                }
-                break;
-            case "ArrowUp":
-            case "Up":
-                if (!isOpen)
-                {
-                    ToggleDropdown();
-                    await FocusPanelAsync();
-                }
-                else
-                {
-                    MoveFocus(-1);
-                }
-                break;
-            case "Escape":
-                CloseDropdown();
-                break;
+            return;
+        }
+
+        isOpen = true;
+        focusPanel = true;
+        var currentIndex = options.FindIndex(o => o.Value == CurrentValue);
+        focusedIndex = options.Count == 0 ? -1 : Math.Max(currentIndex, 0);
+    }
+
+    private void HandleTriggerKeyDown(KeyboardEventArgs args)
+    {
+        // Enter/Space arrive as a click on the button; only the arrows need handling here.
+        if (args.Key is "ArrowDown" or "Down" or "ArrowUp" or "Up" && !isOpen)
+        {
+            OpenDropdown();
         }
     }
 
@@ -217,10 +225,15 @@
     {
         switch (args.Key)
         {
+            // Keys are prevented from reaching the page (so Escape does not also close a dialog
+            // around the list); Tab therefore closes the list and returns to the trigger.
             case "Escape":
+            case "Tab":
                 CloseDropdown();
+                focusTrigger = true;
                 break;
             case "Enter":
+            case " ":
                 if (focusedIndex >= 0 && focusedIndex < options.Count)
                 {
                     await SelectOption(options[focusedIndex].Value);
@@ -234,12 +247,13 @@
             case "Up":
                 MoveFocus(-1);
                 break;
+            case "Home":
+                focusedIndex = options.Count > 0 ? 0 : -1;
+                break;
+            case "End":
+                focusedIndex = options.Count - 1;
+                break;
         }
-    }
-
-    private async Task FocusPanelAsync()
-    {
-        await InvokeAsync(StateHasChanged);
     }
 
     private void MoveFocus(int direction)
@@ -249,45 +263,22 @@
             return;
         }
 
-        if (focusedIndex < 0)
-        {
-            focusedIndex = 0;
-        }
-        else
-        {
-            focusedIndex = (focusedIndex + direction + options.Count) % options.Count;
-        }
+        focusedIndex = focusedIndex < 0
+            ? 0
+            : (focusedIndex + direction + options.Count) % options.Count;
     }
 
     private async Task SelectOption(string value)
     {
         CurrentValue = value;
-        await OnValueChanged();
         CloseDropdown();
+        focusTrigger = true;
+        await SelectedValueChanged.InvokeAsync(SelectedValue);
+        await OnChange.InvokeAsync();
     }
 
     private void CloseDropdown()
     {
         isOpen = false;
-    }
-
-    private async Task OnValueChanged()
-    {
-        await SelectedValueChanged.InvokeAsync(SelectedValue);
-        await OnChange.InvokeAsync();
-    }
-
-    private void HandleDropdownOpened(Guid openedId)
-    {
-        if (openedId == instanceId)
-        {
-            return;
-        }
-
-        if (isOpen)
-        {
-            isOpen = false;
-            _ = InvokeAsync(StateHasChanged);
-        }
     }
 }

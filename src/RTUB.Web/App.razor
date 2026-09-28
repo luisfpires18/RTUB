@@ -64,5 +64,20 @@
     
     @* .NET 10 Blazor reconnection UI - automatically shows/hides based on circuit state *@
     <ReconnectModal />
+
+    @* Shown by Blazor when an unhandled exception ends the circuit (not on a lost connection -
+       that is ReconnectModal). The exception stays in the server log; no detail is shown.
+       Buttons are wired by /js/blazorStartup.js: the circuit is already gone. UI refactor 036. *@
+    <div id="blazor-error-ui" role="alert">
+        <div class="blazor-error-ui__inner">
+            <i class="bi bi-exclamation-octagon-fill blazor-error-ui__icon" aria-hidden="true"></i>
+            <p class="blazor-error-ui__text">
+                Ocorreu um erro inesperado e a página deixou de responder.
+                <span>O problema foi registado. Recarregue para continuar.</span>
+            </p>
+            <button type="button" class="btn btn-primary btn-sm blazor-error-reload">Recarregar</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm blazor-error-dismiss">Fechar</button>
+        </div>
+    </div>
 </body>
 </html>

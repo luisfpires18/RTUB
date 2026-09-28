@@ -19,6 +19,7 @@
 
 <AppTitle>MBWAY</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="MBWAY" Icon="bi-phone" Subtitle="Registo de transferências MBWAY." OnBack="GoBack">
     <Actions>
         <AuthorizeView Roles="Mod,Admin">
@@ -229,6 +230,7 @@ else
                    OnConfirm="ConfirmDeleteTransfer"
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
+</AppErrorBoundary>
 
 
 @code {

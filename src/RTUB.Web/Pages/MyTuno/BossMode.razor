@@ -39,6 +39,7 @@
 
 <AppTitle>Boss Mode - My Tuno</AppTitle>
 
+<AppErrorBoundary>
 <div class="stage-page">
     @if (!showBuffScreen && !showDefeatSummary)
     {
@@ -511,6 +512,7 @@
         }
     }
 </div>
+</AppErrorBoundary>
 
 @code {
     private Character? character;

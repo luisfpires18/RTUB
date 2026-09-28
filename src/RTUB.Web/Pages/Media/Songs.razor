@@ -29,9 +29,10 @@
 
 <AppTitle>@(album is null ? "Música" : $"{album.Title} - Música")</AppTitle>
 
+<AppErrorBoundary>
 @if (album == null)
 {
-    <p>A carregar...</p>
+    <LoadingSpinner Message="A carregar..." />
 }
 else
 {
@@ -163,12 +164,7 @@ else
     <BodyContent>
         @if (isLoadingPdf)
         {
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-                <p class="mt-3">A carregar PDF...</p>
-            </div>
+            <LoadingSpinner Message="A carregar PDF..." />
         }
         else if (!string.IsNullOrEmpty(currentPdfUrl))
         {
@@ -269,19 +265,13 @@ else
                     <InputText class="form-control" @bind-Value="editingSong!.MusicAuthor" placeholder="Inserir autor da música..." />
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-arrow-repeat text-primary me-2"></i>Adaptação
-                </label>
-                <InputText class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
-            </div>
+            <FormField Label="Adaptação" Icon="bi-arrow-repeat" For="() => editingSong!.Adaptation" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-spotify text-primary me-2"></i>Spotify URL
-                </label>
-                <InputText class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
-            </div>
+            <FormField Label="Spotify URL" Icon="bi-spotify" For="() => editingSong!.SpotifyUrl" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
+            </FormField>
 
             <div class="mb-3">
                 <div class="rtub-checkbox-wrapper">
@@ -316,12 +306,9 @@ else
                 </button>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-file-text text-primary me-2"></i>Letra
-                </label>
-                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
-            </div>
+            <FormField Label="Letra" Icon="bi-file-text" For="() => editingSong!.Lyrics" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
+            </FormField>
 
         </EditForm>
     </BodyContent>
@@ -372,19 +359,13 @@ else
                     <InputText class="form-control" @bind-Value="editingSong!.MusicAuthor" placeholder="Inserir autor da música..." />
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-arrow-repeat text-primary me-2"></i>Adaptação
-                </label>
-                <InputText class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
-            </div>
+            <FormField Label="Adaptação" Icon="bi-arrow-repeat" For="() => editingSong!.Adaptation" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-spotify text-primary me-2"></i>Spotify URL
-                </label>
-                <InputText class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
-            </div>
+            <FormField Label="Spotify URL" Icon="bi-spotify" For="() => editingSong!.SpotifyUrl" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
+            </FormField>
 
             <div class="mb-3">
                 <div class="rtub-checkbox-wrapper">
@@ -419,12 +400,9 @@ else
                 </button>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-file-text text-primary me-2"></i>Letra
-                </label>
-                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
-            </div>
+            <FormField Label="Letra" Icon="bi-file-text" For="() => editingSong!.Lyrics" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
+            </FormField>
 
         </EditForm>
     </BodyContent>
@@ -499,11 +477,9 @@ else
                     
                     @if (selectedVideoFile != null)
                     {
-                        <div class="mb-3">
-                            <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
-                            <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
-                            <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
-                        </div>
+                        <FormField Label="Título do vídeo" For="() => videoTitle" Required="true" Help="Este nome aparecerá na lista de vídeos" Context="field">
+                            <InputText @attributes="field.Attributes" @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
+                        </FormField>
                         
                         <div class="d-flex justify-content-end">
                             <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
@@ -594,6 +570,7 @@ else
         </div>
     </BodyContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     [Parameter]

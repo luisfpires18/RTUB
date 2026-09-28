@@ -1,138 +1,52 @@
 @namespace RTUB.Shared
 @*
-    Reusable empty state component for displaying when no items are found
-    Features textarea-style design with purple hover effect
+    "Nothing here" for a list, section or search: icon, title, optional message and one optional
+    next step (a button or a link). Compact on purpose - it should not dominate the page
+    (docs/design/RTUB_UI_REFACTOR.md section 23.3). The title is a paragraph, not a heading:
+    it describes the state of the section it sits in, it does not start a new one.
 *@
 
 <div class="empty-state-container">
-    <div class="empty-state-card @(IsClickable ? "empty-state-hoverable" : "")"
-         tabindex="@(IsClickable ? "0" : "-1")"
-         role="@(IsClickable ? "button" : "")"
-         @onclick="HandleClick"
-         @onkeydown="HandleKeyDown">
-        <div class="empty-state-content">
-            @if (!string.IsNullOrEmpty(Icon))
+    <div class="empty-state-card">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <span class="empty-state-icon" aria-hidden="true"><i class="bi @Icon"></i></span>
+        }
+        <p class="empty-state-title">@Title</p>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <p class="empty-state-message">@Message</p>
+        }
+        @if (!string.IsNullOrEmpty(ActionText))
+        {
+            @if (!string.IsNullOrEmpty(ActionUrl))
             {
-                <i class="bi @Icon empty-state-icon"></i>
+                <a href="@ActionUrl" class="btn btn-primary btn-sm empty-state-action">@ActionText</a>
             }
-            <h5 class="empty-state-title">@Title</h5>
-            @if (!string.IsNullOrEmpty(Message))
+            else if (OnAction.HasDelegate)
             {
-                <p class="empty-state-message">@Message</p>
+                <button type="button" class="btn btn-primary btn-sm empty-state-action" @onclick="OnAction">@ActionText</button>
             }
-            @if (!string.IsNullOrEmpty(ActionText))
-            {
-                @if (!string.IsNullOrEmpty(ActionUrl))
-                {
-                    <a href="@ActionUrl" class="btn btn-purple mt-2">
-                        @ActionText
-                    </a>
-                }
-                else if (OnAction.HasDelegate)
-                {
-                    <button class="btn btn-purple mt-2" @onclick="HandleAction" @onclick:stopPropagation="true">
-                        @ActionText
-                    </button>
-                }
-            }
-        </div>
+        }
     </div>
 </div>
 
 @code {
-    /// <summary>
-    /// Main title to display
-    /// </summary>
-    [Parameter]
-    public string Title { get; set; } = "No items found";
+    /// <summary>What is empty, in the user's words (e.g. "Sem ensaios marcados")</summary>
+    [Parameter] public string Title { get; set; } = "Sem resultados";
 
-    /// <summary>
-    /// Optional message providing more context
-    /// </summary>
-    [Parameter]
-    public string? Message { get; set; }
+    /// <summary>Optional context: why it is empty or what to do next</summary>
+    [Parameter] public string? Message { get; set; }
 
-    /// <summary>
-    /// Bootstrap icon class (e.g., "bi-inbox", "bi-search")
-    /// </summary>
-    [Parameter]
-    public string? Icon { get; set; }
+    /// <summary>Bootstrap icon class (e.g. "bi-inbox", "bi-search")</summary>
+    [Parameter] public string? Icon { get; set; }
 
-    /// <summary>
-    /// Text for the action button (optional)
-    /// </summary>
-    [Parameter]
-    public string? ActionText { get; set; }
+    /// <summary>Label of the optional next-step action</summary>
+    [Parameter] public string? ActionText { get; set; }
 
-    /// <summary>
-    /// URL to navigate to when action button is clicked (optional)
-    /// </summary>
-    [Parameter]
-    public string? ActionUrl { get; set; }
+    /// <summary>Makes the action a link to this URL</summary>
+    [Parameter] public string? ActionUrl { get; set; }
 
-    /// <summary>
-    /// Callback when action button is clicked (optional)
-    /// </summary>
-    [Parameter]
-    public EventCallback OnAction { get; set; }
-
-    private bool IsClickable => !string.IsNullOrEmpty(ActionUrl) || OnAction.HasDelegate;
-
-    private async Task HandleAction()
-    {
-        if (OnAction.HasDelegate)
-        {
-            await OnAction.InvokeAsync();
-        }
-    }
-
-    private async Task HandleClick()
-    {
-        if (!string.IsNullOrEmpty(ActionUrl))
-        {
-            // Navigation will be handled by the anchor tag
-        }
-        else if (OnAction.HasDelegate && string.IsNullOrEmpty(ActionText))
-        {
-            // Only trigger if there's no button (direct click on card)
-            await OnAction.InvokeAsync();
-        }
-    }
-
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (IsClickable && (e.Key == "Enter" || e.Key == " "))
-        {
-            await HandleClick();
-        }
-    }
-    
-    // Track previous state for ShouldRender optimization
-    private string? _previousTitle;
-    private string? _previousMessage;
-    private string? _previousIcon;
-    private string? _previousActionText;
-    private string? _previousActionUrl;
-    
-    /// <summary>
-    /// Optimize rendering - only re-render when key parameters change.
-    /// EmptyState is typically static once rendered, so this provides good performance gains.
-    /// </summary>
-    protected override bool ShouldRender()
-    {
-        if (Title != _previousTitle ||
-            Message != _previousMessage ||
-            Icon != _previousIcon ||
-            ActionText != _previousActionText ||
-            ActionUrl != _previousActionUrl)
-        {
-            _previousTitle = Title;
-            _previousMessage = Message;
-            _previousIcon = Icon;
-            _previousActionText = ActionText;
-            _previousActionUrl = ActionUrl;
-            return true;
-        }
-        return false;
-    }
+    /// <summary>Makes the action a button that runs this callback</summary>
+    [Parameter] public EventCallback OnAction { get; set; }
 }

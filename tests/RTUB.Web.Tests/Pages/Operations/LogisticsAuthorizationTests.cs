@@ -156,7 +156,7 @@ public class LogisticsAuthorizationTests : PageTestBase
         var cut = RenderBoard();
 
         cut.FindAll("button").Should().NotContain(b => b.TextContent.Contains("Criar Lista"));
-        cut.Find(".empty-state-card").Click();
+        cut.Find(".empty-state-card").QuerySelectorAll("button, a, [role=button]").Should().BeEmpty("the empty state offers no create action");
         cut.FindAll("input[placeholder='Nome da lista']").Should().BeEmpty("the create-list modal must not open");
         _lists.VerifyNoOtherCalls();
     }
@@ -277,7 +277,7 @@ public class LogisticsAuthorizationTests : PageTestBase
         var cut = Render<BoardsPage>();
 
         cut.FindAll("button").Should().NotContain(b => b.TextContent.Contains("Criar Quadro"));
-        cut.Find(".empty-state-card").Click();
+        cut.Find(".empty-state-card").QuerySelectorAll("button, a, [role=button]").Should().BeEmpty("the empty state offers no create action");
         cut.FindAll("input[placeholder='Nome do quadro']").Should().BeEmpty("the create-board modal must not open");
         _boards.Verify(s => s.CreateBoardAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }

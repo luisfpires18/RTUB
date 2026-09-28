@@ -45,6 +45,7 @@
 
 <AppTitle>Atuações</AppTitle>
 
+<AppErrorBoundary>
 <div class="events-page container-fluid">
     <PageHeader Title="Atuações" Icon="bi-calendar-event" Subtitle="Próximas atuações e atividades.">
         <Actions>
@@ -68,21 +69,17 @@
     <MyEnrollmentsButton @ref="_myEnrollmentsRef" HideButton="true"/>
 
     <!-- Filter Controls -->
-    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-        <div class="flex-lg-shrink-0 filter-dropdown-container">
-            <FilterDropdown SelectedValue="@selectedFiscalYear"
-                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                            OnChange="@OnFiscalYearChanged"
-                            AllItemsLabel="Todos os anos"
-                            Options="@fiscalYearOptions" />
-        </div>
-        <div class="flex-lg-shrink-0 filter-dropdown-container">
-            <FilterDropdown SelectedValue="@selectedEventType"
-                            SelectedValueChanged="@(value => selectedEventType = value)"
-                            OnChange="@OnEventTypeChanged"
-                            AllItemsLabel="Todos os tipos"
-                            Options="@eventTypeOptions" />
-        </div>
+    <FilterToolbar>
+        <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                        OnChange="@OnFiscalYearChanged"
+                        AllItemsLabel="Todos os anos"
+                        Options="@fiscalYearOptions" />
+        <FilterDropdown Label="Tipo" SelectedValue="@selectedEventType"
+                        SelectedValueChanged="@(value => selectedEventType = value)"
+                        OnChange="@OnEventTypeChanged"
+                        AllItemsLabel="Todos os tipos"
+                        Options="@eventTypeOptions" />
         <div class="form-check form-switch d-flex align-items-center videos-only-toggle">
             <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showVideosOnlySwitch"
                    @bind="showVideosOnly" @bind:after="OnVideosOnlyToggled">
@@ -90,12 +87,12 @@
                 Atuação com videos
             </label>
         </div>
-    </div>
+    </FilterToolbar>
 
 
 @if (allEvents == null)
 {
-    <p>A carregar atuações...</p>
+    <LoadingSpinner Message="A carregar atuações..." />
 }
 else if ((!filteredFutureEvents.Any() || showVideosOnly) && !filteredPreviousEvents.Any())
 {
@@ -299,12 +296,9 @@ else
                 </Alert>
             }
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-kanban text-primary me-2"></i>Nome da Atuação
-                </label>
-                <InputText class="form-control" @bind-Value="editingEvent!.Name" />
-            </div>
+            <FormField Label="Nome da Atuação" Icon="bi-kanban" For="() => editingEvent!.Name" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingEvent!.Name" />
+            </FormField>
 
             <div class="mb-3">
                 <div class="form-check form-switch">
@@ -357,24 +351,18 @@ else
                 }
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-geo-alt text-primary me-2"></i>Localização
-                </label>
-                <InputText class="form-control" @bind-Value="editingEvent!.Location" />
-            </div>
+            <FormField Label="Localização" Icon="bi-geo-alt" For="() => editingEvent!.Location" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingEvent!.Location" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-tag text-primary me-2"></i>Tipo de Atuação
-                </label>
-                <InputSelect class="form-select" @bind-Value="editingEvent!.Type">
+            <FormField Label="Tipo de Atuação" Icon="bi-tag" For="() => editingEvent!.Type" Context="field">
+                <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="editingEvent!.Type">
                     @foreach (var type in Enum.GetValues<EventType>())
                     {
                         <option value="@type">@GetEventTypeDisplay(type)</option>
                     }
                 </InputSelect>
-            </div>
+            </FormField>
 
             <ImageUploadManager @ref="imageUploadManager"
                                Label="Imagem do Evento"
@@ -383,12 +371,9 @@ else
                                PreviewCssClass="slideshow-preview"
                                OnFileSelected="HandleImageUpload" />
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                </label>
-                <InputTextArea class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
-            </div>
+            <FormField Label="Descrição" Icon="bi-text-paragraph" For="() => editingEvent!.Description" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
+            </FormField>
 
         </EditForm>
     </BodyContent>
@@ -873,10 +858,9 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label">Nome do Prémio</label>
-                    <InputText class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
-                </div>
+                <FormField Label="Nome do Prémio" For="() => editingTrophy.Name" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
+                </FormField>
 
             </EditForm>
         }
@@ -1046,11 +1030,9 @@ else
                         
                         @if (selectedVideoFile != null)
                         {
-                            <div class="mb-3">
-                                <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
-                                <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
-                                <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
-                            </div>
+                            <FormField Label="Título do vídeo" For="() => videoTitle" Required="true" Help="Este nome aparecerá na lista de vídeos" Context="field">
+                                <InputText @attributes="field.Attributes" @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
+                            </FormField>
                             
                             <div class="d-flex justify-content-end">
                                 <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
@@ -1176,13 +1158,9 @@ else
     <BodyContent>
         @if (editingVideo != null)
         {
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-camera-video text-primary me-2"></i>Título do Vídeo
-                </label>
-                <input type="text" class="form-control" @bind="editingVideoTitle" placeholder="Digite o título do vídeo" maxlength="200" />
-                <small class="text-muted">Máximo 200 caracteres</small>
-            </div>
+            <FormField Label="Título do Vídeo" Icon="bi-camera-video" Help="Máximo 200 caracteres" Context="field">
+                <input @attributes="field.Attributes" type="text" class="form-control" @bind="editingVideoTitle" placeholder="Digite o título do vídeo" maxlength="200" />
+            </FormField>
             
         }
     </BodyContent>
@@ -1340,11 +1318,7 @@ else
 
                 @if (pushLoadingSubscribers)
                 {
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">A carregar...</span>
-                        </div>
-                    </div>
+                    <LoadingSpinner Message="A carregar subscritores..." />
                 }
                 else if (!string.IsNullOrEmpty(pushErrorMessage))
                 {
@@ -1356,17 +1330,13 @@ else
                 else
                 {
                     <!-- Custom Notification Message -->
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
-                        <textarea class="form-control" 
+                    <FormField Label="Mensagem da Notificação" Required="true" Help="A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres." Context="field">
+                        <textarea @attributes="field.Attributes" class="form-control"
                                   rows="4" 
                                   @bind="customNotificationBody" 
                                   placeholder="Ex: Atuação importante, confirma a tua presença!"
                                   maxlength="500"></textarea>
-                        <small class="text-muted">
-                            A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres.
-                        </small>
-                    </div>
+                    </FormField>
 
                     <!-- Filter Option -->
                     <div class="mb-3">
@@ -1457,11 +1427,7 @@ else
 
             @if (cancelEventLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             
             <div class="mb-3 form-check">
@@ -1484,14 +1450,12 @@ else
                     InfoBadgeText="@($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")" />
             }
 
-            <div class="mb-3">
-                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                <textarea class="form-control" rows="4" 
+            <FormField Label="Motivo do Cancelamento" Required="true" Help="Máximo 1000 caracteres" Context="field">
+                <textarea @attributes="field.Attributes" class="form-control" rows="4"
                           @bind="cancelEventReason" 
                           placeholder="Descreva o motivo do cancelamento do evento..."
                           maxlength="1000"></textarea>
-                <small class="text-muted">Máximo 1000 caracteres</small>
-            </div>
+            </FormField>
         }
     </BodyContent>
     <FooterContent>
@@ -1502,6 +1466,7 @@ else
 
 
 </div>
+</AppErrorBoundary>
 
 
 @code {

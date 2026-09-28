@@ -21,33 +21,28 @@
 
 <AppTitle>Gestão de Pedidos</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Gestão de Pedidos" Icon="bi-inbox" Subtitle="Gerir todos os pedidos submetidos através do website." />
 
 <!-- Search and Filter Controls -->
-<div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch mb-4">
-        <div class="flex-grow-1 search-bar-container">
-            <SearchBar
-                @bind-Value="SearchTerm"
-                OnSearch="UpdateSearch"
-                Placeholder="Pesquisar por nome, email, tipo de evento..." />
-        </div>
-        <div class="flex-lg-shrink-0 filter-dropdown-container">
-            <FilterDropdown
-                SelectedValue="@selectedFiscalYear"
-                SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                OnChange="@OnFiscalYearChanged"
-                AllItemsLabel="Todos os anos"
-                Options="@fiscalYearOptions" />
-        </div>
-        <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container-wide">
-            <FilterDropdown
-                Items="@statusFilterOptions"
-                SelectedValue="@selectedStatusFilter"
-                SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
-                AllItemsLabel="Todos os Estados"
-                IconClass="bi-funnel" />
-        </div>
-    </div>
+<FilterToolbar>
+    <SearchBar
+        @bind-Value="SearchTerm"
+        OnSearch="UpdateSearch"
+        Placeholder="Pesquisar por nome, email, tipo de evento..." />
+    <FilterDropdown Label="Ano letivo"
+        SelectedValue="@selectedFiscalYear"
+        SelectedValueChanged="@(value => selectedFiscalYear = value)"
+        OnChange="@OnFiscalYearChanged"
+        AllItemsLabel="Todos os anos"
+        Options="@fiscalYearOptions" />
+    <FilterDropdown Label="Estado"
+        Items="@statusFilterOptions"
+        SelectedValue="@selectedStatusFilter"
+        SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
+        AllItemsLabel="Todos os Estados"
+        IconClass="bi-funnel" />
+</FilterToolbar>
 
 <!-- Pending Requests Grid -->
 <h3 class="mt-4 mb-3">Pedidos Pendentes</h3>
@@ -260,6 +255,7 @@ else
         <p>Tem a certeza que pretende eliminar o pedido de <strong>@deletingRequest?.Name</strong>?</p>
     </BodyContent>
 </ConfirmDialog>
+</AppErrorBoundary>
 
 @code {
     private Request? selectedRequest = null;

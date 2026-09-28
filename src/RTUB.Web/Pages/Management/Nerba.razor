@@ -17,6 +17,7 @@
 
 <AppTitle>Encomendas Nerba</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Encomendas Nerba" Icon="bi-basket" Subtitle="Registo de encomendas de material por evento." OnBack="GoBack" />
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -93,6 +94,7 @@ else
                    OnConfirm="ConfirmDeleteOrder"
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
+</AppErrorBoundary>
 
 
 @code {

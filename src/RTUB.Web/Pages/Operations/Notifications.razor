@@ -20,6 +20,7 @@
 
 <AppTitle>Enviar Notificação Push</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Enviar Notificação Push" Icon="bi-bell" Subtitle="Enviar notificações push para todos os utilizadores subscritos" />
 
     @if (!string.IsNullOrEmpty(message))
@@ -236,6 +237,7 @@
         <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private string title = "";

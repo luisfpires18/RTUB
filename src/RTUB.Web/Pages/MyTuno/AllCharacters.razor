@@ -16,6 +16,7 @@
 
 <AppTitle>Todos os Personagens</AppTitle>
 
+<AppErrorBoundary>
 <div class="all-characters-page container-fluid">
     <PageHeader Title="Todos os Personagens" Icon="bi-people" Subtitle="Classificação de todos os personagens." BackHref="/my-tuno">
         <Actions>
@@ -214,6 +215,7 @@
                Disabled="@resettingData"
                OnConfirm="ConfirmResetData"
                OnCancel="CloseResetDataModal" />
+</AppErrorBoundary>
 
 
 @code {

@@ -162,14 +162,25 @@ public class AlertTests : BunitContext
     }
 
     [Fact]
-    public void Alert_DoesNotRenderIcon_WhenNotProvided()
+    public void Alert_UsesTheIntentIcon_WhenNoneProvided()
     {
-        // Arrange & Act
         var cut = Render<Alert>(parameters => parameters
-            .Add(p => p.Message, "Test"));
+            .Add(p => p.Message, "Test")
+            .Add(p => p.Type, Alert.AlertType.Success));
 
-        // Assert
-        cut.Markup.Should().NotContain("bi-", "alert should not have icon class when not provided");
+        var icon = cut.Find(".rtub-alert__icon");
+        icon.ClassList.Should().Contain("bi-check-circle-fill");
+        icon.GetAttribute("aria-hidden").Should().Be("true");
+    }
+
+    [Fact]
+    public void Alert_Purple_HasNoIcon_WhenNoneProvided()
+    {
+        var cut = Render<Alert>(parameters => parameters
+            .Add(p => p.Message, "Test")
+            .Add(p => p.Type, Alert.AlertType.Purple));
+
+        cut.FindAll(".rtub-alert__icon").Should().BeEmpty();
     }
 
     [Fact]
@@ -230,27 +241,62 @@ public class AlertTests : BunitContext
         cut.Markup.Should().Contain(childContent, "alert should display child content");
     }
 
-    [Fact]
-    public void Alert_HasProperAriaRole()
+    [Theory]
+    [InlineData(Alert.AlertType.Error, "alert")]
+    [InlineData(Alert.AlertType.Warning, "alert")]
+    [InlineData(Alert.AlertType.Success, "status")]
+    [InlineData(Alert.AlertType.Info, "status")]
+    [InlineData(Alert.AlertType.Purple, "status")]
+    public void Alert_RoleFollowsIntent(Alert.AlertType type, string role)
     {
-        // Arrange & Act
         var cut = Render<Alert>(parameters => parameters
-            .Add(p => p.Message, "Test"));
+            .Add(p => p.Message, "Test")
+            .Add(p => p.Type, type));
 
-        // Assert
-        cut.Markup.Should().Contain("role=\"alert\"", "alert should have proper ARIA role");
+        cut.Find(".alert").GetAttribute("role").Should().Be(role);
     }
 
     [Fact]
-    public void Alert_AppliesFadeAndShowClasses_WhenDismissible()
+    public void Alert_RendersTitleAboveMessage()
     {
-        // Arrange & Act
+        var cut = Render<Alert>(parameters => parameters
+            .Add(p => p.Title, "Presença adicionada")
+            .Add(p => p.Message, "Detalhe"));
+
+        cut.Find(".rtub-alert__title").TextContent.Should().Be("Presença adicionada");
+        cut.Find(".rtub-alert__message").TextContent.Should().Be("Detalhe");
+    }
+
+    [Fact]
+    public void Alert_TitleOnly_Renders()
+    {
+        var cut = Render<Alert>(parameters => parameters.Add(p => p.Title, "Só título"));
+
+        cut.Find(".alert").TextContent.Should().Contain("Só título");
+    }
+
+    [Fact]
+    public void Alert_DismissButton_HasPortugueseName()
+    {
         var cut = Render<Alert>(parameters => parameters
             .Add(p => p.Message, "Test")
             .Add(p => p.Dismissible, true));
 
-        // Assert
-        cut.Markup.Should().Contain("fade show", "dismissible alert should have fade and show classes");
+        cut.Find("button.btn-close").GetAttribute("aria-label").Should().Be("Fechar mensagem");
+    }
+
+    [Fact]
+    public void Alert_NewMessageAfterDismiss_ShowsAgain()
+    {
+        var cut = Render<Alert>(parameters => parameters
+            .Add(p => p.Message, "Primeira")
+            .Add(p => p.Dismissible, true));
+        cut.Find("button.btn-close").Click();
+        cut.FindAll(".alert").Should().BeEmpty();
+
+        cut.Render(parameters => parameters.Add(p => p.Message, "Segunda"));
+
+        cut.Find(".alert").TextContent.Should().Contain("Segunda");
     }
 
     [Fact]

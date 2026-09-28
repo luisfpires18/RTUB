@@ -1437,3 +1437,237 @@ card work), not shell or page-level controls, so it would have had no consumer i
   `EmptyState`/`LoadingSpinner`/`ErrorDisplay`/`Alert`/`SearchBar`/`FilterDropdown` refinements and
   the error boundary.
 - Phase 4 can build dirty-form guards on `Modal.CanClose` and decide the dialog/Back behaviour.
+
+---
+
+## 23. Implemented: RTUB.Shared Component System (unit 036, Task 005)
+
+Durable facts from finishing roadmap Phase 3 on `chore/036/ui-shared-component-system`: form
+fields, feedback, states, search/filter and the error boundary. Sections 1-22 stay as recorded.
+
+### 23.1 Inventory (before, measured on `dev` at `d0e7eacd`)
+
+| Component / pattern | Use | Finding |
+| --- | --- | --- |
+| `FormTextField` / `FormTextArea` | 3 / 2 (Logistics only) | Label not associated, required = red `*` only, no error slot. |
+| Hand-written label + control | 379 `<label>`, 83 with `for`; 116 `InputText`-family, 103 raw `<input>`, 30 `<textarea>`, 28 `<select>` | One repeated shape (`div.mb-3` > `label.form-label` + icon + control [+ `small` help]) in 39 files. Per-field errors: 28 `ValidationMessage` in 9 files; otherwise summary only. |
+| `ErrorDisplay` | 43 in 30 files | Validation summary as a centered 2.5rem-icon card with side-stripe list items; not announced; `Errors` with blank strings rendered an empty card. |
+| `Alert` | 38 in 20 files | **Crash:** 6 uses (Events, EventEnrollments, Rehearsals "member added" feedback) passed `Title`, a parameter `Alert` did not have - Blazor throws on render and ends the circuit. `role="alert"` for every intent (static notes announced as alerts), English "Close", no intent icon, purple = solid fill. 83 raw `alert` divs. |
+| Temporary feedback | 7 page timers (`Task.Delay`/`Timer`) in Meetings, Profile x3, Rehearsals, Shop, Documentation + EventEnrollments `Timer` | Success shown inline then removed or the dialog closed after 1.5-3 s; Profile's upload/password errors reused the green success styling. MyTuno/games have their own HUD toasts (out of scope). |
+| `EmptyState` | 92 in 48 files | English default title, `h5` in the page outline, `role=""`, a "whole card is a button" mode with no consumer left, heavy purple card. |
+| `LoadingSpinner` | 67 in 46 files | Spinner `role="status"` plus a separate visible message (read twice); no `spinner-border-lg` CSS; `Grow`/`ShowLabel` unused. The audit's "188 raw spinners" are ~91 button busy spinners (kept, 22.4/22.7) and **11** section loaders; plus 10 text-only "A carregar..." paragraphs. |
+| `SearchBar` | 49 in 30 files | `type="text"`, named only by placeholder, clear button named by `title`. |
+| `FilterDropdown` | 29 in 16 files | Trigger named only by its value; no active-descendant; selection shown by background only; no click-outside close; Enter on the trigger opened then closed it; a **`static` event** closed every open dropdown on the server - other users' included. |
+| Search/filter rows | 20 pages | The same `d-flex flex-column flex-lg-row ...` row with per-page wrapper divs and per-page min/max-width CSS in 7 scoped sheets. |
+| Error handling | - | No `ErrorBoundary`, no `#blazor-error-ui`: an exception ended the circuit with no RTUB message (22 / 9 audit). |
+
+### 23.2 Form-field contract (`Forms/FormField`)
+
+```razor
+<FormField Label="Localização" Icon="bi-geo-alt" For="() => model.Location" Help="..." Context="field">
+    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="model.Location" />
+</FormField>
+```
+
+- Composition, not a mega-input: `FormField` renders label, help and errors; the control stays the
+  standard Blazor input or HTML element and receives `field.Attributes` (`id`, and
+  `aria-describedby` when there is help or an error). `Id` keeps an existing id; otherwise one is
+  generated.
+- **Label:** `<label for>` + visible text + decorative icon (`aria-hidden`). Existing wording is kept,
+  including "(Opcional)".
+- **Required:** visual `*` (`aria-hidden`) plus visually hidden " (obrigatório)" in the label, so the
+  name carries it. Source of truth: `[Required]` on the `For` property; `Required="true"` only where
+  the page's own rule requires it (every migrated label that showed `*` passes it). **Never adds
+  the `required` attribute or any validation.**
+- **Errors:** with `For` inside an `EditForm`, the field's messages from the cascaded `EditContext`
+  appear under the control (icon + text, `--rtub-danger-text`), are linked by `aria-describedby`,
+  and the control gets Blazor's own `aria-invalid` and `invalid` class (red border). The form's
+  `ErrorDisplay` summary stays at the top. Validation semantics are unchanged.
+- **Help:** muted 14px under the control, described-by.
+- **States:** disabled (dimmed, `not-allowed`), read-only (transparent fill, dashed border - "shown,
+  not editable"), focus = the 033 ring. Spacing: 16px between fields, 6px label-to-control.
+- `FormTextField`/`FormTextArea` are now thin wrappers over `FormField` (API kept; unused
+  `LabelCssClass` removed).
+- **Adopted:** 126 fields in 39 files (Rehearsals 16, Meetings 19, Events 9, Report 7, Songs 7, ...),
+  migrated only where the markup matched the repeated shape exactly (one control, optional plain
+  help). Exceptions left as they were: checkbox/radio/file inputs, label + several controls, labels
+  with Razor expressions, grid-column filter forms (stats dialogs), Gallery's visible filter labels.
+  Raw `<label>` count 379 → 255; associated fields 83 → 211 (126 `FormField` + 85 `for`).
+
+### 23.3 EmptyState
+
+- Compact dashed surface (accent at 32%), 44px soft-purple icon disc, 16px/600 title, muted 14px
+  message capped at 46ch, optional small primary action (button for `OnAction`, link for
+  `ActionUrl`). Smaller padding inside cards and dialogs.
+- Title is a paragraph, not a heading (it describes the section it is in). Default title
+  "Sem resultados" (was English). The clickable-card mode had no consumer and is gone - an action is
+  always a real button/link.
+
+### 23.4 LoadingSpinner
+
+- One polite `role="status"` block: spinner `aria-hidden`, the visible message is the announcement
+  (or a hidden `Label` when `ShowMessage="false"`). Spinner in `--rtub-accent` (brand purple is too
+  dark to read as motion), message muted.
+- Patterns: **section/page** = `<LoadingSpinner Message="A carregar ensaios..." />` (`Size=Large`
+  for a whole page); **inline** = `Size="SpinnerSize.Small" Centered="false"`; **button busy** =
+  the existing `spinner-border-sm` in the button (`PageAction Busy`, `ConfirmDialog`) - unchanged.
+- Migrated: 8 raw section spinners (with context text where there was only animation: "A carregar
+  subscritores...", "A carregar jogos...", "A carregar conversas...") and 10 text-only loaders. Left:
+  the three email-send progress overlays (count + recipient, a progress UI) and `ReconnectModal`.
+
+### 23.5 Feedback: Alert vs ErrorDisplay vs toast
+
+| Use | Component | Semantics |
+| --- | --- | --- |
+| Transient confirmation of something that just happened ("Link copiado!", "Reserva criada com sucesso!") | `ToastService.ShowSuccess/ShowInfo` | polite live region, leaves after 5 s |
+| Transient failure of a side action that needs no fix in place ("Não foi possível copiar o link") | `ToastService.ShowError/ShowWarning` | assertive, stays until closed |
+| Message tied to a place (dialog, form, section): partial results, notes, action errors inside a dialog | `Alert` | Error/Warning `role="alert"`, others `role="status"` |
+| Validation summary; a load or operation that failed and replaces content | `ErrorDisplay` | `role="alert"` when it appears |
+| A field's own error | `FormField` | described-by + `aria-invalid` |
+
+Never a toast for a destructive confirmation (`ConfirmDialog`) or for an error the user must fix in
+place.
+
+- **Alert:** `Title` (the crash fix), `Message`, `ChildContent`; icon per intent by default
+  (Success check, Error octagon, Warning triangle, Info circle; Purple none) so intent is not color
+  alone; tinted dark surface + intent border, body text in `--rtub-text`; purple is now a soft tint
+  instead of a solid fill; dismiss named "Fechar mensagem", 32px, white glyph; a dismissed alert
+  shows again when its message changes. Raw `.alert` divs get the same colors through Bootstrap's
+  `--bs-alert-*` variables (text no longer colored; `alert-info` no longer Bootstrap's light cyan).
+- **Toast (`ToastService` scoped + `ToastHost` in `MainLayout` as an interactive island):** pages
+  are other interactive roots of the same circuit, so they share the scoped service (the
+  `ProfilePictureUpdateService` pattern). Intents success/info/warning/error, optional title, dismiss
+  button "Fechar notificação", max 3 (oldest leave), the same message twice moves to the end instead
+  of stacking. Both live regions are prerendered empty, so the first toast is announced. Auto-dismiss
+  waits while pointer or focus is on a toast. Placement: bottom-right from 1200px; below 1200px at
+  the top under the safe area (never over the page action bar, a sheet's action bar or the
+  on-screen keyboard). 200ms rise, none with reduced motion. z-index 1085 (above dialogs 1055,
+  below the circuit bar 1095 and the SW update toast).
+- **Migrated:** Meetings reminder, Profile photo / password / email subscription, Rehearsals
+  range creation, Shop reservation, Documentation upload, EventEnrollments copy link - all 7 page
+  timers gone; dialogs that waited 1.5-2 s to show a success now close at once and toast. Profile's
+  photo and password errors now render as errors (they were green). Kept inline on purpose:
+  partial results (Rehearsals "Criados X... Y ignoradas" as a warning), admin result summaries
+  (Emails, Notifications, UserRoles, DatabaseViewer - persistent, dismissible), LogisticsBoard's
+  upload result inside the open card dialog, all MyTuno/game toasts.
+
+### 23.6 SearchBar
+
+`type="search"`, `enterkeyhint="search"`, `autocomplete="off"`; a visually hidden `<label>` named by
+`Label` or, by default, the placeholder without its trailing dots (all 49 consumers named with no
+page edit); icon `aria-hidden`; clear button 36px, "Limpar pesquisa", returns focus to the field;
+native WebKit clear hidden. 44px pill, calmer idle border, accent ring on focus. Debounce (300 ms),
+Enter and clear behavior unchanged.
+
+### 23.7 FilterDropdown
+
+`Label` (what is filtered) → trigger named "Ano letivo: 2026-2027" (visually hidden prefix); listbox
+named by the label, `aria-activedescendant` on the active option, selected option = weight + check
+icon, active option = soft purple surface (no longer the same fill as "selected"). Keyboard: arrows
+open and move, Home/End, Enter/Space select, Escape and Tab close and return focus to the trigger;
+keys inside the list are prevented, so Escape closes the list and not the dialog around it
+(verified). Click outside closes (transparent layer). `Disabled` added. Long option labels wrap;
+44px options on coarse pointers. The **server-wide static "close the others" event was removed**
+(it closed other users' dropdowns); one list at a time now follows from click-away. All 32 uses got a
+`Label` (their visible label, or the filtered dimension).
+
+### 23.8 FilterToolbar
+
+`<FilterToolbar>` = one wrapping flex row, `role="search"` named "Pesquisa e filtros": SearchBar
+grows (20-40rem), FilterDropdowns keep 11-15rem and move to the end, other controls (a switch) sit
+after them; below 576px every control is full width. Layout only - filtering stays in the page.
+Adopted on 18 pages (Events, Leaderboard, Meetings, Naipes, Rehearsals, Inventory, Shop, Finance,
+Labels, Logistics, Questions, Requests, UserRoles, Documentation, Slideshows, Members, StageEnemies,
+Calotes); per-page wrapper divs and 7 scoped sheets' container width rules removed. Gallery keeps
+its visible-label filter layout (with page-size select).
+
+### 23.9 Error handling
+
+Three layers, not conflated:
+
+1. **`AppErrorBoundary`** (derived from `ErrorBoundary`) wraps the markup of every interactive page
+   (54). A rendering exception in the page's markup, or any exception in a child component
+   (render, lifecycle, its event handlers), shows an RTUB fallback: page `h1` "Não foi possível
+   mostrar esta página", Portuguese explanation (no exception detail), "Tentar novamente"
+   (`Recover`) and "Recarregar página"; focus moves to it. `ErrorBoundary` still logs the exception
+   on the server. **Limit (verified in a test):** Blazor attributes an event handler's exception to
+   the component that owns the handler - the page, which sits outside its own boundary - so the
+   page's own `@onclick` handlers and lifecycle methods are not caught. Pages keep try/catch around
+   saves (Phase 4 retrofit).
+2. **`#blazor-error-ui`** (App.razor): shown by Blazor when an unhandled exception ends the circuit.
+   RTUB card at the bottom (safe area, above bars), "Ocorreu um erro inesperado e a página deixou de
+   responder", Recarregar / Fechar wired in `blazorStartup.js` (the circuit is gone, so no Blazor
+   handler).
+3. **`ReconnectModal`** (unchanged): connection loss only. HTTP errors: `UseExceptionHandler` and
+   `/Error` unchanged (API behavior untouched).
+
+### 23.10 State matrix
+
+| State | Where it lives now |
+| --- | --- |
+| Hover / active / focus | Bootstrap + 033 focus ring; pills (search/filter) share hover, focus-within ring |
+| Selected | FilterDropdown weight + check; nav/page actions (034/035) |
+| Disabled | Bootstrap disabled; `form-control`/`form-select` `not-allowed`; FilterDropdown `Disabled` |
+| Read-only | dashed, unfilled `form-control[readonly]` |
+| Loading | `LoadingSpinner` (section/page/inline); button `spinner-border-sm` |
+| Empty | `EmptyState` |
+| Success / info | toast; `Alert` for place-bound notes |
+| Warning | `Alert` Warning; toast warning |
+| Error | `FormField` (field), `ErrorDisplay` (summary/load), `Alert` Error (place-bound), toast error (transient), `AppErrorBoundary`, `#blazor-error-ui` |
+
+CSS: `3-components/alerts.css` (alerts), new `3-components/feedback-states.css` (EmptyState,
+ErrorDisplay, LoadingSpinner, toasts, boundary fallback, circuit bar), `form-components.css`
+(FormField), `dropdowns.css` (SearchBar, FilterDropdown, FilterToolbar). The old EmptyState /
+ErrorDisplay rules in `breadcrumbs-navigation.css`, `input-groups-misc.css` and `list-groups.css`
+were removed. Palette and font unchanged: only existing tokens and alphas of existing colors.
+
+### 23.11 Validation performed
+
+- **Automated:** the CI command set (16.1). New: `FormFieldTests` (8: association, kept id, help and
+  error described-by, `[Required]` marker without `required`, explicit Required, EditContext errors,
+  error cleared), `AppErrorBoundaryTests` (5, including the page-handler limit), `ToastTests` (7),
+  `FilterDropdownTests` (9), `StateComponentsTests` (6); `AlertTests`, `SearchBarTests`,
+  `LoadingSpinnerTests`, `FormText*Tests` moved to roles/names/behavior; `AppShellTests` +1
+  (circuit bar and prerendered toast regions); page tests register `ToastService`; Logistics
+  authorization tests assert the empty state offers no action instead of clicking the old
+  clickable card.
+- **Browser (Playwright/Chromium, local Development run on a scratch copy of the snapshot DB, SMTP
+  off, non-existent R2 bucket, backups off):** 16 routes x 1440/1024/820/390/360 as Owner and as a
+  Tuno member (160 captures): no page wider than the viewport, no `AppErrorBoundary` fallback, no
+  circuit error, every SearchBar and FilterDropdown named, every `FormField` control labelled.
+  Interactions at 1440 and 390: Criar Ensaio submitted invalid (nothing saved) → per-field error
+  under Data + summary; FilterDropdown opened with ArrowDown (focus on listbox, active descendant),
+  Escape closed it with focus back on the trigger; Escape inside the Estatísticas dialog closed the
+  list, a second Escape the dialog; SearchBar clear kept focus in the field; "Copiar Link" →
+  success toast in the polite region, bottom-right at 1440 / top at 390, gone after 5 s. Screens
+  reviewed: Members, Rehearsals, Requests, Shop, Meetings, Logistics, validation sheet, toasts,
+  dropdown, circuit bar (forced visible), boundary fallback (its markup rendered for CSS review).
+  Server log: only the expected local R2 "Access Denied" and push-toggle errors.
+- Impeccable detector on the changed components and CSS: no findings (one false positive: `<img>`
+  inside an existing Razor comment in App.razor).
+- **Not verified:** real devices (virtual keyboard with toasts at the top, iOS safe areas),
+  screen-reader output (checked in the DOM only), a real circuit-ending exception in the browser
+  (Blazor's own display of `#blazor-error-ui`; the markup and wiring are covered).
+
+### 23.12 Remaining (for later tasks)
+
+- Page-owned handlers and lifecycle exceptions still end the circuit (23.9) - try/catch + busy
+  states in Phase 4.
+- 170 raw `<label>`s still without `for` (grids, checkbox groups, multi-control fields, Messages
+  composer, filter forms in stats dialogs) and 78 raw `alert` divs; migrate when those forms are
+  touched (Phase 4 for create/edit, Phases 5-6 for the rest).
+- Admin result messages (Emails, Notifications, UserRoles, DatabaseViewer) stay inline Alerts;
+  MyTuno/games keep their own toasts (13.10).
+- `questions.css` still holds global `.filter-dropdown-container` rules that now only affect the
+  Members/Roles dialogs.
+- `PaginatedList` (unused) still has an English default.
+- FilterDropdown does not scroll a long list to the active option on arrow keys (lists are short).
+- Documentation's upload error shows `ex.Message` (existing text, not changed).
+
+### 23.13 Roadmap adjustments
+
+- Phase 3 is done except `IconButton` and `OverflowMenu`/`CardActions`, which belong with the card
+  work (Phases 5-6).
+- Phase 4 can build on `FormField` (errors already per field), the toast for success feedback,
+  `Modal.CanClose` (22.2) and `AppErrorBoundary`; its double-submit/try-catch retrofit closes 23.9's
+  limit.

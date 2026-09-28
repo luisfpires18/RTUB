@@ -16,6 +16,7 @@
 
 <AppTitle>Mapa de Membros</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="Mapa de Membros" Icon="bi-geo-alt" Subtitle="Localização geográfica dos membros por cidade." BackHref="/members" />
 
 @if (isLoading)
@@ -175,6 +176,7 @@ else
         }
     </div>
 }
+</AppErrorBoundary>
 
 @code {
     private bool isLoading = true;

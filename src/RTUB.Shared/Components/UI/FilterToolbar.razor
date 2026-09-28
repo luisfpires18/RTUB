@@ -1,0 +1,21 @@
+@namespace RTUB.Shared
+@*
+    Layout for a page's search + filters row: SearchBar grows, FilterDropdowns keep a readable
+    width, other controls (a switch) sit at the end; everything wraps, and phones stack it
+    (docs/design/RTUB_UI_REFACTOR.md section 23.8). Layout and landmark only - the page keeps
+    the filtering. Put SearchBar and FilterDropdown directly inside, without wrappers.
+*@
+
+<div class="filter-toolbar @CssClass" role="search" aria-label="@Label">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Name of the search landmark</summary>
+    [Parameter] public string Label { get; set; } = "Pesquisa e filtros";
+
+    /// <summary>Extra classes (spacing)</summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -15,6 +15,7 @@
 
 <AppTitle>@(eventEntity is null ? "Encomendas Nerba" : $"{eventEntity.Name} - Encomendas Nerba")</AppTitle>
 
+<AppErrorBoundary>
 <PageHeader Title="@(eventEntity?.Name ?? "Encomendas")" Icon="bi-basket" Subtitle="@HeaderSubtitle" OnBack="GoBack">
     <Actions>
         <AuthorizeView Roles="Mod,Admin">
@@ -264,6 +265,7 @@ else
                    OnConfirm="ConfirmDeleteOrder"
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
+</AppErrorBoundary>
 
 
 @code {

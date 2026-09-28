@@ -23,6 +23,7 @@
 
 <AppTitle>Discussão - @(eventItem?.Name ?? "Evento")</AppTitle>
 
+<AppErrorBoundary>
 <div class="discussion-page-wrapper">
     @if (eventItem == null)
     {
@@ -276,21 +277,18 @@
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <div class="mb-3">
-            <label class="form-label">Descrição da Viatura <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" maxlength="200"
+        <FormField Label="Descrição da Viatura" Required="true" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" maxlength="200"
                    @bind="tVehicleDescription" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Nº de Lugares <span class="text-danger">*</span></label>
-            <input type="number" class="form-control" min="2" max="20" @bind="tTotalSeats" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Notas</label>
-            <textarea class="form-control" rows="2" maxlength="500"
+        </FormField>
+        <FormField Label="Nº de Lugares" Required="true" Context="field">
+            <input @attributes="field.Attributes" type="number" class="form-control" min="2" max="20" @bind="tTotalSeats" />
+        </FormField>
+        <FormField Label="Notas" Context="field">
+            <textarea @attributes="field.Attributes" class="form-control" rows="2" maxlength="500"
                       placeholder="Ex: Saída às 18h, ponto de encontro..."
                       @bind="tNotes"></textarea>
-        </div>
+        </FormField>
 
         <hr />
         <label class="form-label"><i class="bi bi-people me-1"></i>Membros</label>
@@ -387,6 +385,7 @@
                CancelText="Cancelar"
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDeleteComment" />
+</AppErrorBoundary>
 
 @code {
     [Parameter]
