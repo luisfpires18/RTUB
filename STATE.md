@@ -7,10 +7,10 @@ _Last updated: 2026-09-27_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program: 032 (Task 001, audit) and 033 (Task 002, visual foundations) merged; **034 (Task 003, app
-shell and navigation: 1200px shell breakpoint, account menu, drawer a11y, skip link, page titles,
-safe areas, versioned global CSS) complete on `chore/034/ui-app-shell-navigation`, not yet
-merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-21. No blockers.
+program: 032, 033 and 034 (Task 003, app shell and navigation) merged. **Deploy • DEV is red on the
+034 merge `ff4c40b9`** (run 36394016593: a cache-contract test caught the server response cache
+answering an unversioned asset with its `?v=` entry); **fix on `fix/034/app-shell-ci`, not yet
+merged.** Task 004 not started. Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-21.
 
 ## Where things are
 | Topic | Doc |

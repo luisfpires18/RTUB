@@ -1175,6 +1175,13 @@ side-stripe was dropped (craft rule: no colored side stripes).
   304 when unchanged: e.g. `_framework/blazor.web.js`, the fingerprinted `_content` scoped
   bundle, `offline.css`); other static files unchanged (30 days; icons/manifest 1 hour;
   `service-worker.js` `no-cache`). Nothing is `no-store`.
+- **Server response cache:** `UseResponseCaching` keys its in-memory cache on the path unless a
+  response names the query keys it varies by, so static responses vary by `v`
+  (`IResponseCachingFeature.VaryByQueryKeys`). Without it a stored 30-day `/x.css?v=<hash>`
+  answered a later unversioned `/x.css`; the first Deploy • DEV run after the merge (run
+  36394016593) failed on exactly that, because test order on Linux put the versioned request
+  first. Fixed on `fix/034/app-shell-ci`, guarded by
+  `AppShellTests.UnversionedAsset_AfterItsVersionedUrlWasServed_IsStillRevalidated`.
 - **Service worker:** CSS/JS stay stale-while-revalidate, keyed by full URL. A new `?v=` is a
   cache miss, so changed CSS arrives on the first load after a deploy. Storing a versioned response
   now first deletes the other versions of the same path (`cache.delete(request, { ignoreSearch:

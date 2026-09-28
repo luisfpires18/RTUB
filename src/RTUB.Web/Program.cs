@@ -452,6 +452,16 @@ public class Program
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
+                        // UseResponseCaching (above) keys its server-side cache on the path alone
+                        // unless told which query keys to vary by. Without this, a stored 30-day
+                        // "/x.css?v=<hash>" response would also answer "/x.css", which the rules
+                        // below serve as no-cache.
+                        var responseCaching = ctx.Context.Features.Get<Microsoft.AspNetCore.ResponseCaching.IResponseCachingFeature>();
+                        if (responseCaching != null)
+                        {
+                            responseCaching.VaryByQueryKeys = new[] { "v" };
+                        }
+
                         // Digital Asset Links for Android TWA - minimal caching for verification
                         // FileExtensionContentTypeProvider handles Content-Type automatically
                         if (path.Equals("/.well-known/assetlinks.json"))
