@@ -22,18 +22,11 @@
 
 <AppTitle>Gestão de Apresentação</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-images"></i> Gestão de Apresentação</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir imagens de apresentação na página inicial.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
-        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Slide">
-            <i class="bi bi-plus-lg"></i> Adicionar Slide
-        </button>
-    </div>
-</div>
+<PageHeader Title="Gestão de Apresentação" Icon="bi-images" Subtitle="Gerir imagens de apresentação na página inicial.">
+    <Actions>
+        <PageAction Label="Adicionar Slide" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+    </Actions>
+</PageHeader>
 
 <div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch mb-4">
     <div class="flex-lg-grow-1 search-bar-container">
@@ -175,14 +168,11 @@ else
               ImageFormat="image/webp"
               ImageQuality="0.9" />
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private enum ModalType { Edit, Delete, Cropper }
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-add", "Adicionar", "bi-plus-lg") };
     private Slideshow? editingSlide;
     private Slideshow? deletingSlide;
     private string? uploadedImagePath;
@@ -202,10 +192,6 @@ else
         ApplyFiltersAndPagination();
     }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") OpenCreateModal();
-    }
 
     protected override async Task LoadItemsAsync()
     {

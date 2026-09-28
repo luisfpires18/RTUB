@@ -46,35 +46,22 @@
 <AppTitle>Atuações</AppTitle>
 
 <div class="events-page container-fluid">
-    <div class="page-header-centered">
-        <div class="page-header-left"></div>
-        <div class="page-header-center">
-            <h1><i class="bi bi-calendar-event"></i> Atuações</h1>
-            <p class="lead page-header-subtitle text-light-theme">Próximas atuações e atividades.</p>
-        </div>
-        <div class="page-header-right d-none d-xl-flex gap-2">
+    <PageHeader Title="Atuações" Icon="bi-calendar-event" Subtitle="Próximas atuações e atividades.">
+        <Actions>
             <AuthorizeView Roles="Admin">
                 <Authorized>
-                    <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
-                        <i class="bi bi-plus-lg"></i> Adicionar Atuação
-                    </button>
+                    <PageAction Label="Adicionar Atuação" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
                 </Authorized>
             </AuthorizeView>
-            <button class="btn btn-purple btn-purple-light" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
-                <i class="bi bi-trophy-fill"></i> Prémios
-            </button>
+            <PageAction Label="Prémios" Icon="bi-trophy-fill" OnClick="OpenTrophiesStatsModal" />
             <AuthorizeView>
                 <Authorized>
-                    <button class="btn btn-outline-primary" @onclick="() => _enrollmentStatsRef?.Open()" title="Ver Estatísticas">
-                        <i class="bi bi-bar-chart"></i> Estatísticas
-                    </button>
-                    <button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsViaRef" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
-                        <i class="bi bi-calendar-check"></i> Minhas Inscrições
-                    </button>
+                    <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="@(() => _enrollmentStatsRef?.Open())" />
+                    <PageAction Label="Minhas Inscrições" ShortLabel="Inscrições" Icon="bi-calendar-check" OnClick="OpenMyEnrollmentsViaRef" />
                 </Authorized>
             </AuthorizeView>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     @* Component instances outside hidden container so their modals work on all viewports *@
     <EnrollmentStatisticsButton @ref="_enrollmentStatsRef" HideButton="true"/>
@@ -1516,8 +1503,6 @@ else
 
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Event>? allEvents; // All events (unfiltered)
@@ -1559,7 +1544,6 @@ else
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private bool isTrophyCreateMode = false;
     private bool isLoadingTrophiesStats = false;
     private bool isInitializing = true;
@@ -1750,7 +1734,6 @@ else
         await LoadEventVideoCounts();
         await LoadEventTrophyCounts();
         await LoadCurrentUser();
-        BuildMobileNavItems();
         
         isInitializing = false;
         
@@ -1793,32 +1776,7 @@ else
         }
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isUserAdmin)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        items.Add(new("action-trophies", "Prémios", "bi-trophy-fill"));
-        if (currentUser != null)
-        {
-            items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
-            items.Add(new("action-enrollments", "Inscrições", "bi-calendar-check"));
-        }
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add": OpenCreateModal(); break;
-            case "action-trophies": await OpenTrophiesStatsModal(); break;
-            case "action-stats": _enrollmentStatsRef?.Open(); break;
-            case "action-enrollments":
-                if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
-                break;
-        }
-    }
 
     private EnrollmentStatisticsButton? _enrollmentStatsRef;
     private MyEnrollmentsButton? _myEnrollmentsRef;

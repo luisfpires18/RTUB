@@ -18,18 +18,11 @@
 <AppTitle>Stage Enemies</AppTitle>
 
 <div class="stage-enemies-page container-fluid">
-    <div class="page-header-centered mb-4">
-        <div class="page-header-left"></div>
-        <div class="page-header-center">
-            <h1><i class="bi bi-bug"></i> Stage Enemies</h1>
-            <p class="page-header-subtitle">Manage enemies for Stage Mode.</p>
-        </div>
-        <div class="page-header-right d-none d-xl-flex">
-            <button class="btn btn-success" @onclick="OpenCreateModal" title="Add New Enemy">
-                <i class="bi bi-plus-lg"></i> <span class="btn-text">Add Enemy</span>
-            </button>
-        </div>
-    </div>
+    <PageHeader Title="Stage Enemies" Icon="bi-bug" Subtitle="Manage enemies for Stage Mode." BackHref="/my-tuno">
+        <Actions>
+            <PageAction Label="Add Enemy" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+        </Actions>
+    </PageHeader>
 
     <div class="mb-4">
         <!-- Filters -->
@@ -206,8 +199,6 @@
     </BodyContent>
 </ConfirmDialog>
 
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
-
 @code {
     private enum ModalType { Edit, Delete }
     private readonly MultiModalState<ModalType> modals = new();
@@ -217,11 +208,6 @@
     private int? editingEnemyId;
     private EditForm? editForm;
 
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
-    {
-        new("action-back", "Voltar", "bi-arrow-left"),
-        new("action-add", "Add Enemy", "bi-plus-lg")
-    };
 
     // Filter state
     private string selectedEnemyType = string.Empty;
@@ -240,14 +226,6 @@
         ApplyFiltersAndPagination();
     }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-back": Navigation.NavigateTo("/my-tuno"); break;
-            case "action-add": OpenCreateModal(); break;
-        }
-    }
 
     protected override async Task LoadItemsAsync()
     {

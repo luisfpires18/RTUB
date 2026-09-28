@@ -1,7 +1,6 @@
 /* ==========================================
-   Mobile Bottom Navigation Bar
-   Fixed to bottom, dark/purple theme, white text
-   Visible on mobile and tablet (≤1024px)
+   Mobile Bottom Navigation Bar (navigation only; page actions: PageActions)
+   Fixed to bottom below 1200px, the app shell breakpoint
    ========================================== */
 
 /* Hidden on desktop by default — visible below xl breakpoint (matches d-none d-xl-flex on desktop actions) */
@@ -43,10 +42,10 @@
         background: transparent;
         border: none;
         color: rgba(255, 255, 255, 0.85);
-        font-size: 0.65rem;
+        /* 11px, sentence case: legible Portuguese labels (UI refactor 035). */
+        font-size: 0.6875rem;
         font-weight: 600;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
+        line-height: 1.2;
         cursor: pointer;
         transition: color 0.15s ease;
         -webkit-tap-highlight-color: transparent;

@@ -23,28 +23,15 @@
 
 <AppTitle>Calotes</AppTitle>
 
-<div class="page-header-centered mb-4">
-    <div class="page-header-left d-none d-xl-flex">
-        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
-            <i class="bi bi-arrow-left"></i>
-        </button>
-    </div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-cash-coin"></i> Calotes</h1>
-        <p class="page-header-subtitle">Registo de dívidas de membros à Tuna.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="Calotes" Icon="bi-cash-coin" Subtitle="Registo de dívidas de membros à Tuna." OnBack="GoBack">
+    <Actions>
         <AuthorizeView Roles="Mod,Admin">
             <Authorized>
-                <button class="btn btn-success"
-                        @onclick="OpenAddCaloteModal"
-                        title="Adicionar Calote">
-                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Calote</span>
-                </button>
+                <PageAction Label="Adicionar Calote" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenAddCaloteModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 <div class="d-flex flex-column gap-3 mb-4">
     <!-- Search Box and Fiscal Year Filter -->
@@ -413,8 +400,6 @@ else
     </DetailsModal>
 }
 
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
-
 @code {
     // URL query parameters
     [SupplyParameterFromQuery(Name = "reportId")]
@@ -459,8 +444,6 @@ else
     // Helper for multi-word search
     private SearchHelper<ApplicationUser> searchHelper = new();
     private SearchHelper<MemberDebtGroupDto> groupSearchHelper = new();
-    private bool isAdminOrMod = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -471,7 +454,6 @@ else
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var isAdmin = authState.User.IsInRole("Admin");
         var isMod = authState.User.IsInRole("Mod");
-        isAdminOrMod = isAdmin || isMod;
         
         if (isAdmin || isMod)
         {
@@ -499,25 +481,9 @@ else
         }
         
         await LoadCalotes();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left")
-        };
-        if (isAdminOrMod)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back") GoBack();
-        else if (key == "action-add") OpenAddCaloteModal();
-    }
 
     private async Task LoadFiscalYears()
     {

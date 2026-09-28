@@ -32,19 +32,7 @@
     {
         <div class="contacts-inner">
             <!-- Page Header -->
-            <div class="page-header-centered">
-                <div class="page-header-left d-none d-xl-flex">
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                </div>
-                <div class="page-header-center">
-                    <h1><i class="bi bi-telephone"></i> Contactos</h1>
-                    <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
-                </div>
-                <div class="page-header-right d-none d-xl-flex">
-                </div>
-            </div>
+            <PageHeader Title="Contactos" Icon="bi-telephone" Subtitle="@selectedEvent.Name" OnBack="NavigateBack" />
 
             @* Feedback Alert *@
             @if (!string.IsNullOrEmpty(feedbackMessage))
@@ -176,8 +164,6 @@
     }
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Contact Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Contact)"
@@ -262,8 +248,6 @@
     private string feedbackMessage = string.Empty;
     private bool feedbackIsError;
 
-    // Mobile nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -277,24 +261,9 @@
         }
 
         await LoadData();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        mobileNavItems = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left")
-        };
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back")
-        {
-            NavigateBack();
-        }
-    }
 
     private async Task LoadData()
     {

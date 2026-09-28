@@ -27,22 +27,15 @@
 
 <AppTitle>Galeria</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-images"></i> Galeria</h1>
-        <p class="lead page-header-subtitle text-light-theme">Memórias da RTUB através dos anos.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="Galeria" Icon="bi-images" Subtitle="Memórias da RTUB através dos anos.">
+    <Actions>
         <AuthorizeView Roles="Admin,Member, Mod">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenUploadModal" title="Carregar Media">
-                    <i class="bi bi-cloud-upload"></i> Carregar
-                </button>
+                <PageAction Label="Carregar" Icon="bi-cloud-upload" Intent="PageActionIntent.Primary" OnClick="OpenUploadModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 <!-- Filters -->
 <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap justify-content-between mb-4">
@@ -469,8 +462,6 @@ else
     </FooterContent>
 </DetailsModal>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Constants
@@ -539,7 +530,6 @@ else
     private string? currentUserId;
     private bool isAdmin = false;
     private bool isAuthenticated = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Timeline rendering
     private int timelineItemIndex = 0;
@@ -552,21 +542,9 @@ else
         await LoadAvailableYears();
         await LoadTaggedPeople();
         await LoadMedia();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAuthenticated)
-            items.Add(new("action-upload", "Carregar", "bi-cloud-upload"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-upload") OpenUploadModal();
-    }
 
     private async Task LoadCurrentUser()
     {

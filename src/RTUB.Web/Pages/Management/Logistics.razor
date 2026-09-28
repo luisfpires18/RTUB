@@ -21,21 +21,14 @@
 
 <div class="logistics-page-wrapper">
     <div class="logistics-page-container">
-        <div class="page-header-centered">
-            <div class="page-header-left"></div>
-            <div class="page-header-center">
-                <h1><i class="bi bi-kanban"></i> Logística</h1>
-                <p class="lead page-header-subtitle text-light-theme">Gestão de boards de tarefas e atuações.</p>
-            </div>
-            <div class="page-header-right d-none d-xl-flex">
+        <PageHeader Title="Logística" Icon="bi-kanban" Subtitle="Gestão de boards de tarefas e atuações.">
+            <Actions>
                 @if (canManageLogistics)
                 {
-                    <button class="btn btn-success" @onclick="OpenCreateBoardModal">
-                        <i class="bi bi-plus-lg"></i> Criar Quadro
-                    </button>
+                    <PageAction Label="Criar Quadro" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateBoardModal" />
                 }
-            </div>
-        </div>
+            </Actions>
+        </PageHeader>
 
             <AuthorizeView>
                 <Authorized>
@@ -240,8 +233,6 @@
     </BodyContent>
 </ConfirmDialog>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<BoardEntity>? boards;
@@ -257,7 +248,6 @@
     // LogisticsAuthorization.CanManage. Hiding a button is not a permission check, so every
     // mutating handler below re-checks this before calling a service.
     private bool canManageLogistics = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Board modal state
     private enum ModalType { Board, DeleteBoard }
@@ -279,21 +269,9 @@
     {
         await CheckUserRole();
         await LoadData();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canManageLogistics)
-            items.Add(new("action-create", "Criar Quadro", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-create") OpenCreateBoardModal();
-    }
 
     private async Task CheckUserRole()
     {

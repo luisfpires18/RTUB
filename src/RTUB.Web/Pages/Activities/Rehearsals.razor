@@ -36,30 +36,17 @@
 
 <AppTitle>Ensaios</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-music-note-list"></i> Ensaios</h1>
-        <p class="lead page-header-subtitle text-light-theme">Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).">
+    <Actions>
         @if (isAdmin)
         {
-            <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
-                <i class="bi bi-plus-lg"></i> Adicionar Ensaio
-            </button>
-            <button class="btn btn-success" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
-                <i class="bi bi-calendar-range"></i> Adicionar Vários
-            </button>
+            <PageAction Label="Adicionar Ensaio" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateSingleModal" />
+            <PageAction Label="Adicionar Vários" ShortLabel="Vários" Icon="bi-calendar-range" OnClick="OpenDateRangeModal" />
         }
-        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-            <i class="bi bi-bar-chart"></i> Estatísticas
-        </button>
-        <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
-            <i class="bi bi-calendar-check"></i> Minhas Presenças
-        </button>
-    </div>
-</div>
+        <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="OpenStatsModal" />
+        <PageAction Label="Minhas Presenças" ShortLabel="Presenças" Icon="bi-calendar-check" OnClick="OpenMyAttendancesModal" />
+    </Actions>
+</PageHeader>
 
 <!-- Filter Controls -->
 <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
@@ -1151,15 +1138,11 @@ else
     </FooterContent>
 </Modal>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
-
 @code {
     private bool loading = true;
     private bool isInitializing = true;
     private bool isAdmin = false;
     private bool isOwner = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private string? currentUserId;
     private ApplicationUser? currentUser;
     private List<InstrumentType> currentUserInstruments = new();
@@ -1372,32 +1355,9 @@ else
         await LoadData();
         loading = false;
         isInitializing = false;
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdmin)
-        {
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-            items.Add(new("action-add-range", "Vários", "bi-calendar-range"));
-        }
-        items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
-        items.Add(new("action-attendances", "Presenças", "bi-calendar-check"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add": OpenCreateSingleModal(); break;
-            case "action-add-range": OpenDateRangeModal(); break;
-            case "action-stats": OpenStatsModal(); break;
-            case "action-attendances": await OpenMyAttendancesModal(); break;
-        }
-    }
 
     private async Task LoadData()
     {

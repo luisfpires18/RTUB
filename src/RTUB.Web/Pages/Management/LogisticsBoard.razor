@@ -41,30 +41,15 @@
         {
             <div class="logistics-board-header mb-4">
                 <!-- Top row: Back button on left, Title centered, Actions on right -->
-                <div class="page-header-centered">
-                    <div class="page-header-left d-none d-xl-flex">
-                        <a href="/logistics" class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-arrow-left"></i>
-                        </a>
-                    </div>
-                    <div class="page-header-center">
-                        <h1>
-                            <i class="bi bi-kanban text-primary me-2"></i>
-                            <span>@board.Name</span>
-                        </h1>
-                    </div>
-                    <div class="page-header-right d-none d-xl-flex gap-2">
-                        <button class="btn btn-purple" @onclick="OpenCreateReminderModal">
-                            <i class="bi bi-bell"></i> Criar Lembrete
-                        </button>
+                <PageHeader Title="@board.Name" Icon="bi-kanban" BackHref="/logistics">
+                    <Actions>
+                        <PageAction Label="Criar Lembrete" ShortLabel="Lembrete" Icon="bi-bell" OnClick="OpenCreateReminderModal" />
                         @if (canManageLogistics)
                         {
-                            <button class="btn btn-success" @onclick="OpenCreateListModal">
-                                <i class="bi bi-plus-lg"></i> Adicionar Lista
-                            </button>
+                            <PageAction Label="Adicionar Lista" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateListModal" />
                         }
-                    </div>
-                </div>
+                    </Actions>
+                </PageHeader>
                 
                 @if (board.Event != null)
                 {
@@ -254,8 +239,6 @@
     </NotAuthorized>
 </AuthorizeView>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @* List Modal - Create/Edit *@
 <Modal Show="@modals.IsOpen(ModalType.List)"
@@ -904,8 +887,6 @@
     private bool canManageLogistics = false;
     private DotNetObjectReference<LogisticsBoard>? _kanbanDotNetRef;
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
@@ -954,40 +935,9 @@
         await CheckUserRole();
         environmentName = HostEnvironment.EnvironmentName;
         await LoadData();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left"),
-            new("action-reminder", "Lembrete", "bi-bell")
-        };
 
-        if (canManageLogistics)
-        {
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back")
-        {
-            Navigation.NavigateTo("/logistics");
-        }
-        else if (key == "action-reminder")
-        {
-            OpenCreateReminderModal();
-        }
-        else if (key == "action-add")
-        {
-            OpenCreateListModal();
-        }
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

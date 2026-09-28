@@ -13,26 +13,18 @@
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
 @inject IImageStorageService ImageStorageService
-@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <AppTitle>Instrumentos</AppTitle>
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-box-seam"></i> Instrumentos</h1>
-        <p class="lead page-header-subtitle text-light-theme">Instrumentos da RTUB</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="Instrumentos" Icon="bi-box-seam" Subtitle="Instrumentos da RTUB">
+    <Actions>
         <AuthorizeView Roles="Admin,Mod">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
-                    <i class="bi bi-plus-lg"></i> Adicionar Instrumento
-                </button>
+                <PageAction Label="Adicionar Instrumento" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateInstrumentModal" Disabled="@(loading || !categories.Any())" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 @if (loading)
 {
@@ -337,13 +329,9 @@ else
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private bool loading = true;
-    private bool isAdminOrMod = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Instruments
     private List<Instrument> instruments = new();
@@ -388,25 +376,9 @@ else
     {
         LoadCategoriesFromEnum();
         await LoadData();
-
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        isAdminOrMod = user.IsInRole("Admin") || user.IsInRole("Mod");
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdminOrMod)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") OpenCreateInstrumentModal();
-    }
 
     private void LoadCategoriesFromEnum()
     {

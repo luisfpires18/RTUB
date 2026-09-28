@@ -1,0 +1,35 @@
+@namespace RTUB.Shared
+@*
+    One list of page actions, two presentations (UI refactor 035; contract:
+    docs/design/RTUB_UI_REFACTOR.md section 22):
+      - from 1200px: buttons at the end of the page header;
+      - below 1200px: a fixed bar at the bottom of the screen (thumb reach, safe-area aware).
+    The children are rendered once per presentation; each PageAction reads which one it is in.
+    Both containers are labelled groups of buttons - not navigation. CSS shows one at a time and
+    hides the bar when no action is visible for the current user.
+    Order actions routine first, the primary action where it reads best, destructive last.
+*@
+
+@if (ChildContent != null)
+{
+    <div class="page-actions" role="group" aria-label="@Label">
+        <CascadingValue Name="PageActionPlacement" Value="PageActionPlacement.Header" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </div>
+    <div class="page-action-bar" role="group" aria-label="@Label">
+        <CascadingValue Name="PageActionPlacement" Value="PageActionPlacement.Bar" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </div>
+}
+
+@code {
+    /// <summary>PageAction children.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Accessible name of the action group.</summary>
+    [Parameter]
+    public string Label { get; set; } = "Ações da página";
+}

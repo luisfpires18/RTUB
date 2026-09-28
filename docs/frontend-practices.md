@@ -65,6 +65,12 @@ This document outlines frontend development best practices for the RTUB project,
 - Handle loading states
 - Close modals properly
 
+Dialog semantics, focus (in, trapped, restored), Escape and the scroll lock come from `Modal`
+(contract: `docs/design/RTUB_UI_REFACTOR.md` section 22). Mark the control that should get focus
+first with `data-autofocus`; use `CanClose` to keep a dialog open (busy, unsaved changes).
+`ConfirmDialog` takes its intent from `ConfirmButtonClass` (`btn-danger` = destructive) and
+blocks a second confirm while `OnConfirm` runs.
+
 ```razor
 <Modal Show="@showModal"
        ShowChanged="@((bool show) => showModal = show)"
@@ -78,6 +84,28 @@ This document outlines frontend development best practices for the RTUB project,
         <button class="btn btn-secondary" @onclick="Close">Cancel</button>
     </FooterContent>
 </Modal>
+```
+
+### Page Header and Page Actions
+
+Every page starts with `PageHeader` (its single `h1`). Page-level actions are `PageAction`
+children of its `Actions`: one list that renders as header buttons from 1200px and as the fixed
+bottom bar below - never a separate `MobileBottomNav` list. At most one
+`Intent="PageActionIntent.Primary"`; destructive actions `Danger` and last. Keep visibility (`@if`,
+`AuthorizeView`) in the page. `MobileBottomNav` is for navigation only (sections or views), with
+its own `AriaLabel`.
+
+```razor
+<PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="...">
+    <Actions>
+        @if (isAdmin)
+        {
+            <PageAction Label="Adicionar Ensaio" ShortLabel="Adicionar" Icon="bi-plus-lg"
+                        Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+        }
+        <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="OpenStatsModal" />
+    </Actions>
+</PageHeader>
 ```
 
 ## Layout & Styling

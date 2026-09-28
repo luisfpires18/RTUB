@@ -13,8 +13,9 @@ public class DetailsModalTests : BunitContext
     public DetailsModalTests()
     {
         // Setup JSInterop for modal helper methods used by the Modal component
-        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
-        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+        // Modal registers with the dialog stack in modalHelper.js (focus, Escape, scroll lock).
+        JSInterop.SetupVoid("modalHelper.openDialog", _ => true);
+        JSInterop.SetupVoid("modalHelper.closeDialog", _ => true);
     }
 
     [Fact]

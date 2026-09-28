@@ -511,7 +511,7 @@
     </div>
 
     <!-- Mobile Bottom Nav (inside .rtub-messages so it's visible above z-index:1050 on mobile) -->
-    <MobileBottomNav Items="@CurrentMobileNavItems" OnSelect="HandleMobileNavSelect" />
+    <MobileBottomNav Items="@CurrentMobileNavItems" OnSelect="HandleMobileNavSelect" AriaLabel="Mensagens" />
 </div>
 <Modal Show="@modals.IsOpen(ModalType.NewMessage)"
        ShowChanged="@(async (bool show) => { if (!show) await CloseNewMessageModal(); })"

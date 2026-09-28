@@ -24,22 +24,15 @@
 
 <AppTitle>Órgãos Sociais</AppTitle>
 
-<div class="page-header-centered mb-4">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
-        <p class="page-header-subtitle">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<PageHeader Title="Órgãos Sociais" Icon="bi-shield-check" Subtitle="Estrutura organizacional e órgãos sociais da RTUB por ano letivo.">
+    <Actions>
         <AuthorizeView Roles="Mod,Admin">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
-                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Ano Letivo</span>
-                </button>
+                <PageAction Label="Adicionar Ano Letivo" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateFiscalYearModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 @if (fiscalYears.Any())
 {
@@ -860,8 +853,6 @@ else
                OnConfirm="ConfirmRemoveAssignment"
                OnCancel="CloseRemoveAssignmentModal" />
 
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
-
 @code {
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
@@ -872,7 +863,6 @@ else
     private bool isAdmin = false;
     private bool isMod = false;
     private bool canDoAction = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // RGI PDF state
     private enum ModalType { Rgi, CreateFiscalYear, AssignMember, RemoveAssignment }
@@ -935,7 +925,6 @@ else
         }
         
         await LoadRoleAssignments();
-        BuildMobileNavItems();
         
         // Handle ?manage=1 query parameter (redirect from /admin/roles)
         var manageParam = queryParams["manage"];
@@ -945,18 +934,7 @@ else
         }
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canDoAction)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") await OpenCreateFiscalYearModal();
-    }
 
     private async Task LoadFiscalYears()
     {
