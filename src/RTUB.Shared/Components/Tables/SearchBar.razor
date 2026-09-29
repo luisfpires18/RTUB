@@ -76,10 +76,19 @@
         pendingValue = e.Value?.ToString() ?? string.Empty;
 
         debounceTimer?.Dispose();
-        debounceTimer = new Timer(async _ => await InvokeAsync(async () =>
+        // The callback runs on a timer thread: an exception there would end the whole server
+        // process. It is handed to Blazor instead (the page's error boundary; logged).
+        debounceTimer = new Timer(_ => _ = InvokeAsync(async () =>
         {
-            await TriggerSearch(pendingValue);
-            StateHasChanged();
+            try
+            {
+                await TriggerSearch(pendingValue);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                await DispatchExceptionAsync(ex);
+            }
         }), null, DebounceDelay, Timeout.Infinite);
     }
 

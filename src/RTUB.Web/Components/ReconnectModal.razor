@@ -1,25 +1,38 @@
 @*
-    ReconnectModal Component
-    
-    Provides enhanced UX during Blazor Server circuit reconnection attempts.
-    Uses .NET 10 Blazor reconnection lifecycle to show user-friendly messages
-    during connection loss and recovery.
-    
-    This component follows the official .NET 10 Blazor template pattern for
-    reconnection UI with RTUB-specific branding and styling.
+    ReconnectModal - what the user sees when the connection to the server drops.
+
+    Blazor drives it: an element with id "components-reconnect-modal" is the one Blazor uses for
+    its reconnection UI, adding a state class to it (UI refactor 037, docs/design/RTUB_UI_REFACTOR.md
+    24.10). Before 037 this element had another id, so Blazor fell back to its own built-in UI,
+    which rendered invisible here - a dropped connection showed nothing at all.
+    - components-reconnect-show:     retrying; what was typed stays if the connection comes back.
+    - components-reconnect-failed:   gave up retrying; a reload is needed.
+    - components-reconnect-rejected: the server no longer has this session; a reload is needed.
+    Unsaved form data lives in the server session, so it only survives while that session does.
 *@
 
-<div id="reconnect-modal" class="reconnect-modal">
-    <div class="reconnect-content">
-        <div class="reconnect-icon">
+<div id="components-reconnect-modal" class="reconnect-modal" data-nosnippet>
+    <div class="reconnect-content" role="alertdialog" aria-labelledby="reconnect-title" aria-describedby="reconnect-messages">
+        <div class="reconnect-icon" aria-hidden="true">
             <i class="bi bi-wifi-off"></i>
         </div>
         <div class="reconnect-logo" aria-hidden="true">
             <img src="/icons/rtub-logo-192.png" alt="RTUB" />
         </div>
-        <h3 class="reconnect-title">Ligação Perdida</h3>
-        <p class="reconnect-message reconnect-message-default">A tentar restabelecer a ligação ao servidor...</p>
-        <p class="reconnect-message reconnect-message-pwa">Sem ligação. A aplicação vai tentar reconectar automaticamente.</p>
+        <h2 class="reconnect-title" id="reconnect-title">Ligação Perdida</h2>
+        <div id="reconnect-messages" aria-live="polite">
+            <p class="reconnect-message reconnect-message--retrying reconnect-message-default">A tentar restabelecer a ligação ao servidor...</p>
+            <p class="reconnect-message reconnect-message--retrying reconnect-message-pwa">Sem ligação. A aplicação vai tentar reconectar automaticamente.</p>
+            <p class="reconnect-message reconnect-message--retrying reconnect-note">O que escreveu nesta página mantém-se se a ligação voltar.</p>
+            <p class="reconnect-message reconnect-message--failed">
+                Não foi possível restabelecer a ligação. Recarregue a página; o que ainda não foi
+                guardado nesta página perde-se.
+            </p>
+            <p class="reconnect-message reconnect-message--rejected">
+                A sessão terminou no servidor (por exemplo, depois de muito tempo sem atividade).
+                Recarregue a página; o que ainda não foi guardado perde-se.
+            </p>
+        </div>
         <div class="reconnect-spinner">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">A restabelecer ligação...</span>
@@ -32,12 +45,3 @@
         </button>
     </div>
 </div>
-
-@code {
-    // This component is purely declarative and relies on Blazor's automatic
-    // CSS class management for reconnection states:
-    // - components-reconnect-show: Attempting to reconnect
-    // - components-reconnect-failed: Reconnection failed
-    // - components-reconnect-rejected: Reconnection rejected by server
-    // - components-reconnect-hide: Connected (default, modal hidden)
-}

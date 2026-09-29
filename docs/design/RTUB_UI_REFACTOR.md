@@ -1671,3 +1671,196 @@ were removed. Palette and font unchanged: only existing tokens and alphas of exi
 - Phase 4 can build on `FormField` (errors already per field), the toast for success feedback,
   `Modal.CanClose` (22.2) and `AppErrorBoundary`; its double-submit/try-catch retrofit closes 23.9's
   limit.
+
+---
+
+## 24. Implemented: Forms, Dialogs and Data Safety (unit 037, Task 006)
+
+Durable behaviour contract from roadmap Phase 4 on `chore/037/ui-form-data-safety`. Sections
+1-23 stay as recorded.
+
+### 24.1 Inventory (before)
+
+| Area | Finding |
+| --- | --- |
+| Mutation handlers | 233 user-triggered handlers call a service (pages, MyTuno/games excluded); 80 had no `try`, 31 any busy guard. Page-owned handlers are outside `AppErrorBoundary` (23.9), so an exception in one ends the circuit. |
+| Silent failures | `SaveMeeting`, `SaveMeetingProposal`, `SaveBoard`, `SaveList`, `SaveCard` had `catch (Exception) { }`; 16 target-page handlers only `Console.WriteLine`d (attendance, trophies, enrollments, reminders, videos) - the user saw nothing and a confirmation closed as if it had worked. `SaveEvent` and every Report save (activity, transaction, bank/cash) had no `try`. |
+| Exception text shown | 20+ target messages printed `ex.Message` (`"Erro ao cancelar evento: {ex.Message}"`). |
+| Dialog dismissal | `Modal.CanClose` (22.2) existed with one consumer (ConfirmDialog's busy lock). No form asked before Cancel/X/Escape discarded it. |
+| Navigation | 0 `NavigationLock`, 0 `beforeunload`, 0 location-changing handlers. Back with a dialog open changed the page underneath (e.g. dropped `?fy=`), dialog left open (F4). |
+| ConfirmDialog | Busy guard since 22.4, but an exception from `OnConfirm` escaped: the page was replaced by the boundary fallback (child handler) and nothing was logged by the dialog. |
+| **Process crash** | `SearchBar`'s debounce ran the search in an `async void` timer callback: any exception in a page's `OnSearch` ended the **server process** (all users). Reproduced: the Meetings search throws (EF cannot translate `Contains(..., OrdinalIgnoreCase)`, `MeetingService.GetAllMeetingsAsync`), so typing in it killed the local server. Same shape in `UnreadMessagesBadge`'s timer (partial catch) and three `async void` saves in LogisticsBoard. |
+| Reconnect | The Portuguese `ReconnectModal` never showed: its element id was not `components-reconnect-modal`, so Blazor used its built-in UI, which renders invisible here. A dropped connection showed nothing; users kept typing into a dead session. |
+| PWA update | "Atualizar" activated the new worker, whose `controllerchange` reloads every RTUB tab immediately (F7). |
+| Delete focus | Deleting the item whose card opened the confirmation left focus on `<body>` (22.11). |
+| Other | Modal's default footer rendered "Voltar AtrÃ¡s" (encoding, since 035); Nerba's delete message too. |
+
+Forms were classified by risk: **guarded** = create/edit/compose dialogs and page forms where
+typed data would be lost (below); **not guarded** = search, filters, stats date ranges,
+read-only/detail dialogs, confirmations, single-choice dialogs (UserRoles role picker, Finance
+report year), and anything already saved field by field (card labels/checklist, instruments).
+
+### 24.2 "Unsaved changes"
+
+A form has unsaved changes when its editable values differ from the values it opened with or last
+saved. Opening, focusing, validating, typing and undoing, and background refreshes are not
+changes. Search boxes and pickers' search terms are never part of the snapshot.
+
+`UnsavedChanges` (RTUB.Shared) holds that baseline: `Track(() => snapshot)` when the form opens,
+`IsDirty`, `MarkClean()` after a save that keeps the form open, `Clear()` when it closes. The
+snapshot is the form model or an anonymous object of its editable fields; comparison is
+`System.Text.Json` (cycles ignored). Chosen over `EditContext.IsModified()` because half the
+forms are `@bind` fields without an `EditContext`, and `IsModified` stays true after
+type-and-undo.
+
+### 24.3 Dialogs
+
+`<Modal IsDirty="() => changes.IsDirty">` (and `CanClose` for "busy, cannot close"):
+
+- **Every dismissal asks while dirty:** the close X / phone back arrow, Escape, Back, the default
+  footer, and the page's Cancel button - Cancel calls `@ref`'s `RequestCloseAsync()` instead of the
+  page's close method. Order: `CanClose` (busy wins, no question), then the question.
+- **The question** ("Descartar alterações?" - "Tem alterações que ainda não foram guardadas. Se
+  continuar, perdem-se."): a shared `ConfirmDialog` in the dialog's own guard, stacked above it
+  (24.12). "Continuar a editar" is first and focused; Escape and Back also mean continue.
+  "Descartar" (danger) closes. Clean dialogs close at once; read-only dialogs never ask.
+- **After a successful save** the page closes the dialog (its close method calls `Clear()`), so
+  nothing asks.
+- `CrudModalManager` does this for its 10 pages by tracking the edited entity from the moment the
+  dialog opens (Escape now closes its dialogs too, through the same question); a custom footer's
+  Cancel calls `RequestCloseEditAsync()`.
+
+### 24.4 Leaving the page
+
+RTUB routes statically (per-page interactivity + enhanced navigation), so Back/Forward and link
+clicks **never reach an interactive `NavigationLock`**; it only sees `NavigateTo`. Verified in the
+browser. Division of work:
+
+| Way of leaving | Handled by | While dirty |
+| --- | --- | --- |
+| Reload, tab close, link to another site | `NavigationLock.ConfirmExternalNavigation` (registered only while dirty) | Browser's own prompt (text is the browser's) |
+| `NavigationManager.NavigateTo` | `NavigationLock.OnBeforeInternalNavigation` | Shared question |
+| In-app link click | `modalHelper.js`, capture-phase click listener, before enhanced navigation | Shared question; "Descartar" continues with `Blazor.navigateTo` |
+| Back/Forward | `modalHelper.js`, capture-phase `popstate` listener | Shared question; URL restored while asking; "Descartar" repeats the Back |
+
+`UnsavedChangesGuard` is that unit for one form: it registers with `modalHelper.js` (JS asks it
+through `ConfirmLeave`), renders the `NavigationLock` and the question, and reports whether the
+form is dirty. `Modal` embeds one when given `IsDirty`; a page form places its own
+(`<UnsavedChangesGuard IsDirty="..." OnDiscard="..." />`). Nothing is registered while clean, so
+clean pages navigate exactly as before; the guard adds no global block.
+
+### 24.5 Browser Back with dialogs
+
+- **Behaviour:** with a dialog open, Back closes the top dialog instead of changing the page
+  underneath; a dirty dialog asks first; a non-dismissible dialog stays (Back does nothing); nested
+  dialogs close top-down (the discard question itself closes first = "continuar"). Query-string
+  state (`?fy=`) is untouched. The next Back navigates normally.
+- **Mechanism (the safe subset):** no entries are pushed when a dialog opens. On `popstate` with a
+  dialog open, the listener stops the event before enhanced navigation sees it, puts the dialog
+  page's URL back with **one** `history.pushState`, and calls the top dialog's `HandleBack`
+  (`Modal`, JSInvokable) - the same path as Escape.
+- **Limits:** Forward with a dialog open adds that one entry after the current one (rare; the page
+  is unchanged). A dialog opened by a page that later navigates programmatically is unaffected
+  (only `popstate` is intercepted). Android system Back maps to browser Back in the installed PWA;
+  not verified on a device.
+
+### 24.6 Page forms
+
+Page-level guards: Profile's inline sections (switching section or Cancel asks; a failed save
+keeps the section open), the public Request form, Owner compose pages Emails and Notifications
+("Limpar" stays the deliberate discard, no question).
+
+### 24.7 Busy / double submit
+
+`BusyState.RunAsync(action)` (RTUB.Shared): a second activation while one runs is ignored; the
+flag resets in `finally` (success and failure). The initiating button is `disabled` with
+`aria-busy` and a small spinner; the dialog's `CanClose` refuses dismissal while it runs; unrelated
+controls stay usable. Adopted by 23 handlers (dialog saves and cancels on Rehearsals, Events,
+Meetings, Report, Finance, Logistics, LogisticsBoard, Questions, Request, Profile); pages that
+already had equivalent flags (Members `isSaving`, MBWAY, push/email senders, Ata) keep them and
+gained `CanClose`. `ConfirmDialog` keeps its own guard (22.4) - no second guard around it.
+`ProfileSection` gained `IsSaving`.
+
+### 24.8 Failures
+
+| Situation | Behaviour |
+| --- | --- |
+| Save in a dialog/section fails | Logged (`LogError` with the entity id); the dialog/section stays open with what was typed, still dirty; Save usable again; persistent error toast ("Não foi possível guardar o/a …. Tente novamente.") or the dialog's existing inline error text. |
+| Failure after side effects (email notifications on cancel) | The message says some emails may already have gone out - check before retrying. Meetings' cancel restores the in-memory "cancelled" flag only if the database update itself failed. |
+| `ConfirmDialog.OnConfirm` throws | Shared net: logged, dialog stays open and unlocked with "Não foi possível concluir a operação. Tente novamente." (covers all 58 confirmations; Requests approve/reject/delete rely on it). |
+| `CrudModalManager.OnSave` throws | Shared net: logged, dialog stays with its data, inline error, Guardar re-enabled. |
+| Background timer / debounce throws | Never on the timer thread: `SearchBar` hands it to Blazor (`DispatchExceptionAsync` → the page's `AppErrorBoundary`), the unread badge logs and retries; Meetings' search shows "Não foi possível pesquisar reuniões." |
+| Unexpected programming error | Same catch sites log it at Error level; nothing is swallowed silently. |
+
+User-facing text is Portuguese and never includes exception text, SQL, storage details or stack
+traces; domain messages that pages already caught by type (e.g. `ArgumentException` from the push
+factory, `InvalidOperationException` in Shop) are kept. Success is confirmed with a toast
+(23.5) where the dialog closes ("Ensaio atualizado.", "Reunião criada.", …).
+
+### 24.9 Delete and focus
+
+Deletes keep `ConfirmDialog` (danger intent, busy guard, now the failure net). When the element that
+opened a dialog no longer exists after it closes (the deleted item's card), focus goes to the page
+`h1` (made focusable with `tabindex="-1"`, no scroll), else `<main>` - not `<body>`. A dialog
+closing onto another dialog returns focus into that dialog. Verified: deleting a rehearsal from its
+card leaves focus on "Ensaios".
+
+### 24.10 PWA update and reconnect
+
+- **Update:** "Atualizar" does nothing but explain ("Tem alterações por guardar. Guarde-as ou
+  descarte-as e depois atualize.") while any form reports unsaved changes
+  (`modalHelper.hasUnsavedChanges()`). A worker activated from another tab no longer reloads a tab
+  with unsaved changes: it shows "Nova versão instalada. Guarde as alterações e recarregue a
+  página." with Recarregar (a reload still gets the browser's leave prompt). One guarded reload
+  path remains (`ServiceWorkerReliabilityTests`).
+- **Reconnect:** `ReconnectModal`'s element is now `#components-reconnect-modal`; Blazor adds the
+  state class to it. Three states, one message each: retrying (spinner; "O que escreveu nesta
+  página mantém-se se a ligação voltar."), failed (gave up; reload), rejected ("A sessão terminou
+  no servidor… o que ainda não foi guardado perde-se."), with Recarregar in the last two (also
+  outside the PWA now). Dark RTUB surface. Verified by stopping and restarting the local server.
+- **Guarantees:** form data lives in the server session; it survives a reconnect while the circuit
+  lives, and is lost when the circuit is gone (server restart/deploy, long backgrounding). No draft
+  persistence was added (owner decision 18.3 still open).
+
+### 24.11 Labels in the targeted forms
+
+The 68 unassociated labels on the targeted pages were classified: A single control (43), B
+checkbox/radio (1), C several controls (4), D no control (20: section captions, display values).
+All 43 class A were associated (`for` + id; the ata's agenda-point fields use per-point ids).
+B/C/D are legitimate or need group semantics - final accessibility pass.
+
+### 24.12 Visual
+
+Stacked dialogs: a dialog opened over another now brings its own backdrop above the lower dialog
+(`modals.css`, z-index 1060/1070), so the edit form dims behind "Descartar alterações?". Small
+dialogs are 360px from 576px up so two worded actions sit side by side. Busy buttons use the
+existing small spinner; failures use the 036 toast/Alert; no new visual language.
+
+### 24.13 Validation performed
+
+- **Automated:** the CI command set (16.1). New `DataSafetyTests` (18: snapshot semantics, busy
+  reset on success/failure, clean/dirty close, continue/discard, close button, Back dirty/clean/
+  non-dismissible, `CanClose` precedence, `ConfirmLeave`, ConfirmDialog failure net and double
+  confirm, CrudModalManager failure net and dirty cancel, SearchBar failure reaching the boundary),
+  `ReconnectModalTests` +1, `ServiceWorkerReliabilityTests` +1.
+- **Browser (Playwright/Chromium, scratch DB, Owner):** at 1440/1024/820/390/360: Members edit
+  dirty Escape → question → Descartar; Meetings create dirty Cancel → Continuar keeps text, Back
+  asks with URL kept, Descartar closes and stays; Profile section dirty in-app link and Back ask,
+  Descartar leaves; Request form reload → browser prompt; clean dialog Escape closes without asking
+  (12/12 at every width). Rehearsals edit pilot: clean Back closes the dialog with `?fy=` kept and
+  the next Back navigates. Two-session failure: an edit saved after another session deleted the
+  rehearsal → error toast, dialog and text kept, Guardar enabled, error logged; the deleting session
+  had focus on the page heading. Reconnect: stop → retrying overlay, restart → rejected state with
+  Recarregar. Screens reviewed: discard question at 1440 and 360.
+- **Not verified:** real devices (Android system Back, iOS standalone lifecycle, virtual keyboard,
+  backgrounding), screen-reader output.
+
+### 24.14 Remaining
+
+- `MeetingService.GetAllMeetingsAsync` search is untranslatable for SQLite (every Meetings search
+  fails; no longer crashes the server) - Application-layer fix, recorded in `STATE.md`.
+- Outside the targeted pages: ~75 messages still interpolate `ex.Message`, 26 page
+  `Console.WriteLine` catches, MyTuno timers with `async` callbacks (games scope).
+- Dialogs not guarded (listed in 24.1) and forms on untargeted pages (Songs, Albums, Gallery,
+  Naipes, Shop reservation, Inventory, EventContacts, Leaderboard comments, discussion composers).
+- Labels B/C/D (24.11); ConfirmDialog still used for some info dialogs (22.11).

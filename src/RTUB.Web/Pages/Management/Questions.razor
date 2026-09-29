@@ -15,6 +15,8 @@
 @inject IQuestionService QuestionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Questions> Logger
+@inject ToastService Toasts
 
 <AppTitle>Perguntas aos Órgãos Sociais</AppTitle>
 
@@ -129,8 +131,11 @@
 
 
 <!-- Create Question Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Create)" 
-       ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) ClearMemberSelection(); })"
+<Modal @ref="createModal"
+       Show="@modals.IsOpen(ModalType.Create)"
+       ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) { ClearMemberSelection(); createChanges.Clear(); } })"
+       IsDirty="() => createChanges.IsDirty"
+       CanClose="() => Task.FromResult(!createSaving.IsBusy)"
        Title="Nova Pergunta"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -223,11 +228,19 @@
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Create)">
+        <button type="button" class="btn btn-secondary" @onclick="() => createModal!.RequestCloseAsync()" disabled="@createSaving.IsBusy">
             Cancelar
         </button>
-        <button type="submit" form="createQuestionForm" class="btn btn-primary" disabled="@(!CanSubmitQuestion())">
-            <i class="bi bi-send me-1"></i> Enviar Pergunta
+        <button type="submit" form="createQuestionForm" class="btn btn-primary" disabled="@(createSaving.IsBusy || !CanSubmitQuestion())" aria-busy="@(createSaving.IsBusy ? "true" : null)">
+            @if (createSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi bi-send me-1" aria-hidden="true"></i>
+            }
+            Enviar Pergunta
         </button>
     </FooterContent>
 </Modal>
@@ -474,6 +487,9 @@
     }
 
     private readonly MultiModalState<ModalType> modals = new();
+    private Modal? createModal;
+    private readonly UnsavedChanges createChanges = new();
+    private readonly BusyState createSaving = new();
     private Question? questionToDelete;
     private Question? questionToClose;
     private Question? questionForReminder;
@@ -574,6 +590,7 @@
     {
         newQuestionModel = new NewQuestionModel();
         ClearMemberSelection();
+        createChanges.Track(() => new { newQuestionModel.Title, newQuestionModel.Content, Member = selectedMember?.Member.Id });
         modals.Open(ModalType.Create);
     }
 
@@ -620,23 +637,34 @@
         filteredMembers.Clear();
     }
 
-    private async Task CreateQuestion()
+    private Task CreateQuestion() => createSaving.RunAsync(async () =>
     {
         if (!CanSubmitQuestion() || currentUser == null || selectedMember == null)
             return;
 
-        await QuestionService.CreateAsync(
-            newQuestionModel.Title,
-            newQuestionModel.Content,
-            currentUser.Id,
-            selectedMember.Value.Position,
-            selectedMember.Value.Member.Id);
+        try
+        {
+            await QuestionService.CreateAsync(
+                newQuestionModel.Title,
+                newQuestionModel.Content,
+                currentUser.Id,
+                selectedMember.Value.Position,
+                selectedMember.Value.Member.Id);
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with the question; the user can retry.
+            Logger.LogError(ex, "Creating a question failed");
+            Toasts.ShowError("Não foi possível enviar a pergunta. Tente novamente.");
+            return;
+        }
 
+        createChanges.Clear();
         modals.Close(ModalType.Create);
         ClearMemberSelection();
+        Toasts.ShowSuccess("Pergunta enviada.");
         await LoadQuestionsAsync();
-        StateHasChanged();
-    }
+    });
 
     private async Task AddReply(int questionId, string body)
     {

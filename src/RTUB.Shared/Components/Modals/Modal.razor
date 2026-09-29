@@ -11,9 +11,12 @@
     Semantics and focus: role="dialog" + aria-modal, named by its title. On open, focus moves to
     the element marked data-autofocus (else the dialog itself); Tab stays inside; on close focus
     returns to the control that opened it (modalHelper.js).
-    Dismissal: the close button, Escape (CloseOnEscape, default ShowCloseButton) and the default
-    footer all go through RequestCloseAsync, which asks CanClose first - the hook later
-    unsaved-change guards use. Clicking the backdrop never closes a dialog.
+    Dismissal: the close button, Escape (CloseOnEscape, default ShowCloseButton), the default
+    footer and callers' Cancel buttons (RequestCloseAsync via @ref) all ask CanClose, then - with
+    IsDirty - "Descartar alterações?". Clicking the backdrop never closes a dialog.
+    Back/Forward while open (UI refactor 037, section 24.5; modalHelper.js): the page underneath
+    does not navigate; the top dialog closes as with Escape (a non-dismissible one stays), a
+    dirty one asking first. In-app navigation away from a dirty dialog asks too (its guard).
 *@
 
 @if (Show)
@@ -61,12 +64,17 @@
                 else if (ShowCloseButton)
                 {
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="RequestCloseAsync">Voltar AtrÃ¡s</button>
+                        <button type="button" class="btn btn-secondary" @onclick="RequestCloseAsync">Voltar Atrás</button>
                     </div>
                 }
             </div>
         </div>
     </div>
+    @* After the dialog, so its "Descartar alterações?" layer paints on top. *@
+    @if (IsDirty != null)
+    {
+        <UnsavedChangesGuard @ref="_guard" IsDirty="IsDirty" OnDiscard="CloseAsync" />
+    }
 }
 
 @code {
@@ -133,6 +141,14 @@
     public Func<Task<bool>>? CanClose { get; set; }
 
     /// <summary>
+    /// Whether the dialog's form has unsaved changes (usually <c>() =&gt; changes.IsDirty</c>).
+    /// When it does, dismissal asks "Descartar alterações?" and reload/tab close get the browser's
+    /// prompt. Leave unset for read-only and confirmation dialogs.
+    /// </summary>
+    [Parameter]
+    public Func<bool>? IsDirty { get; set; }
+
+    /// <summary>
     /// Id of the element that describes the dialog (read after its name), e.g. a confirmation message
     /// </summary>
     [Parameter]
@@ -154,6 +170,7 @@
     private string TitleId => _id + "-title";
     private bool ShowsTitle => HeaderActions == null && !string.IsNullOrEmpty(Title);
 
+    private UnsavedChangesGuard? _guard;
     private bool _renderedShow = false;
     private bool _registered = false;
     private DotNetObjectReference<Modal>? _selfReference;
@@ -199,17 +216,43 @@
         StateHasChanged();
     });
 
-    private async Task RequestCloseAsync()
+    /// <summary>
+    /// Closes the dialog as the user asked: CanClose first, then the unsaved-changes question.
+    /// Returns whether it closed. Use it for Cancel buttons (<c>@ref</c> the Modal).
+    /// </summary>
+    public async Task<bool> RequestCloseAsync()
     {
         if (CanClose != null && !await CanClose())
         {
-            return;
+            return false;
         }
 
+        if (_guard != null && !await _guard.ConfirmDiscardAsync())
+        {
+            return false;
+        }
+
+        await CloseAsync();
+        return true;
+    }
+
+    private async Task CloseAsync()
+    {
         Show = false;
         await ShowChanged.InvokeAsync(false);
         await OnClose.InvokeAsync();
     }
+
+    /// <summary>Back/Forward while this is the top dialog (modalHelper.js): same as Escape.</summary>
+    [JSInvokable]
+    public Task HandleBack() => InvokeAsync(async () =>
+    {
+        if (CloseOnEscape ?? ShowCloseButton)
+        {
+            await RequestCloseAsync();
+            StateHasChanged();
+        }
+    });
 
     private async Task InvokeHelperAsync(string identifier, params object?[] args)
     {

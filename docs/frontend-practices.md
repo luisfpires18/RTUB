@@ -127,6 +127,23 @@ Contract: `docs/design/RTUB_UI_REFACTOR.md` section 23.
 - **Errors:** every interactive page's markup sits in `AppErrorBoundary`; it does not catch the
   page's own event handlers, so keep try/catch around saves.
 
+### Data Safety (Forms and Dialogs)
+
+Contract: `docs/design/RTUB_UI_REFACTOR.md` section 24.
+
+- **Create/edit dialogs:** track the editable values when the dialog opens
+  (`changes.Track(() => new { ... })`), pass `IsDirty="() => changes.IsDirty"` to `Modal`, `Clear()`
+  in the close method, and make Cancel call `@ref`'s `RequestCloseAsync()`. Close, Escape, Back and
+  Cancel then ask "Descartar alterações?" only when something changed.
+- **Page forms:** `<UnsavedChangesGuard IsDirty="..." OnDiscard="..." />`; it also covers links,
+  Back, reload and the PWA update.
+- **Saves:** `private Task Save() => saving.RunAsync(async () => { try { ... } catch (Exception ex)
+  { Logger.LogError(...); Toasts.ShowError("Não foi possível …"); } });`, button
+  `disabled="@saving.IsBusy"` + spinner, `CanClose="() => Task.FromResult(!saving.IsBusy)"`. On
+  failure keep the dialog and its data; on success close, then toast.
+- Never `catch { }`, `Console.WriteLine`, or `ex.Message` in UI text. Never an `async void` method
+  or an `async` timer callback that can throw - a timer thread exception ends the server process.
+
 ```razor
 <FormField Label="Localização" Icon="bi-geo-alt" For="() => model.Location" Context="field">
     <InputText @attributes="field.Attributes" class="form-control" @bind-Value="model.Location" />

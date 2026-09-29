@@ -3,16 +3,16 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-28_
+_Last updated: 2026-09-29_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program: 032-035 merged. **036 (Task 005, RTUB.Shared component system: `FormField` on 126 fields,
-toast feedback replacing page timers, EmptyState/LoadingSpinner/ErrorDisplay/Alert/SearchBar/
-FilterDropdown refinements, `FilterToolbar` on 18 pages, `AppErrorBoundary` on 54 pages +
-`#blazor-error-ui`) complete on `chore/036/ui-shared-component-system`, not yet merged.** Also fixes a
-live crash: `Alert` had no `Title` parameter that 6 "member added" feedbacks passed. Contract:
-`docs/design/RTUB_UI_REFACTOR.md` sections 20-23.
+program: 032-036 merged. **037 (Task 006, forms, dialogs and data safety: unsaved-change guard on
+dialogs and page forms, Back closes the top dialog, busy/failure handling on saves, shared failure
+nets in ConfirmDialog/CrudModalManager, PWA update held while unsaved, working reconnect UI)
+complete on `chore/037/ui-form-data-safety`, not yet merged.** Fixes two live defects: the shared
+`SearchBar` could end the whole server process (async timer callback), and the reconnect modal was
+never shown. Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-24.
 
 ## Where things are
 | Topic | Doc |
@@ -50,6 +50,15 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
+Raised by 037 (detail: `docs/design/RTUB_UI_REFACTOR.md` 24.14):
+- **Meetings search is broken in every environment:** `MeetingService.GetAllMeetingsAsync` uses
+  `Contains(..., StringComparison.OrdinalIgnoreCase)`, which EF cannot translate for SQLite. Until
+  037 typing in it ended the server process; now it shows an error. Needs an Application fix.
+- Outside the pages 037 targeted: ~75 UI messages still show `ex.Message`, 26 page catches only
+  `Console.WriteLine`, MyTuno timers use `async` callbacks; forms on Songs/Albums/Gallery/Naipes/
+  Shop/Inventory/EventContacts and discussion composers have no unsaved-change guard.
+- Real-device checks: Android system Back with a dialog open, iOS standalone, backgrounded circuit.
+
 Raised by 036 (detail: `docs/design/RTUB_UI_REFACTOR.md` 23.9, 23.12):
 - `AppErrorBoundary` cannot catch a page's own event handlers/lifecycle (Blazor attributes them to
   the page); they still end the circuit (now with `#blazor-error-ui`). Phase 4 try/catch retrofit.
@@ -119,9 +128,9 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
-- UI refactor Phase 4 / Task 006 (forms, dialogs and data safety: unsaved-change policy on
-  `Modal.CanClose`, dialog/Back behaviour, busy states and try/catch around saves) per
-  `docs/design/RTUB_UI_REFACTOR.md` sections 17, 22.12 and 23.13; owner decisions in its section 18.
+- UI refactor Task 007 (primary workflow visual polish: Events, Rehearsals, Members, Profile,
+  Leaderboard, Home - roadmap Phase 5) per `docs/design/RTUB_UI_REFACTOR.md` sections 17 and 24;
+  owner decisions in its section 18 (18.3 draft persistence is still open).
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today

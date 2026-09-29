@@ -25,6 +25,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Report> Logger
+@inject ToastService Toasts
 
 <AppTitle>@(report?.Title ?? "Relatório")</AppTitle>
 
@@ -318,8 +319,11 @@ else
 
 
 <!-- Activity Create/Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Activity)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.Activity, show))"
+<Modal @ref="activityModal"
+       Show="@modals.IsOpen(ModalType.Activity)"
+       ShowChanged="@((bool show) => { if (!show) CloseActivityModal(); })"
+       IsDirty="() => activityChanges.IsDirty"
+       CanClose="() => Task.FromResult(!activitySaving.IsBusy)"
        Title="@(isCreateActivityMode ? "Nova Atividade" : "Editar Atividade")" 
        Centered="true"
        ShowCloseButton="true">
@@ -346,19 +350,19 @@ else
                 @if (!isActivityDateRange)
                 {
                     <div class="col-md-12 mb-3">
-                        <label class="form-label fw-semibold">
+                        <label for="rp-data" class="form-label fw-semibold">
                             <i class="bi bi-calendar3 text-primary me-2"></i>Data
                         </label>
-                        <InputDate class="form-control" @bind-Value="editingActivity!.StartDate" />
+                        <InputDate id="rp-data" class="form-control" @bind-Value="editingActivity!.StartDate" />
                     </div>
                 }
                 else
                 {
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">
+                        <label for="rp-data-inicio" class="form-label fw-semibold">
                             <i class="bi bi-calendar3 text-primary me-2"></i>Data Início
                         </label>
-                        <InputDate class="form-control" @bind-Value="editingActivity!.StartDate" />
+                        <InputDate id="rp-data-inicio" class="form-control" @bind-Value="editingActivity!.StartDate" />
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">
@@ -376,14 +380,23 @@ else
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseActivityModal">Cancelar</button>
-        <button type="submit" form="editActivityForm" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => activityModal!.RequestCloseAsync()" disabled="@activitySaving.IsBusy">Cancelar</button>
+        <button type="submit" form="editActivityForm" class="btn btn-success" disabled="@activitySaving.IsBusy" aria-busy="@(activitySaving.IsBusy ? "true" : null)">
+            @if (activitySaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
     </FooterContent>
 </Modal>
 
 <!-- Transaction Create/Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Transaction)" 
-   ShowChanged="@((bool show) => modals.Toggle(ModalType.Transaction, show))"
+<Modal @ref="transactionModal"
+       Show="@modals.IsOpen(ModalType.Transaction)"
+       ShowChanged="@((bool show) => { if (!show) CloseTransactionModal(); })"
+       IsDirty="() => transactionChanges.IsDirty"
+       CanClose="() => Task.FromResult(!transactionSaving.IsBusy)"
        Title="@(isCreateTransactionMode ? "Nova Transação" : "Editar Transação")" 
        Centered="true"
     ShowCloseButton="true">
@@ -471,8 +484,14 @@ else
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTransactionModal">Cancelar</button>
-        <button type="submit" form="editTransactionForm" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => transactionModal!.RequestCloseAsync()" disabled="@transactionSaving.IsBusy">Cancelar</button>
+        <button type="submit" form="editTransactionForm" class="btn btn-success" disabled="@transactionSaving.IsBusy" aria-busy="@(transactionSaving.IsBusy ? "true" : null)">
+            @if (transactionSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
     </FooterContent>
 </Modal>
 
@@ -533,22 +552,31 @@ else
 </Modal>
 
 <!-- Bank/Cash Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.BankCash)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.BankCash, show))"
+<Modal @ref="bankCashModal"
+       Show="@modals.IsOpen(ModalType.BankCash)"
+       ShowChanged="@((bool show) => { if (!show) CloseBankCashModal(); })"
+       IsDirty="() => bankCashChanges.IsDirty"
+       CanClose="() => Task.FromResult(!bankCashSaving.IsBusy)"
        Title="@(isEditingBank ? "Editar Dinheiro no Banco" : "Editar Dinheiro em Caixa")" 
        Centered="true"
        ShowCloseButton="true">
     <BodyContent>
         <div class="mb-3">
-            <label class="form-label fw-semibold">
+            <label for="rp-valor" class="form-label fw-semibold">
                 <i class="bi @(isEditingBank ? "bi-bank" : "bi-cash-stack") text-primary me-2"></i>Valor (€)
             </label>
-            <input type="number" class="form-control" step="0.01" @bind="editingBankCashValue" placeholder="0.00" />
+            <input id="rp-valor" type="number" class="form-control" step="0.01" @bind="editingBankCashValue" placeholder="0.00" />
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseBankCashModal">Cancelar</button>
-        <button type="button" class="btn btn-success" @onclick="SaveBankCashValue">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => bankCashModal!.RequestCloseAsync()" disabled="@bankCashSaving.IsBusy">Cancelar</button>
+        <button type="button" class="btn btn-success" @onclick="SaveBankCashValue" disabled="@bankCashSaving.IsBusy" aria-busy="@(bankCashSaving.IsBusy ? "true" : null)">
+            @if (bankCashSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
     </FooterContent>
 </Modal>
 
@@ -629,6 +657,9 @@ else
 
 
     private bool isCreateActivityMode = false;
+    private Modal? activityModal, transactionModal, bankCashModal;
+    private readonly UnsavedChanges activityChanges = new(), transactionChanges = new(), bankCashChanges = new();
+    private readonly BusyState activitySaving = new(), transactionSaving = new(), bankCashSaving = new();
     private bool isCreateTransactionMode = false;
     
     // Date range toggle for activity modal
@@ -998,6 +1029,7 @@ state.CurrentPage = newPage;
             Name = string.Empty,
             StartDate = DateTime.Today
         };
+        TrackActivityForm();
         modals.Open(ModalType.Activity);
     }
 
@@ -1014,12 +1046,23 @@ state.CurrentPage = newPage;
             StartDate = activity.StartDate,
             EndDate = activity.EndDate
         };
+        TrackActivityForm();
         modals.Open(ModalType.Activity);
     }
+
+    private void TrackActivityForm() => activityChanges.Track(() => new
+    {
+        editingActivity?.Name,
+        editingActivity?.Description,
+        editingActivity?.StartDate,
+        editingActivity?.EndDate,
+        isActivityDateRange
+    });
 
     private void CloseActivityModal()
     {
         modals.Close(ModalType.Activity);
+        activityChanges.Clear();
         editingActivity = null;
         isActivityDateRange = false;
     }
@@ -1036,22 +1079,32 @@ state.CurrentPage = newPage;
         }
     }
 
-    private async Task SaveActivity()
+    private Task SaveActivity() => activitySaving.RunAsync(async () =>
     {
-        if (editingActivity == null) return;
-
-        if (isCreateActivityMode)
+        try
         {
-            await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
-        }
-        else
-        {
-            await ActivityService.UpdateActivityAsync(editingActivity.Id, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
-        }
+            if (editingActivity == null) return;
 
-        await LoadActivities();
-        CloseActivityModal();
-    }
+            if (isCreateActivityMode)
+            {
+                await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
+            }
+            else
+            {
+                await ActivityService.UpdateActivityAsync(editingActivity.Id, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
+            }
+
+            await LoadActivities();
+            CloseActivityModal();
+            Toasts.ShowSuccess("Atividade guardada.");
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving report activity failed");
+            Toasts.ShowError("Não foi possível guardar a atividade. Tente novamente.");
+        }
+    });
 
     private void OpenDeleteActivityModal(Activity activity)
  {
@@ -1118,6 +1171,7 @@ state.CurrentPage = newPage;
         receiptUploadError = null;
         editingTransactionReceiptUrl = null;
         deleteExistingReceipt = false;
+        TrackTransactionForm();
         modals.Open(ModalType.Transaction);
     }
 
@@ -1140,12 +1194,25 @@ state.CurrentPage = newPage;
         receiptUploadError = null;
         editingTransactionReceiptUrl = transaction.ReceiptUrl;
         deleteExistingReceipt = false;
+        TrackTransactionForm();
         modals.Open(ModalType.Transaction);
     }
+
+    private void TrackTransactionForm() => transactionChanges.Track(() => new
+    {
+        editingTransaction?.Date,
+        editingTransaction?.Description,
+        editingTransaction?.Category,
+        editingTransaction?.Amount,
+        editingTransaction?.Type,
+        Receipt = selectedReceiptFileName,
+        deleteExistingReceipt
+    });
 
     private void CloseTransactionModal()
     {
         modals.Close(ModalType.Transaction);
+        transactionChanges.Clear();
       editingTransaction = null;
         currentActivityId = 0;
         selectedReceiptFile = null;
@@ -1155,85 +1222,95 @@ state.CurrentPage = newPage;
         deleteExistingReceipt = false;
     }
 
-    private async Task SaveTransaction()
+    private Task SaveTransaction() => transactionSaving.RunAsync(async () =>
     {
-        if (editingTransaction == null) return;
-
-        string? receiptFileName = null;
-        string? receiptContentType = null;
-
-        if (selectedReceiptFile != null)
+        try
         {
-            receiptFileName = selectedReceiptFile.Name;
-            receiptContentType = selectedReceiptFile.ContentType;
-            
-            var maxFileSize = 10 * 1024 * 1024; // 10MB
-            await using var receiptStream = selectedReceiptFile.OpenReadStream(maxFileSize);
-            
-            if (isCreateTransactionMode)
+            if (editingTransaction == null) return;
+
+            string? receiptFileName = null;
+            string? receiptContentType = null;
+
+            if (selectedReceiptFile != null)
             {
-                await TransactionService.CreateTransactionAsync(
-                    editingTransaction.Date,
-                    editingTransaction.Description ?? string.Empty,
-                    editingTransaction.Category ?? string.Empty,
-                    editingTransaction.Amount,
-                    editingTransaction.Type,
-                    editingTransaction.ActivityId,
-                    receiptStream,
-                    receiptFileName,
-                    receiptContentType
-                );
+                receiptFileName = selectedReceiptFile.Name;
+                receiptContentType = selectedReceiptFile.ContentType;
+            
+                var maxFileSize = 10 * 1024 * 1024; // 10MB
+                await using var receiptStream = selectedReceiptFile.OpenReadStream(maxFileSize);
+            
+                if (isCreateTransactionMode)
+                {
+                    await TransactionService.CreateTransactionAsync(
+                        editingTransaction.Date,
+                        editingTransaction.Description ?? string.Empty,
+                        editingTransaction.Category ?? string.Empty,
+                        editingTransaction.Amount,
+                        editingTransaction.Type,
+                        editingTransaction.ActivityId,
+                        receiptStream,
+                        receiptFileName,
+                        receiptContentType
+                    );
+                }
+                else
+                {
+                    await TransactionService.UpdateTransactionAsync(
+                        editingTransaction.Id,
+                        editingTransaction.Date,
+                        editingTransaction.Description ?? string.Empty,
+                        editingTransaction.Category ?? string.Empty,
+                        editingTransaction.Amount,
+                        editingTransaction.Type,
+                        receiptStream,
+                        receiptFileName,
+                        receiptContentType,
+                        deleteExistingReceipt
+                    );
+                }
             }
             else
             {
-                await TransactionService.UpdateTransactionAsync(
-                    editingTransaction.Id,
-                    editingTransaction.Date,
-                    editingTransaction.Description ?? string.Empty,
-                    editingTransaction.Category ?? string.Empty,
-                    editingTransaction.Amount,
-                    editingTransaction.Type,
-                    receiptStream,
-                    receiptFileName,
-                    receiptContentType,
-                    deleteExistingReceipt
-                );
+                if (isCreateTransactionMode)
+                {
+                    await TransactionService.CreateTransactionAsync(
+                        editingTransaction.Date,
+                        editingTransaction.Description ?? string.Empty,
+                        editingTransaction.Category ?? string.Empty,
+                        editingTransaction.Amount,
+                        editingTransaction.Type,
+                        editingTransaction.ActivityId
+                    );
+                }
+                else
+                {
+                    await TransactionService.UpdateTransactionAsync(
+                        editingTransaction.Id,
+                        editingTransaction.Date,
+                        editingTransaction.Description ?? string.Empty,
+                        editingTransaction.Category ?? string.Empty,
+                        editingTransaction.Amount,
+                        editingTransaction.Type,
+                        null,
+                        null,
+                        null,
+                        deleteExistingReceipt
+                    );
+                }
             }
-        }
-        else
-        {
-            if (isCreateTransactionMode)
-            {
-                await TransactionService.CreateTransactionAsync(
-                    editingTransaction.Date,
-                    editingTransaction.Description ?? string.Empty,
-                    editingTransaction.Category ?? string.Empty,
-                    editingTransaction.Amount,
-                    editingTransaction.Type,
-                    editingTransaction.ActivityId
-                );
-            }
-            else
-            {
-                await TransactionService.UpdateTransactionAsync(
-                    editingTransaction.Id,
-                    editingTransaction.Date,
-                    editingTransaction.Description ?? string.Empty,
-                    editingTransaction.Category ?? string.Empty,
-                    editingTransaction.Amount,
-                    editingTransaction.Type,
-                    null,
-                    null,
-                    null,
-                    deleteExistingReceipt
-                );
-            }
-        }
 
-        await LoadTransactions(); // Reload transactions first
-        await LoadActivities(); // Reload activities - financial values are computed properties
-        CloseTransactionModal();
-    }
+            await LoadTransactions(); // Reload transactions first
+            await LoadActivities(); // Reload activities - financial values are computed properties
+            CloseTransactionModal();
+            Toasts.ShowSuccess("Transação guardada.");
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving transaction failed");
+            Toasts.ShowError("Não foi possível guardar a transação. Tente novamente.");
+        }
+    });
 
     private void OpenDeleteTransactionModal(Transaction transaction)
     {
@@ -1326,33 +1403,45 @@ state.CurrentPage = newPage;
     {
         isEditingBank = isBank;
         editingBankCashValue = isBank ? bankMoney : cashMoney;
+        bankCashChanges.Track(() => editingBankCashValue);
         modals.Open(ModalType.BankCash);
     }
 
     private void CloseBankCashModal()
     {
         modals.Close(ModalType.BankCash);
+        bankCashChanges.Clear();
         editingBankCashValue = 0;
     }
 
-    private async Task SaveBankCashValue()
+    private Task SaveBankCashValue() => bankCashSaving.RunAsync(async () =>
     {
-        if (report == null) return;
+        try
+        {
+            if (report == null) return;
 
-        await FinanceManagementService.SaveBankCashValueAsync(
-            ReportId,
-            isEditingBank,
-            editingBankCashValue,
-            ActivityService,
-            TransactionService);
+            await FinanceManagementService.SaveBankCashValueAsync(
+                ReportId,
+                isEditingBank,
+                editingBankCashValue,
+                ActivityService,
+                TransactionService);
 
-        // Reload data
-        await LoadBankAndCashMoney();
-        await LoadActivities();
-        await LoadTransactions();
+            // Reload data
+            await LoadBankAndCashMoney();
+            await LoadActivities();
+            await LoadTransactions();
         
-        CloseBankCashModal();
-    }
+            CloseBankCashModal();
+            Toasts.ShowSuccess("Valor guardado.");
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving bank/cash value failed");
+            Toasts.ShowError("Não foi possível guardar o valor. Tente novamente.");
+        }
+    });
 
     // Transaction History methods
     private async Task OpenTransactionHistoryModal()

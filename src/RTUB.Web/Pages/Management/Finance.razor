@@ -24,6 +24,7 @@
 @inject RTUB.Application.Services.ReportPdfService PdfService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Finance> Logger
 
 <AppTitle>Finanças</AppTitle>
 
@@ -102,10 +103,7 @@
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="alert alert-danger">@errorMessage</div>
-            }
+            <Alert Type="Alert.AlertType.Error" Message="@errorMessage" />
 
             @if (isCreateMode)
             {
@@ -132,7 +130,7 @@
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-        <button type="submit" form="editReportForm" class="btn btn-success" disabled="@(isCreateMode && !availableFiscalYearStartYears.Any())">Guardar</button>
+        <button type="submit" form="editReportForm" class="btn btn-success" disabled="@(reportSaving.IsBusy || (isCreateMode && !availableFiscalYearStartYears.Any()))" aria-busy="@(reportSaving.IsBusy ? "true" : null)">Guardar</button>
     </FooterContent>
 </Modal>
 
@@ -174,6 +172,7 @@
     private enum ModalType { Edit, Delete, Publish }
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
+    private readonly BusyState reportSaving = new();
     private ReportEntity? editingReport;
     private ReportEntity? deletingReport;
     private ReportEntity? publishingReport;
@@ -372,64 +371,73 @@
         errorMessage = "";
     }
 
-    private async Task SaveReport()
+    private Task SaveReport() => reportSaving.RunAsync(async () =>
     {
-        if (editingReport == null) return;
-
-        errorMessage = "";
-
-        // Validate fiscal year input
-        if (fiscalYearInput < 1991 || fiscalYearInput > DateTime.Now.Year)
+        try
         {
-            errorMessage = "Por favor, insira um ano letivo válido (entre 1991 e o ano atual).";
-            return;
-        }
+            if (editingReport == null) return;
 
-        var startYear = fiscalYearInput;
-        var endYear = fiscalYearInput + 1;
-        var selectedFiscalYearForReport = $"{startYear}-{endYear}";
+            errorMessage = "";
 
-        if (isCreateMode)
-        {
-            // Check for duplicate fiscal year
-            var existingReports = await ReportService.GetAllReportsAsync();
-            var existingReport = existingReports.FirstOrDefault(r => r.Year == startYear);
-
-            if (existingReport != null)
+            // Validate fiscal year input
+            if (fiscalYearInput < 1991 || fiscalYearInput > DateTime.Now.Year)
             {
-                errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
+                errorMessage = "Por favor, insira um ano letivo válido (entre 1991 e o ano atual).";
                 return;
             }
 
-            // Generate automatic title and create report
-            var title = $"Relatório de Contas {startYear} - {endYear}";
-            await ReportService.CreateReportAsync(title, startYear, editingReport.Summary);
-        }
-        else
-        {
-            var existing = await ReportService.GetReportByIdAsync(editingReport.Id);
-            if (existing != null)
-            {
-                // Check if year changed and if new year is duplicate
-                if (existing.Year != startYear)
-                {
-                    var allReports = await ReportService.GetAllReportsAsync();
-                    var duplicateReport = allReports.FirstOrDefault(r => r.Year == startYear && r.Id != existing.Id);
+            var startYear = fiscalYearInput;
+            var endYear = fiscalYearInput + 1;
+            var selectedFiscalYearForReport = $"{startYear}-{endYear}";
 
-                    if (duplicateReport != null)
-                    {
-                        errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
-                        return;
-                    }
+            if (isCreateMode)
+            {
+                // Check for duplicate fiscal year
+                var existingReports = await ReportService.GetAllReportsAsync();
+                var existingReport = existingReports.FirstOrDefault(r => r.Year == startYear);
+
+                if (existingReport != null)
+                {
+                    errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
+                    return;
                 }
 
-                await ReportService.UpdateReportAsync(editingReport.Id, editingReport.Summary);
+                // Generate automatic title and create report
+                var title = $"Relatório de Contas {startYear} - {endYear}";
+                await ReportService.CreateReportAsync(title, startYear, editingReport.Summary);
             }
-        }
+            else
+            {
+                var existing = await ReportService.GetReportByIdAsync(editingReport.Id);
+                if (existing != null)
+                {
+                    // Check if year changed and if new year is duplicate
+                    if (existing.Year != startYear)
+                    {
+                        var allReports = await ReportService.GetAllReportsAsync();
+                        var duplicateReport = allReports.FirstOrDefault(r => r.Year == startYear && r.Id != existing.Id);
 
-        await RefreshDataAsync();
-        CloseEditModal();
-    }
+                        if (duplicateReport != null)
+                        {
+                            errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
+                            return;
+                        }
+                    }
+
+                    await ReportService.UpdateReportAsync(editingReport.Id, editingReport.Summary);
+                }
+            }
+
+            await RefreshDataAsync();
+            CloseEditModal();
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving finance report failed");
+            errorMessage = "Não foi possível guardar o relatório. Tente novamente.";
+        }
+    });
 
     private void OpenDeleteModal(ReportEntity report)
     {

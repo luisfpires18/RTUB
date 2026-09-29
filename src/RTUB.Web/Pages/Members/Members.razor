@@ -238,8 +238,11 @@ else
 }
 
 <!-- Create/Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Edit)"
-       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Edit); else modals.Close(ModalType.Edit); })"
+<Modal @ref="editModal"
+       Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Edit); else CloseEditModal(); })"
+       IsDirty="() => editChanges.IsDirty"
+       CanClose="() => Task.FromResult(!isSaving)"
        Title="@(isCreateMode ? "Adicionar Novo Membro" : "Editar Membro")" 
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -250,56 +253,56 @@ else
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-primeiro-nome" class="form-label fw-semibold">
                         <i class="bi bi-person text-primary me-2"></i>Primeiro Nome <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.FirstName" />
+                    <InputText id="mb-primeiro-nome" class="form-control" @bind-Value="editingUser.FirstName" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-ultimo-nome" class="form-label fw-semibold">
                         <i class="bi bi-person text-primary me-2"></i>Último Nome <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.LastName" />
+                    <InputText id="mb-ultimo-nome" class="form-control" @bind-Value="editingUser.LastName" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-nome-de-tuna" class="form-label fw-semibold">
                         <i class="bi bi-star text-primary me-2"></i>Nome de Tuna<span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.Nickname" @bind-Value:after="OnNicknameChanged" disabled="@semAlcunha" />
+                    <InputText id="mb-nome-de-tuna" class="form-control" @bind-Value="editingUser.Nickname" @bind-Value:after="OnNicknameChanged" disabled="@semAlcunha" />
                     @if (semAlcunha)
                     {
                         <small class="form-text text-muted">Campo desativado - reflete automaticamente o email</small>
                     }
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-contacto" class="form-label fw-semibold">
                         <i class="bi bi-telephone text-primary me-2"></i>Contacto <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.PhoneNumber" />
+                    <InputText id="mb-contacto" class="form-control" @bind-Value="editingUser.PhoneNumber" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-email" class="form-label fw-semibold">
                         <i class="bi bi-envelope text-primary me-2"></i>Email <span class="text-danger">*</span>
                     </label>
-                    <InputText type="email" class="form-control" @bind-Value="editingUser.Email" @bind-Value:after="OnEmailChanged" />
+                    <InputText id="mb-email" type="email" class="form-control" @bind-Value="editingUser.Email" @bind-Value:after="OnEmailChanged" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-data-de-nascimento" class="form-label fw-semibold">
                         <i class="bi bi-calendar3 text-primary me-2"></i>Data de Nascimento
                     </label>
-                    <InputDate class="form-control" @bind-Value="editingUser.DateOfBirth" />
+                    <InputDate id="mb-data-de-nascimento" class="form-control" @bind-Value="editingUser.DateOfBirth" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-curso" class="form-label fw-semibold">
                         <i class="bi bi-book text-primary me-2"></i>Curso
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
+                    <InputText id="mb-curso" class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
@@ -412,13 +415,13 @@ else
             
             @* Multiple Instruments Management *@
             <div class="mb-3">
-                <label class="form-label fw-semibold">
+                <label for="mb-instrumentos" class="form-label fw-semibold">
                     <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                 </label>
 
                 @* Add Instrument Section *@
                 <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-end gap-2 mb-2">
-                    <select class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                    <select id="mb-instrumentos" class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
                         <option value="">Selecionar instrumento...</option>
                         @foreach (var instrument in AllInstrumentTypes.Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                         {
@@ -536,7 +539,7 @@ else
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isSaving">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => editModal!.RequestCloseAsync()" disabled="@isSaving">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveClick" disabled="@isSaving">
             @if (isSaving)
             {
@@ -854,8 +857,11 @@ else
 }
 
 <!-- Set Nickname Modal -->
-    <Modal Show="@modals.IsOpen(ModalType.SetNickname)" 
-       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.SetNickname); else modals.Close(ModalType.SetNickname); })"
+    <Modal @ref="nicknameModal"
+       Show="@modals.IsOpen(ModalType.SetNickname)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.SetNickname); else CloseSetNicknameModal(); })"
+       IsDirty="() => nicknameChanges.IsDirty"
+       CanClose="() => Task.FromResult(!isSavingNickname)"
        Title="Definir Alcunha" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -889,7 +895,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseSetNicknameModal" disabled="@isSavingNickname">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => nicknameModal!.RequestCloseAsync()" disabled="@isSavingNickname">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveNicknameClick" disabled="@isSavingNickname">
             @if (isSavingNickname)
             {
@@ -1281,6 +1287,8 @@ else
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isSaving = false;
+    private Modal? editModal, nicknameModal;
+    private readonly UnsavedChanges editChanges = new(), nicknameChanges = new();
     private bool isSavingNickname = false;
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
@@ -1698,6 +1706,7 @@ else
         selectedMentorCache = null;
         memberInstruments.Clear();
         selectedInstrumentToAdd = "";
+        TrackMemberForm();
         modals.Open(ModalType.Edit);
     }
 
@@ -1773,14 +1782,41 @@ else
         // Load member instruments
         memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(freshUser.Id)).ToList();
         selectedInstrumentToAdd = "";
-        
+
+        TrackMemberForm();
         modals.Open(ModalType.Edit);
         StateHasChanged();
     }
 
+    // What the member form can change. Search boxes (mentor, instrument picker) are not changes.
+    private void TrackMemberForm() => editChanges.Track(() => new
+    {
+        editingUser.FirstName,
+        editingUser.LastName,
+        editingUser.Nickname,
+        editingUser.Email,
+        editingUser.PhoneNumber,
+        editingUser.City,
+        editingUser.DateOfBirth,
+        editingUser.Degree,
+        editingUser.YearLeitao,
+        editingUser.MonthLeitao,
+        editingUser.YearCaloiro,
+        editingUser.MonthCaloiro,
+        editingUser.YearTuno,
+        editingUser.MonthTuno,
+        editingUser.MentorId,
+        editingUser.SelectedCategory,
+        isFundador,
+        isTunoHonorario,
+        semAlcunha,
+        Instruments = memberInstruments.Select(i => new { i.InstrumentType, i.IsPrimary }).ToList()
+    });
+
     private void CloseEditModal()
     {
         modals.Close(ModalType.Edit);
+        editChanges.Clear();
         editingUser = new();
         mentorSearchTerm = "";
         filteredMentors.Clear();
@@ -2545,12 +2581,14 @@ else
         {
             Nickname = user.Nickname
         };
+        nicknameChanges.Track(() => nicknameForm.Nickname);
         modals.Open(ModalType.SetNickname);
     }
 
     private void CloseSetNicknameModal()
     {
         modals.Close(ModalType.SetNickname);
+        nicknameChanges.Clear();
         nicknameSettingUser = null;
         nicknameForm = new NicknameFormModel();
         isSavingNickname = false;

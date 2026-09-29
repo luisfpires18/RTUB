@@ -11,10 +11,14 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailNotificationService EmailNotificationService
+@inject ILogger<Emails> Logger
 
 <AppTitle>Enviar Email de Anúncio</AppTitle>
 
 <AppErrorBoundary>
+@* A written announcement is not lost to a stray link, Back or reload (UI refactor 037). "Limpar"
+   is the deliberate discard. *@
+<UnsavedChangesGuard IsDirty="() => !string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(content)" />
 <PageHeader Title="Enviar Email de Anúncio" Icon="bi-envelope" Subtitle="Enviar anúncios por email para todos os utilizadores subscritos" />
 
     @if (!string.IsNullOrEmpty(message))
@@ -258,7 +262,8 @@
         }
         catch (Exception ex)
         {
-            message = $"Erro ao carregar utilizadores subscritos: {ex.Message}";
+            Logger.LogError(ex, "Loading subscribed users failed");
+            message = "Não foi possível carregar os utilizadores subscritos. Recarregue a página.";
             isError = true;
         }
         finally
@@ -355,7 +360,8 @@
         }
         catch (Exception ex)
         {
-            message = $"Erro inesperado: {ex.Message}";
+            Logger.LogError(ex, "Sending the announcement email failed");
+            message = "Não foi possível enviar os emails. Alguns podem já ter sido enviados; verifique antes de tentar novamente.";
             isError = true;
         }
         finally
