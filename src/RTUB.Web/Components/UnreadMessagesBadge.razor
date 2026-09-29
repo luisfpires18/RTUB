@@ -7,6 +7,7 @@
 @inject IMessagingService MessagingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
+@inject ILogger<UnreadMessagesBadge> Logger
 @inject RTUB.Web.Services.MessagesNotificationService NotificationService
 @implements IAsyncDisposable
 
@@ -59,6 +60,12 @@
                     }
                     catch (ObjectDisposedException) { /* Circuit/component disposed */ }
                     catch (TaskCanceledException) { /* Circuit shutting down */ }
+                    catch (Exception ex)
+                    {
+                        // A timer thread must not throw (it would end the server process); the
+                        // next tick retries.
+                        Logger.LogWarning(ex, "Refreshing the unread messages badge failed");
+                    }
                 }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
             }
         }

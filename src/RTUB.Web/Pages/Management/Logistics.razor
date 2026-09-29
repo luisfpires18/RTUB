@@ -12,6 +12,8 @@
 @using RTUB.Shared.Base
 @attribute [Authorize]
 @inject ILogisticsBoardService BoardService
+@inject ILogger<Logistics> Logger
+@inject ToastService Toasts
 @inject IEventService EventService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -151,11 +153,13 @@
 </div>
 
 @* Create/Edit Board Modal *@
-<Modal Show="@modals.IsOpen(ModalType.Board)"
+<Modal @ref="boardModal"
+       Show="@modals.IsOpen(ModalType.Board)"
        ShowChanged="@((bool show) => { if (!show) CloseBoardModal(); })"
+       IsDirty="() => boardChanges.IsDirty"
+       CanClose="() => Task.FromResult(!boardSaving.IsBusy)"
        Title="@(editingBoard == null ? "Criar Quadro" : "Editar Quadro")"
-       Centered="true"
-       OnClose="CloseBoardModal">
+       Centered="true">
     <BodyContent>
         <FormTextField Label="Nome do Quadro"
                       Icon="kanban"
@@ -170,10 +174,10 @@
                      Placeholder="Descrição do quadro (opcional)" />
         
         <div class="mb-3">
-            <label class="form-label fw-semibold">
+            <label for="lg-evento-associado" class="form-label fw-semibold">
                 <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
             </label>
-            <input type="text" class="form-control" placeholder="Pesquisar evento..." 
+            <input id="lg-evento-associado" type="text" class="form-control" placeholder="Pesquisar evento..."
                    @bind="eventSearchTerm" @bind:event="oninput" />
             @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
             {
@@ -204,10 +208,10 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseBoardModal">
+        <button type="button" class="btn btn-secondary" @onclick="() => boardModal!.RequestCloseAsync()" disabled="@boardSaving.IsBusy">
             <i class="bi bi-arrow-left me-2"></i>Cancelar
         </button>
-        <button type="button" class="btn btn-primary" @onclick="SaveBoard" disabled="@string.IsNullOrWhiteSpace(boardName)">
+        <button type="button" class="btn btn-primary" @onclick="SaveBoard" disabled="@(boardSaving.IsBusy || string.IsNullOrWhiteSpace(boardName))" aria-busy="@(boardSaving.IsBusy ? "true" : null)">
             <i class="bi bi-check-circle me-2"></i>Guardar
         </button>
     </FooterContent>
@@ -252,6 +256,9 @@
     // Board modal state
     private enum ModalType { Board, DeleteBoard }
     private readonly MultiModalState<ModalType> modals = new();
+    private Modal? boardModal;
+    private readonly UnsavedChanges boardChanges = new();
+    private readonly BusyState boardSaving = new();
     private BoardEntity? editingBoard = null;
     private string boardName = string.Empty;
     private string boardDescription = string.Empty;
@@ -337,6 +344,7 @@
         selectedEventId = string.Empty;
         selectedEventName = string.Empty;
         eventSearchTerm = string.Empty;
+        boardChanges.Track(() => new { boardName, boardDescription, selectedEventId });
         modals.Open(ModalType.Board);
     }
 
@@ -349,12 +357,14 @@
         selectedEventId = board.EventId?.ToString() ?? string.Empty;
         selectedEventName = board.Event?.Name ?? string.Empty;
         eventSearchTerm = string.Empty;
+        boardChanges.Track(() => new { boardName, boardDescription, selectedEventId });
         modals.Open(ModalType.Board);
     }
 
     private void CloseBoardModal()
     {
         modals.Close(ModalType.Board);
+        boardChanges.Clear();
         editingBoard = null;
     }
 
@@ -371,7 +381,7 @@
         selectedEventName = string.Empty;
     }
 
-    private async Task SaveBoard()
+    private Task SaveBoard() => boardSaving.RunAsync(async () =>
     {
         if (!canManageLogistics || string.IsNullOrWhiteSpace(boardName))
             return;
@@ -392,14 +402,17 @@
                 await BoardService.AssociateBoardWithEventAsync(editingBoard.Id, eventId);
             }
 
-            await LoadData();
             CloseBoardModal();
+            Toasts.ShowSuccess("Quadro guardado.");
+            await LoadData();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving logistics board failed");
+            Toasts.ShowError("Não foi possível guardar o quadro. Tente novamente.");
         }
-    }
+    });
 
     private void OpenDeleteBoardModal(BoardEntity board)
     {

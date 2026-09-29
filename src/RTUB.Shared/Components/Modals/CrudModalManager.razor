@@ -1,17 +1,30 @@
 @namespace RTUB.Shared
 @typeparam TEntity
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+@inject ILogger<CrudModalManager<TEntity>> Logger
+@*
+    Create/edit dialog + delete confirmation for CRUD pages. Data safety (UI refactor 037,
+    section 24): the edited entity is tracked from the moment the dialog opens, so Cancel,
+    Escape, Back and reload ask before discarding changes; the default Guardar is busy while
+    OnSave runs and a failing OnSave keeps the dialog open with its data and a message. A custom
+    footer's Cancel should call RequestCloseEditAsync().
+*@
 
 @* Edit/Create Modal *@
 @if (ShowEditModal)
 {
-    <Modal Show="@ShowEditModal" 
+    <Modal @ref="_editModal"
+           Show="@ShowEditModal"
            ShowChanged="@OnEditModalShowChanged"
            Title="@(IsCreateMode ? CreateTitle : EditTitle)" 
            Size="@ModalSize" 
            Centered="@CenteredModal"
-           ShowCloseButton="@ShowCloseButton">
+           ShowCloseButton="@ShowCloseButton"
+           CloseOnEscape="true"
+           IsDirty="() => _changes.IsDirty">
         <BodyContent>
+            <Alert Type="Alert.AlertType.Error" Message="@_saveError" AdditionalClasses="mb-3" />
             @if (EditFormContent != null)
             {
                 @EditFormContent(EditingEntity)
@@ -24,8 +37,14 @@
             }
             else
             {
-                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                <button type="button" class="btn btn-success" @onclick="OnSaveClicked">Guardar</button>
+                <button type="button" class="btn btn-secondary" @onclick="RequestCloseEditAsync" disabled="@_saving">Cancelar</button>
+                <button type="button" class="btn btn-success" @onclick="OnSaveClicked" disabled="@_saving" aria-busy="@(_saving ? "true" : null)">
+                    @if (_saving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    }
+                    Guardar
+                </button>
             }
         </FooterContent>
     </Modal>
@@ -93,10 +112,42 @@
     [Parameter] public EventCallback OnEditModalClosed { get; set; }
     [Parameter] public EventCallback OnDeleteModalClosed { get; set; }
 
+    private readonly UnsavedChanges _changes = new();
+    private Modal? _editModal;
+    private object? _trackedEntity;
+    private bool _saving;
+    private string? _saveError;
+
+    protected override void OnParametersSet()
+    {
+        if (!ShowEditModal)
+        {
+            _changes.Clear();
+            _trackedEntity = null;
+            _saveError = null;
+        }
+        else if (!ReferenceEquals(_trackedEntity, EditingEntity))
+        {
+            // A dialog (re)opened for an entity: its current values are the clean baseline.
+            _trackedEntity = EditingEntity;
+            _changes.Track(() => EditingEntity);
+            _saveError = null;
+        }
+    }
+
+    /// <summary>Cancel for a custom footer: asks before discarding unsaved changes.</summary>
+    public async Task<bool> RequestCloseEditAsync() =>
+        _editModal == null || await _editModal.RequestCloseAsync();
+
     private async Task OnEditModalShowChanged(bool show)
     {
         ShowEditModal = show;
         await ShowEditModalChanged.InvokeAsync(show);
+        if (!show)
+        {
+            // Cancel, the close control, Escape and Back all end here, as Cancel used to.
+            await OnEditModalClosed.InvokeAsync();
+        }
     }
 
     private async Task OnDeleteModalShowChanged(bool show)
@@ -107,19 +158,31 @@
 
     private async Task OnSaveClicked()
     {
-        await OnSave.InvokeAsync();
+        if (_saving)
+        {
+            return;
+        }
+
+        _saving = true;
+        _saveError = null;
+        try
+        {
+            await OnSave.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving {Entity} failed", typeof(TEntity).Name);
+            _saveError = "Não foi possível guardar. As alterações continuam no formulário; tente novamente.";
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private async Task OnDeleteConfirmed()
     {
         await OnDelete.InvokeAsync();
-    }
-
-    private async Task CloseEditModal()
-    {
-        ShowEditModal = false;
-        await ShowEditModalChanged.InvokeAsync(false);
-        await OnEditModalClosed.InvokeAsync();
     }
 
     private async Task CloseDeleteModal()

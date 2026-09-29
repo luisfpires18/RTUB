@@ -16,6 +16,8 @@
 @inject NavigationManager NavigationManager
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<MbwayTransfers> Logger
+@inject ToastService Toasts
 
 <AppTitle>MBWAY</AppTitle>
 
@@ -113,8 +115,11 @@ else
 <!-- Add/Edit Modal -->
 @if (showModal && editingTransfer != null)
 {
-    <Modal Show="@showModal"
-           ShowChanged="@((bool show) => { if (!show) showModal = false; })"
+    <Modal @ref="transferModal"
+           Show="@showModal"
+           ShowChanged="@((bool show) => { if (!show) CloseTransferModal(); })"
+           IsDirty="() => transferChanges.IsDirty"
+           CanClose="() => Task.FromResult(!isSaving)"
            Title="@(editingTransfer.Id > 0 ? "Editar Transferência MBWAY" : "Adicionar Transferência MBWAY")"
            Size="Modal.ModalSize.Large">
         <BodyContent>
@@ -205,7 +210,7 @@ else
             </EditForm>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
+            <button type="button" class="btn btn-secondary" @onclick="() => transferModal!.RequestCloseAsync()" disabled="@isSaving">Cancelar</button>
             <button type="button" class="btn btn-primary" @onclick="SaveTransfer" disabled="@isSaving">
                 @if (isSaving)
                 {
@@ -245,6 +250,8 @@ else
     private bool isLoading = false;
     private bool isSaving = false;
     private bool showModal = false;
+    private Modal? transferModal;
+    private readonly UnsavedChanges transferChanges = new();
     private bool showDeleteConfirm = false;
     private bool isTransferToMember = false;
     private bool canEdit = false;
@@ -401,6 +408,7 @@ else
         isTransferToMember = false;
         memberSearchTerm = string.Empty;
         filteredMembers = new();
+        TrackTransferForm();
         showModal = true;
     }
 
@@ -421,7 +429,21 @@ else
         isTransferToMember = !string.IsNullOrEmpty(transfer.MemberUserId);
         memberSearchTerm = string.Empty;
         filteredMembers = new();
+        TrackTransferForm();
         showModal = true;
+    }
+
+    // What the transfer form can change (member search is not a change).
+    private void TrackTransferForm() => transferChanges.Track(() => editingTransfer == null ? null : new
+    {
+        editingTransfer.Date, editingTransfer.Amount, editingTransfer.Phone, editingTransfer.Description,
+        editingTransfer.TransferTo, editingTransfer.TransferFrom, editingTransfer.MemberUserId, isTransferToMember
+    });
+
+    private void CloseTransferModal()
+    {
+        showModal = false;
+        transferChanges.Clear();
     }
 
     private async Task SaveTransfer()
@@ -438,9 +460,10 @@ else
 
             if (result.Success)
             {
-                showModal = false;
-                await LoadTransfers();
+                CloseTransferModal();
                 errorMessage = string.Empty;
+                Toasts.ShowSuccess("Transferência guardada.");
+                await LoadTransfers();
             }
             else
             {
@@ -449,7 +472,8 @@ else
         }
         catch (Exception ex)
         {
-            errorMessage = $"Erro ao guardar: {ex.Message}";
+            Logger.LogError(ex, "Saving MB WAY transfer failed");
+            errorMessage = "Não foi possível guardar a transferência. Tente novamente.";
         }
         finally
         {

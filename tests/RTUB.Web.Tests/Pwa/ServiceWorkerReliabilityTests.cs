@@ -216,6 +216,22 @@ public class ServiceWorkerReliabilityTests
     }
 
     /// <summary>
+    /// UI refactor 037: an update must not reload a page that has unsaved form changes -
+    /// neither this tab's "Atualizar" nor a new worker activated from another tab.
+    /// </summary>
+    [Fact]
+    public void SwRegister_HoldsTheUpdateReloadWhileAFormHasUnsavedChanges()
+    {
+        var register = SwRegister();
+
+        Section(register, "updateBtn.addEventListener('click'", "});").Should().Contain("hasUnsavedChanges()",
+            "Atualizar activates the new worker, which reloads every RTUB tab");
+        Section(register, "addEventListener('controllerchange'", "})();").Should().Contain("hasUnsavedChanges()",
+            "a worker activated elsewhere must not silently reload a tab with unsaved changes");
+        register.Should().Contain("modalHelper.hasUnsavedChanges");
+    }
+
+    /// <summary>
     /// registerServiceWorker() is invoked twice (immediately, then on window load). register()
     /// itself is idempotent, but each call attached another updatefound listener, another
     /// visibilitychange listener and another update-check timer - which is how one update

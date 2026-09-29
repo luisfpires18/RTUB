@@ -1,4 +1,6 @@
 @namespace RTUB.Shared
+@using Microsoft.Extensions.Logging
+@inject ILogger<ConfirmDialog> Logger
 @*
     Shared confirmation on top of Modal (UI refactor 035; contract:
     docs/design/RTUB_UI_REFACTOR.md section 22).
@@ -8,6 +10,9 @@
     Cancel comes first and takes focus when the dialog opens; the confirm action is last.
     Escape cancels. While OnConfirm runs, both buttons are disabled, the confirm button shows a
     spinner and the dialog cannot be dismissed, so a double click cannot confirm twice.
+    If OnConfirm throws (UI refactor 037, section 24.8) the error is logged, the dialog stays open
+    and unlocked with a generic message, so the user can retry or cancel instead of losing the
+    page. Pages that can say more catch their own exceptions.
 *@
 
 <Modal Show="@Show"
@@ -21,6 +26,7 @@
        AriaDescribedBy="@(this.BodyContent == null ? _messageId : null)"
        OnClose="HandleCancel">
     <BodyContent>
+        <Alert Type="Alert.AlertType.Error" Message="@_error" AdditionalClasses="mb-3" />
         @if (this.BodyContent != null)
         {
             @this.BodyContent
@@ -149,6 +155,7 @@
 
     private readonly string _messageId = "rtub-confirm-" + Guid.NewGuid().ToString("N")[..10];
     private bool _confirming;
+    private string? _error;
 
     private bool IsLocked => Disabled || _confirming;
 
@@ -175,15 +182,23 @@
         }
 
         _confirming = true;
+        _error = null;
         try
         {
             await OnConfirm.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Confirmation \"{Title}\" failed", Title);
+            _error = "Não foi possível concluir a operação. Tente novamente.";
+            return;
         }
         finally
         {
             _confirming = false;
         }
 
+        _error = null;
         Show = false;
         await ShowChanged.InvokeAsync(false);
     }
@@ -195,6 +210,7 @@
             return;
         }
 
+        _error = null;
         await OnCancel.InvokeAsync();
         Show = false;
         await ShowChanged.InvokeAsync(false);

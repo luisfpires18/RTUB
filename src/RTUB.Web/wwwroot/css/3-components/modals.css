@@ -488,3 +488,21 @@ body.modal-open {
         }
     }
 }
+
+/* Stacked dialogs (UI refactor 037): a dialog opened while another is open - "Descartar
+   alterações?", a confirmation from an edit form - covers the one below with its own backdrop
+   instead of sliding under it. */
+.modal.show ~ .modal-backdrop.show {
+    z-index: 1060;
+}
+
+.modal.show ~ .modal.show {
+    z-index: 1070;
+}
+
+/* Small dialogs fit two worded actions ("Continuar a editar", "Descartar") side by side. */
+@media (min-width: 576px) {
+    .modal-sm {
+        --bs-modal-width: 360px;
+    }
+}

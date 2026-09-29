@@ -121,6 +121,22 @@ self.addEventListener('install', (event) => {
 });
 ```
 
+### Updates and Unsaved Work
+
+Contract: `docs/design/RTUB_UI_REFACTOR.md` 24.10.
+
+- "Atualizar" (`sw-register.js`) does not activate the new worker while a form reports unsaved
+  changes (`modalHelper.hasUnsavedChanges()`); it asks the user to save or discard first.
+- A worker activated from another tab does not reload a tab with unsaved changes; that tab offers
+  "Recarregar". Keep exactly one guarded reload path (`reloadForUpdate`).
+
+### Connection Loss
+
+`ReconnectModal` must keep the id `components-reconnect-modal`: Blazor only uses a custom UI with
+that id (with any other id its built-in UI appears, and it renders invisible here). Blazor sets
+`components-reconnect-show` / `-failed` / `-rejected` on that element; each state has its own
+message. Typed data survives a reconnect only while the server circuit lives - never promise more.
+
 ## Mobile Optimization
 
 ### Viewport Configuration

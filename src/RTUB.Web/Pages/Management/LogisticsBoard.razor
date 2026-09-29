@@ -18,6 +18,8 @@
 @using RTUB.Shared.Base
 @attribute [Authorize]
 @inject ILogisticsBoardService BoardService
+@inject ILogger<LogisticsBoard> Logger
+@inject ToastService Toasts
 @inject ILogisticsListService ListService
 @inject ILogisticsCardService CardService
 @inject IEventService EventService
@@ -242,8 +244,11 @@
 
 
 @* List Modal - Create/Edit *@
-<Modal Show="@modals.IsOpen(ModalType.List)"
+<Modal @ref="listModal"
+       Show="@modals.IsOpen(ModalType.List)"
        ShowChanged="@((bool show) => { if (!show) CloseListModal(); })"
+       IsDirty="() => listChanges.IsDirty"
+       CanClose="() => Task.FromResult(!listSaving.IsBusy)"
        Title="@(editingList == null ? "Criar Lista" : "Editar Lista")"
        Centered="true"
        OnClose="CloseListModal">
@@ -255,18 +260,21 @@
                       Required="true" />
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
+        <button type="button" class="btn btn-secondary" @onclick="() => listModal!.RequestCloseAsync()" disabled="@listSaving.IsBusy">
             <i class="bi bi-arrow-left me-2"></i>Cancelar
         </button>
-        <button type="button" class="btn btn-primary" @onclick="SaveList" disabled="@string.IsNullOrWhiteSpace(listName)">
+        <button type="button" class="btn btn-primary" @onclick="SaveList" disabled="@(listSaving.IsBusy || string.IsNullOrWhiteSpace(listName))" aria-busy="@(listSaving.IsBusy ? "true" : null)">
             <i class="bi bi-check-circle me-2"></i>Guardar
         </button>
     </FooterContent>
 </Modal>
 
 @* Card Modal - Create/Edit *@
-<Modal Show="@modals.IsOpen(ModalType.Card)"
+<Modal @ref="cardModal"
+       Show="@modals.IsOpen(ModalType.Card)"
        ShowChanged="@((bool show) => { if (!show) CloseCardModal(); })"
+       IsDirty="() => cardChanges.IsDirty"
+       CanClose="() => Task.FromResult(!cardSaving.IsBusy)"
        Title="@(editingCard == null ? "Criar Cartão" : "Editar Cartão")"
        Centered="true"
        OnClose="CloseCardModal">
@@ -284,10 +292,10 @@
                      Placeholder="Descrição do cartão (opcional)" />
         
         <div class="mb-3">
-            <label class="form-label fw-semibold">
+            <label for="lb-atribuir-a" class="form-label fw-semibold">
                 <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
             </label>
-            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+            <input id="lb-atribuir-a" type="text" class="form-control" placeholder="Pesquisar utilizador..."
                    @bind="userSearchTerm" @bind:event="oninput" />
             @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
             {
@@ -316,13 +324,14 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">
+        <button type="button" class="btn btn-secondary" @onclick="() => cardModal!.RequestCloseAsync()" disabled="@cardSaving.IsBusy">
             <i class="bi bi-arrow-left me-2"></i>Cancelar
         </button>
         <button type="button"
                 class="btn @(string.IsNullOrWhiteSpace(cardTitle) ? "btn-outline-light" : "btn-primary btn-primary-purple")"
                 @onclick="SaveCard"
-                disabled="@string.IsNullOrWhiteSpace(cardTitle)">
+                disabled="@(cardSaving.IsBusy || string.IsNullOrWhiteSpace(cardTitle))"
+                aria-busy="@(cardSaving.IsBusy ? "true" : null)">
             <i class="bi bi-check-circle me-2"></i>Guardar
         </button>
     </FooterContent>
@@ -419,12 +428,12 @@
                         CssClass="mb-4">
                 <div class="row g-3">
                     <div class="col-6">
-                        <label class="form-label small fw-semibold">Início</label>
-                        <input type="date" class="form-control" value="@cardStartDate" @onchange="@(async (e) => { cardStartDate = e.Value?.ToString(); await UpdateCardDates(); })" />
+                        <label for="lb-inicio" class="form-label small fw-semibold">Início</label>
+                        <input id="lb-inicio" type="date" class="form-control" value="@cardStartDate" @onchange="@(async (e) => { cardStartDate = e.Value?.ToString(); await UpdateCardDates(); })" />
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-semibold">Prazo</label>
-                        <input type="date" class="form-control" value="@cardDueDate" @onchange="@(async (e) => { cardDueDate = e.Value?.ToString(); await UpdateCardDates(); })" />
+                        <label for="lb-prazo" class="form-label small fw-semibold">Prazo</label>
+                        <input id="lb-prazo" type="date" class="form-control" value="@cardDueDate" @onchange="@(async (e) => { cardDueDate = e.Value?.ToString(); await UpdateCardDates(); })" />
                     </div>
                 </div>
             </InfoSection>
@@ -673,8 +682,11 @@
                OnCancel="CloseDeleteCardModal" />
 
 @* Create Reminder Modal *@
-<Modal Show="@modals.IsOpen(ModalType.CreateReminder)"
+<Modal @ref="reminderModal"
+       Show="@modals.IsOpen(ModalType.CreateReminder)"
        ShowChanged="@((bool show) => { if (!show) CloseCreateReminderModal(); })"
+       IsDirty="() => reminderChanges.IsDirty"
+       CanClose="() => Task.FromResult(!reminderSaving.IsBusy)"
        Title="Criar Lembrete"
        Centered="true"
        OnClose="CloseCreateReminderModal">
@@ -778,11 +790,10 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCreateReminderModal">
+        <button type="button" class="btn btn-secondary" @onclick="() => reminderModal!.RequestCloseAsync()" disabled="@reminderSaving.IsBusy">
             <i class="bi bi-arrow-left me-2"></i>Cancelar
         </button>
-        <button type="button" class="btn btn-purple" @onclick="SaveReminder" 
-                disabled="@(string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())">
+        <button type="button" class="btn btn-purple" @onclick="SaveReminder" disabled="@(reminderSaving.IsBusy || string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())" aria-busy="@(reminderSaving.IsBusy ? "true" : null)">
             <i class="bi bi-check-circle me-2"></i>Criar Lembrete
         </button>
     </FooterContent>
@@ -838,6 +849,9 @@
     // List modal state
     private enum ModalType { List, Card, CardDetails, CreateReminder, DeleteList, DeleteCard }
     private readonly MultiModalState<ModalType> modals = new();
+    private Modal? listModal, cardModal, reminderModal;
+    private readonly UnsavedChanges listChanges = new(), cardChanges = new(), reminderChanges = new();
+    private readonly BusyState listSaving = new(), cardSaving = new(), reminderSaving = new();
     private LogisticsList? editingList = null;
     private string listName = string.Empty;
 
@@ -1041,6 +1055,7 @@
         if (!canManageLogistics) return;
         editingList = null;
         listName = string.Empty;
+        listChanges.Track(() => listName);
         modals.Open(ModalType.List);
     }
 
@@ -1049,17 +1064,19 @@
         if (!canManageLogistics) return;
         editingList = list;
         listName = list.Name;
+        listChanges.Track(() => listName);
         modals.Open(ModalType.List);
     }
 
     private void CloseListModal()
     {
         modals.Close(ModalType.List);
+        listChanges.Clear();
         editingList = null;
         listName = string.Empty;
     }
 
-    private async Task SaveList()
+    private Task SaveList() => listSaving.RunAsync(async () =>
     {
         if (!canManageLogistics || string.IsNullOrWhiteSpace(listName))
             return;
@@ -1076,14 +1093,16 @@
                 await ListService.UpdateListAsync(editingList.Id, listName);
             }
 
-            await LoadData();
             CloseListModal();
+            await LoadData();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving logistics list failed");
+            Toasts.ShowError("Não foi possível guardar a lista. Tente novamente.");
         }
-    }
+    });
 
     private void OpenDeleteListModal(LogisticsList list)
     {
@@ -1126,6 +1145,7 @@
         selectedUserId = string.Empty;
         selectedUserName = string.Empty;
         userSearchTerm = string.Empty;
+        cardChanges.Track(() => new { cardTitle, cardDescription, selectedUserId });
         modals.Open(ModalType.Card);
     }
 
@@ -1139,12 +1159,14 @@
         selectedUserId = card.AssignedToUserId ?? string.Empty;
         selectedUserName = card.AssignedToUser?.UserName ?? string.Empty;
         userSearchTerm = string.Empty;
+        cardChanges.Track(() => new { cardTitle, cardDescription, selectedUserId });
         modals.Open(ModalType.Card);
     }
 
     private void CloseCardModal()
     {
         modals.Close(ModalType.Card);
+        cardChanges.Clear();
         editingCard = null;
         currentListId = 0;
     }
@@ -1162,7 +1184,7 @@
         selectedUserName = string.Empty;
     }
 
-    private async Task SaveCard()
+    private Task SaveCard() => cardSaving.RunAsync(async () =>
     {
         if (!canManageLogistics || string.IsNullOrWhiteSpace(cardTitle))
             return;
@@ -1186,14 +1208,16 @@
                 await CardService.AssignCardToUserAsync(editingCard.Id, userId);
             }
 
-            await LoadData();
             CloseCardModal();
+            await LoadData();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error
+            // The dialog stays open with what was entered; the user can retry.
+            Logger.LogError(ex, "Saving logistics card failed");
+            Toasts.ShowError("Não foi possível guardar o cartão. Tente novamente.");
         }
-    }
+    });
 
     // Handle card click - extracted for better readability
     private async Task HandleCardClick(LogisticsCard card)
@@ -1309,21 +1333,30 @@
         cardLabels.Add(new LabelItem { Text = newLabelText, Color = newLabelColor });
         newLabelText = string.Empty;
         newLabelColor = "#6f42c1";
-        SaveLabels();
+        _ = SaveLabels();
     }
 
     private void RemoveLabel(LabelItem label)
     {
         cardLabels?.Remove(label);
-        SaveLabels();
+        _ = SaveLabels();
     }
 
-    private async void SaveLabels()
+    // Called without await from click handlers: it must never fault.
+    private async Task SaveLabels()
     {
         if (!canManageLogistics || selectedCard == null) return;
-        var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
-        await CardService.SetCardLabelsAsync(selectedCard.Id, json);
-        await LoadData();
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
+            await CardService.SetCardLabelsAsync(selectedCard.Id, json);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving logistics card labels failed");
+            Toasts.ShowError("Não foi possível guardar as etiquetas. Tente novamente.");
+        }
     }
 
     // Checklist methods
@@ -1341,26 +1374,35 @@
         checklistItems ??= new List<ChecklistItem>();
         checklistItems.Add(new ChecklistItem { Task = newChecklistItem, Done = false });
         newChecklistItem = string.Empty;
-        SaveChecklist();
+        _ = SaveChecklist();
     }
 
     private void ToggleChecklistItem(ChecklistItem item)
     {
         item.Done = !item.Done;
-        SaveChecklist();
+        _ = SaveChecklist();
     }
 
     private void RemoveChecklistItem(ChecklistItem item)
     {
         checklistItems?.Remove(item);
-        SaveChecklist();
+        _ = SaveChecklist();
     }
 
-    private async void SaveChecklist()
+    // Called without await from click handlers: it must never fault.
+    private async Task SaveChecklist()
     {
         if (!canManageLogistics || selectedCard == null) return;
-        var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
-        await CardService.SetCardChecklistAsync(selectedCard.Id, json);
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
+            await CardService.SetCardChecklistAsync(selectedCard.Id, json);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving logistics card checklist failed");
+            Toasts.ShowError("Não foi possível guardar a checklist. Tente novamente.");
+        }
     }
 
     // Attachment methods
@@ -1374,20 +1416,29 @@
         cardAttachments ??= new List<AttachmentItem>();
         cardAttachments.Add(new AttachmentItem { Name = linkedCard.Title, CardId = newAttachmentCardId });
         newAttachmentCardId = null;
-        SaveAttachments();
+        _ = SaveAttachments();
     }
 
     private void RemoveAttachment(AttachmentItem attachment)
     {
         cardAttachments?.Remove(attachment);
-        SaveAttachments();
+        _ = SaveAttachments();
     }
 
-    private async void SaveAttachments()
+    // Called without await from click handlers: it must never fault.
+    private async Task SaveAttachments()
     {
         if (!canManageLogistics || selectedCard == null) return;
-        var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
-        await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
+            await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving logistics card attachments failed");
+            Toasts.ShowError("Não foi possível guardar os anexos. Tente novamente.");
+        }
     }
 
     // File handling methods
@@ -1816,11 +1867,13 @@
         reminderUserSearchTerm = string.Empty;
         selectedReminderUserIds = new List<string>();
         reminderErrorMessage = null;
+        reminderChanges.Track(() => new { selectedReminderCardId, selectedReminderFrequency, nextReminderDate, Users = selectedReminderUserIds.ToList() });
     }
 
     private void CloseCreateReminderModal()
     {
         modals.Close(ModalType.CreateReminder);
+        reminderChanges.Clear();
         reminderErrorMessage = null;
     }
 
@@ -1840,7 +1893,7 @@
         StateHasChanged();
     }
 
-    private async Task SaveReminder()
+    private Task SaveReminder() => reminderSaving.RunAsync(async () =>
     {
         reminderErrorMessage = null;
         
@@ -1865,9 +1918,10 @@
         }
         catch (Exception ex)
         {
-            reminderErrorMessage = $"Erro ao criar lembrete: {ex.Message}";
+            Logger.LogError(ex, "Creating card reminder failed");
+            reminderErrorMessage = "Não foi possível criar o lembrete. Tente novamente.";
         }
-    }
+    });
 
     public async ValueTask DisposeAsync()
     {

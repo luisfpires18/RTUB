@@ -16,6 +16,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Request> Logger
+@inject ToastService Toasts
 
 <AppTitle>Pedidos</AppTitle>
 
@@ -26,19 +27,19 @@
 
 @if (showSuccessMessage)
 {
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle"></i> O seu pedido foi submetido com sucesso! Entraremos em contacto em breve.
-        <button type="button" class="btn-close" @onclick="() => showSuccessMessage = false"></button>
-    </div>
+    <Alert Type="Alert.AlertType.Success"
+           Message="O seu pedido foi submetido com sucesso! Entraremos em contacto em breve."
+           Dismissible="true"
+           OnDismiss="() => showSuccessMessage = false" />
 }
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle"></i> @errorMessage
-        <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
-    </div>
-}
+<Alert Type="Alert.AlertType.Error"
+       Message="@errorMessage"
+       Dismissible="true"
+       OnDismiss="() => errorMessage = string.Empty" />
+
+@* A half-filled request is not lost to a stray link, Back or reload (UI refactor 037). *@
+<UnsavedChangesGuard IsDirty="() => requestChanges.IsDirty" />
 
 <div class="row">
     <div class="col-12">
@@ -214,11 +215,13 @@
 </div>
 
 <!-- Edit Label Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Edit)" 
-       ShowChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
+<Modal @ref="labelModal"
+       Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((value) => { if (!value) CloseEditModal(); })"
+       IsDirty="() => labelChanges.IsDirty"
+       CanClose="() => Task.FromResult(!labelSaving.IsBusy)"
        Title="Editar Conteúdo"
-       Size="Modal.ModalSize.Large"
-       OnClose="CloseEditModal">
+       Size="Modal.ModalSize.Large">
     <BodyContent>
         @if (editingLabel != null)
         {
@@ -239,8 +242,14 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-        <button type="submit" form="editRequestLabelForm" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => labelModal!.RequestCloseAsync()" disabled="@labelSaving.IsBusy">Cancelar</button>
+        <button type="submit" form="editRequestLabelForm" class="btn btn-success" disabled="@labelSaving.IsBusy" aria-busy="@(labelSaving.IsBusy ? "true" : null)">
+            @if (labelSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
     </FooterContent>
 </Modal>
 </AppErrorBoundary>
@@ -248,6 +257,9 @@
 @code {
     private RequestEntity request = new();
     private bool isSubmitting = false;
+    private Modal? labelModal;
+    private readonly UnsavedChanges requestChanges = new(), labelChanges = new();
+    private readonly BusyState labelSaving = new();
     private bool showSuccessMessage = false;
     private string errorMessage = string.Empty;
     private string dateValidationError = string.Empty;
@@ -261,6 +273,7 @@
     {
         // Set default date to tomorrow
         request.PreferredDate = DateTime.Today.AddDays(1);
+        requestChanges.Track(() => request);
         
         // Load the label
         await LoadLabel();
@@ -283,6 +296,7 @@
                 Content = whatToExpectLabel.Content,
                 IsActive = whatToExpectLabel.IsActive
             };
+            labelChanges.Track(() => new { editingLabel?.Title, editingLabel?.Content });
             modals.Open(ModalType.Edit);
         }
     }
@@ -290,10 +304,11 @@
     private void CloseEditModal()
     {
         modals.Close(ModalType.Edit);
+        labelChanges.Clear();
         editingLabel = null;
     }
 
-    private async Task SaveLabel()
+    private Task SaveLabel() => labelSaving.RunAsync(async () =>
     {
         if (editingLabel == null) return;
 
@@ -309,16 +324,15 @@
             // Reload the label to get updated content
             await LoadLabel();
             
-            modals.Close(ModalType.Edit);
-            editingLabel = null;
-            StateHasChanged();
+            CloseEditModal();
+            Toasts.ShowSuccess("Conteúdo atualizado.");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating label");
-            errorMessage = "Ocorreu um erro ao atualizar o conteúdo. Por favor tente novamente.";
+            Toasts.ShowError("Ocorreu um erro ao atualizar o conteúdo. Por favor tente novamente.");
         }
-    }
+    });
 
     private async Task HandleSubmit()
     {
@@ -393,6 +407,7 @@
 
             showSuccessMessage = true;
             request = new RequestEntity { PreferredDate = DateTime.Today.AddDays(1) };
+            requestChanges.MarkClean();
             StateHasChanged();
 
             // Scroll to top to show success message
@@ -423,6 +438,7 @@
     private void ResetForm()
     {
         request = new RequestEntity { PreferredDate = DateTime.Today.AddDays(1) };
+        requestChanges.MarkClean();
         errorMessage = string.Empty;
         showSuccessMessage = false;
         dateValidationError = string.Empty;
