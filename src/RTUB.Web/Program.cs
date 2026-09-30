@@ -452,16 +452,6 @@ public class Program
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-                        // UseResponseCaching (above) keys its server-side cache on the path alone
-                        // unless told which query keys to vary by. Without this, a stored 30-day
-                        // "/x.css?v=<hash>" response would also answer "/x.css", which the rules
-                        // below serve as no-cache.
-                        var responseCaching = ctx.Context.Features.Get<Microsoft.AspNetCore.ResponseCaching.IResponseCachingFeature>();
-                        if (responseCaching != null)
-                        {
-                            responseCaching.VaryByQueryKeys = new[] { "v" };
-                        }
-
                         // Digital Asset Links for Android TWA - minimal caching for verification
                         // FileExtensionContentTypeProvider handles Content-Type automatically
                         if (path.Equals("/.well-known/assetlinks.json"))
@@ -479,16 +469,6 @@ public class Program
                         {
                             // Cache for 1 hour with must-revalidate to ensure updates are picked up
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
-                        }
-                        // An unversioned stylesheet or script (no ?v= content hash, e.g.
-                        // blazor.web.js) keeps the same URL when a deploy changes it, so it must
-                        // be revalidated (ETag/Last-Modified, 304 when unchanged) instead of
-                        // being trusted for 30 days. Versioned URLs change with their content.
-                        else if (!app.Environment.IsDevelopment()
-                                 && !ctx.Context.Request.Query.ContainsKey("v")
-                                 && (path.EndsWith(".css") || path.EndsWith(".js")))
-                        {
-                            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
                         }
                         // Cache other static files for 30 days in production
                         else if (!app.Environment.IsDevelopment())

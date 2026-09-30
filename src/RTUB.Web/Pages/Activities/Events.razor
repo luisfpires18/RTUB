@@ -42,45 +42,58 @@
 @inject RTUB.Web.Interop.PwaHelperInterop PwaHelper
 @inject IJSRuntime JSRuntime
 @inject ILogger<Events> Logger
-@inject ToastService Toasts
 
-<AppTitle>Atuações</AppTitle>
-
-<AppErrorBoundary>
 <div class="events-page container-fluid">
-    <PageHeader Title="Atuações" Icon="bi-calendar-event" Subtitle="Próximas atuações e atividades.">
-        <Actions>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-calendar-event"></i> Atuações</h1>
+            <p class="lead page-header-subtitle text-light-theme">Próximas atuações e atividades.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex gap-2">
             <AuthorizeView Roles="Admin">
                 <Authorized>
-                    <PageAction Label="Adicionar Atuação" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+                    <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
+                        <i class="bi bi-plus-lg"></i> Adicionar Atuação
+                    </button>
                 </Authorized>
             </AuthorizeView>
-            <PageAction Label="Prémios" Icon="bi-trophy-fill" OnClick="OpenTrophiesStatsModal" />
+            <button class="btn btn-purple btn-purple-light" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
+                <i class="bi bi-trophy-fill"></i> Prémios
+            </button>
             <AuthorizeView>
                 <Authorized>
-                    <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="@(() => _enrollmentStatsRef?.Open())" />
-                    <PageAction Label="Minhas Inscrições" ShortLabel="Inscrições" Icon="bi-calendar-check" OnClick="OpenMyEnrollmentsViaRef" />
+                    <button class="btn btn-outline-primary" @onclick="() => _enrollmentStatsRef?.Open()" title="Ver Estatísticas">
+                        <i class="bi bi-bar-chart"></i> Estatísticas
+                    </button>
+                    <button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsViaRef" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
+                        <i class="bi bi-calendar-check"></i> Minhas Inscrições
+                    </button>
                 </Authorized>
             </AuthorizeView>
-        </Actions>
-    </PageHeader>
+        </div>
+    </div>
 
     @* Component instances outside hidden container so their modals work on all viewports *@
     <EnrollmentStatisticsButton @ref="_enrollmentStatsRef" HideButton="true"/>
     <MyEnrollmentsButton @ref="_myEnrollmentsRef" HideButton="true"/>
 
     <!-- Filter Controls -->
-    <FilterToolbar>
-        <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-        <FilterDropdown Label="Tipo" SelectedValue="@selectedEventType"
-                        SelectedValueChanged="@(value => selectedEventType = value)"
-                        OnChange="@OnEventTypeChanged"
-                        AllItemsLabel="Todos os tipos"
-                        Options="@eventTypeOptions" />
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
+        <div class="flex-lg-shrink-0 filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Todos os anos"
+                            Options="@fiscalYearOptions" />
+        </div>
+        <div class="flex-lg-shrink-0 filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedEventType"
+                            SelectedValueChanged="@(value => selectedEventType = value)"
+                            OnChange="@OnEventTypeChanged"
+                            AllItemsLabel="Todos os tipos"
+                            Options="@eventTypeOptions" />
+        </div>
         <div class="form-check form-switch d-flex align-items-center videos-only-toggle">
             <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showVideosOnlySwitch"
                    @bind="showVideosOnly" @bind:after="OnVideosOnlyToggled">
@@ -88,12 +101,12 @@
                 Atuação com videos
             </label>
         </div>
-    </FilterToolbar>
+    </div>
 
 
 @if (allEvents == null)
 {
-    <LoadingSpinner Message="A carregar atuações..." />
+    <p>A carregar atuações...</p>
 }
 else if ((!filteredFutureEvents.Any() || showVideosOnly) && !filteredPreviousEvents.Any())
 {
@@ -105,14 +118,10 @@ else
 {
     @if (filteredFutureEvents.Any() && !showVideosOnly)
     {
-        <section class="item-section" aria-labelledby="upcoming-events-title">
-        <h2 class="item-section-title" id="upcoming-events-title">
-            Próximas atuações <span class="item-section-title__count">@filteredFutureEvents.Count</span>
-        </h2>
-        <div class="item-grid event-grid" @key="@($"future-events-{eventListRefreshTrigger}")">
+        <div class="row g-3" @key="@($"future-events-{eventListRefreshTrigger}")">
             @foreach (var eventItem in paginatedFutureEvents)
             {
-                <div @key="eventItem.Id">
+                <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
                     <AuthorizeView>
                         <Authorized>
                             @{
@@ -168,24 +177,22 @@ else
                             OnPageChanged="@HandleFutureEventsPageChange"
                             OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
         }
-        </section>
     }
 }
 
 <!-- Previous Events Section -->
-<section class="item-section" aria-labelledby="previous-events-title">
-<div class="item-section-head">
-    <h2 class="item-section-title" id="previous-events-title">
-        @(showVideosOnly ? "Atuações com vídeos" : "Atuações anteriores")
-        @if (filteredPreviousEvents != null)
-        {
-            <span class="item-section-title__count">@filteredPreviousEvents.Count</span>
-        }
-    </h2>
-    <SearchBar @bind-Value="previousEventsSearch"
-               Placeholder="Pesquisar atuações anteriores..."
-               OnSearch="@HandlePreviousEventsSearch" />
+@if (!showVideosOnly)
+{
+    <hr class="my-5" />
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>@(showVideosOnly ? "Atuações com Videos" : "Atuações Anteriores")</h2>
 </div>
+
+<SearchBar @bind-Value="previousEventsSearch"
+           Placeholder="Pesquisar atuações anteriores..."
+           OnSearch="@HandlePreviousEventsSearch" />
 
 @if (filteredPreviousEvents == null)
 {
@@ -199,10 +206,10 @@ else if (!filteredPreviousEvents.Any())
 }
 else
 {
-    <div class="item-grid event-grid" @key="@($"previous-events-{eventListRefreshTrigger}")">
+    <div class="row g-3" @key="@($"previous-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <div @key="eventItem.Id">
+            <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -281,14 +288,10 @@ else
                     OnPageChanged="@HandlePreviousEventsPageChange"
                     OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
 }
-</section>
 
 <!-- Edit/Create Modal -->
-<Modal @ref="editModal"
-       Show="@modals.IsOpen(ModalType.Edit)"
-       ShowChanged="@((bool show) => { if (!show) CloseEditModal(); })"
-       IsDirty="() => editChanges.IsDirty"
-       CanClose="() => Task.FromResult(!editSaving.IsBusy)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
        Title="@(isCreateMode ? "Criar Novo Evento" : "Editar Evento")" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -307,9 +310,12 @@ else
                 </Alert>
             }
 
-            <FormField Label="Nome da Atuação" Icon="bi-kanban" For="() => editingEvent!.Name" Context="field">
-                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingEvent!.Name" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-kanban text-primary me-2"></i>Nome da Atuação
+                </label>
+                <InputText class="form-control" @bind-Value="editingEvent!.Name" />
+            </div>
 
             <div class="mb-3">
                 <div class="form-check form-switch">
@@ -325,29 +331,29 @@ else
                 @if (!isDateRange)
                 {
                     <div class="col-md-6 mb-3">
-                        <label for="ev-data" class="form-label fw-semibold">
+                        <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 text-primary me-2"></i>Data
                         </label>
-                        <InputDate id="ev-data" class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
+                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
                         @if (!string.IsNullOrEmpty(dateValidationError))
                         {
                             <div class="text-danger small mt-1">@dateValidationError</div>
                         }
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="ev-hora" class="form-label fw-semibold">
+                        <label class="form-label fw-semibold">
                             <i class="bi bi-clock text-primary me-2"></i>Hora
                         </label>
-                        <input id="ev-hora" type="time" class="form-control" value="@eventTimeString" @onchange="@((ChangeEventArgs e) => { eventTimeString = e.Value?.ToString() ?? "19:00"; OnTimeChanged(); })" />
+                        <input type="time" class="form-control" value="@eventTimeString" @onchange="@((ChangeEventArgs e) => { eventTimeString = e.Value?.ToString() ?? "19:00"; OnTimeChanged(); })" />
                     </div>
                 }
                 else
                 {
                     <div class="col-md-6 mb-3">
-                        <label for="ev-data-inicio" class="form-label fw-semibold">
+                        <label class="form-label fw-semibold">
                             <i class="bi bi-calendar3 text-primary me-2"></i>Data Início
                         </label>
-                        <InputDate id="ev-data-inicio" class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
+                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
                         @if (!string.IsNullOrEmpty(dateValidationError))
                         {
                             <div class="text-danger small mt-1">@dateValidationError</div>
@@ -362,18 +368,24 @@ else
                 }
             </div>
 
-            <FormField Label="Localização" Icon="bi-geo-alt" For="() => editingEvent!.Location" Context="field">
-                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingEvent!.Location" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                </label>
+                <InputText class="form-control" @bind-Value="editingEvent!.Location" />
+            </div>
 
-            <FormField Label="Tipo de Atuação" Icon="bi-tag" For="() => editingEvent!.Type" Context="field">
-                <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="editingEvent!.Type">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-tag text-primary me-2"></i>Tipo de Atuação
+                </label>
+                <InputSelect class="form-select" @bind-Value="editingEvent!.Type">
                     @foreach (var type in Enum.GetValues<EventType>())
                     {
                         <option value="@type">@GetEventTypeDisplay(type)</option>
                     }
                 </InputSelect>
-            </FormField>
+            </div>
 
             <ImageUploadManager @ref="imageUploadManager"
                                Label="Imagem do Evento"
@@ -382,21 +394,18 @@ else
                                PreviewCssClass="slideshow-preview"
                                OnFileSelected="HandleImageUpload" />
 
-            <FormField Label="Descrição" Icon="bi-text-paragraph" For="() => editingEvent!.Description" Context="field">
-                <InputTextArea @attributes="field.Attributes" class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                </label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
+            </div>
 
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => editModal!.RequestCloseAsync()" disabled="@editSaving.IsBusy">Cancelar</button>
-        <button type="submit" form="editEventForm" class="btn btn-primary btn-primary-purple" disabled="@editSaving.IsBusy" aria-busy="@(editSaving.IsBusy ? "true" : null)">
-            @if (editSaving.IsBusy)
-            {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            }
-            Guardar
-        </button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="editEventForm" class="btn btn-primary btn-primary-purple">Guardar</button>
     </FooterContent>
 </Modal>
 
@@ -863,11 +872,8 @@ else
 </Modal>
 
 <!-- Trophy Edit Modal -->
-<Modal @ref="trophyModal"
-       Show="@modals.IsOpen(ModalType.TrophyEdit)"
-       ShowChanged="@((bool show) => { if (!show) CloseTrophyEditModal(); })"
-       IsDirty="() => trophyChanges.IsDirty"
-       CanClose="() => Task.FromResult(!trophySaving.IsBusy)"
+<Modal Show="@modals.IsOpen(ModalType.TrophyEdit)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.TrophyEdit, show))"
        Title="@(isTrophyCreateMode ? "Adicionar Prémio" : "Editar Prémio")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -878,22 +884,17 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <FormField Label="Nome do Prémio" For="() => editingTrophy.Name" Context="field">
-                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
-                </FormField>
+                <div class="mb-3">
+                    <label class="form-label">Nome do Prémio</label>
+                    <InputText class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
+                </div>
 
             </EditForm>
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => trophyModal!.RequestCloseAsync()" disabled="@trophySaving.IsBusy">Cancelar</button>
-        <button type="submit" form="editTrophyForm" class="btn btn-primary btn-primary-purple" disabled="@trophySaving.IsBusy" aria-busy="@(trophySaving.IsBusy ? "true" : null)">
-            @if (trophySaving.IsBusy)
-            {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            }
-            Guardar
-        </button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyEditModal">Cancelar</button>
+        <button type="submit" form="editTrophyForm" class="btn btn-primary btn-primary-purple">Guardar</button>
     </FooterContent>
 </Modal>
 
@@ -1056,9 +1057,11 @@ else
                         
                         @if (selectedVideoFile != null)
                         {
-                            <FormField Label="Título do vídeo" For="() => videoTitle" Required="true" Help="Este nome aparecerá na lista de vídeos" Context="field">
-                                <InputText @attributes="field.Attributes" @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
-                            </FormField>
+                            <div class="mb-3">
+                                <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
+                                <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
+                                <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
+                            </div>
                             
                             <div class="d-flex justify-content-end">
                                 <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
@@ -1175,11 +1178,8 @@ else
 </Modal>
 
 <!-- Edit Video Title Modal -->
-<Modal @ref="videoModal"
-       Show="@modals.IsOpen(ModalType.EditVideo)"
-       ShowChanged="@((value) => { if (!value) CloseEditVideoModal(); })"
-       IsDirty="() => videoChanges.IsDirty"
-       CanClose="() => Task.FromResult(!videoSaving.IsBusy)"
+<Modal Show="@modals.IsOpen(ModalType.EditVideo)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.EditVideo, value))"
        Title="Renomear Vídeo" 
        Size="Modal.ModalSize.Default"
        Centered="true"
@@ -1187,21 +1187,19 @@ else
     <BodyContent>
         @if (editingVideo != null)
         {
-            <FormField Label="Título do Vídeo" Icon="bi-camera-video" Help="Máximo 200 caracteres" Context="field">
-                <input @attributes="field.Attributes" type="text" class="form-control" @bind="editingVideoTitle" placeholder="Digite o título do vídeo" maxlength="200" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-camera-video text-primary me-2"></i>Título do Vídeo
+                </label>
+                <input type="text" class="form-control" @bind="editingVideoTitle" placeholder="Digite o título do vídeo" maxlength="200" />
+                <small class="text-muted">Máximo 200 caracteres</small>
+            </div>
             
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => videoModal!.RequestCloseAsync()" disabled="@videoSaving.IsBusy">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveVideoTitle" disabled="@videoSaving.IsBusy" aria-busy="@(videoSaving.IsBusy ? "true" : null)">
-            @if (videoSaving.IsBusy)
-            {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            }
-            Guardar
-        </button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditVideoModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveVideoTitle">Guardar</button>
     </FooterContent>
 </Modal>
 
@@ -1272,8 +1270,8 @@ else
                 {
                     <!-- Notification Type Selection -->
                     <div class="mb-3">
-                        <label for="ev-tipo-de-notificacao" class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                        <select id="ev-tipo-de-notificacao" class="form-select" @bind="selectedNotificationType">
+                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedNotificationType">
                             <option value="@NotificationTypeNew">Nova Atuação</option>
                             <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
                         </select>
@@ -1321,11 +1319,8 @@ else
 </Modal>
 
 <!-- Push Notification Confirmation Modal -->
-<Modal @ref="pushModal"
-       Show="@modals.IsOpen(ModalType.PushNotification)"
-       ShowChanged="@((bool show) => { if (!show) ClosePushNotificationModal(); })"
-       IsDirty="() => !string.IsNullOrWhiteSpace(customNotificationBody)"
-       CanClose="() => Task.FromResult(!IsSendingPushNotifications)"
+<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
        Title="Enviar notificação push desta atuação"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1356,7 +1351,11 @@ else
 
                 @if (pushLoadingSubscribers)
                 {
-                    <LoadingSpinner Message="A carregar subscritores..." />
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
                 }
                 else if (!string.IsNullOrEmpty(pushErrorMessage))
                 {
@@ -1368,13 +1367,17 @@ else
                 else
                 {
                     <!-- Custom Notification Message -->
-                    <FormField Label="Mensagem da Notificação" Required="true" Help="A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres." Context="field">
-                        <textarea @attributes="field.Attributes" class="form-control"
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
                                   rows="4" 
                                   @bind="customNotificationBody" 
                                   placeholder="Ex: Atuação importante, confirma a tua presença!"
                                   maxlength="500"></textarea>
-                    </FormField>
+                        <small class="text-muted">
+                            A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres.
+                        </small>
+                    </div>
 
                     <!-- Filter Option -->
                     <div class="mb-3">
@@ -1412,7 +1415,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => pushModal!.RequestCloseAsync()" disabled="@IsSendingPushNotifications">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendPushNotification" disabled="@(IsSendingPushNotifications || pushSubscribedUsers == null || !pushSubscribedUsers.Any())">
             Enviar Notificação Push
         </button>
@@ -1420,11 +1423,8 @@ else
 </Modal>
 
 <!-- Cancel Event Confirmation Modal -->
-<Modal @ref="cancelModal"
-       Show="@modals.IsOpen(ModalType.CancelEvent)"
-       ShowChanged="@((bool show) => { if (!show) CloseCancelEventModal(); })"
-       IsDirty="() => !string.IsNullOrWhiteSpace(cancelEventReason)"
-       CanClose="() => Task.FromResult(!IsSendingEmails && !cancelSaving.IsBusy)"
+<Modal Show="@modals.IsOpen(ModalType.CancelEvent)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelEvent, show))"
        Title="Cancelar Evento"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1468,7 +1468,11 @@ else
 
             @if (cancelEventLoadingSubscribers)
             {
-                <LoadingSpinner Message="A carregar subscritores..." />
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
             }
             
             <div class="mb-3 form-check">
@@ -1491,30 +1495,27 @@ else
                     InfoBadgeText="@($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")" />
             }
 
-            <FormField Label="Motivo do Cancelamento" Required="true" Help="Máximo 1000 caracteres" Context="field">
-                <textarea @attributes="field.Attributes" class="form-control" rows="4"
+            <div class="mb-3">
+                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" 
                           @bind="cancelEventReason" 
                           placeholder="Descreva o motivo do cancelamento do evento..."
                           maxlength="1000"></textarea>
-            </FormField>
+                <small class="text-muted">Máximo 1000 caracteres</small>
+            </div>
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => cancelModal!.RequestCloseAsync()" disabled="@(IsSendingEmails || cancelSaving.IsBusy)">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent" disabled="@(IsSendingEmails || cancelSaving.IsBusy)" aria-busy="@(cancelSaving.IsBusy ? "true" : null)">
-            @if (cancelSaving.IsBusy)
-            {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            }
-            Cancelar Evento
-        </button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal" disabled="@IsSendingEmails">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent" disabled="@IsSendingEmails">Cancelar Evento</button>
     </FooterContent>
 </Modal>
 
 
 </div>
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Event>? allEvents; // All events (unfiltered)
@@ -1552,13 +1553,11 @@ else
 
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
-    private Modal? editModal, trophyModal, videoModal, pushModal, cancelModal;
-    private readonly UnsavedChanges editChanges = new(), trophyChanges = new(), videoChanges = new();
-    private readonly BusyState editSaving = new(), trophySaving = new(), videoSaving = new(), cancelSaving = new();
     private bool isEditingEnrollment = false;
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private bool isTrophyCreateMode = false;
     private bool isLoadingTrophiesStats = false;
     private bool isInitializing = true;
@@ -1749,6 +1748,7 @@ else
         await LoadEventVideoCounts();
         await LoadEventTrophyCounts();
         await LoadCurrentUser();
+        BuildMobileNavItems();
         
         isInitializing = false;
         
@@ -1791,7 +1791,32 @@ else
         }
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (isUserAdmin)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-trophies", "Prémios", "bi-trophy-fill"));
+        if (currentUser != null)
+        {
+            items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
+            items.Add(new("action-enrollments", "Inscrições", "bi-calendar-check"));
+        }
+        mobileNavItems = items;
+    }
 
+    private async Task HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add": OpenCreateModal(); break;
+            case "action-trophies": await OpenTrophiesStatsModal(); break;
+            case "action-stats": _enrollmentStatsRef?.Open(); break;
+            case "action-enrollments":
+                if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
+                break;
+        }
+    }
 
     private EnrollmentStatisticsButton? _enrollmentStatsRef;
     private MyEnrollmentsButton? _myEnrollmentsRef;
@@ -2152,7 +2177,6 @@ else
             Location = string.Empty,
             Type = EventType.Atuacao
         };
-        TrackEventForm();
         modals.Open(ModalType.Edit);
     }
 
@@ -2181,28 +2205,12 @@ else
             Type = eventItem.Type,
             CreatedAt = eventItem.CreatedAt
         };
-        TrackEventForm();
         modals.Open(ModalType.Edit);
     }
-
-    // What the event form can change: the fields, the time and range inputs, a new image.
-    private void TrackEventForm() => editChanges.Track(() => new
-    {
-        editingEvent?.Name,
-        editingEvent?.Date,
-        editingEvent?.EndDate,
-        editingEvent?.Location,
-        editingEvent?.Description,
-        editingEvent?.Type,
-        eventTimeString,
-        isDateRange,
-        NewImage = croppedImageBytes?.Length
-    });
 
     private void CloseEditModal()
     {
         modals.Close(ModalType.Edit);
-        editChanges.Clear();
         editingEvent = null;
         uploadedImagePath = null;
         showPastDateWarning = false;
@@ -2259,42 +2267,12 @@ else
         StateHasChanged();
     }
 
-    private Task SaveEvent() => editSaving.RunAsync(async () =>
+    private async Task SaveEvent()
     {
         if (editingEvent == null) return;
 
         // Clear any validation errors
         dateValidationError = string.Empty;
-
-        try
-        {
-            await PersistEventAsync();
-        }
-        catch (Exception ex)
-        {
-            // The dialog stays open with everything that was typed; the user can retry.
-            Logger.LogError(ex, "Saving event {EventId} failed", editingEvent.Id);
-            Toasts.ShowError(isCreateMode
-                ? "Não foi possível criar a atuação. Tente novamente."
-                : "Não foi possível guardar a atuação. Tente novamente.");
-            return;
-        }
-
-        var created = isCreateMode;
-        CloseEditModal();
-        Toasts.ShowSuccess(created ? "Atuação criada." : "Atuação atualizada.");
-
-        // Reload all event-related data to ensure UI is fully updated
-        await LoadAllEvents();
-        await LoadEnrollments();
-        await LoadEventRepertoires();
-        await LoadDiscussionPosts();
-        eventListRefreshTrigger++; // Increment to force component re-render
-    });
-
-    private async Task PersistEventAsync()
-    {
-        if (editingEvent == null) return;
 
         if (isCreateMode)
         {
@@ -2363,6 +2341,15 @@ else
             }
         }
 
+        // Reload all event-related data to ensure UI is fully updated
+        await LoadAllEvents();
+        await LoadEnrollments();
+        await LoadEventRepertoires();
+        await LoadDiscussionPosts();
+        
+        eventListRefreshTrigger++; // Increment to force component re-render
+        StateHasChanged(); // Force UI refresh before closing modal
+        CloseEditModal();
     }
 
     private void OpenDeleteModal(Event eventItem)
@@ -2957,7 +2944,6 @@ else
         
         editingTrophy = new Trophy(selectedEventForTrophies.Id);
         isTrophyCreateMode = true;
-        trophyChanges.Track(() => new { editingTrophy?.Name });
         modals.Open(ModalType.TrophyEdit);
     }
 
@@ -2965,19 +2951,17 @@ else
     {
         editingTrophy = trophy;
         isTrophyCreateMode = false;
-        trophyChanges.Track(() => new { editingTrophy?.Name });
         modals.Open(ModalType.TrophyEdit);
     }
 
     private void CloseTrophyEditModal()
     {
         modals.Close(ModalType.TrophyEdit);
-        trophyChanges.Clear();
         editingTrophy = null;
         isTrophyCreateMode = false;
     }
 
-    private Task SaveTrophy() => trophySaving.RunAsync(async () =>
+    private async Task SaveTrophy()
     {
         if (editingTrophy == null) return;
 
@@ -2999,14 +2983,12 @@ else
             }
 
             CloseTrophyEditModal();
-            Toasts.ShowSuccess("Prémio guardado.");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Saving trophy failed");
-            Toasts.ShowError("Não foi possível guardar o prémio. Tente novamente.");
+            Console.WriteLine($"Error saving trophy: {ex.Message}");
         }
-    });
+    }
 
     private void OpenDeleteTrophyModal(Trophy trophy)
     {
@@ -3038,8 +3020,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Deleting trophy failed");
-            Toasts.ShowError("Não foi possível eliminar o prémio. Tente novamente.");
+            Console.WriteLine($"Error deleting trophy: {ex.Message}");
         }
     }
     
@@ -3082,8 +3063,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Deleting enrollment failed");
-            Toasts.ShowError("Não foi possível remover a inscrição. Tente novamente.");
+            Console.WriteLine($"Error deleting enrollment: {ex.Message}");
         }
     }
     
@@ -3130,8 +3110,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Loading notification recipients failed");
-            emailErrorMessage = "Não foi possível carregar os membros. Feche e tente novamente.";
+            emailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
         }
         finally
         {
@@ -3249,8 +3228,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Sending the event email notification failed");
-            emailErrorMessage = "Não foi possível enviar a notificação. Alguns emails podem já ter sido enviados; verifique antes de tentar novamente.";
+            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
         }
         finally
         {
@@ -3293,8 +3271,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Loading notification recipients failed");
-            pushErrorMessage = "Não foi possível carregar os membros. Feche e tente novamente.";
+            pushErrorMessage = $"Erro ao carregar membros: {ex.Message}";
         }
         finally
         {
@@ -3405,8 +3382,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Sending the event push notification failed");
-            pushErrorMessage = "Não foi possível enviar a notificação. Tente novamente.";
+            pushErrorMessage = $"Erro ao enviar notificação push: {ex.Message}";
         }
         finally
         {
@@ -3524,8 +3500,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Loading notification recipients failed");
-            cancelEventErrorMessage = "Não foi possível carregar os membros. Feche e tente novamente.";
+            cancelEventErrorMessage = $"Erro ao carregar membros: {ex.Message}";
         }
         finally
         {
@@ -3547,11 +3522,12 @@ else
         cancelEventErrorMessage = null;
     }
 
-    private Task ConfirmCancelEvent() => cancelSaving.RunAsync(async () =>
+    private async Task ConfirmCancelEvent()
     {
         if (selectedEventForCancellation == null || string.IsNullOrWhiteSpace(cancelEventReason))
         {
             cancelEventErrorMessage = "O motivo do cancelamento é obrigatório.";
+            StateHasChanged();
             return;
         }
 
@@ -3617,20 +3593,21 @@ else
                 );
             }
 
-            CloseCancelEventModal();
-            Toasts.ShowSuccess("Atuação cancelada.");
+            // Reload events
             await LoadAllEvents();
+
+            CloseCancelEventModal();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Cancelling event {EventId} failed", selectedEventForCancellation?.Id);
-            cancelEventErrorMessage = "Não foi possível cancelar a atuação. Se escolheu notificar, alguns emails podem já ter sido enviados; verifique antes de tentar novamente.";
+            cancelEventErrorMessage = $"Erro ao cancelar evento: {ex.Message}";
         }
         finally
         {
             IsSendingEmails = false;
+            StateHasChanged();
         }
-    });
+    }
 
     private async Task UncancelEvent(Event eventItem)
     {
@@ -3643,8 +3620,7 @@ else
         catch (Exception ex)
         {
             // Could show an error message here
-            Logger.LogError(ex, "Restoring cancelled event {EventId} failed", eventItem.Id);
-            Toasts.ShowError("Não foi possível reativar a atuação. Tente novamente.");
+            Console.WriteLine($"Error uncanceling event: {ex.Message}");
         }
     }
     
@@ -3780,9 +3756,9 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Adding a member to an event failed");
-            addMemberToEnrollmentFeedbackMessage = "Não foi possível adicionar o membro. Tente novamente.";
+            addMemberToEnrollmentFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
             addMemberToEnrollmentFeedbackIsError = true;
+            Console.WriteLine($"Error adding member to event: {ex.Message}");
         }
     }
 
@@ -3866,8 +3842,7 @@ else
         catch (Exception ex)
         {
             // Log error but still open modal to show empty state
-            Logger.LogError(ex, "Loading event videos failed");
-            Toasts.ShowError("Não foi possível carregar os vídeos.");
+            Console.WriteLine($"Error loading event videos: {ex.Message}");
             eventVideos = new List<EventVideo>();
         }
         selectedVideoId = null;
@@ -4086,19 +4061,17 @@ else
     {
         editingVideo = video;
         editingVideoTitle = video.Title ?? string.Empty;
-        videoChanges.Track(() => editingVideoTitle);
         modals.Open(ModalType.EditVideo);
     }
     
     private void CloseEditVideoModal()
     {
         modals.Close(ModalType.EditVideo);
-        videoChanges.Clear();
         editingVideo = null;
         editingVideoTitle = string.Empty;
     }
     
-    private Task SaveVideoTitle() => videoSaving.RunAsync(async () =>
+    private async Task SaveVideoTitle()
     {
         if (editingVideo == null || currentUser == null)
             return;
@@ -4121,10 +4094,9 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Renaming event video failed");
-            Toasts.ShowError("Não foi possível renomear o vídeo. Tente novamente.");
+            Console.WriteLine($"Error updating video title: {ex.Message}");
         }
-    });
+    }
     
     // Video drag-and-drop handlers
     private void HandleVideoDragStart(int videoId)

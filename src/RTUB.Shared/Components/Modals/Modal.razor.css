@@ -1,64 +1,23 @@
-/* Scoped styles for Modal component (dialog surface: 3-components/modals.css) */
+/* Scoped styles for Modal component */
 
 .modal-header-primary {
     background: rgba(var(--bs-primary-rgb), 0.1);
 }
 
-/* Close control: an X at the right of a dialog, a back arrow at the left of a phone sheet. */
-.modal-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin: -0.5rem -0.5rem -0.5rem auto;
-    padding: 0;
-    border: 0;
-    border-radius: var(--rtub-radius, 0.5rem);
-    background: transparent;
+/* Replace default Bootstrap btn-close (X) with a left-arrow icon */
+.modal-close-arrow {
+    background: none;
+    border: none;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 1.125rem;
+    font-size: 1.25rem;
+    padding: 0.25rem 0.5rem;
     line-height: 1;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: color 0.15s ease;
+    order: 1; /* push to the right side of the flex header */
+    margin-left: auto;
 }
 
-.modal-close:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+.modal-close-arrow:hover {
     color: #fff;
-}
-
-.modal-close__icon-sheet {
-    display: none;
-}
-
-@media (max-width: 767.98px) {
-    .modal-dialog:not(.modal-sm) .modal-close {
-        order: -1;
-        width: 2.75rem;
-        height: 2.75rem;
-        margin: -0.5rem 0 -0.5rem -0.5rem;
-        font-size: 1.25rem;
-    }
-
-    .modal-dialog:not(.modal-sm) .modal-close__icon-dialog {
-        display: none;
-    }
-
-    .modal-dialog:not(.modal-sm) .modal-close__icon-sheet {
-        display: inline;
-    }
-
-    /* Keep the centered title centered against the back arrow on its left. */
-    .modal-dialog:not(.modal-sm) .modal-header:has(.modal-close) .modal-title {
-        margin-right: 2.25rem;
-    }
-}
-
-@media (pointer: coarse) {
-    .modal-close {
-        width: 2.75rem;
-        height: 2.75rem;
-    }
 }

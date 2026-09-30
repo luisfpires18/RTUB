@@ -1,59 +1,22 @@
-/* Footer (the layout's <footer class="footer-main">). UI refactor 034 moved its rules here
-   from 3-components/misc-components.css. */
+/* Footer */
+
+/* Footer */
 .footer {
-  background-color: var(--rtub-bg);
-  color: var(--rtub-text-muted);
+  background-color: #121212;
+  color: #aaa;
   padding: 1rem;
-  padding-left: calc(1rem + env(safe-area-inset-left, 0px));
-  padding-right: calc(1rem + env(safe-area-inset-right, 0px));
   text-align: center;
-  border-top: 1px solid var(--rtub-border);
-}
-
-.footer-text {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  column-gap: 0.75rem;
-  row-gap: 0.25rem;
-  margin: 0;
-  color: var(--rtub-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-/* On phones the two parts sit on separate lines; a trailing "|" would dangle. */
-@media (max-width: 575.98px) {
-  .footer-separator {
-    display: none;
-  }
-}
-
-/* Bottom padding of the layout footer (UI refactor 033). The footer is the last box
-   on every page, so its padding is what keeps page content and the footer text clear
-   of the fixed MobileBottomNav or page action bar, shown below 1200px on pages that render one. The
-   footer's markup uses pt-3 (not py-3) so this is not overridden by a utility. */
-.footer-main {
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-}
-
-@media (max-width: 1199.98px) {
-  body:has(.mobile-bottom-nav) .footer-main,
-  body:has(.page-action-bar__item) .footer-main {
-    padding-bottom: calc(1rem + var(--rtub-bottom-nav-clearance) + env(safe-area-inset-bottom, 0px));
-  }
+  border-top: 1px solid var(--bs-border-color);
 }
 
 .footer-link {
-  color: var(--rtub-text-muted);
-  text-decoration: underline;
-  text-decoration-color: rgba(170, 170, 170, 0.4);
-  text-underline-offset: 0.2em;
+  color: #aaa;
+  text-decoration: none;
   transition: color 0.2s ease;
 }
 
-.footer-link:hover,
-.footer-link:focus {
+.footer-link:hover {
   color: #fff;
   text-decoration: underline;
 }
+

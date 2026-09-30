@@ -12,34 +12,40 @@
 @using RTUB.Shared.Base
 @attribute [Authorize]
 @inject ILogisticsBoardService BoardService
-@inject ILogger<Logistics> Logger
-@inject ToastService Toasts
 @inject IEventService EventService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 @inject UserManager<ApplicationUser> UserManager
 
-<AppTitle>Logística</AppTitle>
+<PageTitle>Logística</PageTitle>
 
-<AppErrorBoundary>
 <div class="logistics-page-wrapper">
     <div class="logistics-page-container">
-        <PageHeader Title="Logística" Icon="bi-kanban" Subtitle="Gestão de boards de tarefas e atuações.">
-            <Actions>
+        <div class="page-header-centered">
+            <div class="page-header-left"></div>
+            <div class="page-header-center">
+                <h1><i class="bi bi-kanban"></i> Logística</h1>
+                <p class="lead page-header-subtitle text-light-theme">Gestão de boards de tarefas e atuações.</p>
+            </div>
+            <div class="page-header-right d-none d-xl-flex">
                 @if (canManageLogistics)
                 {
-                    <PageAction Label="Criar Quadro" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateBoardModal" />
+                    <button class="btn btn-success" @onclick="OpenCreateBoardModal">
+                        <i class="bi bi-plus-lg"></i> Criar Quadro
+                    </button>
                 }
-            </Actions>
-        </PageHeader>
+            </div>
+        </div>
 
             <AuthorizeView>
                 <Authorized>
-                    <FilterToolbar>
-                        <SearchBar @bind-Value="searchTerm"
-                                   Placeholder="Pesquisar quadros..."
-                                   OnSearch="HandleSearch" />
-                    </FilterToolbar>
+                    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2 mb-4">
+                        <div class="flex-grow-1">
+                            <SearchBar @bind-Value="searchTerm"
+                                       Placeholder="Pesquisar quadros..."
+                                       OnSearch="HandleSearch" />
+                        </div>
+                    </div>
                 </Authorized>
             </AuthorizeView>
         
@@ -153,13 +159,11 @@
 </div>
 
 @* Create/Edit Board Modal *@
-<Modal @ref="boardModal"
-       Show="@modals.IsOpen(ModalType.Board)"
+<Modal Show="@modals.IsOpen(ModalType.Board)"
        ShowChanged="@((bool show) => { if (!show) CloseBoardModal(); })"
-       IsDirty="() => boardChanges.IsDirty"
-       CanClose="() => Task.FromResult(!boardSaving.IsBusy)"
        Title="@(editingBoard == null ? "Criar Quadro" : "Editar Quadro")"
-       Centered="true">
+       Centered="true"
+       OnClose="CloseBoardModal">
     <BodyContent>
         <FormTextField Label="Nome do Quadro"
                       Icon="kanban"
@@ -174,10 +178,10 @@
                      Placeholder="Descrição do quadro (opcional)" />
         
         <div class="mb-3">
-            <label for="lg-evento-associado" class="form-label fw-semibold">
+            <label class="form-label fw-semibold">
                 <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
             </label>
-            <input id="lg-evento-associado" type="text" class="form-control" placeholder="Pesquisar evento..."
+            <input type="text" class="form-control" placeholder="Pesquisar evento..." 
                    @bind="eventSearchTerm" @bind:event="oninput" />
             @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
             {
@@ -208,10 +212,10 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => boardModal!.RequestCloseAsync()" disabled="@boardSaving.IsBusy">
+        <button type="button" class="btn btn-secondary" @onclick="CloseBoardModal">
             <i class="bi bi-arrow-left me-2"></i>Cancelar
         </button>
-        <button type="button" class="btn btn-primary" @onclick="SaveBoard" disabled="@(boardSaving.IsBusy || string.IsNullOrWhiteSpace(boardName))" aria-busy="@(boardSaving.IsBusy ? "true" : null)">
+        <button type="button" class="btn btn-primary" @onclick="SaveBoard" disabled="@string.IsNullOrWhiteSpace(boardName)">
             <i class="bi bi-check-circle me-2"></i>Guardar
         </button>
     </FooterContent>
@@ -235,8 +239,9 @@
         </div>
     </BodyContent>
 </ConfirmDialog>
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<BoardEntity>? boards;
@@ -252,13 +257,11 @@
     // LogisticsAuthorization.CanManage. Hiding a button is not a permission check, so every
     // mutating handler below re-checks this before calling a service.
     private bool canManageLogistics = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     // Board modal state
     private enum ModalType { Board, DeleteBoard }
     private readonly MultiModalState<ModalType> modals = new();
-    private Modal? boardModal;
-    private readonly UnsavedChanges boardChanges = new();
-    private readonly BusyState boardSaving = new();
     private BoardEntity? editingBoard = null;
     private string boardName = string.Empty;
     private string boardDescription = string.Empty;
@@ -276,9 +279,21 @@
     {
         await CheckUserRole();
         await LoadData();
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canManageLogistics)
+            items.Add(new("action-create", "Criar Quadro", "bi-plus-lg"));
+        mobileNavItems = items;
+    }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-create") OpenCreateBoardModal();
+    }
 
     private async Task CheckUserRole()
     {
@@ -344,7 +359,6 @@
         selectedEventId = string.Empty;
         selectedEventName = string.Empty;
         eventSearchTerm = string.Empty;
-        boardChanges.Track(() => new { boardName, boardDescription, selectedEventId });
         modals.Open(ModalType.Board);
     }
 
@@ -357,14 +371,12 @@
         selectedEventId = board.EventId?.ToString() ?? string.Empty;
         selectedEventName = board.Event?.Name ?? string.Empty;
         eventSearchTerm = string.Empty;
-        boardChanges.Track(() => new { boardName, boardDescription, selectedEventId });
         modals.Open(ModalType.Board);
     }
 
     private void CloseBoardModal()
     {
         modals.Close(ModalType.Board);
-        boardChanges.Clear();
         editingBoard = null;
     }
 
@@ -381,7 +393,7 @@
         selectedEventName = string.Empty;
     }
 
-    private Task SaveBoard() => boardSaving.RunAsync(async () =>
+    private async Task SaveBoard()
     {
         if (!canManageLogistics || string.IsNullOrWhiteSpace(boardName))
             return;
@@ -402,17 +414,14 @@
                 await BoardService.AssociateBoardWithEventAsync(editingBoard.Id, eventId);
             }
 
-            CloseBoardModal();
-            Toasts.ShowSuccess("Quadro guardado.");
             await LoadData();
+            CloseBoardModal();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // The dialog stays open with what was entered; the user can retry.
-            Logger.LogError(ex, "Saving logistics board failed");
-            Toasts.ShowError("Não foi possível guardar o quadro. Tente novamente.");
+            // Handle error
         }
-    });
+    }
 
     private void OpenDeleteBoardModal(BoardEntity board)
     {

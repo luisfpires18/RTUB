@@ -11,15 +11,17 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailNotificationService EmailNotificationService
-@inject ILogger<Emails> Logger
 
-<AppTitle>Enviar Email de Anúncio</AppTitle>
+<PageTitle>Enviar Email de Anúncio</PageTitle>
 
-<AppErrorBoundary>
-@* A written announcement is not lost to a stray link, Back or reload (UI refactor 037). "Limpar"
-   is the deliberate discard. *@
-<UnsavedChangesGuard IsDirty="() => !string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(content)" />
-<PageHeader Title="Enviar Email de Anúncio" Icon="bi-envelope" Subtitle="Enviar anúncios por email para todos os utilizadores subscritos" />
+<div class="page-header-centered">
+    <div class="page-header-left"></div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-envelope"></i> Enviar Email de Anúncio</h1>
+        <p class="lead page-header-subtitle text-light-theme">Enviar anúncios por email para todos os utilizadores subscritos</p>
+    </div>
+    <div class="page-header-right"></div>
+</div>
 
     @if (!string.IsNullOrEmpty(message))
     {
@@ -204,7 +206,6 @@
         <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
 @code {
     private string title = "";
@@ -262,8 +263,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Loading subscribed users failed");
-            message = "Não foi possível carregar os utilizadores subscritos. Recarregue a página.";
+            message = $"Erro ao carregar utilizadores subscritos: {ex.Message}";
             isError = true;
         }
         finally
@@ -360,8 +360,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Sending the announcement email failed");
-            message = "Não foi possível enviar os emails. Alguns podem já ter sido enviados; verifique antes de tentar novamente.";
+            message = $"Erro inesperado: {ex.Message}";
             isError = true;
         }
         finally

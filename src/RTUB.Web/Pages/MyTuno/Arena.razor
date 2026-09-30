@@ -30,11 +30,21 @@
 @inject ICombatActionService CombatActionService
 @implements IAsyncDisposable
 
-<AppTitle>Arena - My Tuno</AppTitle>
+<PageTitle>Arena - My Tuno - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="arena-page">
-    <PageHeader Title="Arena" Icon="bi-sword" Subtitle="Escolhe um oponente para lutar." OnBack="GoBack" />
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left">
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-sword"></i> Arena</h1>
+            <p class="page-header-subtitle">Escolhe um oponente para lutar.</p>
+        </div>
+        <div class="page-header-right"></div>
+    </div>
 
     @if (loading)
     {
@@ -303,7 +313,6 @@
         <Alert Type="Alert.AlertType.Error" Message="@errorMessage" Dismissible="true" OnDismiss="() => errorMessage = string.Empty" />
     }
 </div>
-</AppErrorBoundary>
 
 @code {
     private static string Fmt(long value) => NumberFormatter.Compact(value);

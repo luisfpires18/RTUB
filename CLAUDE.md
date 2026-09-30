@@ -52,7 +52,6 @@ Run only what the change can break.
 | General repo conventions | `.github/copilot-instructions.md` |
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
 | Blazor / Razor / CSS standards | `docs/frontend-practices.md` |
-| UI refactor audit, design direction, roadmap | `docs/design/RTUB_UI_REFACTOR.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |

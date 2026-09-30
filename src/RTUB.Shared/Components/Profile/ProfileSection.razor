@@ -37,14 +37,8 @@
             {
                 @EditContent
                 <div class="d-flex justify-content-end gap-2 mt-3">
-                    <button class="btn btn-secondary" @onclick="OnCancelClick" disabled="@IsSaving">Cancelar</button>
-                    <button class="btn btn-primary btn-primary-purple" @onclick="OnSaveClick" disabled="@IsSaving" aria-busy="@(IsSaving ? "true" : null)">
-                        @if (IsSaving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-                        }
-                        Guardar
-                    </button>
+                    <button class="btn btn-secondary" @onclick="OnCancelClick">Cancelar</button>
+                    <button class="btn btn-primary btn-primary-purple" @onclick="OnSaveClick">Guardar</button>
                 </div>
             }
             else
@@ -73,10 +67,6 @@
 
     [Parameter]
     public bool IsEditing { get; set; } = false;
-
-    /// <summary>While the section is being saved: Save shows a spinner, both buttons are disabled.</summary>
-    [Parameter]
-    public bool IsSaving { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

@@ -2,15 +2,11 @@
  * RTUB Main Stylesheet
  * Custom dark + purple theme for RTUB
  * 
- * This file lists all global CSS modules in the correct cascade order:
+ * This file imports all CSS modules in the correct cascade order:
  * 1. Base - Variables and foundations
  * 2. Layout - Structural components
  * 3. Components - Reusable UI patterns
  * 4. Pages - Page-specific styles
- *
- * It is the list, not a linked stylesheet: GlobalStylesheets (RTUB.Web/Components) renders
- * one versioned <link> per @import below, in this order, so every sheet is cache-busted on
- * its own. Keep this file to @import lines and comments only (guarded by a test).
  */
 
 /* ========================================
@@ -47,14 +43,12 @@
 
 /* Content Display */
 @import url('3-components/cards.css');
-@import url('3-components/item-cards.css');
 @import url('3-components/tables.css');
 @import url('3-components/list-groups.css');
 @import url('3-components/accordion.css');
 
 /* Feedback & Notifications */
 @import url('3-components/alerts.css');
-@import url('3-components/feedback-states.css');
 @import url('3-components/badges.css');
 @import url('3-components/modals.css');
 @import url('3-components/progress-collapse.css');
@@ -77,6 +71,7 @@
 @import url('3-components/admin-overlays.css');
 
 /* Card Variants */
+@import url('3-components/rehearsal-card.css');
 @import url('3-components/song-card.css');
 @import url('3-components/request-card.css');
 @import url('3-components/user-card.css');

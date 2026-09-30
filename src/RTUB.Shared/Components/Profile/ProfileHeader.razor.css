@@ -1,96 +1,37 @@
-/* ProfileHeader - same identity layout as the Membros card (AvatarCard), one size up.
-   Shared surface: wwwroot/css/3-components/item-cards.css. */
+/* Scoped styles for ProfileHeader component */
 
-.profile-identity {
-    flex-direction: row;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
-}
-
-.profile-identity__avatar {
-    flex-shrink: 0;
-    width: 7.5rem;
-    height: 7.5rem;
-}
-
-.profile-identity__photo {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 3px solid var(--rtub-primary);
-    object-fit: cover;
-    background: var(--rtub-surface-alt);
-}
-
-.profile-identity__body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.profile-header-card {
     min-width: 0;
 }
 
-.profile-identity__name {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--rtub-text);
-    overflow-wrap: anywhere;
+.profile-header-card .card-body {
+    min-width: 0;
 }
 
-.profile-identity__fullname {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--rtub-text-muted);
+.profile-header-card .row {
+    min-width: 0;
 }
 
-.profile-identity__tags {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.75rem;
-    margin: 0.5rem 0 0.25rem;
+.profile-header-card .col-12 {
+    min-width: 0;
 }
 
-.profile-identity__tags:empty {
-    display: none;
+.profile-header-card .text-center {
+    min-width: 0;
 }
 
-.profile-identity__position {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--rtub-accent);
+.profile-avatar-wrapper {
+    min-width: 0;
 }
 
-.profile-identity__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+.profile-header-info-centered {
+    min-width: 0;
 }
 
-/* Phones: centered identity above the actions */
-@media (max-width: 575.98px) {
-    .profile-identity {
-        flex-direction: column;
-        gap: 0.875rem;
-        padding: 1.25rem 1rem;
-        text-align: center;
-    }
+.profile-badges {
+    min-width: 0;
+}
 
-    .profile-identity__avatar {
-        width: 6rem;
-        height: 6rem;
-    }
-
-    .profile-identity__name {
-        font-size: 1.375rem;
-    }
-
-    .profile-identity__tags,
-    .profile-identity__actions {
-        justify-content: center;
-    }
+.profile-header-actions {
+    min-width: 0;
 }

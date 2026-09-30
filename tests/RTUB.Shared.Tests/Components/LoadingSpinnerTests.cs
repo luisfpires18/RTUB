@@ -84,6 +84,18 @@ public class LoadingSpinnerTests : BunitContext
     }
 
     [Fact]
+    public void LoadingSpinner_UsesGrowType_WhenTypeIsGrow()
+    {
+        // Arrange & Act
+        var cut = Render<LoadingSpinner>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Type, LoadingSpinner.SpinnerVariant.Grow));
+
+        // Assert
+        cut.Markup.Should().Contain("spinner-grow", "spinner should use grow type");
+    }
+
+    [Fact]
     public void LoadingSpinner_AppliesSmallSize_WhenSizeIsSmall()
     {
         // Arrange & Act
@@ -161,6 +173,32 @@ public class LoadingSpinnerTests : BunitContext
     }
 
     [Fact]
+    public void LoadingSpinner_HasAccessibleLabel_ByDefault()
+    {
+        // Arrange & Act
+        var cut = Render<LoadingSpinner>(parameters => parameters
+            .Add(p => p.Show, true));
+
+        // Assert
+        cut.Markup.Should().Contain("visually-hidden", "accessible label should be hidden visually");
+        cut.Markup.Should().Contain("A carregar...", "accessible label should have default text");
+    }
+
+    [Fact]
+    public void LoadingSpinner_ShowsLabel_WhenShowLabelIsTrue()
+    {
+        // Arrange & Act
+        var cut = Render<LoadingSpinner>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.ShowLabel, true)
+            .Add(p => p.Type, LoadingSpinner.SpinnerVariant.Grow));
+
+        // Assert - Label should be visible (not visually-hidden for grow type)
+        var markup = cut.Markup;
+        markup.Should().Contain("A carregar...", "label should be displayed");
+    }
+
+    [Fact]
     public void LoadingSpinner_AppliesAdditionalContainerClass()
     {
         // Arrange
@@ -184,28 +222,5 @@ public class LoadingSpinnerTests : BunitContext
         // Assert
         cut.Markup.Should().NotBeEmpty("spinner should render by default");
         cut.Markup.Should().Contain("spinner-border", "spinner should be visible");
-    }
-
-    [Fact]
-    public void LoadingSpinner_IsOneStatus_AnnouncingItsMessageOnce()
-    {
-        var cut = Render<LoadingSpinner>(parameters => parameters
-            .Add(p => p.Message, "A carregar ensaios..."));
-
-        var status = cut.Find("[role='status']");
-        status.TextContent.Trim().Should().Be("A carregar ensaios...");
-        cut.Find(".spinner-border").GetAttribute("aria-hidden").Should().Be("true");
-        cut.FindAll("[role='status']").Should().ContainSingle();
-    }
-
-    [Fact]
-    public void LoadingSpinner_WithoutVisibleMessage_KeepsAnAccessibleLabel()
-    {
-        var cut = Render<LoadingSpinner>(parameters => parameters
-            .Add(p => p.ShowMessage, false)
-            .Add(p => p.Label, "A carregar membros"));
-
-        var hidden = cut.Find("[role='status'] .visually-hidden");
-        hidden.TextContent.Should().Be("A carregar membros");
     }
 }

@@ -9,14 +9,3 @@
 .activity-accordion-button::after {
     display: none;
 }
-
-/* Containment, not the redesign (UI refactor 033; the row redesign is roadmap Phase 6).
-   The balance/date/name group could not shrink below its content, so on phones each
-   activity row was wider than the screen. Let it shrink and wrap onto more lines. */
-@media (max-width: 767.98px) {
-    .activity-accordion-button > .flex-grow-1 {
-        min-width: 0;
-        flex-wrap: wrap;
-        row-gap: 0.25rem;
-    }
-}

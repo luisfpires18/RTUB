@@ -54,13 +54,13 @@
 .avatar-card:hover,
 .avatar-card:focus {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 
 .avatar-card:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 
@@ -115,7 +115,7 @@
 }
 
 .avatar-card-set-nickname-btn:focus {
-    outline: 2px solid var(--rtub-focus-ring);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .avatar-card-expel-btn:focus {
-    outline: 2px solid var(--rtub-focus-ring);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -213,7 +213,7 @@
 
 .avatar-card-edit-btn:focus,
 .avatar-card-delete-btn:focus {
-    outline: 2px solid var(--rtub-focus-ring);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -434,7 +434,7 @@
 /* Accessibility */
 .avatar-card:focus-within .avatar-card-edit-btn,
 .avatar-card:focus-within .avatar-card-delete-btn {
-    outline: 2px solid var(--rtub-focus-ring);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 

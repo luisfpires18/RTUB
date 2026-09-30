@@ -6,11 +6,8 @@
 <html lang="pt">
 <head>
     <meta charset="utf-8" />
-    @* Viewport optimized for mobile PWA - prevents auto-zoom on inputs with 16px font-size.
-       viewport-fit=cover makes iOS report env(safe-area-inset-*): with the black-translucent
-       status bar below, the installed app draws under the status bar, and the shell pads its
-       header, drawer, footer and bottom bars by those insets (UI refactor 034). *@
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    @* Viewport optimized for mobile PWA - prevents auto-zoom on inputs with 16px font-size *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <base href="/" />
     @* PWA manifest must be in static HTML for Android/Chrome detection *@
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -45,8 +42,7 @@
                         else
                         {
                             <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                                <AppTitle>Sem permissão</AppTitle>
-                                <p role="alert">Não tens permissão para aceder a esta página.</p>
+                                <p role="alert">You are not authorized to access this resource.</p>
                             </LayoutView>
                         }
                     </NotAuthorized>
@@ -55,8 +51,7 @@
             </Found>
             <NotFound>
                 <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                    <AppTitle>Página não encontrada</AppTitle>
-                    <p role="alert">Não existe nenhuma página neste endereço.</p>
+                    <p role="alert">Sorry, there's nothing at this address.</p>
                 </LayoutView>
             </NotFound>
         </Router>
@@ -64,20 +59,5 @@
     
     @* .NET 10 Blazor reconnection UI - automatically shows/hides based on circuit state *@
     <ReconnectModal />
-
-    @* Shown by Blazor when an unhandled exception ends the circuit (not on a lost connection -
-       that is ReconnectModal). The exception stays in the server log; no detail is shown.
-       Buttons are wired by /js/blazorStartup.js: the circuit is already gone. UI refactor 036. *@
-    <div id="blazor-error-ui" role="alert">
-        <div class="blazor-error-ui__inner">
-            <i class="bi bi-exclamation-octagon-fill blazor-error-ui__icon" aria-hidden="true"></i>
-            <p class="blazor-error-ui__text">
-                Ocorreu um erro inesperado e a página deixou de responder.
-                <span>O problema foi registado. Recarregue para continuar.</span>
-            </p>
-            <button type="button" class="btn btn-primary btn-sm blazor-error-reload">Recarregar</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm blazor-error-dismiss">Fechar</button>
-        </div>
-    </div>
 </body>
 </html>

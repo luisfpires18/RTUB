@@ -29,21 +29,20 @@
 @inject IMemberStatusService MemberStatusService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @inject IOptions<RTUB.Application.Configuration.Toggles> Toggles
-@inject ToastService Toasts
-@inject ILogger<Profile> Logger
-
-<AppTitle>Meu Perfil</AppTitle>
 
 
-<AppErrorBoundary>
 <div class="profile-page container-fluid w-100 d-flex flex-column align-items-center overflow-hidden">
-    <div class="w-100">
-        <PageHeader Title="Meu Perfil" Icon="bi-person-circle" />
+    <div class="page-header-centered mb-4 w-100">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-person-circle"></i> Meu Perfil</h1>
+        </div>
+        <div class="page-header-right"></div>
     </div>
 
     @if (user == null)
     {
-        <LoadingSpinner Message="A carregar..." />
+        <p class="text-white-full">A carregar...</p>
     }
     else
     {
@@ -91,10 +90,9 @@
                           IsExpanded="@sectionsExpanded["personal"]"
                           IsEditing="@(editingSection == "personal")"
                           ShowEditButton="true"
-                          OnEdit="@(() => OpenEditSectionAsync("personal"))"
+                          OnEdit="@(() => OpenEditSectionModal("personal"))"
                           OnSave="@SavePersonalSection"
-                          OnCancel="@CancelEditAsync"
-                          IsSaving="@sectionSaving.IsBusy"
+                          OnCancel="@CancelEdit"
                           AdditionalClasses="w-100">
                 <ChildContent>
                     <ProfileField Label="Nome Completo" Value="@($"{user.FirstName} {user.LastName}")" Icon="bi bi-person" />
@@ -119,29 +117,29 @@
 
                             <div class="row mb-3">
                                 <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="pf-primeiro-nome" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-person text-primary me-2"></i>Primeiro Nome
                                     </label>
-                                    <InputText id="pf-primeiro-nome" class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
+                                    <InputText class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
                                     <ValidationMessage For="@(() => editUser.FirstName)" />
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="pf-ultimo-nome" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-person text-primary me-2"></i>Último Nome
                                     </label>
-                                    <InputText id="pf-ultimo-nome" class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
+                                    <InputText class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
                                     <ValidationMessage For="@(() => editUser.LastName)" />
                                 </div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="pf-nome-de-tuna" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-star text-primary me-2"></i>Nome de Tuna
                                     </label>
                                     @if (user!.IsOnlyLeitao())
                                     {
-                                        <InputText id="pf-nome-de-tuna" class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." disabled />
+                                        <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." disabled />
                                         <small class="text-white-opacity">O nome de tuna só pode ser definido após a passagem a Caloiro.</small>
                                     }
                                     else
@@ -151,42 +149,42 @@
                                     }
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="pf-email" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-envelope text-primary me-2"></i>Email
                                     </label>
-                                    <InputText id="pf-email" class="form-control" @bind-Value="editUser.Email" type="email" placeholder="Inserir email..." />
+                                    <InputText class="form-control" @bind-Value="editUser.Email" type="email" placeholder="Inserir email..." />
                                     <ValidationMessage For="@(() => editUser.Email)" />
                                 </div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="pf-data-de-nascimento" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-calendar3 text-primary me-2"></i>Data de Nascimento
                                     </label>
-                                    <InputDate id="pf-data-de-nascimento" class="form-control" @bind-Value="editUser.DateOfBirth" />
+                                    <InputDate class="form-control" @bind-Value="editUser.DateOfBirth" />
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="pf-contacto" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-telephone text-primary me-2"></i>Contacto
                                     </label>
-                                    <InputText id="pf-contacto" class="form-control" @bind-Value="editUser.PhoneNumber" placeholder="Inserir contacto..." />
+                                    <InputText class="form-control" @bind-Value="editUser.PhoneNumber" placeholder="Inserir contacto..." />
                                     <ValidationMessage For="@(() => editUser.PhoneNumber)" />
                                 </div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="pf-cidade" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-geo-alt text-primary me-2"></i>Cidade
                                     </label>
-                                    <InputText id="pf-cidade" class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
+                                    <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="pf-curso" class="form-label text-white-full fw-semibold">
+                                    <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-mortarboard text-primary me-2"></i>Curso
                                     </label>
-                                    <InputText id="pf-curso" class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                                    <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
                                 </div>
                             </div>
                         </EditForm>
@@ -201,10 +199,9 @@
                           IsExpanded="@sectionsExpanded["tuna"]"
                           IsEditing="@(editingSection == "tuna")"
                           ShowEditButton="true"
-                          OnEdit="@(() => OpenEditSectionAsync("tuna"))"
+                          OnEdit="@(() => OpenEditSectionModal("tuna"))"
                           OnSave="@SaveTunaSection"
-                          OnCancel="@CancelEditAsync"
-                          IsSaving="@sectionSaving.IsBusy"
+                          OnCancel="@CancelEdit"
                           AdditionalClasses="w-100">
                 <ChildContent>
                     @* Display all instruments with primary indicator - hide for Tuno Honorários *@
@@ -332,13 +329,13 @@
 
                             @* Multiple Instruments Management *@
                             <div class="mb-3">
-                                <label for="pf-instrumentos" class="form-label text-white-full fw-semibold">
+                                <label class="form-label text-white-full fw-semibold">
                                     <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                                 </label>
 
                                 @* Add Instrument Section *@
                                 <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-end gap-2 mb-2">
-                                    <select id="pf-instrumentos" class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                                    <select class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
                                         <option value="">Selecionar instrumento...</option>
                                         @foreach (var instrument in Enum.GetValues<InstrumentType>().Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                                         {
@@ -510,7 +507,7 @@
                     @if (!string.IsNullOrEmpty(subscriptionMessage))
                     {
                         <Alert Message="@subscriptionMessage" 
-                               Type="Alert.AlertType.Error"
+                               Type="@(subscriptionSuccess ? Alert.AlertType.Success : Alert.AlertType.Error)" 
                                Dismissible="true"
                                OnDismiss="@(() => subscriptionMessage = null)" 
                                AdditionalClasses="mb-3" />
@@ -563,7 +560,10 @@
             </label>
             <span class="localized-file-name">@(!string.IsNullOrEmpty(profileImageFileName) ? profileImageFileName : "Sem imagem escolhida")</span>
         </div>
-        <Alert Type="Alert.AlertType.Error" Message="@uploadMessage" AdditionalClasses="mt-3 mb-0" />
+        @if (!string.IsNullOrEmpty(uploadMessage))
+        {
+            <div class="alert alert-success mt-3">@uploadMessage</div>
+        }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Voltar Atrás</button>
@@ -580,40 +580,46 @@
               ImageFormat="image/webp"
               ImageQuality="0.9" />
 
-@* Unsaved edits in an open profile section (UI refactor 037, section 24.5). *@
-<UnsavedChangesGuard @ref="sectionGuard" IsDirty="() => sectionChanges.IsDirty" OnDiscard="CancelEdit" />
-
 <!-- Change Password Modal -->
-<Modal @ref="passwordModal"
-       Show="@modals.IsOpen(ModalType.Password)"
-       ShowChanged="@((bool show) => { if (!show) ClosePasswordModal(); })"
-       IsDirty="() => !string.IsNullOrEmpty(passwordModel.OldPassword) || !string.IsNullOrEmpty(passwordModel.NewPassword) || !string.IsNullOrEmpty(passwordModel.ConfirmPassword)"
-       CanClose="() => Task.FromResult(!isChangingPassword)"
+<Modal Show="@modals.IsOpen(ModalType.Password)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Password, show))"
        Title="Alterar Palavra-passe" 
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        <Alert Type="Alert.AlertType.Error" Message="@ChangePasswordMessage" />
+        @if (!string.IsNullOrEmpty(ChangePasswordMessage))
+        {
+            <div class="alert @(ChangePasswordSucceeded ? "alert-success" : "alert-danger")">@ChangePasswordMessage</div>
+        }
         <EditForm Model="passwordModel" OnValidSubmit="ChangePassword" id="changePasswordForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
-            <FormField Label="Palavra-passe Atual" Icon="bi-key" For="() => passwordModel.OldPassword" Context="field">
-                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.OldPassword" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-key text-primary me-2"></i>Palavra-passe Atual
+                </label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.OldPassword" />
+            </div>
 
-            <FormField Label="Nova Palavra-passe" Icon="bi-key-fill" For="() => passwordModel.NewPassword" Context="field">
-                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-key-fill text-primary me-2"></i>Nova Palavra-passe
+                </label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
+            </div>
 
-            <FormField Label="Confirmar Nova Palavra-passe" Icon="bi-shield-check" For="() => passwordModel.ConfirmPassword" Context="field">
-                <InputText @attributes="field.Attributes" type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-shield-check text-primary me-2"></i>Confirmar Nova Palavra-passe
+                </label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
+            </div>
 
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => passwordModal!.RequestCloseAsync()" disabled="@isChangingPassword">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal" disabled="@isChangingPassword">Cancelar</button>
         <button type="submit" form="changePasswordForm" class="btn btn-primary btn-primary-purple" disabled="@isChangingPassword">
             @if (isChangingPassword)
             {
@@ -627,7 +633,6 @@
         </button>
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
 @code {
     private ApplicationUser? user;
@@ -645,11 +650,8 @@
     private string? profileImageFileName;
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
+    private bool ChangePasswordSucceeded;
     private bool isChangingPassword;
-    private Modal? passwordModal;
-    private UnsavedChangesGuard? sectionGuard;
-    private readonly UnsavedChanges sectionChanges = new();
-    private readonly BusyState sectionSaving = new();
     private int imageRefreshTrigger = 0;
     private RTUB.Application.Services.Retirement.RetirementStatusResult? retirementStatusResult;
     private MemberStatusResult? memberStatusResult;
@@ -721,6 +723,7 @@
     
     // Notification subscription state
     private string? subscriptionMessage;
+    private bool subscriptionSuccess;
 
     public class ChangePasswordModel
     {
@@ -897,7 +900,8 @@
                 
                 imageRefreshTrigger++;
                 
-                Toasts.ShowSuccess("Foto de perfil atualizada com sucesso!");
+                uploadMessage = "Foto de perfil atualizada com sucesso!";
+                StateHasChanged();
                 
                 // Notify MainLayout to reload user data
                 ProfilePictureUpdateService.NotifyProfilePictureUpdated();
@@ -912,6 +916,11 @@
                 {
                     // Silently fail - event service will handle update
                 }
+                
+                // Clear success message after a delay
+                await Task.Delay(2000);
+                uploadMessage = null;
+                StateHasChanged();
             }
         }
         catch (Exception)
@@ -933,25 +942,6 @@
     {
         modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
-    }
-
-    private async Task OpenEditSectionAsync(string section)
-    {
-        // Switching to another section while this one has unsaved edits asks first.
-        if (editingSection != null && editingSection != section && !await sectionGuard!.ConfirmDiscardAsync())
-        {
-            return;
-        }
-
-        await OpenEditSectionModal(section);
-    }
-
-    private async Task CancelEditAsync()
-    {
-        if (await sectionGuard!.ConfirmDiscardAsync())
-        {
-            CancelEdit();
-        }
     }
 
     private async Task OpenEditSectionModal(string section)
@@ -1008,19 +998,11 @@
         }
         
         filteredMentors.Clear();
-        sectionChanges.Track(() => editUser == null ? null : new
-        {
-            editUser.FirstName, editUser.LastName, editUser.Nickname, editUser.Email, editUser.PhoneNumber,
-            editUser.City, editUser.DateOfBirth, editUser.Degree,
-            editUser.YearLeitao, editUser.MonthLeitao, editUser.YearCaloiro, editUser.MonthCaloiro,
-            editUser.YearTuno, editUser.MonthTuno, editUser.MentorId
-        });
         StateHasChanged();
     }
 
     private void CancelEdit()
     {
-        sectionChanges.Clear();
         editingSection = null;
         editUser = null;
         mentorSearchTerm = "";
@@ -1118,114 +1100,83 @@
         StateHasChanged();
     }
 
-    private Task SavePersonalSection() => sectionSaving.RunAsync(async () =>
+    private async Task SavePersonalSection()
     {
-        try
-        {
-            if (editUser == null || user == null) return;
+        if (editUser == null || user == null) return;
 
-            user.FirstName = editUser.FirstName;
-            user.LastName = editUser.LastName;
-            user.Nickname = editUser.Nickname;
-            user.Email = editUser.Email;
-            user.PhoneNumber = editUser.PhoneNumber;
-            user.City = editUser.City;
-            user.Degree = editUser.Degree;
-            user.DateOfBirth = editUser.DateOfBirth;
+        user.FirstName = editUser.FirstName;
+        user.LastName = editUser.LastName;
+        user.Nickname = editUser.Nickname;
+        user.Email = editUser.Email;
+        user.PhoneNumber = editUser.PhoneNumber;
+        user.City = editUser.City;
+        user.Degree = editUser.Degree;
+        user.DateOfBirth = editUser.DateOfBirth;
 
-            await SetAuditContextToCurrentUser();
-            var result = await UserManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                Logger.LogWarning("Updating profile (personal) failed: {Errors}", string.Join("; ", result.Errors.Select(e => e.Code)));
-                Toasts.ShowError("Não foi possível guardar as alterações. Verifique os dados e tente novamente.");
-                return;
-            }
+        await SetAuditContextToCurrentUser();
+        await UserManager.UpdateAsync(user);
         
-            CancelEdit();
-            StateHasChanged();
-            Toasts.ShowSuccess("Perfil atualizado.");
-        }
-        catch (Exception ex)
-        {
-            // The section stays in edit mode with what was typed.
-            Logger.LogError(ex, "Saving profile (personal) failed");
-            Toasts.ShowError("Não foi possível guardar as alterações. Tente novamente.");
-        }
-    });
+        CancelEdit();
+        StateHasChanged();
+    }
 
-    private Task SaveTunaSection() => sectionSaving.RunAsync(async () =>
+    private async Task SaveTunaSection()
     {
-        try
+        if (editUser == null || user == null) return;
+
+        // Server-side guard: prevent user from being their own padrinho
+        if (!string.IsNullOrEmpty(editUser.MentorId) && editUser.MentorId == user.Id)
         {
-            if (editUser == null || user == null) return;
-
-            // Server-side guard: prevent user from being their own padrinho
-            if (!string.IsNullOrEmpty(editUser.MentorId) && editUser.MentorId == user.Id)
-            {
-                // This should never happen due to client-side filtering, but guard against it
-                editUser.MentorId = null;
-            }
-
-            user.MentorId = editUser.MentorId;
-        
-            // Backend security: Only update date pairs if they're not already complete in the database
-            // This prevents users from changing dates after they've been set once
-            if (!IsDatePairComplete(user.YearLeitao, user.MonthLeitao))
-            {
-                user.YearLeitao = editUser.YearLeitao;
-                user.MonthLeitao = editUser.MonthLeitao;
-            }
-        
-            if (!IsDatePairComplete(user.YearCaloiro, user.MonthCaloiro))
-            {
-                user.YearCaloiro = editUser.YearCaloiro;
-                user.MonthCaloiro = editUser.MonthCaloiro;
-            }
-        
-            if (!IsDatePairComplete(user.YearTuno, user.MonthTuno))
-            {
-                user.YearTuno = editUser.YearTuno;
-                user.MonthTuno = editUser.MonthTuno;
-            }
-
-            await SetAuditContextToCurrentUser();
-            var result = await UserManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                Logger.LogWarning("Updating profile (tuna) failed: {Errors}", string.Join("; ", result.Errors.Select(e => e.Code)));
-                Toasts.ShowError("Não foi possível guardar as alterações. Verifique os dados e tente novamente.");
-                return;
-            }
-        
-            // Reload mentor if changed
-            if (!string.IsNullOrEmpty(user.MentorId))
-            {
-                mentor = await UserManager.FindByIdAsync(user.MentorId);
-            }
-            else
-            {
-                mentor = null;
-            }
-
-            // Reload instruments for display
-            userInstrumentsForDisplay = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
-
-            CancelEdit();
-            StateHasChanged();
-            Toasts.ShowSuccess("Perfil atualizado.");
+            // This should never happen due to client-side filtering, but guard against it
+            editUser.MentorId = null;
         }
-        catch (Exception ex)
+
+        user.MentorId = editUser.MentorId;
+        
+        // Backend security: Only update date pairs if they're not already complete in the database
+        // This prevents users from changing dates after they've been set once
+        if (!IsDatePairComplete(user.YearLeitao, user.MonthLeitao))
         {
-            // The section stays in edit mode with what was typed.
-            Logger.LogError(ex, "Saving profile (tuna) failed");
-            Toasts.ShowError("Não foi possível guardar as alterações. Tente novamente.");
+            user.YearLeitao = editUser.YearLeitao;
+            user.MonthLeitao = editUser.MonthLeitao;
         }
-    });
+        
+        if (!IsDatePairComplete(user.YearCaloiro, user.MonthCaloiro))
+        {
+            user.YearCaloiro = editUser.YearCaloiro;
+            user.MonthCaloiro = editUser.MonthCaloiro;
+        }
+        
+        if (!IsDatePairComplete(user.YearTuno, user.MonthTuno))
+        {
+            user.YearTuno = editUser.YearTuno;
+            user.MonthTuno = editUser.MonthTuno;
+        }
+
+        await SetAuditContextToCurrentUser();
+        await UserManager.UpdateAsync(user);
+        
+        // Reload mentor if changed
+        if (!string.IsNullOrEmpty(user.MentorId))
+        {
+            mentor = await UserManager.FindByIdAsync(user.MentorId);
+        }
+        else
+        {
+            mentor = null;
+        }
+        
+        // Reload instruments for display
+        userInstrumentsForDisplay = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+        
+        CancelEdit();
+        StateHasChanged();
+    }
 
     private void OpenChangePasswordModal()
     {
         ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();
         modals.Open(ModalType.Password);
     }
@@ -1234,6 +1185,7 @@
     {
         modals.Close(ModalType.Password);
         ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();
     }
 
@@ -1246,6 +1198,7 @@
 
         isChangingPassword = true;
         ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
         try
         {
             if (user == null)
@@ -1257,6 +1210,8 @@
             var result = await UserManager.ChangePasswordAsync(user, passwordModel.OldPassword, passwordModel.NewPassword);
             if (result.Succeeded)
             {
+                ChangePasswordSucceeded = true;
+                ChangePasswordMessage = "A sua palavra-passe foi alterada com sucesso.";
                 passwordModel = new ChangePasswordModel();
 
                 // Clear the password change requirement flag
@@ -1267,18 +1222,14 @@
                     await UserManager.UpdateAsync(user);
                 }
 
+                // Close modal after delay if successful
+                await Task.Delay(1500);
                 ClosePasswordModal();
-                Toasts.ShowSuccess("A sua palavra-passe foi alterada com sucesso.");
             }
             else
             {
                 ChangePasswordMessage = string.Join("; ", result.Errors.Select(e => e.Description));
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Changing password failed");
-            ChangePasswordMessage = "Não foi possível alterar a palavra-passe. Tente novamente.";
         }
         finally
         {
@@ -1369,6 +1320,7 @@
         if (user == null) return;
 
         subscriptionMessage = null;
+        subscriptionSuccess = false;
 
         try
         {
@@ -1380,12 +1332,20 @@
 
             if (result.Succeeded)
             {
-                Toasts.ShowSuccess(newValue
+                subscriptionSuccess = true;
+                subscriptionMessage = newValue 
                     ? "Notificações por email ativadas com sucesso."
-                    : "Notificações por email desativadas com sucesso.");
+                    : "Notificações por email desativadas com sucesso.";
+                
+                // Clear message after 3 seconds
+                StateHasChanged();
+                await Task.Delay(3000);
+                subscriptionMessage = null;
+                StateHasChanged();
             }
             else
             {
+                subscriptionSuccess = false;
                 subscriptionMessage = "Erro ao atualizar preferências de notificação.";
                 // Revert the change
                 user.Subscribed = !newValue;
@@ -1394,6 +1354,7 @@
         }
         catch (Exception)
         {
+            subscriptionSuccess = false;
             subscriptionMessage = "Erro ao atualizar preferências de notificação.";
             StateHasChanged();
         }

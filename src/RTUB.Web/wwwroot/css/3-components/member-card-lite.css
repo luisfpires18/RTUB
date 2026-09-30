@@ -23,7 +23,7 @@
 .member-card-lite:hover,
 .member-card-lite:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .member-card-lite-action-btn:focus {
-    outline: 2px solid var(--rtub-focus-ring);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 

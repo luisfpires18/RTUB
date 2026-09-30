@@ -1,18 +1,9 @@
 @namespace RTUB.Shared
-@using Microsoft.Extensions.Logging
-@inject ILogger<ConfirmDialog> Logger
-@*
-    Shared confirmation on top of Modal (UI refactor 035; contract:
-    docs/design/RTUB_UI_REFACTOR.md section 22).
-
-    Intent follows the confirm button the caller already chooses: btn-danger = destructive
-    (warning triangle, red), btn-warning = caution, anything else = a plain confirmation.
-    Cancel comes first and takes focus when the dialog opens; the confirm action is last.
-    Escape cancels. While OnConfirm runs, both buttons are disabled, the confirm button shows a
-    spinner and the dialog cannot be dismissed, so a double click cannot confirm twice.
-    If OnConfirm throws (UI refactor 037, section 24.8) the error is logged, the dialog stays open
-    and unlocked with a generic message, so the user can retry or cancel instead of losing the
-    page. Pages that can say more catch their own exceptions.
+@* 
+    Reusable Confirm Dialog Component
+    Used for delete confirmations and other yes/no dialogs
+    Enhanced with ConfirmDialog2 styling (red header for danger actions)
+    Now delegates to the shared Modal component for consistent mobile UX.
 *@
 
 <Modal Show="@Show"
@@ -21,48 +12,38 @@
        Size="@Size"
        Centered="true"
        ShowCloseButton="@ShowCloseButton"
-       CloseOnEscape="true"
-       CanClose="CanDismissAsync"
-       AriaDescribedBy="@(this.BodyContent == null ? _messageId : null)"
        OnClose="HandleCancel">
     <BodyContent>
-        <Alert Type="Alert.AlertType.Error" Message="@_error" AdditionalClasses="mb-3" />
         @if (this.BodyContent != null)
         {
             @this.BodyContent
         }
         else
         {
-            <div class="confirm-dialog confirm-dialog--@Intent" id="@_messageId">
-                <span class="confirm-dialog__icon" aria-hidden="true"><i class="bi @IconClass"></i></span>
-                <div class="confirm-dialog__text">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
+                <div>
                     @if (!string.IsNullOrEmpty(Message))
                     {
-                        <p class="confirm-dialog__message u-break-anywhere">@Message</p>
+                        <p class="u-break-anywhere mb-2">@Message</p>
                     }
                     @if (!string.IsNullOrEmpty(WarningMessage))
                     {
-                        <p class="confirm-dialog__warning">@WarningMessage</p>
+                        <p class="text-danger mb-0">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            <small>@WarningMessage</small>
+                        </p>
                     }
                 </div>
             </div>
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-outline-secondary" @onclick="HandleCancel" disabled="@IsLocked" data-autofocus>
-            <i class="bi bi-arrow-left me-2" aria-hidden="true"></i>@CancelText
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@Disabled">
+            <i class="bi bi-arrow-left me-2"></i>@CancelText
         </button>
-        <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm" disabled="@IsLocked"
-                aria-busy="@(_confirming ? "true" : null)">
-            @if (_confirming)
-            {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            }
-            else
-            {
-                <i class="bi bi-@(Intent == "danger" ? "trash" : "check-circle") me-2" aria-hidden="true"></i>
-            }
-            @ConfirmText
+        <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm" disabled="@Disabled">
+            <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
         </button>
     </FooterContent>
 </Modal>
@@ -117,8 +98,7 @@
     public string CancelText { get; set; } = "Cancelar";
 
     /// <summary>
-    /// CSS class for confirm button. It also sets the dialog's intent: "btn-danger" marks a
-    /// destructive confirmation, "btn-warning" a cautionary one.
+    /// CSS class for confirm button (e.g., "btn-danger" for delete)
     /// </summary>
     [Parameter]
     public string ConfirmButtonClass { get; set; } = "btn-primary";
@@ -153,64 +133,15 @@
     [Parameter]
     public bool Disabled { get; set; } = false;
 
-    private readonly string _messageId = "rtub-confirm-" + Guid.NewGuid().ToString("N")[..10];
-    private bool _confirming;
-    private string? _error;
-
-    private bool IsLocked => Disabled || _confirming;
-
-    /// <summary>"danger", "warning" or "default", from <see cref="ConfirmButtonClass"/>.</summary>
-    private string Intent =>
-        ConfirmButtonClass.Contains("btn-danger", StringComparison.Ordinal) ? "danger"
-        : ConfirmButtonClass.Contains("btn-warning", StringComparison.Ordinal) ? "warning"
-        : "default";
-
-    private string IconClass => Intent switch
-    {
-        "danger" => "bi-exclamation-triangle-fill",
-        "warning" => "bi-exclamation-circle-fill",
-        _ => "bi-question-circle-fill"
-    };
-
-    private Task<bool> CanDismissAsync() => Task.FromResult(!IsLocked);
-
     private async Task HandleConfirm()
     {
-        if (IsLocked)
-        {
-            return;
-        }
-
-        _confirming = true;
-        _error = null;
-        try
-        {
-            await OnConfirm.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Confirmation \"{Title}\" failed", Title);
-            _error = "Não foi possível concluir a operação. Tente novamente.";
-            return;
-        }
-        finally
-        {
-            _confirming = false;
-        }
-
-        _error = null;
+        await OnConfirm.InvokeAsync();
         Show = false;
         await ShowChanged.InvokeAsync(false);
     }
 
     private async Task HandleCancel()
     {
-        if (_confirming)
-        {
-            return;
-        }
-
-        _error = null;
         await OnCancel.InvokeAsync();
         Show = false;
         await ShowChanged.InvokeAsync(false);

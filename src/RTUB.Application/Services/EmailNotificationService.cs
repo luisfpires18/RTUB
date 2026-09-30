@@ -16,6 +16,12 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class EmailNotificationService : IEmailNotificationService
 {
+    /// <summary>
+    /// Public performance requests (Pedidos) always go to the RTUB inbox. Not
+    /// EmailSettings:RecipientEmail, which production points at the no-reply sender.
+    /// </summary>
+    public const string RequestNotificationRecipient = "realtunab@gmail.com";
+
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly EmailConfigurationProvider _configProvider;
     private readonly SmtpClientFactory _smtpFactory;
@@ -56,7 +62,7 @@ public class EmailNotificationService : IEmailNotificationService
         {
             var config = _configProvider.GetConfiguration();
 
-            if (!_configProvider.ValidateRecipientEmail(config) || !_configProvider.ValidateSenderEmail(config))
+            if (!_configProvider.ValidateSenderEmail(config))
             {
                 return;
             }
@@ -75,7 +81,7 @@ public class EmailNotificationService : IEmailNotificationService
             var body = await _templateRenderer.RenderNewRequestNotificationAsync(
                 requestName, requestEmail, phone, eventType, dateInfo, location, message, createdAt);
 
-            await SendSingleEmailAsync(config, config.RecipientEmail!, subject, body);
+            await SendSingleEmailAsync(config, RequestNotificationRecipient, subject, body);
         }
         catch (Exception ex)
         {

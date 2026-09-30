@@ -23,7 +23,7 @@
 .activity-card-lite:hover,
 .activity-card-lite:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 

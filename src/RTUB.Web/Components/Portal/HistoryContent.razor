@@ -112,9 +112,10 @@
                     <small class="text-white-opacity">Identificador único (não editável)</small>
                 </div>
 
-                <FormField Label="Título" For="() => editingLabel.Title" Context="field">
-                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
-                </FormField>
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
 
                 <div class="mb-3">
                     <label class="form-label text-white-full">Conteúdo</label>

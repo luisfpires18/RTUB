@@ -1,80 +1,73 @@
 @namespace RTUB.Shared
-@*
-    Inline message that belongs to a place on the page (a form, a dialog, a section) and stays
-    until the situation changes or the user dismisses it. Transient confirmations use the toast
-    (ToastService); a failed load or validation summary uses ErrorDisplay
-    (docs/design/RTUB_UI_REFACTOR.md section 23.5).
-
-    Error and Warning are announced assertively (role="alert"); the rest politely (role="status").
-    The icon states the intent, so the message never relies on color alone.
+@* 
+    Reusable Alert Component
+    Used for displaying success, error, warning, and info messages
 *@
 
-@if (IsVisible)
+@if (!string.IsNullOrEmpty(Message) || ChildContent != null)
 {
-    <div class="alert rtub-alert @AlertClass @AdditionalClasses @(Dismissible ? "alert-dismissible" : "")" role="@Role">
-        @if (!string.IsNullOrEmpty(ResolvedIcon))
+    <div class="alert @AlertClass @AdditionalClasses @(Dismissible ? "alert-dismissible fade show" : "")" role="alert">
+        @if (!string.IsNullOrEmpty(Icon))
         {
-            <i class="bi @ResolvedIcon rtub-alert__icon" aria-hidden="true"></i>
+            <i class="bi @Icon"></i>
         }
-        <div class="rtub-alert__body">
-            @if (!string.IsNullOrEmpty(Title))
-            {
-                <p class="rtub-alert__title">@Title</p>
-            }
-            @if (!string.IsNullOrEmpty(Message))
-            {
-                <p class="rtub-alert__message">@Message</p>
-            }
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            @Message
+        }
+        @if (ChildContent != null)
+        {
             @ChildContent
-        </div>
+        }
         @if (Dismissible)
         {
-            <button type="button" class="btn-close rtub-alert__close" @onclick="Dismiss" aria-label="Fechar mensagem"></button>
+            <button type="button" class="btn-close" @onclick="Dismiss" aria-label="Close"></button>
         }
     </div>
 }
 
 @code {
-    /// <summary>Short headline shown in bold above the message</summary>
-    [Parameter] public string? Title { get; set; }
+    /// <summary>
+    /// Alert message to display
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
 
-    /// <summary>Alert message to display</summary>
-    [Parameter] public string? Message { get; set; }
+    /// <summary>
+    /// Custom content (alternative to Message)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Custom content (alternative or addition to Message)</summary>
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>
+    /// Alert type: Success, Error, Warning, Info, Purple
+    /// </summary>
+    [Parameter]
+    public AlertType Type { get; set; } = AlertType.Info;
 
-    /// <summary>Alert type: Success, Error, Warning, Info, Purple</summary>
-    [Parameter] public AlertType Type { get; set; } = AlertType.Info;
+    /// <summary>
+    /// Whether the alert can be dismissed
+    /// </summary>
+    [Parameter]
+    public bool Dismissible { get; set; } = false;
 
-    /// <summary>Whether the alert can be dismissed</summary>
-    [Parameter] public bool Dismissible { get; set; } = false;
+    /// <summary>
+    /// Bootstrap icon class (e.g., "bi-check-circle")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
 
-    /// <summary>Bootstrap icon class (e.g. "bi-check-circle"); defaults to the intent's icon</summary>
-    [Parameter] public string? Icon { get; set; }
+    /// <summary>
+    /// Event callback when alert is dismissed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
 
-    /// <summary>Event callback when alert is dismissed</summary>
-    [Parameter] public EventCallback OnDismiss { get; set; }
-
-    /// <summary>Additional CSS classes to apply to the alert</summary>
-    [Parameter] public string AdditionalClasses { get; set; } = "";
-
-    private bool _dismissed;
-    private string? _lastContent;
-
-    private bool IsVisible => !_dismissed
-        && (!string.IsNullOrEmpty(Message) || !string.IsNullOrEmpty(Title) || ChildContent != null);
-
-    protected override void OnParametersSet()
-    {
-        // A new message after a dismissal shows again.
-        var content = $"{Type}|{Title}|{Message}";
-        if (content != _lastContent)
-        {
-            _lastContent = content;
-            _dismissed = false;
-        }
-    }
+    /// <summary>
+    /// Additional CSS classes to apply to the alert
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
 
     private string AlertClass => Type switch
     {
@@ -86,20 +79,9 @@
         _ => "alert-info"
     };
 
-    private string Role => Type is AlertType.Error or AlertType.Warning ? "alert" : "status";
-
-    private string? ResolvedIcon => !string.IsNullOrEmpty(Icon) ? Icon : Type switch
-    {
-        AlertType.Success => "bi-check-circle-fill",
-        AlertType.Error => "bi-exclamation-octagon-fill",
-        AlertType.Warning => "bi-exclamation-triangle-fill",
-        AlertType.Info => "bi-info-circle-fill",
-        _ => null
-    };
-
     private async Task Dismiss()
     {
-        _dismissed = true;
+        Message = null;
         await OnDismiss.InvokeAsync();
     }
 

@@ -1,3 +1,27 @@
+/* Filter Controls - Responsive */
+.filter-search-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+.filter-dropdown-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Desktop - apply min/max widths */
+@media (min-width: 992px) {
+    .filter-search-container {
+        min-width: 360px;
+        max-width: 640px;
+    }
+    
+    .filter-dropdown-container {
+        min-width: 220px;
+        max-width: 260px;
+    }
+}
+
 /* Show All Toggle Styles */
 .form-check-input:checked {
     background-color: var(--bs-primary);

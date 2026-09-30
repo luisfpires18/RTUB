@@ -33,45 +33,6 @@
     // --- Update Toast Banner ---
     // Self-contained toast that appears when a new SW version is ready
     // Portuguese text to match the app language
-    // Set by UnsavedChangesGuard through modalHelper.js while a form has unsaved changes.
-    function hasUnsavedChanges() {
-        return !!(window.modalHelper && window.modalHelper.hasUnsavedChanges && window.modalHelper.hasUnsavedChanges());
-    }
-
-    // The new version is already active (updated from another tab) but this tab has unsaved
-    // changes: offer the reload instead of forcing it.
-    function showReloadLaterToast() {
-        if (document.getElementById('rtub-sw-reload-toast')) return;
-        var toast = document.createElement('div');
-        toast.id = 'rtub-sw-reload-toast';
-        toast.className = 'rtub-sw-toast';
-        toast.setAttribute('role', 'status');
-
-        var row = document.createElement('div');
-        row.className = 'rtub-sw-toast__row';
-        var text = document.createElement('span');
-        text.className = 'rtub-sw-toast__text';
-        text.textContent = 'Nova versão instalada. Guarde as alterações e recarregue a página.';
-        var reloadBtn = document.createElement('button');
-        reloadBtn.type = 'button';
-        reloadBtn.className = 'rtub-sw-toast__update';
-        reloadBtn.textContent = 'Recarregar';
-        var dismissBtn = document.createElement('button');
-        dismissBtn.type = 'button';
-        dismissBtn.className = 'rtub-sw-toast__dismiss';
-        dismissBtn.textContent = 'Depois';
-
-        row.appendChild(text);
-        row.appendChild(reloadBtn);
-        row.appendChild(dismissBtn);
-        toast.appendChild(row);
-        document.body.appendChild(toast);
-
-        // A reload with unsaved changes still gets the browser's own "leave page?" prompt.
-        reloadBtn.addEventListener('click', reloadForUpdate);
-        dismissBtn.addEventListener('click', function() { toast.remove(); });
-    }
-
     function showUpdateToast(waitingSW) {
         // Don't show duplicate toasts
         if (document.getElementById('rtub-sw-update-toast')) return;
@@ -111,13 +72,8 @@
 
         document.body.appendChild(toast);
 
-        // "Atualizar" button — tell the waiting SW to skip waiting and take control. Not while a
-        // form has unsaved changes: activating reloads every open RTUB tab (UI refactor 037).
+        // "Atualizar" button — tell the waiting SW to skip waiting and take control
         updateBtn.addEventListener('click', function() {
-            if (hasUnsavedChanges()) {
-                text.textContent = 'Tem alterações por guardar. Guarde-as ou descarte-as e depois atualize.';
-                return;
-            }
             if (waitingSW) {
                 waitingSW.postMessage({ type: 'SKIP_WAITING' });
             }
@@ -243,17 +199,8 @@
         // First-ever install: clients.claim() takes control of a page that was never
         // controlled. Nothing changed for the user, so do not reload.
         if (!hadControllerAtStartup) return;
-        if (hasUnsavedChanges()) {
-            showReloadLaterToast();
-            return;
-        }
-        console.log('[SW Register] New service worker activated, reloading for fresh content...');
-        reloadForUpdate();
-    });
-
-    // The single reload path for a new version.
-    function reloadForUpdate() {
         refreshing = true;
+        console.log('[SW Register] New service worker activated, reloading for fresh content...');
         window.location.reload();
-    }
+    });
 })();

@@ -36,9 +36,8 @@
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @implements IAsyncDisposable
 
-<AppTitle>Stage Mode - My Tuno</AppTitle>
+<PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="stage-page">
     @if (loading)
     {
@@ -341,7 +340,6 @@
         }
     }
 </div>
-</AppErrorBoundary>
 
 @code {
     private Character? character;

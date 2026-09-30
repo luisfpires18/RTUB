@@ -21,9 +21,8 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 
-<AppTitle>Discussão - @(eventItem?.Name ?? "Evento")</AppTitle>
+<PageTitle>Discussão - @(eventItem?.Name ?? "Evento")</PageTitle>
 
-<AppErrorBoundary>
 <div class="discussion-page-wrapper">
     @if (eventItem == null)
     {
@@ -32,15 +31,30 @@
     else
     {
         <!-- Page Header -->
-        <PageHeader Title="Discussão" Icon="bi-chat-dots" Subtitle="@eventItem.Name" OnBack="NavigateBack">
-            <Actions>
+        <div class="page-header-centered">
+            <div class="page-header-left d-none d-xl-flex">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+            </div>
+
+            <div class="page-header-center">
+                <h1><i class="bi bi-chat-dots"></i> Discussão</h1>
+                <p class="page-header-subtitle">@eventItem.Name</p>
+            </div>
+
+            <div class="page-header-right d-none d-xl-flex gap-2">
                 @if (canCreatePost)
                 {
-                    <PageAction Label="Transporte" Icon="bi-car-front" OnClick="OpenCreateTransportModal" />
-                    <PageAction Label="Adicionar Post" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreatePostModal" />
+                    <button class="btn btn-outline-primary" @onclick="OpenCreateTransportModal" title="Oferecer Transporte">
+                        <i class="bi bi-car-front"></i> Transporte
+                    </button>
+                    <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
+                        <i class="bi bi-plus-lg"></i> Adicionar Post
+                    </button>
                 }
-            </Actions>
-        </PageHeader>
+            </div>
+        </div>
 
         <!-- Search Bar -->
         <SearchBar @bind-Value="searchTerm"
@@ -242,6 +256,8 @@
     }
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Create Post Modal -->
 <Modal Show="@modals.IsOpen(ModalType.CreatePost)"
@@ -277,18 +293,21 @@
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <FormField Label="Descrição da Viatura" Required="true" Context="field">
-            <input @attributes="field.Attributes" type="text" class="form-control" maxlength="200"
+        <div class="mb-3">
+            <label class="form-label">Descrição da Viatura <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" maxlength="200"
                    @bind="tVehicleDescription" />
-        </FormField>
-        <FormField Label="Nº de Lugares" Required="true" Context="field">
-            <input @attributes="field.Attributes" type="number" class="form-control" min="2" max="20" @bind="tTotalSeats" />
-        </FormField>
-        <FormField Label="Notas" Context="field">
-            <textarea @attributes="field.Attributes" class="form-control" rows="2" maxlength="500"
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nº de Lugares <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" min="2" max="20" @bind="tTotalSeats" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Notas</label>
+            <textarea class="form-control" rows="2" maxlength="500"
                       placeholder="Ex: Saída às 18h, ponto de encontro..."
                       @bind="tNotes"></textarea>
-        </FormField>
+        </div>
 
         <hr />
         <label class="form-label"><i class="bi bi-people me-1"></i>Membros</label>
@@ -385,7 +404,6 @@
                CancelText="Cancelar"
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDeleteComment" />
-</AppErrorBoundary>
 
 @code {
     [Parameter]
@@ -431,6 +449,8 @@
     private Dictionary<int, List<ApplicationUser>> filteredPassengerCandidates = new();
     private Dictionary<int, string?> transportErrors = new();
 
+    // Mobile bottom nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -439,9 +459,31 @@
         await LoadDiscussionAsync();
         await LoadPostsAsync();
         allMembers = (await TransportationService.GetAllMembersAsync()).ToList();
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
 
+        if (canCreatePost)
+        {
+            items.Add(new("action-transport", "Transporte", "bi-car-front"));
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        }
+
+        mobileNavItems = items;
+    }
+
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back") NavigateBack();
+        else if (key == "action-transport") OpenCreateTransportModal();
+        else if (key == "action-add") OpenCreatePostModal();
+    }
 
     private async Task LoadEventAsync()
     {

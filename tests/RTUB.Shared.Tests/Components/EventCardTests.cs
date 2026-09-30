@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+using AutoFixture;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
@@ -9,79 +9,301 @@ using RTUB.Shared;
 namespace RTUB.Shared.Tests.Components;
 
 /// <summary>
-/// EventCard behavior: content, the member's Vou / Não vou answer, secondary actions and the
-/// management menu (docs/design/RTUB_UI_REFACTOR.md section 25). Queries by accessible names
-/// and ARIA state rather than CSS classes.
+/// Tests for the EventCard component to ensure event cards display correctly
 /// </summary>
 public class EventCardTests : BunitContext
 {
-    private static Event Upcoming(string name = "Test Event", string location = "Location", EventType type = EventType.Atuacao) =>
-        Event.Create(name, DateTime.Now.AddDays(7), location, type);
+    private readonly Fixture _fixture;
 
-    private static Event Past(string name = "Past Event", EventType type = EventType.Atuacao) =>
-        Event.Create(name, DateTime.Now.AddDays(-7), "Location", type);
-
-    private static Enrollment Answer(Event e, bool willAttend)
+    public EventCardTests()
     {
-        var enrollment = Enrollment.Create("user123", e.Id);
-        enrollment.WillAttend = willAttend;
-        return enrollment;
+        _fixture = new Fixture();
     }
 
-    private IRenderedComponent<EventCard> RenderCard(Event e, Action<ComponentParameterCollectionBuilder<EventCard>>? more = null) =>
-        Render<EventCard>(parameters =>
-        {
-            parameters.Add(p => p.Event, e);
-            more?.Invoke(parameters);
-        });
-
-    private static IElement Button(IRenderedComponent<EventCard> cut, string name) =>
-        cut.FindAll("button").Single(b => b.TextContent.Trim() == name || b.GetAttribute("aria-label") == name);
-
-    private static bool HasButton(IRenderedComponent<EventCard> cut, string name) =>
-        cut.FindAll("button").Any(b => b.TextContent.Trim() == name || b.GetAttribute("aria-label") == name);
-
-    private static List<string> MenuItems(IRenderedComponent<EventCard> cut) =>
-        cut.FindAll(".dropdown-menu button").Select(b => b.TextContent.Trim()).ToList();
-
-    #region Content
-
     [Fact]
-    public void EventCard_IsAnArticleNamedByItsTitleHeading()
+    public void EventCard_RendersEventName()
     {
-        var cut = RenderCard(Upcoming("Serenata"));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
 
-        var article = cut.Find("article");
-        var heading = cut.Find("h3");
-        heading.TextContent.Should().Contain("Serenata");
-        article.GetAttribute("aria-labelledby").Should().Be(heading.Id);
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 5));
+
+        // Assert
+        cut.Markup.Should().Contain("Test Event", "card should display event name");
     }
 
     [Fact]
     public void EventCard_RendersEventDate()
     {
-        var cut = RenderCard(Event.Create("Christmas Event", new DateTime(2025, 12, 25), "Concert Hall", EventType.Festival));
+        // Arrange
+        var eventDate = new DateTime(2025, 12, 25);
+        var eventEntity = Event.Create("Christmas Event", eventDate, "Concert Hall", EventType.Festival);
 
-        cut.Markup.Should().Contain("25 Dec 2025");
-        cut.Find("time").GetAttribute("datetime").Should().Be("2025-12-25");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display formatted event date");
     }
 
     [Fact]
     public void EventCard_RendersLocation_WhenProvided()
     {
-        var cut = RenderCard(Upcoming(location: "Concert Hall"));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Concert Hall", EventType.Atuacao);
 
-        cut.Markup.Should().Contain("Concert Hall");
-        cut.Markup.Should().Contain("bi-geo-alt");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("Concert Hall", "card should display location");
+        cut.Markup.Should().Contain("bi-geo-alt", "location should have icon");
     }
 
     [Fact]
     public void EventCard_DoesNotRenderDescription_DescriptionMovedToDetailsModal()
     {
-        var e = Upcoming();
-        e.Description = "This is a great event!";
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao, "This is a great event!");
 
-        RenderCard(e).Markup.Should().NotContain("This is a great event!");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert - Description should NOT be rendered in the card (moved to details modal)
+        cut.Markup.Should().NotContain("This is a great event!", "card should not display description - it's in the details modal");
+    }
+
+    [Fact]
+    public void EventCard_RendersEnrollmentCount()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 15));
+
+        // Assert
+        cut.Markup.Should().Contain("15", "card should display enrollment count");
+        cut.Markup.Should().Contain("bi-people", "enrollment count should have people icon");
+    }
+
+    [Fact]
+    public void EventCard_ShowsEnrollButtons_WhenUserNotEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert - Now shows two buttons: Going (green) and Not Going (red)
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show going button with check icon");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button with x icon");
+        cut.Markup.Should().Contain("btn-going", "going button should have green style");
+        cut.Markup.Should().Contain("btn-not-going", "not going button should have red style");
+    }
+
+    [Fact]
+    public void EventCard_ShowsEnrolledState_WhenUserIsEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Simple 2-button layout: Green button selected when WillAttend=true
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-selected", "green button should be selected when enrolled as going");
+    }
+
+    [Fact]
+    public void EventCard_ShowsToggleButtons_WhenUserIsEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Simple 2-button layout: both buttons always visible
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show X icon on red button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-not-going", "should have red not-going button");
+        // Should NOT have separate edit/delete buttons
+        cut.Markup.Should().NotContain("bi-pencil-fill", "should not have separate edit button");
+        cut.Markup.Should().NotContain("bi-trash-fill", "should not have separate delete button");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowEnrollmentSection_WhenEventIsPast()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 5));
+
+        // Assert - Past events should show button section (details, enrollments, repertoire), but not enrollment action buttons
+        cut.Markup.Should().Contain("enrollment-section", "past events should show view buttons section");
+        cut.Markup.Should().NotContain("Inscrever", "past events should not show enroll button");
+    }
+
+    [Fact]
+    public void EventCard_ShowsAdminButtons_WhenUserIsAdmin()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("admin-overlay", "admin overlay should appear");
+        cut.Markup.Should().Contain("bi-pencil", "edit button should appear");
+        cut.Markup.Should().Contain("bi-trash", "delete button should appear");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowAdminButtons_WhenUserIsNotAdmin()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("admin-overlay", "admin overlay should not appear for non-admin");
+    }
+
+    [Fact]
+    public void EventCard_ShowsWatchRepertoireButton()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-music-note-list", "should show watch repertoire button");
+        cut.Markup.Should().Contain("btn-outline-primary", "repertoire button should have primary outline style");
+    }
+
+    [Fact]
+    public void EventCard_HasCardClasses()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("card", "should have card class");
+        cut.Markup.Should().Contain("event-card", "should have event-card class");
+    }
+
+    [Fact]
+    public void EventCard_RendersPlaceholderImage_WhenNoImageProvided()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("event-image-placeholder", "should show placeholder");
+        cut.Markup.Should().Contain("bi-calendar-event", "placeholder should have calendar icon");
+    }
+
+    [Fact]
+    public void EventCard_InvokesOnEnrollGoing_WhenGoingButtonClicked()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        bool callbackInvoked = false;
+
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0)
+            .Add(p => p.OnEnrollGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEnrollGoing callback should be invoked");
+    }
+
+    [Fact]
+    public void EventCard_InvokesOnEnrollNotGoing_WhenNotGoingButtonClicked()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        bool callbackInvoked = false;
+
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0)
+            .Add(p => p.OnEnrollNotGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEnrollNotGoing callback should be invoked");
     }
 
     [Theory]
@@ -90,316 +312,482 @@ public class EventCardTests : BunitContext
     [InlineData(EventType.Convivio)]
     public void EventCard_RendersCorrectly_ForDifferentEventTypes(EventType eventType)
     {
-        var cut = RenderCard(Upcoming(type: eventType));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", eventType);
 
-        cut.Find("h3").TextContent.Should().Contain("Test Event");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("Test Event", $"event type {eventType} should display name");
+        cut.Markup.Should().Contain("card", $"event type {eventType} should have card class");
     }
 
     [Fact]
     public void EventCard_ShowsHojeBadge_WhenEventIsToday()
     {
-        var cut = RenderCard(Event.Create("Today", DateTime.Today.AddHours(20), "Location", EventType.Atuacao));
+        // Arrange
+        var today = DateTime.Today;
+        var eventEntity = Event.Create("Today Event", today, "Location", EventType.Atuacao);
 
-        cut.Markup.Should().Contain("HOJE");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("HOJE", "should display HOJE badge for today's event");
+        cut.Markup.Should().Contain("date-badge-hoje", "should have date-badge-hoje class");
     }
 
     [Fact]
     public void EventCard_DoesNotShowHojeBadge_WhenEventIsTomorrow()
     {
-        RenderCard(Event.Create("Tomorrow", DateTime.Today.AddDays(1), "Location", EventType.Atuacao))
-            .Markup.Should().NotContain("HOJE");
+        // Arrange
+        var tomorrow = DateTime.Today.AddDays(1);
+        var eventEntity = Event.Create("Tomorrow Event", tomorrow, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("HOJE", "should not display HOJE badge for tomorrow's event");
+        cut.Markup.Should().NotContain("event-today-badge", "should not have event-today-badge class");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowHojeBadge_WhenEventWasYesterday()
+    {
+        // Arrange
+        var yesterday = DateTime.Today.AddDays(-1);
+        var eventEntity = Event.Create("Yesterday Event", yesterday, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("HOJE", "should not display HOJE badge for yesterday's event");
+        cut.Markup.Should().NotContain("event-today-badge", "should not have event-today-badge class");
     }
 
     [Fact]
     public void EventCard_DisplaysTime_WhenEventHasTimeComponent()
     {
-        var cut = RenderCard(Event.Create("Evening", new DateTime(2025, 12, 25, 17, 0, 0), "Location", EventType.Atuacao));
+        // Arrange
+        var eventDate = new DateTime(2025, 12, 25, 17, 0, 0); // 5 PM
+        var eventEntity = Event.Create("Evening Event", eventDate, "Concert Hall", EventType.Atuacao);
 
-        cut.Markup.Should().Contain("25 Dec 2025").And.Contain("17:00h");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display event date");
+        cut.Markup.Should().Contain("17:00h", "card should display time when event has time component");
     }
 
     [Fact]
     public void EventCard_DoesNotDisplayTime_WhenEventIsAtMidnight()
     {
-        RenderCard(Event.Create("All day", new DateTime(2025, 12, 25), "Location", EventType.Atuacao))
-            .Markup.Should().NotContain("00:00h");
+        // Arrange
+        var eventDate = new DateTime(2025, 12, 25, 0, 0, 0); // Midnight (all-day event)
+        var eventEntity = Event.Create("All Day Event", eventDate, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display event date");
+        cut.Markup.Should().NotContain("00:00h", "card should not display time for midnight (all-day events)");
     }
 
     [Fact]
     public void EventCard_DisplaysDateRange_WithoutTime()
     {
-        var e = Event.Create("Festival", new DateTime(2025, 12, 20, 10, 0, 0), "Location", EventType.Festival);
-        e.EndDate = new DateTime(2025, 12, 25);
+        // Arrange
+        var startDate = new DateTime(2025, 12, 20, 0, 0, 0);
+        var endDate = new DateTime(2025, 12, 25, 0, 0, 0);
+        var eventEntity = Event.Create("Multi-day Event", startDate, "Location", EventType.Festival);
+        eventEntity.SetEndDate(endDate);
 
-        var cut = RenderCard(e);
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
 
-        cut.Markup.Should().Contain("20 Dec").And.Contain("25 Dec 2025").And.NotContain("10:00h");
+        // Assert
+        cut.Markup.Should().Contain("20 Dec", "card should display start date");
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display end date");
+        cut.Markup.Should().NotContain("00:00h", "card should not display time for date ranges");
     }
 
     [Fact]
-    public void EventCard_ShowsImage_WhenProvided_AndDropsItWhenItFails()
+    public void EventCard_DisplaysTime_WithDifferentHours()
     {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.ImageUrl, "/img/event.webp"));
+        // Arrange
+        var morningEvent = Event.Create("Morning Event", new DateTime(2025, 12, 25, 9, 30, 0), "Location", EventType.Atuacao);
+        var eveningEvent = Event.Create("Evening Event", new DateTime(2025, 12, 25, 19, 0, 0), "Location", EventType.Atuacao);
 
-        var img = cut.Find("img");
-        img.GetAttribute("alt").Should().Be("Test Event");
+        // Act
+        var cutMorning = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, morningEvent)
+            .Add(p => p.EnrollmentCount, 0));
 
-        img.TriggerEvent("onerror", new Microsoft.AspNetCore.Components.Web.ErrorEventArgs());
+        var cutEvening = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eveningEvent)
+            .Add(p => p.EnrollmentCount, 0));
 
-        cut.FindAll("img").Should().BeEmpty("a broken image leaves the card without a media area");
+        // Assert
+        cutMorning.Markup.Should().Contain("09:30h", "morning event should display 09:30h");
+        cutEvening.Markup.Should().Contain("19:00h", "evening event should display 19:00h");
     }
 
     [Fact]
-    public void EventCard_HasNoPlaceholderArt_WhenNoImage()
+    public void EventCard_ShowsRemoveButton_OnPastEvent_WhenUserWillAttend()
     {
-        var cut = RenderCard(Upcoming());
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
 
-        cut.FindAll("img").Should().BeEmpty();
-        cut.Markup.Should().NotContain("bi-calendar-event");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show remove button when user will attend");
+        cut.Markup.Should().Contain("Remover Inscrição", "button should have correct title");
+    }
+
+    [Fact]
+    public void EventCard_HidesRemoveButton_OnPastEvent_WhenUserWillNotAttend()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().NotContain("Remover Inscrição", "should not show remove button when user will not attend");
+    }
+
+    [Fact]
+    public void EventCard_ShowsPushNotificationButton_ForAdmin_OnNonPastNonCancelledEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-bell-fill", "should show push notification button icon");
+        cut.Markup.Should().Contain("btn-admin-notification", "push notification button should have correct style class");
+        cut.Markup.Should().Contain("Notificar por push", "push notification button should have correct title");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForNonAdmin()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for non-admin");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification button title for non-admin");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForPastEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for past events");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification title for past events");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForCancelledEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Cancelled Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        eventEntity.Cancel("Event cancelled due to weather");
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for cancelled events");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification title for cancelled events");
+    }
+
+    #region Status Badge Tests
+
+    [Fact]
+    public void EventCard_ShowsVouBadge_WhenUserEnrolledAsGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("VOU", "should display VOU badge when enrolled as going");
+        cut.Markup.Should().Contain("bg-success", "VOU badge should have success (green) style");
+    }
+
+    [Fact]
+    public void EventCard_ShowsNaoVouBadge_WhenUserEnrolledAsNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("NÃO VOU", "should display NÃO VOU badge when enrolled as not going");
+        cut.Markup.Should().Contain("bg-danger", "NÃO VOU badge should have danger (red) style");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowStatusBadge_WhenUserNotEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain(">VOU<", "should not display VOU badge when not enrolled");
+        cut.Markup.Should().NotContain("NÃO VOU", "should not display NÃO VOU badge when not enrolled");
+    }
+
+    [Fact]
+    public void EventCard_ShowsCanceladoBadge_OverridesStatusBadge_WhenEventIsCancelled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        eventEntity.Cancel("Event cancelled");
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("CANCELADO", "should display CANCELADO badge");
+        cut.Markup.Should().NotContain(">VOU<", "VOU badge should be hidden when event is cancelled");
+    }
+
+    [Fact]
+    public void EventCard_StatusBadge_HasCorrectIcon_ForGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Check for the badge's check icon
+        var badgeSection = cut.Markup.Contains("VOU") && cut.Markup.Contains("bg-success");
+        badgeSection.Should().BeTrue("VOU badge should exist with success styling");
+    }
+
+    [Fact]
+    public void EventCard_StatusBadge_HasCorrectIcon_ForNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Check for the badge's X icon
+        var badgeSection = cut.Markup.Contains("NÃO VOU") && cut.Markup.Contains("bg-danger");
+        badgeSection.Should().BeTrue("NÃO VOU badge should exist with danger styling");
     }
 
     #endregion
 
-    #region Member answer (Vou / Não vou)
+    #region Button Selection State Tests
 
     [Fact]
-    public void EventCard_ShowsLabelledAnswerToggle_WhenNotAnswered()
+    public void EventCard_GreenButtonSelected_WhenEnrolledAsGoing()
     {
-        var cut = RenderCard(Upcoming());
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
 
-        cut.Find("[role=group]").GetAttribute("aria-label").Should().Contain("Test Event");
-        Button(cut, "Vou").GetAttribute("aria-pressed").Should().Be("false");
-        Button(cut, "Não vou").GetAttribute("aria-pressed").Should().Be("false");
-        Button(cut, "Vou").GetAttribute("title").Should().Be("Vou participar");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.ClassList.Should().Contain("btn-selected", "green button should be selected when enrolled as going");
     }
 
     [Fact]
-    public void EventCard_MarksVouPressed_WhenEnrolledAsGoing()
+    public void EventCard_RedButtonSelected_WhenEnrolledAsNotGoing()
     {
-        var e = Upcoming();
-        var cut = RenderCard(e, p => p.Add(x => x.UserEnrollment, Answer(e, true)));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
 
-        Button(cut, "Vou").GetAttribute("aria-pressed").Should().Be("true");
-        Button(cut, "Vou").GetAttribute("title").Should().Be("Editar inscrição");
-        Button(cut, "Não vou").GetAttribute("aria-pressed").Should().Be("false");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.ClassList.Should().Contain("btn-selected", "red button should be selected when enrolled as not going");
     }
 
     [Fact]
-    public void EventCard_MarksNaoVouPressed_WhenEnrolledAsNotGoing()
+    public void EventCard_SecondaryButtonSmaller_WhenEnrolledAsGoing()
     {
-        var e = Upcoming();
-        var cut = RenderCard(e, p => p.Add(x => x.UserEnrollment, Answer(e, false)));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
 
-        Button(cut, "Não vou").GetAttribute("aria-pressed").Should().Be("true");
-        Button(cut, "Não vou").GetAttribute("title").Should().Be("Editar impossibilidade");
-        Button(cut, "Vou").GetAttribute("aria-pressed").Should().Be("false");
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.ClassList.Should().Contain("btn-secondary-small", "red button should be smaller when user is enrolled as going");
     }
 
     [Fact]
-    public void EventCard_InvokesOnEnrollGoing_WhenVouClicked()
+    public void EventCard_SecondaryButtonSmaller_WhenEnrolledAsNotGoing()
     {
-        var invoked = false;
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.OnEnrollGoing, EventCallback.Factory.Create(this, () => invoked = true)));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
 
-        Button(cut, "Vou").Click();
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
 
-        invoked.Should().BeTrue();
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.ClassList.Should().Contain("btn-secondary-small", "green button should be smaller when user is enrolled as not going");
     }
 
     [Fact]
-    public void EventCard_InvokesOnEnrollNotGoing_WhenNaoVouClicked()
+    public void EventCard_BothButtonsSameSize_WhenNotEnrolled()
     {
-        var invoked = false;
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.OnEnrollNotGoing, EventCallback.Factory.Create(this, () => invoked = true)));
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
 
-        Button(cut, "Não vou").Click();
+        // Act
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
 
-        invoked.Should().BeTrue();
-    }
-
-    [Fact]
-    public void EventCard_HasNoAnswerToggle_WhenEventIsPast()
-    {
-        var cut = RenderCard(Past(), p => p.Add(x => x.IsPastEvent, true));
-
-        cut.FindAll("[role=group]").Should().BeEmpty();
-        HasButton(cut, "Vou").Should().BeFalse();
-    }
-
-    [Fact]
-    public void EventCard_ShowsFui_AndRemoveEnrollment_OnPastEvent_WhenUserWillAttend()
-    {
-        var e = Past();
-        var removed = false;
-        var cut = RenderCard(e, p => p
-            .Add(x => x.UserEnrollment, Answer(e, true))
-            .Add(x => x.IsPastEvent, true)
-            .Add(x => x.OnRemoveEnrollment, EventCallback.Factory.Create(this, () => removed = true)));
-
-        cut.Find(".item-status").TextContent.Should().Contain("Fui");
-        var remove = Button(cut, "Remover inscrição");
-        remove.GetAttribute("title").Should().Be("Remover Inscrição");
-        remove.Click();
-        removed.Should().BeTrue();
-    }
-
-    [Fact]
-    public void EventCard_ShowsNaoFui_AndNoRemove_OnPastEvent_WhenUserWillNotAttend()
-    {
-        var e = Past();
-        var cut = RenderCard(e, p => p.Add(x => x.UserEnrollment, Answer(e, false)).Add(x => x.IsPastEvent, true));
-
-        cut.Find(".item-status").TextContent.Should().Contain("Não fui");
-        HasButton(cut, "Remover inscrição").Should().BeFalse();
-    }
-
-    [Fact]
-    public void EventCard_CancelledStatusOverridesAnswer_AndHidesToggle()
-    {
-        var e = Upcoming();
-        e.Cancel("Weather");
-        var cut = RenderCard(e, p => p.Add(x => x.UserEnrollment, Answer(e, true)));
-
-        cut.Find(".item-status").TextContent.Should().Contain("Cancelado");
-        HasButton(cut, "Vou").Should().BeFalse();
-        cut.FindAll(".item-card__links button").Select(b => b.TextContent.Trim()).Should().Equal("Detalhes");
-    }
-
-    #endregion
-
-    #region Secondary actions
-
-    [Fact]
-    public void EventCard_ShowsCountsAsNamedButtons()
-    {
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.EnrollmentCount, 15)
-            .Add(x => x.RepertoireCount, 4)
-            .Add(x => x.DiscussionCount, 2));
-
-        HasButton(cut, "Detalhes").Should().BeTrue();
-        HasButton(cut, "Participantes (15)").Should().BeTrue();
-        HasButton(cut, "Repertório (4)").Should().BeTrue();
-        HasButton(cut, "Discussão (2)").Should().BeTrue();
-    }
-
-    [Fact]
-    public void EventCard_InvokesSecondaryCallbacks()
-    {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.OnViewDetails, EventCallback.Factory.Create(this, () => calls.Add("details")))
-            .Add(x => x.OnViewEnrollments, EventCallback.Factory.Create(this, () => calls.Add("enrollments")))
-            .Add(x => x.OnWatchRepertoire, EventCallback.Factory.Create(this, () => calls.Add("repertoire")))
-            .Add(x => x.OnViewDiscussion, EventCallback.Factory.Create(this, () => calls.Add("discussion"))));
-
-        Button(cut, "Detalhes").Click();
-        Button(cut, "Participantes (0)").Click();
-        Button(cut, "Repertório (0)").Click();
-        Button(cut, "Discussão (0)").Click();
-
-        calls.Should().Equal("details", "enrollments", "repertoire", "discussion");
-    }
-
-    [Fact]
-    public void EventCard_PastFestival_ShowsTrophiesAndVideos()
-    {
-        var cut = RenderCard(Past(type: EventType.Festival), p => p
-            .Add(x => x.IsPastEvent, true)
-            .Add(x => x.ShowTrophy, true)
-            .Add(x => x.TrophyCount, 2)
-            .Add(x => x.VideoCount, 3));
-
-        HasButton(cut, "Prémios (2)").Should().BeTrue();
-        HasButton(cut, "Vídeos (3)").Should().BeTrue();
-    }
-
-    [Fact]
-    public void EventCard_PublicTrophyMode_ShowsOnlyTrophiesAndVideos()
-    {
-        var cut = RenderCard(Past(type: EventType.Festival), p => p
-            .Add(x => x.IsPastEvent, true)
-            .Add(x => x.ShowButtons, false)
-            .Add(x => x.ShowOnlyTrophy, true));
-
-        cut.FindAll("button").Select(b => b.GetAttribute("aria-label")).Should().Equal("Prémios (0)", "Vídeos (0)");
-    }
-
-    [Fact]
-    public void EventCard_NoButtons_WhenShowButtonsIsFalse()
-    {
-        RenderCard(Upcoming(), p => p.Add(x => x.ShowButtons, false)).FindAll("button").Should().BeEmpty();
-    }
-
-    #endregion
-
-    #region Management menu
-
-    [Fact]
-    public void EventCard_NoManagementMenu_ForNonAdmin()
-    {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.IsAdmin, false));
-
-        cut.FindAll(".dropdown-menu").Should().BeEmpty();
-        cut.Markup.Should().NotContain("Notificar por push");
-    }
-
-    [Fact]
-    public void EventCard_AdminMenu_UpcomingEvent_HasAllActions_DestructiveLast()
-    {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.IsAdmin, true));
-
-        cut.Find("[data-bs-toggle=dropdown]").GetAttribute("aria-label").Should().Be("Gerir: Test Event");
-        MenuItems(cut).Should().Equal("Editar evento", "Notificar por push", "Notificar por email", "Cancelar evento", "Eliminar evento");
-    }
-
-    [Fact]
-    public void EventCard_AdminMenu_RespectsRestrictedPermissions()
-    {
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.IsAdmin, true)
-            .Add(x => x.ShowDeleteButton, false)
-            .Add(x => x.ShowCancelButton, false));
-
-        MenuItems(cut).Should().Equal("Editar evento", "Notificar por push", "Notificar por email");
-    }
-
-    [Fact]
-    public void EventCard_AdminMenu_PastEvent_OnlyEditAndDelete()
-    {
-        var cut = RenderCard(Past(), p => p.Add(x => x.IsAdmin, true).Add(x => x.IsPastEvent, true));
-
-        MenuItems(cut).Should().Equal("Editar evento", "Eliminar evento");
-    }
-
-    [Fact]
-    public void EventCard_AdminMenu_CancelledEvent_OffersReactivate_NoNotifications()
-    {
-        var e = Upcoming();
-        e.Cancel("Weather");
-        var cut = RenderCard(e, p => p.Add(x => x.IsAdmin, true));
-
-        MenuItems(cut).Should().Equal("Editar evento", "Reativar evento", "Eliminar evento");
-    }
-
-    [Fact]
-    public void EventCard_AdminMenu_InvokesCallbacks()
-    {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.IsAdmin, true)
-            .Add(x => x.OnEdit, EventCallback.Factory.Create(this, () => calls.Add("edit")))
-            .Add(x => x.OnSendPushNotification, EventCallback.Factory.Create(this, () => calls.Add("push")))
-            .Add(x => x.OnSendEmail, EventCallback.Factory.Create(this, () => calls.Add("email")))
-            .Add(x => x.OnCancelEvent, EventCallback.Factory.Create(this, () => calls.Add("cancel")))
-            .Add(x => x.OnDelete, EventCallback.Factory.Create(this, () => calls.Add("delete"))));
-
-        foreach (var item in new[] { "Editar evento", "Notificar por push", "Notificar por email", "Cancelar evento", "Eliminar evento" })
-        {
-            Button(cut, item).Click();
-        }
-
-        calls.Should().Equal("edit", "push", "email", "cancel", "delete");
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        goingButton.ClassList.Should().NotContain("btn-secondary-small", "green button should not be smaller when not enrolled");
+        notGoingButton.ClassList.Should().NotContain("btn-secondary-small", "red button should not be smaller when not enrolled");
     }
 
     #endregion

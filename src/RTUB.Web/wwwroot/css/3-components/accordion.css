@@ -14,7 +14,7 @@
 }
 
 .accordion-button:focus {
-    box-shadow: none;
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
     border-color: rgba(var(--bs-primary-rgb), 0.5);
 }
 

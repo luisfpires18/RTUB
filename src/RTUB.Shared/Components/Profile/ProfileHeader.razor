@@ -5,50 +5,67 @@
 @using RTUB.Application.Extensions
 
 @*
-    ProfileHeader: the member's identity in the same language as the Membros directory card
-    (docs/design/RTUB_UI_REFACTOR.md section 25) - photo, nome de tuna, name, category and
-    positions, then the two profile actions.
+    ProfileHeader Component
+    Displays the user's header card with avatar, display name, tuna name, role badges, and primary actions
 *@
 
-<section class="item-card profile-identity mb-4" aria-labelledby="profile-identity-name">
-    <div class="profile-identity__avatar">
-        <img src="@GetProfilePictureUrl()"
-             alt="Foto de Perfil"
-             class="profile-identity__photo"
-             data-avatar-fallback />
-    </div>
+<div class="u-minw-0 profile-header-card card mb-4 w-100 overflow-hidden">
+    <div class="u-minw-0 card-body d-flex flex-column align-items-center w-100">
+        <div class="u-minw-0 row w-100 justify-content-center">
+            <!-- Avatar and Info Section - Centered -->
+            <div class="u-minw-0 col-12">
+                <div class="u-minw-0 text-center d-flex flex-column align-items-center w-100">
+                    <!-- Avatar -->
+                    <div class="u-minw-0 profile-avatar-wrapper profile-avatar-large mx-auto mb-3 mw-100">
+                        <img src="@GetProfilePictureUrl()"
+                             alt="Foto de Perfil"
+                             class="profile-avatar img-fluid"
+                             data-avatar-fallback />
+                    </div>
 
-    <div class="profile-identity__body">
-        <h2 class="profile-identity__name" id="profile-identity-name">@GetHeaderDisplayName()</h2>
-        @if (!string.IsNullOrEmpty(User.Nickname))
-        {
-            <p class="profile-identity__fullname">@User.FirstName @User.LastName</p>
-        }
+                    <!-- Name and Badges -->
+                    <div class="u-minw-0 profile-header-info-centered w-100 d-flex flex-column align-items-center overflow-hidden">
+                        <h2 class="profile-display-name mb-1">@GetHeaderDisplayName()</h2>
+                        @if (!string.IsNullOrEmpty(User.Nickname))
+                        {
+                            <p class="profile-full-name text-muted mb-3">
+                                @User.FirstName @User.LastName
+                            </p>
+                        }
+                        
+                        <!-- Role Badges -->
+                        <div class="u-minw-0 profile-badges mb-3 d-flex justify-content-center flex-wrap w-100">
+                            @{
+                                var displayCategories = StatusHelper.GetDisplayCategories(User);
+                            }
+                            @foreach (var category in displayCategories)
+                            {
+                                <CategoryBadge @key="@($"category-{User.Id}-{category}")" Category="category" AdditionalClasses="me-1 mb-1" />
+                            }
+                            @if (User.Positions.Any())
+                            {
+                                @foreach (var position in User.Positions)
+                                {
+                                    <PositionBadge @key="position" Position="position" AdditionalClasses="me-1 mb-1" />
+                                }
+                            }
+                        </div>
 
-        <div class="profile-identity__tags">
-            @{
-                var displayCategories = StatusHelper.GetDisplayCategories(User);
-            }
-            @foreach (var category in displayCategories)
-            {
-                <CategoryBadge @key="@($"category-{User.Id}-{category}")" Category="category" />
-            }
-            @foreach (var position in User.Positions)
-            {
-                <span @key="position" class="profile-identity__position">@StatusHelper.GetPositionDisplay(position)</span>
-            }
+                        <!-- Primary Actions -->
+                        <div class="d-flex gap-2 justify-content-center flex-wrap w-100 profile-header-actions">
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnUploadPhoto" aria-label="Carregar foto de perfil">
+                                <i class="bi bi-upload"></i> Carregar Foto
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnChangePassword" aria-label="Alterar palavra-passe">
+                                <i class="bi bi-key"></i> Alterar Palavra-passe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="profile-identity__actions">
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="OnUploadPhoto" aria-label="Carregar foto de perfil">
-                <i class="bi bi-upload" aria-hidden="true"></i> Carregar Foto
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="OnChangePassword" aria-label="Alterar palavra-passe">
-                <i class="bi bi-key" aria-hidden="true"></i> Alterar Palavra-passe
-            </button>
-        </div>
     </div>
-</section>
+</div>
 
 @code {
     [Parameter]

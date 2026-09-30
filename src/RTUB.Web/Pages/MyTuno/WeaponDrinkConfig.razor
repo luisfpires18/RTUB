@@ -14,11 +14,21 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
-<AppTitle>Configuração de Items</AppTitle>
+<PageTitle>Configuração Items - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="container-fluid">
-    <PageHeader Title="Configuração de Items" Icon="bi-sliders" Subtitle="Gerir imagens de armas, bebidas, equipamento e combinações forjadas." BackHref="/my-tuno" />
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left d-none d-lg-flex">
+            <a href="/my-tuno" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+        </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-sliders"></i> Configuração de Items</h1>
+            <p class="page-header-subtitle">Gerir imagens de armas, bebidas, equipamento e combinações forjadas.</p>
+        </div>
+        <div class="page-header-right"></div>
+    </div>
 
     @if (loading)
     {
@@ -321,11 +331,21 @@
         </button>
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
+
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeTab" OnSelect="HandleMobileNavSelect" />
 
 @code {
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+    {
+        new("action-back", "Voltar", "bi-arrow-left")
+    };
 
+    private void HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+            Navigation.NavigateTo("/my-tuno");
+    }
 
     private bool loading = true;
     private string activeTab = "weapons";
