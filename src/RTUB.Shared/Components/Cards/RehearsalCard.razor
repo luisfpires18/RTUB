@@ -1,296 +1,160 @@
 @namespace RTUB.Shared
 @using RTUB.Application.Extensions
 @*
-    RehearsalCard Component
-    Compact card for displaying rehearsal information with attendance actions
+    RehearsalCard: date first, then time and place, then the member's own answer
+    (docs/design/RTUB_UI_REFACTOR.md section 25). Management actions live in the CardMenu.
+    IsNext marks the next rehearsal so it stands out from the rest of the list.
 *@
 
-<div class="card rehearsal-card h-100@(Rehearsal.IsCanceled ? " rehearsal-card--cancelled" : string.Empty)">
-    <div class="position-relative rehearsal-card__top">
-        @if (IsAdmin)
-        {
-            <div class="rehearsal-card__header-actions">
-                <div class="rehearsal-card__header-left">
-                    @* Show cancel/uncancel buttons based on rehearsal state and timing *@
-                    @if (Rehearsal.IsCanceled)
-                    {
-                        @* Only show Uncancel button for FUTURE rehearsals *@
-                        @if (!IsPastRehearsal)
-                        {
-                            <button class="btn btn-sm btn-warning music-btn-uncancel rehearsal-card__header-button"
-                                    @onclick="HandleUncancel"
-                                    title="Reativar ensaio">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </button>
-                        }
-                    }
-                    else
-                    {
-                        @* Show Cancel button for both past and future rehearsals *@
-                        @if (ShowCancelButton)
-                        {
-                            <button class="btn btn-sm btn-danger music-btn-cancel rehearsal-card__header-button"
-                                    @onclick="HandleCancel"
-                                    title="Cancelar ensaio">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                        @* Only show Push Notification button for FUTURE rehearsals *@
-                        @if (!IsPastRehearsal)
-                        {
-                            <button class="btn btn-sm btn-admin-notification rehearsal-card__header-button"
-                                    @onclick="HandleSendPushNotification"
-                                    title="Notificar por push">
-                                <i class="bi bi-bell-fill"></i>
-                            </button>
-                        }
-                    }
-                </div>
-                <div class="rehearsal-admin-overlay">
-                    <button class="btn btn-sm music-btn-edit rehearsal-card__header-button" @onclick="HandleEdit" title="Editar">
-                        <i class="bi bi-pencil music-icon-edit"></i>
-                    </button>
-                    @if (ShowDeleteButton)
-                    {
-                        <button class="btn btn-sm music-btn-delete rehearsal-card__header-button" @onclick="HandleDelete" title="Eliminar">
-                            <i class="bi bi-trash music-icon-delete"></i>
-                        </button>
-                    }
-                </div>
-            </div>
-        }
-        <div class="rehearsal-icon-header">
-            <div class="rehearsal-icon-circle">
-                <i class="bi bi-music-note-beamed"></i>
-            </div>
-        </div>
-    </div>
-    <div class="card-body d-flex flex-column">
-        
-        <div class="rehearsal-info">
-         
-            <!-- Date, Time and Day in one row -->
-            <div class="rehearsal-info-row">
-                <i class="bi bi-calendar3 rehearsal-icon"></i>
-                <span class="rehearsal-text">@Rehearsal.Date.ToString("dd MMM yyyy")</span>
-                <span class="rehearsal-day">(@GetDayOfWeek(Rehearsal.Date))</span>
-            </div>
-            
-            <div class="rehearsal-info-row">
-                <i class="bi bi-clock rehearsal-icon"></i>
-                <span class="rehearsal-text">@Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")</span>
-                @if (Rehearsal.IsCanceled)
+<article class="@CardClass" aria-labelledby="@TitleId">
+    <div class="rehearsal-item__head">
+        <DateTile Date="@Rehearsal.Date" ShowYear="@IsPastRehearsal" Muted="@(IsPastRehearsal || Rehearsal.IsCanceled)" />
+        <div class="rehearsal-item__heading">
+            @if (Rehearsal.IsCanceled)
+            {
+                <p class="item-status item-status--danger"><i class="bi bi-x-octagon-fill" aria-hidden="true"></i>Cancelado</p>
+            }
+            else if (IsNext)
+            {
+                <p class="item-status item-status--accent"><i class="bi bi-arrow-right-circle-fill" aria-hidden="true"></i>Próximo ensaio</p>
+            }
+            else if (IsPastRehearsal && UserAttendance != null)
+            {
+                @if (!UserAttendance.WillAttend)
                 {
-                    <span class="badge bg-danger fs-6 rehearsal-cancel-badge d-inline-flex align-items-center gap-1">
-                        <i class="bi bi-x-circle-fill"></i>
-                        CANCELADO
-                    </span>
+                    <p class="item-status"><i class="bi bi-x-circle" aria-hidden="true"></i>Não fui</p>
+                }
+                else if (UserAttendance.Attended)
+                {
+                    <p class="item-status item-status--success"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Fui</p>
                 }
                 else
                 {
-                    <DateBadge Date="@Rehearsal.Date" />
+                    <p class="item-status item-status--warning"><i class="bi bi-clock-fill" aria-hidden="true"></i>Presença pendente</p>
                 }
-            </div>
-            
+            }
+            <h3 class="item-card__title" id="@TitleId">
+                @GetDayOfWeek(Rehearsal.Date)<span class="visually-hidden">, @Rehearsal.Date.ToString("dd MMM yyyy")</span>
+            </h3>
+            <p class="item-card__meta item-card__meta--strong">
+                <i class="bi bi-clock" aria-hidden="true"></i>
+                <span>
+                    @Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")
+                    @if (!Rehearsal.IsCanceled)
+                    {
+                        <DateBadge Date="@Rehearsal.Date" />
+                    }
+                </span>
+            </p>
             @if (!string.IsNullOrEmpty(Rehearsal.Location))
             {
-                <div class="rehearsal-info-row">
-                    <i class="bi bi-geo-alt rehearsal-icon"></i>
-                    <span class="rehearsal-text">@Rehearsal.Location</span>
-                </div>
-            }
-            
-            @if (!string.IsNullOrEmpty(Rehearsal.Theme))
-            {
-                <div class="rehearsal-theme-row">
-                    <span class="rehearsal-theme-label">Tema:</span>
-                    <span class="rehearsal-theme-text">@Rehearsal.Theme</span>
-                </div>
-            }
-            
-            @if (!string.IsNullOrEmpty(Rehearsal.Description))
-            {
-                <div class="rehearsal-theme-row">
-                    <span class="rehearsal-theme-label">Descrição:</span>
-                    <span class="rehearsal-theme-text">@Rehearsal.Description</span>
-                </div>
+                <p class="item-card__meta">
+                    <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                    <span>@Rehearsal.Location</span>
+                </p>
             }
         </div>
-
-        @if (!Rehearsal.IsCanceled)
+        @if (IsAdmin)
         {
-            <div class="rehearsal-actions-section mt-auto p-2 rounded">
-                <!-- Status badge row (above the separator/buttons) -->
-                @if (UserAttendance != null)
+            <CardMenu Label="@($"ensaio de {Rehearsal.Date:dd MMM yyyy}")">
+                <CardMenuItem Label="Editar ensaio" Icon="bi-pencil" OnClick="HandleEdit" />
+                @if (!Rehearsal.IsCanceled && !IsPastRehearsal)
                 {
-                    <div class="d-flex justify-content-center mb-2">
-                        @if (UserAttendance.WillAttend)
-                        {
-                            <span class="badge bg-success fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
-                                <i class="bi bi-check-circle-fill"></i>
-                                @(IsPastRehearsal ? "FUI" : "VOU")
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
-                                <i class="bi bi-x-circle-fill"></i>
-                                @(IsPastRehearsal ? "NÃO FUI" : "NÃO VOU")
-                            </span>
-                        }
-                    </div>
+                    <CardMenuItem Label="Notificar por push" Icon="bi-bell" OnClick="HandleSendPushNotification" />
                 }
-                
-                <!-- First row: View Details and View Attendances buttons -->
-                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
-                    <!-- View Details button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
-                            @onclick="HandleViewDetails" 
-                            title="Ver Detalhes">
-                        <i class="bi bi-eye-fill icon-size-1rem"></i>
-                        <span>Ver</span>
-                    </button>
-
-                    <!-- View Attendances button - yellow with clock icon for admin with pending approvals -->
-                    @if (IsAdmin && IsPastRehearsal && HasPendingApprovals)
-                    {
-                        <button class="btn btn-sm d-flex align-items-center gap-1 btn-pending-approvals" 
-                                @onclick="HandleViewAttendances" 
-                                title="Ver Presenças - Tem presenças pendentes para aprovar"
-                                aria-label="Ver presenças pendentes para aprovar">
-                            <i class="bi bi-clock-fill icon-size-1rem"></i>
-                            <span>@AttendanceCount</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
-                                @onclick="HandleViewAttendances" 
-                                title="Ver Presenças">
-                            <i class="bi bi-people icon-size-1rem"></i>
-                            <span>@AttendanceCount</span>
-                        </button>
-                    }
-                </div>
-
-                @if (!IsPastRehearsal)
+                @if (Rehearsal.IsCanceled && !IsPastRehearsal)
                 {
-                    <!-- Second row: User attendance action buttons (toggle-style like EventCard) -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
-                        @if (UserAttendance == null)
-                        {
-                            <!-- Add attendance button (green +) - create attendance -->
-                            <button class="btn rehearsal-icon-btn btn-add-attendance" 
-                                    @onclick="OnAttendPending" 
-                                    title="Marcar presença">
-                                <i class="bi bi-plus-circle-fill"></i>
-                            </button>
-                            
-                            <!-- Not Going button (red, same size) - mark as not going -->
-                            <button class="btn rehearsal-icon-btn btn-not-attending" 
-                                    @onclick="OnAttendNotGoing" 
-                                    title="Não vou participar">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                        else if (UserAttendance.WillAttend)
-                        {
-                            @if (UserAttendance.Attended)
-                            {
-                                <!-- Approved attendance (green, selected) -->
-                                <button class="btn rehearsal-icon-btn btn-approved btn-selected" 
-                                        @onclick="OnEditAttendance" 
-                                        title="Editar presença aprovada">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                </button>
-                            }
-                            else
-                            {
-                                <!-- Pending attendance (yellow, selected) -->
-                                <button class="btn rehearsal-icon-btn btn-pending btn-selected" 
-                                        @onclick="OnEditAttendance" 
-                                        title="Editar presença pendente">
-                                    <i class="bi bi-clock-fill"></i>
-                                </button>
-                            }
-                            
-                            <!-- Not Going button (red, smaller) - change to not going -->
-                            <button class="btn rehearsal-icon-btn btn-not-attending btn-secondary-small" 
-                                    @onclick="OnAttendNotGoing" 
-                                    title="Mudar para não vou">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                        else
-                        {
-                            <!-- Add attendance button (green +, smaller) - change to going -->
-                            <button class="btn rehearsal-icon-btn btn-add-attendance btn-secondary-small" 
-                                    @onclick="OnAttendPending" 
-                                    title="Mudar para vou">
-                                <i class="bi bi-plus-circle-fill"></i>
-                            </button>
-                            
-                            <!-- Not attending status (red, selected) -->
-                            <button class="btn rehearsal-icon-btn btn-not-attending btn-selected" 
-                                    @onclick="OnEditAttendance" 
-                                    title="Editar impossibilidade">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                    </div>
-                    
+                    <CardMenuItem Label="Reativar ensaio" Icon="bi-arrow-counterclockwise" OnClick="HandleUncancel" />
+                }
+                @if (!Rehearsal.IsCanceled && ShowCancelButton)
+                {
+                    <CardMenuItem Label="Cancelar ensaio" Icon="bi-x-octagon" Danger="true" Divider="true" OnClick="HandleCancel" />
+                }
+                @if (ShowDeleteButton)
+                {
+                    <CardMenuItem Label="Eliminar ensaio" Icon="bi-trash" Danger="true"
+                                  Divider="@(Rehearsal.IsCanceled || !ShowCancelButton)" OnClick="HandleDelete" />
+                }
+            </CardMenu>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Rehearsal.Theme) || !string.IsNullOrEmpty(Rehearsal.Description))
+    {
+        <dl class="rehearsal-item__notes">
+            @if (!string.IsNullOrEmpty(Rehearsal.Theme))
+            {
+                <div><dt>Tema</dt><dd>@Rehearsal.Theme</dd></div>
+            }
+            @if (!string.IsNullOrEmpty(Rehearsal.Description))
+            {
+                <div><dt>Descrição</dt><dd>@Rehearsal.Description</dd></div>
+            }
+        </dl>
+    }
+
+    <div class="item-card__footer">
+        <div class="item-card__links">
+            <button type="button" class="item-chip item-chip--link" @onclick="HandleViewDetails" title="Ver Detalhes">
+                <i class="bi bi-info-circle" aria-hidden="true"></i><span>Detalhes</span>
+            </button>
+            @if (!Rehearsal.IsCanceled || IsAdmin)
+            {
+                @if (!Rehearsal.IsCanceled && IsAdmin && IsPastRehearsal && HasPendingApprovals)
+                {
+                    <button type="button" class="item-chip item-chip--warning" @onclick="HandleViewAttendances"
+                            title="Ver Presenças - Tem presenças pendentes para aprovar"
+                            aria-label="@($"Ver presenças pendentes para aprovar ({AttendanceCount})")">
+                        <i class="bi bi-clock-fill" aria-hidden="true"></i><span>@AttendanceCount</span>
+                    </button>
                 }
                 else
                 {
-                    <!-- Past rehearsal: Only show pending icon and delete button if attendance is pending -->
-                    @if (UserAttendance != null && UserAttendance.WillAttend && !UserAttendance.Attended)
-                    {
-                        <div class="d-flex gap-2 align-items-center justify-content-center">
-                            <!-- Pending status icon (yellow clock, disabled) -->
-                            <button class="btn rehearsal-icon-btn btn-pending" 
-                                    disabled
-                                    title="Presença pendente de aprovação">
-                                <i class="bi bi-clock-fill"></i>
-                            </button>
-                            
-                            <!-- Delete attendance button -->
-                            <button class="btn rehearsal-icon-btn btn-danger" 
-                                    @onclick="OnRemoveAttendance" 
-                                    title="Remover presença pendente">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
-                        </div>
-                    }
-                }
-            </div>
-        }
-        else
-        {
-            <!-- For cancelled rehearsals, only show View Details button -->
-            <div class="rehearsal-actions-section mt-auto p-2 rounded">
-                <div class="d-flex gap-2 align-items-center justify-content-center">
-                    <!-- View Details button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
-                            @onclick="HandleViewDetails" 
-                            title="Ver Detalhes">
-                        <i class="bi bi-eye-fill icon-size-1rem"></i>
-                        <span>Ver</span>
+                    <button type="button" class="item-chip" @onclick="HandleViewAttendances" title="Ver Presenças"
+                            aria-label="@($"Ver presenças ({AttendanceCount})")">
+                        <i class="bi bi-people" aria-hidden="true"></i><span>@AttendanceCount</span>
                     </button>
-                    @if (IsAdmin)
+                }
+            }
+            @if (!Rehearsal.IsCanceled && IsPastRehearsal && UserAttendance is { WillAttend: true, Attended: false })
+            {
+                <button type="button" class="item-chip item-chip--danger rehearsal-item__remove" @onclick="OnRemoveAttendance"
+                        title="Remover presença pendente">
+                    <i class="bi bi-trash" aria-hidden="true"></i><span>Remover</span>
+                </button>
+            }
+        </div>
+
+        @if (!Rehearsal.IsCanceled && !IsPastRehearsal)
+        {
+            var going = UserAttendance?.WillAttend == true;
+            var notGoing = UserAttendance != null && !UserAttendance.WillAttend;
+            var pending = going && !UserAttendance!.Attended;
+            <div class="participation@(UserAttendance != null ? " participation--answered" : null)"
+                 role="group" aria-label="@($"A tua presença: {GetDayOfWeek(Rehearsal.Date)}, {Rehearsal.Date:dd MMM yyyy}")">
+                <button type="button"
+                        class="participation__option participation__option--yes@(pending ? " participation__option--pending" : null)"
+                        aria-pressed="@(going ? "true" : "false")"
+                        title="@(UserAttendance == null ? "Marcar presença" : notGoing ? "Mudar para vou" : pending ? "Editar presença pendente" : "Editar presença aprovada")"
+                        @onclick="@(going ? OnEditAttendance : OnAttendPending)">
+                    <i class="bi @(pending ? "bi-clock-fill" : going ? "bi-check-circle-fill" : "bi-check-lg")" aria-hidden="true"></i>
+                    <span>Vou</span>
+                    @if (pending)
                     {
-                        <!-- View Attendances button -->
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                                @onclick="HandleViewAttendances"
-                                title="Ver Presenças">
-                            <i class="bi bi-people icon-size-1rem"></i>
-                            <span>@AttendanceCount</span>
-                        </button>
+                        <span class="participation__note">pendente</span>
                     }
-                </div>
+                </button>
+                <button type="button" class="participation__option participation__option--no"
+                        aria-pressed="@(notGoing ? "true" : "false")"
+                        title="@(notGoing ? "Editar impossibilidade" : going ? "Mudar para não vou" : "Não vou participar")"
+                        @onclick="@(notGoing ? OnEditAttendance : OnAttendNotGoing)">
+                    <i class="bi @(notGoing ? "bi-x-circle-fill" : "bi-x-lg")" aria-hidden="true"></i>
+                    <span>Não vou</span>
+                </button>
             </div>
         }
     </div>
-</div>
+</article>
 
 @code {
     /// <summary>
@@ -415,6 +279,19 @@
     [Parameter]
     public bool HasPendingApprovals { get; set; } = false;
 
+    /// <summary>
+    /// Marks the next upcoming rehearsal so it stands out in the list (presentation only)
+    /// </summary>
+    [Parameter]
+    public bool IsNext { get; set; }
+
+    private string CardClass => "item-card rehearsal-item"
+        + (Rehearsal.IsCanceled ? " rehearsal-item--cancelled" : "")
+        + (IsPastRehearsal ? " rehearsal-item--past" : "")
+        + (IsNext && !Rehearsal.IsCanceled ? " rehearsal-item--next" : "");
+
+    private string TitleId => $"rehearsal-item-title-{Rehearsal.Id}";
+
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()
     {
@@ -509,6 +386,7 @@
     private bool _previousIsAdmin;
     private bool _previousIsPastRehearsal;
     private bool _previousHasPendingApprovals;
+    private bool _previousIsNext;
     private string? _previousLocation;
     private string? _previousTheme;
     private string? _previousDescription;
@@ -539,6 +417,7 @@
             IsAdmin != _previousIsAdmin ||
             IsPastRehearsal != _previousIsPastRehearsal ||
             HasPendingApprovals != _previousHasPendingApprovals ||
+            IsNext != _previousIsNext ||
             location != _previousLocation ||
             theme != _previousTheme ||
             description != _previousDescription ||
@@ -553,6 +432,7 @@
             _previousIsAdmin = IsAdmin;
             _previousIsPastRehearsal = IsPastRehearsal;
             _previousHasPendingApprovals = HasPendingApprovals;
+            _previousIsNext = IsNext;
             _previousLocation = location;
             _previousTheme = theme;
             _previousDescription = description;

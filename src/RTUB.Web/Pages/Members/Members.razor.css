@@ -223,3 +223,16 @@
     width: 3rem;
     height: 3rem;
 }
+
+/* Directory card: the current position reads as text next to the category pill (UI refactor 038) */
+.member-position {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--rtub-accent);
+    overflow-wrap: anywhere;
+}
+
+.member-position--none {
+    color: var(--rtub-text-muted);
+    font-weight: 400;
+}

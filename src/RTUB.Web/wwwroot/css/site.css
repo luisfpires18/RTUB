@@ -47,6 +47,7 @@
 
 /* Content Display */
 @import url('3-components/cards.css');
+@import url('3-components/item-cards.css');
 @import url('3-components/tables.css');
 @import url('3-components/list-groups.css');
 @import url('3-components/accordion.css');
@@ -76,7 +77,6 @@
 @import url('3-components/admin-overlays.css');
 
 /* Card Variants */
-@import url('3-components/rehearsal-card.css');
 @import url('3-components/song-card.css');
 @import url('3-components/request-card.css');
 @import url('3-components/user-card.css');

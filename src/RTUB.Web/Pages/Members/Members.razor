@@ -94,17 +94,7 @@
 
 @if (users == null)
 {
-    <!-- Loading skeleton cards -->
-    <div class="avatar-card-grid">
-        @for (int i = 0; i < 8; i++)
-        {
-            <div class="avatar-card-skeleton-card">
-                <div class="avatar-card-image-wrapper">
-                    <div class="avatar-card-skeleton"></div>
-                </div>
-            </div>
-        }
-    </div>
+    <LoadingSpinner Message="A carregar membros..." />
 }
 else if (!filteredUsers.Any())
 {
@@ -117,8 +107,11 @@ else
     <!-- Regular Members Grid -->
     @if (filteredRegularMembers.Any())
     {
-        <h3 class="mb-3">Membros</h3>
-        <div class="avatar-card-grid">
+        <section class="item-section" aria-labelledby="members-title">
+        <h2 class="item-section-title" id="members-title">
+            Membros <span class="item-section-title__count">@filteredRegularMembers.Count</span>
+        </h2>
+        <div class="item-grid member-grid">
             @foreach (var user in paginatedRegularMembers)
             {
                 <AvatarCard @key="user.Id"
@@ -154,20 +147,14 @@ else
                                 <CategoryBadge @key="@($"category-{user.Id}-{category}")" Category="@category" />
                             }
                         </div>
-                        <!-- Role/Position badges row -->
+                        <!-- Current position as plain text next to the category -->
                         @if (currentPosition != null)
                         {
-                            <div class="avatar-card-badges-row">
-                                <PositionBadge Position="currentPosition.Value" />
-                            </div>
+                            <span class="member-position">@StatusHelper.GetPositionDisplay(currentPosition.Value)</span>
                         }
                         @if (!user.Positions.Any() && !user.Categories.Any())
                         {
-                            <div class="avatar-card-badges-row">
-                                <span class="badge bg-secondary avatar-card-role-badge" 
-                                      title="Sem Cargos"
-                                      aria-label="Sem Cargos">Sem Cargos</span>
-                            </div>
+                            <span class="member-position member-position--none">Sem Cargos</span>
                         }
                     </BadgeContent>
                 </AvatarCard>
@@ -181,14 +168,17 @@ else
                         PageSizeOptions="@(new[] { 30, 60, 90, 120, 150 })"
                         OnPageChanged="@HandleRegularMembersPageChange"
                         OnPageSizeChanged="@HandleRegularMembersPageSizeChange" />
+        </section>
     }
 
     <!-- Leitões Grid -->
     @if (filteredLeitoes.Any())
     {
-        <hr class="my-5 hr-divider" />
-        <h3 class="mb-3">Leitões</h3>
-        <div class="avatar-card-grid">
+        <section class="item-section" aria-labelledby="leitoes-title">
+        <h2 class="item-section-title" id="leitoes-title">
+            Leitões <span class="item-section-title__count">@filteredLeitoes.Count</span>
+        </h2>
+        <div class="item-grid member-grid">
             @foreach (var user in paginatedLeitoes)
             {
                 var leitaoStatus = leitoesStatusData.GetValueOrDefault(user.Id);
@@ -234,6 +224,7 @@ else
                         PageSizeOptions="@(new[] { 18, 36, 54, 72, 90 })"
                         OnPageChanged="@HandleLeitoesPageChange"
                         OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+        </section>
     }
 }
 

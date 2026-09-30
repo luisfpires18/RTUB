@@ -1,0 +1,434 @@
+/* ========================================
+   Item cards: shared surface and action language for the event, rehearsal and member cards
+   (docs/design/RTUB_UI_REFACTOR.md section 25). One surface, one radius, no nested boxes;
+   content first, the member's own action as a labelled toggle, counts as quiet chips,
+   management actions in CardMenu.
+   ======================================== */
+
+.item-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    background: var(--rtub-surface);
+    border: 1px solid var(--rtub-border);
+    border-radius: var(--rtub-radius-lg);
+    color: var(--rtub-text);
+    transition: border-color 0.15s ease-out;
+}
+
+.item-card:hover,
+.item-card:focus-within {
+    border-color: rgba(var(--bs-primary-rgb), 0.55);
+}
+
+.item-card__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--rtub-text);
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+}
+
+/* Metadata lines: icon + text; the first line (when) reads stronger than the rest */
+.item-card__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--rtub-text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* Icons stay neutral: purple is kept for what is current or actionable */
+.item-card__meta > i {
+    flex-shrink: 0;
+    color: var(--rtub-text-muted);
+    font-size: 0.8125rem;
+}
+
+.item-card__meta > span {
+    min-width: 0;
+}
+
+.item-card__meta--strong {
+    color: var(--rtub-text);
+    font-weight: 500;
+}
+
+.item-card__meta .date-badge {
+    margin-left: 0.125rem;
+}
+
+/* Status line (Cancelado, Fui, Pendente...): icon + word, never color alone */
+.item-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--rtub-text-muted);
+}
+
+.item-status--danger { color: var(--rtub-danger-text); }
+.item-status--success { color: var(--rtub-success-text); }
+.item-status--warning { color: var(--rtub-warning); }
+.item-status--accent { color: var(--rtub-accent); }
+
+/* Footer: secondary actions row, then the member's own action */
+.item-card__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rtub-border);
+}
+
+.item-card__links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+/* Quiet secondary action: text link ("Detalhes") or icon + count chip. No border at rest - the
+   card already has one and the Vou/Não vou toggle is the only boxed control; hover/press shade it. */
+.item-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.25rem;
+    min-width: 2.75rem;
+    padding: 0 0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--rtub-radius);
+    background: transparent;
+    color: var(--rtub-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.item-chip > i {
+    font-size: 0.9375rem;
+    color: var(--rtub-text-muted);
+}
+
+.item-chip:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.item-chip:active {
+    background: rgba(255, 255, 255, 0.11);
+}
+
+.item-chip:focus-visible {
+    outline: 2px solid var(--rtub-focus-ring);
+    outline-offset: 2px;
+}
+
+.item-chip--link {
+    color: var(--rtub-accent);
+}
+
+.item-chip--link > i {
+    color: var(--rtub-accent);
+}
+
+.item-chip--warning {
+    border-color: var(--rtub-warning);
+    color: var(--rtub-warning);
+}
+
+.item-chip--warning > i {
+    color: var(--rtub-warning);
+}
+
+.item-chip--danger {
+    border-color: transparent;
+    color: var(--rtub-danger-text);
+}
+
+.item-chip--danger > i {
+    color: var(--rtub-danger-text);
+}
+
+.item-chip--danger:hover {
+    background: rgba(220, 53, 69, 0.14);
+}
+
+.item-chip:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+/* The member's own answer (Vou / Não vou): a labelled two-option toggle.
+   aria-pressed marks the current answer; the selected option is filled and carries an icon. */
+.participation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.participation__option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--rtub-border);
+    border-radius: var(--rtub-radius);
+    background: var(--rtub-surface-alt);
+    color: var(--rtub-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.participation__option > i {
+    font-size: 1rem;
+}
+
+.participation__option--yes > i { color: var(--rtub-success-text); }
+.participation__option--no > i { color: var(--rtub-danger-text); }
+
+.participation__option--yes:hover { border-color: var(--rtub-success-text); }
+.participation__option--no:hover { border-color: var(--rtub-danger-text); }
+
+.participation__option:focus-visible {
+    outline: 2px solid var(--rtub-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Selected: tinted fill + colored border + filled icon (never color alone: aria-pressed and the icon) */
+.participation__option--yes[aria-pressed="true"] {
+    border-color: var(--rtub-success-text);
+    background: rgba(0, 188, 140, 0.16);
+    color: #fff;
+}
+
+.participation__option--no[aria-pressed="true"] {
+    border-color: var(--rtub-danger-text);
+    background: rgba(231, 76, 60, 0.16);
+    color: #fff;
+}
+
+.participation__option--pending[aria-pressed="true"] {
+    border-color: var(--rtub-warning);
+    background: rgba(243, 156, 18, 0.16);
+}
+
+.participation__option--pending[aria-pressed="true"] > i {
+    color: var(--rtub-warning);
+}
+
+/* The other option, once an answer exists, steps back */
+.participation--answered .participation__option[aria-pressed="false"] {
+    background: transparent;
+    color: var(--rtub-text-muted);
+    font-weight: 500;
+}
+
+/* Card management menu (CardMenu) */
+.card-menu {
+    flex-shrink: 0;
+}
+
+.card-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: -0.25rem -0.375rem 0 0;
+    border: 1px solid transparent;
+    border-radius: var(--rtub-radius);
+    background: transparent;
+    color: var(--rtub-text-muted);
+    font-size: 1.125rem;
+    cursor: pointer;
+}
+
+.card-menu__trigger:hover,
+.card-menu__trigger[aria-expanded="true"] {
+    border-color: var(--rtub-border);
+    background: var(--rtub-surface-alt);
+    color: var(--rtub-text);
+}
+
+.card-menu__trigger:focus-visible {
+    outline: 2px solid var(--rtub-focus-ring);
+    outline-offset: 2px;
+}
+
+.card-menu__list {
+    --bs-dropdown-bg: var(--rtub-surface-alt);
+    --bs-dropdown-border-color: var(--rtub-border);
+    --bs-dropdown-divider-bg: var(--rtub-border);
+    --bs-dropdown-link-color: var(--rtub-text);
+    min-width: 13rem;
+    padding: 0.375rem;
+    border-radius: var(--rtub-radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 1030;
+}
+
+.card-menu__list .card-menu__item {
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--rtub-radius-sm);
+    font-size: 0.9375rem;
+    color: var(--rtub-text);
+}
+
+.card-menu__list .card-menu__item > i {
+    color: var(--rtub-text-muted);
+}
+
+.card-menu__list .card-menu__item:hover,
+.card-menu__list .card-menu__item:focus {
+    color: #fff !important; /* beats the global light hover in utilities.css */
+    background: rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.card-menu__list .card-menu__item--danger,
+.card-menu__list .card-menu__item--danger > i {
+    color: var(--rtub-danger-text);
+}
+
+.card-menu__list .card-menu__item--danger:hover,
+.card-menu__list .card-menu__item--danger:focus {
+    background: rgba(220, 53, 69, 0.2);
+}
+
+/* Section heading above a card list, with an optional count */
+.item-section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--rtub-text);
+}
+
+.item-section-title__count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--rtub-text-muted);
+}
+
+.item-section + .item-section {
+    margin-top: 2.5rem;
+}
+
+@media (pointer: coarse) {
+    .item-chip,
+    .card-menu__trigger {
+        min-height: 2.75rem;
+        min-width: 2.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .item-card,
+    .item-chip,
+    .participation__option {
+        transition: none;
+    }
+}
+
+/* Card grids: columns from the available width, not fixed breakpoints */
+.item-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    margin-bottom: 1.5rem;
+}
+
+/* Events mix cards with and without an image: each card keeps its own height
+   instead of stretching a short card into an empty hole */
+.event-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    align-items: start;
+}
+
+/* Section heading with its own search on the same line (desktop), search below (phones) */
+.item-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.item-section-head > .item-section-title {
+    margin: 0;
+}
+
+.item-section-head > .search-bar-container {
+    flex: 0 1 24rem;
+    min-width: 0;
+    margin: 0;
+}
+
+@media (max-width: 575.98px) {
+    .item-section-head > .search-bar-container {
+        flex-basis: 100%;
+    }
+
+    .item-grid {
+        gap: 0.75rem;
+    }
+}
+
+/* DateBadge (HOJE / AMANHÃ), moved from the retired rehearsal-card.css */
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 0.375rem;
+}
+
+.date-badge-hoje {
+  background: rgba(0, 188, 140, 0.18);
+  color: var(--bs-success);
+  border: 1px solid rgba(0, 188, 140, 0.4);
+}
+
+.date-badge-amanha {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Member directory: compact identity rows, more columns as the width allows */
+.member-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    gap: 0.75rem;
+}

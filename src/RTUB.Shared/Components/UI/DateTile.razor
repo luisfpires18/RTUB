@@ -1,0 +1,26 @@
+@namespace RTUB.Shared
+@*
+    Calendar tile (month / day / optional year) that leads an event or rehearsal card so the date
+    scans first (docs/design/RTUB_UI_REFACTOR.md section 25). Uses the same "MMM" format as the
+    cards' date text; the full date is read once, from the hidden text.
+*@
+
+<time class="date-tile @(Muted ? "date-tile--muted" : null)" datetime="@Date.ToString("yyyy-MM-dd")">
+    <span class="visually-hidden">@Date.ToString("dd MMM yyyy")</span>
+    <span class="date-tile__month" aria-hidden="true">@Date.ToString("MMM").TrimEnd('.')</span>
+    <span class="date-tile__day" aria-hidden="true">@Date.Day</span>
+    @if (ShowYear)
+    {
+        <span class="date-tile__year" aria-hidden="true">@Date.Year</span>
+    }
+</time>
+
+@code {
+    [Parameter] public DateTime Date { get; set; }
+
+    /// <summary>Show the year under the day (past items, or a year other than the current one)</summary>
+    [Parameter] public bool ShowYear { get; set; }
+
+    /// <summary>Neutral tone for past or cancelled items</summary>
+    [Parameter] public bool Muted { get; set; }
+}

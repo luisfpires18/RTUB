@@ -1,0 +1,166 @@
+/* AvatarCard - member directory entry. Shared surface and menu: wwwroot/css/3-components/item-cards.css
+   (docs/design/RTUB_UI_REFACTOR.md section 25). */
+
+.member-item {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 0.875rem 0.75rem 0.875rem 0.875rem;
+}
+
+.member-item__avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 4rem;
+    height: 4rem;
+}
+
+.member-item__photo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--rtub-surface-alt);
+}
+
+.member-item__presence {
+    position: absolute;
+    right: 0.125rem;
+    bottom: 0.125rem;
+    width: 0.8125rem;
+    height: 0.8125rem;
+    border-radius: 50%;
+    border: 2px solid var(--rtub-surface);
+    background: var(--rtub-success-text);
+}
+
+.member-item__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.member-item__name {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* The name is the card's link: its hit area stretches over the whole card */
+.member-item__open {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rtub-text);
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.member-item__open::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--rtub-radius-lg);
+}
+
+.member-item__open:focus-visible {
+    outline: none;
+}
+
+.member-item__open:focus-visible::after {
+    outline: 2px solid var(--rtub-focus-ring);
+    outline-offset: 2px;
+}
+
+.member-item:hover .member-item__open {
+    color: #fff;
+}
+
+.member-item__fullname,
+.member-item__meta,
+.member-item__warning {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    color: var(--rtub-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.member-item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.member-item__meta i {
+    color: var(--rtub-text-muted);
+}
+
+.member-item__online {
+    color: var(--rtub-success-text);
+    font-weight: 500;
+}
+
+.member-item__warning {
+    font-size: 0.8125rem;
+    color: var(--rtub-warning);
+}
+
+/* Category pill + role as plain text (the page provides them) */
+.member-item__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    margin: 0.2rem 0 0.1rem;
+}
+
+.member-item__tags:empty {
+    display: none;
+}
+
+.member-item__tags ::deep .avatar-card-badges-row {
+    display: contents;
+}
+
+.member-item__tags ::deep .badge {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border-radius: var(--rtub-radius-sm);
+}
+
+.member-item ::deep .member-item__menu {
+    position: relative;
+    z-index: 2;
+}
+
+.member-item--expelled {
+    border-style: dashed;
+}
+
+.member-item--expelled .member-item__avatar,
+.member-item--expelled .member-item__name,
+.member-item--expelled .member-item__fullname {
+    opacity: 0.6;
+}
+
+@media (max-width: 575.98px) {
+    .member-item {
+        gap: 0.75rem;
+        padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+    }
+
+    .member-item__avatar {
+        width: 3.25rem;
+        height: 3.25rem;
+    }
+}

@@ -1,529 +1,258 @@
+using AngleSharp.Dom;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using RTUB.Shared;
 
 namespace RTUB.Shared.Tests.Components;
 
 /// <summary>
-/// Tests for the AvatarCard component to ensure member cards display correctly
-/// with proper actions, badges, and accessibility features
+/// AvatarCard (Membros directory entry): identity content, the name as the card's link, online
+/// state, and the management menu (docs/design/RTUB_UI_REFACTOR.md section 25). Queries by
+/// accessible names rather than CSS classes.
 /// </summary>
 public class AvatarCardTests : BunitContext
 {
-    [Fact]
-    public void AvatarCard_RendersWithBasicProperties()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.TunaName, "Tuninho")
-            .Add(p => p.FullName, "João Silva")
-            .Add(p => p.InstrumentText, "Guitarra")
-            .Add(p => p.AltText, "Tuninho"));
+    private IRenderedComponent<AvatarCard> RenderCard(Action<ComponentParameterCollectionBuilder<AvatarCard>>? more = null,
+        string avatarUrl = "/img/joao.webp", string tunaName = "Arbusto") =>
+        Render<AvatarCard>(parameters =>
+        {
+            parameters
+                .Add(p => p.AvatarUrl, avatarUrl)
+                .Add(p => p.TunaName, tunaName)
+                .Add(p => p.FullName, "Diogo do Couto")
+                .Add(p => p.AltText, "Arbusto");
+            more?.Invoke(parameters);
+        });
 
-        // Assert
-        cut.Markup.Should().Contain("avatar-card", "should have avatar-card class");
-        cut.Markup.Should().Contain("Tuninho", "should display tuna name");
-        cut.Markup.Should().Contain("João Silva", "should display full name");
-        cut.Markup.Should().Contain("Guitarra", "should display instrument");
-        cut.Markup.Should().Contain("/images/avatar.jpg", "should have avatar URL");
+    private static List<string> MenuItems(IRenderedComponent<AvatarCard> cut) =>
+        cut.FindAll(".dropdown-menu button").Select(b => b.TextContent.Trim()).ToList();
+
+    private static IElement MenuItem(IRenderedComponent<AvatarCard> cut, string name) =>
+        cut.FindAll(".dropdown-menu button").Single(b => b.TextContent.Trim() == name);
+
+    #region Identity
+
+    [Fact]
+    public void AvatarCard_ShowsTunaNameAsHeading_AndFullName()
+    {
+        var cut = RenderCard();
+
+        var heading = cut.Find("h3");
+        heading.TextContent.Trim().Should().Be("Arbusto");
+        cut.Find("article").GetAttribute("aria-labelledby").Should().Be(heading.Id);
+        cut.Markup.Should().Contain("Diogo do Couto");
     }
 
     [Fact]
-    public void AvatarCard_DisplaysViewButton()
+    public void AvatarCard_UsesFullNameAsHeading_WhenNoTunaName()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ViewTooltip, "Ver Detalhes"));
+        var cut = RenderCard(tunaName: "");
 
-        // Assert
-        cut.Markup.Should().Contain("Ver Detalhes", "should display view button text");
-        cut.Markup.Should().Contain("bi-eye", "should have eye icon");
+        cut.Find("h3").TextContent.Trim().Should().Be("Diogo do Couto");
+        cut.FindAll(".member-item__fullname").Should().BeEmpty("the name is not repeated");
     }
 
     [Fact]
-    public void AvatarCard_ShowsEditButton_WhenShowEditButtonIsTrue()
+    public void AvatarCard_Photo_HasAltText_AndSharedFallback()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowEditButton, true)
-            .Add(p => p.EditTooltip, "Editar"));
+        var img = RenderCard().Find("img");
 
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-edit-btn", "should have edit button");
-        cut.Markup.Should().Contain("bi-pencil", "should have pencil icon");
-        cut.Markup.Should().Contain("Editar", "should have edit tooltip");
+        img.GetAttribute("src").Should().Be("/img/joao.webp");
+        img.GetAttribute("alt").Should().Be("Arbusto");
+        img.HasAttribute("data-avatar-fallback").Should().BeTrue("avatarFallback.js swaps a broken photo for the default avatar");
     }
 
     [Fact]
-    public void AvatarCard_HidesEditButton_WhenShowEditButtonIsFalse()
+    public void AvatarCard_UsesDefaultAvatar_WhenNoUrl()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowEditButton, false));
-
-        // Assert
-        cut.Markup.Should().NotContain("avatar-card-edit-btn", "should not have edit button");
+        RenderCard(avatarUrl: "").Find("img").GetAttribute("src").Should().Be("/images/default-avatar.webp");
     }
 
-    [Fact]
-    public void AvatarCard_ShowsDeleteButton_WhenShowDeleteButtonIsTrue()
+    [Theory]
+    [InlineData(true, "lazy")]
+    [InlineData(false, "eager")]
+    public void AvatarCard_LoadingMode_FollowsLazyLoad(bool lazy, string expected)
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowDeleteButton, true)
-            .Add(p => p.DeleteTooltip, "Eliminar"));
-
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-delete-btn", "should have delete button");
-        cut.Markup.Should().Contain("bi-trash", "should have trash icon");
-        cut.Markup.Should().Contain("Eliminar", "should have delete tooltip");
-    }
-
-    [Fact]
-    public void AvatarCard_HidesDeleteButton_WhenShowDeleteButtonIsFalse()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowDeleteButton, false));
-
-        // Assert
-        cut.Markup.Should().NotContain("avatar-card-delete-btn", "should not have delete button");
-    }
-
-    [Fact]
-    public void AvatarCard_InvokesOnView_WhenViewButtonClicked()
-    {
-        // Arrange
-        var viewClicked = false;
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
-
-        // Act
-        var button = cut.Find(".btn-purple");
-        button.Click();
-
-        // Assert
-        viewClicked.Should().BeTrue("view button click should invoke OnView callback");
-    }
-
-    [Fact]
-    public void AvatarCard_InvokesOnEdit_WhenEditButtonClicked()
-    {
-        // Arrange
-        var editClicked = false;
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowEditButton, true)
-            .Add(p => p.OnEdit, EventCallback.Factory.Create(this, () => editClicked = true)));
-
-        // Act
-        var button = cut.Find(".avatar-card-edit-btn");
-        button.Click();
-
-        // Assert
-        editClicked.Should().BeTrue("edit button click should invoke OnEdit callback");
-    }
-
-    [Fact]
-    public void AvatarCard_InvokesOnDelete_WhenDeleteButtonClicked()
-    {
-        // Arrange
-        var deleteClicked = false;
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowDeleteButton, true)
-            .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => deleteClicked = true)));
-
-        // Act
-        var button = cut.Find(".avatar-card-delete-btn");
-        button.Click();
-
-        // Assert
-        deleteClicked.Should().BeTrue("delete button click should invoke OnDelete callback");
-    }
-
-    [Fact]
-    public void AvatarCard_InvokesOnView_WhenEnterKeyPressed()
-    {
-        // Arrange
-        var viewClicked = false;
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
-
-        // Act
-        var card = cut.Find(".avatar-card");
-        card.KeyDown(new KeyboardEventArgs { Key = "Enter" });
-
-        // Assert
-        viewClicked.Should().BeTrue("pressing Enter should invoke OnView callback");
-    }
-
-    [Fact]
-    public void AvatarCard_DoesNotInvokeOnView_WhenOtherKeyPressed()
-    {
-        // Arrange
-        var viewClicked = false;
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.OnView, EventCallback.Factory.Create(this, () => viewClicked = true)));
-
-        // Act
-        var card = cut.Find(".avatar-card");
-        card.KeyDown(new KeyboardEventArgs { Key = "Space" });
-
-        // Assert
-        viewClicked.Should().BeFalse("pressing other keys should not invoke OnView callback");
-    }
-
-    [Fact]
-    public void AvatarCard_HasTabIndex_ForKeyboardAccessibility()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
-
-        // Assert
-        cut.Markup.Should().Contain("tabindex=\"0\"", "should have tabindex for keyboard navigation");
-    }
-
-    [Fact]
-    public void AvatarCard_DisplaysSkeletonLoader_WhenLazyLoadEnabled()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LazyLoad, true));
-
-        // Assert - initially skeleton should be visible
-        cut.Markup.Should().Contain("avatar-card-skeleton", "should show skeleton loader initially");
-    }
-
-    [Fact]
-    public void AvatarCard_UsesLazyLoading_WhenLazyLoadEnabled()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LazyLoad, true));
-
-        // Assert
-        cut.Markup.Should().Contain("loading=\"lazy\"", "should use lazy loading attribute");
-    }
-
-    [Fact]
-    public void AvatarCard_UsesEagerLoading_WhenLazyLoadDisabled()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LazyLoad, false));
-
-        // Assert
-        cut.Markup.Should().Contain("loading=\"eager\"", "should use eager loading attribute");
+        RenderCard(p => p.Add(x => x.LazyLoad, lazy)).Find("img").GetAttribute("loading").Should().Be(expected);
     }
 
     [Fact]
     public void AvatarCard_RendersBadgeContent()
     {
-        // Arrange
-        var badgeFragment = (RenderFragment)(builder =>
-        {
-            builder.OpenElement(0, "span");
-            builder.AddAttribute(1, "class", "badge bg-primary");
-            builder.AddContent(2, "TUNO");
-            builder.CloseElement();
-        });
+        var cut = RenderCard(p => p.Add(x => x.BadgeContent, (RenderFragment)(b => b.AddMarkupContent(0, "<span class=\"badge\">TUNO</span>"))));
 
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.BadgeContent, badgeFragment));
-
-        // Assert
-        cut.Markup.Should().Contain("TUNO", "should render badge content");
-        cut.Markup.Should().Contain("badge bg-primary", "should have badge classes");
+        cut.Find(".member-item__tags .badge").TextContent.Should().Be("TUNO");
     }
 
     [Fact]
-    public void AvatarCard_HandlesEmptyInstrumentText()
+    public void AvatarCard_ShowsInstrument_WhenProvided()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.InstrumentText, ""));
+        var cut = RenderCard(p => p.Add(x => x.InstrumentText, "Guitarra"));
 
-        // Assert
-        cut.Markup.Should().NotContain("bi-music-note", "should not show instrument icon when text is empty");
+        cut.Markup.Should().Contain("Guitarra").And.Contain("bi-music-note");
     }
 
     [Fact]
-    public void AvatarCard_DisplaysInstrumentIcon_WhenInstrumentTextProvided()
+    public void AvatarCard_NoInstrumentLine_WhenEmpty()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.InstrumentText, "Guitarra"));
-
-        // Assert
-        cut.Markup.Should().Contain("bi-music-note", "should show instrument icon");
+        RenderCard(p => p.Add(x => x.InstrumentText, "")).Markup.Should().NotContain("bi-music-note");
     }
 
     [Fact]
-    public void AvatarCard_HasProperAriaLabels()
+    public void AvatarCard_ShowsInactivityWarning_WhenRequested()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.ShowEditButton, true)
-            .Add(p => p.ShowDeleteButton, true)
-            .Add(p => p.ViewTooltip, "Ver Detalhes")
-            .Add(p => p.EditTooltip, "Editar")
-            .Add(p => p.DeleteTooltip, "Eliminar"));
-
-        // Assert
-        cut.Markup.Should().Contain("aria-label=\"Ver Detalhes\"", "view button should have aria-label");
-        cut.Markup.Should().Contain("aria-label=\"Editar\"", "edit button should have aria-label");
-        cut.Markup.Should().Contain("aria-label=\"Eliminar\"", "delete button should have aria-label");
+        RenderCard(p => p.Add(x => x.ShowInactivityWarning, true)).Markup.Should().Contain("Não tem participado");
     }
 
     [Fact]
-    public void AvatarCard_DisplaysOnlyTunaName_WhenFullNameNotProvided()
+    public void AvatarCard_ShowsExpelledStatus()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.TunaName, "Tuninho")
-            .Add(p => p.FullName, ""));
-
-        // Assert
-        cut.Markup.Should().Contain("Tuninho", "should display tuna name");
-        cut.Markup.Should().NotContain("avatar-card-full-name", "should not have full name section");
-    }
-
-    [Fact]
-    public void AvatarCard_DisplaysBothNames_WhenBothProvided()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.TunaName, "Tuninho")
-            .Add(p => p.FullName, "João Silva"));
-
-        // Assert
-        cut.Markup.Should().Contain("Tuninho", "should display tuna name");
-        cut.Markup.Should().Contain("João Silva", "should display full name");
-        cut.Markup.Should().Contain("avatar-card-tuna-name", "should have tuna name class");
-        cut.Markup.Should().Contain("avatar-card-full-name", "should have full name class");
-    }
-
-    #region Badge Container Tests
-
-    [Fact]
-    public void AvatarCard_BadgeContainer_NeverOverflowsCard()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
-
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-badges", "should have badge container");
-        // CSS in avatarcard.css defines max-width: 100% for badge container
-        var hasClass = cut.Markup.Contains("avatar-card-badges");
-        hasClass.Should().BeTrue("badge container should use avatar-card-badges class with max-width constraint");
-    }
-
-    [Fact]
-    public void AvatarCard_BadgeContainer_HasVerticalStack()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
-
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-badges", "should have badge container with vertical stacking");
-    }
-
-    [Fact]
-    public void AvatarCard_BadgeRow_HasFlexWrap()
-    {
-        // Arrange
-        var badgeFragment = (RenderFragment)(builder =>
-        {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "avatar-card-badges-row");
-            builder.AddContent(2, "Test Badge");
-            builder.CloseElement();
-        });
-
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.BadgeContent, badgeFragment));
-
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-badges-row", "should have badge row with flex-wrap enabled");
-    }
-
-    [Fact]
-    public void AvatarCard_BadgeContainer_RespectsCardPadding()
-    {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
-
-        // Assert
-        var badgeContainer = cut.Find(".avatar-card-badges");
-        badgeContainer.Should().NotBeNull("badge container should exist within card boundaries");
-    }
-
-    [Fact]
-    public void AvatarCard_MultipleBadges_WrapConsistently()
-    {
-        // Arrange
-        var multipleBadges = (RenderFragment)(builder =>
-        {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "avatar-card-badges-row");
-            builder.OpenElement(2, "span");
-            builder.AddAttribute(3, "class", "badge avatar-card-role-badge");
-            builder.AddContent(4, "Badge 0");
-            builder.CloseElement();
-            builder.OpenElement(5, "span");
-            builder.AddAttribute(6, "class", "badge avatar-card-role-badge");
-            builder.AddContent(7, "Badge 1");
-            builder.CloseElement();
-            builder.OpenElement(8, "span");
-            builder.AddAttribute(9, "class", "badge avatar-card-role-badge");
-            builder.AddContent(10, "Badge 2");
-            builder.CloseElement();
-            builder.OpenElement(11, "span");
-            builder.AddAttribute(12, "class", "badge avatar-card-role-badge");
-            builder.AddContent(13, "Badge 3");
-            builder.CloseElement();
-            builder.OpenElement(14, "span");
-            builder.AddAttribute(15, "class", "badge avatar-card-role-badge");
-            builder.AddContent(16, "Badge 4");
-            builder.CloseElement();
-            builder.CloseElement();
-        });
-
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.BadgeContent, multipleBadges));
-
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-badges-row", "should contain badge row");
-        cut.Markup.Should().Contain("Badge 0", "should display first badge");
-        cut.Markup.Should().Contain("Badge 4", "should display last badge");
+        RenderCard(p => p.Add(x => x.IsExpelled, true)).Find(".item-status").TextContent.Should().Contain("Expulso");
     }
 
     #endregion
 
-    #region Login Status Tests
+    #region Online state
 
     [Fact]
-    public void AvatarCard_DisplaysOnlineStatus_WhenUserLoggedInWithinLastHour()
+    public void AvatarCard_ShowsOnline_WhenActiveWithinTheLastHour()
     {
-        // Arrange
-        var recentLoginDate = DateTime.UtcNow.AddMinutes(-30);
+        var cut = RenderCard(p => p.Add(x => x.LastLoginDate, DateTime.UtcNow.AddMinutes(-30)));
 
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LastLoginDate, recentLoginDate));
+        cut.Find(".member-item__online").TextContent.Should().Be("Online");
+        cut.Find(".member-item__presence").GetAttribute("title").Should().Be("Online");
+    }
 
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
-        cut.Markup.Should().Contain("Online", "should show Online text");
-        cut.Markup.Should().Contain("text-success", "should have green color for online status");
+    [Theory]
+    [InlineData(-2.0)]
+    [InlineData(-1.01)]
+    public void AvatarCard_NoOnlineMark_WhenLastActivityOlderThanOneHour(double hours)
+    {
+        var cut = RenderCard(p => p.Add(x => x.LastLoginDate, DateTime.UtcNow.AddHours(hours)));
+
+        cut.FindAll(".member-item__online").Should().BeEmpty();
+        cut.FindAll(".member-item__presence").Should().BeEmpty();
     }
 
     [Fact]
-    public void AvatarCard_DisplaysOfflineStatus_WhenUserLoggedInMoreThanOneHourAgo()
+    public void AvatarCard_NoOnlineMark_WhenNeverLoggedIn()
     {
-        // Arrange
-        var oldLoginDate = DateTime.UtcNow.AddHours(-2);
+        RenderCard(p => p.Add(x => x.LastLoginDate, (DateTime?)null)).Markup.Should().NotContain("Online");
+    }
 
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LastLoginDate, oldLoginDate));
+    #endregion
 
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
-        cut.Markup.Should().Contain("Offline", "should show Offline text");
-        cut.Markup.Should().Contain("text-danger", "should have red color for offline status");
+    #region Opening the details
+
+    [Fact]
+    public void AvatarCard_NameIsAButton_ThatOpensTheDetails()
+    {
+        var viewed = false;
+        var cut = RenderCard(p => p
+            .Add(x => x.ViewTooltip, "Ver Detalhes")
+            .Add(x => x.OnView, EventCallback.Factory.Create(this, () => viewed = true)));
+
+        var open = cut.Find("h3 button");
+        open.GetAttribute("type").Should().Be("button");
+        open.GetAttribute("title").Should().Be("Ver Detalhes");
+        open.Click();
+
+        viewed.Should().BeTrue();
     }
 
     [Fact]
-    public void AvatarCard_DisplaysOfflineStatus_WhenLastLoginDateIsNull()
+    public void AvatarCard_HasNoSeparateViewButton()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LastLoginDate, null));
+        RenderCard().FindAll("button").Should().ContainSingle("the name is the only way in when there are no admin actions");
+    }
 
-        // Assert
-        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
-        cut.Markup.Should().Contain("Offline", "should show Offline text when LastLoginDate is null");
-        cut.Markup.Should().Contain("text-danger", "should have red color for offline status");
+    #endregion
+
+    #region Management menu
+
+    [Fact]
+    public void AvatarCard_NoMenu_WithoutManagementPermissions()
+    {
+        RenderCard().FindAll(".dropdown-menu").Should().BeEmpty();
     }
 
     [Fact]
-    public void AvatarCard_UsesOneHourThreshold_ForOnlineStatus()
+    public void AvatarCard_MemberMenu_EditThenDeleteLast()
     {
-        // Arrange - exactly 59 minutes ago (should be online)
-        var justUnderOneHour = DateTime.UtcNow.AddMinutes(-59);
+        var cut = RenderCard(p => p
+            .Add(x => x.ShowEditButton, true)
+            .Add(x => x.ShowDeleteButton, true)
+            .Add(x => x.EditTooltip, "Editar")
+            .Add(x => x.DeleteTooltip, "Eliminar"));
 
-        // Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LastLoginDate, justUnderOneHour));
-
-        // Assert
-        cut.Markup.Should().Contain("Online", "user logged in 59 minutes ago should be online");
+        cut.Find("[data-bs-toggle=dropdown]").GetAttribute("aria-label").Should().Be("Gerir: Arbusto");
+        MenuItems(cut).Should().Equal("Editar", "Eliminar");
     }
 
     [Fact]
-    public void AvatarCard_LoginStatusDisplaysAboveNickname()
+    public void AvatarCard_EditOnly_WhenDeleteNotAllowed()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.TunaName, "Tuninho")
-            .Add(p => p.LastLoginDate, DateTime.UtcNow));
-
-        // Assert
-        var markup = cut.Markup;
-        var loginStatusIndex = markup.IndexOf("avatar-card-login-status");
-        var tunaNameIndex = markup.IndexOf("avatar-card-tuna-name");
-
-        loginStatusIndex.Should().BeLessThan(tunaNameIndex, "login status should appear before tuna name in markup");
+        MenuItems(RenderCard(p => p.Add(x => x.ShowEditButton, true))).Should().Equal("Editar");
     }
 
     [Fact]
-    public void AvatarCard_LoginStatusHasCircleIcon()
+    public void AvatarCard_LeitaoMenu_NicknameExpelDelete()
     {
-        // Arrange & Act
-        var cut = Render<AvatarCard>(parameters => parameters
-            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
-            .Add(p => p.LastLoginDate, DateTime.UtcNow));
+        var cut = RenderCard(p => p
+            .Add(x => x.ShowEditButton, true)
+            .Add(x => x.ShowDeleteButton, true)
+            .Add(x => x.ShowSetNicknameButton, true)
+            .Add(x => x.ShowExpelButton, true));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-circle-fill", "should display circle icon for status indicator");
+        MenuItems(cut).Should().Equal("Editar", "Definir Alcunha", "Expulsar membro", "Eliminar");
+    }
+
+    [Fact]
+    public void AvatarCard_ExpelledLeitao_OffersReactivate()
+    {
+        var cut = RenderCard(p => p
+            .Add(x => x.ShowExpelButton, true)
+            .Add(x => x.IsExpelled, true));
+
+        MenuItems(cut).Should().Equal("Reativar membro");
+    }
+
+    [Fact]
+    public void AvatarCard_MenuItems_InvokeCallbacks()
+    {
+        var calls = new List<string>();
+        var cut = RenderCard(p => p
+            .Add(x => x.ShowEditButton, true)
+            .Add(x => x.ShowDeleteButton, true)
+            .Add(x => x.ShowSetNicknameButton, true)
+            .Add(x => x.ShowExpelButton, true)
+            .Add(x => x.OnEdit, EventCallback.Factory.Create(this, () => calls.Add("edit")))
+            .Add(x => x.OnSetNickname, EventCallback.Factory.Create(this, () => calls.Add("nickname")))
+            .Add(x => x.OnExpel, EventCallback.Factory.Create(this, () => calls.Add("expel")))
+            .Add(x => x.OnDelete, EventCallback.Factory.Create(this, () => calls.Add("delete"))));
+
+        foreach (var item in new[] { "Editar", "Definir Alcunha", "Expulsar membro", "Eliminar" })
+        {
+            MenuItem(cut, item).Click();
+        }
+
+        calls.Should().Equal("edit", "nickname", "expel", "delete");
+    }
+
+    [Fact]
+    public void AvatarCard_Reactivate_InvokesCallback()
+    {
+        var reactivated = false;
+        var cut = RenderCard(p => p
+            .Add(x => x.ShowExpelButton, true)
+            .Add(x => x.IsExpelled, true)
+            .Add(x => x.OnReactivate, EventCallback.Factory.Create(this, () => reactivated = true)));
+
+        MenuItem(cut, "Reativar membro").Click();
+
+        reactivated.Should().BeTrue();
     }
 
     #endregion
 }
-
