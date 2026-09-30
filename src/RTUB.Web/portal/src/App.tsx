@@ -1,5 +1,6 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
-import { contactEmail, legacy, social } from './content';
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { getCurrentUser, type CurrentUser } from './api';
+import { contactEmail, legacy, portal, social } from './content';
 import { Icon, type IconName } from './icons';
 
 export const sections = [
@@ -97,7 +98,7 @@ function Header() {
         <Brand />
         <nav className="header__nav" aria-label="Principal">
           <ul>
-            {sections.map((s) => (
+            {sections.filter((s) => s.id !== 'pedidos').map((s) => (
               <li key={s.id}>
                 <a href={sectionHref(s.id)}>{s.label}</a>
               </li>
@@ -105,10 +106,10 @@ function Header() {
           </ul>
         </nav>
         <div className="header__actions">
-          <a className="btn btn--ghost btn--sm" href={legacy.login}>
-            <Icon name="login" />
-            Entrar
+          <a className="btn btn--primary btn--sm header__cta" href={portal.request}>
+            Pedir atuação
           </a>
+          <AccountLink className="member-link" />
           <MobileMenu />
         </div>
       </div>
@@ -163,14 +164,11 @@ function MobileMenu() {
           </ol>
         </nav>
         <div className="menu__actions">
-          <a className="btn btn--primary" href={legacy.request}>
+          <a className="btn btn--primary" href={portal.request}>
             <Icon name="send" />
-            Fazer um pedido
+            Pedir uma atuação
           </a>
-          <a className="btn btn--ghost" href={legacy.login}>
-            <Icon name="login" />
-            Área de membros
-          </a>
+          <AccountLink className="member-link member-link--menu" signedOutLabel="Área reservada a membros" />
         </div>
       </dialog>
     </>
@@ -183,7 +181,10 @@ function Footer() {
       <div className="wrap footer__grid">
         <div className="footer__about">
           <Brand />
-          <p>Música, capa e tradição académica em Bragança desde 1991.</p>
+          <p>
+            Portal público da RTUB: atuações, música, órgãos sociais, galeria e pedidos de atuação. Música, capa e
+            tradição académica em Bragança desde 1991.
+          </p>
         </div>
         <nav className="footer__col" aria-label="Portal">
           <h2 className="footer__title">Portal</h2>
@@ -199,13 +200,16 @@ function Footer() {
           <h2 className="footer__title">RTUB</h2>
           <ul>
             <li>
-              <a href={legacy.request}>Fazer um pedido</a>
+              <a href={portal.request}>Fazer um pedido</a>
             </li>
             <li>
-              <a href={legacy.login}>Área de membros</a>
+              <a href="/portal#app">Instalar a app</a>
             </li>
             <li>
-              <a href="/portal/privacidade">Política de Privacidade</a>
+              <a href={portal.profile}>Área de membros</a>
+            </li>
+            <li>
+              <a href={portal.privacy}>Política de Privacidade</a>
             </li>
             <li>
               <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
@@ -259,6 +263,41 @@ function VersionTag() {
   );
 }
 
+// ---------- session ----------
+
+/** The signed-in state for this page load; `retry` asks the server again. */
+export function useCurrentUser() {
+  const [state, setState] = useState<{ user?: CurrentUser; failed?: boolean }>({});
+
+  const load = useCallback((refresh: boolean) => {
+    setState({});
+    getCurrentUser(refresh).then(
+      (user) => setState({ user }),
+      () => setState({ failed: true }),
+    );
+  }, []);
+
+  useEffect(() => load(false), [load]);
+  return { ...state, retry: () => load(true) };
+}
+
+/**
+ * The quiet way into the members-only area. Always /portal/perfil, which explains the area is
+ * reserved to RTUB members before offering the login - the portal has no public accounts. Reads
+ * "Membros" for visitors (and while the session is unknown), "A minha conta" once signed in.
+ */
+export function AccountLink({ className, signedOutLabel = 'Membros' }: { className: string; signedOutLabel?: string }) {
+  const { user } = useCurrentUser();
+  const signedIn = user?.authenticated === true;
+
+  return (
+    <a className={className} href={portal.profile}>
+      <Icon name={signedIn ? 'person' : 'lock'} />
+      <span className="member-link__label">{signedIn ? 'A minha conta' : signedOutLabel}</span>
+    </a>
+  );
+}
+
 // ---------- shared pieces ----------
 
 export function ExternalLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
@@ -272,7 +311,7 @@ export function ExternalLink({ href, className, children }: { href: string; clas
 
 export function Loading({ label }: { label: string }) {
   return (
-    <div className="state wrap" role="status">
+    <div className="state" role="status">
       <span className="spinner" aria-hidden="true" />
       <p>{label}</p>
     </div>

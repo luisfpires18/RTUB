@@ -11,7 +11,23 @@ export const legacy = {
   music: '/music',
   gallery: '/gallery',
   roles: '/roles',
+  profile: '/profile',
 } as const;
+
+/** React-owned routes (Program.cs maps exactly these). */
+export const portal = {
+  home: '/portal',
+  privacy: '/portal/privacidade',
+  profile: '/portal/perfil',
+  request: '/portal/pedidos',
+} as const;
+
+/** Sign in through the Blazor login, then come back to the React profile. */
+export const loginToProfile = `${legacy.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
+
+// FACT: the store listing the Blazor PlayStorePrompt links to; package matches
+// wwwroot/.well-known/assetlinks.json (the Android app is a TWA of this site).
+export const playStoreUrl = 'https://play.google.com/store/apps/details?id=ipb.pt.rtub.app';
 
 export const contactEmail = 'realtunab@gmail.com';
 

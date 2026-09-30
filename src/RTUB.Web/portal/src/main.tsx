@@ -4,19 +4,29 @@ import { ErrorBoundary, Layout, Loading } from './App';
 import { Home } from './Home';
 import './styles.css';
 
-// The server maps exactly /portal and /portal/privacidade here (Program.cs), so choosing the
-// page once at boot is all the routing the pilot needs. Links between the two are ordinary
-// full navigations; a client router is a decision for the real migration.
-const Privacy = lazy(() => import('./Privacy'));
-const isPrivacy = location.pathname.replace(/\/+$/, '') === '/portal/privacidade';
+// The server maps exactly these paths here (Program.cs), so choosing the page once at boot is all
+// the routing the portal needs. Links between them are ordinary full navigations; a client router
+// is a decision for when routes stop being a short, fixed list.
+const pages: Record<string, ReturnType<typeof lazy>> = {
+  '/portal/privacidade': lazy(() => import('./Privacy')),
+  '/portal/perfil': lazy(() => import('./Profile')),
+  '/portal/pedidos': lazy(() => import('./Pedidos')),
+};
+const Page = pages[location.pathname.replace(/\/+$/, '')];
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {isPrivacy ? (
-          <Suspense fallback={<Loading label="A carregar a Política de Privacidade…" />}>
-            <Privacy />
+        {Page ? (
+          <Suspense
+            fallback={
+              <div className="wrap">
+                <Loading label="A carregar a página…" />
+              </div>
+            }
+          >
+            <Page />
           </Suspense>
         ) : (
           <Home />

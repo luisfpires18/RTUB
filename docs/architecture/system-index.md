@@ -33,7 +33,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Pages/` | Routable Blazor pages, grouped by area. |
 | `src/RTUB.Web/Components/`, `src/RTUB.Web/Shared/` | Host-local components and layout. |
 | `src/RTUB.Web/Hubs/MessagesHub.cs` | SignalR messaging hub. |
-| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, CDN proxy. |
+| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, CDN proxy, React session state. |
 | `src/RTUB.Web/Interop/` | JS interop wrappers. |
 
 ## PWA / service worker
@@ -52,6 +52,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/portal/` | React 19 + Vite source of the public portal (`/portal`, `/portal/privacidade`). Not published. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (`/portal` mapping) | Route ownership: the only paths React owns. |
+| `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React. |
 | `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
 
 ## Push notifications
