@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { AccountLink, EmptyState, ExternalLink } from './App';
-import { albums, contactEmail, galleryTiles, legacy, instruments, governingBodies, playStoreUrl, portal, social, upcomingEvents } from './content';
+import { AccountLink, ExternalLink } from './App';
+import { albums, contactEmail, galleryTiles, legacy, instruments, governingBodies, playStoreUrl, portal, social } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -75,7 +75,7 @@ function Hero() {
             de Bragança a quem a quiser ouvir.
           </p>
           <div className="hero__cta">
-            <a className="btn btn--primary btn--lg" href="#request">
+            <a className="btn btn--primary btn--lg" href={portal.request}>
               <Icon name="send" />
               Pedir uma atuação
             </a>
@@ -169,47 +169,22 @@ function About() {
 
 // ---------- agenda ----------
 
-const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
+// No dates are invented here: until a read-only events API exists, confirmed dates live on /events.
 function Events() {
   return (
     <section id="events" className="section section--raise" aria-labelledby="events-title">
       <div className="wrap">
-        <SectionHead id="events-title" eyebrow="Agenda" title="Próximas atuações" note="Datas ilustrativas nesta pré-visualização.">
+        <SectionHead id="events-title" eyebrow="Agenda" title="Próximas atuações">
           Os próximos palcos, praças e salões onde a tuna vai tocar.
         </SectionHead>
-        {upcomingEvents.length === 0 ? (
-          <EmptyState icon="calendar" title="Nenhuma data marcada para já.">
-            <p>A agenda completa tem o histórico e as novidades.</p>
-          </EmptyState>
-        ) : (
-          <ol className="events">
-            {upcomingEvents.map((e) => {
-              const [year, month, day] = e.date.split('-');
-              return (
-                <li key={e.date} className="event">
-                  <time className="event__date" dateTime={e.date}>
-                    <span className="event__day">{day}</span>
-                    <span className="event__month">
-                      {MONTHS[Number(month) - 1]} {year}
-                    </span>
-                  </time>
-                  <div className="event__body">
-                    <h3 className="event__title">{e.title}</h3>
-                    <p className="event__meta">
-                      <span>
-                        <Icon name="geo" />
-                        {e.place}
-                      </span>
-                      <span className="tag">{e.kind}</span>
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        <aside className="fitab" aria-labelledby="fitab-title">
+        <div className="agenda">
+          <Icon name="calendar" className="agenda__icon" />
+          <div className="agenda__body">
+            <p className="agenda__title">As datas confirmadas estão na agenda completa.</p>
+            <p>Cada atuação marcada aparece na página de Atuações, com data e local, ao lado do histórico das anteriores.</p>
+          </div>
+        </div>
+        <aside id="fitab" className="fitab" aria-labelledby="fitab-title">
           <div>
             <p className="eyebrow">O festival da casa</p>
             <h3 id="fitab-title" className="fitab__title">
@@ -224,7 +199,7 @@ function Events() {
             <p className="note">As datas de cada edição são anunciadas nas redes da RTUB.</p>
           </div>
         </aside>
-        <MoreLink href={legacy.events}>Agenda completa</MoreLink>
+        <MoreLink href={legacy.events}>Ver a agenda completa</MoreLink>
       </div>
     </section>
   );
@@ -295,7 +270,7 @@ function Gallery() {
           id="gallery-title"
           eyebrow="Galeria"
           title="Em palco e fora dele"
-          note="Ilustrações de pré-visualização: as fotografias estão na galeria atual."
+          note="Ilustrações: as fotografias estão na Galeria."
         />
         <ul className="gallery">
           {galleryTiles.map((t) => (
@@ -317,7 +292,7 @@ function Gallery() {
 
 function JoinUs() {
   return (
-    <section className="section join" aria-labelledby="join-title">
+    <section id="join" className="section join" aria-labelledby="join-title">
       <div className="wrap split">
         <div>
           <SectionHead id="join-title" eyebrow="Novos elementos" title="Há sempre lugar para mais uma voz">
@@ -347,6 +322,13 @@ function JoinUs() {
               Primeiro passo
             </dt>
             <dd>Basta aparecer. Se preferires, fala connosco antes pelo Instagram ou pelo Facebook.</dd>
+          </div>
+          <div>
+            <dt>
+              <Icon name="person" />
+              Percurso
+            </dt>
+            <dd>Entra-se como Leitão, passa-se a Caloiro e depois a Tuno; os cordões do traje mostram cada etapa.</dd>
           </div>
         </dl>
       </div>

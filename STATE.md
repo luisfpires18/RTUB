@@ -6,13 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-01_
 
 ## Phase
-**Open: `feat/004/react-default-public-shell`** (React track, task 004; from `dev` @ `d925545c`,
-committed locally, not pushed; DEV only). React is the DEV public baseline: it owns `/`, `/privacy`,
-`/profile` and `/request`; `/portal`, `/portal/privacy`, `/portal/profile` and `/portal/request` are
-temporary `302` redirects. Blazor `Index.razor` and `Privacy.razor` retired; the Blazor member profile
-editor moved `/profile` → `/member/profile` (owner decision). `/music`, `/gallery`, `/events`,
-`/roles`, `/login` stay as temporary Blazor bridges. No schema change. Route table and the module
-rules (replacement, testing, schema, wording): `docs/react-portal-pilot.md`. Next: review, PR → `dev`.
+**Open: `feat/005/react-public-shell-content-audit`** (React track, task 005; from `dev` @
+`415bc7b5`, committed locally, not pushed; DEV only). Public content coverage audit of the old site
+(table + decisions in `docs/react-portal-pilot.md`, pinned by `PortalContentCoverageTests`); home
+polish: no invented agenda dates, FITAB and Junta-te anchors in the footer, one Hierarquia line in
+Junta-te, hero CTA straight to `/request`; the "Versão de testes" banner shows only on pre-release
+builds (DEV). News plan updated, nothing built. No schema change. Next: review, PR → `dev`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -135,6 +134,14 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 005 (content audit):
+- **Security:** `/calotes`, `/mbway` and `/nerba/{id}` have no `[Authorize]` (no folder-level rule
+  either), so anonymous visitors can open these finance pages. Not changed in 005; review what they
+  render for an anonymous user and gate them.
+- The old home's text was admin-editable (Labels, `/labels`); the React copy is static. Decide a
+  read-only public labels API vs static copy before the PROD cutover.
+- Public slideshow (`/images` admin) has no React counterpart; revisit with the Gallery module.
+
 Raised by React track 004 (React `/`):
 - The Blazor home was the only place rendering `PushNotificationPrompt`, `LoginPopup` and
   `PlayStorePrompt`; since 004 nothing shows them (the PWA `start_url` now opens React `/`). Decide
@@ -147,8 +154,8 @@ Raised by React track 004 (React `/`):
 
 Raised by React track 001-003 (portal pilot):
 - CI • Build & Test has no Node step for the portal bundle (command in `docs/react-portal-pilot.md`).
-- The React shell's preview banner and illustrative content (now on `/`) must be removed, flagged or
-  accepted before the next `dev → master` release.
+- Before the next `dev → master` release the owner must accept (or replace) the React home's artwork
+  gallery tiles and static copy. (005: banner is pre-release only; no invented agenda dates.)
 - `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
 - Real `app.db`: 8 non-dated IDs in `__EFMigrationsHistory` (seen read-only in task 003; unexplained).
 - The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.

@@ -26,6 +26,18 @@ export function getCurrentUser(refresh = false): Promise<CurrentUser> {
   return session;
 }
 
+let version: Promise<string> | null = null;
+
+/** GET /api/version, once per page load: the footer shows it, and it tells test builds apart. */
+export function getVersion(): Promise<string> {
+  version ??= fetch('/api/version', { headers: { Accept: 'application/json' } })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    .then((body: { version?: unknown }) =>
+      typeof body.version === 'string' ? body.version : Promise.reject(new Error('no version')),
+    );
+  return version;
+}
+
 /** The React request form's fields (names match POST /api/public/requests). Dates are yyyy-MM-dd. */
 export type RequestForm = {
   name: string;
