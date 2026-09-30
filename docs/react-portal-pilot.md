@@ -73,6 +73,11 @@ strings; proper names removed) appears in the Blazor pages, components, seeded l
 HTML. The Privacy Policy is the one exception: it is legal text, kept verbatim, and
 `PortalPrivacyParityTests` fails if it drifts from `Privacy.razor`, which stays the legal source.
 
+**Institution naming.** Present-day copy (current identity, location, CTAs) says **UPB** /
+*Universidade Politécnica de Bragança*. Historical context (founding, old documents, songs, older
+screenshots or sources) keeps **IPB**. Never mass-replace; bridge only when it helps ("fundada no
+contexto do IPB, hoje UPB"). Legal text in the Privacy Policy is left as the policy states it.
+
 Sources consulted for task 001: the public pages of the live site (home, `/music`, `/roles`), the
 seeded labels (`SeedData.Labels.cs`), `Roles.razor`, `Request.razor` and `EventType`. The RGI and
 the cancioneiro are member-only documents in R2 storage and were not accessed.

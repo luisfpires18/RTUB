@@ -274,7 +274,7 @@ function JoinUs() {
       <div className="wrap split">
         <div>
           <SectionHead id="entrar-title" eyebrow="Novos elementos" title="Há sempre lugar para mais uma voz">
-            Estudas no Politécnico e gostas de música, de noites longas e de boa companhia? Vem a um ensaio e conhece a
+            Estudas na UPB e gostas de música, de noites longas e de boa companhia? Vem a um ensaio e conhece a
             tuna por dentro.
           </SectionHead>
           <p className="join__quote">Ninguém nasce a tocar bandolim. Aprende-se aqui.</p>
@@ -292,7 +292,7 @@ function JoinUs() {
               <Icon name="geo" />
               Local
             </dt>
-            <dd>Quinta de Santa Apolónia, no campus do Politécnico de Bragança.</dd>
+            <dd>Quinta de Santa Apolónia, no campus da Universidade Politécnica de Bragança.</dd>
           </div>
           <div>
             <dt>
