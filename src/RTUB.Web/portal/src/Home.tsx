@@ -1,19 +1,21 @@
 import type { ReactNode } from 'react';
 import { AccountLink, EmptyState, ExternalLink } from './App';
-import { albums, contactEmail, galleryTiles, legacy, naipes, orgaosSociais, playStoreUrl, portal, social, upcomingEvents } from './content';
+import { albums, contactEmail, galleryTiles, legacy, instruments, governingBodies, playStoreUrl, portal, social, upcomingEvents } from './content';
 import { Icon } from './icons';
 
 export function Home() {
   return (
     <>
       <Hero />
+      <About />
       <Events />
       <Music />
       <Gallery />
       <JoinUs />
-      <Orgaos />
+      <Governance />
       <Doors />
       <InstallApp />
+      <NewsTeaser />
     </>
   );
 }
@@ -73,11 +75,11 @@ function Hero() {
             de Bragança a quem a quiser ouvir.
           </p>
           <div className="hero__cta">
-            <a className="btn btn--primary btn--lg" href="#pedidos">
+            <a className="btn btn--primary btn--lg" href="#request">
               <Icon name="send" />
               Pedir uma atuação
             </a>
-            <a className="btn btn--ghost btn--lg" href="#musica">
+            <a className="btn btn--ghost btn--lg" href="#music">
               <Icon name="play" />
               Ouvir a RTUB
             </a>
@@ -136,15 +138,44 @@ function Skyline({ patternId }: { patternId: string }) {
   );
 }
 
+// ---------- about ----------
+
+function About() {
+  return (
+    <section id="about" className="section section--raise about" aria-labelledby="about-title">
+      <div className="wrap about__grid">
+        <SectionHead id="about-title" eyebrow="Quem somos" title="A tuna masculina de Bragança">
+          Fundada em 1991 no então IPB, hoje UPB, a RTUB junta estudantes à volta da guitarra, do bandolim e da capa
+          negra, e leva essa música para a rua.
+        </SectionHead>
+        <ul className="about__points">
+          <li>
+            <h3 className="about__point">Serenatas</h3>
+            <p>À janela, na praça ou no palco, como a tradição académica pede.</p>
+          </li>
+          <li>
+            <h3 className="about__point">Vida académica</h3>
+            <p>Receções, festas e noites que marcam o percurso de quem estuda em Bragança.</p>
+          </li>
+          <li>
+            <h3 className="about__point">Bragança</h3>
+            <p>O castelo no emblema diz de onde vimos e para onde voltamos sempre.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 // ---------- agenda ----------
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function Events() {
   return (
-    <section id="atuacoes" className="section section--raise" aria-labelledby="atuacoes-title">
+    <section id="events" className="section section--raise" aria-labelledby="events-title">
       <div className="wrap">
-        <SectionHead id="atuacoes-title" eyebrow="Agenda" title="Próximas atuações" note="Datas ilustrativas nesta pré-visualização.">
+        <SectionHead id="events-title" eyebrow="Agenda" title="Próximas atuações" note="Datas ilustrativas nesta pré-visualização.">
           Os próximos palcos, praças e salões onde a tuna vai tocar.
         </SectionHead>
         {upcomingEvents.length === 0 ? (
@@ -178,6 +209,21 @@ function Events() {
             })}
           </ol>
         )}
+        <aside className="fitab" aria-labelledby="fitab-title">
+          <div>
+            <p className="eyebrow">O festival da casa</p>
+            <h3 id="fitab-title" className="fitab__title">
+              FITAB
+            </h3>
+          </div>
+          <div className="fitab__body">
+            <p>
+              O Festival Internacional de Tunas Académicas de Bragança é organizado pela RTUB todos os anos e traz à
+              cidade tunas de várias academias, dentro e fora do país.
+            </p>
+            <p className="note">As datas de cada edição são anunciadas nas redes da RTUB.</p>
+          </div>
+        </aside>
         <MoreLink href={legacy.events}>Agenda completa</MoreLink>
       </div>
     </section>
@@ -191,10 +237,10 @@ function Music() {
   const latest = albums[albums.length - 1];
 
   return (
-    <section id="musica" className="section" aria-labelledby="musica-title">
+    <section id="music" className="section" aria-labelledby="music-title">
       <div className="wrap split">
         <div>
-          <SectionHead id="musica-title" eyebrow="Discografia" title="Quatro discos, uma só voz">
+          <SectionHead id="music-title" eyebrow="Discografia" title="Quatro discos, uma só voz">
             Temas tradicionais e originais, gravados entre 1995 e 2013 por sucessivas gerações de tunos.
           </SectionHead>
           <ol className="discs">
@@ -207,7 +253,7 @@ function Music() {
             ))}
           </ol>
           <ul className="chips" aria-label="Instrumentos">
-            {naipes.map((n) => (
+            {instruments.map((n) => (
               <li key={n} className="chip">
                 {n}
               </li>
@@ -243,10 +289,10 @@ function Music() {
 
 function Gallery() {
   return (
-    <section id="galeria" className="section section--raise" aria-labelledby="galeria-title">
+    <section id="gallery" className="section section--raise" aria-labelledby="gallery-title">
       <div className="wrap">
         <SectionHead
-          id="galeria-title"
+          id="gallery-title"
           eyebrow="Galeria"
           title="Em palco e fora dele"
           note="Ilustrações de pré-visualização: as fotografias estão na galeria atual."
@@ -271,10 +317,10 @@ function Gallery() {
 
 function JoinUs() {
   return (
-    <section className="section join" aria-labelledby="entrar-title">
+    <section className="section join" aria-labelledby="join-title">
       <div className="wrap split">
         <div>
-          <SectionHead id="entrar-title" eyebrow="Novos elementos" title="Há sempre lugar para mais uma voz">
+          <SectionHead id="join-title" eyebrow="Novos elementos" title="Há sempre lugar para mais uma voz">
             Estudas na UPB e gostas de música, de noites longas e de boa companhia? Vem a um ensaio e conhece a
             tuna por dentro.
           </SectionHead>
@@ -310,20 +356,20 @@ function JoinUs() {
 
 // ---------- órgãos sociais ----------
 
-function Orgaos() {
+function Governance() {
   return (
-    <section id="orgaos" className="section section--raise" aria-labelledby="orgaos-title">
+    <section id="governance" className="section section--raise" aria-labelledby="governance-title">
       <div className="wrap">
-        <SectionHead id="orgaos-title" eyebrow="Quem conduz a tuna" title="Órgãos Sociais">
+        <SectionHead id="governance-title" eyebrow="Quem conduz a tuna" title="Órgãos Sociais">
           Quatro órgãos, renovados a cada ano letivo, e um Ensaiador que dá o tom aos ensaios. Os nomes do mandato em
           curso estão na página dos Órgãos Sociais.
         </SectionHead>
-        <ul className="orgaos">
-          {orgaosSociais.map((o) => (
-            <li key={o.name} className="orgao">
-              <Icon name="bank" className="orgao__icon" />
-              <h3 className="orgao__name">{o.name}</h3>
-              <ul className="orgao__roles">
+        <ul className="governance">
+          {governingBodies.map((o) => (
+            <li key={o.name} className="governance__card">
+              <Icon name="bank" className="governance__icon" />
+              <h3 className="governance__name">{o.name}</h3>
+              <ul className="governance__roles">
                 {o.roles.map((r) => (
                   <li key={r}>{r}</li>
                 ))}
@@ -337,15 +383,15 @@ function Orgaos() {
   );
 }
 
-// ---------- pedidos + members ----------
+// ---------- request + members ----------
 
 function Doors() {
   return (
-    <section id="pedidos" className="section" aria-labelledby="pedidos-title">
+    <section id="request" className="section" aria-labelledby="request-title">
       <div className="wrap doors">
         <div className="door door--request">
           <p className="eyebrow">Pedidos</p>
-          <h2 id="pedidos-title" className="section__title">
+          <h2 id="request-title" className="section__title">
             Leve a RTUB ao seu evento
           </h2>
           <p className="door__lead">
@@ -428,6 +474,25 @@ function InstallApp() {
             <p>No Chrome ou no Edge, o ícone de instalar surge na barra de endereço quando o navegador o permite.</p>
           </li>
         </ol>
+      </div>
+    </section>
+  );
+}
+
+// ---------- news (placeholder only) ----------
+
+/**
+ * "Novidades" is not built yet: no route, API or storage. This strip only says it is coming and
+ * stays deliberately small; the plan (future /portal/news) is in docs/react-portal-pilot.md.
+ */
+function NewsTeaser() {
+  return (
+    <section className="news-teaser" aria-labelledby="news-title">
+      <div className="wrap news-teaser__inner">
+        <h2 id="news-title" className="news-teaser__title">
+          Novidades <span className="tag">Em breve</span>
+        </h2>
+        <p>Anúncios, crónicas de atuações e fotografias, publicados pela própria RTUB.</p>
       </div>
     </section>
   );

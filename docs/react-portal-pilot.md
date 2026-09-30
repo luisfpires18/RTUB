@@ -13,8 +13,27 @@ The portal is **public**: an overview of RTUB, public performances, music, the c
 Sociais, the gallery, performance requests and, later, a public Feed. The **member area is only for
 RTUB members**: there are no public accounts - the tuna creates each member's login. Portal copy and
 layout follow that: public actions ("Pedir atuação") lead; the members link is quiet ("Membros" /
-"A minha conta") and always opens `/portal/perfil`, which says the area is reserved before offering
+"A minha conta") and always opens `/portal/profile`, which says the area is reserved before offering
 the login. Never present login or registration as a public feature.
+
+## Naming
+
+User-facing text is Portuguese. Code, routes, URL fragments, files, components, CSS classes, APIs,
+DTOs and branches are English: "Novidades" on screen, `/portal/news` in the URL; "Pedidos" on
+screen, `/portal/request` and `#request`. (Task 002 renamed the earlier `/portal/privacidade`,
+`/portal/perfil` and `/portal/pedidos`; none had reached production.)
+
+## Home page and navigation
+
+Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (with the FITAB
+highlight) → Música → Galeria → Junta-te a nós → Órgãos Sociais → Pedidos + member area → install
+the app → a small "Novidades · Em breve" line. The top bar stays short: **Atuações, Música, Galeria,
+Órgãos Sociais**, the **"Pedir atuação"** call to action, and the quiet members link. Junta-te,
+FITAB, Novidades and the app install are deliberately not in the top bar (footer or home anchors).
+
+Kept off the home page on purpose: the full Hierarquia (Leitão → Caloiro → Tuno → Magister) card
+grid and the long "Sobre nós" text of the current site - too internal for a public front page. The
+member categories may later get a dedicated public "Conhece a Tuna" page or live in the member area.
 
 ## Route ownership
 
@@ -24,9 +43,9 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | Path | Owner | Notes |
 | --- | --- | --- |
 | `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
-| `/portal/privacidade` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
-| `/portal/perfil` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
-| `/portal/pedidos` | **React** (002) | Request preparation; submission hands off to the Blazor `/request` (see Request migration). |
+| `/portal/privacy` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
+| `/portal/profile` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
+| `/portal/request` | **React** (002) | Request preparation; submission hands off to the Blazor `/request` (see Request migration). |
 | `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
 | `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
 | any other `/portal/*` | nobody | 404. POST/PUT to the two pages → 405. |
@@ -98,7 +117,7 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
 
 - **Signing in and out stay Blazor.** `/login` posts to the antiforgery-protected, rate-limited
   `POST /auth/login`, which already honours a local `returnUrl`; the portal sends visitors to
-  `/login?returnUrl=/portal/perfil`. Sign-out is a POST from the Blazor layout with its own token;
+  `/login?returnUrl=/portal/profile`. Sign-out is a POST from the Blazor layout with its own token;
   the portal only points to it.
 - **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
   `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
@@ -106,7 +125,7 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
   birth date, roles, IDs or other users. Expelled or deleted members arrive anonymous: the cookie
   validator rejects their session on every request. Pinned by `AccountEndpointTests`.
 - React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header and menu
-  show "Entrar" or "A minha conta", and `/portal/perfil` has loading, error (retry), signed-out and
+  show "Entrar" or "A minha conta", and `/portal/profile` has loading, error (retry), signed-out and
   signed-in states. Unknown or failed session state falls back to "Entrar".
 - Authorization is unchanged: nothing in React grants or hides access; every member page still
   enforces its own rules in Blazor.
@@ -124,7 +143,7 @@ Why React does not submit yet: an anonymous JSON endpoint is far easier to scrip
 and each submission fans out to every admin's phone and the RTUB inbox. Doing it safely needs a
 rate-limit policy, but the only one today (login) has a global rejection handler with a
 login-specific message - changing it touches login. And the orchestration lives in the component,
-so a second entry point would duplicate it instead of sharing it. `/portal/pedidos` therefore
+so a second entry point would duplicate it instead of sharing it. `/portal/request` therefore
 prepares the visitor and links to `/request`; `RequestSubmission` in `api.ts` fixes the contract.
 
 Plan for the slice that migrates it:
@@ -133,7 +152,7 @@ Plan for the slice that migrates it:
 2. `POST /api/requests`, form-bound so the framework enforces antiforgery (as `/auth/login` does),
    token issued to the React page; a per-IP fixed-window policy with per-policy rejection text.
 3. Honeypot field and server-side limits; `400` with field errors, `429` when throttled.
-4. React form on `/portal/pedidos` with the same rules; `/request` stays until the owner retires it.
+4. React form on `/portal/request` with the same rules; `/request` stays until the owner retires it.
 5. Tests: missing token → 400, throttled → 429, invalid → 400, success → one row, one email, one push fan-out.
 
 ## Launch splash
@@ -192,13 +211,16 @@ browser: Chrome menu → Instalar app / Adicionar ao ecrã principal, when offer
 install icon in Chrome/Edge, when offered. No promise about notifications. Manifest, service worker
 and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`).
 
-## Feed (planning only - nothing built)
+## News / "Novidades" (planning only - nothing built)
 
-A future public Feed: posts/topics published by Admins, readable by anyone and shareable like
-public social posts - announcements, event recaps, photos, news. Not in the UI yet; no table, API or
-admin screen exists. To decide before building: moderation and edit history, visibility (public vs
-members-only posts), attachments and image storage (R2), sharing metadata (OpenGraph/SEO, stable
-URLs), the admin creation flow, and whether posts notify members.
+Public label "Novidades"; code name **News** ("Feed" is the concept). Future routes:
+`/portal/news` (list) and `/portal/news/{slug}` (one post, with its own shareable URL). Posts are
+created by Admins and readable by anyone: announcements, event recaps, photos, news and relevant
+topics, shareable like public Facebook/WhatsApp posts. To decide before building: moderation and edit
+history, visibility (public vs members-only), images and attachments (R2), sharing metadata
+(OpenGraph, SEO), notifications, and the admin publishing flow. Today there is only a small "Em
+breve" line at the bottom of the home page: no route, table, migration, API or admin screen, and no
+footer link until a route exists.
 
 ## Next recommended slice
 

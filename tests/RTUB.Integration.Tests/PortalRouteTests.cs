@@ -7,7 +7,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Route ownership for the React public-portal pilot (React track 001, docs/react-portal-pilot.md).
-/// React owns exactly /portal, /portal/privacidade, /portal/perfil and /portal/pedidos, served from the committed build in
+/// React owns exactly /portal, /portal/privacy, /portal/profile and /portal/request, served from the committed build in
 /// wwwroot/portal; every other page, including the public ones the portal links to, stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
@@ -19,9 +19,9 @@ public class PortalRouteTests : IntegrationTestBase
     [Theory]
     [InlineData("/portal")]
     [InlineData("/portal/")]
-    [InlineData("/portal/privacidade")]
-    [InlineData("/portal/perfil")]
-    [InlineData("/portal/pedidos")]
+    [InlineData("/portal/privacy")]
+    [InlineData("/portal/profile")]
+    [InlineData("/portal/request")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -65,6 +65,12 @@ public class PortalRouteTests : IntegrationTestBase
         var client = Factory.CreateClient();
 
         (await client.GetAsync("/portal/unknown")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // The Portuguese routes of the first drafts were renamed to English before any release.
+        foreach (var old in new[] { "/portal/privacidade", "/portal/perfil", "/portal/pedidos" })
+        {
+            (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
+        }
         (await client.PostAsync("/portal", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
 

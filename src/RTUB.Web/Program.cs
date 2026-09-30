@@ -651,7 +651,7 @@ public class Program
         {
             OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
         };
-        foreach (var route in new[] { "/portal", "/portal/privacidade", "/portal/perfil", "/portal/pedidos" })
+        foreach (var route in new[] { "/portal", "/portal/privacy", "/portal/profile", "/portal/request" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

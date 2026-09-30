@@ -8,9 +8,9 @@ import './styles.css';
 // the routing the portal needs. Links between them are ordinary full navigations; a client router
 // is a decision for when routes stop being a short, fixed list.
 const pages: Record<string, ReturnType<typeof lazy>> = {
-  '/portal/privacidade': lazy(() => import('./Privacy')),
-  '/portal/perfil': lazy(() => import('./Profile')),
-  '/portal/pedidos': lazy(() => import('./Pedidos')),
+  '/portal/privacy': lazy(() => import('./Privacy')),
+  '/portal/profile': lazy(() => import('./Profile')),
+  '/portal/request': lazy(() => import('./Request')),
 };
 const Page = pages[location.pathname.replace(/\/+$/, '')];
 

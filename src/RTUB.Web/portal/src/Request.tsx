@@ -7,20 +7,20 @@ import { Icon } from './icons';
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
 
 /**
- * /portal/pedidos - prepares a request and hands off to the Blazor /request form, which still owns
+ * /portal/request - prepares a request and hands off to the Blazor /request form, which still owns
  * submission (persistence, admin push and the email to RTUB). The React form arrives with the
  * POST endpoint planned in docs/react-portal-pilot.md; nothing here pretends to submit.
  */
-export default function Pedidos() {
+export default function RequestPage() {
   useEffect(() => {
     document.title = 'Pedir uma atuação · RTUB';
   }, []);
 
   return (
-    <section className="page wrap" aria-labelledby="pedidos-page-title">
+    <section className="page wrap" aria-labelledby="request-page-title">
       <header className="page__head">
         <p className="eyebrow">Pedidos</p>
-        <h1 id="pedidos-page-title" className="page__title">
+        <h1 id="request-page-title" className="page__title">
           Pedir uma atuação
         </h1>
         <p className="page__lead">
@@ -60,8 +60,8 @@ export default function Pedidos() {
           </ul>
         </div>
 
-        <aside className="request__go" aria-labelledby="pedidos-go-title">
-          <h2 id="pedidos-go-title" className="request__title">
+        <aside className="request__go" aria-labelledby="request-go-title">
+          <h2 id="request-go-title" className="request__title">
             Pronto para avançar?
           </h2>
           <p>

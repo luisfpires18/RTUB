@@ -49,7 +49,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RTUB.Web/portal/` | React 19 + Vite source of the public portal (`/portal`, `/portal/privacidade`). Not published. |
+| `src/RTUB.Web/portal/` | React 19 + Vite source of the public portal (`/portal`, `/portal/privacy`). Not published. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (`/portal` mapping) | Route ownership: the only paths React owns. |
 | `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React. |
