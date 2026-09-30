@@ -37,7 +37,8 @@
                 <!-- 2. Pedidos (Public only) -->
                 <AuthorizeView>
                     <NotAuthorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        @* The public request form is the React /portal/request (React track 003); a full page load, not Blazor routing. *@
+                        <li class="nav-item"><a class="nav-link" href="/portal/request" data-enhance-nav="false"><i class="bi bi-envelope"></i> Pedidos</a></li>
                     </NotAuthorized>
                 </AuthorizeView>
 

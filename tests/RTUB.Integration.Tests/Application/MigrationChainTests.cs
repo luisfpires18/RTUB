@@ -75,6 +75,29 @@ public class MigrationChainTests : IDisposable
     }
 
     [Fact]
+    public void Model_HasNoChangesThatAMigrationWouldHaveToCapture()
+    {
+        using var context = CreateContext();
+
+        // React work adds DTOs and APIs, not schema: the EF model must still match the latest
+        // migration snapshot exactly (React track 003 reused Request with no migration).
+        context.Database.HasPendingModelChanges().Should().BeFalse(
+            "a model change without its migration would silently diverge from every deployed database");
+    }
+
+    [Fact]
+    public async Task MigratedDatabase_RequestsTableIsUnchanged()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        // The React request form maps onto exactly these columns; none were added for it.
+        (await ColumnNamesAsync(context, "Requests")).Should().BeEquivalentTo(
+            "Id", "Name", "Email", "Phone", "EventType", "PreferredDate", "PreferredEndDate", "IsDateRange",
+            "Location", "Message", "Status", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
+    }
+
+    [Fact]
     public async Task MigratedDatabase_HasApplicationUserMembershipDateColumns()
     {
         await using var context = CreateContext();

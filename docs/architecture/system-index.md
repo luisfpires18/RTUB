@@ -53,6 +53,8 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (`/portal` mapping) | Route ownership: the only paths React owns. |
 | `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React. |
+| `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
+| `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, shared by Blazor `/request` and the API. |
 | `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
 
 ## Push notifications

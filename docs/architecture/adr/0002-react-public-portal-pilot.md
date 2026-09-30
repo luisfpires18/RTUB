@@ -33,6 +33,6 @@ React. Details: `docs/react-portal-pilot.md`.
   prove the committed bundle matches its source (not yet wired - see the pilot doc).
 - Content that needs data (agenda, albums, gallery) is illustrative until a read-only public API
   exists. Promoting the portal to `/` also needs a decision on the PWA `start_url`.
-- Migrating authenticated pages is not covered: it needs an authorization model that does not
+- Moving authenticated pages to React is not covered: it needs an authorization model that does not
   depend on Blazor `AuthenticationState`. This ADR should be accepted, amended or superseded after
   the pilot is reviewed on DEV.

@@ -46,6 +46,20 @@ public static class ServiceCollectionExtensions
     /// <summary>Matched to <c>Lockout.DefaultLockoutTimeSpan</c> so both limits tell one story.</summary>
     private const double DefaultLoginWindowMinutes = 5;
 
+    /// <summary>Name of the rate limiting policy applied to <c>POST /api/public/requests</c>.</summary>
+    public const string PublicRequestRateLimitPolicy = "public-requests";
+
+    private const string PublicRequestRateLimitSection = "PublicRequestRateLimit";
+
+    /// <summary>
+    /// Anonymous performance requests allowed per client IP per window. Each one saves a row, pushes
+    /// to every Admin and Owner and emails RTUB; a person books a performance once, so a handful per
+    /// hour never gets in the way of a real request and caps a script well below nuisance level.
+    /// </summary>
+    private const int DefaultPublicRequestPermitLimit = 5;
+
+    private const double DefaultPublicRequestWindowMinutes = 60;
+
     /// <summary>
     /// Cache-key prefix for the <c>LastLoginDate</c> write throttle, keyed by <b>user id</b>.
     /// Deliberately separate from the authentication-log throttle in the same handler: one limits
@@ -165,6 +179,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISongPlayService, SongPlayService>();
         services.AddScoped<ISongValidationService, SongValidationService>();
         services.AddScoped<IRequestService, RequestService>();
+        services.AddScoped<IPublicRequestService, PublicRequestService>();
         services.AddScoped<ISlideshowService, SlideshowService>();
         services.AddScoped<ILabelService, LabelService>();
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
@@ -601,7 +616,8 @@ public static class ServiceCollectionExtensions
                         QueueLimit = 0
                     }));
 
-            // Only the login policy exists, so this callback is reached only by a login rejection.
+            // One handler for every policy, so it answers per policy: the login form keeps its plain
+            // text, the public request API gets problem JSON that the React form can read.
             options.OnRejected = async (context, cancellationToken) =>
             {
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
@@ -611,10 +627,51 @@ public static class ServiceCollectionExtensions
                 }
 
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+                var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+                if (policy == PublicRequestRateLimitPolicy)
+                {
+                    await context.HttpContext.Response.WriteAsJsonAsync(
+                        new Microsoft.AspNetCore.Mvc.ProblemDetails
+                        {
+                            Status = StatusCodes.Status429TooManyRequests,
+                            Title = "Recebemos vários pedidos seguidos deste dispositivo. Tente novamente mais tarde."
+                        },
+                        (System.Text.Json.JsonSerializerOptions?)null,
+                        "application/problem+json",
+                        cancellationToken);
+                    return;
+                }
+
                 await context.HttpContext.Response.WriteAsync(
                     "Demasiadas tentativas de login. Tente novamente mais tarde.", cancellationToken);
             };
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the per-client rate limiter for <c>POST /api/public/requests</c> (React track 003).
+    /// Same partitioning as <see cref="AddLoginRateLimiting"/> - <c>RemoteIpAddress</c> only, never a
+    /// caller-supplied header - with its own budget and its own rejection body (see OnRejected there).
+    /// </summary>
+    public static IServiceCollection AddPublicRequestRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(PublicRequestRateLimitSection);
+        var permitLimit = section.GetValue("PermitLimit", DefaultPublicRequestPermitLimit);
+        var window = TimeSpan.FromMinutes(section.GetValue("WindowMinutes", DefaultPublicRequestWindowMinutes));
+
+        services.AddRateLimiter(options =>
+            options.AddPolicy(PublicRequestRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = window,
+                        QueueLimit = 0
+                    })));
 
         return services;
     }

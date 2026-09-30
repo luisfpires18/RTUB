@@ -1629,7 +1629,7 @@ main:focus {
   align-items: start;
 }
 
-.request__prep,
+.request__form-card,
 .request__go {
   display: grid;
   gap: 18px;
@@ -1637,7 +1637,7 @@ main:focus {
   border-radius: var(--radius-lg);
 }
 
-.request__prep {
+.request__form-card {
   border: 1px solid var(--line);
   background: var(--bg-raise);
 }
@@ -1667,26 +1667,147 @@ main:focus {
   color: #e2d6ff;
 }
 
-.request__prep .request__title:not(:first-child) {
-  margin-top: 12px;
+.request__alt {
+  margin-top: 4px;
+  color: #d9ccf5;
 }
 
-.checklist {
+.request__go a:not(.btn) {
+  color: inherit;
+}
+
+/* ---------- request form ---------- */
+
+.form {
   display: grid;
-  gap: 12px;
+  gap: 20px;
 }
 
-.checklist li {
+.form__row {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .form__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form__field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.form__field label {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.form__field input,
+.form__field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.4 var(--font-body);
+  transition: border-color 160ms ease;
+}
+
+.form__field textarea {
+  resize: vertical;
+  min-height: 132px;
+}
+
+.form__field input:focus-visible,
+.form__field textarea:focus-visible {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.form__field--error input,
+.form__field--error textarea {
+  border-color: #ff8f86;
+}
+
+.form__hint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.form__error {
+  color: #ffb3ad;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form__check {
   display: flex;
+  align-items: center;
   gap: 12px;
-  align-items: baseline;
+  min-height: 44px;
   color: var(--ink-soft);
+  cursor: pointer;
 }
 
-.checklist .icon {
-  flex: none;
+.form__check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--purple);
+}
+
+.form__banner {
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid #ff8f86;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.form__banner--throttled,
+.form__banner--expired {
+  border-left-color: #f5c46b;
+}
+
+.form__submit {
+  justify-self: start;
+}
+
+.spinner--small {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+/* Honeypot: off-screen, not display:none (which some bots detect). */
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.request__done {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+
+.request__done-icon {
+  font-size: 2rem;
   color: var(--purple-ink);
-  transform: translateY(2px);
+}
+
+.request__done-title {
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
 }
 
 @media (min-width: 900px) {
