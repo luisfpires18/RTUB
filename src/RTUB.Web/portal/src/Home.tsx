@@ -483,7 +483,7 @@ function InstallApp() {
 
 /**
  * "Novidades" is not built yet: no route, API or storage. This strip only says it is coming and
- * stays deliberately small; the plan (future /portal/news) is in docs/react-portal-pilot.md.
+ * stays deliberately small; the plan (future /news) is in docs/react-portal-pilot.md.
  */
 function NewsTeaser() {
   return (

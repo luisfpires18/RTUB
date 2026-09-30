@@ -17,7 +17,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
     <div class="container-xxl rtub-wide px-xxl-4">
-        <a class="navbar-brand" href="/">RTUB</a>
+        <a class="navbar-brand" href="/" data-enhance-nav="false">RTUB</a>
 
         <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#topNav" aria-controls="topNav" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -37,8 +37,8 @@
                 <!-- 2. Pedidos (Public only) -->
                 <AuthorizeView>
                     <NotAuthorized>
-                        @* The public request form is the React /portal/request (React track 003); a full page load, not Blazor routing. *@
-                        <li class="nav-item"><a class="nav-link" href="/portal/request" data-enhance-nav="false"><i class="bi bi-envelope"></i> Pedidos</a></li>
+                        @* The public request form is the React /request (React track 003); a full page load, not Blazor routing. *@
+                        <li class="nav-item"><a class="nav-link" href="/request" data-enhance-nav="false"><i class="bi bi-envelope"></i> Pedidos</a></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
@@ -216,7 +216,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/profile">
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/member/profile">
                                         <i class="bi bi-person-circle"></i>
                                         <span>Meu Perfil</span>
                                     </a>
@@ -266,7 +266,7 @@
         <p class="footer-text">
             &copy; 2025 Real Tuna Universitária de Bragança.
             <span class="mx-2">|</span>
-            <a href="/privacy" class="footer-link">Política de Privacidade</a>
+            <a href="/privacy" class="footer-link" data-enhance-nav="false">Política de Privacidade</a>
         </p>
     </div>
 </footer>

@@ -33,6 +33,9 @@ React. Details: `docs/react-portal-pilot.md`.
   prove the committed bundle matches its source (not yet wired - see the pilot doc).
 - Content that needs data (agenda, albums, gallery) is illustrative until a read-only public API
   exists. Promoting the portal to `/` also needs a decision on the PWA `start_url`.
+  **Amended by React track 004 (DEV only):** React owns `/`, `/privacy`, `/profile` and `/request`;
+  the `/portal...` URLs redirect there; `start_url` stays `/?utm_source=pwa` and opens the React
+  home. See `docs/react-portal-pilot.md`.
 - Moving authenticated pages to React is not covered: it needs an authorization model that does not
   depend on Blazor `AuthenticationState`. This ADR should be accepted, amended or superseded after
   the pilot is reviewed on DEV.

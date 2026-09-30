@@ -2,24 +2,22 @@
 // of facts (dates, names, album titles, positions), never of sentences - PortalCopyOriginalityTests
 // enforces that. Nothing here is read from the database; see docs/react-portal-pilot.md.
 
-/** Legacy Blazor routes the portal links out to. They stay Blazor-owned during the pilot. */
+/** Blazor routes the portal links out to: temporary bridges until each module has a React version. */
 export const legacy = {
-  home: '/',
   login: '/login',
-  request: '/request',
   events: '/events',
   music: '/music',
   gallery: '/gallery',
   roles: '/roles',
-  profile: '/profile',
+  memberProfile: '/member/profile',
 } as const;
 
-/** React-owned routes (Program.cs maps exactly these). */
+/** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
 export const portal = {
-  home: '/portal',
-  privacy: '/portal/privacy',
-  profile: '/portal/profile',
-  request: '/portal/request',
+  home: '/',
+  privacy: '/privacy',
+  profile: '/profile',
+  request: '/request',
 } as const;
 
 /** Sign in through the Blazor login, then come back to the React profile. */

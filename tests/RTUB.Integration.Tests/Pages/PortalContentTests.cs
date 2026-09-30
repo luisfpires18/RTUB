@@ -61,7 +61,7 @@ public class PortalContentTests : IntegrationTestBase
     [Theory]
     [InlineData("/")]
     [InlineData("/roles")]
-    [InlineData("/portal/request")]
+    [InlineData("/request")]
     public async Task PublicPages_ContainProperContentType(string url)
     {
         // Arrange & Act
@@ -96,7 +96,7 @@ public class PortalContentTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Contain("navbar", "should contain navigation bar");
+        content.Should().Contain("id=\"root\"", "/ is the React public shell");
         content.Length.Should().BeGreaterThan(100, "should have substantial content");
     }
 }

@@ -368,11 +368,6 @@ main:focus {
   }
 }
 
-.pilot__link {
-  font-weight: 600;
-  text-underline-offset: 3px;
-}
-
 /* ---------- header ---------- */
 
 .header {

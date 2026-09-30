@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import { portal } from './content';
 
-// The text is a verbatim copy of Pages/Public/Privacy.razor, which stays the legal source and keeps
-// serving /privacy. PortalPrivacyParityTests fails if the two drift apart.
+// The legal source of the Privacy Policy served at /privacy, carried verbatim from the retired Blazor
+// Pages/Public/Privacy.razor (React track 004). Edit it as legal text, not as portal copy.
 const toc = [
   'Introdução',
   'Dados Recolhidos',
@@ -22,7 +23,7 @@ export default function Privacy() {
   return (
     <article className="doc wrap" aria-labelledby="privacy-title">
       <header className="doc__head">
-        <a className="doc__back" href="/portal">
+        <a className="doc__back" href={portal.home}>
           Portal RTUB
         </a>
         <h1 id="privacy-title" className="doc__title">

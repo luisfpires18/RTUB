@@ -1,17 +1,34 @@
-# React public portal (React track, tasks 001–003)
+# React public portal (React track, tasks 001–004)
 
-A bounded pilot: a React public portal served by the existing ASP.NET Core host, next to the Blazor
-app, which keeps every other page. Not the start of a rewrite. Decision record:
+A React public shell served by the existing ASP.NET Core host, next to the Blazor app, which keeps
+every page React does not own yet. Since task 004 it is the **DEV public baseline**: React owns `/`.
+Decision record:
 `docs/architecture/adr/0002-react-public-portal-pilot.md`.
 
 The React track numbers its own tasks from **001** (`feat/001/react-portal-pilot`), separately
 from the repository's global unit sequence.
 
-**Replacement rule.** Each module moves to React + API; once its React version works, the legacy
-Blazor UI path for that module is retired (removed, with a redirect so old links keep working).
-DEV runs hybrid meanwhile; the `master`/PROD cutover happens later, once `dev` no longer depends on
-Blazor UI pages. Wording: "migration" means EF Core/database migrations only - never in UI, routes,
-feature names, page titles or user-facing copy.
+DEV runs hybrid; the `master`/PROD cutover happens later, once `dev` no longer depends on Blazor UI
+pages. Task 004 is a DEV change only.
+
+## Rules for every React module
+
+**Replacement rule.** Once a module has a reviewed React version, its Blazor UI is retired: the page
+is removed, its old route redirects to the React one when it differs, and Blazor UI tests that
+pinned the old page are removed or rewritten. Backend services and entities stay while they are
+still useful.
+
+**Testing rule.** Old tests are a behavioural reference only; never copy-paste them. React and API
+behaviour gets new tests written from scratch. Email, push, storage and other external effects run
+against fakes/stubs. Every module includes negative and security cases (refused tokens, bad input,
+anonymous callers, rate limits, what must *not* be exposed).
+
+**Database/schema rule.** A React replacement does not by itself justify a database change. DTOs and
+API contracts can be clean and new; persisted EF models and tables stay compatible with the real
+`app.db`. If a schema change looks necessary, stop and report before making it.
+
+**Wording rule.** "Migration" means EF Core/database migrations only, and developer-only technical
+context (docs, tests). Never in UI, routes, feature names, page titles or user-facing copy.
 
 ## Audience
 
@@ -19,15 +36,15 @@ The portal is **public**: an overview of RTUB, public performances, music, the c
 Sociais, the gallery, performance requests and, later, a public Feed. The **member area is only for
 RTUB members**: there are no public accounts - the tuna creates each member's login. Portal copy and
 layout follow that: public actions ("Pedir atuação") lead; the members link is quiet ("Membros" /
-"A minha conta") and always opens `/portal/profile`, which says the area is reserved before offering
+"A minha conta") and always opens `/profile`, which says the area is reserved before offering
 the login. Never present login or registration as a public feature.
 
 ## Naming
 
 User-facing text is Portuguese. Code, routes, URL fragments, files, components, CSS classes, APIs,
-DTOs and branches are English: "Novidades" on screen, `/portal/news` in the URL; "Pedidos" on
-screen, `/portal/request` and `#request`. (Task 002 renamed the earlier `/portal/privacidade`,
-`/portal/perfil` and `/portal/pedidos`; none had reached production.)
+DTOs and branches are English: "Novidades" on screen, `/news` in the URL; "Pedidos" on screen,
+`/request` and `#request`. (Task 002 renamed the earlier `/portal/privacidade`, `/portal/perfil` and
+`/portal/pedidos`; task 004 dropped the `/portal` prefix. None had reached production.)
 
 ## Home page and navigation
 
@@ -43,29 +60,47 @@ member categories may later get a dedicated public "Conhece a Tuna" page or live
 
 ## Route ownership
 
-Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD only). Pinned by
-`tests/RTUB.Integration.Tests/PortalRouteTests.cs`.
+Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD only; the `/portal...`
+redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTests.cs`.
 
-| Path | Owner | Notes |
+| Path | Class | Notes |
 | --- | --- | --- |
-| `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
-| `/portal/privacy` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
-| `/portal/profile` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
-| `/portal/request` | **React** (003) | The only public performance request form (see Request). |
-| `/request` | redirect (003) | Retired Blazor page; `302` → `/portal/request`, query string kept. GET/HEAD only. |
-| `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
-| `GET /api/public/antiforgery-token`, `POST /api/public/requests` | ASP.NET (003) | `Endpoints/PublicRequestEndpoints.cs`: request submission for React. |
-| `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
-| any other `/portal/*` | nobody | 404. POST/PUT to the two pages → 405. |
-| everything else | **Blazor** | Unchanged for now: `/`, `/login`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, `/profile`, sign-out, the admin `/requests` page and every other member/admin page. |
+| `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member entry. The Blazor `Index.razor` was retired. |
+| `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are, "Abrir a área de membros" (`/events`) and "Editar o perfil" (`/member/profile`). |
+| `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
+| `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
+| `/portal/privacy` | **Redirect** → `/privacy` | Same. |
+| `/portal/profile` | **Redirect** → `/profile` | Same. |
+| `/portal/request` | **Redirect** → `/request` | Same. |
+| `/music` | **Temporary Blazor bridge** | Until Music has a React version. |
+| `/gallery` | **Temporary Blazor bridge** | Until Gallery has a React version. |
+| `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
+| `/roles` | **Temporary Blazor bridge** | Órgãos Sociais, until Governance has a React version. |
+| `/login`, `POST /auth/login`, `POST /auth/logout` | **Temporary Blazor bridge** | Signing in and out stay Blazor (see Session and profile). |
+| `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
+| every other member/admin page | **Blazor member/admin, pending** | `/rehearsals`, `/messages`, `/members`, the admin `/requests` page, etc. Unchanged. |
+| `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
+| `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form. |
+| `POST /api/public/requests` | **API** (003) | The only public request submission path. |
+| `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
+| any other `/portal/*` | nobody | 404. |
 
 The shell `index.html` is served `Cache-Control: no-cache` so a deploy is picked up at once. It
-carries the enforced CSP like every HTML document. Nothing in Blazor links to `/portal` yet; the
-portal links out to Blazor with plain full-page links.
+carries the enforced CSP like every HTML document. Links cross the React/Blazor boundary as plain
+full-page loads; Blazor links into React routes carry `data-enhance-nav="false"` so Blazor's
+enhanced navigation does not try to patch a React page. No app-facing link points to `/portal`
+(guarded by `ReactSourcesAndBuild_LinkOnlyToCleanRoutes`).
+
+**`/` side effects (task 004).** The Blazor home also showed the push-notification opt-in prompt,
+the custom login popup and the Play Store prompt, and gave signed-in members their bottom nav. None of
+that renders on the React `/`; the installed app (`start_url` `/?utm_source=pwa`) and push
+notifications without a URL now open the React home. Members reach their area through
+"A minha conta" → `/profile`, or any Blazor page's own navigation.
 
 ## Before any production release
 
-`/portal` ships with whatever `dev` holds at the next `dev → master` release. The **"Pré-visualização"
+The React public shell ships with whatever `dev` holds at the next `dev → master` release. The **"Pré-visualização"
 banner and the illustrative agenda/gallery must be removed, hidden, put behind a feature flag, or
 explicitly accepted by the owner before that release.** Until then the pilot is a DEV preview.
 
@@ -97,11 +132,11 @@ below. Sources are pinned to LF so the build is byte-identical on Windows and Li
   `<style precedence>` path is never used).
 - **PWA identity unchanged.** Same `manifest.webmanifest` (id `/`, `start_url` `/?utm_source=pwa`),
   same Apple meta, same single service-worker registration (`/js/sw-register.js`). The service
-  worker is untouched: `/portal` navigations are network-only with the offline fallback, the hashed
+  worker is untouched: React page navigations are network-only with the offline fallback, the hashed
   assets stale-while-revalidate like any JS/CSS.
-- **No business logic, no new API, no database change.** The only live call is the existing
-  `GET /api/version` (footer). Login and Pedidos are links to the Blazor `/login` and `/request`,
-  which keep the antiforgery, rate limiting, validation and email rules.
+- **No business logic in React, no database change.** Task 001 called only `GET /api/version`
+  (footer); 002 and 003 added the two APIs in the route table. Login stays the Blazor `/login`, which
+  keeps its antiforgery and rate limiting.
 
 ## Copy rule
 
@@ -109,8 +144,8 @@ The current site and app are the reference for structure, tone, page inventory a
 sentences are never copied into the portal**: portal copy is original Portuguese.
 `PortalCopyOriginalityTests` fails if any six-word run of portal copy (text nodes and multi-word
 strings; proper names removed) appears in the Blazor pages, components, seeded labels or static
-HTML. The Privacy Policy is the one exception: it is legal text, kept verbatim, and
-`PortalPrivacyParityTests` fails if it drifts from `Privacy.razor`, which stays the legal source.
+HTML. The Privacy Policy is the one exception: it is legal text, carried verbatim from the retired
+`Privacy.razor`; since task 004 `portal/src/Privacy.tsx` is the only copy and the legal source.
 
 **Institution naming.** Present-day copy (current identity, location, CTAs) says **UPB** /
 *Universidade Politécnica de Bragança*. Historical context (founding, old documents, songs, older
@@ -125,7 +160,7 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
 
 - **Signing in and out stay Blazor.** `/login` posts to the antiforgery-protected, rate-limited
   `POST /auth/login`, which already honours a local `returnUrl`; the portal sends visitors to
-  `/login?returnUrl=/portal/profile`. Sign-out is a POST from the Blazor layout with its own token;
+  `/login?returnUrl=/profile`. Sign-out is a POST from the Blazor layout with its own token;
   the portal only points to it.
 - **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
   `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
@@ -133,17 +168,17 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
   birth date, roles, IDs or other users. Expelled or deleted members arrive anonymous: the cookie
   validator rejects their session on every request. Pinned by `AccountEndpointTests`.
 - React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header and menu
-  show "Entrar" or "A minha conta", and `/portal/profile` has loading, error (retry), signed-out and
+  show "Entrar" or "A minha conta", and `/profile` has loading, error (retry), signed-out and
   signed-in states. Unknown or failed session state falls back to "Entrar".
 - Authorization is unchanged: nothing in React grants or hides access; every member page still
   enforces its own rules in Blazor.
 
 ## Request (task 003: React replacement; legacy Blazor page retired)
 
-React `/portal/request` is **the only public request form**. The legacy Blazor `/request` page
-(`Pages/Public/Request.razor`) and its form were removed; `/request` now redirects to
-`/portal/request` (query string kept, `302` while DEV is hybrid), and the Blazor navbar's "Pedidos"
-link points at the React form directly. There is one submission path:
+React `/request` is **the only public request form**. The legacy Blazor `/request` page
+(`Pages/Public/Request.razor`) and its form were removed in 003; since 004 React serves `/request`
+itself (`/portal/request` redirects there, query string kept, `302` while DEV is hybrid), and the
+Blazor navbar's "Pedidos" link points at the React form directly. There is one submission path:
 **`IPublicRequestService.SubmitAsync`** (Application layer), extracted verbatim from the retired
 page's handler: the `Request` entity's annotations, the date rules of `RequestValidationService`
 (same messages), `RequestService.CreateRequestAsync` (which still pushes to every Admin and Owner),
@@ -198,7 +233,7 @@ event.
 
 ## Install guidance (task 002)
 
-The `#app` section on `/portal` (linked from the footer) shows four short routes. Android: the
+The `#app` section on `/` (linked from the footer) shows four short routes. Android: the
 Google Play listing `https://play.google.com/store/apps/details?id=ipb.pt.rtub.app`, taken from the
 existing `PlayStorePrompt.razor`; its package matches `wwwroot/.well-known/assetlinks.json` (the
 app is a TWA of this site). iPhone/iPad: Safari → Partilhar → Adicionar ao ecrã principal. Android
@@ -209,7 +244,7 @@ and TWA config are untouched; an installed app opens the manifest's `start_url` 
 ## News / "Novidades" (planning only - nothing built)
 
 Public label "Novidades"; code name **News** ("Feed" is the concept). Future routes:
-`/portal/news` (list) and `/portal/news/{slug}` (one post, with its own shareable URL). Posts are
+`/news` (list) and `/news/{slug}` (one post, with its own shareable URL). Posts are
 created by Admins and readable by anyone: announcements, event recaps, photos, news and relevant
 topics, shareable like public Facebook/WhatsApp posts. To decide before building: moderation and edit
 history, visibility (public vs members-only), images and attachments (R2), sharing metadata
@@ -219,14 +254,14 @@ footer link until a route exists.
 
 ## Next recommended slice
 
-Task 004: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
+Task 005: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
 then Gallery, Music and Events - each retiring its legacy Blazor page once the React one works.
 
 ## Next steps (outside this pilot)
 
 - A read-only public API (upcoming public events, public albums, gallery highlights) to replace the
   illustrative content - built on the existing services, not duplicated in React.
-- A client router and an explicit decision on `/` ownership and the PWA `start_url` before the
-  portal replaces the Blazor home.
+- A client router, once the React routes stop being a short, fixed list. (`/` ownership was decided
+  in 004; the PWA `start_url` stays `/?utm_source=pwa` and now opens the React home.)
 - Authenticated pages need a React-usable auth model; today's authorization services depend on
   Blazor `AuthenticationState`.

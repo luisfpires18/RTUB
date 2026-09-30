@@ -3,16 +3,16 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-30_
+_Last updated: 2026-10-01_
 
 ## Phase
-**Open: `feat/003/react-public-request-workflow`** (React track, task 003; from `dev` @ `e5eac4e5`,
-committed locally, not pushed). `/portal/request` is now the real React request form, posting to
-`POST /api/public/requests` (antiforgery, own per-IP rate limit, honeypot, server validation) through
-`IPublicRequestService`. The legacy Blazor `/request` page was retired: `/request` redirects to
-`/portal/request`. No database migration. Details and the Request field audit:
-`docs/react-portal-pilot.md`. Next: review, PR → `dev`, then check on DEV
-that the rate limit sees real client IPs.
+**Open: `feat/004/react-default-public-shell`** (React track, task 004; from `dev` @ `d925545c`,
+committed locally, not pushed; DEV only). React is the DEV public baseline: it owns `/`, `/privacy`,
+`/profile` and `/request`; `/portal`, `/portal/privacy`, `/portal/profile` and `/portal/request` are
+temporary `302` redirects. Blazor `Index.razor` and `Privacy.razor` retired; the Blazor member profile
+editor moved `/profile` → `/member/profile` (owner decision). `/music`, `/gallery`, `/events`,
+`/roles`, `/login` stay as temporary Blazor bridges. No schema change. Route table and the module
+rules (replacement, testing, schema, wording): `docs/react-portal-pilot.md`. Next: review, PR → `dev`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -135,10 +135,20 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 004 (React `/`):
+- The Blazor home was the only place rendering `PushNotificationPrompt`, `LoginPopup` and
+  `PlayStorePrompt`; since 004 nothing shows them (the PWA `start_url` now opens React `/`). Decide
+  whether they move to the React shell or a Blazor layout.
+- Dead since 004 (only `Index.razor` used them): `Components/Portal/*` (AboutUs, JoinUs, History,
+  Hierarchy, Fitab, PortalSectionNav), `wwwroot/js/home.js`, `scrollSpy.js`, the homepage CSS,
+  `PortalContentStyleTests`, `LoginPopupOptions`.
+- Email templates' `PreferencesLink`/`ProfileUrl` (`…/profile`) now land on the React member entry,
+  one tap from the Blazor editor at `/member/profile`.
+
 Raised by React track 001-003 (portal pilot):
 - CI • Build & Test has no Node step for the portal bundle (command in `docs/react-portal-pilot.md`).
-- `/portal`'s preview banner and illustrative content must be removed, flagged or accepted before the
-  next `dev → master` release.
+- The React shell's preview banner and illustrative content (now on `/`) must be removed, flagged or
+  accepted before the next `dev → master` release.
 - `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
 - Real `app.db`: 8 non-dated IDs in `__EFMigrationsHistory` (seen read-only in task 003; unexplained).
 - The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
@@ -147,8 +157,9 @@ Raised by React track 001-003 (portal pilot):
   (`core.autocrlf=true`). CI is unaffected.
 - `MessagesHubTests.SendTypingStarted_WhenUserNotParticipant_DoesNotNotify` fails when its class runs
   from a fresh checkout and passes alone (order-dependent; reproduced at `95441bd6`).
-- A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/`,
-  `/events`, `/music`, `/gallery`, `/roles`); the integration tests' placeholder values avoid it.
+- A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/events`,
+  `/music`, `/gallery`, `/roles`; `/` is React since 004); the integration tests' placeholder values
+  avoid it.
 
 Raised by fix/030 (iOS media association):
 - `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and

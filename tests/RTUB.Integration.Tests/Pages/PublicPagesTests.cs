@@ -118,7 +118,7 @@ public class PublicPagesTests : IntegrationTestBase
         var homeResponse = await _client.GetAsync("/");
 
         // Act - Navigate to each public page
-        var requestsResponse = await _client.GetAsync("/portal/request");
+        var requestsResponse = await _client.GetAsync("/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
@@ -131,7 +131,7 @@ public class PublicPagesTests : IntegrationTestBase
     public async Task PublicPages_NavigationBetweenPages_Works()
     {
         // Arrange & Act - Navigate through public pages in sequence
-        var requestsResponse = await _client.GetAsync("/portal/request");
+        var requestsResponse = await _client.GetAsync("/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
