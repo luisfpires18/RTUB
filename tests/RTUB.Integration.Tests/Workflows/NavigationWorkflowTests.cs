@@ -32,7 +32,7 @@ public class NavigationWorkflowTests : IntegrationTestBase
         var musicResponse = await _client.GetAsync("/music");
         var eventsResponse = await _client.GetAsync("/events");
         var rolesResponse = await _client.GetAsync("/roles");
-        var requestsResponse = await _client.GetAsync("/portal/request");
+        var requestsResponse = await _client.GetAsync("/request");
 
         // Assert - All public pages should be accessible
         homeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -59,7 +59,7 @@ public class NavigationWorkflowTests : IntegrationTestBase
     {
         // Arrange & Act - User views events then submits a request
         var eventsResponse = await _client.GetAsync("/events");
-        var requestsResponse = await _client.GetAsync("/portal/request");
+        var requestsResponse = await _client.GetAsync("/request");
 
         // Assert
         eventsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -76,7 +76,7 @@ public class NavigationWorkflowTests : IntegrationTestBase
         // Arrange & Act - User tries to access member pages
         var membersResponse = await _client.GetAsync("/members");
         var rehearsalsResponse = await _client.GetAsync("/rehearsals");
-        var profileResponse = await _client.GetAsync("/profile");
+        var profileResponse = await _client.GetAsync("/member/profile");
 
         // Assert - Should redirect to login
         membersResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -128,7 +128,7 @@ public class NavigationWorkflowTests : IntegrationTestBase
             "/music",
             "/events",
             "/roles",
-            "/portal/request",
+            "/request",
             "/login"
         };
 

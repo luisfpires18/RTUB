@@ -65,7 +65,7 @@ function validate(f: RequestForm): FieldErrors {
   return e;
 }
 
-/** /portal/request - the public performance request, submitted to POST /api/public/requests. */
+/** /request - the public performance request, submitted to POST /api/public/requests. */
 export default function RequestPage() {
   const [form, setForm] = useState<RequestForm>(empty);
   const [errors, setErrors] = useState<FieldErrors>({});

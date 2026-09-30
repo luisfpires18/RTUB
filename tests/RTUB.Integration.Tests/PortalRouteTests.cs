@@ -1,14 +1,15 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace RTUB.Integration.Tests;
 
 /// <summary>
-/// Route ownership for the React public-portal pilot (React track 001, docs/react-portal-pilot.md).
-/// React owns exactly /portal, /portal/privacy, /portal/profile and /portal/request, served from the committed build in
-/// wwwroot/portal; every other page, including the public ones the portal links to, stays Blazor.
+/// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
+/// React owns exactly /, /privacy, /profile and /request, served from the committed build in
+/// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
 {
@@ -16,12 +17,14 @@ public class PortalRouteTests : IntegrationTestBase
     {
     }
 
+    private HttpClient NoRedirectClient() =>
+        Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
     [Theory]
-    [InlineData("/portal")]
-    [InlineData("/portal/")]
-    [InlineData("/portal/privacy")]
-    [InlineData("/portal/profile")]
-    [InlineData("/portal/request")]
+    [InlineData("/")]
+    [InlineData("/privacy")]
+    [InlineData("/profile")]
+    [InlineData("/request")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -35,6 +38,7 @@ public class PortalRouteTests : IntegrationTestBase
 
         var html = await response.Content.ReadAsStringAsync();
         html.Should().Contain("id=\"root\"").And.Contain("id=\"splash\"");
+        html.Should().NotContain("blazor.web.js", "{0} is React, not a Blazor page", path);
         html.Should().Contain("href=\"/manifest.webmanifest\"", "the portal must keep the one installed-app identity");
         html.Should().Contain("src=\"/js/sw-register.js\"", "the portal reuses the single service-worker registration path");
     }
@@ -43,7 +47,7 @@ public class PortalRouteTests : IntegrationTestBase
     public async Task PortalShell_ReferencesOnlyAssetsThatExist()
     {
         var client = Factory.CreateClient();
-        var html = await client.GetStringAsync("/portal");
+        var html = await client.GetStringAsync("/");
 
         var assets = Regex.Matches(html, "(?:src|href)=\"(/portal/assets/[^\"]+)\"")
             .Select(m => m.Groups[1].Value)
@@ -60,9 +64,45 @@ public class PortalRouteTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task PathsOutsideThePortalRoutes_AreNotServedTheShell()
+    public void ReactSourcesAndBuild_LinkOnlyToCleanRoutes()
     {
-        var client = Factory.CreateClient();
+        // A quoted "/portal", "/portal#…" or "/portal/<page>" is a link to the pilot URLs. The build's
+        // own asset base ("/portal/" + file, /portal/assets/…) is a static-file folder, not a page.
+        var pilotLink = new Regex(@"[""'`(]/portal(?:/(?:privacy|profile|request)\b|[#?""'`)])");
+        var root = FindRepoRoot();
+        var files = Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "portal", "src"))
+            .Append(Path.Combine(root, "src", "RTUB.Web", "portal", "index.html"))
+            .Concat(Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "wwwroot", "portal"), "*", SearchOption.AllDirectories)
+                .Where(f => f.EndsWith(".html") || (f.EndsWith(".js") && !Path.GetFileName(f).StartsWith("vendor-"))))
+            .ToList();
+
+        files.Should().HaveCountGreaterThan(5);
+        foreach (var file in files)
+        {
+            pilotLink.Matches(File.ReadAllText(file)).Select(m => m.Value)
+                .Should().BeEmpty("{0} must link to the clean routes, not /portal", Path.GetFileName(file));
+        }
+    }
+
+    [Theory]
+    [InlineData("/portal", "/")]
+    [InlineData("/portal/", "/")]
+    [InlineData("/portal/privacy", "/privacy")]
+    [InlineData("/portal/profile", "/profile")]
+    [InlineData("/portal/request", "/request")]
+    [InlineData("/portal/request?utm_source=cartaz", "/request?utm_source=cartaz")]
+    public async Task PilotPortalUrls_RedirectTemporarilyToTheCleanRoute(string path, string target)
+    {
+        var response = await NoRedirectClient().GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
+        response.Headers.Location!.ToString().Should().Be(target);
+    }
+
+    [Fact]
+    public async Task PathsOutsideTheReactRoutes_AreNotServedTheShell()
+    {
+        var client = NoRedirectClient();
 
         (await client.GetAsync("/portal/unknown")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
@@ -71,64 +111,81 @@ public class PortalRouteTests : IntegrationTestBase
         {
             (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
         }
-        (await client.PostAsync("/portal", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request" })
+        {
+            (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
+                "{0} is GET/HEAD only", path);
+        }
     }
 
     [Theory]
     [InlineData("/")]
     [InlineData("/privacy")]
+    [InlineData("/profile")]
+    [InlineData("/request")]
+    public void NoBlazorComponent_OwnsAReactRoute(string route)
+    {
+        var owners = typeof(RTUB.App).Assembly.GetTypes()
+            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
+                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                .Select(r => (Type: t, r.Template)))
+            .Where(r => r.Template.Equals(route, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Type.FullName)
+            .ToList();
+
+        owners.Should().BeEmpty("React owns {0}; its Blazor page was retired", route);
+    }
+
+    // ---------- temporary Blazor bridges ----------
+
+    [Theory]
     [InlineData("/login")]
     [InlineData("/events")]
     [InlineData("/music")]
     [InlineData("/gallery")]
     [InlineData("/roles")]
-    public async Task LegacyBlazorRoutes_StayBlazor(string path)
+    public async Task BlazorBridgeRoutes_StayBlazor(string path)
     {
         var client = Factory.CreateClient();
 
         var response = await client.GetAsync(path);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await response.Content.ReadAsStringAsync()).Should().NotContain("id=\"splash\"",
-            "{0} is owned by Blazor during the pilot", path);
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().NotContain("id=\"splash\"", "{0} is still owned by Blazor", path);
+        html.Should().Contain("blazor.web.js", "{0} is still a Blazor page", path);
+    }
+
+    [Fact]
+    public async Task BlazorMemberProfile_LivesAtMemberProfile_AndStillRequiresSignIn()
+    {
+        var response = await NoRedirectClient().GetAsync("/member/profile");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fprofile");
     }
 
     // ---------- retired Blazor /request (React track 003) ----------
 
-    [Theory]
-    [InlineData("/request", "/portal/request")]
-    [InlineData("/request?utm_source=cartaz", "/portal/request?utm_source=cartaz")]
-    public async Task RetiredBlazorRequest_RedirectsToTheReactForm(string path, string target)
-    {
-        var client = Factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-        var response = await client.GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
-    [Fact]
-    public void NoBlazorComponent_OwnsTheRetiredRequestRoute()
-    {
-        var owners = typeof(RTUB.App).Assembly.GetTypes()
-            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
-                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
-                .Select(r => (Type: t, r.Template)))
-            .Where(r => r.Template.Equals("/request", StringComparison.OrdinalIgnoreCase))
-            .Select(r => r.Type.FullName)
-            .ToList();
-
-        owners.Should().BeEmpty("React /portal/request is the only public request form");
-    }
-
     [Fact]
     public async Task RetiredBlazorRequest_HasNoSubmissionPathLeft()
     {
-        var client = Factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await NoRedirectClient().PostAsync("/request",
+            new FormUrlEncodedContent(new Dictionary<string, string> { ["Name"] = "x" }));
 
-        var response = await client.PostAsync("/request", new FormUrlEncodedContent(new Dictionary<string, string> { ["Name"] = "x" }));
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
+            "only the React shell (GET/HEAD) exists at /request; submissions go to POST /api/public/requests");
+    }
 
-        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed, "only the redirect (GET/HEAD) exists at /request");
+    private static string FindRepoRoot()
+    {
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

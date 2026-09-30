@@ -11,8 +11,8 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// labels behind the homepage, and its static HTML. Proper names are removed first, since repeating
 /// "Real Tuna Universitária de Bragança" is identity, not copying.
 ///
-/// The Privacy Policy is the deliberate exception (legal text, kept verbatim - see
-/// PortalPrivacyParityTests), so portal/src/Privacy.tsx is not checked here.
+/// The Privacy Policy is the deliberate exception (legal text, carried verbatim from the retired
+/// Privacy.razor and now only in portal/src/Privacy.tsx), so that file is not checked here.
 /// </summary>
 public class PortalCopyOriginalityTests
 {
@@ -55,6 +55,18 @@ public class PortalCopyOriginalityTests
         copied.Should().BeEmpty(
             "portal copy must be original Portuguese, not lifted from the current site " +
             "(rewrite the sentence; facts and proper names are fine)");
+    }
+
+    [Fact]
+    public void PortalSources_NeverSayMigration()
+    {
+        // Wording rule (docs/react-portal-pilot.md): "migration" is for EF/database migrations and
+        // developer docs only - never in public UI, copy, routes or feature names, in any language.
+        var files = PortalFiles().Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src", "Privacy.tsx"));
+
+        files.Where(f => Regex.IsMatch(File.ReadAllText(f), "migra", RegexOptions.IgnoreCase))
+            .Select(Path.GetFileName)
+            .Should().BeEmpty();
     }
 
     /// <summary>Human-readable text only: JSX/HTML text nodes and multi-word string literals.</summary>

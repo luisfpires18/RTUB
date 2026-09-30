@@ -38,7 +38,7 @@ public class DataWorkflowTests : IntegrationTestBase
     {
         // Test that multiple page loads don't cause issues
         // Arrange
-        var urls = new[] { "/", "/music", "/portal/request" };
+        var urls = new[] { "/", "/music", "/request" };
 
         // Act - Load each page multiple times
         foreach (var url in urls)
@@ -104,7 +104,7 @@ public class DataWorkflowTests : IntegrationTestBase
         {
             "/",
             "/music",
-            "/portal/request",
+            "/request",
             "/roles"
         };
 

@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getCurrentUser, type CurrentUser } from './api';
-import { contactEmail, legacy, portal, social } from './content';
+import { contactEmail, portal, social } from './content';
 import { Icon, type IconName } from './icons';
 
 export const sections = [
@@ -14,8 +14,8 @@ export const sections = [
 // The top bar and the menu stay short: four public sections plus the "Pedir atuação" call to action.
 const navSections = sections.filter((s) => s.id !== 'request');
 
-// Always /portal#id, so the same link scrolls on the home page and navigates from Privacy.
-const sectionHref = (id: string) => `/portal#${id}`;
+// Always /#id, so the same link scrolls on the home page and navigates from Privacy.
+const sectionHref = (id: string) => `/#${id}`;
 
 export function Layout({ children }: { children: ReactNode }) {
   useEffect(revealApp, []);
@@ -75,16 +75,13 @@ function PilotBanner() {
         <strong>Pré-visualização</strong>
         <span className="pilot__more"> do novo portal público. Algumas secções usam conteúdo ilustrativo.</span>
       </p>
-      <a className="pilot__link" href={legacy.home}>
-        Voltar ao site atual
-      </a>
     </div>
   );
 }
 
 function Brand() {
   return (
-    <a className="brand" href="/portal" aria-label="RTUB, início do portal">
+    <a className="brand" href={portal.home} aria-label="RTUB, início do portal">
       <img className="brand__logo" src="/icons/rtub-logo-192.png" alt="" width="40" height="40" />
       <span className="brand__text" aria-hidden="true">
         <span className="brand__name">RTUB</span>
@@ -206,7 +203,7 @@ function Footer() {
               <a href={portal.request}>Fazer um pedido</a>
             </li>
             <li>
-              <a href="/portal#app">Instalar a app</a>
+              <a href="/#app">Instalar a app</a>
             </li>
             <li>
               <a href={portal.profile}>Área de membros</a>
@@ -285,7 +282,7 @@ export function useCurrentUser() {
 }
 
 /**
- * The quiet way into the members-only area. Always /portal/profile, which explains the area is
+ * The quiet way into the members-only area. Always /profile, which explains the area is
  * reserved to RTUB members before offering the login - the portal has no public accounts. Reads
  * "Membros" for visitors (and while the session is unknown), "A minha conta" once signed in.
  */
@@ -349,8 +346,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
           <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
             Tentar novamente
           </button>
-          <a className="btn btn--ghost" href={legacy.home}>
-            Abrir o site atual
+          <a className="btn btn--ghost" href={portal.home}>
+            Voltar ao início
           </a>
         </div>
       </div>

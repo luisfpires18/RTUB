@@ -30,7 +30,7 @@ public class ProfilePageTests : IntegrationTestBase
     public async Task ProfilePage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/profile");
+        var response = await _client.GetAsync("/member/profile");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -41,13 +41,13 @@ public class ProfilePageTests : IntegrationTestBase
     public async Task ProfilePage_RedirectsWithReturnUrl()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/profile");
+        var response = await _client.GetAsync("/member/profile");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl=%2Fprofile");
+        location.Should().Contain("ReturnUrl=%2Fmember%2Fprofile");
     }
 
     #endregion
@@ -61,7 +61,7 @@ public class ProfilePageTests : IntegrationTestBase
     public async Task ProfilePage_RequiresAuthenticationFor_Sections(string expectedContent)
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/profile");
+        var response = await _client.GetAsync("/member/profile");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect,

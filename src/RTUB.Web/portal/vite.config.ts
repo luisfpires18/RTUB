@@ -2,13 +2,13 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 /**
- * React public-portal pilot (React track, task 001). See docs/react-portal-pilot.md.
+ * React public shell (React track, tasks 001-004). See docs/react-portal-pilot.md.
  *
  *   npm run build:portal   -> wwwroot/portal/ (committed, like the PixiJS bundles, and rebuilt on publish)
  *   npm run check:portal   -> TypeScript check
  *
- * Served by the ASP.NET Core host: /portal/assets/* as static files, every other /portal path
- * falls back to wwwroot/portal/index.html (Program.cs). No @vitejs/plugin-react: esbuild's
+ * Served by the ASP.NET Core host: /portal/assets/* as static files; the React routes (/, /privacy,
+ * /profile, /request) fall back to wwwroot/portal/index.html (Program.cs). No @vitejs/plugin-react: esbuild's
  * automatic JSX runtime is all a production build needs.
  */
 export default defineConfig({

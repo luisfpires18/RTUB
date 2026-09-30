@@ -648,12 +648,7 @@ public class Program
         // --------- Public request API for the React portal (React track 003) ---------
         app.MapPublicRequestEndpoints();
 
-        // The Blazor /request page was retired: React /portal/request is the only public request
-        // form. Old links (and bookmarks) land on it. Temporary (302) during the hybrid DEV phase.
-        app.MapGet("/request", (HttpContext context) =>
-            Results.Redirect("/portal/request" + context.Request.QueryString));
-
-        // --------- React public-portal pilot (React track, task 001) ---------
+        // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths; every other page stays Blazor.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
@@ -661,10 +656,15 @@ public class Program
         {
             OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
         };
-        foreach (var route in new[] { "/portal", "/portal/privacy", "/portal/profile", "/portal/request" })
+        foreach (var route in new[] { "/", "/privacy", "/profile", "/request" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
+
+            // The pilot's /portal... URLs (tasks 001-003) land on the clean route. Temporary (302)
+            // while DEV is hybrid; GET/HEAD only, so nothing is ever submitted to them.
+            app.MapMethods("/portal" + route.TrimEnd('/'), ["GET", "HEAD"], (HttpContext context) =>
+                Results.Redirect(route + context.Request.QueryString));
         }
 
         // Map SignalR hubs
