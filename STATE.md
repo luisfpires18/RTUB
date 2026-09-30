@@ -49,10 +49,11 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
-Raised by 038 (detail: `docs/design/RTUB_UI_REFACTOR.md` 25.9):
+Raised by 038 (detail: `docs/design/RTUB_UI_REFACTOR.md` 25.10):
 - Month abbreviations on cards follow the server culture ("Oct", "Sept") - owner decision 18.4.
 - `PositionBadge` is a fake button (`role="button"`, `tabindex="0"`, no behavior) on other pages.
 - Vacuous tests asserting their own literals: `ProfileCSS_OrganizedInSeparateFile`, `MembersPageGridTests`.
+- App-wide: no `color-scheme: dark`; "..." instead of "…" in 61 files (Task 012).
 
 Raised by 037 (detail: `docs/design/RTUB_UI_REFACTOR.md` 24.14):
 - **Meetings search is broken in every environment:** `MeetingService.GetAllMeetingsAsync` uses

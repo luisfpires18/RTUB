@@ -38,7 +38,7 @@
 .rehearsal-item__notes dt {
     flex-shrink: 0;
     font-weight: 600;
-    color: var(--rtub-accent);
+    color: var(--rtub-text-muted);
 }
 
 .rehearsal-item__notes dt::after {
@@ -69,6 +69,16 @@
 .rehearsal-item--next {
     border-color: rgba(var(--bs-primary-rgb), 0.7);
     background: linear-gradient(rgba(var(--bs-primary-rgb), 0.08), rgba(var(--bs-primary-rgb), 0.08)), var(--rtub-surface);
+}
+
+/* The only filled date tile on the page: the one that matters next */
+.rehearsal-item--next ::deep .date-tile {
+    border-color: var(--rtub-primary);
+    background: var(--rtub-primary);
+}
+
+.rehearsal-item--next ::deep .date-tile__month {
+    color: #fff;
 }
 
 /* Past and cancelled recede */

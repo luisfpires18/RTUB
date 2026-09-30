@@ -100,7 +100,7 @@
 }
 
 .member-item__meta i {
-    color: var(--rtub-accent);
+    color: var(--rtub-text-muted);
 }
 
 .member-item__online {

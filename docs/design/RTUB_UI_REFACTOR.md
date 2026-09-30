@@ -1902,7 +1902,7 @@ card keeps its parameter API. Sections 1-24 stay as recorded.
   actions, then the member's own answer). Title `h3` under a section `h2` (with a muted count); the
   card is an `article` named by its title.
 - **Metadata:** the "when" line is stronger (`--rtub-text`, 500) than place and notes
-  (`--rtub-text-muted`); one accent icon per line, text wraps beside it, never under it.
+  (`--rtub-text-muted`); one neutral icon per line, text wraps beside it, never under it.
 - **Status:** one uppercase word with an icon above the title (`Cancelado`, `Próximo ensaio`,
   `Fui`, `Não fui`, `Presença pendente`, `Expulso`) - never color alone, never a pill.
 - **Actions:**
@@ -1910,8 +1910,9 @@ card keeps its parameter API. Sections 1-24 stay as recorded.
     `aria-pressed`, 44px high, full card width. The chosen answer is tinted with a colored border
     and a filled icon; the other steps back. Clicking the chosen answer edits it (same callbacks and
     titles as before).
-  - *Secondary* - `item-chip`: quiet 36px (44px on touch) outlined chips; "Detalhes" as the accent
-    text chip, counts as icon + number named "Participantes (12)" etc.
+  - *Secondary* - `item-chip`: borderless 36px (44px on touch) chips shaded on hover/press;
+    "Detalhes" as the accent text chip, counts as icon + tabular number named "Participantes (12)"
+    etc. The toggle is the only boxed control in a card.
   - *Management* - `CardMenu` / `CardMenuItem` (new, Shared): a "⋮" trigger named "Gerir: {item}"
     opening the Bootstrap dropdown already loaded for the navbar (arrow keys, Escape, focus back to
     the trigger). Destructive items (cancel, expel, delete) are red, after a divider, last. Only
@@ -1992,7 +1993,31 @@ Profile header rules in `profile-components.css`. Kept on purpose: global `.even
   36px. Event images checked with a local image (the local CSP blocks R2 media).
 - **Not verified:** real devices, screen-reader output, real R2 photos and posters.
 
-### 25.9 Remaining
+### 25.9 Design re-audit (second pass)
+
+A second review of the rendered pages with the `web-design-guidelines` (Vercel Web Interface
+Guidelines), `awesome-design-md` (Spotify reference: content-first darkness, one functional accent,
+shade over drawn borders) and `playwright-cli` skills. Kept what already worked (grids, toggle,
+menus, identity rows, Profile header, category colors - black Tuno / white Caloiro are RTUB
+identity). Changed only:
+
+- **Chips lost their borders.** An event card had 7 boxed shapes (card, 4 chips, 2 toggle options);
+  at 1024 the fourth chip wrapped onto its own line. Now 3, and the row fits at every width.
+- **Purple is reserved for what is current or actionable:** the primary action, "Detalhes", the
+  month on date tiles, selected/next states. Meta icons, Tema/Descrição labels and date tiles are
+  neutral; the **next rehearsal's tile is the only filled purple tile**. Past tiles are outlined
+  and muted.
+- Card titles use `text-wrap: pretty` (`balance` split "Casamento - Vila Real" before the dash);
+  counts and tile days use tabular numbers; chips use `touch-action: manipulation`.
+
+Rejected: Spotify's pill buttons, uppercase button labels and heavy shadows (RTUB has its own
+button and flat-surface contract, 20.3 / 13.3); borderless cards (the surface is too close to the
+page background to separate without a border); fewer event columns at 1440 (more scrolling for
+little gain); un-stretching rehearsal cards (aligned Vou/Não vou rows scan better than ragged
+footers); restyling the white Caloiro pill (identity); image-generation mockups (the image-to-code
+skill needs an image generator, not available here).
+
+### 25.10 Remaining
 
 - Month abbreviations follow the server culture ("Oct", "Sept") in the tile and in the existing
   date text - part of owner decision 18.4 (pt-PT dates).
@@ -2002,3 +2027,5 @@ Profile header rules in `profile-components.css`. Kept on purpose: global `.even
   (grid class) assert their own string literals.
 - BetCard/MeetingCard and the participation dialogs still use the old icon-button language
   (Tasks 008/009).
+- App-wide, outside 038: no `color-scheme: dark` (native scrollbars/controls render light), and
+  "..." instead of "…" in placeholders and loading text (61 files) - Task 012 consistency pass.
