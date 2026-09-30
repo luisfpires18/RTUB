@@ -1,5 +1,5 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { getCurrentUser, type CurrentUser } from './api';
+import { getCurrentUser, getVersion, type CurrentUser } from './api';
 import { contactEmail, portal, social } from './content';
 import { Icon, type IconName } from './icons';
 
@@ -13,6 +13,14 @@ export const sections = [
 
 // The top bar and the menu stay short: four public sections plus the "Pedir atuação" call to action.
 const navSections = sections.filter((s) => s.id !== 'request');
+
+// The footer also lists the home's other anchors (FITAB, joining), which stay out of the top bar.
+const footerSections = [
+  { id: 'about', label: 'Quem somos' },
+  ...sections,
+  { id: 'fitab', label: 'FITAB' },
+  { id: 'join', label: 'Junta-te a nós' },
+];
 
 // Always /#id, so the same link scrolls on the home page and navigates from Privacy.
 const sectionHref = (id: string) => `/#${id}`;
@@ -68,12 +76,18 @@ function revealApp() {
 
 // ---------- chrome ----------
 
+/**
+ * Only test builds carry a SemVer pre-release version (DEV reports 2.0.4-dev.N); a release
+ * (2.0.4) or an unknown version shows nothing, so this strip can never reach production.
+ */
 function PilotBanner() {
+  const { version } = useVersion();
+  if (!version?.includes('-')) return null;
   return (
     <div className="pilot">
       <p className="pilot__text">
-        <strong>Pré-visualização</strong>
-        <span className="pilot__more"> do novo portal público. Algumas secções usam conteúdo ilustrativo.</span>
+        <strong>Versão de testes</strong>
+        <span className="pilot__more"> · o que vês aqui pode mudar antes de chegar ao site da RTUB.</span>
       </p>
     </div>
   );
@@ -189,7 +203,7 @@ function Footer() {
         <nav className="footer__col" aria-label="Portal">
           <h2 className="footer__title">Portal</h2>
           <ul>
-            {sections.map((s) => (
+            {footerSections.map((s) => (
               <li key={s.id}>
                 <a href={sectionHref(s.id)}>{s.label}</a>
               </li>
@@ -238,22 +252,25 @@ function Footer() {
   );
 }
 
-/** Reads the existing GET /api/version: the pilot's one live call to the C# host. */
-function VersionTag() {
+function useVersion() {
   const [state, setState] = useState<{ version?: string; failed?: boolean }>({});
 
   useEffect(() => {
-    const abort = new AbortController();
-    fetch('/api/version', { signal: abort.signal, headers: { Accept: 'application/json' } })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((body: { version?: unknown }) =>
-        setState(typeof body.version === 'string' ? { version: body.version } : { failed: true }),
-      )
-      .catch(() => {
-        if (!abort.signal.aborted) setState({ failed: true });
-      });
-    return () => abort.abort();
+    let live = true;
+    getVersion().then(
+      (version) => live && setState({ version }),
+      () => live && setState({ failed: true }),
+    );
+    return () => {
+      live = false;
+    };
   }, []);
+
+  return state;
+}
+
+function VersionTag() {
+  const state = useVersion();
 
   if (state.failed) return <p className="version">Versão indisponível</p>;
   return (
@@ -314,16 +331,6 @@ export function Loading({ label }: { label: string }) {
     <div className="state" role="status">
       <span className="spinner" aria-hidden="true" />
       <p>{label}</p>
-    </div>
-  );
-}
-
-export function EmptyState({ icon, title, children }: { icon: IconName; title: string; children?: ReactNode }) {
-  return (
-    <div className="state state--empty">
-      <Icon name={icon} className="state__icon" />
-      <p className="state__title">{title}</p>
-      {children}
     </div>
   );
 }

@@ -853,78 +853,33 @@ main:focus {
 
 /* ---------- agenda ---------- */
 
-.events {
-  display: grid;
-  gap: 16px;
-}
-
-.event {
+.agenda {
   display: flex;
-  gap: 20px;
-  align-items: stretch;
-  padding: 20px;
+  gap: 16px;
+  align-items: flex-start;
+  padding: clamp(20px, 3vw, 28px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg-card);
-  transition: border-color 160ms ease, transform 160ms ease;
 }
 
-.event:hover {
-  border-color: var(--line-strong);
-}
-
-.event__date {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  min-width: 76px;
-  padding: 10px 8px;
-  border-radius: 12px;
-  background: rgba(111, 66, 193, 0.16);
-  color: var(--ink);
-  text-align: center;
-}
-
-.event__day {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.event__month {
-  margin-top: 4px;
+.agenda__icon {
+  flex: none;
+  font-size: 1.75rem;
   color: var(--purple-ink);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
-.event__body {
+.agenda__body {
   display: grid;
-  gap: 12px;
-  align-content: center;
-}
-
-.event__title {
-  font-size: clamp(1.25rem, 0.8vw + 1rem, 1.5rem);
-  line-height: 1.15;
-}
-
-.event__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.event__meta > span:first-child {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
+  color: var(--muted);
+}
+
+.agenda__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 0.8vw + 1rem, 1.5rem);
+  line-height: 1.2;
 }
 
 .tag {
@@ -933,28 +888,6 @@ main:focus {
   border-radius: 999px;
   color: var(--ink-soft);
   font-size: 0.75rem;
-}
-
-@media (min-width: 900px) {
-  .events {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .event {
-    flex-direction: column;
-    padding: 24px;
-  }
-
-  .event__date {
-    justify-items: start;
-    align-self: start;
-    min-width: 0;
-    padding: 12px 16px;
-  }
-
-  .event:hover {
-    transform: translateY(-3px);
-  }
 }
 
 /* FITAB: one compact highlight, no dates of its own. */
@@ -1496,12 +1429,6 @@ main:focus {
   padding-block: 96px;
   color: var(--muted);
   text-align: center;
-}
-
-.state--empty {
-  padding: 40px 24px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius);
 }
 
 .state__icon {

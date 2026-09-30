@@ -36,16 +36,6 @@ export const social = [
   { name: 'Facebook', icon: 'facebook', href: 'https://www.facebook.com/rtub.tuna.braganca' },
 ] as const;
 
-export type PortalEvent = { date: string; title: string; place: string; kind: string };
-
-// ILLUSTRATIVE: plausible dates, labelled as such on the page. The real agenda stays on /events
-// until a read-only API exists.
-export const upcomingEvents: PortalEvent[] = [
-  { date: '2026-10-17', title: 'Receção ao Caloiro', place: 'Bragança', kind: 'Festa académica' },
-  { date: '2026-12-01', title: '35.º aniversário da RTUB', place: 'Bragança', kind: 'Aniversário' },
-  { date: '2027-03-13', title: 'FITAB · Festival Internacional de Tunas Académicas', place: 'Bragança', kind: 'Festival' },
-];
-
 // FACT: the published discography on /music (title, year, number of tracks).
 export const albums = [
   { title: 'Tunalidades', year: '1995', tracks: 11 },
@@ -57,7 +47,7 @@ export const albums = [
 // FACT: the instruments the tuna plays.
 export const instruments = ['Guitarra', 'Bandolim', 'Cavaquinho', 'Voz'];
 
-// ILLUSTRATIVE captions; the tiles are artwork, not photographs.
+// ILLUSTRATIVE captions, labelled as such on the page: the tiles are artwork, not photographs.
 export const galleryTiles = [
   { caption: 'Serenata ao luar', icon: 'music', tone: 'a' },
   { caption: 'Casa cheia', icon: 'play', tone: 'b' },

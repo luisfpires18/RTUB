@@ -1,4 +1,4 @@
-# React public portal (React track, tasks 001–004)
+# React public portal (React track, tasks 001–005)
 
 A React public shell served by the existing ASP.NET Core host, next to the Blazor app, which keeps
 every page React does not own yet. Since task 004 it is the **DEV public baseline**: React owns `/`.
@@ -48,15 +48,59 @@ DTOs and branches are English: "Novidades" on screen, `/news` in the URL; "Pedid
 
 ## Home page and navigation
 
-Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (with the FITAB
-highlight) → Música → Galeria → Junta-te a nós → Órgãos Sociais → Pedidos + member area → install
-the app → a small "Novidades · Em breve" line. The top bar stays short: **Atuações, Música, Galeria,
-Órgãos Sociais**, the **"Pedir atuação"** call to action, and the quiet members link. Junta-te,
-FITAB, Novidades and the app install are deliberately not in the top bar (footer or home anchors).
+Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (a pointer to the full
+agenda, with the FITAB highlight) → Música → Galeria → Junta-te a nós → Órgãos Sociais → Pedidos +
+member area → install the app → a small "Novidades · Em breve" line.
 
-Kept off the home page on purpose: the full Hierarquia (Leitão → Caloiro → Tuno → Magister) card
-grid and the long "Sobre nós" text of the current site - too internal for a public front page. The
-member categories may later get a dedicated public "Conhece a Tuna" page or live in the member area.
+- **Top bar:** Atuações, Música, Galeria, Órgãos Sociais; the **"Pedir atuação"** call to action
+  (the hero's primary button also goes straight to `/request`); the quiet members link ("Membros" /
+  "A minha conta"). FITAB, Junta-te, the app install and Novidades are never in the top bar.
+- **Footer:** every home anchor (Quem somos, the four sections, Pedidos, FITAB, Junta-te a nós), then
+  Fazer um pedido, Instalar a app, Área de membros, Política de Privacidade, the contact email, the
+  social links and the build version. Novidades gets a footer link only once `/news` exists.
+- **FITAB:** a compact highlight inside Atuações (`/#fitab`), plus a footer link. Only what is
+  certain: organised by the RTUB, yearly, tunas from home and abroad, dates announced on the RTUB's
+  social networks. No editions, dates, line-ups or schedules.
+- **Hierarquia:** not on the home page (the Leitão → Caloiro → Tuno → Magister grid is internal
+  detail). One public line in Junta-te a nós ("Percurso"). The full explanation belongs, with the
+  História, in a future public "Conhece a Tuna" page (English route `/about`); the member view stays
+  on the Blazor `/hierarchy` (members only).
+- **No invented data (005):** the agenda no longer shows illustrative dates; it points to `/events`
+  until a read-only events API exists. The gallery tiles are artwork, labelled "Ilustrações".
+- **Test-build banner (005):** "Versão de testes" shows only when `/api/version` reports a SemVer
+  pre-release (DEV: `2.0.4-dev.N`). Releases and local builds (`2.0.4`) show nothing, so it cannot
+  reach production. It appears once the version call answers (a small shift on DEV only).
+
+## Public content coverage (task 005)
+
+Every public section of the old Blazor site and app, and where it lives now. Pinned by
+`PortalContentCoverageTests` (required sections present, one decision per row).
+
+| Section | Source | Purpose | React now | Decision |
+| --- | --- | --- | --- | --- |
+| Quem somos / Sobre | old home: `AboutUsContent` (labels) | who the RTUB is | `/#about`, short, facts only | homepage now |
+| História | old home: `HistoryContent` (`history_*` labels) | founding (1 Dec 1991), mission, identity | founding year in hero and Quem somos | future React page ("Conhece a Tuna", `/about`) |
+| Atuações / agenda | `/events` (`Events.razor`) | upcoming and past performances | `/#events` points to the full agenda | homepage now + navbar now + temporary Blazor bridge |
+| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | via `/events` | temporary Blazor bridge; future React page (Events) |
+| FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
+| Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
+| Música | `/music`, `/music/songs/{id}` | discography, lyrics, player | `/#music` preview, streaming links | homepage now + navbar now + temporary Blazor bridge |
+| Galeria | `/gallery` | photos and videos | `/#gallery` artwork preview | homepage now + navbar now + temporary Blazor bridge |
+| Órgãos Sociais | `/roles` (`bodies_*` labels) | bodies and the current mandate | `/#governance`: bodies and positions, no names | homepage now + navbar now + temporary Blazor bridge |
+| Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
+| Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
+| Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
+| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: needs a read-only public slides API; revisit with Gallery |
+| Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
+| Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
+| Área de membros / login | React `/profile`, Blazor `/login` | members-only entry | quiet header link, home card, footer | navbar now (quiet link) + temporary Blazor bridge (`/login`) |
+| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from `/login` and emails | temporary Blazor bridge |
+| Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
+| Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
+| Novidades / News | none | future public posts | "Em breve" line | homepage now (teaser only); future React page (`/news`) |
+| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: decide a read-only public labels API vs static copy before the PROD cutover |
+| Partilhar | `/share` (manifest `share_target`) | receives shares from the OS | not linked | exclude/defer: technical PWA endpoint |
+| Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
 
 ## Route ownership
 
@@ -100,9 +144,10 @@ notifications without a URL now open the React home. Members reach their area th
 
 ## Before any production release
 
-The React public shell ships with whatever `dev` holds at the next `dev → master` release. The **"Pré-visualização"
-banner and the illustrative agenda/gallery must be removed, hidden, put behind a feature flag, or
-explicitly accepted by the owner before that release.** Until then the pilot is a DEV preview.
+The React public shell ships with whatever `dev` holds at the next `dev → master` release. Since 005
+the test-build banner cannot show on a release and the agenda has no invented dates; the **artwork
+gallery tiles and the static (not admin-editable) copy must still be accepted by the owner, or
+replaced, before that release.**
 
 ## Layout
 
@@ -243,18 +288,22 @@ and TWA config are untouched; an installed app opens the manifest's `start_url` 
 
 ## News / "Novidades" (planning only - nothing built)
 
-Public label "Novidades"; code name **News** ("Feed" is the concept). Future routes:
-`/news` (list) and `/news/{slug}` (one post, with its own shareable URL). Posts are
-created by Admins and readable by anyone: announcements, event recaps, photos, news and relevant
-topics, shareable like public Facebook/WhatsApp posts. To decide before building: moderation and edit
-history, visibility (public vs members-only), images and attachments (R2), sharing metadata
-(OpenGraph, SEO), notifications, and the admin publishing flow. Today there is only a small "Em
-breve" line at the bottom of the home page: no route, table, migration, API or admin screen, and no
-footer link until a route exists.
+Public label **Novidades**; code, routes and internal names **News**. Future canonical routes:
+`/news` (list) and `/news/{slug}` (one post, with its own shareable URL).
+
+- **What:** public posts created by Admins - announcements, event recaps, photos, and relevant
+  topics/news about the tuna.
+- **Sharing:** each post has a stable link that previews well on Facebook and WhatsApp, which needs
+  server-rendered OpenGraph/SEO metadata per post (the React shell alone cannot provide it).
+- **To decide before building:** moderation and edit history; visibility (public vs members-only);
+  images and attachments in R2; notifications (push/email) on publish; the admin publishing flow
+  (draft, preview, publish, unpublish).
+- **Today:** only the "Novidades · Em breve" line on the home page. No route, table, migration, API,
+  admin screen or OpenGraph code, and no top-bar or footer link until `/news` has real content.
 
 ## Next recommended slice
 
-Task 005: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
+Task 006: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
 then Gallery, Music and Events - each retiring its legacy Blazor page once the React one works.
 
 ## Next steps (outside this pilot)
