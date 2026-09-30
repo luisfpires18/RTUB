@@ -805,6 +805,57 @@ main:focus {
 }
 
 
+/* Two raised bands in a row (about → agenda) are split by a hairline instead of a colour change. */
+.section--raise + .section--raise {
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- about ---------- */
+
+.about {
+  padding-block: clamp(48px, 7vw, 88px);
+}
+
+.about__grid {
+  display: grid;
+  gap: 28px;
+}
+
+.about__grid .section__head {
+  margin-bottom: 0;
+}
+
+.about__points {
+  display: grid;
+  gap: 18px;
+}
+
+.about__points li {
+  display: grid;
+  gap: 4px;
+  padding-left: 16px;
+  border-left: 2px solid var(--purple);
+}
+
+.about__point {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.about__points p {
+  color: var(--muted);
+}
+
+@media (min-width: 900px) {
+  .about__grid {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 72px;
+    align-items: center;
+  }
+}
+
 /* ---------- agenda ---------- */
 
 .events {
@@ -908,6 +959,37 @@ main:focus {
 
   .event:hover {
     transform: translateY(-3px);
+  }
+}
+
+/* FITAB: one compact highlight, no dates of its own. */
+.fitab {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--purple);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.fitab__title {
+  margin-top: 6px;
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+}
+
+.fitab__body {
+  display: grid;
+  gap: 8px;
+  max-width: 44rem;
+}
+
+@media (min-width: 900px) {
+  .fitab {
+    grid-template-columns: 220px 1fr;
+    align-items: center;
+    gap: 32px;
   }
 }
 
@@ -1147,12 +1229,12 @@ main:focus {
 
 /* ---------- órgãos sociais ---------- */
 
-.orgaos {
+.governance {
   display: grid;
   gap: 16px;
 }
 
-.orgao {
+.governance__card {
   display: grid;
   align-content: start;
   gap: 14px;
@@ -1162,16 +1244,16 @@ main:focus {
   background: var(--bg-card);
 }
 
-.orgao__icon {
+.governance__icon {
   font-size: 1.375rem;
   color: var(--purple-ink);
 }
 
-.orgao__name {
+.governance__name {
   font-size: 1.5rem;
 }
 
-.orgao__roles {
+.governance__roles {
   display: grid;
   gap: 8px;
   padding-top: 14px;
@@ -1181,18 +1263,18 @@ main:focus {
 }
 
 @media (min-width: 640px) {
-  .orgaos {
+  .governance {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1100px) {
-  .orgaos {
+  .governance {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-/* ---------- pedidos + members ---------- */
+/* ---------- request + members ---------- */
 
 .doors {
   display: grid;
@@ -1303,6 +1385,32 @@ main:focus {
     grid-template-columns: 1.5fr 1fr;
   }
 
+}
+
+/* ---------- news teaser (placeholder) ---------- */
+
+.news-teaser {
+  padding-block: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.news-teaser__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.news-teaser__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0;
 }
 
 /* ---------- footer ---------- */
@@ -1435,7 +1543,7 @@ main:focus {
   }
 }
 
-/* ---------- inner pages (perfil, pedidos) ---------- */
+/* ---------- inner pages (profile, request) ---------- */
 
 .page {
   display: grid;

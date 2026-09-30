@@ -7,7 +7,7 @@ import { Icon, type IconName } from './icons';
 const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
 /**
- * /portal/perfil - the members-only corner of a public portal. RTUB has no public accounts: the
+ * /portal/profile - the members-only corner of a public portal. RTUB has no public accounts: the
  * tuna creates its members' logins, so this page states that first and keeps the public portal
  * one tap away. Signing in itself stays on the Blazor /login.
  */
@@ -20,10 +20,10 @@ export default function Profile() {
   }, []);
 
   return (
-    <section className="page wrap" aria-labelledby="perfil-title">
+    <section className="page wrap" aria-labelledby="profile-title">
       <header className="page__head">
         <p className="eyebrow">{user ? 'Área de membros' : 'RTUB'}</p>
-        <h1 id="perfil-title" className="page__title">
+        <h1 id="profile-title" className="page__title">
           {!user ? 'Área de membros' : signedIn ? 'A minha conta' : 'Área reservada a membros'}
         </h1>
       </header>
@@ -134,10 +134,10 @@ function SignedOut() {
 
 const shortcuts: { href: string; icon: IconName; label: string }[] = [
   { href: portal.request, icon: 'send', label: 'Pedir uma atuação' },
-  { href: '/portal#atuacoes', icon: 'calendar', label: 'Próximas atuações' },
-  { href: '/portal#musica', icon: 'music', label: 'Discografia' },
-  { href: '/portal#orgaos', icon: 'bank', label: 'Órgãos Sociais' },
-  { href: '/portal#galeria', icon: 'images', label: 'Galeria' },
+  { href: '/portal#events', icon: 'calendar', label: 'Próximas atuações' },
+  { href: '/portal#music', icon: 'music', label: 'Discografia' },
+  { href: '/portal#governance', icon: 'bank', label: 'Órgãos Sociais' },
+  { href: '/portal#gallery', icon: 'images', label: 'Galeria' },
 ];
 
 /** The public portal, always within reach: the main paths for everyone who is not a member. */

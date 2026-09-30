@@ -4,12 +4,15 @@ import { contactEmail, legacy, portal, social } from './content';
 import { Icon, type IconName } from './icons';
 
 export const sections = [
-  { id: 'atuacoes', label: 'Atuações' },
-  { id: 'musica', label: 'Música' },
-  { id: 'galeria', label: 'Galeria' },
-  { id: 'orgaos', label: 'Órgãos Sociais' },
-  { id: 'pedidos', label: 'Pedidos' },
+  { id: 'events', label: 'Atuações' },
+  { id: 'music', label: 'Música' },
+  { id: 'gallery', label: 'Galeria' },
+  { id: 'governance', label: 'Órgãos Sociais' },
+  { id: 'request', label: 'Pedidos' },
 ];
+
+// The top bar and the menu stay short: four public sections plus the "Pedir atuação" call to action.
+const navSections = sections.filter((s) => s.id !== 'request');
 
 // Always /portal#id, so the same link scrolls on the home page and navigates from Privacy.
 const sectionHref = (id: string) => `/portal#${id}`;
@@ -98,7 +101,7 @@ function Header() {
         <Brand />
         <nav className="header__nav" aria-label="Principal">
           <ul>
-            {sections.filter((s) => s.id !== 'pedidos').map((s) => (
+            {navSections.map((s) => (
               <li key={s.id}>
                 <a href={sectionHref(s.id)}>{s.label}</a>
               </li>
@@ -151,7 +154,7 @@ function MobileMenu() {
         </div>
         <nav aria-label="Menu principal">
           <ol className="menu__links">
-            {sections.map((s, i) => (
+            {navSections.map((s, i) => (
               <li key={s.id}>
                 <a href={sectionHref(s.id)} onClick={hide}>
                   <span className="menu__num" aria-hidden="true">
@@ -282,7 +285,7 @@ export function useCurrentUser() {
 }
 
 /**
- * The quiet way into the members-only area. Always /portal/perfil, which explains the area is
+ * The quiet way into the members-only area. Always /portal/profile, which explains the area is
  * reserved to RTUB members before offering the login - the portal has no public accounts. Reads
  * "Membros" for visitors (and while the session is unknown), "A minha conta" once signed in.
  */

@@ -19,7 +19,7 @@ no public read API yet.
 
 ## Decision
 
-Run a bounded pilot: a React 19 + Vite public portal at `/portal` and `/portal/privacidade`, served
+Run a bounded pilot: a React 19 + Vite public portal at `/portal` and `/portal/privacy`, served
 by the existing host from committed static output (`wwwroot/portal`), with route ownership declared
 explicitly in `Program.cs`. Blazor keeps every other route, including `/`, login and the public
 request form, which the portal links to. No new API, no database change, no business logic in

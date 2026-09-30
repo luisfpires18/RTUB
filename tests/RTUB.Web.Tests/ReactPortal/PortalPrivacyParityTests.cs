@@ -5,7 +5,7 @@ using Xunit;
 namespace RTUB.Web.Tests.ReactPortal;
 
 /// <summary>
-/// The React portal pilot renders the Privacy Policy at /portal/privacidade from a copy of
+/// The React portal pilot renders the Privacy Policy at /portal/privacy from a copy of
 /// Pages/Public/Privacy.razor, which stays the legal source and keeps serving /privacy. Two copies
 /// of legal text drift silently, so every heading, paragraph and list item of the Razor page must
 /// appear, word for word, in portal/src/Privacy.tsx.

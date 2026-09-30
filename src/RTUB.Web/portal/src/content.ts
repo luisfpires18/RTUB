@@ -17,9 +17,9 @@ export const legacy = {
 /** React-owned routes (Program.cs maps exactly these). */
 export const portal = {
   home: '/portal',
-  privacy: '/portal/privacidade',
-  profile: '/portal/perfil',
-  request: '/portal/pedidos',
+  privacy: '/portal/privacy',
+  profile: '/portal/profile',
+  request: '/portal/request',
 } as const;
 
 /** Sign in through the Blazor login, then come back to the React profile. */
@@ -57,7 +57,7 @@ export const albums = [
 ];
 
 // FACT: the instruments the tuna plays.
-export const naipes = ['Guitarra', 'Bandolim', 'Cavaquinho', 'Voz'];
+export const instruments = ['Guitarra', 'Bandolim', 'Cavaquinho', 'Voz'];
 
 // ILLUSTRATIVE captions; the tiles are artwork, not photographs.
 export const galleryTiles = [
@@ -69,7 +69,7 @@ export const galleryTiles = [
 ] as const;
 
 // FACT: the bodies and positions shown on /roles. Holders are not shown in the pilot.
-export const orgaosSociais = [
+export const governingBodies = [
   { name: 'Direção', roles: ['Magister', 'Vice-Magister', 'Secretário', '1.º Tesoureiro', '2.º Tesoureiro'] },
   { name: 'Mesa da Assembleia', roles: ['Presidente', '1.º Secretário', '2.º Secretário'] },
   { name: 'Conselho Fiscal', roles: ['Presidente', '1.º Relator', '2.º Relator'] },
