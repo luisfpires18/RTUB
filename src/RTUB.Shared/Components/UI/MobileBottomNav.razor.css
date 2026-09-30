@@ -1,7 +1,6 @@
 /* ==========================================
-   Mobile Bottom Navigation Bar
-   Fixed to bottom, dark/purple theme, white text
-   Visible on mobile and tablet (≤1024px)
+   Mobile Bottom Navigation Bar (navigation only; page actions: PageActions)
+   Fixed to bottom below 1200px, the app shell breakpoint
    ========================================== */
 
 /* Hidden on desktop by default — visible below xl breakpoint (matches d-none d-xl-flex on desktop actions) */
@@ -20,7 +19,12 @@
         background: #111114;
         border-top: 1px solid rgba(111, 66, 193, 0.25);
         padding: 0.35rem 0;
-        padding-bottom: env(safe-area-inset-bottom, 0.35rem);
+        /* env()'s fallback only applies when the variable is undefined; a device
+           without a home indicator defines it as 0, which left no bottom padding. */
+        padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
+        /* Landscape notch sides (viewport-fit=cover, UI refactor 034); 0 elsewhere. */
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
         justify-content: space-around;
         align-items: stretch;
         box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
@@ -38,10 +42,10 @@
         background: transparent;
         border: none;
         color: rgba(255, 255, 255, 0.85);
-        font-size: 0.65rem;
+        /* 11px, sentence case: legible Portuguese labels (UI refactor 035). */
+        font-size: 0.6875rem;
         font-weight: 600;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
+        line-height: 1.2;
         cursor: pointer;
         transition: color 0.15s ease;
         -webkit-tap-highlight-color: transparent;

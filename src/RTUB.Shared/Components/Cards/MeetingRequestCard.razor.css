@@ -10,6 +10,12 @@
     padding: 6px 10px;
 }
 
+/* Keep its own paint on hover: Bootstrap's .btn:hover would swap in an undefined
+   variant color now that .btn no longer paints purple (UI refactor 033). */
+.btn-send-reminder:hover {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
 .btn-send-reminder-icon {
     font-size: 1.1rem;
     color: #333;

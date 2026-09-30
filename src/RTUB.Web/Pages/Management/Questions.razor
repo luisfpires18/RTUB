@@ -15,9 +15,12 @@
 @inject IQuestionService QuestionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Questions> Logger
+@inject ToastService Toasts
 
-<PageTitle>Perguntas aos Órgãos Sociais</PageTitle>
+<AppTitle>Perguntas aos Órgãos Sociais</AppTitle>
 
+<AppErrorBoundary>
 <div class="discussion-page-wrapper">
     @if (isLoading)
     {
@@ -26,39 +29,26 @@
     else
     {
         <!-- Page Header -->
-        <div class="page-header-centered">
-            <div class="page-header-left"></div>
-
-            <div class="page-header-center">
-                <h1><i class="bi bi-question-circle"></i> Perguntas</h1>
-                <p class="page-header-subtitle">Faça perguntas aos membros dos Órgãos Sociais</p>
-            </div>
-
-            <div class="page-header-right d-none d-xl-flex">
+        <PageHeader Title="Perguntas" Icon="bi-question-circle" Subtitle="Faça perguntas aos membros dos Órgãos Sociais">
+            <Actions>
                 @if (currentUser != null)
                 {
-                    <button class="btn btn-success" @onclick="OpenCreateQuestionModal" title="Criar Nova Pergunta">
-                        <i class="bi bi-plus-lg"></i> Nova Pergunta
-                    </button>
+                    <PageAction Label="Nova Pergunta" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateQuestionModal" />
                 }
-            </div>
-        </div>
+            </Actions>
+        </PageHeader>
 
         <!-- Search Bar and Filter -->
-        <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap flex-lg-nowrap">
-            <div class="flex-grow-1 filter-search-container">
-                <SearchBar @bind-Value="searchTerm"
-                           Placeholder="Pesquisar perguntas..."
-                           OnSearch="HandleSearch" />
-            </div>
-            <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedMemberFilter"
-                                SelectedValueChanged="@(value => selectedMemberFilter = value)"
-                                OnChange="@OnMemberFilterChanged"
-                                AllItemsLabel="Todos os membros"
-                                Options="@memberFilterOptions" />
-            </div>
-        </div>
+        <FilterToolbar CssClass="mb-0">
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar perguntas..."
+                       OnSearch="HandleSearch" />
+            <FilterDropdown Label="Membro" SelectedValue="@selectedMemberFilter"
+                            SelectedValueChanged="@(value => selectedMemberFilter = value)"
+                            OnChange="@OnMemberFilterChanged"
+                            AllItemsLabel="Todos os membros"
+                            Options="@memberFilterOptions" />
+        </FilterToolbar>
 
         <!-- Open Questions (Not Closed) -->
         @if (openQuestions == null || !openQuestions.Any())
@@ -139,12 +129,13 @@
     }
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Create Question Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Create)" 
-       ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) ClearMemberSelection(); })"
+<Modal @ref="createModal"
+       Show="@modals.IsOpen(ModalType.Create)"
+       ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) { ClearMemberSelection(); createChanges.Clear(); } })"
+       IsDirty="() => createChanges.IsDirty"
+       CanClose="() => Task.FromResult(!createSaving.IsBusy)"
        Title="Nova Pergunta"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -218,32 +209,38 @@
                 </div>
             }
 
-            <div class="mb-3">
-                <label class="form-label">Título</label>
-                <InputText class="form-control" 
+            <FormField Label="Título" For="() => newQuestionModel.Title" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control"
                            @bind-Value="newQuestionModel.Title"
                            placeholder="Resumo da sua pergunta..." 
                            maxlength="100" />
                 <ValidationMessage For="@(() => newQuestionModel.Title)" />
-            </div>
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label">A sua pergunta</label>
-                <InputTextArea class="form-control" 
+            <FormField Label="A sua pergunta" For="() => newQuestionModel.Content" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control"
                               rows="5" 
                               @bind-Value="newQuestionModel.Content"
                               placeholder="Escreva a sua pergunta aqui..." />
                 <ValidationMessage For="@(() => newQuestionModel.Content)" />
-            </div>
+            </FormField>
 
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Create)">
+        <button type="button" class="btn btn-secondary" @onclick="() => createModal!.RequestCloseAsync()" disabled="@createSaving.IsBusy">
             Cancelar
         </button>
-        <button type="submit" form="createQuestionForm" class="btn btn-primary" disabled="@(!CanSubmitQuestion())">
-            <i class="bi bi-send me-1"></i> Enviar Pergunta
+        <button type="submit" form="createQuestionForm" class="btn btn-primary" disabled="@(createSaving.IsBusy || !CanSubmitQuestion())" aria-busy="@(createSaving.IsBusy ? "true" : null)">
+            @if (createSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi bi-send me-1" aria-hidden="true"></i>
+            }
+            Enviar Pergunta
         </button>
     </FooterContent>
 </Modal>
@@ -445,6 +442,7 @@
         <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Reply)">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private List<Question> openQuestions = new();
@@ -489,14 +487,15 @@
     }
 
     private readonly MultiModalState<ModalType> modals = new();
+    private Modal? createModal;
+    private readonly UnsavedChanges createChanges = new();
+    private readonly BusyState createSaving = new();
     private Question? questionToDelete;
     private Question? questionToClose;
     private Question? questionForReminder;
     private Question? questionToView;
     private Question? questionToReply;
 
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -505,28 +504,9 @@
         await LoadMemberFilterOptionsAsync();
         await LoadQuestionsAsync();
         isLoading = false;
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
 
-        if (currentUser != null)
-        {
-            items.Add(new("action-add", "Nova Pergunta", "bi-plus-lg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add")
-        {
-            OpenCreateQuestionModal();
-        }
-    }
 
     private async Task LoadCurrentUserAsync()
     {
@@ -610,6 +590,7 @@
     {
         newQuestionModel = new NewQuestionModel();
         ClearMemberSelection();
+        createChanges.Track(() => new { newQuestionModel.Title, newQuestionModel.Content, Member = selectedMember?.Member.Id });
         modals.Open(ModalType.Create);
     }
 
@@ -656,23 +637,34 @@
         filteredMembers.Clear();
     }
 
-    private async Task CreateQuestion()
+    private Task CreateQuestion() => createSaving.RunAsync(async () =>
     {
         if (!CanSubmitQuestion() || currentUser == null || selectedMember == null)
             return;
 
-        await QuestionService.CreateAsync(
-            newQuestionModel.Title,
-            newQuestionModel.Content,
-            currentUser.Id,
-            selectedMember.Value.Position,
-            selectedMember.Value.Member.Id);
+        try
+        {
+            await QuestionService.CreateAsync(
+                newQuestionModel.Title,
+                newQuestionModel.Content,
+                currentUser.Id,
+                selectedMember.Value.Position,
+                selectedMember.Value.Member.Id);
+        }
+        catch (Exception ex)
+        {
+            // The dialog stays open with the question; the user can retry.
+            Logger.LogError(ex, "Creating a question failed");
+            Toasts.ShowError("Não foi possível enviar a pergunta. Tente novamente.");
+            return;
+        }
 
+        createChanges.Clear();
         modals.Close(ModalType.Create);
         ClearMemberSelection();
+        Toasts.ShowSuccess("Pergunta enviada.");
         await LoadQuestionsAsync();
-        StateHasChanged();
-    }
+    });
 
     private async Task AddReply(int questionId, string body)
     {

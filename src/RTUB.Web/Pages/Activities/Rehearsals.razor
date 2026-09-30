@@ -33,47 +33,34 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Rehearsals> Logger
+@inject ToastService Toasts
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-music-note-list"></i> Ensaios</h1>
-        <p class="lead page-header-subtitle text-light-theme">Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<AppTitle>Ensaios</AppTitle>
+
+<AppErrorBoundary>
+<PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="Ensaios regulares da tuna (Terças e Quintas, 21:30-00:00).">
+    <Actions>
         @if (isAdmin)
         {
-            <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
-                <i class="bi bi-plus-lg"></i> Adicionar Ensaio
-            </button>
-            <button class="btn btn-success" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
-                <i class="bi bi-calendar-range"></i> Adicionar Vários
-            </button>
+            <PageAction Label="Adicionar Ensaio" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateSingleModal" />
+            <PageAction Label="Adicionar Vários" ShortLabel="Vários" Icon="bi-calendar-range" OnClick="OpenDateRangeModal" />
         }
-        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-            <i class="bi bi-bar-chart"></i> Estatísticas
-        </button>
-        <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
-            <i class="bi bi-calendar-check"></i> Minhas Presenças
-        </button>
-    </div>
-</div>
+        <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="OpenStatsModal" />
+        <PageAction Label="Minhas Presenças" ShortLabel="Presenças" Icon="bi-calendar-check" OnClick="OpenMyAttendancesModal" />
+    </Actions>
+</PageHeader>
 
 <!-- Filter Controls -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-    <div class="flex-grow-1 filter-search-container">
-        <SearchBar @bind-Value="searchTerm"
-                   Placeholder="Pesquisar por tema ou localização..."
-                   OnSearch="@HandleSearchChanged" />
-    </div>
-    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-        <FilterDropdown SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-    </div>
-</div>
+<FilterToolbar>
+    <SearchBar @bind-Value="searchTerm"
+               Placeholder="Pesquisar por tema ou localização..."
+               OnSearch="@HandleSearchChanged" />
+    <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                    OnChange="@OnFiscalYearChanged"
+                    AllItemsLabel="Todos os anos"
+                    Options="@fiscalYearOptions" />
+</FilterToolbar>
 
 @if (loading)
 {
@@ -82,7 +69,14 @@
 else
 {
     <!-- Upcoming Rehearsals Section -->
-    <h3 class="mt-4 mb-3">Próximos Ensaios</h3>
+    <section class="item-section" aria-labelledby="upcoming-rehearsals-title">
+    <h2 class="item-section-title" id="upcoming-rehearsals-title">
+        Próximos ensaios
+        @if (filteredUpcomingRehearsals != null && filteredUpcomingRehearsals.Any())
+        {
+            <span class="item-section-title__count">@filteredUpcomingRehearsals.Count</span>
+        }
+    </h2>
 
     @if (filteredUpcomingRehearsals == null || !filteredUpcomingRehearsals.Any())
     {
@@ -91,7 +85,8 @@ else
     }
     else
     {
-        <div class="rehearsal-grid">
+        var nextRehearsalId = filteredUpcomingRehearsals.Where(r => !r.IsCanceled).OrderBy(r => r.Date).ThenBy(r => r.StartTime).FirstOrDefault()?.Id;
+        <div class="item-grid">
             @foreach (var rehearsal in paginatedUpcomingRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
@@ -103,6 +98,7 @@ else
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
                                IsPastRehearsal="false"
+                               IsNext="@(rehearsal.Id == nextRehearsalId)"
                                ShowDeleteButton="@CanDeleteRehearsal()"
                                ShowCancelButton="@CanCancelRehearsal()"
                                OnEdit="@(() => OpenEditModal(rehearsal))"
@@ -130,11 +126,18 @@ else
                         OnPageSizeChanged="@HandleUpcomingRehearsalsPageSizeChange" />
     }
     
-    <!-- Previous Rehearsals Section -->
-    <h3 class="mt-5 mb-3">Ensaios Anteriores</h3>
+    </section>
 
-    <!-- Search for previous rehearsals -->
-    <div class="mb-3">
+    <!-- Previous Rehearsals Section -->
+    <section class="item-section" aria-labelledby="previous-rehearsals-title">
+    <div class="item-section-head">
+        <h2 class="item-section-title" id="previous-rehearsals-title">
+            Ensaios anteriores
+            @if (filteredPreviousRehearsals != null && filteredPreviousRehearsals.Any())
+            {
+                <span class="item-section-title__count">@filteredPreviousRehearsals.Count</span>
+            }
+        </h2>
         <SearchBar @bind-Value="previousRehearsalsSearch"
                    Placeholder="Pesquisar ensaio anterior..."
                    OnSearch="@HandlePreviousRehearsalsSearchChanged" />
@@ -147,7 +150,7 @@ else
     }
     else
     {
-        <div class="rehearsal-grid">
+        <div class="item-grid">
             @foreach (var rehearsal in paginatedPreviousRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
@@ -186,6 +189,7 @@ else
                         OnPageChanged="@HandlePreviousRehearsalsPageChange"
                         OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
     }
+    </section>
 }
 
 <!-- Mark Attendance Modal (using unified ParticipationModal) -->
@@ -226,7 +230,7 @@ else
                 @if (isAdmin && isSelectedRehearsalApprovable)
                 {
                     <div class="col-12 col-md-4">
-                        <FilterDropdown
+                        <FilterDropdown Label="Estado da presença"
                             SelectedValue="@attendanceApprovalFilter"
                             SelectedValueChanged="@(value => attendanceApprovalFilter = value)"
                             OnChange="@FilterAttendances"
@@ -537,39 +541,35 @@ else
 </Modal>
 
 <!-- Edit/Delete Modals -->
-<Modal Show="@(modals.IsOpen(ModalType.Edit) && editingRehearsal != null)"
+<Modal @ref="editModal"
+       Show="@(modals.IsOpen(ModalType.Edit) && editingRehearsal != null)"
        ShowChanged="@((bool show) => { if (!show) CloseEditModal(); })"
        Title="Editar Ensaio"
-       OnClose="CloseEditModal">
+       OnClose="CloseEditModal"
+       IsDirty="() => editChanges.IsDirty">
     <BodyContent>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-geo-alt text-primary me-2"></i>Localização
-            </label>
-            <input type="text" class="form-control" @bind="editLocation" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-music-note-list text-primary me-2"></i>Tema (opcional)
-            </label>
-            <input type="text" class="form-control" @bind="editTheme" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-card-text text-primary me-2"></i>Descrição (opcional)
-            </label>
-            <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
-        </div>
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
-            </label>
-            <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
-        </div>
+        <FormField Label="Localização" Icon="bi-geo-alt" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" @bind="editLocation" />
+        </FormField>
+        <FormField Label="Tema (opcional)" Icon="bi-music-note-list" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" @bind="editTheme" />
+        </FormField>
+        <FormField Label="Descrição (opcional)" Icon="bi-card-text" Context="field">
+            <textarea @attributes="field.Attributes" class="form-control" rows="2" @bind="editDescription"></textarea>
+        </FormField>
+        <FormField Label="Notas (opcional)" Icon="bi-file-text" Context="field">
+            <textarea @attributes="field.Attributes" class="form-control" rows="3" @bind="editNotes"></textarea>
+        </FormField>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-        <button type="button" class="btn btn-primary" @onclick="SaveEdit">Guardar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => editModal!.RequestCloseAsync()" disabled="@editSaving.IsBusy">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="SaveEdit" disabled="@editSaving.IsBusy" aria-busy="@(editSaving.IsBusy ? "true" : null)">
+            @if (editSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
     </FooterContent>
 </Modal>
 
@@ -610,8 +610,11 @@ else
                OnCancel="CloseCancelMyAttendanceModal" />
 
 <!-- Cancel Rehearsal Modal (Admin Only) -->
-<Modal Show="@modals.IsOpen(ModalType.CancelRehearsal)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelRehearsal, show))"
+<Modal @ref="cancelModal"
+       Show="@modals.IsOpen(ModalType.CancelRehearsal)"
+       ShowChanged="@((bool show) => { if (!show) CloseCancelRehearsalModal(); })"
+       IsDirty="() => !string.IsNullOrWhiteSpace(cancelRehearsalReason)"
+       CanClose="() => Task.FromResult(!cancelSaving.IsBusy)"
        Title="Cancelar Ensaio"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -636,14 +639,12 @@ else
                 <ErrorDisplay Errors="@(new[] { cancelRehearsalErrorMessage })" />
             }
 
-            <div class="mb-3">
-                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                <textarea class="form-control" rows="4" 
+            <FormField Label="Motivo do Cancelamento" Required="true" Help="Máximo 1000 caracteres" Context="field">
+                <textarea @attributes="field.Attributes" class="form-control" rows="4"
                           @bind="cancelRehearsalReason" 
                           placeholder="Descreva o motivo do cancelamento do ensaio..."
                           maxlength="1000"></textarea>
-                <small class="text-muted">Máximo 1000 caracteres</small>
-            </div>
+            </FormField>
             
             <div class="alert alert-info mt-4 identity-alert-info">
                 <i class="bi bi-info-circle me-2"></i>
@@ -652,67 +653,64 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCancelRehearsalModal">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelRehearsal">Cancelar Ensaio</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => cancelModal!.RequestCloseAsync()" disabled="@cancelSaving.IsBusy">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelRehearsal" disabled="@cancelSaving.IsBusy" aria-busy="@(cancelSaving.IsBusy ? "true" : null)">
+            @if (cancelSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+            }
+            Cancelar Ensaio
+        </button>
     </FooterContent>
 </Modal>
 
 <!-- Create Single Rehearsal Modal (Admin Only) -->
 @if (modals.IsOpen(ModalType.Create) && isAdmin)
 {
-    <Modal Show="@modals.IsOpen(ModalType.Create)"
-           ShowChanged="@((bool show) => modals.Toggle(ModalType.Create, show))"
+    <Modal @ref="createModal"
+           Show="@modals.IsOpen(ModalType.Create)"
+           ShowChanged="@((bool show) => { if (!show) CloseCreateModal(); })"
+           IsDirty="() => createChanges.IsDirty"
+           CanClose="() => Task.FromResult(!createSaving.IsBusy)"
            Title="Criar Ensaio"
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            @if (!string.IsNullOrEmpty(createFeedbackMessage))
-            {
-                <div class="alert @(createFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                    @createFeedbackMessage
-                    <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
-                </div>
-            }
+            <Alert Type="Alert.AlertType.Error"
+                   Message="@createFeedbackMessage"
+                   Dismissible="true"
+                   OnDismiss="@(() => createFeedbackMessage = "")" />
             <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm" id="createRehearsalForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar3 text-primary me-2"></i>Data *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="createRehearsalForm.Date" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
-                    </label>
-                    <InputText class="form-control" @bind-Value="createRehearsalForm.Location" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="2" @bind-Value="createRehearsalForm.Description" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Notas (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
-                </div>
+                <FormField Label="Data" Icon="bi-calendar3" For="() => createRehearsalForm.Date" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Date" />
+                </FormField>
+                <FormField Label="Localização" Icon="bi-geo-alt" For="() => createRehearsalForm.Location" Required="true" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Location" />
+                </FormField>
+                <FormField Label="Tema (Opcional)" Icon="bi-music-note-list" For="() => createRehearsalForm.Theme" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="createRehearsalForm.Theme" />
+                </FormField>
+                <FormField Label="Descrição (Opcional)" Icon="bi-card-text" For="() => createRehearsalForm.Description" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="2" @bind-Value="createRehearsalForm.Description" />
+                </FormField>
+                <FormField Label="Notas (Opcional)" Icon="bi-file-text" For="() => createRehearsalForm.Notes" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
+                </FormField>
 
             </EditForm>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
-            <button type="submit" form="createRehearsalForm" class="btn btn-primary">Criar</button>
+            <button type="button" class="btn btn-secondary" @onclick="() => createModal!.RequestCloseAsync()" disabled="@createSaving.IsBusy">Cancelar</button>
+            <button type="submit" form="createRehearsalForm" class="btn btn-primary" disabled="@createSaving.IsBusy" aria-busy="@(createSaving.IsBusy ? "true" : null)">
+                @if (createSaving.IsBusy)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                }
+                Criar
+            </button>
         </FooterContent>
     </Modal>
 }
@@ -729,16 +727,16 @@ else
             <div class="mb-3">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label class="form-label">Data Início</label>
-                        <input type="date" class="form-control" @bind="statsStartDate" />
+                        <label for="rh-data-inicio" class="form-label">Data Início</label>
+                        <input id="rh-data-inicio" type="date" class="form-control" @bind="statsStartDate" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Data Fim</label>
-                        <input type="date" class="form-control" @bind="statsEndDate" />
+                        <label for="rh-data-fim" class="form-label">Data Fim</label>
+                        <input id="rh-data-fim" type="date" class="form-control" @bind="statsEndDate" />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Categoria</label>
-                        <FilterDropdown SelectedValue="@selectedStatsCategoryFilter"
+                        <FilterDropdown Label="Categoria" SelectedValue="@selectedStatsCategoryFilter"
                                         SelectedValueChanged="@(value => selectedStatsCategoryFilter = value)"
                                         OnChange="@FilterStats"
                                         AllItemsLabel="Todos"
@@ -836,52 +834,36 @@ else
 <!-- Date Range Modal (Admin Only) -->
 @if (modals.IsOpen(ModalType.DateRange) && isAdmin)
 {
-    <Modal Show="@modals.IsOpen(ModalType.DateRange)"
+    <Modal @ref="rangeModal"
+           Show="@modals.IsOpen(ModalType.DateRange)"
            ShowChanged="@((bool show) => { if (!show) CloseDateRangeModal(); })"
-           Title="Criar Ensaios (Intervalo)"
-           OnClose="CloseDateRangeModal">
+           IsDirty="() => rangeChanges.IsDirty"
+           CanClose="() => Task.FromResult(!rangeSaving.IsBusy)"
+           Title="Criar Ensaios (Intervalo)">
         <BodyContent>
-            @if (!string.IsNullOrEmpty(rangeFeedbackMessage))
-            {
-                <div class="alert @(rangeFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                    @rangeFeedbackMessage
-                    <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
-                </div>
-            }
+            <Alert Type="@(rangeFeedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Warning)"
+                   Message="@rangeFeedbackMessage"
+                   Dismissible="true"
+                   OnDismiss="@(() => rangeFeedbackMessage = "")" />
             <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm" id="rangeRehearsalForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar-plus text-primary me-2"></i>Data Início *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim *
-                    </label>
-                    <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
-                    </label>
-                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
-                    </label>
-                    <InputTextArea class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
-                </div>
+                <FormField Label="Data Início" Icon="bi-calendar-plus" For="() => rangeRehearsalForm.StartDate" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
+                </FormField>
+                <FormField Label="Data Fim" Icon="bi-calendar-check" For="() => rangeRehearsalForm.EndDate" Required="true" Context="field">
+                    <InputDate @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
+                </FormField>
+                <FormField Label="Localização" Icon="bi-geo-alt" For="() => rangeRehearsalForm.Location" Required="true" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.Location" />
+                </FormField>
+                <FormField Label="Tema (Opcional)" Icon="bi-music-note-list" For="() => rangeRehearsalForm.Theme" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
+                </FormField>
+                <FormField Label="Descrição (Opcional)" Icon="bi-card-text" For="() => rangeRehearsalForm.Description" Context="field">
+                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
+                </FormField>
                 <p class="text-muted">
                     <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
                 </p>
@@ -889,8 +871,14 @@ else
             </EditForm>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
-            <button type="submit" form="rangeRehearsalForm" class="btn btn-primary">Criar</button>
+            <button type="button" class="btn btn-secondary" @onclick="() => rangeModal!.RequestCloseAsync()" disabled="@rangeSaving.IsBusy">Cancelar</button>
+            <button type="submit" form="rangeRehearsalForm" class="btn btn-primary" disabled="@rangeSaving.IsBusy" aria-busy="@(rangeSaving.IsBusy ? "true" : null)">
+                @if (rangeSaving.IsBusy)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                }
+                Criar
+            </button>
         </FooterContent>
     </Modal>
 }
@@ -1046,8 +1034,11 @@ else
 }
 
 <!-- Push Notification Modal -->
-<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
+<Modal @ref="pushModal"
+       Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => { if (!show) ClosePushNotificationModal(); })"
+       IsDirty="() => !string.IsNullOrWhiteSpace(customNotificationBody)"
+       CanClose="() => Task.FromResult(!IsSendingPushNotifications)"
        Title="Enviar notificação push de ensaio"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1094,17 +1085,13 @@ else
                 else
                 {
                     <!-- Custom Notification Message -->
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
-                        <textarea class="form-control" 
+                    <FormField Label="Mensagem da Notificação" Required="true" Help='A notificação terá o título automático no formato "Ensaio - DD/MMM DayOfWeek". Máximo 500 caracteres.' Context="field">
+                        <textarea @attributes="field.Attributes" class="form-control"
                                   rows="4" 
                                   @bind="customNotificationBody" 
                                   placeholder="Ex: Ensaio importante!"
                                   maxlength="500"></textarea>
-                        <small class="text-muted">
-                            A notificação terá o título automático no formato "Ensaio - DD/MMM DayOfWeek". Máximo 500 caracteres.
-                        </small>
-                    </div>
+                    </FormField>
                     
                     <!-- Filter Option -->
                     <div class="mb-3">
@@ -1142,22 +1129,19 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => pushModal!.RequestCloseAsync()" disabled="@IsSendingPushNotifications">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendRehearsalPushNotification" disabled="@(IsSendingPushNotifications || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any() || string.IsNullOrWhiteSpace(customNotificationBody))">
             Enviar Notificação Push
         </button>
     </FooterContent>
 </Modal>
-
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+</AppErrorBoundary>
 
 @code {
     private bool loading = true;
     private bool isInitializing = true;
     private bool isAdmin = false;
     private bool isOwner = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private string? currentUserId;
     private ApplicationUser? currentUser;
     private List<InstrumentType> currentUserInstruments = new();
@@ -1228,6 +1212,11 @@ else
     private int? editingAttendanceId = null;
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlayRehearsal = true;
+    private Modal? editModal, createModal, rangeModal, cancelModal, pushModal;
+    private readonly UnsavedChanges createChanges = new(), rangeChanges = new();
+    private readonly BusyState createSaving = new(), rangeSaving = new(), cancelSaving = new();
+    private readonly UnsavedChanges editChanges = new();
+    private readonly BusyState editSaving = new();
     private string editLocation = "";
     private string? editTheme;
     private string? editDescription;
@@ -1283,7 +1272,6 @@ else
     private RehearsalFormModel createRehearsalForm = new();
     private EditForm? createRehearsalEditForm;
     private string createFeedbackMessage = "";
-    private bool createFeedbackIsError = false;
 
     // Range rehearsals
     private RehearsalRangeFormModel rangeRehearsalForm = new();
@@ -1370,32 +1358,9 @@ else
         await LoadData();
         loading = false;
         isInitializing = false;
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdmin)
-        {
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-            items.Add(new("action-add-range", "Vários", "bi-calendar-range"));
-        }
-        items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
-        items.Add(new("action-attendances", "Presenças", "bi-calendar-check"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add": OpenCreateSingleModal(); break;
-            case "action-add-range": OpenDateRangeModal(); break;
-            case "action-stats": OpenStatsModal(); break;
-            case "action-attendances": await OpenMyAttendancesModal(); break;
-        }
-    }
 
     private async Task LoadData()
     {
@@ -1648,7 +1613,8 @@ else
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error marking attendance: {ex.Message}");
+                Logger.LogError(ex, "Marking rehearsal attendance failed");
+                Toasts.ShowError("Não foi possível registar a presença. Tente novamente.");
             }
         }
     }
@@ -1879,8 +1845,8 @@ else
         }
         catch (Exception ex)
         {
-            // Handle error silently or show error message
-            Console.WriteLine($"Error canceling attendance: {ex.Message}");
+            Logger.LogError(ex, "Cancelling rehearsal attendance {AttendanceId} failed", attendance.Id);
+            Toasts.ShowError("Não foi possível cancelar a presença. Tente novamente.");
         }
     }
 
@@ -1910,7 +1876,8 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error approving attendance: {ex.Message}");
+            Logger.LogError(ex, "Approving rehearsal attendance {AttendanceId} failed", attendance.Id);
+            Toasts.ShowError("Não foi possível aprovar a presença. Tente novamente.");
         }
     }
 
@@ -2016,9 +1983,9 @@ else
         }
         catch (Exception ex)
         {
-            addMemberFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            Logger.LogError(ex, "Adding a member to rehearsal attendance failed");
+            addMemberFeedbackMessage = "Não foi possível adicionar o membro. Tente novamente.";
             addMemberFeedbackIsError = true;
-            Console.WriteLine($"Error adding member: {ex.Message}");
         }
     }
 
@@ -2124,6 +2091,7 @@ else
         editTheme = rehearsal.Theme;
         editDescription = rehearsal.Description;
         editNotes = rehearsal.Notes;
+        editChanges.Track(() => new { editLocation, editTheme, editDescription, editNotes });
         modals.Open(ModalType.Edit);
     }
 
@@ -2131,18 +2099,32 @@ else
     {
         modals.Close(ModalType.Edit);
         editingRehearsal = null;
+        editChanges.Clear();
     }
 
-    private async Task SaveEdit()
+    private Task SaveEdit() => editSaving.RunAsync(async () =>
     {
-        if (editingRehearsal != null)
+        if (editingRehearsal == null)
+        {
+            return;
+        }
+
+        try
         {
             await RehearsalService.UpdateRehearsalAsync(editingRehearsal.Id, editLocation, editTheme, editDescription, editNotes);
-            await LoadData();
-            CloseEditModal();
-            StateHasChanged();
         }
-    }
+        catch (Exception ex)
+        {
+            // The dialog stays open with what was typed; the user can retry.
+            Logger.LogError(ex, "Updating rehearsal {RehearsalId} failed", editingRehearsal.Id);
+            Toasts.ShowError("Não foi possível guardar o ensaio. Tente novamente.");
+            return;
+        }
+
+        CloseEditModal();
+        Toasts.ShowSuccess("Ensaio atualizado.");
+        await LoadData();
+    });
 
     private void OpenDeleteModal(Rehearsal rehearsal)
     {
@@ -2183,12 +2165,11 @@ else
         cancelRehearsalErrorMessage = null;
     }
     
-    private async Task ConfirmCancelRehearsal()
+    private Task ConfirmCancelRehearsal() => cancelSaving.RunAsync(async () =>
     {
         if (selectedRehearsalForCancellation == null || string.IsNullOrWhiteSpace(cancelRehearsalReason))
         {
             cancelRehearsalErrorMessage = "O motivo do cancelamento é obrigatório.";
-            StateHasChanged();
             return;
         }
 
@@ -2196,18 +2177,16 @@ else
         {
             // Cancel the rehearsal (NO email notifications sent)
             await RehearsalService.CancelRehearsalAsync(selectedRehearsalForCancellation.Id, cancelRehearsalReason);
-            
-            // Reload rehearsals
-            await LoadData();
-            
             CloseCancelRehearsalModal();
+            Toasts.ShowSuccess("Ensaio cancelado.");
+            await LoadData();
         }
         catch (Exception ex)
         {
-            cancelRehearsalErrorMessage = $"Erro ao cancelar ensaio: {ex.Message}";
-            StateHasChanged();
+            Logger.LogError(ex, "Cancelling rehearsal {RehearsalId} failed", selectedRehearsalForCancellation.Id);
+            cancelRehearsalErrorMessage = "Não foi possível cancelar o ensaio. Tente novamente.";
         }
-    }
+    });
     
     private async Task UncancelRehearsal(Rehearsal rehearsal)
     {
@@ -2265,7 +2244,8 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting attendance: {ex.Message}");
+            Logger.LogError(ex, "Deleting rehearsal attendance failed");
+            Toasts.ShowError("Não foi possível remover a presença. Tente novamente.");
         }
     }
 
@@ -2311,23 +2291,23 @@ else
             Date = DateTime.Today.AddDays(1),
             Location = "Centro Académico"
         };
+        createChanges.Track(() => createRehearsalForm);
         modals.Open(ModalType.Create);
     }
 
     private void CloseCreateModal()
     {
         modals.Close(ModalType.Create);
+        createChanges.Clear();
         // Clear feedback messages when modal closes
         createFeedbackMessage = "";
-        createFeedbackIsError = false;
     }
 
-    private async Task SaveNewRehearsal()
+    private Task SaveNewRehearsal() => createSaving.RunAsync(async () =>
     {
         try
         {
             createFeedbackMessage = "";
-            createFeedbackIsError = false;
 
             if (createRehearsalEditForm?.EditContext == null) return;
 
@@ -2345,17 +2325,17 @@ else
             }
 
             await RehearsalService.CreateRehearsalAsync(createRehearsalForm.Date, createRehearsalForm.Location, createRehearsalForm.Theme);
-            await LoadData();
             CloseCreateModal();
-            StateHasChanged();
+            Toasts.ShowSuccess("Ensaio criado.");
+            await LoadData();
         }
         catch (Exception ex)
         {
-            createFeedbackMessage = $"Erro ao criar ensaio: {ex.Message}";
-            createFeedbackIsError = true;
-            StateHasChanged();
+            // The form keeps what was typed; the user can retry.
+            Logger.LogError(ex, "Creating a rehearsal failed");
+            createFeedbackMessage = "Não foi possível criar o ensaio. Tente novamente.";
         }
-    }
+    });
 
     // Statistics modal methods
     private void OpenStatsModal()
@@ -2524,18 +2504,20 @@ else
             EndDate = DateTime.Today.AddMonths(1),
             Location = "Centro Académico"
         };
+        rangeChanges.Track(() => rangeRehearsalForm);
         modals.Open(ModalType.DateRange);
     }
 
     private void CloseDateRangeModal()
     {
         modals.Close(ModalType.DateRange);
+        rangeChanges.Clear();
         // Clear feedback messages when modal closes
         rangeFeedbackMessage = "";
         rangeFeedbackIsError = false;
     }
 
-    private async Task CreateRangeRehearsals()
+    private Task CreateRangeRehearsals() => rangeSaving.RunAsync(async () =>
     {
         try
         {
@@ -2595,12 +2577,8 @@ else
             }
             else if (created > 0)
             {
-                rangeFeedbackMessage = $"Criados {created} ensaios com sucesso!";
-                rangeFeedbackIsError = false;
-                await LoadData();
-                // Close modal after a short delay to show success message
-                await Task.Delay(1500);
                 CloseDateRangeModal();
+                Toasts.ShowSuccess($"Criados {created} ensaios com sucesso!");
             }
             else if (skipped > 0)
             {
@@ -2621,11 +2599,11 @@ else
         }
         catch (Exception ex)
         {
-            rangeFeedbackMessage = $"Erro ao criar ensaios: {ex.Message}";
+            Logger.LogError(ex, "Creating rehearsals for a date range failed");
+            rangeFeedbackMessage = "Não foi possível criar os ensaios. Os que já foram criados mantêm-se; verifique a lista e tente novamente.";
             rangeFeedbackIsError = true;
-            StateHasChanged();
         }
-    }
+    });
 
     // My Attendances Modal methods
     private async Task OpenMyAttendancesModal()
@@ -2765,7 +2743,8 @@ else
         }
         catch (Exception ex)
         {
-            pushErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+            Logger.LogError(ex, "Loading push recipients failed");
+            pushErrorMessage = "Não foi possível carregar os membros. Feche e tente novamente.";
         }
         finally
         {
@@ -2914,7 +2893,8 @@ else
         }
         catch (Exception ex)
         {
-            pushErrorMessage = $"Erro ao enviar notificação push: {ex.Message}";
+            Logger.LogError(ex, "Sending the rehearsal push notification failed");
+            pushErrorMessage = "Não foi possível enviar a notificação. Tente novamente.";
         }
         finally
         {

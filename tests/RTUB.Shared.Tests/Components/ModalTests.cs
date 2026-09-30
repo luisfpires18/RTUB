@@ -12,9 +12,9 @@ public class ModalTests : BunitContext
 {
     public ModalTests()
     {
-        // Setup JSInterop for modal helper methods
-        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
-        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+        // Modal registers with the dialog stack in modalHelper.js (focus, Escape, scroll lock).
+        JSInterop.SetupVoid("modalHelper.openDialog", _ => true);
+        JSInterop.SetupVoid("modalHelper.closeDialog", _ => true);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class ModalTests : BunitContext
             .Add(p => p.Title, "Test"));
 
         // Assert
-        cut.Markup.Should().Contain("modal-close-arrow", "modal should have close button by default");
+        cut.FindAll("button[aria-label='Fechar']").Should().ContainSingle("a dismissible dialog has one named close button");
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class ModalTests : BunitContext
             .Add(p => p.ShowCloseButton, false));
 
         // Assert
-        cut.Markup.Should().NotContain("modal-close-arrow", "modal should not have close button when ShowCloseButton is false");
+        cut.FindAll("button[aria-label='Fechar']").Should().BeEmpty("modal should not have close button when ShowCloseButton is false");
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class ModalTests : BunitContext
             })));
 
         // Act
-        var closeButton = cut.Find("button.modal-close-arrow");
+        var closeButton = cut.Find("button[aria-label='Fechar']");
         closeButton.Click();
 
         // Assert
@@ -242,7 +242,7 @@ public class ModalTests : BunitContext
             })));
 
         // Act
-        var closeButton = cut.Find("button.modal-close-arrow");
+        var closeButton = cut.Find("button[aria-label='Fechar']");
         closeButton.Click();
 
         // Assert
@@ -292,5 +292,101 @@ public class ModalTests : BunitContext
         // Assert
         cut.Markup.Should().Contain("modal-lg", "modal should have large size class");
         cut.Markup.Should().Contain("modal-dialog-centered", "modal should have centered class");
+    }
+
+    // ---------- dialog contract (UI refactor 035) ----------
+
+    [Fact]
+    public void Modal_IsAModalDialog_NamedByItsTitleHeading()
+    {
+        var cut = Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Editar Ensaio"));
+
+        var dialog = cut.Find("[role='dialog']");
+        dialog.GetAttribute("aria-modal").Should().Be("true");
+
+        var title = cut.Find("#" + dialog.GetAttribute("aria-labelledby"));
+        title.TagName.Should().Be("H2");
+        title.TextContent.Should().Be("Editar Ensaio");
+    }
+
+    [Fact]
+    public void Modal_WithHeaderActions_IsNamedByItsTitle()
+    {
+        var cut = Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Mensagem")
+            .Add(p => p.HeaderActions, builder => builder.AddContent(0, "custom header")));
+
+        var dialog = cut.Find("[role='dialog']");
+        dialog.HasAttribute("aria-labelledby").Should().BeFalse();
+        dialog.GetAttribute("aria-label").Should().Be("Mensagem");
+    }
+
+    [Fact]
+    public void Modal_OnOpen_RegistersWithTheDialogStack_EscapeFollowingTheCloseButton()
+    {
+        Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Sem fecho")
+            .Add(p => p.ShowCloseButton, false));
+
+        var open = JSInterop.VerifyInvoke("modalHelper.openDialog");
+        open.Arguments[2].Should().Be(false, "a dialog without a close button is not dismissed by Escape");
+    }
+
+    [Fact]
+    public void Modal_CloseOnEscape_OverridesTheDefault()
+    {
+        Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.ShowCloseButton, false)
+            .Add(p => p.CloseOnEscape, true));
+
+        JSInterop.VerifyInvoke("modalHelper.openDialog").Arguments[2].Should().Be(true);
+    }
+
+    [Fact]
+    public async Task Modal_Escape_ClosesThroughTheSamePathAsTheCloseButton()
+    {
+        var closedWith = (bool?)null;
+        var cut = Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Test")
+            .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, value => closedWith = value)));
+
+        await cut.InvokeAsync(() => cut.Instance.HandleEscape());
+
+        closedWith.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Modal_CanCloseFalse_KeepsTheDialogOpen()
+    {
+        var showChangedCalled = false;
+        var cut = Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Test")
+            .Add(p => p.CanClose, () => Task.FromResult(false))
+            .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, _ => showChangedCalled = true)));
+
+        cut.Find("button[aria-label='Fechar']").Click();
+        await cut.InvokeAsync(() => cut.Instance.HandleEscape());
+
+        showChangedCalled.Should().BeFalse("CanClose vetoes every user dismissal");
+        cut.FindAll("[role='dialog']").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Modal_WhenHidden_LeavesTheDialogStack()
+    {
+        var cut = Render<Modal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Test"));
+
+        cut.Render(parameters => parameters.Add(p => p.Show, false));
+
+        JSInterop.VerifyInvoke("modalHelper.closeDialog");
     }
 }

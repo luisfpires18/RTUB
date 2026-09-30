@@ -11,7 +11,6 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using RTUB.Shared.Components.Cards
-@implements IDisposable
 @attribute [Authorize]
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
@@ -23,9 +22,11 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject ToastService Toasts
 
-<PageTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</PageTitle>
+<AppTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</AppTitle>
 
+<AppErrorBoundary>
 <div class="enrollments-page-wrapper">
     @if (selectedEvent == null)
     {
@@ -35,38 +36,15 @@
     {
         <div class="enrollments-inner">
             <!-- Page Header -->
-            <div class="page-header-centered">
-                <div class="page-header-left d-none d-xl-flex">
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                </div>
-                <div class="page-header-center">
-                    <h1><i class="bi bi-people"></i> Inscrições</h1>
-                    <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
-                </div>
-                <div class="page-header-right d-none d-xl-flex">
-                    <button class="btn btn-outline-primary btn-sm me-2" @onclick="NavigateToContacts" title="Contactos">
-                        <i class="bi bi-telephone"></i>
-                    </button>
+            <PageHeader Title="Inscrições" Icon="bi-people" Subtitle="@selectedEvent.Name" OnBack="NavigateBack">
+                <Actions>
+                    <PageAction Label="Contactos" Icon="bi-telephone" OnClick="NavigateToContacts" />
                     @if (isUserAdmin)
                     {
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="CopyLinkToClipboard" title="Copiar link">
-                            <i class="bi bi-link-45deg"></i>
-                        </button>
+                        <PageAction Label="Copiar Link" Icon="bi-link-45deg" OnClick="CopyLinkToClipboard" />
                     }
-                </div>
-            </div>
-                
-                @* Copy Link Feedback Alert *@
-                @if (!string.IsNullOrEmpty(copyLinkFeedbackMessage))
-                {
-                    <Alert Type="@(copyLinkFeedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
-                           Message="@copyLinkFeedbackMessage"
-                           Dismissible="true"
-                           OnDismiss="ClearCopyLinkFeedback"
-                           AdditionalClasses="mb-0" />
-                }
+                </Actions>
+            </PageHeader>
 
         <!-- My Enrollment Section (for non-past, non-cancelled events) -->
         @if (!selectedEvent.IsCancelled && selectedEvent.Date.Date >= DateTime.Today)
@@ -378,8 +356,6 @@
     }
 </div>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Participation Modal (Enrollment Modal) -->
 @if (enrollmentForm != null)
@@ -416,6 +392,7 @@
                ConfirmButtonClass="btn-danger"
                OnConfirm="DeleteEnrollment"
                OnCancel="CloseDeleteEnrollmentModal" />
+</AppErrorBoundary>
 
 @code {
     [Parameter]
@@ -430,8 +407,6 @@
     private readonly MultiModalState<ModalType> modals = new();
     private Enrollment? deletingEnrollment;
     
-    // Mobile bottom nav
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // User's own enrollment state
     private Enrollment? userEnrollment;
@@ -461,9 +436,6 @@
     private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
     
     // Copy link feedback variables
-    private string copyLinkFeedbackMessage = string.Empty;
-    private bool copyLinkFeedbackIsError = false;
-    private System.Threading.Timer? _copyLinkFeedbackTimer;
     
     // Add member to enrollment variables
     private List<ApplicationUser> allMembersForEnrollment = new();
@@ -498,40 +470,9 @@
         }
         
         await LoadEventAndEnrollments();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>
-        {
-            new("action-back", "Voltar", "bi-arrow-left")
-        };
 
-        items.Add(new("action-contacts", "Contactos", "bi-telephone"));
-        if (isUserAdmin)
-        {
-            items.Add(new("action-copy", "Copiar Link", "bi-link-45deg"));
-        }
-
-        mobileNavItems = items;
-    }
-
-    private async Task HandleMobileNavSelect(string key)
-    {
-        if (key == "action-back")
-        {
-            NavigateBack();
-        }
-        else if (key == "action-contacts")
-        {
-            NavigateToContacts();
-        }
-        else if (key == "action-copy")
-        {
-            await CopyLinkToClipboard();
-        }
-    }
 
     private async Task LoadEventAndEnrollments()
     {
@@ -1079,40 +1020,12 @@
         {
             var absoluteUrl = Navigation.ToAbsoluteUri(Navigation.Uri).ToString();
             await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", absoluteUrl);
-            copyLinkFeedbackMessage = "Link copiado!";
-            copyLinkFeedbackIsError = false;
-            
-            // Auto-dismiss success message after 2 seconds
-            _copyLinkFeedbackTimer?.Dispose();
-            _copyLinkFeedbackTimer = new System.Threading.Timer(_ =>
-            {
-                _ = InvokeAsync(() =>
-                {
-                    ClearCopyLinkFeedback();
-                    StateHasChanged();
-                });
-            }, null, 2000, Timeout.Infinite);
+            Toasts.ShowSuccess("Link copiado!");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to copy link: {ex.Message}");
-            copyLinkFeedbackMessage = "Não foi possível copiar o link";
-            copyLinkFeedbackIsError = true;
+            Toasts.ShowError("Não foi possível copiar o link");
         }
-        
-        StateHasChanged();
-    }
-    
-    private void ClearCopyLinkFeedback()
-    {
-        copyLinkFeedbackMessage = string.Empty;
-        copyLinkFeedbackIsError = false;
-        _copyLinkFeedbackTimer?.Dispose();
-        _copyLinkFeedbackTimer = null;
-    }
-    
-    public void Dispose()
-    {
-        _copyLinkFeedbackTimer?.Dispose();
     }
 }

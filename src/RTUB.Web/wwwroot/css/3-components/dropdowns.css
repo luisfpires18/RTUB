@@ -157,7 +157,7 @@ th:hover {
 }
 
 .form-check-input:focus {
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
@@ -165,7 +165,9 @@ th:hover {
    Component-specific styles moved from Razor files
    ======================================== */
 
-/* SearchBar component */
+/* SearchBar, FilterDropdown and FilterToolbar (UI refactor 036,
+   docs/design/RTUB_UI_REFACTOR.md 23.6-23.8). Both controls share one pill: 44px tall,
+   dark fill, purple edge, accent ring when focused. */
 .search-bar-container {
     width: 100%;
     margin-top: 1rem;
@@ -177,156 +179,256 @@ th:hover {
     margin-bottom: 0.5rem;
 }
 
-.search-bar {
+.search-bar,
+.filter-dropdown {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     width: 100%;
+    min-height: 2.75rem;
+    color: var(--rtub-text);
     background-color: #1a1c24;
-    color: #ffffff;
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.65);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.55);
     border-radius: 999px;
-    padding: 0.5rem 0.75rem;
-    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0.2);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.search-bar:focus-within {
-    border-color: var(--bs-primary);
+.search-bar {
+    padding: 0.25rem 0.375rem 0.25rem 1rem;
+}
+
+.search-bar:hover,
+.filter-dropdown:not(.is-disabled):hover {
+    border-color: var(--rtub-accent-border);
+}
+
+.search-bar:focus-within,
+.filter-dropdown:focus-within,
+.filter-dropdown.is-open {
+    border-color: var(--rtub-focus-ring);
+    box-shadow: 0 0 0 1px var(--rtub-focus-ring);
     background-color: #202331;
 }
 
-.search-bar__icon {
-    color: #cfcfe8;
+.search-bar__icon,
+.filter-dropdown__icon {
     display: inline-flex;
+    flex-shrink: 0;
+    color: #bdbdd1;
 }
 
 .search-bar__input {
     flex: 1;
+    min-width: 0;
+    padding: 0.375rem 0;
+    color: #ffffff;
     background: transparent;
     border: none;
-    color: #ffffff;
     outline: none;
-    padding: 0.25rem 0.1rem;
-    /* Set minimum 16px font-size to prevent iOS Safari auto-zoom on focus */
+    /* 16px: iOS Safari zooms into smaller inputs on focus. */
     font-size: 16px;
 }
 
-.search-bar__input:focus {
-    box-shadow: none;
+/* The field already has its own clear button. */
+.search-bar__input::-webkit-search-cancel-button,
+.search-bar__input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .search-bar__input::placeholder {
     color: #bdbdd1;
+    opacity: 1;
 }
 
 .search-bar__clear {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
-    color: #ffffff;
-    border-radius: 999px;
-    padding: 0.35rem 0.6rem;
-    line-height: 1;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    color: var(--rtub-text);
+    background: rgba(255, 255, 255, 0.06);
+    border: 0;
+    border-radius: 50%;
+    font-size: 0.8125rem;
+    transition: background-color 0.15s ease;
 }
 
-.search-bar__clear:hover,
-.search-bar__clear:focus {
-    background: rgba(var(--bs-primary-rgb), 0.2);
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
+.search-bar__clear:hover {
+    background: rgba(var(--bs-primary-rgb), 0.3);
 }
 
-.search-bar__clear i {
-    vertical-align: middle;
-}
-
-/* FilterDropdown component */
+/* FilterDropdown */
 .filter-dropdown {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    background-color: #1a1c24;
-    color: #ffffff;
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.65);
-    border-radius: 999px;
-    padding: 0.35rem 0.75rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.filter-dropdown:focus-within {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
-    background-color: #202331;
-}
-
-.filter-dropdown__icon {
-    color: #cfcfe8;
-    display: inline-flex;
+    padding: 0 0 0 1rem;
 }
 
 .filter-dropdown__control {
     flex: 1;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    outline: none;
-    padding: 0.25rem 0.1rem;
+    min-width: 0;
+    align-self: stretch;
     display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.35rem;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem 0.375rem 0;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    font-size: 1rem;
+    text-align: left;
     cursor: pointer;
 }
 
-.filter-dropdown__control:focus {
+/* The pill draws the focus ring (:focus-within). */
+.filter-dropdown__control:focus-visible {
     outline: none;
 }
 
 .filter-dropdown__value {
-    text-align: left;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .filter-dropdown__caret {
-    color: #cfcfe8;
-    font-size: 0.9rem;
+    flex-shrink: 0;
+    color: #bdbdd1;
+    font-size: 0.875rem;
+    transition: transform 0.15s ease;
+}
+
+.filter-dropdown.is-open .filter-dropdown__caret {
+    transform: rotate(180deg);
+}
+
+.filter-dropdown.is-disabled {
+    opacity: 0.6;
+}
+
+.filter-dropdown.is-disabled .filter-dropdown__control {
+    cursor: not-allowed;
+}
+
+/* Click-away layer under the open list. */
+.filter-dropdown__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2999;
 }
 
 .filter-dropdown__panel {
     position: absolute;
-    top: calc(100% + 0.35rem);
+    top: calc(100% + 0.375rem);
     left: 0;
-    width: 100%;
-    background-color: #1a1c24;
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.45);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     z-index: 3000;
-    padding: 0.35rem;
+    min-width: 100%;
+    max-width: min(22rem, calc(100vw - 2rem));
     max-height: 18rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.375rem;
+    background-color: #1a1c24;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.45);
+    border-radius: var(--rtub-radius-lg);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.filter-dropdown__panel:focus {
+    outline: none;
 }
 
 .filter-dropdown__option {
-    color: #ffffff;
-    padding: 0.45rem 0.65rem;
-    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--rtub-text);
+    border-radius: var(--rtub-radius);
+    line-height: 1.35;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.filter-dropdown__option:hover,
+.filter-dropdown__option-label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Active (pointer or arrow keys): soft surface. Selected: weight + check. Never color alone. */
 .filter-dropdown__option.is-focused {
-    background-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.28);
     color: #ffffff;
 }
 
 .filter-dropdown__option.is-selected {
-    background-color: var(--rtub-surface);
+    font-weight: 600;
     color: #ffffff;
+}
+
+.filter-dropdown__check {
+    flex-shrink: 0;
+    color: var(--rtub-accent);
+    font-size: 1.125rem;
+}
+
+@media (pointer: coarse) {
+    .filter-dropdown__option {
+        min-height: 2.75rem;
+    }
+}
+
+/* FilterToolbar: search grows, filters keep a readable width, the rest sits at the end. */
+.filter-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-toolbar > .search-bar-container {
+    flex: 1 1 20rem;
+    min-width: 0;
+    max-width: 40rem;
+    margin: 0;
+}
+
+.filter-toolbar > .filter-dropdown {
+    flex: 0 1 15rem;
+    width: auto;
+    min-width: 11rem;
+}
+
+.filter-toolbar > .search-bar-container + .filter-dropdown {
+    margin-left: auto;
+}
+
+/* Phones: search on its own row, filters two per row (one alone fills the row) */
+@media (max-width: 575.98px) {
+    .filter-toolbar > .search-bar-container {
+        flex-basis: 100%;
+        max-width: none;
+        margin-left: 0;
+    }
+
+    .filter-toolbar > .filter-dropdown {
+        flex: 1 1 calc(50% - 0.375rem);
+        min-width: 0;
+        max-width: none;
+        margin-left: 0;
+    }
+
+    /* Half-width: the decorative funnel gives its room to the value */
+    .filter-toolbar > .filter-dropdown .filter-dropdown__icon {
+        display: none;
+    }
 }
 
 /* Global dropdown option styling to remove system blue highlights */
@@ -388,7 +490,7 @@ select:focus,
 .form-select:focus {
     background-color: var(--rtub-select-bg);
     color: #ffffff;
-    border-color: var(--bs-primary);
+    border-color: var(--rtub-focus-ring);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
 }
 

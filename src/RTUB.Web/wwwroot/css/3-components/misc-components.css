@@ -52,12 +52,6 @@
     text-decoration: none;
 }
 
-.navbar-toggler {
-    background-color: rgba(var(--bs-primary-rgb), 0.8);
-    border: none;
-    padding: 0.25rem 0.5rem;
-}
-
 /* ImageCropper component */
 .image-cropper-container {
     position: relative;
@@ -346,27 +340,13 @@
     color: white;
 }
 
-/* MainLayout specific styles */
-.navbar-main {
-    background-color: #0f0f10;
-}
-
-.logout-form {
-    margin: 0;
-}
-
+/* MainLayout specific styles. Header, navigation and account menu: 2-layout/navbar.css;
+   footer: 2-layout/footer.css (UI refactor 034). */
 .content-main {
     min-height: calc(100vh - 56px);
-}
-
-.footer-main {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: #0f0f10;
-}
-
-.footer-text {
-    color: #999;
-    margin: 0;
+    /* `main` is a flex item of `.layout.d-flex`; without this it grows to its widest
+       child and lays the whole page out wider than the viewport (UI refactor 033). */
+    min-width: 0;
 }
 
 .footer-credit {
@@ -378,51 +358,6 @@
 .footer-credit a {
     color: var(--bs-primary);
     text-decoration: none;
-}
-
-.navbar-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--bs-primary);
-}
-
-.navbar-message-badge {
-    position: absolute;
-    top: 0.15rem;
-    right: 0.15rem;
-    font-size: 0.6rem;
-    min-width: 1.1rem;
-    height: 1.1rem;
-    padding: 0 0.3rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 2px var(--rtub-navbar-bg, #0f0f10);
-    z-index: 1;
-}
-
-.navbar-category-badge {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border-radius: 0.25rem;
-}
-
-.navbar-category-leitao {
-    background-color: #6c757d;
-    color: white;
-}
-
-.navbar-category-caloiro {
-    background-color: #ffffff;
-    color: #000000;
-}
-
-.navbar-category-tuno {
-    background-color: #000000;
-    color: white;
 }
 
 /* ImageCropper specific styles */

@@ -23,6 +23,9 @@
 @implements IAsyncDisposable
 @attribute [Authorize]
 
+<AppTitle>Atira Tomates</AppTitle>
+
+<AppErrorBoundary>
 <div class="tomato-thrower-container">
     <!-- Page Header -->
     <div class="d-flex flex-column gap-3 mb-4 page-header-block">
@@ -136,6 +139,7 @@
         </div>
     }
 </div>
+</AppErrorBoundary>
 
 @code {
     private const string GameKey = "tomato-thrower";

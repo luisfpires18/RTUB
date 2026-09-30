@@ -25,6 +25,9 @@
 @inject ILogger<Albums> Logger
 @inject IJSRuntime JS
 
+<AppTitle>Música</AppTitle>
+
+<AppErrorBoundary>
 <div class="page-header-centered">
     <div class="page-header-left"></div>
     <div class="page-header-center">
@@ -234,7 +237,7 @@ else
 }
 
 <!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeMobileSection" OnSelect="HandleMobileNavSelect" />
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeMobileSection" OnSelect="HandleMobileNavSelect" AriaLabel="Música" />
 
 <!-- CRUD Modals -->
 <CrudModalManager TEntity="Album"
@@ -258,26 +261,17 @@ else
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-disc text-primary me-2"></i>Título
-                </label>
-                <InputText class="form-control" @bind-Value="album!.Title" placeholder="Inserir título do álbum..." />
-            </div>
+            <FormField Label="Título" Icon="bi-disc" For="() => album!.Title" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="album!.Title" placeholder="Inserir título do álbum..." />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 text-primary me-2"></i>Ano (opcional)
-                </label>
-                <InputNumber class="form-control" @bind-Value="album!.Year" />
-            </div>
+            <FormField Label="Ano (opcional)" Icon="bi-calendar3" For="() => album!.Year" Context="field">
+                <InputNumber @attributes="field.Attributes" class="form-control" @bind-Value="album!.Year" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição (opcional)
-                </label>
-                <InputTextArea class="form-control" rows="3" @bind-Value="album!.Description" placeholder="Inserir descrição..." />
-            </div>
+            <FormField Label="Descrição (opcional)" Icon="bi-text-paragraph" For="() => album!.Description" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control" rows="3" @bind-Value="album!.Description" placeholder="Inserir descrição..." />
+            </FormField>
 
             <div class="mb-3">
                 <div class="rtub-checkbox-wrapper">
@@ -587,6 +581,7 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseStatisticsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
+</AppErrorBoundary>
 
 @code {
     private List<Album>? albums;

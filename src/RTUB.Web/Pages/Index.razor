@@ -8,6 +8,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
+<AppTitle />
+
+<AppErrorBoundary>
 <!-- Push Notification Prompt for PWA mode -->
 <PushNotificationPrompt />
 
@@ -151,13 +154,14 @@
 <!-- #6 Mobile Bottom Nav -->
 @if (isAuthenticated)
 {
-    <MobileBottomNav Items="@appNavItems" OnSelect="HandleAppNavSelect"
+    <MobileBottomNav Items="@appNavItems" OnSelect="HandleAppNavSelect" AriaLabel="Navegação rápida"
                      Badges="@appNavBadges" />
 }
 else
 {
-    <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" />
+    <MobileBottomNav Items="@mobileNavItems" ActiveKey="@activeSection" OnSelect="ScrollToSection" AriaLabel="Secções da página" />
 }
+</AppErrorBoundary>
 
 @code {
     private List<Slideshow>? slides;

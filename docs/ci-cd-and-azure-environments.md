@@ -14,23 +14,21 @@ Why it is built this way: `docs/architecture/adr/0001-production-release-and-rol
 | Branch | `dev` (GitHub default branch) | `master` |
 | Deployed by | **Deploy • DEV**, every push to `dev` | **Deploy • PROD**, every push to `master`; **Rollback • PROD** by hand |
 | App Service | `rtub-dev` → `https://rtub-dev.azurewebsites.net` | `rtub` → `https://rtub.azurewebsites.net` |
-| Plan | `ASP-rtub-dev`, **Basic B1**, Linux, Italy North (own plan) | `ASP-rtubgroup-848b`, **Basic B1**, Linux, Italy North |
+| Plan | `ASP-rtub-dev`, **Free F1**, Linux, Italy North (own plan) | `ASP-rtubgroup-848b`, **Basic B1**, Linux, Italy North |
 | Runtime | `DOTNETCORE\|10.0` | `DOTNETCORE\|10.0` |
 | `ASPNETCORE_ENVIRONMENT` | `Staging` | `Production` |
-| GitHub environment | `development` | `production` † (deployment branch: `master` only) |
-| Azure identity | `rtub-dev-deploy` - Website Contributor on `rtub-dev` | `rtub-prod-deploy` † - Website Contributor on `rtub`, Storage Blob Data Contributor on the release archive † |
+| GitHub environment | `development` | `production` (deployment branch: `master` only) |
+| Azure identity | `rtub-dev-deploy` - Website Contributor on `rtub-dev` | `rtub-prod-deploy` - Website Contributor on `rtub`, Storage Blob Data Contributor on the release archive |
 | Artifact | one zip per push, workflow artifact of that run (1 day) | one zip per release, archived privately and immutably as `releases/<version>/` |
 | `/api/version` | `<VERSION>-dev.<run>` + commit | `<VERSION>` + commit |
 | Rollback | push again | **Rollback • PROD** redeploys any archived version |
-| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` | adopted after the first OIDC release (`STATE.md`) |
+| Run from package | unset | `WEBSITE_RUN_FROM_PACKAGE=1` |
 | Database | `Data Source=/home/site/data/<file>.db` - **read the live setting; never hardcode it** (`rtub-dev-v3.db` as of 2026-09-22) | `Data Source=/home/site/data/app.db` |
 | Daily backup | off (`DatabaseBackup__Enabled=false`) | on, to the private `rtub-db` R2 bucket at 03:30 UTC |
 | Pre-migration snapshot | yes | yes |
-| Always On | off | **off - must be on for the daily backup to run** (owner action) |
+| Always On | off | **on** - the daily backup needs it |
 | `healthCheckPath` | unset | unset |
-| Basic auth publishing | SCM off, FTP off | SCM **on** until the publish profile is retired, FTP off |
-
-† Not created yet: owner actions, in order, in `STATE.md`. Until they exist Deploy • PROD fails before deploying anything.
+| Basic auth publishing | SCM off, FTP off | SCM off, FTP off |
 
 Both App Services and both plans are in resource group `rtub_group`, subscription *Azure for
 Students* (tenant `ipbpt.onmicrosoft.com`). DEV is on its own plan so it can never take CPU or
@@ -130,14 +128,15 @@ with `zipfile`, whose rewrite is correct on write.
 
 `WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
 Microsoft's current documentation excludes only Python and Java; an older "Windows only" quote this
-document used to carry is obsolete. `rtub-dev` runs this way.
+document used to carry is obsolete. PROD (`rtub`) runs this way; on DEV (`rtub-dev`) the setting is unset.
 
 With it, a zip deploy stores the zip as-is in `/home/data/SitePackages/` and restarts the app, which
 mounts the zip read-only as `/home/site/wwwroot`: only complete deployments ever run, and there is no
 extract-and-rsync step to truncate. Nothing in RTUB writes into `wwwroot` at runtime, and SQLite
 lives under `/home/site/data`, so read-only costs nothing.
 
-Observed on `rtub-dev` (2026-09-22): exactly the last five zips are kept, named
+Historical observation from `rtub-dev` on 2026-09-22, when it still ran from package (it no longer
+does): exactly the last five zips are kept, named
 `yyyyMMddHHmmss.zip`, and there is **no `packagename.txt`** - so that folder is not a way to roll
 back. Rollback uses the release archive instead (ADR 0001). Kudu keeps five by default
 (`SCM_MAX_ZIP_PACKAGE_COUNT`).
@@ -169,8 +168,8 @@ environment also holds the four refresh secrets listed in the backups document.
 
 ## Azure DEV notes
 
-- DEV was created on Free F1 and moved to **B1** by the owner after the unit 027 incident below.
-  Return it to F1 only after deciding the Free-tier limits are acceptable.
+- DEV was created on Free F1, moved to B1 by the owner after the unit 027 incident below, and moved
+  back to **F1** by the owner once the Free-tier limits were judged acceptable.
 - **Never set `healthCheckPath` on an app that has no working code yet.** Azure probes it every
   minute and restarts the instance on failure. On F1, with 15 worker stop requests per day, unit
   027's DEV disabled itself within the hour (`WPStopRequests` 36/15, `403 Site Disabled` until
@@ -215,7 +214,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `ASPNETCORE_URLS`, `WEBSITES_PORT` | set | set | must agree |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | `true` | real client address and scheme behind the Azure front end |
 | `ConnectionStrings__SqliteConnection` | set | set | under `/home/site/data` |
-| `WEBSITE_RUN_FROM_PACKAGE` | `1` | `1` after cutover | see above |
+| `WEBSITE_RUN_FROM_PACKAGE` | unset | `1` | see above |
 | `AdminUser__Password` | set | not needed while users exist | startup-fatal on an empty database |
 | `SeedData__SeedFullDataset`, `SeedData__MemberPassword` | set | absent | |
 | `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |

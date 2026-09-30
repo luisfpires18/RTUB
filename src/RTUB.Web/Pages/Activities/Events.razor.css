@@ -243,11 +243,6 @@
     }
 }
 
-/* Filter dropdown container */
-.filter-dropdown-container {
-    min-width: 180px;
-}
-
 /* Statistics Cards */
 .statistics-container {
     padding: 0.5rem;
@@ -414,10 +409,6 @@
     
     .stats-card-count i {
         font-size: 1.25rem;
-    }
-    
-    .filter-dropdown-container {
-        min-width: 100%;
     }
 }
 

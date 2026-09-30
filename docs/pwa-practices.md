@@ -121,6 +121,22 @@ self.addEventListener('install', (event) => {
 });
 ```
 
+### Updates and Unsaved Work
+
+Contract: `docs/design/RTUB_UI_REFACTOR.md` 24.10.
+
+- "Atualizar" (`sw-register.js`) does not activate the new worker while a form reports unsaved
+  changes (`modalHelper.hasUnsavedChanges()`); it asks the user to save or discard first.
+- A worker activated from another tab does not reload a tab with unsaved changes; that tab offers
+  "Recarregar". Keep exactly one guarded reload path (`reloadForUpdate`).
+
+### Connection Loss
+
+`ReconnectModal` must keep the id `components-reconnect-modal`: Blazor only uses a custom UI with
+that id (with any other id its built-in UI appears, and it renders invisible here). Blazor sets
+`components-reconnect-show` / `-failed` / `-rejected` on that element; each state has its own
+message. Typed data survives a reconnect only while the server circuit lives - never promise more.
+
 ## Mobile Optimization
 
 ### Viewport Configuration
@@ -129,9 +145,12 @@ self.addEventListener('install', (event) => {
 - Set proper viewport meta tag
 - Allow user scaling (accessibility)
 - Set maximum scale appropriately
+- Keep `viewport-fit=cover`: without it iOS reports every `env(safe-area-inset-*)` as 0. Any
+  surface touching a screen edge (header, drawer, fixed bottom bars, full-screen sheets, footer)
+  pads by the matching inset with a `0px` fallback (`docs/design/RTUB_UI_REFACTOR.md` 21.5)
 
 ```razor
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
 ```
 
 ### Touch Icons

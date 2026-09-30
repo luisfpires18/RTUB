@@ -68,8 +68,9 @@ public class FormTextAreaTests : BunitContext
             .Add(p => p.Required, true));
 
         // Assert
-        cut.Markup.Should().Contain("text-danger", "should display required indicator");
-        cut.Markup.Should().Contain("*", "should display asterisk for required");
+        var label = cut.Find("label");
+        label.QuerySelector(".form-field__required")!.TextContent.Should().Be("*");
+        label.TextContent.Should().Contain("(obrigatório)", "the required state is part of the accessible name");
     }
 
     [Fact]

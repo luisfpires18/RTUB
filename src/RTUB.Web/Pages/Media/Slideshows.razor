@@ -20,31 +20,25 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-images"></i> Gestão de Apresentação</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir imagens de apresentação na página inicial.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
-        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Slide">
-            <i class="bi bi-plus-lg"></i> Adicionar Slide
-        </button>
-    </div>
-</div>
+<AppTitle>Gestão de Apresentação</AppTitle>
 
-<div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch mb-4">
-    <div class="flex-lg-grow-1 search-bar-container">
-        <SearchBar
-            @bind-Value="SearchTerm"
-            OnSearch="UpdateSearch"
-            Placeholder="Pesquisar por título ou descrição..." />
-    </div>
-</div>
+<AppErrorBoundary>
+<PageHeader Title="Gestão de Apresentação" Icon="bi-images" Subtitle="Gerir imagens de apresentação na página inicial.">
+    <Actions>
+        <PageAction Label="Adicionar Slide" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
+    </Actions>
+</PageHeader>
+
+<FilterToolbar>
+    <SearchBar
+        @bind-Value="SearchTerm"
+        OnSearch="UpdateSearch"
+        Placeholder="Pesquisar por título ou descrição..." />
+</FilterToolbar>
 
 @if (AllItems == null)
 {
-    <p>A carregar slides...</p>
+    <LoadingSpinner Message="A carregar slides..." />
 }
 else if (!PaginatedItems.Any())
 {
@@ -99,33 +93,21 @@ else
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-card-text text-primary me-2"></i>Título
-                </label>
-                <InputText class="form-control" @bind-Value="slide!.Title" />
-            </div>
+            <FormField Label="Título" Icon="bi-card-text" For="() => slide!.Title" Context="field">
+                <InputText @attributes="field.Attributes" class="form-control" @bind-Value="slide!.Title" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                </label>
-                <InputTextArea class="form-control" rows="3" @bind-Value="slide!.Description" />
-            </div>
+            <FormField Label="Descrição" Icon="bi-text-paragraph" For="() => slide!.Description" Context="field">
+                <InputTextArea @attributes="field.Attributes" class="form-control" rows="3" @bind-Value="slide!.Description" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-arrow-up-down text-primary me-2"></i>Ordem
-                </label>
-                <InputNumber class="form-control" @bind-Value="slide!.Order" />
-            </div>
+            <FormField Label="Ordem" Icon="bi-arrow-up-down" For="() => slide!.Order" Context="field">
+                <InputNumber @attributes="field.Attributes" class="form-control" @bind-Value="slide!.Order" />
+            </FormField>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-clock text-primary me-2"></i>Intervalo (ms)
-                </label>
-                <InputNumber class="form-control" @bind-Value="slide!.IntervalMs" />
-            </div>
+            <FormField Label="Intervalo (ms)" Icon="bi-clock" For="() => slide!.IntervalMs" Context="field">
+                <InputNumber @attributes="field.Attributes" class="form-control" @bind-Value="slide!.IntervalMs" />
+            </FormField>
 
             <ImageUploadManager @ref="imageUploadManager"
                                Label="Imagem"
@@ -172,15 +154,13 @@ else
               AspectRatioHelp="As imagens de apresentação podem ter qualquer proporção - use corte livre para manter as proporções originais"
               ImageFormat="image/webp"
               ImageQuality="0.9" />
+</AppErrorBoundary>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private enum ModalType { Edit, Delete, Cropper }
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-add", "Adicionar", "bi-plus-lg") };
     private Slideshow? editingSlide;
     private Slideshow? deletingSlide;
     private string? uploadedImagePath;
@@ -200,10 +180,6 @@ else
         ApplyFiltersAndPagination();
     }
 
-    private void HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") OpenCreateModal();
-    }
 
     protected override async Task LoadItemsAsync()
     {

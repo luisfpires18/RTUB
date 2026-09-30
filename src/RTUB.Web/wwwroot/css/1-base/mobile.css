@@ -21,49 +21,7 @@ iframe {
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Navbar mobile optimizations */
-  .navbar {
-    padding: 0.5rem 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .navbar-brand {
-    font-size: 1.1rem;
-  }
-
-  .navbar-toggler {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0.5rem;
-  }
-
-  .navbar-nav {
-    flex-direction: column;
-    width: 100%;
-    margin-top: 0.5rem;
-  }
-
-  .navbar-nav .nav-item {
-    width: 100%;
-  }
-
-  .navbar-nav .nav-link {
-    padding: 0.75rem 1rem;
-    width: 100%;
-    min-height: 48px;
-  }
-
-  .navbar-avatar {
-    width: 28px;
-    height: 28px;
-  }
-
-  /* Ensure dropdown menus fill the available width when stacked */
-  .navbar .dropdown-menu {
-    width: 100%;
-    position: static;
-    float: none;
-  }
+  /* Header, navigation drawer and account menu: 2-layout/navbar.css (UI refactor 034). */
 
   /* Sidebar mobile behavior */
   .sidebar {
@@ -439,39 +397,23 @@ iframe {
     font-size: 0.875rem;
   }
 
-  /* Utility spacing adjustments for mobile */
-  .mt-4 { margin-top: 1.25rem !important; }
-  .mb-4 { margin-bottom: 1.25rem !important; }
-  .mt-5 { margin-top: 2rem !important; }
-  .mb-5 { margin-bottom: 2rem !important; }
-  .py-4 { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
-  .py-5 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+  /* Bootstrap spacing utilities keep Bootstrap's values on every viewport; they used
+     to be redefined here with !important (UI refactor 033).
 
-  /* Fix overflow issues on mobile — iOS Safari needs BOTH html AND body.
-     Use overflow-x: clip (not hidden) so position: fixed descendants stay
-     anchored to the viewport. `overflow-x: hidden` on html/body makes iOS
-     Safari treat them as the scroll container, causing fixed bottom navs
-     (MobileBottomNav) to drift to the middle of the screen. */
+     No global horizontal clipping on html/body/.content-main: it hid layout bugs by
+     cutting content off. The main cause of that overflow (the flex `main` growing to
+     its widest child) is fixed in misc-components.css; a component that genuinely
+     needs to scroll sideways owns its own overflow. Never use `overflow-x: hidden`
+     on html/body either: iOS Safari then treats them as the scroll container and the
+     fixed MobileBottomNav drifts. Footer clearance for that bar lives in footer.css. */
   html,
   body {
-    overflow-x: clip;
     overscroll-behavior-x: none;
   }
 
-  /* Prevent any page content from causing horizontal scroll */
-  .content-main {
-    overflow-x: clip;
-  }
-
-  /* Global bottom clearance so footer/content don't hide behind fixed bottom nav */
-  .footer-main {
-    padding-bottom: 4.5rem;
-  }
-
-  /* Allow horizontal scroll for family tree page */
+  /* Allow horizontal scroll gestures on the family tree page */
   html:has(.family-tree-viewport),
   body:has(.family-tree-viewport) {
-    overflow-x: visible;
     overscroll-behavior-x: auto;
   }
 
@@ -540,10 +482,6 @@ iframe {
     height: 200px;
   }
 
-  .navbar {
-    padding: 0.375rem 0.5rem;
-  }
-
   .modal-dialog {
     max-width: calc(100vw - 2rem);
   }
@@ -551,10 +489,6 @@ iframe {
 
 /* Tablet styles (medium screens) */
 @media (min-width: 769px) and (max-width: 991px) {
-  .navbar-brand {
-    font-size: 1.15rem;
-  }
-
   .carousel-image {
     height: 350px;
   }
@@ -612,10 +546,6 @@ iframe {
     font-size: 14px;
   }
 
-  .navbar-brand {
-    font-size: 1rem;
-  }
-
   .carousel-image {
     height: 200px;
   }
@@ -635,6 +565,12 @@ iframe {
   .btn {
     font-size: 0.875rem;
     padding: 0.45rem 0.875rem;
+  }
+
+  /* Keep small buttons smaller than regular ones on the narrowest phones. */
+  .btn-sm {
+    font-size: 0.8125rem;
+    padding: 0.3rem 0.6rem;
   }
 
   .card {
@@ -700,14 +636,8 @@ iframe {
 
 /* PWA safe area insets for modern devices (notch support) */
 @supports (padding: env(safe-area-inset-bottom)) {
-  .navbar-main {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .footer-main {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
+  /* Header and drawer insets: 2-layout/navbar.css. Footer insets: 2-layout/footer.css. */
+
   .modal-content {
     padding-bottom: env(safe-area-inset-bottom);
   }

@@ -135,7 +135,8 @@ public class EventEnrollmentsTests : PageTestBase
 
         // Assert
         cut.Markup.Should().Contain("bi-link-45deg", "Copy link button should display link icon");
-        cut.Markup.Should().Contain("Copiar link", "Copy link button should have tooltip");
+        cut.FindAll("button").Should().Contain(b => b.TextContent.Contains("Copiar Link"),
+            "the copy-link page action carries a visible label (UI refactor 035)");
     }
 
     [Fact]

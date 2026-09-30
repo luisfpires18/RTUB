@@ -156,7 +156,7 @@ public class LogisticsAuthorizationTests : PageTestBase
         var cut = RenderBoard();
 
         cut.FindAll("button").Should().NotContain(b => b.TextContent.Contains("Criar Lista"));
-        cut.Find(".empty-state-card").Click();
+        cut.Find(".empty-state-card").QuerySelectorAll("button, a, [role=button]").Should().BeEmpty("the empty state offers no create action");
         cut.FindAll("input[placeholder='Nome da lista']").Should().BeEmpty("the create-list modal must not open");
         _lists.VerifyNoOtherCalls();
     }
@@ -277,7 +277,7 @@ public class LogisticsAuthorizationTests : PageTestBase
         var cut = Render<BoardsPage>();
 
         cut.FindAll("button").Should().NotContain(b => b.TextContent.Contains("Criar Quadro"));
-        cut.Find(".empty-state-card").Click();
+        cut.Find(".empty-state-card").QuerySelectorAll("button, a, [role=button]").Should().BeEmpty("the empty state offers no create action");
         cut.FindAll("input[placeholder='Nome do quadro']").Should().BeEmpty("the create-board modal must not open");
         _boards.Verify(s => s.CreateBoardAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -317,6 +317,7 @@ public class LogisticsAuthorizationTests : PageTestBase
             i.Method.GetGenericArguments().SingleOrDefault() == typeof(IJSVoidResult) &&
             (string)i.Arguments[0] == "initializeKanbanDragDrop");
 
+    // The page's actions as the phone/tablet bar shows them (PageActions, UI refactor 035).
     private static IEnumerable<string> MobileNavLabels<T>(IRenderedComponent<T> cut) where T : Microsoft.AspNetCore.Components.IComponent =>
-        cut.FindAll(".mobile-bottom-nav__btn").Select(b => b.TextContent.Trim());
+        cut.FindAll(".page-action-bar__item").Select(b => b.TextContent.Trim());
 }

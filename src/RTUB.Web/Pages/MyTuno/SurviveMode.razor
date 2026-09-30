@@ -29,8 +29,9 @@
 @inject IStageService StageService
 @implements IAsyncDisposable
 
-<PageTitle>Survive Mode - My Tuno - RTUB</PageTitle>
+<AppTitle>Survive Mode - My Tuno</AppTitle>
 
+<AppErrorBoundary>
 <div class="stage-page">
     @if (loading)
     {
@@ -186,6 +187,7 @@
         }
     }
 </div>
+</AppErrorBoundary>
 
 @code {
     // ─── State ────────────────────────────────────────────────────

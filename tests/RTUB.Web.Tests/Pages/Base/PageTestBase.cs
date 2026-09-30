@@ -27,6 +27,9 @@ public abstract class PageTestBase : BunitContext
         // Setup JSInterop for common JavaScript calls
         JSInterop.SetupVoid("modalHelper.lockBodyScroll");
         JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+        // Modal registers with the dialog stack in modalHelper.js (focus, Escape, scroll lock).
+        JSInterop.SetupVoid("modalHelper.openDialog", _ => true);
+        JSInterop.SetupVoid("modalHelper.closeDialog", _ => true);
         JSInterop.SetupVoid("messageScroller.scrollToBottom");
         JSInterop.SetupVoid("messageScroller.scrollToBottomDelayed");
 
@@ -41,6 +44,8 @@ public abstract class PageTestBase : BunitContext
 
         Services.AddSingleton(MockLoggerFactory.Object);
         Services.AddSingleton(MockJSRuntime.Object);
+        // Pages report transient feedback through the shared toast queue (UI refactor 036).
+        Services.AddScoped<RTUB.Shared.ToastService>();
 
         // Register default mocks for all application interfaces to avoid "no registered service" failures
         // when pages inject newly extracted services.

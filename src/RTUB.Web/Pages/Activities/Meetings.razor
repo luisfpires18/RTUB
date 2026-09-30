@@ -35,7 +35,11 @@
 @inject NavigationManager Navigation
 @inject IAuditLogService AuditLogService
 @inject ILogger<Meetings> Logger
+@inject ToastService Toasts
 
+<AppTitle>Reuniões</AppTitle>
+
+<AppErrorBoundary>
 @if (currentUser != null && currentUser.IsLeitao())
 {
     <div class="text-center p-5">
@@ -46,56 +50,36 @@
 }
 else
 {
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-calendar3"></i> Reuniões</h1>
-        <p class="lead page-header-subtitle text-light-theme">Gerir reuniões e assembleias da organização.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<PageHeader Title="Reuniões" Icon="bi-calendar3" Subtitle="Gerir reuniões e assembleias da organização.">
+    <Actions>
         @if (CanManageMeetings())
         {
-            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
-                <i class="bi bi-plus-lg"></i> Criar Reunião
-            </button>
+            <PageAction Label="Criar Reunião" ShortLabel="Criar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
         }
         @if (CanProposeCVMeeting())
         {
-            <button class="btn btn-primary" @onclick="OpenProposalModal" title="Propor Reunião de CV">
-                <i class="bi bi-megaphone"></i> Propor Reunião de CV
-            </button>
+            <PageAction Label="Propor Reunião de CV" ShortLabel="Convocar CV" Icon="bi-megaphone" OnClick="OpenProposalModal" />
         }
         @if (IsDirecaoMember())
         {
-            <button class="btn btn-primary" @onclick="OpenDirecaoProposalModal" title="Propor Reunião Direção">
-                <i class="bi bi-briefcase"></i> Propor Reunião Direção
-            </button>
+            <PageAction Label="Propor Reunião Direção" ShortLabel="Convocar Direção" Icon="bi-briefcase" OnClick="OpenDirecaoProposalModal" />
         }
-        <button class="btn btn-primary" 
-                @onclick="OpenAGProposalModal" 
-                title="Propor Assembleia Geral"
-                disabled="@(!CanProposeAGMeeting())">
-            <i class="bi bi-people"></i> Propor Assembleia Geral
-        </button>
-    </div>
-</div>
+        <PageAction Label="Propor Assembleia Geral" ShortLabel="Convocar AG" Icon="bi-people" OnClick="OpenAGProposalModal" Disabled="@(!CanProposeAGMeeting())" />
+    </Actions>
+</PageHeader>
 
 <!-- Search Box and Fiscal Year Filter -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
-    <div class="flex-grow-1 filter-search-container">
-        <SearchBar
-            @bind-Value="searchTerm"
-            OnSearch="HandleSearchChanged"
-            Placeholder="Pesquisar por título ou declaração..." />
-    </div>
-    <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
-        <FilterDropdown SelectedValue="@selectedFiscalYear"
-                        SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                        OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos"
-                        Options="@fiscalYearOptions" />
-    </div>
-</div>
+<FilterToolbar>
+    <SearchBar
+        @bind-Value="searchTerm"
+        OnSearch="HandleSearchChanged"
+        Placeholder="Pesquisar por título ou declaração..." />
+    <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
+                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                    OnChange="@OnFiscalYearChanged"
+                    AllItemsLabel="Todos os anos"
+                    Options="@fiscalYearOptions" />
+</FilterToolbar>
 
 @if (isLoading)
 {
@@ -222,7 +206,7 @@ else
         <!-- Filter Controls -->
         <div class="row mb-3">
             <div class="col-md-3">
-                <FilterDropdown 
+                <FilterDropdown Label="Estado"
                     Items="@requestStatusFilterOptions"
                     SelectedValue="@selectedRequestStatusFilter"
                     SelectedValueChanged="@(async (value) => { selectedRequestStatusFilter = value; requestCurrentPage = 1; await LoadMeetingRequestsAsync(); })"
@@ -230,15 +214,6 @@ else
                     IconClass="bi-funnel" />
             </div>
         </div>
-        
-        @if (!string.IsNullOrEmpty(reminderSuccessMessage))
-        {
-            <Alert Type="Alert.AlertType.Success" 
-                   Message="@reminderSuccessMessage" 
-                   Icon="bi-check-circle-fill"
-                   Dismissible="true"
-                   OnDismiss="@(() => reminderSuccessMessage = null)" />
-        }
         
         @if (isLoadingRequests)
         {
@@ -374,8 +349,11 @@ else
 </Modal>
 
 <!-- Create/Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Edit)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
+<Modal @ref="editModal"
+       Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => { if (!show) CloseEditModal(); })"
+       IsDirty="() => editChanges.IsDirty"
+       CanClose="() => Task.FromResult(!editSaving.IsBusy)"
        Size="Modal.ModalSize.Large"
        Title="@(isCreateMode ? "Nova Reunião" : "Editar Reunião")">
     <BodyContent>
@@ -386,10 +364,10 @@ else
                 <ErrorDisplay />
 
                 <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
+                    <label for="mt-tipo-de-reuniao" class="form-label text-white-full fw-semibold">
                         <i class="bi bi-tag text-primary me-2"></i>Tipo de Reunião
                     </label>
-                    <InputSelect class="form-select" @bind-Value="editingMeeting.Type">
+                    <InputSelect id="mt-tipo-de-reuniao" class="form-select" @bind-Value="editingMeeting.Type">
                         <option value="" disabled>-- Selecionar Tipo --</option>
                         @if (CanCreateMeetingType(MeetingType.AssembleiaGeralOrdinaria))
                         {
@@ -411,37 +389,25 @@ else
                     <ValidationMessage For="@(() => editingMeeting.Type)" />
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Título
-                    </label>
-                    <InputText class="form-control" @bind-Value="editingMeeting.Title" placeholder="Inserir título..." />
+                <FormField Label="Título" Icon="bi-card-text" For="() => editingMeeting.Title" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingMeeting.Title" placeholder="Inserir título..." />
                     <ValidationMessage For="@(() => editingMeeting.Title)" />
-                </div>
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
-                    </label>
-                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="editingMeeting.Date" />
+                <FormField Label="Data e Hora" Icon="bi-calendar3" For="() => editingMeeting.Date" Context="field">
+                    <InputDate @attributes="field.Attributes" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="editingMeeting.Date" />
                     <ValidationMessage For="@(() => editingMeeting.Date)" />
-                </div>
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="editingMeeting.Location" placeholder="Inserir localização..." />
+                <FormField Label="Localização (Opcional)" Icon="bi-geo-alt" For="() => editingMeeting.Location" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingMeeting.Location" placeholder="Inserir localização..." />
                     <ValidationMessage For="@(() => editingMeeting.Location)" />
-                </div>
+                </FormField>
 
                 @if (editingMeeting.Type == MeetingType.ConselhoVeteranos)
                 {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full fw-semibold">
-                            <i class="bi bi-person-badge text-primary me-2"></i>Representante de Tunos (Opcional)
-                        </label>
-                        <InputSelect class="form-select" @bind-Value="editingMeeting.TunoRepresentativeUserId">
+                    <FormField Label="Representante de Tunos (Opcional)" Icon="bi-person-badge" For="() => editingMeeting.TunoRepresentativeUserId" Help="Este tuno poderá ver e participar nesta reunião de CV." Context="field">
+                        <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="editingMeeting.TunoRepresentativeUserId">
                             <option value="">Nenhum representante selecionado</option>
                             @if (tunoUsersForMeetingForm != null)
                             {
@@ -451,15 +417,14 @@ else
                                 }
                             }
                         </InputSelect>
-                        <small class="text-muted">Este tuno poderá ver e participar nesta reunião de CV.</small>
-                    </div>
+                    </FormField>
                 }
 
                 <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
+                    <label for="mt-declaracao" class="form-label text-white-full fw-semibold">
                         <i class="bi bi-file-text text-primary me-2"></i>Declaração
                     </label>
-                    <InputTextArea class="form-control" rows="10" @bind-Value="editingMeeting.Statement" placeholder="Inserir declaração..." />
+                    <InputTextArea id="mt-declaracao" class="form-control" rows="10" @bind-Value="editingMeeting.Statement" placeholder="Inserir declaração..." />
                     <ValidationMessage For="@(() => editingMeeting.Statement)" />
                     <small class="text-light-theme">Máximo 5000 caracteres</small>
                 </div>
@@ -467,9 +432,13 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-        <button class="btn btn-primary" @onclick="SaveMeeting">
-            <i class="bi bi-save"></i> Guardar
+        <button class="btn btn-secondary" @onclick="() => editModal!.RequestCloseAsync()" disabled="@editSaving.IsBusy">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveMeeting" disabled="@editSaving.IsBusy" aria-busy="@(editSaving.IsBusy ? "true" : null)">
+            @if (editSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            <i class="bi bi-save" aria-hidden="true"></i> Guardar
         </button>
     </FooterContent>
 </Modal>
@@ -494,8 +463,11 @@ else
 </Modal>
 
 <!-- Email Notification Modal -->
-<Modal Show="@modals.IsOpen(ModalType.EmailNotification)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.EmailNotification, show))"
+<Modal @ref="emailModal"
+       Show="@modals.IsOpen(ModalType.EmailNotification)"
+       ShowChanged="@((bool show) => { if (!show) CloseEmailNotificationModal(); })"
+       IsDirty="() => !string.IsNullOrWhiteSpace(emailSubject) || !string.IsNullOrWhiteSpace(emailPlainTextBody)"
+       CanClose="() => Task.FromResult(!IsSendingEmails)"
        Title="Enviar notificação da reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -547,16 +519,13 @@ else
             }
             else
             {
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Assunto <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" @bind="emailSubject" />
-                </div>
+                <FormField Label="Assunto" Required="true" Context="field">
+                    <input @attributes="field.Attributes" type="text" class="form-control" @bind="emailSubject" />
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Corpo do Email <span class="text-danger">*</span></label>
-                    <textarea class="form-control" rows="12" @bind="emailPlainTextBody"></textarea>
-                    <small class="text-muted">Escreva a mensagem da reunião em texto simples. Será formatada automaticamente no email.</small>
-                </div>
+                <FormField Label="Corpo do Email" Required="true" Help="Escreva a mensagem da reunião em texto simples. Será formatada automaticamente no email." Context="field">
+                    <textarea @attributes="field.Attributes" class="form-control" rows="12" @bind="emailPlainTextBody"></textarea>
+                </FormField>
                 
                 <div class="mb-3">
                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleEmailPreview">
@@ -576,17 +545,15 @@ else
 
                 @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && emailTunoUsers != null)
                 {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
-                        <select class="form-select" @bind="selectedTunoId">
+                    <FormField Label="Adicionar um Representante de Tunos" Help="Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV." Context="field">
+                        <select @attributes="field.Attributes" class="form-select" @bind="selectedTunoId">
                             <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in emailTunoUsers)
                             {
                                 <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                             }
                         </select>
-                        <small class="text-muted">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</small>
-                    </div>
+                    </FormField>
                 }
                 
                 <EmailRecipientsPreview 
@@ -604,7 +571,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal" disabled="@IsSendingEmails">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => emailModal!.RequestCloseAsync()" disabled="@IsSendingEmails">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(IsSendingEmails || subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))">
             Enviar Notificação
         </button>
@@ -612,8 +579,11 @@ else
 </Modal>
 
 <!-- Cancel Meeting Modal -->
-<Modal Show="@modals.IsOpen(ModalType.CancelMeeting)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelMeeting, show))"
+<Modal @ref="cancelModal"
+       Show="@modals.IsOpen(ModalType.CancelMeeting)"
+       ShowChanged="@((bool show) => { if (!show) CloseCancelMeetingModal(); })"
+       IsDirty="() => !string.IsNullOrWhiteSpace(cancelMeetingReason)"
+       CanClose="() => Task.FromResult(!IsSendingEmails && !cancelSaving.IsBusy)"
        Title="Cancelar Reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -683,25 +653,32 @@ else
                     AdditionalUserInfoFunc="@(selectedMeetingForCancellation?.Type == MeetingType.ConselhoVeteranos ? new Func<ApplicationUser, string>(GetYearsAsTunoDisplay) : null)" />
             }
 
-            <div class="mb-3">
-                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                <textarea class="form-control" rows="4" 
+            <FormField Label="Motivo do Cancelamento" Required="true" Help="Máximo 1000 caracteres" Context="field">
+                <textarea @attributes="field.Attributes" class="form-control" rows="4"
                           @bind="cancelMeetingReason" 
                           placeholder="Descreva o motivo do cancelamento da reunião..."
                           maxlength="1000"></textarea>
-                <small class="text-muted">Máximo 1000 caracteres</small>
-            </div>
+            </FormField>
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCancelMeetingModal" disabled="@IsSendingEmails">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelMeeting" disabled="@IsSendingEmails">Cancelar Reunião</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => cancelModal!.RequestCloseAsync()" disabled="@(IsSendingEmails || cancelSaving.IsBusy)">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelMeeting" disabled="@(IsSendingEmails || cancelSaving.IsBusy)" aria-busy="@(cancelSaving.IsBusy ? "true" : null)">
+            @if (cancelSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            Cancelar Reunião
+        </button>
     </FooterContent>
 </Modal>
 
 <!-- CV Meeting Proposal Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Proposal)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.Proposal, show))"
+<Modal @ref="proposalModal"
+       Show="@modals.IsOpen(ModalType.Proposal)"
+       ShowChanged="@((bool show) => { if (!show) CloseProposalModal(); })"
+       IsDirty="() => proposalChanges.IsDirty"
+       CanClose="() => Task.FromResult(!proposalSaving.IsBusy)"
        Size="Modal.ModalSize.Large"
        Title="@GetProposalModalTitle()">
     <BodyContent>
@@ -711,35 +688,26 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-card-text text-primary me-2"></i>Título
-                    </label>
-                    <InputText class="form-control" @bind-Value="proposalRequest.Title" placeholder="Inserir título..." />
+                <FormField Label="Título" Icon="bi-card-text" For="() => proposalRequest.Title" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="proposalRequest.Title" placeholder="Inserir título..." />
                     <ValidationMessage For="@(() => proposalRequest.Title)" />
-                </div>
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora Proposta
-                    </label>
-                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="proposalRequest.ProposedDateTime" />
+                <FormField Label="Data e Hora Proposta" Icon="bi-calendar3" For="() => proposalRequest.ProposedDateTime" Context="field">
+                    <InputDate @attributes="field.Attributes" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="proposalRequest.ProposedDateTime" />
                     <ValidationMessage For="@(() => proposalRequest.ProposedDateTime)" />
-                </div>
+                </FormField>
 
-                <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização (Opcional)
-                    </label>
-                    <InputText class="form-control" @bind-Value="proposalRequest.Location" placeholder="Ex: Discord, Centro Académico..." />
+                <FormField Label="Localização (Opcional)" Icon="bi-geo-alt" For="() => proposalRequest.Location" Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="proposalRequest.Location" placeholder="Ex: Discord, Centro Académico..." />
                     <ValidationMessage For="@(() => proposalRequest.Location)" />
-                </div>
+                </FormField>
 
                 <div class="mb-3">
-                    <label class="form-label text-white-full fw-semibold">
+                    <label for="mt-descricao-motivo" class="form-label text-white-full fw-semibold">
                         <i class="bi bi-file-text text-primary me-2"></i>Descrição/Motivo
                     </label>
-                    <InputTextArea class="form-control" rows="10" @bind-Value="proposalRequest.Description" placeholder="Descrever o motivo e assuntos a discutir..." />
+                    <InputTextArea id="mt-descricao-motivo" class="form-control" rows="10" @bind-Value="proposalRequest.Description" placeholder="Descrever o motivo e assuntos a discutir..." />
                     <ValidationMessage For="@(() => proposalRequest.Description)" />
                     <small class="text-light-theme">Máximo 2000 caracteres</small>
                 </div>
@@ -747,9 +715,13 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button class="btn btn-secondary" @onclick="CloseProposalModal">Cancelar</button>
-        <button class="btn btn-primary" @onclick="SaveMeetingProposal">
-            <i class="bi bi-send"></i> Enviar Proposta
+        <button class="btn btn-secondary" @onclick="() => proposalModal!.RequestCloseAsync()" disabled="@proposalSaving.IsBusy">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveMeetingProposal" disabled="@proposalSaving.IsBusy" aria-busy="@(proposalSaving.IsBusy ? "true" : null)">
+            @if (proposalSaving.IsBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            <i class="bi bi-send" aria-hidden="true"></i> Enviar Proposta
         </button>
     </FooterContent>
 </Modal>
@@ -851,8 +823,10 @@ else
 </Modal>
 
 <!-- Push Notification Modal -->
-<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
+<Modal @ref="pushModal"
+       Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => { if (!show) ClosePushNotificationModal(); })"
+       IsDirty="() => !string.IsNullOrWhiteSpace(customNotificationBody)"
        Title="Enviar notificação push da reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -888,31 +862,25 @@ else
             {
                 @if (selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
                 {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
-                        <select class="form-select" @bind="selectedPushTunoId">
+                    <FormField Label="Adicionar um Representante de Tunos" Help="Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV." Context="field">
+                        <select @attributes="field.Attributes" class="form-select" @bind="selectedPushTunoId">
                             <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in pushTunoUsers)
                             {
                                 <option value="@tuno.Id" @key="tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                             }
                         </select>
-                        <small class="text-muted">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</small>
-                    </div>
+                    </FormField>
                 }
                 
                 <!-- Custom Notification Message -->
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
-                    <textarea class="form-control" 
+                <FormField Label="Mensagem da Notificação" Required="true" Help="A notificação terá um título automático com a data da reunião. Máximo 500 caracteres." Context="field">
+                    <textarea @attributes="field.Attributes" class="form-control"
                               rows="4" 
                               @bind="customNotificationBody" 
                               placeholder="Ex: Reunião importante, confirma a tua presença!"
                               maxlength="500"></textarea>
-                    <small class="text-muted">
-                        A notificação terá um título automático com a data da reunião. Máximo 500 caracteres.
-                    </small>
-                </div>
+                </FormField>
 
                 <EmailRecipientsPreview 
                     SubscribedUsers="@(pushFilteredRecipients ?? new List<ApplicationUser>())"
@@ -929,7 +897,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => pushModal!.RequestCloseAsync()">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingPushNotification" disabled="@(pushRecipients == null || !pushRecipients.Any())">
             <i class="bi bi-bell-fill"></i> Enviar Notificação Push
         </button>
@@ -1178,19 +1146,17 @@ else
                OnCancel="CloseDeleteAtaConfirmation" />
 
 <!-- Meeting Ata Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Ata)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.Ata, show))"
+<Modal @ref="ataModal"
+       Show="@modals.IsOpen(ModalType.Ata)"
+       ShowChanged="@((bool show) => { if (!show) CloseAtaModal(); })"
+       IsDirty="() => ataChanges.IsDirty"
+       CanClose="() => Task.FromResult(!isAtaLoading)"
        Size="Modal.ModalSize.ExtraLarge"
        Title="@(editingAta?.Id > 0 ? "Editar Ata" : "Criar Ata")">
     <BodyContent>
         @if (isAtaLoading)
         {
-            <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-                <p class="mt-2 text-light-theme">A carregar dados da ata...</p>
-            </div>
+            <LoadingSpinner Message="A carregar dados da ata..." />
         }
         else if (editingAta != null && ataMeeting != null)
         {
@@ -1219,15 +1185,14 @@ else
                     <i class="bi bi-file-earmark-text me-2"></i>Dados da Ata
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Número da Ata</label>
-                        <input type="text" class="form-control" @bind="editingAta.AtaNumber" placeholder="Ex: ATA CV 01/2025" />
-                    </div>
+                    <FormField Label="Número da Ata" Context="field">
+                        <input @attributes="field.Attributes" type="text" class="form-control" @bind="editingAta.AtaNumber" placeholder="Ex: ATA CV 01/2025" />
+                    </FormField>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Hora de Início Efetiva <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" @bind="editingAta.ActualStartTime" />
+                            <label for="mt-hora-de-inicio-efetiva" class="form-label">Hora de Início Efetiva <span class="text-danger">*</span></label>
+                            <input id="mt-hora-de-inicio-efetiva" type="datetime-local" class="form-control" @bind="editingAta.ActualStartTime" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Hora de Término</label>
@@ -1235,20 +1200,18 @@ else
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Local <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" @bind="editingAta.Location" />
-                    </div>
+                    <FormField Label="Local" Required="true" Context="field">
+                        <input @attributes="field.Attributes" type="text" class="form-control" @bind="editingAta.Location" />
+                    </FormField>
                     
                     @if (ataMeeting.Type == MeetingType.AssembleiaGeralOrdinaria || ataMeeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
                     {
-                        <div class="mb-3">
-                            <label class="form-label">Base do Quórum</label>
-                            <select class="form-select" @bind="editingAta.QuorumBasis">
+                        <FormField Label="Base do Quórum" Context="field">
+                            <select @attributes="field.Attributes" class="form-select" @bind="editingAta.QuorumBasis">
                                 <option value="HoraAgendada">Iniciada à hora agendada</option>
                                 <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
                             </select>
-                        </div>
+                        </FormField>
                     }
                 </div>
             </div>
@@ -1261,17 +1224,15 @@ else
                         <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
-                            <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
-                        </div>
+                        <FormField Label="Presidente do CV" Required="true" Help="Membro com o cargo de Presidente do Conselho de Veteranos" Context="field">
+                            <input @attributes="field.Attributes" type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                        </FormField>
                         
                         <div class="mb-3">
-                            <label class="form-label">Secretário <span class="text-muted">(Opcional)</span></label>
+                            <label for="mt-secretario" class="form-label">Secretário <span class="text-muted">(Opcional)</span></label>
                             @if (ataParticipants != null && ataParticipants.Any())
                             {
-                                <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
+                                <select id="mt-secretario" class="form-select" @bind="editingAta!.FirstSecretaryUserId">
                                     <option value="">-- Nenhum secretário selecionado --</option>
                                     @foreach (var participant in ataParticipants.Where(p => p.User != null))
                                     {
@@ -1294,15 +1255,13 @@ else
                         <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
-                            <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
-                        </div>
+                        <FormField Label="Presidente da Mesa" Required="true" Help="Membro com o cargo de Presidente da Mesa da Assembleia Geral" Context="field">
+                            <input @attributes="field.Attributes" type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                        </FormField>
                         
                         <div class="mb-3">
-                            <label class="form-label">1.º Secretário <span class="text-muted">(Opcional)</span></label>
-                            <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
+                            <label for="mt-1-o-secretario" class="form-label">1.º Secretário <span class="text-muted">(Opcional)</span></label>
+                            <select id="mt-1-o-secretario" class="form-select" @bind="editingAta!.FirstSecretaryUserId">
                                 <option value="">-- Nenhum secretário selecionado --</option>
                                 @if (ataFirstSecretaryAG != null)
                                 {
@@ -1313,8 +1272,8 @@ else
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">2.º Secretário <span class="text-muted">(Opcional)</span></label>
-                            <select class="form-select" @bind="editingAta!.SecondSecretaryUserId">
+                            <label for="mt-2-o-secretario" class="form-label">2.º Secretário <span class="text-muted">(Opcional)</span></label>
+                            <select id="mt-2-o-secretario" class="form-select" @bind="editingAta!.SecondSecretaryUserId">
                                 <option value="">-- Nenhum secretário selecionado --</option>
                                 @if (ataSecondSecretaryAG != null)
                                 {
@@ -1373,31 +1332,31 @@ else
                                         </button>
                                     </div>
                                     <div class="mt-2">
-                                        <label class="form-label small">Discussão/Desenvolvimento:</label>
-                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DiscussionSummary" 
+                                        <label for="mt-discussao-desenvolvimento-@point.PointNumber" class="form-label small">Discussão/Desenvolvimento:</label>
+                                        <textarea id="mt-discussao-desenvolvimento-@point.PointNumber" class="form-control form-control-sm" rows="2" @bind="point.DiscussionSummary"
                                                   placeholder="Resumo da discussão sobre este ponto..."></textarea>
                                     </div>
                                     <div class="mt-2">
-                                        <label class="form-label small">Deliberação/Decisão:</label>
-                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DecisionText" 
+                                        <label for="mt-deliberacao-decisao-@point.PointNumber" class="form-label small">Deliberação/Decisão:</label>
+                                        <textarea id="mt-deliberacao-decisao-@point.PointNumber" class="form-control form-control-sm" rows="2" @bind="point.DecisionText"
                                                   placeholder="Decisão tomada ou proposta submetida..."></textarea>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-3">
-                                            <label class="form-label small">A favor:</label>
-                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesFor" min="0" />
+                                            <label for="mt-a-favor-@point.PointNumber" class="form-label small">A favor:</label>
+                                            <input id="mt-a-favor-@point.PointNumber" type="number" class="form-control form-control-sm" @bind="point.VotesFor" min="0" />
                                         </div>
                                         <div class="col-3">
-                                            <label class="form-label small">Contra:</label>
-                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAgainst" min="0" />
+                                            <label for="mt-contra-@point.PointNumber" class="form-label small">Contra:</label>
+                                            <input id="mt-contra-@point.PointNumber" type="number" class="form-control form-control-sm" @bind="point.VotesAgainst" min="0" />
                                         </div>
                                         <div class="col-3">
-                                            <label class="form-label small">Abstenções:</label>
-                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAbstain" min="0" />
+                                            <label for="mt-abstencoes-@point.PointNumber" class="form-label small">Abstenções:</label>
+                                            <input id="mt-abstencoes-@point.PointNumber" type="number" class="form-control form-control-sm" @bind="point.VotesAbstain" min="0" />
                                         </div>
                                         <div class="col-3">
-                                            <label class="form-label small">Resultado:</label>
-                                            <select class="form-select form-select-sm" @bind="point.VoteResult">
+                                            <label for="mt-resultado-@point.PointNumber" class="form-label small">Resultado:</label>
+                                            <select id="mt-resultado-@point.PointNumber" class="form-select form-select-sm" @bind="point.VoteResult">
                                                 <option value="">--</option>
                                                 <option value="Aprovado">Aprovado</option>
                                                 <option value="Rejeitado">Rejeitado</option>
@@ -1428,11 +1387,10 @@ else
                     <i class="bi bi-door-closed me-2"></i>Encerramento
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Texto de Encerramento</label>
-                        <textarea class="form-control" rows="4" @bind="editingAta!.ClosingText" 
+                    <FormField Label="Texto de Encerramento" Context="field">
+                        <textarea @attributes="field.Attributes" class="form-control" rows="4" @bind="editingAta!.ClosingText"
                                   placeholder="Ex: A reunião foi encerrada às XX horas, tendo sido lavrada a presente ata..."></textarea>
-                    </div>
+                    </FormField>
                 </div>
             </div>
             
@@ -1442,7 +1400,7 @@ else
                     <i class="bi bi-file-earmark-text me-2"></i>Estado
                 </div>
                 <div class="card-body">
-                    <span class="badge @(editingAta.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
+                    <span class="badge @(editingAta!.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
                         @(editingAta.Status == MeetingAtaStatus.Published ? "Publicada" : "Rascunho")
                     </span>
                     @if (editingAta.GeneratedAt.HasValue)
@@ -1484,7 +1442,7 @@ else
                     </span>
                 }
             </div>
-            <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
+            <button class="btn btn-secondary" @onclick="() => ataModal!.RequestCloseAsync()" disabled="@isAtaLoading">
                 <i class="bi bi-arrow-left me-1"></i>Fechar
             </button>
         </div>
@@ -1499,12 +1457,7 @@ else
     <BodyContent>
         @if (isViewingAtaLoading)
         {
-            <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-                <p class="mt-2 text-light-theme">A carregar dados da ata...</p>
-            </div>
+            <LoadingSpinner Message="A carregar dados da ata..." />
         }
         else if (viewingAta == null)
         {
@@ -1753,9 +1706,8 @@ else
                OnConfirm="PublishAta"
                OnCancel="ClosePublishAtaConfirmModal"
                Disabled="@isAtaLoading" />
+</AppErrorBoundary>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private List<Meeting> meetings = new();
@@ -1773,6 +1725,9 @@ else
     private int pastMeetingsTotalCount = 0;
 
     private bool isCreateMode = false;
+    private Modal? editModal, proposalModal, ataModal, emailModal, pushModal, cancelModal;
+    private readonly UnsavedChanges editChanges = new(), proposalChanges = new(), ataChanges = new();
+    private readonly BusyState editSaving = new(), proposalSaving = new(), cancelSaving = new();
     private Meeting? editingMeeting;
     private Meeting? deletingMeeting;
     private Meeting? viewingMeeting;
@@ -1786,7 +1741,6 @@ else
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
     private bool isAdmin = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Ata modal variables
     private Meeting? ataMeeting;
@@ -1898,7 +1852,6 @@ else
     private MeetingRequest? viewingRequest;
     private MeetingRequest? deletingRequest;
     private MeetingRequest? reminderRequest;
-    private string? reminderSuccessMessage;
     
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -1998,33 +1951,9 @@ else
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
         await LoadParticipationsAsync();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (CanManageMeetings())
-            items.Add(new("action-create", "Criar", "bi-plus-lg"));
-        if (CanProposeCVMeeting())
-            items.Add(new("action-propose-cv", "Convocar CV", "bi-megaphone"));
-        if (IsDirecaoMember())
-            items.Add(new("action-propose-dir", "Convocar Direção", "bi-briefcase"));
-        if (CanProposeAGMeeting())
-            items.Add(new("action-propose-ag", "Convocar AG", "bi-people"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-create": await OpenCreateModal(); break;
-            case "action-propose-cv": OpenProposalModal(); break;
-            case "action-propose-dir": OpenDirecaoProposalModal(); break;
-            case "action-propose-ag": if (CanProposeAGMeeting()) OpenAGProposalModal(); break;
-        }
-    }
 
     private async Task LoadParticipationsAsync()
     {
@@ -2160,7 +2089,15 @@ else
         searchTerm = newSearchTerm;
         currentPage = 1; // Reset to first page on search
         pastMeetingsCurrentPage = 1; // Also reset past meetings pagination
-        await LoadMeetingsAsync();
+        try
+        {
+            await LoadMeetingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Searching meetings failed");
+            Toasts.ShowError("Não foi possível pesquisar reuniões.");
+        }
     }
 
     private async Task ChangePage(int newPage)
@@ -2255,7 +2192,8 @@ else
         
         // Load Tuno users for representative selection
         await LoadTunoUsersForMeetingForm();
-        
+
+        TrackMeetingForm();
         modals.Open(ModalType.Edit);
     }
 
@@ -2276,7 +2214,8 @@ else
         
         // Load Tuno users for representative selection
         await LoadTunoUsersForMeetingForm();
-        
+
+        TrackMeetingForm();
         modals.Open(ModalType.Edit);
     }
     
@@ -2291,20 +2230,32 @@ else
             .ToList();
     }
 
+    private void TrackMeetingForm() => editChanges.Track(() => new
+    {
+        editingMeeting?.Type,
+        editingMeeting?.Title,
+        editingMeeting?.Date,
+        editingMeeting?.Location,
+        editingMeeting?.Statement,
+        editingMeeting?.TunoRepresentativeUserId
+    });
+
     private void CloseEditModal()
     {
         modals.Close(ModalType.Edit);
+        editChanges.Clear();
         editingMeeting = null;
         tunoUsersForMeetingForm = null;
     }
 
-    private async Task SaveMeeting()
+    private Task SaveMeeting() => editSaving.RunAsync(async () =>
     {
         if (editingMeeting == null) return;
 
+        var created = isCreateMode;
         try
         {
-            if (isCreateMode)
+            if (created)
             {
                 editingMeeting.Id = 0;
                 await MeetingService.CreateMeetingAsync(editingMeeting);
@@ -2313,15 +2264,21 @@ else
             {
                 await MeetingService.UpdateMeetingAsync(editingMeeting);
             }
-
-            await LoadMeetingsAsync();
-            CloseEditModal();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error (could show error message to user)
+            // The dialog stays open with what was typed; the user can retry.
+            Logger.LogError(ex, "Saving meeting {MeetingId} failed", editingMeeting.Id);
+            Toasts.ShowError(created
+                ? "Não foi possível criar a reunião. Tente novamente."
+                : "Não foi possível guardar a reunião. Tente novamente.");
+            return;
         }
-    }
+
+        CloseEditModal();
+        Toasts.ShowSuccess(created ? "Reunião criada." : "Reunião atualizada.");
+        await LoadMeetingsAsync();
+    });
 
     private void OpenDeleteModal(Meeting meeting)
     {
@@ -2491,7 +2448,8 @@ else
         }
         catch (Exception ex)
         {
-            emailErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+            Logger.LogError(ex, "Loading notification recipients failed");
+            emailErrorMessage = "Não foi possível carregar os destinatários. Feche e tente novamente.";
         }
         finally
         {
@@ -2652,7 +2610,8 @@ else
         }
         catch (Exception ex)
         {
-            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
+            Logger.LogError(ex, "Sending the meeting email notification failed");
+            emailErrorMessage = "Não foi possível enviar a notificação. Alguns emails podem já ter sido enviados; verifique antes de tentar novamente.";
         }
         finally
         {
@@ -2801,7 +2760,8 @@ else
         }
         catch (Exception ex)
         {
-            cancelMeetingErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+            Logger.LogError(ex, "Loading notification recipients failed");
+            cancelMeetingErrorMessage = "Não foi possível carregar os membros. Feche e tente novamente.";
         }
         finally
         {
@@ -2823,14 +2783,16 @@ else
         cancelMeetingErrorMessage = null;
     }
 
-    private async Task ConfirmCancelMeeting()
+    private Task ConfirmCancelMeeting() => cancelSaving.RunAsync(async () =>
     {
         if (selectedMeetingForCancellation == null || string.IsNullOrWhiteSpace(cancelMeetingReason))
         {
             cancelMeetingErrorMessage = "O motivo do cancelamento é obrigatório.";
-            StateHasChanged();
             return;
         }
+        var wasCancelled = selectedMeetingForCancellation.IsCancelled;
+        var previousReason = selectedMeetingForCancellation.CancellationReason;
+        var cancelPersisted = false;
 
         // Initialize progress tracking if sending emails
         if (notifySubscribersOnMeetingCancel && cancelMeetingSubscribedUsers != null && cancelMeetingSubscribedUsers.Any())
@@ -2848,6 +2810,7 @@ else
             selectedMeetingForCancellation.IsCancelled = true;
             selectedMeetingForCancellation.CancellationReason = cancelMeetingReason;
             await MeetingService.UpdateMeetingAsync(selectedMeetingForCancellation);
+            cancelPersisted = true;
 
             // Send notification emails if checkbox is selected
             if (notifySubscribersOnMeetingCancel && cancelMeetingSubscribedUsers != null && cancelMeetingSubscribedUsers.Any())
@@ -2934,21 +2897,26 @@ else
                     progress);
             }
 
-            // Reload meetings
-            await LoadMeetingsAsync();
-
             CloseCancelMeetingModal();
+            Toasts.ShowSuccess("Reunião cancelada.");
+            await LoadMeetingsAsync();
         }
         catch (Exception ex)
         {
-            cancelMeetingErrorMessage = $"Erro ao cancelar reunião: {ex.Message}";
+            Logger.LogError(ex, "Cancelling meeting {MeetingId} failed", selectedMeetingForCancellation?.Id);
+            if (selectedMeetingForCancellation != null && !cancelPersisted)
+            {
+                // Show the meeting as it is stored, not as it was about to be.
+                selectedMeetingForCancellation.IsCancelled = wasCancelled;
+                selectedMeetingForCancellation.CancellationReason = previousReason;
+            }
+            cancelMeetingErrorMessage = "Não foi possível cancelar a reunião. Se escolheu notificar, alguns emails podem já ter sido enviados; verifique antes de tentar novamente.";
         }
         finally
         {
             IsSendingEmails = false;
-            StateHasChanged();
         }
-    }
+    });
 
     private async Task UncancelMeeting(Meeting meeting)
     {
@@ -2961,8 +2929,8 @@ else
         }
         catch (Exception ex)
         {
-            // Could show an error message here
-            Console.WriteLine($"Error uncanceling meeting: {ex.Message}");
+            Logger.LogError(ex, "Restoring cancelled meeting {MeetingId} failed", meeting.Id);
+            Toasts.ShowError("Não foi possível reativar a reunião. Tente novamente.");
         }
     }
     
@@ -3056,7 +3024,8 @@ else
         }
         catch (Exception ex)
         {
-            pushErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+            Logger.LogError(ex, "Loading notification recipients failed");
+            pushErrorMessage = "Não foi possível carregar os destinatários. Feche e tente novamente.";
             Logger.LogError(ex, "Error loading push notification recipients for meeting {MeetingId}", meeting.Id);
         }
         finally
@@ -3190,7 +3159,8 @@ else
         }
         catch (Exception ex)
         {
-            pushErrorMessage = $"Erro ao enviar notificações push: {ex.Message}";
+            Logger.LogError(ex, "Sending the meeting push notification failed");
+            pushErrorMessage = "Não foi possível enviar as notificações. Tente novamente.";
             Logger.LogError(ex, "Error sending push notifications for meeting {MeetingId}", selectedMeetingForPush?.Id);
         }
         finally
@@ -3562,13 +3532,33 @@ else
         finally
         {
             isAtaLoading = false;
+            TrackAtaForm();
             StateHasChanged();
         }
     }
     
+    // What the ata form can change (not the loaded meeting, participants or users).
+    private void TrackAtaForm() => ataChanges.Track(() => editingAta == null ? null : new
+    {
+        editingAta.AtaNumber,
+        editingAta.ActualStartTime,
+        editingAta.ActualEndTime,
+        editingAta.Location,
+        editingAta.QuorumBasis,
+        editingAta.FirstSecretaryUserId,
+        editingAta.SecondSecretaryUserId,
+        editingAta.ClosingText,
+        Points = editingAta.AgendaPoints?.Select(p => new
+        {
+            p.PointNumber, p.Title, p.DiscussionSummary, p.DecisionText, p.VoteResult,
+            p.VotesFor, p.VotesAgainst, p.VotesAbstain
+        }).ToList()
+    });
+
     private void CloseAtaModal()
     {
         modals.Close(ModalType.Ata);
+        ataChanges.Clear();
         ataMeeting = null;
         editingAta = null;
         ataErrorMessage = null;
@@ -3615,7 +3605,8 @@ else
         }
         catch (Exception ex)
         {
-            ataErrorMessage = $"Erro ao eliminar a ata: {ex.Message}";
+            Logger.LogError(ex, "Deleting ata failed");
+            ataErrorMessage = "Não foi possível eliminar a ata. Tente novamente.";
         }
         finally
         {
@@ -3684,8 +3675,9 @@ else
                 // Update existing ata
                 await MeetingAtaService.UpdateAtaAsync(editingAta);
             }
-            
+
             CloseAtaModal();
+            Toasts.ShowSuccess("Ata guardada.");
         }
         catch (Exception ex)
         {
@@ -3721,7 +3713,10 @@ else
             {
                 await MeetingAtaService.UpdateAtaAsync(editingAta);
             }
-            
+
+            // Saved: what is in the form is now the clean state.
+            ataChanges.MarkClean();
+
             // Load ata with all details for PDF
             var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(editingAta.Id);
             if (ataWithDetails == null)
@@ -3849,7 +3844,7 @@ else
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error publishing ata for meeting {MeetingId}", ataMeeting.Id);
-            ataErrorMessage = $"Erro ao publicar a ata: {ex.Message}";
+            ataErrorMessage = "Não foi possível publicar a ata. Tente novamente.";
         }
         finally
         {
@@ -4116,6 +4111,14 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
+        proposalChanges.Track(() => new
+        {
+            proposalRequest?.RequestedMeetingType,
+            proposalRequest?.Title,
+            proposalRequest?.ProposedDateTime,
+            proposalRequest?.Location,
+            proposalRequest?.Description
+        });
         modals.Open(ModalType.Proposal);
     }
     
@@ -4127,6 +4130,14 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
+        proposalChanges.Track(() => new
+        {
+            proposalRequest?.RequestedMeetingType,
+            proposalRequest?.Title,
+            proposalRequest?.ProposedDateTime,
+            proposalRequest?.Location,
+            proposalRequest?.Description
+        });
         modals.Open(ModalType.Proposal);
     }
     
@@ -4138,12 +4149,21 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
+        proposalChanges.Track(() => new
+        {
+            proposalRequest?.RequestedMeetingType,
+            proposalRequest?.Title,
+            proposalRequest?.ProposedDateTime,
+            proposalRequest?.Location,
+            proposalRequest?.Description
+        });
         modals.Open(ModalType.Proposal);
     }
     
     private void CloseProposalModal()
     {
         modals.Close(ModalType.Proposal);
+        proposalChanges.Clear();
         proposalRequest = null;
     }
     
@@ -4159,24 +4179,27 @@ else
         };
     }
     
-    private async Task SaveMeetingProposal()
+    private Task SaveMeetingProposal() => proposalSaving.RunAsync(async () =>
     {
         if (proposalRequest == null) return;
-        
+
         try
         {
             proposalRequest.AuthorUserId = currentUserId;
             proposalRequest.Status = RequestStatus.Pending;
             await MeetingRequestService.CreateAsync(proposalRequest);
-            
-            CloseProposalModal();
-            await LoadMeetingRequestsAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error handling could be improved with user feedback
+            Logger.LogError(ex, "Creating a meeting proposal failed");
+            Toasts.ShowError("Não foi possível enviar a proposta. Tente novamente.");
+            return;
         }
-    }
+
+        CloseProposalModal();
+        Toasts.ShowSuccess("Proposta enviada.");
+        await LoadMeetingRequestsAsync();
+    });
     
     private void OpenRequestDetailsModal(MeetingRequest request)
     {
@@ -4287,23 +4310,13 @@ else
             var success = await MeetingRequestService.SendReminderNotificationAsync(reminderRequest.Id, baseUrl);
             if (success)
             {
-                reminderSuccessMessage = "Notificação Enviada!";
-                StateHasChanged();
-                
-                // Auto-dismiss after 3 seconds
-                _ = Task.Delay(3000).ContinueWith(_ =>
-                {
-                    InvokeAsync(() =>
-                    {
-                        reminderSuccessMessage = null;
-                        StateHasChanged();
-                    });
-                });
+                Toasts.ShowSuccess("Notificação Enviada!");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending reminder: {ex.Message}");
+            Logger.LogError(ex, "Sending meeting request reminder failed");
+            Toasts.ShowError("Não foi possível enviar o lembrete. Tente novamente.");
         }
         finally
         {
@@ -4609,9 +4622,9 @@ else
         }
         catch (Exception ex)
         {
-            addMemberToParticipationFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            Logger.LogError(ex, "Adding a member to a meeting failed");
+            addMemberToParticipationFeedbackMessage = "Não foi possível adicionar o membro. Tente novamente.";
             addMemberToParticipationFeedbackIsError = true;
-            Console.WriteLine($"Error adding member to meeting: {ex.Message}");
         }
     }
     

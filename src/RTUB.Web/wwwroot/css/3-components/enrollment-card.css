@@ -85,7 +85,7 @@
     }
     .enrollment-card:focus-visible {
         transform: translateY(-2px);
-        box-shadow: 0 0 0 2px var(--bs-primary);
+        box-shadow: 0 0 0 2px var(--rtub-focus-ring);
         outline: none;
     }
 
@@ -218,7 +218,7 @@
 .enrollment-card-delete-btn:focus,
 .enrollment-card-approve-btn:focus,
 .enrollment-card-cancel-btn:focus {
-    outline: 2px solid var(--bs-primary);
+    outline: 2px solid var(--rtub-focus-ring);
     outline-offset: 2px;
 }
 
@@ -411,6 +411,6 @@
 .enrollment-card:focus-within .enrollment-card-delete-btn,
 .enrollment-card:focus-within .enrollment-card-approve-btn,
 .enrollment-card:focus-within .enrollment-card-cancel-btn {
-    outline: 2px solid var(--bs-primary);
+    outline: 2px solid var(--rtub-focus-ring);
     outline-offset: 2px;
 }

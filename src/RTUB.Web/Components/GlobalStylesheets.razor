@@ -1,0 +1,49 @@
+@namespace RTUB.Components
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Caching.Memory
+@inject IWebHostEnvironment Environment
+@inject IMemoryCache Cache
+
+@*
+    Global stylesheets, one versioned <link> per @import in /css/site.css, in import order.
+
+    site.css stays the single list of global sheets, but it is not linked itself: a browser
+    fetches @import URLs exactly as written, so its sub-files would carry no version and sit in
+    the HTTP cache for up to 30 days after a deploy. Linking each file through VersionedAsset
+    gives it a content hash (?v=), so a changed sheet has a new URL and an unchanged one stays
+    cached. Document order of the links is the same cascade order the @imports had.
+    Contract: docs/design/RTUB_UI_REFACTOR.md section 21.
+*@
+
+@foreach (var path in ImportPaths)
+{
+    <VersionedAsset Path="@path" Type="VersionedAsset.AssetType.Css" />
+}
+
+@code {
+    private const string SiteCss = "css/site.css";
+
+    private static readonly Regex ImportPattern =
+        new(@"@import\s+url\(\s*['""]?(?<path>[^'"")\s]+)['""]?\s*\)\s*;", RegexOptions.Compiled);
+
+    private IReadOnlyList<string> ImportPaths => Cache.GetOrCreate("rtub:site-css-imports", entry =>
+    {
+        // Re-read when site.css changes (a sheet added or reordered), without a restart.
+        entry.AddExpirationToken(Environment.WebRootFileProvider.Watch(SiteCss));
+        var file = Environment.WebRootFileProvider.GetFileInfo(SiteCss);
+        if (!file.Exists)
+        {
+            return Array.Empty<string>();
+        }
+
+        using var reader = new StreamReader(file.CreateReadStream());
+        return Parse(reader.ReadToEnd());
+    })!;
+
+    /// <summary>The site-relative URL of every sheet site.css imports, in order.</summary>
+    public static IReadOnlyList<string> Parse(string siteCss) =>
+        ImportPattern.Matches(Regex.Replace(siteCss, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline))
+            .Select(m => "/css/" + m.Groups["path"].Value)
+            .ToList();
+}

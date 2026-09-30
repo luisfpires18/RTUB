@@ -15,48 +15,57 @@
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
 
-<nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
-    <div class="container-xxl rtub-wide px-xxl-4">
+@* Fallback title for a route that sets none; every page sets its own through AppTitle. *@
+<AppTitle />
+
+@* First focusable element of every page (UI refactor 034). Hidden until focused; navOffcanvas.js
+   moves focus to <main>, because a bare "#content" resolves against <base href="/"> and would
+   leave the page. *@
+<a class="skip-link" href="#content">Saltar para o conteúdo</a>
+
+@* App shell (UI refactor 034, contract: docs/design/RTUB_UI_REFACTOR.md section 21).
+   >= 1200px (xl): brand, horizontal navigation, account menu.
+   <  1200px: brand, account menu and a menu button that opens the navigation drawer - the same
+   breakpoint at which pages switch their header actions for MobileBottomNav. *@
+<header class="navbar navbar-expand-xl navbar-dark navbar-main">
+    <div class="container-xxl rtub-wide px-xxl-4 navbar-main__inner">
         <a class="navbar-brand" href="/">RTUB</a>
 
-        <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#topNav" aria-controls="topNav" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="offcanvas offcanvas-end offcanvas-lg" tabindex="-1" id="topNav" aria-labelledby="topNavLabel">
-            <div class="offcanvas-header d-lg-none">
-                <h5 class="offcanvas-title" id="topNavLabel">Navegação</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        <div class="offcanvas offcanvas-end offcanvas-xl" tabindex="-1" id="topNav" aria-labelledby="topNavLabel">
+            <div class="offcanvas-header d-xl-none">
+                <h2 class="offcanvas-title" id="topNavLabel">Navegação</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fechar menu"></button>
             </div>
             <div class="offcanvas-body">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <nav class="navbar-main__nav" aria-label="Principal">
+            <ul class="navbar-nav">
 
                 <!-- 1. Música (Public / Member) -->
-                <li class="nav-item"><NavLink class="nav-link" href="/music"><i class="bi bi-music-note-beamed"></i> Música</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/music"><i class="bi bi-music-note-beamed" aria-hidden="true"></i> Música</NavLink></li>
 
                 <!-- 2. Pedidos (Public only) -->
                 <AuthorizeView>
                     <NotAuthorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope" aria-hidden="true"></i> Pedidos</NavLink></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
                 <!-- 3. Atuações (Public / Member) -->
-                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event" aria-hidden="true"></i> Atuações</NavLink></li>
 
                 <AuthorizeView Context="mainAuthContext">
                     <Authorized>
                         <!-- 4. Ensaios (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list" aria-hidden="true"></i> Ensaios</NavLink></li>
                         <!-- 5. Naipes (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/naipes"><i class="bi bi-music-player"></i> Naipes</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/naipes"><i class="bi bi-music-player" aria-hidden="true"></i> Naipes</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
 
                 <!-- 7. Órgãos Sociais (Public only) -->
                 <AuthorizeView>
                     <NotAuthorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank" aria-hidden="true"></i> Órgãos Sociais</NavLink></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
@@ -65,73 +74,73 @@
 
                         <!-- 5. Membros (Member Dropdown) -->
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="membersDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-people"></i> Membros
+                            <button class="nav-link dropdown-toggle @GroupClass(MembersGroup)" type="button" id="membersDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bi bi-people" aria-hidden="true"></i> Membros
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="membersDropdown">
-                                <li><NavLink class="dropdown-item" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/hall-of-fame"><i class="bi bi-trophy"></i> Hall of Fame</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/members"><i class="bi bi-people" aria-hidden="true"></i> Membros</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/hierarchy"><i class="bi bi-diagram-3" aria-hidden="true"></i> Hierarquia</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/roles"><i class="bi bi-bank" aria-hidden="true"></i> Órgãos Sociais</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/hall-of-fame"><i class="bi bi-trophy" aria-hidden="true"></i> Hall of Fame</NavLink></li>
                             </ul>
                         </li>
 
                         <!-- 6. Classificação (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
-                        
+                        <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill" aria-hidden="true"></i> Classificação</NavLink></li>
+
                         <!-- 6.5 Jogos (Member Dropdown) -->
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="gamesDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-controller"></i> Jogos
+                            <button class="nav-link dropdown-toggle @GroupClass(GamesGroup)" type="button" id="gamesDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bi bi-controller" aria-hidden="true"></i> Jogos
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="gamesDropdown">
-                                <li><NavLink class="dropdown-item" href="/my-tuno"><i class="bi bi-joystick"></i> My Tuno</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/games"><i class="bi bi-controller"></i> Mini Jogos</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/bets"><i class="bi bi-cash-coin"></i> Apostas</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/my-tuno"><i class="bi bi-joystick" aria-hidden="true"></i> My Tuno</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/games"><i class="bi bi-controller" aria-hidden="true"></i> Mini Jogos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/bets"><i class="bi bi-cash-coin" aria-hidden="true"></i> Apostas</NavLink></li>
                             </ul>
                         </li>
-                        
+
                     </Authorized>
                 </AuthorizeView>
 
                 <!-- 6.5 Galeria (Public / Member) -->
-                <li class="nav-item"><NavLink class="nav-link" href="/gallery"><i class="bi bi-images"></i> Galeria</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/gallery"><i class="bi bi-images" aria-hidden="true"></i> Galeria</NavLink></li>
 
                 <AuthorizeView Context="mainAuthContext3">
                     <Authorized>
-                        
+
                         <!-- 7. Inventário (Member Dropdown) -->
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-box-seam"></i> Inventário
+                            <button class="nav-link dropdown-toggle @GroupClass(InventoryGroup)" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bi bi-box-seam" aria-hidden="true"></i> Inventário
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
-                                <li><NavLink class="dropdown-item" href="/inventory"><i class="bi bi-music-note"></i> Instrumentos</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/inventory"><i class="bi bi-music-note" aria-hidden="true"></i> Instrumentos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/shop"><i class="bi bi-bag" aria-hidden="true"></i> Loja</NavLink></li>
                             </ul>
                         </li>
-                        
+
                         <!-- 8. Gestão (Member Dropdown) -->
                         @if (_shouldShowGestaoDropdown)
                         {
                             <li class="nav-item dropdown">
-                                <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
-                                    <i class="bi bi-gear-fill"></i> Gestão
+                                <button class="nav-link dropdown-toggle @GroupClass(ManagementGroup)" type="button" id="managementDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <i class="bi bi-gear-fill" aria-hidden="true"></i> Gestão
                                 </button>
-                                <ul class="dropdown-menu" aria-labelledby="managementDropdown">
-                                    <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="managementDropdown">
+                                    <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3" aria-hidden="true"></i> Reuniões</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Documentação</NavLink></li>
                                     @if (_showBeVisibleToModAdminAndTunoOnly)
                                     {
-                                        <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban" aria-hidden="true"></i> Logística</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack" aria-hidden="true"></i> Tesouraria</NavLink></li>
                                     }
 
                                     @if (_showBeVisibleToAdminOnly)
                                     {
-                                        <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope" aria-hidden="true"></i> Pedidos</NavLink></li>
                                     }
-                                    <li><NavLink class="dropdown-item" href="/questions"><i class="bi bi-question-circle"></i> Perguntas</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/questions"><i class="bi bi-question-circle" aria-hidden="true"></i> Perguntas</NavLink></li>
                                 </ul>
                             </li>
                         }
@@ -143,22 +152,22 @@
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="adminOwnerAuth">
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="ownerDropdown"
-                                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-tools"></i> Operações
+                            <button class="nav-link dropdown-toggle @GroupClass(OperationsGroup)" type="button" id="ownerDropdown"
+                                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bi bi-tools" aria-hidden="true"></i> Operações
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
-                                <li><NavLink class="dropdown-item" href="/emails"><i class="bi bi-envelope"></i> Email</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/notifications"><i class="bi bi-bell"></i> Notificações</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="ownerDropdown">
+                                <li><NavLink class="dropdown-item" href="/emails"><i class="bi bi-envelope" aria-hidden="true"></i> Email</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/notifications"><i class="bi bi-bell" aria-hidden="true"></i> Notificações</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images" aria-hidden="true"></i> Imagens</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag" aria-hidden="true"></i> Conteúdo</NavLink></li>
 
                                 <AuthorizeView Roles="Owner">
                                     <Authorized Context="ownerAuth">
                                         <li><hr class="dropdown-divider" /></li>
-                                        <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people"></i> Funções</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database"></i> Database</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people" aria-hidden="true"></i> Funções</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check" aria-hidden="true"></i> Tracing</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database" aria-hidden="true"></i> Database</NavLink></li>
                                     </Authorized>
                                 </AuthorizeView>
                             </ul>
@@ -167,104 +176,102 @@
                 </AuthorizeView>
                 }
             </ul>
-
-            <AuthorizeView>
-                <Authorized>
-                    <ul class="navbar-nav mb-2 mb-lg-0">
-                        @if (currentUser != null)
-                        {
-                            @if (currentUser.IsLeitao())
-                            {
-                                <li class="nav-item d-flex align-items-center">
-                                    <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
-                                </li>
-                            }
-                            else if (currentUser.IsCaloiro())
-                            {
-                                <li class="nav-item d-flex align-items-center">
-                                    <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="me-1" />
-                                </li>
-                            }
-                            else if (currentUser.IsTuno())
-                            {
-                                if (currentUser.Positions.Contains(Position.Magister))
-                                {
-                                    <li class="nav-item d-flex align-items-center">
-                                        <PositionBadge Position="Position.Magister" AdditionalClasses="me-1" />
-                                    </li>
-                                }
-                                else
-                                {
-                                    <li class="nav-item d-flex align-items-center">
-                                        <CategoryBadge Category="MemberCategory.Tuno" AdditionalClasses="me-1" />
-                                    </li>
-                                }
-                            }
-                        }
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                @if (currentUser != null)
-                                {
-                                    <img src="@GetNavbarAvatarUrl()" 
-                                         alt="@currentUser.Nickname" 
-                                         class="navbar-avatar me-2"
-                                         data-avatar-fallback />
-                                    <span>@currentUser.Nickname</span>
-                                    <UnreadMessagesBadge CssClass="navbar-message-badge" />
-                                }
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/profile">
-                                        <i class="bi bi-person-circle"></i>
-                                        <span>Meu Perfil</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2" href="/messages">
-                                        <span class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-chat-dots"></i>
-                                            <span>Mensagens</span>
-                                        </span>
-                                        <UnreadMessagesBadge CssClass="ms-2" />
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider" /></li>
-                                <li>
-                                    <form method="post" action="/auth/logout" @formname="LogoutForm" class="logout-form">
-                                        <AntiforgeryToken />
-                                        <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sair</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </Authorized>
-                <NotAuthorized>
-                    <a class="btn" href="/login">Entrar</a>
-                </NotAuthorized>
-            </AuthorizeView>
+            </nav>
             </div>
         </div>
+
+        @* Account: outside the drawer, so it stays one tap away on phones. *@
+        <AuthorizeView>
+            <Authorized>
+                <div class="dropdown navbar-account">
+                    <button class="navbar-account__toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="@GetNavbarAvatarUrl()"
+                             alt=""
+                             class="navbar-avatar"
+                             data-avatar-fallback />
+                        <span class="visually-hidden">Conta de @(currentUser?.Nickname ?? "utilizador")</span>
+                        <UnreadMessagesBadge CssClass="navbar-message-badge" />
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end navbar-account__menu">
+                        @if (currentUser != null)
+                        {
+                            <li class="navbar-account__header">
+                                <span class="navbar-account__name">@currentUser.Nickname</span>
+                                @if (currentUser.IsLeitao())
+                                {
+                                    <CategoryBadge Category="MemberCategory.Leitao" />
+                                }
+                                else if (currentUser.IsCaloiro())
+                                {
+                                    <CategoryBadge Category="MemberCategory.Caloiro" />
+                                }
+                                else if (currentUser.IsTuno())
+                                {
+                                    if (currentUser.Positions.Contains(Position.Magister))
+                                    {
+                                        <PositionBadge Position="Position.Magister" />
+                                    }
+                                    else
+                                    {
+                                        <CategoryBadge Category="MemberCategory.Tuno" />
+                                    }
+                                }
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                        }
+                        <li>
+                            <NavLink class="dropdown-item" href="/profile">
+                                <i class="bi bi-person-circle" aria-hidden="true"></i>
+                                <span>Meu Perfil</span>
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink class="dropdown-item" href="/messages">
+                                <i class="bi bi-chat-dots" aria-hidden="true"></i>
+                                <span>Mensagens</span>
+                                <UnreadMessagesBadge CssClass="ms-auto" />
+                            </NavLink>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form method="post" action="/auth/logout" @formname="LogoutForm" class="logout-form">
+                                <AntiforgeryToken />
+                                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sair</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <a class="btn btn-primary navbar-login" href="/login">Entrar</a>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#topNav" aria-controls="topNav" aria-expanded="false" aria-label="Abrir menu de navegação">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
     </div>
-</nav>
+</header>
 
 <AnnouncementBanner />
 <AndroidModeLogger />
+@* Toasts for every page: an interactive island sharing the circuit's ToastService with the
+   page (UI refactor 036). *@
+<ToastHost @rendermode="InteractiveServer" />
 
 <div class="layout d-flex">
-    <main id="content" class="content flex-fill content-main">
+    <main id="content" class="content flex-fill content-main" tabindex="-1">
         <div class="container-xxl rtub-wide py-4 px-xxl-4">
             @Body
         </div>
     </main>
 </div>
 
-<footer class="footer mt-auto py-3 footer-main">
+<footer class="footer mt-auto pt-3 footer-main">
     <div class="container-xxl rtub-wide text-center px-xxl-4">
         <p class="footer-text">
-            &copy; 2025 Real Tuna Universitária de Bragança.
-            <span class="mx-2">|</span>
+            <span>&copy; 2025 Real Tuna Universitária de Bragança.</span>
+            <span class="footer-separator" aria-hidden="true">|</span>
             <a href="/privacy" class="footer-link">Política de Privacidade</a>
         </p>
     </div>
@@ -272,21 +279,15 @@
 
 <HeadContent>
     @* Note: Viewport meta tag is defined in App.razor to prevent duplicate tags *@
-    
+
     @* Standard favicons for desktop browsers *@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/rtub-logo-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/rtub-logo-16.png" />
     <link rel="shortcut icon" href="favicon.ico" />
-    
-    @* Apple Touch Icon for iOS - moved to App.razor for static rendering *@
-    
-    @* PWA Configuration - manifest link moved to App.razor for static rendering *@
+
+    @* Apple touch icon, manifest and the mobile web-app capability meta tags live in App.razor
+       (static head). *@
     <meta name="theme-color" content="#3F2A86" />
-    @* Modern standard for web app capability *@
-    <meta name="mobile-web-app-capable" content="yes" />
-    @* Keep for iOS backward compatibility *@
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     @* Preconnect to CDN for faster loading *@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -295,13 +296,13 @@
     <VersionedAsset Path="/lib/bootstrap/bootstrap.min.css" Type="VersionedAsset.AssetType.Css" />
     <VersionedAsset Path="/lib/bootstrap-icons/bootstrap-icons.min.css" Type="VersionedAsset.AssetType.Css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" crossorigin="anonymous" />
-    <VersionedAsset Path="/css/site.css" Type="VersionedAsset.AssetType.Css" />
+    @* The sheets listed in /css/site.css, each versioned (UI refactor 034). *@
+    <GlobalStylesheets />
     <VersionedAsset Path="/RTUB.styles.css" Type="VersionedAsset.AssetType.Css" />
     @* Leaflet CSS for Member Map *@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
-    @* All page and component-specific CSS files are now imported via site.css *@
 </HeadContent>
 
 <script src="/_framework/blazor.web.js" autostart="false" suppress-error="BL9992"></script>
@@ -514,6 +515,24 @@
         _shouldShowGestaoDropdown = results[0];
         _showBeVisibleToAdminOnly = results[1];
         _showBeVisibleToModAdminAndTunoOnly = results[2];
+    }
+
+    // Routes behind each navigation menu. The menu's toggle is marked active while one of them
+    // is the current page, so the section stays visible when its menu is closed. Presentation
+    // only: which menus and items a user sees is still decided by the conditions in the markup.
+    private static readonly string[] MembersGroup = { "/members", "/member/map", "/hierarchy", "/roles", "/hall-of-fame" };
+    private static readonly string[] GamesGroup = { "/my-tuno", "/games", "/bets" };
+    private static readonly string[] InventoryGroup = { "/inventory", "/shop" };
+    private static readonly string[] ManagementGroup = { "/meetings", "/documentation", "/logistics", "/finance", "/mbway", "/nerba", "/requests", "/questions" };
+    private static readonly string[] OperationsGroup = { "/emails", "/notifications", "/images", "/labels", "/users", "/owner" };
+
+    private string GroupClass(string[] routes)
+    {
+        var path = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Split('?', '#')[0];
+        return routes.Any(route => path.Equals(route, StringComparison.OrdinalIgnoreCase)
+                                   || path.StartsWith(route + "/", StringComparison.OrdinalIgnoreCase))
+            ? "active"
+            : string.Empty;
     }
 
     private string GetNavbarAvatarUrl()

@@ -15,14 +15,10 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @attribute [Authorize]
 
-<div class="page-header-centered mb-4">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-trophy"></i> Hall of Fame</h1>
-        <p class="page-header-subtitle">Os recordistas da RTUB - quem brilha mais em cada categoria.</p>
-    </div>
-    <div class="page-header-right"></div>
-</div>
+<AppTitle>Hall of Fame</AppTitle>
+
+<AppErrorBoundary>
+<PageHeader Title="Hall of Fame" Icon="bi-trophy" Subtitle="Os recordistas da RTUB - quem brilha mais em cada categoria." />
 
 @if (isLoading)
 {
@@ -510,6 +506,7 @@ else
         </div>
     </div>
 }
+</AppErrorBoundary>
 @code {
     private bool isLoading = true;
 

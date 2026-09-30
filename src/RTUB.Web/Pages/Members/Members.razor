@@ -40,93 +40,61 @@
 @inject IOptions<Toggles> Toggles
 @attribute [Authorize]
 
-<div class="page-header-centered">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-people"></i> Membros</h1>
-        <p class="lead page-header-subtitle text-light-theme">Lista de todos os membros da RTUB.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex gap-2">
+<AppTitle>Membros</AppTitle>
+
+<AppErrorBoundary>
+<PageHeader Title="Membros" Icon="bi-people" Subtitle="Lista de todos os membros da RTUB.">
+    <Actions>
         <AuthorizeView Roles="Admin">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
-                    <i class="bi bi-plus-lg"></i> Adicionar Membro
-                </button>
+                <PageAction Label="Adicionar Membro" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
             </Authorized>
         </AuthorizeView>
         @if (Toggles.Value.MapEnabled)
         {
-            <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
-                <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
-            </button>
+            <PageAction Label="Ver Mapa de Membros" ShortLabel="Mapa" Icon="bi-geo-alt" OnClick="NavigateToMap" />
         }
-        <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
-            <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
-        </button>
-        <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
-            <i class="bi bi-cake2"></i> Aniversários
-        </button>
-    </div>
-</div>
+        <PageAction Label="Gestão de Membros Ativos" ShortLabel="Ativos" Icon="bi-person-badge" OnClick="OpenActiveMembersManagementModal" />
+        <PageAction Label="Aniversários" Icon="bi-cake2" OnClick="OpenAnniversariesModal" />
+    </Actions>
+</PageHeader>
 
 <!-- Search and Controls -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap search-controls-container mb-4">
-        <div class="flex-grow-1 search-bar-container">
-            <SearchBar @bind-Value="searchTerm"
-                       Placeholder="Pesquisar membros..."
-                       OnSearch="@HandleSearchChanged" />
-        </div>
-        <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch ms-lg-auto">
-            <div class="flex-sm-shrink-0 filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedCategoryFilter"
-                                SelectedValueChanged="@OnCategoryFilterChanged"
-                                OnChange="@ApplyFilters"
-                                AllItemsLabel="Categoria"
-                                Options="@categoryFilterOptions" />
-            </div>
-            @* SubCategory dropdown - only show when Tuno is selected *@
-            @if (selectedCategoryFilter == "Tuno")
-            {
-                <div class="flex-sm-shrink-0 filter-dropdown-container">
-                    <FilterDropdown SelectedValue="@selectedSubCategoryFilter"
-                                    SelectedValueChanged="@(value => selectedSubCategoryFilter = value)"
-                                    OnChange="@ApplyFilters"
-                                    AllItemsLabel="Sub-Categoria"
-                                    Options="@subCategoryFilterOptions" />
-                </div>
-            }
-            <div class="flex-sm-shrink-0 filter-dropdown-container">
-                <FilterDropdown SelectedValue="@selectedInstrumentFilter"
-                                SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
-                                OnChange="@ApplyFilters"
-                                AllItemsLabel="Instrumento"
-                                Options="@instrumentFilterOptions" />
-            </div>
-            <div class="flex-sm-shrink-0 filter-dropdown-container">
-                <div class="form-check form-switch d-flex align-items-center active-only-toggle">
-                    <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showActiveOnlySwitch"
-                           @bind="showActiveOnly" @bind:after="ApplyFilters">
-                    <label class="form-check-label ms-2 form-check-label-clickable" for="showActiveOnlySwitch">
-                        Mostrar só ativos
-                    </label>
-                </div>
-            </div>
-        </div>
+<FilterToolbar>
+    <SearchBar @bind-Value="searchTerm"
+               Placeholder="Pesquisar membros..."
+               OnSearch="@HandleSearchChanged" />
+    <FilterDropdown Label="Categoria" SelectedValue="@selectedCategoryFilter"
+                    SelectedValueChanged="@OnCategoryFilterChanged"
+                    OnChange="@ApplyFilters"
+                    AllItemsLabel="Categoria"
+                    Options="@categoryFilterOptions" />
+    @* SubCategory dropdown - only show when Tuno is selected *@
+    @if (selectedCategoryFilter == "Tuno")
+    {
+        <FilterDropdown Label="Subcategoria" SelectedValue="@selectedSubCategoryFilter"
+                        SelectedValueChanged="@(value => selectedSubCategoryFilter = value)"
+                        OnChange="@ApplyFilters"
+                        AllItemsLabel="Sub-Categoria"
+                        Options="@subCategoryFilterOptions" />
+    }
+    <FilterDropdown Label="Instrumento" SelectedValue="@selectedInstrumentFilter"
+                    SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
+                    OnChange="@ApplyFilters"
+                    AllItemsLabel="Instrumento"
+                    Options="@instrumentFilterOptions" />
+    <div class="form-check form-switch d-flex align-items-center active-only-toggle">
+        <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showActiveOnlySwitch"
+               @bind="showActiveOnly" @bind:after="ApplyFilters">
+        <label class="form-check-label ms-2 form-check-label-clickable" for="showActiveOnlySwitch">
+            Mostrar só ativos
+        </label>
     </div>
+</FilterToolbar>
 
 @if (users == null)
 {
-    <!-- Loading skeleton cards -->
-    <div class="avatar-card-grid">
-        @for (int i = 0; i < 8; i++)
-        {
-            <div class="avatar-card-skeleton-card">
-                <div class="avatar-card-image-wrapper">
-                    <div class="avatar-card-skeleton"></div>
-                </div>
-            </div>
-        }
-    </div>
+    <LoadingSpinner Message="A carregar membros..." />
 }
 else if (!filteredUsers.Any())
 {
@@ -139,8 +107,11 @@ else
     <!-- Regular Members Grid -->
     @if (filteredRegularMembers.Any())
     {
-        <h3 class="mb-3">Membros</h3>
-        <div class="avatar-card-grid">
+        <section class="item-section" aria-labelledby="members-title">
+        <h2 class="item-section-title" id="members-title">
+            Membros <span class="item-section-title__count">@filteredRegularMembers.Count</span>
+        </h2>
+        <div class="item-grid member-grid">
             @foreach (var user in paginatedRegularMembers)
             {
                 <AvatarCard @key="user.Id"
@@ -176,20 +147,14 @@ else
                                 <CategoryBadge @key="@($"category-{user.Id}-{category}")" Category="@category" />
                             }
                         </div>
-                        <!-- Role/Position badges row -->
+                        <!-- Current position as plain text next to the category -->
                         @if (currentPosition != null)
                         {
-                            <div class="avatar-card-badges-row">
-                                <PositionBadge Position="currentPosition.Value" />
-                            </div>
+                            <span class="member-position">@StatusHelper.GetPositionDisplay(currentPosition.Value)</span>
                         }
                         @if (!user.Positions.Any() && !user.Categories.Any())
                         {
-                            <div class="avatar-card-badges-row">
-                                <span class="badge bg-secondary avatar-card-role-badge" 
-                                      title="Sem Cargos"
-                                      aria-label="Sem Cargos">Sem Cargos</span>
-                            </div>
+                            <span class="member-position member-position--none">Sem Cargos</span>
                         }
                     </BadgeContent>
                 </AvatarCard>
@@ -203,14 +168,17 @@ else
                         PageSizeOptions="@(new[] { 30, 60, 90, 120, 150 })"
                         OnPageChanged="@HandleRegularMembersPageChange"
                         OnPageSizeChanged="@HandleRegularMembersPageSizeChange" />
+        </section>
     }
 
     <!-- Leitões Grid -->
     @if (filteredLeitoes.Any())
     {
-        <hr class="my-5 hr-divider" />
-        <h3 class="mb-3">Leitões</h3>
-        <div class="avatar-card-grid">
+        <section class="item-section" aria-labelledby="leitoes-title">
+        <h2 class="item-section-title" id="leitoes-title">
+            Leitões <span class="item-section-title__count">@filteredLeitoes.Count</span>
+        </h2>
+        <div class="item-grid member-grid">
             @foreach (var user in paginatedLeitoes)
             {
                 var leitaoStatus = leitoesStatusData.GetValueOrDefault(user.Id);
@@ -256,12 +224,16 @@ else
                         PageSizeOptions="@(new[] { 18, 36, 54, 72, 90 })"
                         OnPageChanged="@HandleLeitoesPageChange"
                         OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+        </section>
     }
 }
 
 <!-- Create/Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Edit)"
-       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Edit); else modals.Close(ModalType.Edit); })"
+<Modal @ref="editModal"
+       Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Edit); else CloseEditModal(); })"
+       IsDirty="() => editChanges.IsDirty"
+       CanClose="() => Task.FromResult(!isSaving)"
        Title="@(isCreateMode ? "Adicionar Novo Membro" : "Editar Membro")" 
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -272,56 +244,56 @@ else
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-primeiro-nome" class="form-label fw-semibold">
                         <i class="bi bi-person text-primary me-2"></i>Primeiro Nome <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.FirstName" />
+                    <InputText id="mb-primeiro-nome" class="form-control" @bind-Value="editingUser.FirstName" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-ultimo-nome" class="form-label fw-semibold">
                         <i class="bi bi-person text-primary me-2"></i>Último Nome <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.LastName" />
+                    <InputText id="mb-ultimo-nome" class="form-control" @bind-Value="editingUser.LastName" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-nome-de-tuna" class="form-label fw-semibold">
                         <i class="bi bi-star text-primary me-2"></i>Nome de Tuna<span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.Nickname" @bind-Value:after="OnNicknameChanged" disabled="@semAlcunha" />
+                    <InputText id="mb-nome-de-tuna" class="form-control" @bind-Value="editingUser.Nickname" @bind-Value:after="OnNicknameChanged" disabled="@semAlcunha" />
                     @if (semAlcunha)
                     {
                         <small class="form-text text-muted">Campo desativado - reflete automaticamente o email</small>
                     }
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-contacto" class="form-label fw-semibold">
                         <i class="bi bi-telephone text-primary me-2"></i>Contacto <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.PhoneNumber" />
+                    <InputText id="mb-contacto" class="form-control" @bind-Value="editingUser.PhoneNumber" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-email" class="form-label fw-semibold">
                         <i class="bi bi-envelope text-primary me-2"></i>Email <span class="text-danger">*</span>
                     </label>
-                    <InputText type="email" class="form-control" @bind-Value="editingUser.Email" @bind-Value:after="OnEmailChanged" />
+                    <InputText id="mb-email" type="email" class="form-control" @bind-Value="editingUser.Email" @bind-Value:after="OnEmailChanged" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-data-de-nascimento" class="form-label fw-semibold">
                         <i class="bi bi-calendar3 text-primary me-2"></i>Data de Nascimento
                     </label>
-                    <InputDate class="form-control" @bind-Value="editingUser.DateOfBirth" />
+                    <InputDate id="mb-data-de-nascimento" class="form-control" @bind-Value="editingUser.DateOfBirth" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">
+                    <label for="mb-curso" class="form-label fw-semibold">
                         <i class="bi bi-book text-primary me-2"></i>Curso
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
+                    <InputText id="mb-curso" class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
@@ -330,17 +302,14 @@ else
                     <InputText class="form-control" @bind-Value="editingUser.City" placeholder="Inserir cidade..." />
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-tag text-primary me-2"></i>Categoria <span class="text-danger">*</span>
-                </label>
-                <InputSelect class="form-select" @bind-Value="editingUser.SelectedCategory" @bind-Value:after="OnCategoryChanged">
+            <FormField Label="Categoria" Icon="bi-tag" For="() => editingUser.SelectedCategory" Required="true" Context="field">
+                <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="editingUser.SelectedCategory" @bind-Value:after="OnCategoryChanged">
                     <option value="">Selecionar Categoria</option>
                     <option value="Leitão">Leitão</option>
                     <option value="Caloiro">Caloiro</option>
                     <option value="Tuno">Tuno</option>
                 </InputSelect>
-            </div>
+            </FormField>
             @* Sem alcunha checkbox - only show for Leitão category in create mode *@
             @if (editingUser.SelectedCategory == "Leitão" && isCreateMode)
             {
@@ -437,13 +406,13 @@ else
             
             @* Multiple Instruments Management *@
             <div class="mb-3">
-                <label class="form-label fw-semibold">
+                <label for="mb-instrumentos" class="form-label fw-semibold">
                     <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                 </label>
 
                 @* Add Instrument Section *@
                 <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-end gap-2 mb-2">
-                    <select class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                    <select id="mb-instrumentos" class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
                         <option value="">Selecionar instrumento...</option>
                         @foreach (var instrument in AllInstrumentTypes.Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                         {
@@ -561,7 +530,7 @@ else
         </EditForm>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isSaving">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => editModal!.RequestCloseAsync()" disabled="@isSaving">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveClick" disabled="@isSaving">
             @if (isSaving)
             {
@@ -879,8 +848,11 @@ else
 }
 
 <!-- Set Nickname Modal -->
-    <Modal Show="@modals.IsOpen(ModalType.SetNickname)" 
-       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.SetNickname); else modals.Close(ModalType.SetNickname); })"
+    <Modal @ref="nicknameModal"
+       Show="@modals.IsOpen(ModalType.SetNickname)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.SetNickname); else CloseSetNicknameModal(); })"
+       IsDirty="() => nicknameChanges.IsDirty"
+       CanClose="() => Task.FromResult(!isSavingNickname)"
        Title="Definir Alcunha" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -900,15 +872,9 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
                 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna <span class="text-danger">*</span>
-                    </label>
-                    <InputText class="form-control" @bind-Value="nicknameForm.Nickname" placeholder="Introduza a alcunha..." />
-                    <small class="form-text text-muted">
-                        O username será gerado automaticamente a partir da alcunha.
-                    </small>
-                </div>
+                <FormField Label="Nome de Tuna" Icon="bi-star" For="() => nicknameForm.Nickname" Required="true" Help="O username será gerado automaticamente a partir da alcunha." Context="field">
+                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="nicknameForm.Nickname" placeholder="Introduza a alcunha..." />
+                </FormField>
                 
                 @if (!string.IsNullOrEmpty(nicknameForm.Nickname))
                 {
@@ -920,7 +886,7 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseSetNicknameModal" disabled="@isSavingNickname">Cancelar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => nicknameModal!.RequestCloseAsync()" disabled="@isSavingNickname">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveNicknameClick" disabled="@isSavingNickname">
             @if (isSavingNickname)
             {
@@ -950,7 +916,7 @@ else
                                OnSearch="ApplyActiveMembersSearch" />
                 </div>
                 <div class="flex-sm-shrink-0 filter-dropdown-container">
-                    <FilterDropdown SelectedValue="@activeMembersStatusFilter"
+                    <FilterDropdown Label="Estado" SelectedValue="@activeMembersStatusFilter"
                                     SelectedValueChanged="@(value => activeMembersStatusFilter = value)"
                                     OnChange="@ApplyActiveMembersStatusFilter"
                                     AllItemsLabel="Estado"
@@ -1224,9 +1190,8 @@ else
         }
     </BodyContent>
 </ConfirmDialog>
+</AppErrorBoundary>
 
-<!-- Mobile Bottom Nav -->
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Cache enum values to avoid repeated allocation on each render
@@ -1313,6 +1278,8 @@ else
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isSaving = false;
+    private Modal? editModal, nicknameModal;
+    private readonly UnsavedChanges editChanges = new(), nicknameChanges = new();
     private bool isSavingNickname = false;
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
@@ -1418,7 +1385,6 @@ else
     private bool isAdmin = false;
     private bool isOwner = false;
     private bool currentUserIsMagister = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // Computed flag: Can the current user edit dates?
     private bool CanEditDates => isOwner || currentUserIsMagister;
@@ -1427,31 +1393,9 @@ else
     {
         await CheckUserRoles();
         await LoadMembers();
-        BuildMobileNavItems();
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (isAdmin)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        if (Toggles.Value.MapEnabled)
-            items.Add(new("action-map", "Mapa", "bi-geo-alt"));
-        items.Add(new("action-active", "Ativos", "bi-person-badge"));
-        items.Add(new("action-birthdays", "Aniversários", "bi-cake2"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        switch (key)
-        {
-            case "action-add": OpenCreateModal(); break;
-            case "action-map": NavigateToMap(); break;
-            case "action-active": await OpenActiveMembersManagementModal(); break;
-            case "action-birthdays": await OpenAnniversariesModal(); break;
-        }
-    }
 
     private async Task CheckUserRoles()
     {
@@ -1753,6 +1697,7 @@ else
         selectedMentorCache = null;
         memberInstruments.Clear();
         selectedInstrumentToAdd = "";
+        TrackMemberForm();
         modals.Open(ModalType.Edit);
     }
 
@@ -1828,14 +1773,41 @@ else
         // Load member instruments
         memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(freshUser.Id)).ToList();
         selectedInstrumentToAdd = "";
-        
+
+        TrackMemberForm();
         modals.Open(ModalType.Edit);
         StateHasChanged();
     }
 
+    // What the member form can change. Search boxes (mentor, instrument picker) are not changes.
+    private void TrackMemberForm() => editChanges.Track(() => new
+    {
+        editingUser.FirstName,
+        editingUser.LastName,
+        editingUser.Nickname,
+        editingUser.Email,
+        editingUser.PhoneNumber,
+        editingUser.City,
+        editingUser.DateOfBirth,
+        editingUser.Degree,
+        editingUser.YearLeitao,
+        editingUser.MonthLeitao,
+        editingUser.YearCaloiro,
+        editingUser.MonthCaloiro,
+        editingUser.YearTuno,
+        editingUser.MonthTuno,
+        editingUser.MentorId,
+        editingUser.SelectedCategory,
+        isFundador,
+        isTunoHonorario,
+        semAlcunha,
+        Instruments = memberInstruments.Select(i => new { i.InstrumentType, i.IsPrimary }).ToList()
+    });
+
     private void CloseEditModal()
     {
         modals.Close(ModalType.Edit);
+        editChanges.Clear();
         editingUser = new();
         mentorSearchTerm = "";
         filteredMentors.Clear();
@@ -2600,12 +2572,14 @@ else
         {
             Nickname = user.Nickname
         };
+        nicknameChanges.Track(() => nicknameForm.Nickname);
         modals.Open(ModalType.SetNickname);
     }
 
     private void CloseSetNicknameModal()
     {
         modals.Close(ModalType.SetNickname);
+        nicknameChanges.Clear();
         nicknameSettingUser = null;
         nicknameForm = new NicknameFormModel();
         isSavingNickname = false;

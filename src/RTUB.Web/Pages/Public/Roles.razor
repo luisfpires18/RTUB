@@ -22,28 +22,24 @@
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
 
-<div class="page-header-centered mb-4">
-    <div class="page-header-left"></div>
-    <div class="page-header-center">
-        <h1><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
-        <p class="page-header-subtitle">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
-    </div>
-    <div class="page-header-right d-none d-xl-flex">
+<AppTitle>Órgãos Sociais</AppTitle>
+
+<AppErrorBoundary>
+<PageHeader Title="Órgãos Sociais" Icon="bi-shield-check" Subtitle="Estrutura organizacional e órgãos sociais da RTUB por ano letivo.">
+    <Actions>
         <AuthorizeView Roles="Mod,Admin">
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
-                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Ano Letivo</span>
-                </button>
+                <PageAction Label="Adicionar Ano Letivo" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateFiscalYearModal" />
             </Authorized>
         </AuthorizeView>
-    </div>
-</div>
+    </Actions>
+</PageHeader>
 
 @if (fiscalYears.Any())
 {
     <div class="d-flex justify-content-end mb-4">
         <div class="filter-dropdown-container">
-            <FilterDropdown SelectedValue="@selectedFiscalYear"
+            <FilterDropdown Label="Ano letivo" SelectedValue="@selectedFiscalYear"
                             SelectedValueChanged="@(value => selectedFiscalYear = value)"
                             OnChange="@OnFiscalYearChanged"
                             AllItemsLabel="Selecionar Ano Letivo"
@@ -79,7 +75,7 @@ else
 
     @if (isLoading)
     {
-        <p>A carregar...</p>
+        <LoadingSpinner Message="A carregar..." />
     }
     else
     {
@@ -717,12 +713,7 @@ else
     <BodyContent>
         @if (isLoadingRgi)
         {
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-                <p class="mt-3">A carregar RGI...</p>
-            </div>
+            <LoadingSpinner Message="A carregar RGI..." />
         }
         else if (!string.IsNullOrEmpty(rgiPdfUrl))
         {
@@ -765,17 +756,14 @@ else
         }
         else
         {
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar3 text-primary me-2"></i>Ano de Início
-                </label>
-                <select class="form-select" @bind="newStartYear">
+            <FormField Label="Ano de Início" Icon="bi-calendar3" Context="field">
+                <select @attributes="field.Attributes" class="form-select" @bind="newStartYear">
                     @foreach (var year in availableFiscalYearStartYears)
                     {
                         <option value="@year" @key="year">@year-@(year + 1)</option>
                     }
                 </select>
-            </div>
+            </FormField>
         }
     </BodyContent>
     <FooterContent>
@@ -795,13 +783,10 @@ else
         {
             <div class="alert alert-danger">@errorMessage</div>
         }
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-search text-primary me-2"></i>Pesquisar Membro
-            </label>
-            <input type="text" class="form-control" placeholder="Inserir nome, email ou tuna name..."
+        <FormField Label="Pesquisar Membro" Icon="bi-search" Context="field">
+            <input @attributes="field.Attributes" type="text" class="form-control" placeholder="Inserir nome, email ou tuna name..."
                    @bind="memberSearchTerm" @bind:event="oninput" @onkeyup="FilterMembers" />
-        </div>
+        </FormField>
         @if (filteredMembers.Any())
         {
             <div class="member-list member-list-scrollable">
@@ -857,8 +842,7 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmRemoveAssignment"
                OnCancel="CloseRemoveAssignmentModal" />
-
-<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
+</AppErrorBoundary>
 
 @code {
     private int currentFiscalYearStartYear;
@@ -870,7 +854,6 @@ else
     private bool isAdmin = false;
     private bool isMod = false;
     private bool canDoAction = false;
-    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
     // RGI PDF state
     private enum ModalType { Rgi, CreateFiscalYear, AssignMember, RemoveAssignment }
@@ -933,7 +916,6 @@ else
         }
         
         await LoadRoleAssignments();
-        BuildMobileNavItems();
         
         // Handle ?manage=1 query parameter (redirect from /admin/roles)
         var manageParam = queryParams["manage"];
@@ -943,18 +925,7 @@ else
         }
     }
 
-    private void BuildMobileNavItems()
-    {
-        var items = new List<MobileBottomNav.MobileNavItem>();
-        if (canDoAction)
-            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
-        mobileNavItems = items;
-    }
 
-    private async Task HandleMobileNavSelect(string key)
-    {
-        if (key == "action-add") await OpenCreateFiscalYearModal();
-    }
 
     private async Task LoadFiscalYears()
     {
