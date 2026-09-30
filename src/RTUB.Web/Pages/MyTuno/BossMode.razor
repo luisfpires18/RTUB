@@ -37,9 +37,8 @@
 @inject IOptions<MyTunoScalingConfiguration> ScalingConfigOptions
 @implements IAsyncDisposable
 
-<AppTitle>Boss Mode - My Tuno</AppTitle>
+<PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="stage-page">
     @if (!showBuffScreen && !showDefeatSummary)
     {
@@ -512,7 +511,6 @@
         }
     }
 </div>
-</AppErrorBoundary>
 
 @code {
     private Character? character;

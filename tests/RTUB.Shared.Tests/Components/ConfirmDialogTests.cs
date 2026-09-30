@@ -13,9 +13,8 @@ public class ConfirmDialogTests : BunitContext
     public ConfirmDialogTests()
     {
         // Modal (used by ConfirmDialog) injects IJSRuntime for scroll-lock
-        // Modal registers with the dialog stack in modalHelper.js (focus, Escape, scroll lock).
-        JSInterop.SetupVoid("modalHelper.openDialog", _ => true);
-        JSInterop.SetupVoid("modalHelper.closeDialog", _ => true);
+        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
+        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
     }
 
     [Fact]
@@ -96,7 +95,7 @@ public class ConfirmDialogTests : BunitContext
 
         // Assert
         cut.Markup.Should().Contain(warningMessage, "warning message should be displayed");
-        cut.Find(".confirm-dialog__warning").TextContent.Should().Be(warningMessage);
+        cut.Markup.Should().Contain("text-danger", "warning message should have danger text style");
     }
 
     [Fact]
@@ -315,16 +314,14 @@ public class ConfirmDialogTests : BunitContext
     }
 
     [Fact]
-    public void ConfirmDialog_CancelButton_IsTheQuietChoice_AndTakesInitialFocus()
+    public void ConfirmDialog_CancelButton_HasSecondaryStyle()
     {
         // Arrange & Act
         var cut = Render<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true));
 
         // Assert
-        var cancel = cut.FindAll("button").Single(b => b.TextContent.Contains("Cancelar"));
-        cancel.ClassList.Should().Contain("btn-outline-secondary", "cancel is quieter than the confirm action");
-        cancel.HasAttribute("data-autofocus").Should().BeTrue("the safe choice has focus when the dialog opens");
+        cut.Markup.Should().Contain("btn-secondary", "cancel button should have secondary style");
     }
 
     [Fact]
@@ -343,88 +340,5 @@ public class ConfirmDialogTests : BunitContext
         // Assert
         cut.Markup.Should().Contain(bodyContent, "body content should be displayed");
         // The message would still be in the component but not in a <p> tag since BodyContent is provided
-    }
-
-    // ---------- intent, busy state and dismissal (UI refactor 035) ----------
-
-    [Fact]
-    public void ConfirmDialog_DangerConfirm_IsMarkedDestructive_WithoutAnInfoIcon()
-    {
-        var cut = Render<ConfirmDialog>(parameters => parameters
-            .Add(p => p.Show, true)
-            .Add(p => p.Message, "Eliminar o ensaio?")
-            .Add(p => p.ConfirmButtonClass, "btn-danger"));
-
-        cut.Find(".confirm-dialog").ClassList.Should().Contain("confirm-dialog--danger");
-        cut.FindAll(".confirm-dialog__icon .bi-exclamation-triangle-fill").Should().ContainSingle();
-        cut.Markup.Should().NotContain("bi-info-circle");
-
-        var buttons = cut.FindAll(".modal-footer button");
-        buttons[^1].ClassList.Should().Contain("btn-danger", "the destructive action is last");
-    }
-
-    [Fact]
-    public void ConfirmDialog_NonDestructiveConfirm_IsAPlainConfirmation()
-    {
-        var cut = Render<ConfirmDialog>(parameters => parameters
-            .Add(p => p.Show, true)
-            .Add(p => p.Message, "Publicar?")
-            .Add(p => p.ConfirmButtonClass, "btn-success"));
-
-        cut.Find(".confirm-dialog").ClassList.Should().Contain("confirm-dialog--default");
-    }
-
-    [Fact]
-    public void ConfirmDialog_IsDescribedByItsMessage()
-    {
-        var cut = Render<ConfirmDialog>(parameters => parameters
-            .Add(p => p.Show, true)
-            .Add(p => p.Message, "Eliminar?"));
-
-        var describedBy = cut.Find("[role='dialog']").GetAttribute("aria-describedby");
-        cut.Find("#" + describedBy).TextContent.Should().Contain("Eliminar?");
-    }
-
-    [Fact]
-    public async Task ConfirmDialog_WhileConfirming_BlocksASecondConfirmAndDismissal()
-    {
-        var pending = new TaskCompletionSource();
-        var confirmations = 0;
-        var cancellations = 0;
-        bool? closedWith = null;
-        var cut = Render<ConfirmDialog>(parameters => parameters
-            .Add(p => p.Show, true)
-            .Add(p => p.ConfirmButtonClass, "btn-danger")
-            .Add(p => p.OnConfirm, EventCallback.Factory.Create(this, async () => { confirmations++; await pending.Task; }))
-            .Add(p => p.OnCancel, EventCallback.Factory.Create(this, () => cancellations++))
-            .Add(p => p.ShowChanged, EventCallback.Factory.Create<bool>(this, value => closedWith = value)));
-
-        var confirm = cut.Find(".modal-footer .btn-danger");
-        _ = confirm.ClickAsync(new());
-
-        cut.WaitForAssertion(() => cut.Find(".modal-footer .btn-danger").GetAttribute("aria-busy").Should().Be("true"));
-        cut.FindAll(".modal-footer button").Should().OnlyContain(b => b.HasAttribute("disabled"));
-
-        await cut.InvokeAsync(() => cut.FindComponent<Modal>().Instance.HandleEscape());
-        confirmations.Should().Be(1);
-        cancellations.Should().Be(0, "Escape cannot dismiss while the action runs");
-        closedWith.Should().BeNull();
-
-        await cut.InvokeAsync(() => pending.SetResult());
-        cut.WaitForAssertion(() => closedWith.Should().BeFalse("the dialog closes once the action finished"));
-    }
-
-    [Fact]
-    public async Task ConfirmDialog_Escape_Cancels()
-    {
-        var cancelled = false;
-        var cut = Render<ConfirmDialog>(parameters => parameters
-            .Add(p => p.Show, true)
-            .Add(p => p.OnCancel, EventCallback.Factory.Create(this, () => cancelled = true)));
-
-        JSInterop.VerifyInvoke("modalHelper.openDialog").Arguments[2].Should().Be(true);
-        await cut.InvokeAsync(() => cut.FindComponent<Modal>().Instance.HandleEscape());
-
-        cancelled.Should().BeTrue();
     }
 }

@@ -26,13 +26,9 @@
     // Reload button inside ReconnectModal. This cannot be a Blazor @onclick handler:
     // the modal is only visible once the circuit is already down, so no server-side
     // event can be dispatched. Delegated because the modal markup is rendered by Blazor.
-    // Same for the circuit error bar (#blazor-error-ui, App.razor): it appears once an unhandled
-    // exception has ended the circuit.
     document.addEventListener('click', function (e) {
-        if (e.target.closest('.reconnect-reload, .blazor-error-reload')) {
+        if (e.target.closest('.reconnect-reload')) {
             location.reload();
-        } else if (e.target.closest('.blazor-error-dismiss')) {
-            document.getElementById('blazor-error-ui').style.display = 'none';
         }
     });
 })();

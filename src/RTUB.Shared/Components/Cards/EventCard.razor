@@ -1,168 +1,327 @@
 @namespace RTUB.Shared
 @*
-    EventCard: one event as an event, not a record (docs/design/RTUB_UI_REFACTOR.md section 25).
-    Image (when there is one) -> date tile + title + when/where -> quiet counts -> the member's
-    own answer (Vou / Não vou). Management actions live in the CardMenu; delete is last.
+    EventCard Component
+    Reusable card for displaying event information with enrollment actions
 *@
 
-<article class="@CardClass"
-         aria-labelledby="@TitleId">
-    @if (HasImage)
-    {
-        <div class="event-item__media">
-            <img src="@(ImageUrl ?? Event.ImageSrc)" class="event-item__image" alt="@Event.Name" loading="lazy"
-                 @onerror="HandleImageError">
-        </div>
-    }
-
-    <div class="event-item__body">
-        <div class="event-item__head">
-            <DateTile Date="@Event.Date" ShowYear="@(IsPastEvent || Event.Date.Year != DateTime.Today.Year)" Muted="@(IsPastEvent || Event.IsCancelled)" />
-            <div class="event-item__heading">
-                @if (Event.IsCancelled)
-                {
-                    <p class="item-status item-status--danger"><i class="bi bi-x-octagon-fill" aria-hidden="true"></i>Cancelado</p>
-                }
-                else if (UserEnrollment != null && IsPastEvent)
-                {
-                    @if (UserEnrollment.WillAttend)
-                    {
-                        <p class="item-status item-status--success"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Fui</p>
-                    }
-                    else
-                    {
-                        <p class="item-status"><i class="bi bi-x-circle" aria-hidden="true"></i>Não fui</p>
-                    }
-                }
-                <h3 class="item-card__title" id="@TitleId">
-                    @Event.Name
-                    @if (ShowTrophyCorner && Event.Type == EventType.Festival)
-                    {
-                        <i class="bi bi-trophy-fill event-item__trophy" title="Festival" aria-hidden="true"></i>
-                        <span class="visually-hidden">(Festival)</span>
-                    }
-                </h3>
-                <p class="item-card__meta item-card__meta--strong">
-                    <i class="bi bi-clock" aria-hidden="true"></i>
-                    @if (Event.EndDate.HasValue && Event.EndDate.Value.Date != Event.Date.Date)
-                    {
-                        <span>@Event.Date.ToString("dd MMM") - @Event.EndDate.Value.ToString("dd MMM yyyy")</span>
-                    }
-                    else
-                    {
-                        <span>@Event.Date.ToString("dd MMM yyyy")@(Event.Date.TimeOfDay != TimeSpan.Zero ? $", {Event.Date:HH:mm}h" : "") <DateBadge Date="@Event.Date" /></span>
-                    }
-                </p>
-                @if (!string.IsNullOrEmpty(Event.Location))
-                {
-                    <p class="item-card__meta">
-                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                        <span>@Event.Location</span>
-                    </p>
-                }
+<div class="card event-card h-100">
+    <div class="position-relative">
+        @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Event.ImageSrc))
+        {
+            <img src="@(ImageUrl ?? Event.ImageSrc)" class="card-img-top event-image" alt="@Event.Name" loading="lazy">
+        }
+        else
+        {
+            <div class="card-img-top event-image-placeholder">
+                <i class="bi bi-calendar-event music-icon-large"></i>
             </div>
-            @if (IsAdmin)
+        }
+        
+        @* Status badges - Cancellation takes priority, then enrollment status *@
+        <div class="position-absolute top-0 start-0 p-2">
+            @if (Event.IsCancelled)
             {
-                <CardMenu Label="@Event.Name">
-                    <CardMenuItem Label="Editar evento" Icon="bi-pencil" OnClick="OnEdit" />
-                    @if (!IsPastEvent && !Event.IsCancelled)
-                    {
-                        <CardMenuItem Label="Notificar por push" Icon="bi-bell" OnClick="OnSendPushNotification" />
-                        <CardMenuItem Label="Notificar por email" Icon="bi-envelope" OnClick="OnSendEmail" />
-                    }
-                    @if (!IsPastEvent && Event.IsCancelled)
-                    {
-                        <CardMenuItem Label="Reativar evento" Icon="bi-arrow-counterclockwise" OnClick="OnUncancelEvent" />
-                    }
-                    @if (!IsPastEvent && !Event.IsCancelled && ShowCancelButton)
-                    {
-                        <CardMenuItem Label="Cancelar evento" Icon="bi-x-octagon" Danger="true" Divider="true" OnClick="OnCancelEvent" />
-                    }
-                    @if (ShowDeleteButton)
-                    {
-                        <CardMenuItem Label="Eliminar evento" Icon="bi-trash" Danger="true"
-                                      Divider="@(IsPastEvent || Event.IsCancelled || !ShowCancelButton)" OnClick="OnDelete" />
-                    }
-                </CardMenu>
+                <span class="badge bg-danger fs-6">
+                    <i class="bi bi-x-circle-fill me-1"></i>CANCELADO
+                </span>
+            }
+            else if (UserEnrollment != null)
+            {
+                @if (UserEnrollment.WillAttend)
+                {
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle-fill me-1"></i>@(IsPastEvent ? "FUI" : "VOU")
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger fs-6">
+                        <i class="bi bi-x-circle-fill me-1"></i>@(IsPastEvent ? "NÃO FUI" : "NÃO VOU")
+                    </span>
+                }
             }
         </div>
+        
+        @* Trophy corner badge for AboutUsContent (Festival events only) *@
+        @if (ShowTrophyCorner && Event.Type == EventType.Festival)
+        {
+            <div class="position-absolute top-0 end-0 p-2">
+                <div class="badge bg-warning text-dark">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+            </div>
+        }
+        
+        @if (IsAdmin)
+        {
+            <div class="admin-overlay">
+                <button class="btn btn-sm music-btn-edit" 
+                        @onclick="OnEdit" 
+                        title="Editar evento">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                @if (ShowDeleteButton)
+                {
+                    <button class="btn btn-sm music-btn-delete" 
+                            @onclick="OnDelete" 
+                            title="Eliminar evento">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                }
+            </div>
+            
+            @* Email notification and cancellation buttons in bottom-right corner *@
+            @if (!IsPastEvent)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2">
+                    @if (!Event.IsCancelled)
+                    {
+                        <button class="btn btn-sm btn-admin-notification" 
+                                @onclick="OnSendPushNotification" 
+                                title="Notificar por push">
+                            <i class="bi bi-bell-fill"></i>
+                        </button>
+                        <button class="btn btn-sm btn-admin-notification" 
+                                @onclick="OnSendEmail" 
+                                title="Notificar por email">
+                            <i class="bi bi-envelope-fill"></i>
+                        </button>
+                        @if (ShowCancelButton)
+                        {
+                            <button class="btn btn-sm btn-danger music-btn-cancel" 
+                                    @onclick="OnCancelEvent" 
+                                    title="Cancelar evento">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-warning music-btn-uncancel" 
+                                @onclick="OnUncancelEvent" 
+                                title="Reativar evento">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+    <div class="card-body d-flex flex-column p-3">
+        <h5 class="card-title mb-2">@Event.Name</h5>
+        <p class="card-text text-white mb-2">
+            <small>
+                <i class="bi bi-calendar me-1"></i>
+                @if (Event.EndDate.HasValue && Event.EndDate.Value.Date != Event.Date.Date)
+                {
+                    <span>@Event.Date.ToString("dd MMM") - @Event.EndDate.Value.ToString("dd MMM yyyy")</span>
+                }
+                else
+                {
+                    <span>@Event.Date.ToString("dd MMM yyyy")</span>
+                    @* Show time if it's not midnight (single date with time) *@
+                    @if (Event.Date.TimeOfDay != TimeSpan.Zero)
+                    {
+                        <span>, @Event.Date.ToString("HH:mm")h</span>
+                    }
+                }
+                <DateBadge Date="@Event.Date" />
+            </small>
+        </p>
+        @if (!string.IsNullOrEmpty(Event.Location))
+        {
+            <p class="card-text text-white mb-2">
+                <small>
+                    <i class="bi bi-geo-alt me-1"></i> @Event.Location
+                </small>
+            </p>
+        }
 
         @if (ShowOnlyTrophy)
         {
-            <div class="item-card__footer">
-                <div class="item-card__links">
+            <!-- Show trophy and videos buttons for public users -->
+            <div class="enrollment-section mt-auto p-2 rounded">
+                <div class="event-buttons-container">
                     @if (Event.Type == EventType.Festival)
                     {
-                        @TrophiesChip
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-warning" 
+                                @onclick="OnViewTrophies" 
+                                title="Prémios">
+                            <i class="bi bi-trophy-fill"></i>
+                            <span class="enrollment-count-centered">@TrophyCount</span>
+                        </button>
                     }
-                    @VideosChip
+                    <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                            @onclick="OnViewVideos" 
+                            title="Vídeos">
+                        <i class="bi bi-camera-video"></i>
+                        <span class="enrollment-count-centered">@VideoCount</span>
+                    </button>
                 </div>
             </div>
         }
         else if (ShowButtons)
         {
-            <div class="item-card__footer">
-                <div class="item-card__links">
-                    <button type="button" class="item-chip item-chip--link" @onclick="OnViewDetails" title="Detalhes">
-                        <i class="bi bi-info-circle" aria-hidden="true"></i><span>Detalhes</span>
-                    </button>
-                    @if (!Event.IsCancelled)
+            @if (!IsPastEvent)
+            {
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    @if (Event.IsCancelled)
                     {
-                        <button type="button" class="item-chip" @onclick="OnViewEnrollments" title="Participantes"
-                                aria-label="@($"Participantes ({EnrollmentCount})")">
-                            <i class="bi bi-people" aria-hidden="true"></i><span>@EnrollmentCount</span>
-                        </button>
-                        <button type="button" class="item-chip" @onclick="OnWatchRepertoire" title="Repertório"
-                                aria-label="@($"Repertório ({RepertoireCount})")">
-                            <i class="bi bi-music-note-list" aria-hidden="true"></i><span>@RepertoireCount</span>
-                        </button>
-                        <button type="button" class="item-chip" @onclick="OnViewDiscussion" title="Discussão"
-                                aria-label="@($"Discussão ({DiscussionCount})")">
-                            <i class="bi bi-chat-dots" aria-hidden="true"></i><span>@DiscussionCount</span>
-                        </button>
-                        @if (IsPastEvent)
-                        {
+                        <!-- For cancelled events, only show View Details button -->
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Event buttons row -->
+                        <div class="event-buttons-container mb-2">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+
+                            <!-- View Enrollments button with centered count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                    @onclick="OnViewEnrollments" 
+                                    title="Participantes">
+                                <i class="bi bi-people"></i>
+                                <span class="enrollment-count-centered">@EnrollmentCount</span>
+                            </button>
+
+                            <!-- Watch Repertoire button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
+                                    @onclick="OnWatchRepertoire" 
+                                    title="Repertório">
+                                <i class="bi bi-music-note-list"></i>
+                                <span class="enrollment-count-centered">@RepertoireCount</span>
+                            </button>
+
+                            <!-- Discussion button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info" 
+                                    @onclick="OnViewDiscussion" 
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                            </button>
+                        </div>
+
+                        <!-- Enrollment action buttons row (simple 2-button toggle) -->
+                        <div class="event-buttons-container">
+                            <!-- Green "Vou" button - always visible, selected state when WillAttend=true -->
+                            <button class="btn event-icon-btn btn-going @(UserEnrollment?.WillAttend == true ? "btn-selected" : (UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-secondary-small" : ""))" 
+                                    @onclick="OnEnrollGoing" 
+                                    title="@(UserEnrollment?.WillAttend == true ? "Editar inscrição" : "Vou participar")">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </button>
+                            
+                            <!-- Red "Não vou" button - always visible, selected state when WillAttend=false -->
+                            <button class="btn event-icon-btn btn-not-going @(UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-selected" : (UserEnrollment?.WillAttend == true ? "btn-secondary-small" : ""))" 
+                                    @onclick="OnEnrollNotGoing" 
+                                    title="@(UserEnrollment != null && !UserEnrollment.WillAttend ? "Editar impossibilidade" : "Não vou participar")">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- Past event buttons -->
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    @if (Event.IsCancelled)
+                    {
+                        <!-- For cancelled past events, only show View Details button -->
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary"
+                                    @onclick="OnViewDetails"
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+
+                            <!-- View Enrollments button with centered count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
+                                    @onclick="OnViewEnrollments"
+                                    title="Participantes">
+                                <i class="bi bi-people"></i>
+                                <span class="enrollment-count-centered">@EnrollmentCount</span>
+                            </button>
+
+                            <!-- Watch Repertoire button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary"
+                                    @onclick="OnWatchRepertoire"
+                                    title="Repertório">
+                                <i class="bi bi-music-note-list"></i>
+                                <span class="enrollment-count-centered">@RepertoireCount</span>
+                            </button>
+
+                            <!-- Discussion button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info"
+                                    @onclick="OnViewDiscussion"
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                            </button>
+                        </div>
+
+                        <div class="event-buttons-container mt-2">
+                            <!-- Trophy button (for Festival events only) -->
                             @if (ShowTrophy && Event.Type == EventType.Festival)
                             {
-                                @TrophiesChip
+                                <button class="btn event-icon-btn event-icon-btn-with-count btn-warning"
+                                        @onclick="OnViewTrophies"
+                                        title="Prémios">
+                                    <i class="bi bi-trophy-fill"></i>
+                                    <span class="enrollment-count-centered">@TrophyCount</span>
+                                </button>
                             }
-                            @VideosChip
+
+                            <!-- Videos button (for all past events) -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
+                                    @onclick="OnViewVideos"
+                                    title="Vídeos">
+                                <i class="bi bi-camera-video"></i>
+                                <span class="enrollment-count-centered">@VideoCount</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Enrollment management for past events -->
+                        @if (UserEnrollment != null && UserEnrollment.WillAttend)
+                        {
+                            <div class="event-buttons-container mt-2">
+                                <!-- Remove enrollment button for user's own enrollment -->
+                                <button class="btn event-icon-btn btn-danger" 
+                                        @onclick="OnRemoveEnrollment" 
+                                        title="Remover Inscrição">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
                         }
                     }
                 </div>
-
-                @if (!Event.IsCancelled && !IsPastEvent)
-                {
-                    var going = UserEnrollment?.WillAttend == true;
-                    var notGoing = UserEnrollment != null && !UserEnrollment.WillAttend;
-                    <div class="participation@(UserEnrollment != null ? " participation--answered" : null)"
-                         role="group" aria-label="@($"A tua participação: {Event.Name}")">
-                        <button type="button" class="participation__option participation__option--yes"
-                                aria-pressed="@(going ? "true" : "false")"
-                                title="@(going ? "Editar inscrição" : "Vou participar")"
-                                @onclick="OnEnrollGoing">
-                            <i class="bi @(going ? "bi-check-circle-fill" : "bi-check-lg")" aria-hidden="true"></i>Vou
-                        </button>
-                        <button type="button" class="participation__option participation__option--no"
-                                aria-pressed="@(notGoing ? "true" : "false")"
-                                title="@(notGoing ? "Editar impossibilidade" : "Não vou participar")"
-                                @onclick="OnEnrollNotGoing">
-                            <i class="bi @(notGoing ? "bi-x-circle-fill" : "bi-x-lg")" aria-hidden="true"></i>Não vou
-                        </button>
-                    </div>
-                }
-                else if (!Event.IsCancelled && UserEnrollment is { WillAttend: true })
-                {
-                    <div class="event-item__own">
-                        <button type="button" class="item-chip item-chip--danger" @onclick="OnRemoveEnrollment" title="Remover Inscrição">
-                            <i class="bi bi-x-circle" aria-hidden="true"></i><span>Remover inscrição</span>
-                        </button>
-                    </div>
-                }
-            </div>
+            }
         }
     </div>
-</article>
+</div>
 
 @code {
     /// <summary>
@@ -358,35 +517,7 @@
     [Parameter]
     public bool ShowCancelButton { get; set; } = true;
     
-    private string CardClass => "item-card event-item"
-        + (Event.IsCancelled ? " event-item--cancelled" : "")
-        + (IsPastEvent ? " event-item--past" : "");
-
-    private string TitleId => $"event-item-title-{Event.Id}";
-
-    private bool HasImage => !imageFailed && (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Event.ImageSrc));
-
-    // A broken image drops the media area instead of showing a broken-image box
-    private bool imageFailed;
-
-    private void HandleImageError()
-    {
-        imageFailed = true;
-        StateHasChanged();
-    }
-
-    private RenderFragment TrophiesChip => @<button type="button" class="item-chip" @onclick="OnViewTrophies" title="Prémios"
-                                                   aria-label="@($"Prémios ({TrophyCount})")">
-        <i class="bi bi-trophy" aria-hidden="true"></i><span>@TrophyCount</span>
-    </button>;
-
-    private RenderFragment VideosChip => @<button type="button" class="item-chip" @onclick="OnViewVideos" title="Vídeos"
-                                                 aria-label="@($"Vídeos ({VideoCount})")">
-        <i class="bi bi-camera-video" aria-hidden="true"></i><span>@VideoCount</span>
-    </button>;
-
     // Track previous state for ShouldRender optimization
-    private bool _previousImageFailed;
     private int _previousEventId;
     private bool _previousIsCancelled;
     private int _previousEnrollmentCount;
@@ -426,8 +557,7 @@
             IsAdmin != _previousIsAdmin ||
             IsPastEvent != _previousIsPastEvent ||
             ImageUrl != _previousImageUrl ||
-            eventImageSrc != _previousEventImageSrc ||
-            imageFailed != _previousImageFailed)
+            eventImageSrc != _previousEventImageSrc)
         {
             _previousEventId = eventId;
             _previousIsCancelled = isCancelled;
@@ -442,7 +572,6 @@
             _previousIsPastEvent = IsPastEvent;
             _previousImageUrl = ImageUrl;
             _previousEventImageSrc = eventImageSrc;
-            _previousImageFailed = imageFailed;
             return true;
         }
         return false;

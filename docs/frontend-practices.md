@@ -41,7 +41,7 @@ This document outlines frontend development best practices for the RTUB project,
 @attribute [Authorize]
 @inject IMyService MyService
 
-<AppTitle>Example Page</AppTitle>  @* renders "Example Page - RTUB"; every routable page sets one *@
+<PageTitle>Example Page</PageTitle>
 
 <div class="container">
     @* Content *@
@@ -65,12 +65,6 @@ This document outlines frontend development best practices for the RTUB project,
 - Handle loading states
 - Close modals properly
 
-Dialog semantics, focus (in, trapped, restored), Escape and the scroll lock come from `Modal`
-(contract: `docs/design/RTUB_UI_REFACTOR.md` section 22). Mark the control that should get focus
-first with `data-autofocus`; use `CanClose` to keep a dialog open (busy, unsaved changes).
-`ConfirmDialog` takes its intent from `ConfirmButtonClass` (`btn-danger` = destructive) and
-blocks a second confirm while `OnConfirm` runs.
-
 ```razor
 <Modal Show="@showModal"
        ShowChanged="@((bool show) => showModal = show)"
@@ -84,70 +78,6 @@ blocks a second confirm while `OnConfirm` runs.
         <button class="btn btn-secondary" @onclick="Close">Cancel</button>
     </FooterContent>
 </Modal>
-```
-
-### Page Header and Page Actions
-
-Every page starts with `PageHeader` (its single `h1`). Page-level actions are `PageAction`
-children of its `Actions`: one list that renders as header buttons from 1200px and as the fixed
-bottom bar below - never a separate `MobileBottomNav` list. At most one
-`Intent="PageActionIntent.Primary"`; destructive actions `Danger` and last. Keep visibility (`@if`,
-`AuthorizeView`) in the page. `MobileBottomNav` is for navigation only (sections or views), with
-its own `AriaLabel`.
-
-```razor
-<PageHeader Title="Ensaios" Icon="bi-music-note-list" Subtitle="...">
-    <Actions>
-        @if (isAdmin)
-        {
-            <PageAction Label="Adicionar Ensaio" ShortLabel="Adicionar" Icon="bi-plus-lg"
-                        Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
-        }
-        <PageAction Label="Estatísticas" Icon="bi-bar-chart" OnClick="OpenStatsModal" />
-    </Actions>
-</PageHeader>
-```
-
-### Forms, Feedback and States
-
-Contract: `docs/design/RTUB_UI_REFACTOR.md` section 23.
-
-- **Fields:** wrap each label + control in `FormField`; spread `field.Attributes` (id,
-  `aria-describedby`) onto the control. `For` shows the field's validation messages and the
-  `[Required]` marker; without `For`, pass `Required` only where the page's own rule requires it.
-  `FormField` never validates and never adds the `required` attribute.
-- **Where feedback goes:** `Alert` = inline message tied to a place (form, dialog, section);
-  `ErrorDisplay` = validation summary or a failed load/operation block; `ToastService` =
-  transient confirmation ("Link copiado!"). Never a toast for a confirmation or for an error the
-  user must fix in place. No `Task.Delay` timers for feedback in pages.
-- **States:** `EmptyState` (Portuguese title, optional one action), `LoadingSpinner` with a
-  message saying what loads; busy buttons keep their own `spinner-border-sm`.
-- **Search and filters:** `SearchBar` (give `Label` when the placeholder is not a good name) and
-  `FilterDropdown` (always `Label`) directly inside `FilterToolbar`.
-- **Errors:** every interactive page's markup sits in `AppErrorBoundary`; it does not catch the
-  page's own event handlers, so keep try/catch around saves.
-
-### Data Safety (Forms and Dialogs)
-
-Contract: `docs/design/RTUB_UI_REFACTOR.md` section 24.
-
-- **Create/edit dialogs:** track the editable values when the dialog opens
-  (`changes.Track(() => new { ... })`), pass `IsDirty="() => changes.IsDirty"` to `Modal`, `Clear()`
-  in the close method, and make Cancel call `@ref`'s `RequestCloseAsync()`. Close, Escape, Back and
-  Cancel then ask "Descartar alterações?" only when something changed.
-- **Page forms:** `<UnsavedChangesGuard IsDirty="..." OnDiscard="..." />`; it also covers links,
-  Back, reload and the PWA update.
-- **Saves:** `private Task Save() => saving.RunAsync(async () => { try { ... } catch (Exception ex)
-  { Logger.LogError(...); Toasts.ShowError("Não foi possível …"); } });`, button
-  `disabled="@saving.IsBusy"` + spinner, `CanClose="() => Task.FromResult(!saving.IsBusy)"`. On
-  failure keep the dialog and its data; on success close, then toast.
-- Never `catch { }`, `Console.WriteLine`, or `ex.Message` in UI text. Never an `async void` method
-  or an `async` timer callback that can throw - a timer thread exception ends the server process.
-
-```razor
-<FormField Label="Localização" Icon="bi-geo-alt" For="() => model.Location" Context="field">
-    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="model.Location" />
-</FormField>
 ```
 
 ## Layout & Styling
@@ -225,7 +155,11 @@ Contract: `docs/design/RTUB_UI_REFACTOR.md` section 24.
 ```razor
 @if (isLoading)
 {
-    <LoadingSpinner Message="A carregar ensaios..." />
+    <div class="text-center p-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
 }
 else
 {
@@ -251,14 +185,8 @@ else
 - Use CDN for external libraries when appropriate
 
 ```razor
-<VersionedAsset Path="/js/app.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/css/site.css" Type="VersionedAsset.AssetType.Css" />
 ```
-
-Global CSS: add the sheet as an `@import` line in `wwwroot/css/site.css` (the ordered list).
-`MainLayout` renders `<GlobalStylesheets />`, which links every listed sheet with its own `?v=`
-content hash; `site.css` itself is never linked. Never add an unversioned local `<link>`/`<script>`:
-unversioned `.css`/`.js` are served `Cache-Control: no-cache`, versioned ones are cached for 30
-days (contract: `docs/design/RTUB_UI_REFACTOR.md` section 21).
 
 ## Accessibility
 
@@ -295,7 +223,7 @@ days (contract: `docs/design/RTUB_UI_REFACTOR.md` section 21).
 
 ```razor
 @* In App.razor *@
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 ```
 
 ### Offline Support

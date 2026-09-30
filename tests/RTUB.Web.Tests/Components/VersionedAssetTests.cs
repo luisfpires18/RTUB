@@ -152,9 +152,8 @@ public class VersionedAssetTests : BunitContext
     /// <summary>
     /// Tests that verify critical static assets are properly configured with versioning in MainLayout.
     /// </summary>
-    // /css/site.css is not linked itself: GlobalStylesheets links each sheet it lists, versioned
-    // (GlobalStylesheetsTests).
     [Theory]
+    [InlineData("/css/site.css")]
     [InlineData("/RTUB.styles.css")]
     [InlineData("/lib/bootstrap/bootstrap.min.css")]
     [InlineData("/lib/bootstrap-icons/bootstrap-icons.min.css")]

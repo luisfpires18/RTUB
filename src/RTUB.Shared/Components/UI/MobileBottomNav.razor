@@ -1,21 +1,19 @@
 @namespace RTUB.Shared
 @*
-    Mobile bottom navigation: a fixed bar below 1200px for NAVIGATION only - between the app's
-    sections, a page's own sections, or a page's views (UI refactor 035; contract:
-    docs/design/RTUB_UI_REFACTOR.md section 22). Page actions (add, statistics, back ...) use
-    PageHeader/PageActions instead, which render as a group of buttons, not as navigation.
-    The current item is marked with aria-current; give each bar its own AriaLabel.
+    Mobile Bottom Navigation Component
+    Fixed bottom bar with icon + label buttons (like the WoO pattern).
+    Uses RTUB dark/purple theme. Only visible on mobile (≤767px via CSS).
 *@
 
-<nav class="mobile-bottom-nav" aria-label="@AriaLabel">
+<nav class="mobile-bottom-nav" aria-label="Navegação do portal">
     @foreach (var item in Items)
     {
         <button type="button" @key="item.Key"
                 class="mobile-bottom-nav__btn @(item.Key == ActiveKey ? "mobile-bottom-nav__btn--active" : "")"
                 @onclick="() => OnSelect.InvokeAsync(item.Key)"
-                aria-current="@(item.Key == ActiveKey ? "true" : null)">
+                aria-selected="@(item.Key == ActiveKey)">
             <span class="mobile-bottom-nav__icon-wrap">
-                <i class="bi @item.Icon" aria-hidden="true"></i>
+                <i class="bi @item.Icon"></i>
                 @if (Badges != null && Badges.TryGetValue(item.Key, out var badge))
                 {
                     @badge
@@ -50,12 +48,6 @@
     /// </summary>
     [Parameter]
     public Dictionary<string, RenderFragment>? Badges { get; set; }
-
-    /// <summary>
-    /// Accessible name of this navigation, e.g. "Secções da página".
-    /// </summary>
-    [Parameter]
-    public string AriaLabel { get; set; } = "Navegação";
 
     /// <summary>
     /// Represents a single bottom-nav item.

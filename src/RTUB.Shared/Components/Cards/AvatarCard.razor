@@ -3,91 +3,148 @@
 @using RTUB.Application.Helpers
 
 @*
-    AvatarCard: one member in the Membros directory (docs/design/RTUB_UI_REFACTOR.md section 25).
-    Face, nome de tuna, name, category/role, instrument. The name opens the details (the whole card
-    is its hit area); management actions live in the CardMenu, destructive ones last.
-    A broken photo falls back to the default avatar (avatarFallback.js).
+    AvatarCard Component
+    Displays a member card with avatar, name, badges, and action buttons
+    Reuses hierarchy card visual without connectors
 *@
 
-<article class="@CardClass" aria-labelledby="@NameId">
-    <div class="member-item__avatar">
-        <img src="@(string.IsNullOrEmpty(AvatarUrl) ? "/images/default-avatar.webp" : AvatarUrl)"
-             alt="@AltText"
-             class="member-item__photo"
-             data-avatar-fallback
-             loading="@(LazyLoad ? "lazy" : "eager")" />
-        @if (IsUserOnline())
-        {
-            <span class="member-item__presence" title="Online"></span>
-        }
-    </div>
-
-    <div class="member-item__body">
-        <h3 class="member-item__name" id="@NameId">
-            <button type="button" class="member-item__open" @onclick="@OnView" title="@ViewTooltip">
-                @(string.IsNullOrEmpty(TunaName) ? FullName : TunaName)
-            </button>
-        </h3>
-        @if (!string.IsNullOrEmpty(TunaName) && !string.IsNullOrEmpty(FullName))
-        {
-            <p class="member-item__fullname">@FullName</p>
-        }
-        <div class="member-item__tags">
-            @BadgeContent
-        </div>
-        @if (!string.IsNullOrEmpty(InstrumentText) || IsUserOnline())
-        {
-            <p class="member-item__meta">
-                @if (!string.IsNullOrEmpty(InstrumentText))
-                {
-                    <span><i class="bi bi-music-note" aria-hidden="true"></i> @InstrumentText</span>
-                }
-                @if (IsUserOnline())
-                {
-                    <span class="member-item__online">Online</span>
-                }
-            </p>
-        }
-        @if (ShowInactivityWarning)
-        {
-            <p class="member-item__warning" title="@InactivityWarningTooltip">
-                <i class="bi bi-clock-history" aria-hidden="true"></i>
-                <span>Não tem participado</span>
-            </p>
-        }
+<div class="avatar-card @(IsExpelled ? "avatar-card-expelled" : "")" tabindex="0" @onkeydown="@HandleKeyDown">
+    <!-- Definir Alcunha button in top-left (for Leitões, Admin only) -->
+    @if (ShowSetNicknameButton)
+    {
+        <button class="avatar-card-set-nickname-btn" 
+                @onclick="@OnSetNickname" 
+                @onclick:stopPropagation="true"
+                title="@SetNicknameTooltip"
+                aria-label="@SetNicknameTooltip">
+            <i class="bi bi-tag"></i>
+        </button>
+    }
+    
+    <!-- Expel/Reactivate button in top-left (next to set nickname) -->
+    @if (ShowExpelButton)
+    {
         @if (IsExpelled)
         {
-            <p class="item-status item-status--danger"><i class="bi bi-person-x" aria-hidden="true"></i>Expulso</p>
+            <button class="avatar-card-expel-btn avatar-card-expel-btn-reactivate @(ShowSetNicknameButton ? "has-nickname-btn" : "")" 
+                    @onclick="@OnReactivate"
+                    @onclick:stopPropagation="true"
+                    title="Reativar membro"
+                    aria-label="Reativar membro">
+                <i class="bi bi-person-check"></i>
+            </button>
+        }
+        else
+        {
+            <button class="avatar-card-expel-btn @(ShowSetNicknameButton ? "has-nickname-btn" : "")" 
+                    @onclick="@OnExpel"
+                    @onclick:stopPropagation="true"
+                    title="Expulsar membro"
+                    aria-label="Expulsar membro">
+                <i class="bi bi-person-x"></i>
+            </button>
+        }
+    }
+    
+    <!-- Edit & Delete buttons in top-right -->
+    @if (ShowEditButton)
+    {
+        <button class="avatar-card-edit-btn" 
+                @onclick="@OnEdit" 
+                @onclick:stopPropagation="true"
+                title="@EditTooltip"
+                aria-label="@EditTooltip">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+    @if (ShowDeleteButton)
+    {
+        <button class="avatar-card-delete-btn" 
+                @onclick="@OnDelete" 
+                @onclick:stopPropagation="true"
+                title="@DeleteTooltip"
+                aria-label="@DeleteTooltip">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+
+    <!-- Avatar -->
+    <div class="avatar-card-image-wrapper">
+        @if (LazyLoad && !imageLoaded)
+        {
+            <div class="avatar-card-skeleton"></div>
+        }
+        <img src="@AvatarUrl" 
+             alt="@AltText" 
+             class="avatar-card-image @(imageLoaded ? "" : "d-none")"
+             @onload="@HandleImageLoad"
+             @onerror="@HandleImageError"
+             loading="@(LazyLoad ? "lazy" : "eager")" />
+    </div>
+
+    <!-- Member Info -->
+    <div class="avatar-card-content">
+        <!-- Login Status (above nickname) -->
+        <div class="avatar-card-login-status">
+            @if (IsUserOnline())
+            {
+                <i class="bi bi-circle-fill text-success"></i>
+                <span>Online</span>
+            }
+            else
+            {
+                <i class="bi bi-circle-fill text-danger"></i>
+                <span>Offline</span>
+            }
+        </div>
+        
+        <!-- Nome de Tuna (primary) -->
+        @if (!string.IsNullOrEmpty(TunaName))
+        {
+            <div class="avatar-card-tuna-name">@TunaName</div>
+        }
+        
+        <!-- Nome (secondary) -->
+        @if (!string.IsNullOrEmpty(FullName))
+        {
+            <div class="avatar-card-full-name">@FullName</div>
+        }
+
+        <!-- Badges (Category/Roles) -->
+        <div class="avatar-card-badges">
+            @BadgeContent
+        </div>
+
+        <!-- Instrumento Principal / a aprender -->
+        @if (!string.IsNullOrEmpty(InstrumentText))
+        {
+            <div class="avatar-card-instrument">
+                <i class="bi bi-music-note"></i> @InstrumentText
+            </div>
+        }
+
+        <!-- Inactivity warning (between instrument and action buttons) -->
+        @if (ShowInactivityWarning)
+        {
+            <div class="avatar-card-inactivity-indicator" 
+                 title="@InactivityWarningTooltip"
+                 aria-label="@InactivityWarningTooltip">
+                <i class="bi bi-clock-history"></i>
+                <span>Não tem participado</span>
+            </div>
         }
     </div>
 
-    @if (ShowEditButton || ShowDeleteButton || ShowSetNicknameButton || ShowExpelButton)
-    {
-        <CardMenu Label="@(string.IsNullOrEmpty(TunaName) ? FullName : TunaName)" CssClass="member-item__menu">
-            @if (ShowEditButton)
-            {
-                <CardMenuItem Label="@EditTooltip" Icon="bi-pencil" OnClick="@OnEdit" />
-            }
-            @if (ShowSetNicknameButton)
-            {
-                <CardMenuItem Label="@SetNicknameTooltip" Icon="bi-tag" OnClick="@OnSetNickname" />
-            }
-            @if (ShowExpelButton && IsExpelled)
-            {
-                <CardMenuItem Label="Reativar membro" Icon="bi-person-check" OnClick="@OnReactivate" />
-            }
-            @if (ShowExpelButton && !IsExpelled)
-            {
-                <CardMenuItem Label="Expulsar membro" Icon="bi-person-x" Danger="true" Divider="true" OnClick="@OnExpel" />
-            }
-            @if (ShowDeleteButton)
-            {
-                <CardMenuItem Label="@DeleteTooltip" Icon="bi-trash" Danger="true"
-                              Divider="@(!ShowExpelButton || IsExpelled)" OnClick="@OnDelete" />
-            }
-        </CardMenu>
-    }
-</article>
+    <!-- View button below the card -->
+    <div class="avatar-card-actions">
+        <button class="btn btn-sm btn-purple" 
+                @onclick="@OnView"
+                title="@ViewTooltip"
+                aria-label="@ViewTooltip">
+            <i class="bi bi-eye"></i> @ViewButtonText
+        </button>
+    </div>
+</div>
 
 @code {
     private const int ONLINE_THRESHOLD_HOURS = 1;
@@ -147,6 +204,9 @@
     public string ViewTooltip { get; set; } = "Ver Detalhes";
 
     [Parameter]
+    public string ViewButtonText { get; set; } = "Ver Detalhes";
+
+    [Parameter]
     public string EditTooltip { get; set; } = "Editar";
 
     [Parameter]
@@ -167,9 +227,7 @@
     [Parameter]
     public EventCallback OnReactivate { get; set; }
 
-    private string CardClass => "item-card member-item" + (IsExpelled ? " member-item--expelled" : "");
-
-    private string NameId { get; } = $"member-item-{Guid.NewGuid():N}";
+    private bool imageLoaded = false;
     
     // Track previous state for ShouldRender optimization
     private string? _previousAvatarUrl;
@@ -183,6 +241,7 @@
     private bool _previousShowInactivityWarning;
     private bool _previousShowExpelButton;
     private bool _previousIsExpelled;
+    private bool _previousImageLoaded;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -200,7 +259,8 @@
             ShowSetNicknameButton != _previousShowSetNicknameButton ||
             ShowInactivityWarning != _previousShowInactivityWarning ||
             ShowExpelButton != _previousShowExpelButton ||
-            IsExpelled != _previousIsExpelled)
+            IsExpelled != _previousIsExpelled ||
+            imageLoaded != _previousImageLoaded)
         {
             _previousAvatarUrl = AvatarUrl;
             _previousTunaName = TunaName;
@@ -213,11 +273,31 @@
             _previousShowInactivityWarning = ShowInactivityWarning;
             _previousShowExpelButton = ShowExpelButton;
             _previousIsExpelled = IsExpelled;
+            _previousImageLoaded = imageLoaded;
             return true;
         }
         return false;
     }
 
+    private void HandleImageLoad()
+    {
+        imageLoaded = true;
+        StateHasChanged();
+    }
+
+    private void HandleImageError()
+    {
+        imageLoaded = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnView.InvokeAsync();
+        }
+    }
 
     /// <summary>
     /// Determines if the user is online based on LastLoginDate.

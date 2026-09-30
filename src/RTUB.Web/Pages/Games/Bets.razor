@@ -26,24 +26,31 @@
 @inject NavigationManager Navigation
 @attribute [Authorize]
 
-<AppTitle>Apostas</AppTitle>
+<PageTitle>Apostas - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="bets-page container-fluid">
-    <PageHeader Title="Apostas" Icon="bi-cash-coin" Subtitle="Próximas apostas e resultados anteriores.">
-        <ChildContent>
-            @if (currentUser != null)
-            {
-                <span class="badge bg-success mt-2">
-                    <i class="bi bi-coin me-1"></i>
-                    Saldo: @Fmt(currentUser.FidelisBalance) Fidelis
-                </span>
-            }
-        </ChildContent>
-        <Actions>
-            <PageAction Label="Adicionar Aposta" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
-        </Actions>
-    </PageHeader>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-cash-coin"></i> Apostas</h1>
+            <p class="lead page-header-subtitle text-light-theme">
+                Próximas apostas e resultados anteriores.
+                @if (currentUser != null)
+                {
+                    <br />
+                    <span class="badge bg-success mt-2">
+                        <i class="bi bi-coin me-1"></i>
+                        Saldo: @Fmt(currentUser.FidelisBalance) Fidelis
+                    </span>
+                }
+            </p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
+                <i class="bi bi-plus-lg"></i> Adicionar Aposta
+            </button>
+        </div>
+    </div>
         
     <!-- Purple Alert - Fidelis information -->
     <Alert Type="Alert.AlertType.Purple" 
@@ -182,9 +189,12 @@
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
-                <FormField Label="Título da Aposta" Icon="bi-cash-coin" For="() => editingBet.Title" Context="field">
-                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingBet.Title" />
-                </FormField>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-cash-coin text-primary me-2"></i>Título da Aposta
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingBet.Title" />
+                </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -204,9 +214,12 @@
                     </div>
                 </div>
 
-                <FormField Label="Localização" Icon="bi-geo-alt" For="() => editingBet.Location" Context="field">
-                    <InputText @attributes="field.Attributes" class="form-control" @bind-Value="editingBet.Location" />
-                </FormField>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingBet.Location" />
+                </div>
 
                 <ImageUploadManager @ref="imageUploadManager"
                                     Label="Imagem da Aposta"
@@ -215,9 +228,12 @@
                                     PreviewCssClass="slideshow-preview"
                                     OnFileSelected="HandleImageSelected" />
 
-                <FormField Label="Descrição" Icon="bi-text-paragraph" For="() => editingBet.Description" Context="field">
-                    <InputTextArea @attributes="field.Attributes" class="form-control" rows="4" @bind-Value="editingBet.Description" />
-                </FormField>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                    </label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="editingBet.Description" />
+                </div>
 
                 @* MATCH Category - Member Selection *@
                 @if (editingBet.BetCategory == BetCategory.MATCH)
@@ -470,15 +486,18 @@
                 </div>
             </div>
 
-            <FormField Label="Opção" Icon="bi-list-check" Context="field">
-                <select @attributes="field.Attributes" class="form-select" @bind="selectedBetOptionId">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-list-check text-primary me-2"></i>Opção
+                </label>
+                <select class="form-select" @bind="selectedBetOptionId">
                     <option value="0">Selecione uma opção...</option>
                     @foreach (var option in GetBetOptions(selectedBet.Id))
                     {
                         <option value="@option.Id" @key="option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
                     }
                 </select>
-            </FormField>
+            </div>
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
@@ -765,15 +784,18 @@
                 <strong>Atenção:</strong> Esta ação irá determinar os vencedores e distribuir os prémios. Não poderá ser revertida.
             </div>
 
-            <FormField Label="Opção Vencedora" Icon="bi-trophy" Context="field">
-                <select @attributes="field.Attributes" class="form-select" @bind="selectedWinningOptionId">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-trophy text-primary me-2"></i>Opção Vencedora
+                </label>
+                <select class="form-select" @bind="selectedWinningOptionId">
                     <option value="0">Selecione a opção vencedora...</option>
                     @foreach (var option in GetBetOptions(selectedBet.Id))
                     {
                         <option value="@option.Id" @key="option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
                     }
                 </select>
-            </FormField>
+            </div>
 
         }
     </BodyContent>
@@ -882,8 +904,9 @@
         <button type="button" class="btn btn-secondary" @onclick="CloseAllBetsModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Helpers
@@ -892,6 +915,7 @@
     // User and auth
     private ApplicationUser? currentUser;
     private bool isAdmin = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-add", "Adicionar", "bi-plus-lg") };
 
     // Bets data
     private List<Bet> futureBets = new();
@@ -1021,6 +1045,10 @@
         // Don't load members on initialization - will be loaded when MATCH modal is opened
     }
 
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-add") await OpenCreateModal();
+    }
 
     private async Task LoadAllMembers()
     {

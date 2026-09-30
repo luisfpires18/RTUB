@@ -9,13 +9,16 @@
         <DataAnnotationsValidator />
         <ErrorDisplay />
 
-        <FormField Label="Título" Icon="bi-card-text" For="() => model.Title" Context="field">
-            <InputText @attributes="field.Attributes" class="form-control"
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-card-text text-primary me-2"></i>Título
+            </label>
+            <InputText class="form-control"
                        @bind-Value="model.Title"
                        placeholder="Título do post (3-120 caracteres)"
                        maxlength="120" />
             <ValidationMessage For="@(() => model.Title)" />
-        </FormField>
+        </div>
 
         <div class="mb-3">
             <label class="form-label fw-semibold">

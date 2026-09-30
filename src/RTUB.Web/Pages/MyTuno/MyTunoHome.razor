@@ -35,21 +35,31 @@
 @inject IItemTypeConfigService ItemTypeConfigService
 @inject RTUB.Web.Services.AdminRefreshService AdminRefreshService
 
-<AppTitle>My Tuno</AppTitle>
+<PageTitle>My Tuno - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="my-tuno-home-page container-fluid">
-    <PageHeader Title="My Tuno" Icon="bi-joystick" Subtitle="Luta contra oponentes AI e melhora o teu personagem.">
-        <Actions>
-            <PageAction Label="Classificação" Icon="bi-trophy-fill" Href="/my-tuno/all-characters" />
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-joystick"></i> My Tuno</h1>
+            <p class="page-header-subtitle">Luta contra oponentes AI e melhora o teu personagem.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <a href="/my-tuno/all-characters" class="btn btn-outline-primary">
+                <i class="bi bi-trophy-fill me-2"></i><span class="btn-text">Classificação</span>
+            </a>
             <AuthorizeView Roles="Owner">
                 <Authorized>
-                    <PageAction Label="Stage Enemies" ShortLabel="Enemies" Icon="bi-bug" Href="/owner/stage-enemies" />
-                    <PageAction Label="Config" Icon="bi-sliders" Href="/owner/weapon-drink-config" />
+                    <a href="/owner/stage-enemies" class="btn btn-outline-warning">
+                        <i class="bi bi-bug me-1"></i><span class="btn-text">Stage Enemies</span>
+                    </a>
+                    <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
+                        <i class="bi bi-sliders me-1"></i><span class="btn-text">Config</span>
+                    </a>
                 </Authorized>
             </AuthorizeView>
-        </Actions>
-    </PageHeader>
+        </div>
+    </div>
 
     @if (loading)
     {
@@ -2215,7 +2225,8 @@
     }
 
 </div>
-</AppErrorBoundary>
+
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     /// <summary>
@@ -2272,6 +2283,8 @@
     private ApplicationUser? currentUser;
     private StageProgress? stageProgress;
     private bool loading = true;
+    private bool isOwner = false;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private int finoQuantity = 0;
     private int canecaQuantity = 0;
@@ -2472,9 +2485,30 @@
     {
         AdminRefreshService.OnRefreshRequested += HandleAdminRefreshAsync;
         await LoadDataAsync();
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        items.Add(new("nav-ranking", "Classificação", "bi-trophy-fill"));
+        if (isOwner)
+        {
+            items.Add(new("nav-enemies", "Enemies", "bi-bug"));
+            items.Add(new("nav-config", "Config", "bi-sliders"));
+        }
+        mobileNavItems = items;
+    }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "nav-ranking": Navigation.NavigateTo("/my-tuno/all-characters"); break;
+            case "nav-enemies": Navigation.NavigateTo("/owner/stage-enemies"); break;
+            case "nav-config": Navigation.NavigateTo("/owner/weapon-drink-config"); break;
+        }
+    }
 
     private async Task LoadDataAsync()
     {
@@ -2488,6 +2522,7 @@
             if (user.Identity?.IsAuthenticated == true)
             {
                 currentUser = await UserManager.GetUserAsync(user);
+                isOwner = user.IsInRole("Owner");
                 if (currentUser != null)
                 {
                     // Refresh from fresh context — scoped DI context has stale data

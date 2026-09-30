@@ -175,15 +175,7 @@ self.addEventListener('fetch', (event) => {
                             const fetchPromise = fetch(request)
                                 .then((response) => {
                                     if (response && response.status === 200) {
-                                        const copy = response.clone();
-                                        // A versioned URL (?v=<content hash>) supersedes every
-                                        // other version of the same file, so drop those first:
-                                        // otherwise each deploy that changes a sheet or script
-                                        // leaves its old copy in this cache for good.
-                                        const stale = url.search
-                                            ? cache.delete(request, { ignoreSearch: true })
-                                            : Promise.resolve();
-                                        stale.then(() => cache.put(request, copy));
+                                        cache.put(request, response.clone());
                                     }
                                     return response;
                                 })

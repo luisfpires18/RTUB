@@ -17,13 +17,13 @@
 .stage-enemy-card:hover,
 .stage-enemy-card:focus {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring, #a88ee5);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 
 .stage-enemy-card:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--rtub-focus-ring, #a88ee5);
+    box-shadow: 0 0 0 2px var(--bs-primary);
     outline: none;
 }
 

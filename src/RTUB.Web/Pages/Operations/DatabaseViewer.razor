@@ -9,15 +9,21 @@
 @inject IJSRuntime JSRuntime
 @inject ISqlValidationService SqlValidationService
 
-<AppTitle>Database Manager</AppTitle>
+<PageTitle>Database Manager</PageTitle>
 
-<AppErrorBoundary>
 <div class="container-fluid database-viewer-page">
-    <PageHeader Title="Database Manager" Icon="bi-database" Subtitle="View and manage database tables and entities">
-        <Actions>
-            <PageAction Label="Refresh" Icon="bi-arrow-clockwise" Disabled="@isLoading" OnClick="RefreshData" />
-        </Actions>
-    </PageHeader>
+    <div class="page-header-centered">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-database"></i> Database Manager</h1>
+            <p class="lead page-header-subtitle text-light-theme">View and manage database tables and entities</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i> <span class="btn-text">Refresh</span>
+            </button>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
@@ -265,8 +271,9 @@
         </div>
     </div>
 </div>
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     // Table list
@@ -299,12 +306,17 @@
     private bool isExecutingQuery = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem> { new("action-refresh", "Refresh", "bi-arrow-clockwise") };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadTablesAsync();
     }
 
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-refresh") await RefreshData();
+    }
 
     private async Task LoadTablesAsync()
     {

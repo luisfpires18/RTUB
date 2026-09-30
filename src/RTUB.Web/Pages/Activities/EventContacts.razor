@@ -21,9 +21,8 @@
 @inject NavigationManager Navigation
 @inject ILogger<EventContacts> Logger
 
-<AppTitle>Contactos - @(selectedEvent?.Name ?? "Evento")</AppTitle>
+<PageTitle>Contactos - @(selectedEvent?.Name ?? "Evento")</PageTitle>
 
-<AppErrorBoundary>
 <div class="contacts-page-wrapper">
     @if (selectedEvent == null)
     {
@@ -33,7 +32,19 @@
     {
         <div class="contacts-inner">
             <!-- Page Header -->
-            <PageHeader Title="Contactos" Icon="bi-telephone" Subtitle="@selectedEvent.Name" OnBack="NavigateBack" />
+            <div class="page-header-centered">
+                <div class="page-header-left d-none d-xl-flex">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                </div>
+                <div class="page-header-center">
+                    <h1><i class="bi bi-telephone"></i> Contactos</h1>
+                    <p class="lead page-header-subtitle text-light-theme">@selectedEvent.Name</p>
+                </div>
+                <div class="page-header-right d-none d-xl-flex">
+                </div>
+            </div>
 
             @* Feedback Alert *@
             @if (!string.IsNullOrEmpty(feedbackMessage))
@@ -158,13 +169,15 @@
 
                 @if (!contactedMembers.Any() && !notContactedMembers.Any())
                 {
-                    <EmptyState Icon="bi-people" Title="Nenhum membro encontrado" />
+                    <EmptyState Icon="bi-people" Message="Nenhum membro encontrado." />
                 }
             }
         </div>
     }
 </div>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 <!-- Contact Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Contact)"
@@ -202,9 +215,10 @@
                 </div>
             </div>
 
-            <FormField Label="Notas" Context="field">
-                <textarea @attributes="field.Attributes" class="form-control" rows="3" placeholder="Notas sobre a conversa..." @bind="contactFormNotes" maxlength="500"></textarea>
-            </FormField>
+            <div class="mb-3">
+                <label class="form-label">Notas</label>
+                <textarea class="form-control" rows="3" placeholder="Notas sobre a conversa..." @bind="contactFormNotes" maxlength="500"></textarea>
+            </div>
         }
     </BodyContent>
     <FooterContent>
@@ -221,7 +235,6 @@
         }
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
 @code {
     [Parameter]
@@ -249,6 +262,8 @@
     private string feedbackMessage = string.Empty;
     private bool feedbackIsError;
 
+    // Mobile nav
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -262,9 +277,24 @@
         }
 
         await LoadData();
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+    }
 
+    private async Task HandleMobileNavSelect(string key)
+    {
+        if (key == "action-back")
+        {
+            NavigateBack();
+        }
+    }
 
     private async Task LoadData()
     {

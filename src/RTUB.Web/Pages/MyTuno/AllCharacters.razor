@@ -12,22 +12,31 @@
 @inject ICharacterService CharacterService
 @inject ILogger<AllCharacters> Logger
 @inject RTUB.Web.Services.AdminRefreshService AdminRefreshService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
-<AppTitle>Todos os Personagens</AppTitle>
+<PageTitle>Todos os Personagens - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="all-characters-page container-fluid">
-    <PageHeader Title="Todos os Personagens" Icon="bi-people" Subtitle="Classificação de todos os personagens." BackHref="/my-tuno">
-        <Actions>
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left d-none d-lg-flex">
+            <a href="/my-tuno" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+        </div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-people"></i> Todos os Personagens</h1>
+            <p class="page-header-subtitle">Classificação de todos os personagens.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
             <AuthorizeView Roles="Owner">
-                <Authorized>
-                    @* Reset temporarily disabled (as before, on every screen size). *@
-                    <PageAction Label="Reset Data" ShortLabel="Reset" Icon="bi-arrow-counterclockwise" Intent="PageActionIntent.Danger" Disabled="true" />
-                </Authorized>
+                <button type="button" class="btn btn-danger" disabled
+                        title="Reset temporariamente desativado">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> <span class="btn-text">Reset Data</span>
+                </button>
             </AuthorizeView>
-        </Actions>
-    </PageHeader>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(toastMessage))
     {
@@ -215,8 +224,9 @@
                Disabled="@resettingData"
                OnConfirm="ConfirmResetData"
                OnCancel="CloseResetDataModal" />
-</AppErrorBoundary>
 
+
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private bool loading = true;
@@ -229,13 +239,36 @@
     private bool resettingData = false;
     private string? toastMessage;
     private bool toastIsError;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     protected override async Task OnInitializedAsync()
     {
+        // Build mobile nav items
+        var items = new List<MobileBottomNav.MobileNavItem>
+        {
+            new("action-back", "Voltar", "bi-arrow-left")
+        };
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var isOwner = authState.User.IsInRole("Owner");
+        // Reset temporarily disabled
+        // if (isOwner)
+        //     items.Add(new("action-reset", "Reset", "bi-arrow-counterclockwise"));
+
+        mobileNavItems = items;
+
         await LoadItemsAsync();
         loading = false;
     }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back": Navigation.NavigateTo("/my-tuno"); break;
+            case "action-reset": OpenResetDataModal(); break;
+        }
+    }
 
     protected override async Task LoadItemsAsync()
     {

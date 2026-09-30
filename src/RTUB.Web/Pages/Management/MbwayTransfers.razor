@@ -16,21 +16,29 @@
 @inject NavigationManager NavigationManager
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ILogger<MbwayTransfers> Logger
-@inject ToastService Toasts
 
-<AppTitle>MBWAY</AppTitle>
-
-<AppErrorBoundary>
-<PageHeader Title="MBWAY" Icon="bi-phone" Subtitle="Registo de transferências MBWAY." OnBack="GoBack">
-    <Actions>
+<div class="page-header-centered mb-4">
+    <div class="page-header-left d-none d-xl-flex">
+        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-phone"></i> MBWAY</h1>
+        <p class="page-header-subtitle">Registo de transferências MBWAY.</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
         <AuthorizeView Roles="Mod,Admin">
             <Authorized>
-                <PageAction Label="Adicionar Transferência" ShortLabel="Adicionar" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenAddModal" />
+                <button class="btn btn-purple"
+                        @onclick="OpenAddModal"
+                        title="Adicionar Transferência MBWAY">
+                    <i class="bi bi-plus-lg"></i> <span class="btn-text">Adicionar Transferência</span>
+                </button>
             </Authorized>
         </AuthorizeView>
-    </Actions>
-</PageHeader>
+    </div>
+</div>
 
 <div class="u-tile-lilac-soft mb-3 px-3 py-2 rounded">
     <i class="bi bi-info-circle text-purple me-1"></i>
@@ -115,11 +123,8 @@ else
 <!-- Add/Edit Modal -->
 @if (showModal && editingTransfer != null)
 {
-    <Modal @ref="transferModal"
-           Show="@showModal"
-           ShowChanged="@((bool show) => { if (!show) CloseTransferModal(); })"
-           IsDirty="() => transferChanges.IsDirty"
-           CanClose="() => Task.FromResult(!isSaving)"
+    <Modal Show="@showModal"
+           ShowChanged="@((bool show) => { if (!show) showModal = false; })"
            Title="@(editingTransfer.Id > 0 ? "Editar Transferência MBWAY" : "Adicionar Transferência MBWAY")"
            Size="Modal.ModalSize.Large">
         <BodyContent>
@@ -210,7 +215,7 @@ else
             </EditForm>
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="() => transferModal!.RequestCloseAsync()" disabled="@isSaving">Cancelar</button>
+            <button type="button" class="btn btn-secondary" @onclick="@(() => showModal = false)">Cancelar</button>
             <button type="button" class="btn btn-primary" @onclick="SaveTransfer" disabled="@isSaving">
                 @if (isSaving)
                 {
@@ -235,8 +240,9 @@ else
                    OnConfirm="ConfirmDeleteTransfer"
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     [Parameter]
@@ -250,10 +256,9 @@ else
     private bool isLoading = false;
     private bool isSaving = false;
     private bool showModal = false;
-    private Modal? transferModal;
-    private readonly UnsavedChanges transferChanges = new();
     private bool showDeleteConfirm = false;
     private bool isTransferToMember = false;
+    private bool canAdd = false;
     private bool canEdit = false;
     private List<string> debugRoles = new();
     private MbwayTransfer? editingTransfer;
@@ -261,6 +266,7 @@ else
     private EditForm? editForm;
     private int currentPage = 1;
     private int pageSize = 12;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private string transferSearchTerm = string.Empty;
 
@@ -285,9 +291,30 @@ else
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadTransfers(), LoadMembers(), CheckAuthorization());
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        if (canAdd)
+            items.Add(new("action-add", "Adicionar", "bi-plus-lg"));
+        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
+        mobileNavItems = items;
+    }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-add":
+                OpenAddModal();
+                break;
+            case "action-back":
+                GoBack();
+                break;
+        }
+    }
 
     private async Task LoadTransfers()
     {
@@ -326,6 +353,7 @@ else
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             debugRoles = new[] { "Owner", "Admin", "Mod", "Member" }.Where(user.IsInRole).ToList();
+            canAdd = user.IsInRole("Mod") || user.IsInRole("Admin");
             canEdit = user.IsInRole("Owner");
         }
         catch
@@ -408,7 +436,6 @@ else
         isTransferToMember = false;
         memberSearchTerm = string.Empty;
         filteredMembers = new();
-        TrackTransferForm();
         showModal = true;
     }
 
@@ -429,21 +456,7 @@ else
         isTransferToMember = !string.IsNullOrEmpty(transfer.MemberUserId);
         memberSearchTerm = string.Empty;
         filteredMembers = new();
-        TrackTransferForm();
         showModal = true;
-    }
-
-    // What the transfer form can change (member search is not a change).
-    private void TrackTransferForm() => transferChanges.Track(() => editingTransfer == null ? null : new
-    {
-        editingTransfer.Date, editingTransfer.Amount, editingTransfer.Phone, editingTransfer.Description,
-        editingTransfer.TransferTo, editingTransfer.TransferFrom, editingTransfer.MemberUserId, isTransferToMember
-    });
-
-    private void CloseTransferModal()
-    {
-        showModal = false;
-        transferChanges.Clear();
     }
 
     private async Task SaveTransfer()
@@ -460,10 +473,9 @@ else
 
             if (result.Success)
             {
-                CloseTransferModal();
-                errorMessage = string.Empty;
-                Toasts.ShowSuccess("Transferência guardada.");
+                showModal = false;
                 await LoadTransfers();
+                errorMessage = string.Empty;
             }
             else
             {
@@ -472,8 +484,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Saving MB WAY transfer failed");
-            errorMessage = "Não foi possível guardar a transferência. Tente novamente.";
+            errorMessage = $"Erro ao guardar: {ex.Message}";
         }
         finally
         {

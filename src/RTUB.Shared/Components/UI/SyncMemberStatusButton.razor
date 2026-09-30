@@ -23,9 +23,6 @@
 
     private bool isSyncing = false;
 
-    /// <summary>A sync is running (for pages that trigger it from a PageAction).</summary>
-    public bool IsSyncing => isSyncing;
-
     /// <summary>Triggers sync programmatically (e.g. from MobileBottomNav).</summary>
     public async Task TriggerAsync() => await SyncMemberStatuses();
 

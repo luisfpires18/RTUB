@@ -15,33 +15,43 @@
 @inject ILogger<StageEnemies> Logger
 @inject NavigationManager Navigation
 
-<AppTitle>Stage Enemies</AppTitle>
-
-<AppErrorBoundary>
 <div class="stage-enemies-page container-fluid">
-    <PageHeader Title="Stage Enemies" Icon="bi-bug" Subtitle="Manage enemies for Stage Mode." BackHref="/my-tuno">
-        <Actions>
-            <PageAction Label="Add Enemy" Icon="bi-plus-lg" Intent="PageActionIntent.Primary" OnClick="OpenCreateModal" />
-        </Actions>
-    </PageHeader>
+    <div class="page-header-centered mb-4">
+        <div class="page-header-left"></div>
+        <div class="page-header-center">
+            <h1><i class="bi bi-bug"></i> Stage Enemies</h1>
+            <p class="page-header-subtitle">Manage enemies for Stage Mode.</p>
+        </div>
+        <div class="page-header-right d-none d-xl-flex">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Add New Enemy">
+                <i class="bi bi-plus-lg"></i> <span class="btn-text">Add Enemy</span>
+            </button>
+        </div>
+    </div>
 
     <div class="mb-4">
         <!-- Filters -->
-        <FilterToolbar CssClass="mb-0">
-            <FilterDropdown Label="Type" SelectedValue="@selectedEnemyType"
-                            SelectedValueChanged="@(value => selectedEnemyType = value)"
-                            OnChange="@OnEnemyTypeFilterChanged"
-                            AllItemsLabel="All Types"
-                            Options="@enemyTypeOptions" />
-            <FilterDropdown Label="Region" SelectedValue="@selectedRegion"
-                            SelectedValueChanged="@(value => selectedRegion = value)"
-                            OnChange="@OnRegionFilterChanged"
-                            AllItemsLabel="All Regions"
-                            Options="@regionOptions" />
-            <SearchBar @bind-Value="SearchTerm"
-                       OnSearch="UpdateSearch"
-                       Placeholder="Search by name..." />
-        </FilterToolbar>
+        <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedEnemyType"
+                                SelectedValueChanged="@(value => selectedEnemyType = value)"
+                                OnChange="@OnEnemyTypeFilterChanged"
+                                AllItemsLabel="All Types"
+                                Options="@enemyTypeOptions" />
+            </div>
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedRegion"
+                                SelectedValueChanged="@(value => selectedRegion = value)"
+                                OnChange="@OnRegionFilterChanged"
+                                AllItemsLabel="All Regions"
+                                Options="@regionOptions" />
+            </div>
+            <div class="flex-grow-1">
+                <SearchBar @bind-Value="SearchTerm"
+                           OnSearch="UpdateSearch"
+                           Placeholder="Search by name..." />
+            </div>
+        </div>
     </div>
 
     @if (AllItems == null)
@@ -106,37 +116,49 @@
                 <div class="row">
                     <!-- Identity -->
                     <div class="col-md-12">
-                        <FormField Label="Name" Icon="bi-type" For="() => formModel.Name" Context="field">
-                            <InputText @attributes="field.Attributes" class="form-control" @bind-Value="formModel.Name" placeholder="e.g. Wolf, Dragon..." />
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-type text-primary me-2"></i>Name
+                            </label>
+                            <InputText class="form-control" @bind-Value="formModel.Name" placeholder="e.g. Wolf, Dragon..." />
                             <ValidationMessage For="() => formModel.Name" />
-                        </FormField>
+                        </div>
 
-                        <FormField Label="Type" Icon="bi-stars" For="() => formModel.Type" Context="field">
-                            <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="formModel.Type">
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-stars text-primary me-2"></i>Type
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Type">
                                 @foreach (var t in Enum.GetValues<EnemyType>())
                                 {
                                     <option value="@t">@t</option>
                                 }
                             </InputSelect>
-                        </FormField>
+                        </div>
 
-                        <FormField Label="Region" Icon="bi-map" For="() => formModel.Region" Context="field">
-                            <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="formModel.Region">
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-map text-primary me-2"></i>Region
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Region">
                                 @foreach (var r in Enum.GetValues<RegionType>())
                                 {
                                     <option value="@r">@r</option>
                                 }
                             </InputSelect>
-                        </FormField>
+                        </div>
 
-                        <FormField Label="Placement" Icon="bi-geo-alt" For="() => formModel.Placement" Context="field">
-                            <InputSelect @attributes="field.Attributes" class="form-select" @bind-Value="formModel.Placement">
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>Placement
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Placement">
                                 @foreach (var p in Enum.GetValues<PlacementType>())
                                 {
                                     <option value="@p">@p</option>
                                 }
                             </InputSelect>
-                        </FormField>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label text-white-full fw-semibold">
@@ -181,7 +203,8 @@
         <p class="text-muted">This action cannot be undone.</p>
     </BodyContent>
 </ConfirmDialog>
-</AppErrorBoundary>
+
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     private enum ModalType { Edit, Delete }
@@ -192,6 +215,11 @@
     private int? editingEnemyId;
     private EditForm? editForm;
 
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = new List<MobileBottomNav.MobileNavItem>
+    {
+        new("action-back", "Voltar", "bi-arrow-left"),
+        new("action-add", "Add Enemy", "bi-plus-lg")
+    };
 
     // Filter state
     private string selectedEnemyType = string.Empty;
@@ -210,6 +238,14 @@
         ApplyFiltersAndPagination();
     }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back": Navigation.NavigateTo("/my-tuno"); break;
+            case "action-add": OpenCreateModal(); break;
+        }
+    }
 
     protected override async Task LoadItemsAsync()
     {

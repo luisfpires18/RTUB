@@ -68,9 +68,8 @@ public class FormTextFieldTests : BunitContext
             .Add(p => p.Required, true));
 
         // Assert
-        var label = cut.Find("label");
-        label.QuerySelector(".form-field__required")!.TextContent.Should().Be("*");
-        label.TextContent.Should().Contain("(obrigatório)", "the required state is part of the accessible name");
+        cut.Markup.Should().Contain("text-danger", "should display required indicator");
+        cut.Markup.Should().Contain("*", "should display asterisk for required");
     }
 
     [Fact]
@@ -118,11 +117,13 @@ public class FormTextFieldTests : BunitContext
         var cut = Render<FormTextField>(parameters => parameters
             .Add(p => p.Label, "Test Field")
             .Add(p => p.CssClass, "custom-class")
-            .Add(p => p.InputCssClass, "custom-input"));
+            .Add(p => p.InputCssClass, "custom-input")
+            .Add(p => p.LabelCssClass, "custom-label"));
 
         // Assert
         cut.Markup.Should().Contain("custom-class", "should apply custom CSS class");
         cut.Markup.Should().Contain("custom-input", "should apply input CSS class");
+        cut.Markup.Should().Contain("custom-label", "should apply label CSS class");
     }
 
     [Fact]

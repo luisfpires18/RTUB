@@ -63,28 +63,10 @@
     background-color: var(--bs-primary) !important;
 }
 
-/* Text roles on the dark page (UI refactor 033). Bootstrap's defaults are tuned for a
-   light page: text-secondary was #343a40 (1.7:1) and text-danger/text-success 4.2:1.
-   text-muted used to be forced to pure white, which erased metadata hierarchy. */
-.text-muted,
-.text-secondary {
+/* Fix text-muted to be white for dark background */
+.text-muted {
     --bs-text-opacity: 1;
-    color: var(--rtub-text-muted) !important;
-}
-
-.text-danger {
-    --bs-text-opacity: 1;
-    color: var(--rtub-danger-text) !important;
-}
-
-.text-success {
-    --bs-text-opacity: 1;
-    color: var(--rtub-success-text) !important;
-}
-
-/* Warning badges carry dark text: white on #f39c12 is 2.2:1. */
-.badge.bg-warning {
-    color: var(--rtub-on-warning);
+    color: #ffffff !important;
 }
 
 

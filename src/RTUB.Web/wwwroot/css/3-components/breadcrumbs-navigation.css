@@ -111,4 +111,92 @@
     cursor: not-allowed;
 }
 
-/* EmptyState and ErrorDisplay moved to feedback-states.css (UI refactor 036). */
+/* New EmptyState component - with purple hover */
+.empty-state-container {
+    margin: 1rem 0;
+}
+
+.empty-state-card {
+    background-color: rgba(110, 86, 207, 0.06);
+    border: 1px solid rgba(110, 86, 207, 0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-align: center;
+    cursor: default;
+}
+
+.empty-state-hoverable {
+    cursor: pointer;
+}
+
+.empty-state-card:hover {
+    background-color: rgba(110, 86, 207, 0.12);
+    border-color: #6E56CF;
+    box-shadow: 0 4px 12px rgba(110, 86, 207, 0.2);
+}
+
+.empty-state-card:focus-visible {
+    outline: 2px solid #6E56CF;
+    outline-offset: 2px;
+    border-color: #6E56CF;
+}
+
+.empty-state-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    color: #6E56CF;
+    opacity: 0.85;
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.empty-state-message {
+    font-size: 0.9375rem;
+    color: #b8b8b8;
+    margin: 0;
+    max-width: 600px;
+    line-height: 1.5;
+}
+
+/* Error Display Component - Based on EmptyState with red theme */
+.error-display-container {
+    margin: 1rem 0;
+}
+
+.error-display-card {
+    background-color: rgba(231, 76, 60, 0.06);
+    border: 1px solid rgba(231, 76, 60, 0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.error-display-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.error-display-icon {
+    font-size: 2.5rem;
+    color: #e74c3c;
+    opacity: 0.85;
+}
+

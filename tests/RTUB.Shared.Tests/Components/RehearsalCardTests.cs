@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+using AutoFixture;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
@@ -8,325 +8,796 @@ using RTUB.Shared;
 namespace RTUB.Shared.Tests.Components;
 
 /// <summary>
-/// RehearsalCard behavior: date-first content, the member's attendance answer (none / pending /
-/// approved / not going), secondary actions and the management menu
-/// (docs/design/RTUB_UI_REFACTOR.md section 25). Queries by accessible names and ARIA state.
+/// Tests for the RehearsalCard component to ensure rehearsal cards display correctly
 /// </summary>
 public class RehearsalCardTests : BunitContext
 {
-    private static Rehearsal Upcoming(string? theme = null) => Rehearsal.Create(DateTime.Today.AddDays(3), "Music Room", theme);
+    private readonly Fixture _fixture;
 
-    private static Rehearsal Past() => Rehearsal.Create(DateTime.Today.AddDays(-3), "Music Room");
-
-    private static RehearsalAttendance Attendance(bool willAttend, bool attended = false)
+    public RehearsalCardTests()
     {
-        var a = RehearsalAttendance.Create(1, "user123");
-        a.WillAttend = willAttend;
-        a.Attended = attended;
-        return a;
-    }
-
-    private IRenderedComponent<RehearsalCard> RenderCard(Rehearsal r, Action<ComponentParameterCollectionBuilder<RehearsalCard>>? more = null) =>
-        Render<RehearsalCard>(parameters =>
-        {
-            parameters.Add(p => p.Rehearsal, r);
-            more?.Invoke(parameters);
-        });
-
-    // Visible text (first span) or aria-label; "Vou pendente" matches "Vou"
-    private static IElement Button(IRenderedComponent<RehearsalCard> cut, string name) =>
-        cut.FindAll("button").Single(b => ButtonName(b) == name);
-
-    private static string ButtonName(IElement b) =>
-        b.GetAttribute("aria-label") ?? b.QuerySelector("span")?.TextContent.Trim() ?? b.TextContent.Trim();
-
-    private static bool HasButton(IRenderedComponent<RehearsalCard> cut, string name) =>
-        cut.FindAll("button").Any(b => ButtonName(b) == name);
-
-    private static List<string> MenuItems(IRenderedComponent<RehearsalCard> cut) =>
-        cut.FindAll(".dropdown-menu button").Select(b => b.TextContent.Trim()).ToList();
-
-    #region Content
-
-    [Fact]
-    public void RehearsalCard_ShowsDateTimeWeekdayAndLocation()
-    {
-        var r = Rehearsal.Create(new DateTime(2030, 3, 5), "Music Room"); // a Tuesday
-        var cut = RenderCard(r);
-
-        cut.Find("time").GetAttribute("datetime").Should().Be("2030-03-05");
-        cut.Find("h3").TextContent.Should().Contain("Terça-feira").And.Contain("05 Mar 2030");
-        cut.Find("article").GetAttribute("aria-labelledby").Should().Be(cut.Find("h3").Id);
-        cut.Markup.Should().Contain("21:30 - 00:00").And.Contain("Music Room");
+        _fixture = new Fixture();
     }
 
     [Fact]
-    public void RehearsalCard_RendersThemeAndDescription_WhenProvided()
+    public void RehearsalCard_RendersRehearsalDate()
     {
-        var r = Upcoming("Fado practice");
-        r.Description = "Bring the new scores";
-        var cut = RenderCard(r);
+        // Arrange
+        var rehearsalDate = new DateTime(2025, 12, 25);
+        var rehearsal = Rehearsal.Create(rehearsalDate, "Music Room");
 
-        var terms = cut.FindAll("dt").Select(d => d.TextContent).ToList();
-        terms.Should().Equal("Tema", "Descrição");
-        cut.FindAll("dd").Select(d => d.TextContent).Should().Equal("Fado practice", "Bring the new scores");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display formatted rehearsal date");
     }
 
     [Fact]
-    public void RehearsalCard_NoNotesList_WhenNoThemeOrDescription()
+    public void RehearsalCard_RendersLocation()
     {
-        RenderCard(Upcoming()).FindAll("dl").Should().BeEmpty();
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Main Hall");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("Main Hall", "card should display location");
+        cut.Markup.Should().Contain("bi-geo-alt", "location should have icon");
     }
 
     [Fact]
-    public void RehearsalCard_MarksNextRehearsal()
+    public void RehearsalCard_RendersTheme_WhenProvided()
     {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.IsNext, true));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room", "Christmas Songs");
 
-        cut.Find(".item-status").TextContent.Should().Contain("Próximo ensaio");
-        cut.Find("article").ClassList.Should().Contain("rehearsal-item--next");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("Christmas Songs", "card should display theme");
+        cut.Markup.Should().Contain("Tema:", "theme label should be present");
     }
 
     [Fact]
-    public void RehearsalCard_Cancelled_ShowsStatusAndOnlyDetails_ForMember()
+    public void RehearsalCard_DoesNotRenderTheme_WhenNotProvided()
     {
-        var r = Upcoming();
-        r.Cancel("Feriado");
-        var cut = RenderCard(r, p => p.Add(x => x.UserAttendance, Attendance(true)).Add(x => x.IsNext, true));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
-        cut.Find(".item-status").TextContent.Should().Contain("Cancelado");
-        cut.FindAll("[role=group]").Should().BeEmpty();
-        cut.FindAll("button").Select(ButtonName).Should().Equal("Detalhes");
-        cut.Find("article").ClassList.Should().NotContain("rehearsal-item--next");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("Tema:", "theme section should not appear when no theme");
     }
 
     [Fact]
-    public void RehearsalCard_Cancelled_AdminStillSeesAttendances()
+    public void RehearsalCard_ShowsCanceledStatus_WhenRehearsalIsCanceled()
     {
-        var r = Upcoming();
-        r.Cancel("Feriado");
-        var cut = RenderCard(r, p => p.Add(x => x.IsAdmin, true).Add(x => x.AttendanceCount, 4));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        rehearsal.Cancel("Test cancellation");
 
-        HasButton(cut, "Ver presenças (4)").Should().BeTrue();
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("CANCELADO", "should display canceled status");
+        cut.Markup.Should().Contain("badge bg-danger fs-6", "canceled status should use danger badge styling");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "canceled status should have X icon");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsRehearsalInfo_WhenNotCanceled()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("rehearsal-info", "should display rehearsal info section");
+        cut.Markup.Should().NotContain("Cancelado", "should not display cancelled status");
+    }
+
+    [Fact]
+    public void RehearsalCard_RendersAttendanceCount()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 12));
+
+        // Assert
+        cut.Markup.Should().Contain("12", "card should display attendance count");
+        cut.Markup.Should().Contain("bi-people", "attendance count should have people icon");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsToggleButtons_WhenUserHasNotMarkedAttendance()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert - New toggle button design: green + (add) and red X (not going) when no attendance
+        cut.Markup.Should().Contain("bi-plus-circle-fill", "should show green add button");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
+        cut.Markup.Should().Contain("btn-add-attendance", "add button should have green add style");
+        cut.Markup.Should().Contain("btn-not-attending", "not going button should have red style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsPendingStatus_WhenUserAttendanceNotApproved()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert - New toggle button design: pending status shown as yellow clock with btn-selected
+        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock icon");
+        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-selected", "pending button should be selected");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsToggleButtons_WhenUserHasAttendance()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert - New toggle button design: clock (edit going) and X (not going)
+        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock icon");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
+        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-not-attending", "not-attending button should have red style");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowAttendanceSection_WhenRehearsalIsPast()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        cut.Markup.Should().NotContain("enrollment-section", "attendance section should not appear for past rehearsals");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowAttendanceSection_WhenRehearsalIsCanceled()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        rehearsal.Cancel("Test cancellation");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        cut.Markup.Should().NotContain("enrollment-section", "attendance section should not appear for canceled rehearsals");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsAdminButtons_WhenUserIsAdmin()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("rehearsal-admin-overlay", "admin overlay should appear");
+        cut.Markup.Should().Contain("bi-pencil", "edit button should appear");
+        cut.Markup.Should().Contain("bi-trash", "delete button should appear");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowAdminButtons_WhenUserIsNotAdmin()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("rehearsal-admin-overlay", "admin overlay should not appear for non-admin");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsTodayBadge_WhenRehearsalIsToday()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Today, "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("HOJE", "should display 'HOJE' badge for today's rehearsal");
+        cut.Markup.Should().Contain("date-badge-hoje", "should have date-badge-hoje class");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowTodayBadge_WhenRehearsalIsNotToday()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Today.AddDays(1), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("Hoje", "should not display 'Hoje' badge when not today");
+    }
+
+    [Fact]
+    public void RehearsalCard_HasCardClasses()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("card", "should have card class");
+        cut.Markup.Should().Contain("rehearsal-card", "should have rehearsal-card class");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnAttendPending_WhenPendingButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 0)
+            .Add(p => p.OnAttendPending, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act - Now uses green add button instead of yellow pending
+        var addButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-add-attendance"));
+        addButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnAttendPending callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_ViewDetailsButton_HasTextLabel()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        cut.Markup.Should().Contain("Ver", "View Details button should have 'Ver' text label");
+        cut.Markup.Should().Contain("bi-eye-fill", "View Details button should have eye icon");
+        cut.Markup.Should().Contain("btn-outline-primary", "View Details button should have primary outline style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ViewAttendancesButton_HasAttendanceCount()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 8));
+
+        // Assert
+        cut.Markup.Should().Contain("8", "View Attendances button should display attendance count");
+        cut.Markup.Should().Contain("bi-people", "View Attendances button should have people icon");
+        cut.Markup.Should().Contain("btn-outline-secondary", "View Attendances button should have secondary outline style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ViewButtons_AreSameSize()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        var buttons = cut.FindAll("button").Where(b =>
+            b.ClassList.Contains("btn-outline-primary") || b.ClassList.Contains("btn-outline-secondary")).ToList();
+
+        buttons.Should().HaveCount(2, "should have two view buttons");
+        buttons.All(b => b.ClassList.Contains("gap-1")).Should().BeTrue("both buttons should have gap-1 class for consistent sizing");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnViewDetails_WhenViewDetailsButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5)
+            .Add(p => p.OnViewDetails, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var viewDetailsButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-outline-primary"));
+        viewDetailsButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnViewDetails callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnViewAttendances_WhenViewAttendancesButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5)
+            .Add(p => p.OnViewAttendances, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var viewAttendancesButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-outline-secondary"));
+        viewAttendancesButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnViewAttendances callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnEditAttendance_WhenPendingButtonClickedWithAttendance()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        bool callbackInvoked = false;
+
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1)
+            .Add(p => p.OnEditAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act - Click the pending button which now triggers edit when user has attendance
+        var pendingButton = cut.FindAll("button").First(b =>
+            b.ClassList.Contains("btn-pending") && b.ClassList.Contains("btn-selected"));
+        pendingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEditAttendance callback should be invoked when clicking pending button with attendance");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnAttendNotGoing_WhenNotGoingButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        bool callbackInvoked = false;
+
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1)
+            .Add(p => p.OnAttendNotGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var notGoingButton = cut.FindAll("button").First(b =>
+            b.ClassList.Contains("btn-not-attending") && b.InnerHtml.Contains("bi-x-circle-fill"));
+        notGoingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnAttendNotGoing callback should be invoked");
+    }
+
+    #region Status Badge Tests
+
+    [Fact]
+    public void RehearsalCard_ShowsVouBadge_WhenUserAttendingAsGoing()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("VOU", "should display VOU badge when attending as going");
+        cut.Markup.Should().Contain("bg-success", "VOU badge should have success (green) style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsNaoVouBadge_WhenUserAttendingAsNotGoing()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = false;
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("NÃO VOU", "should display NÃO VOU badge when attending as not going");
+        cut.Markup.Should().Contain("bg-danger", "NÃO VOU badge should have danger (red) style");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowStatusBadge_WhenUserHasNoAttendance()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("rehearsal-status-badge", "should not display status badge when no attendance");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsCanceladoBadge_OverridesStatusBadge_WhenRehearsalIsCanceled()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        rehearsal.Cancel("Rehearsal cancelled");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("CANCELADO", "should display CANCELADO badge");
+        cut.Markup.Should().NotContain("rehearsal-status-badge", "status badge should be hidden when rehearsal is cancelled");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsDateBadge_WhenNoAttendanceAndNotCanceled()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Today, "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("HOJE", "should display date badge (HOJE) when no attendance");
     }
 
     #endregion
 
-    #region Member attendance answer
+    #region Button Selection State Tests
 
     [Fact]
-    public void RehearsalCard_NoAnswer_BothOptionsUnpressed_AndCallTheCreateCallbacks()
+    public void RehearsalCard_YellowPendingButtonSelected_WhenAttendancePending()
     {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.OnAttendPending, EventCallback.Factory.Create(this, () => calls.Add("pending")))
-            .Add(x => x.OnAttendNotGoing, EventCallback.Factory.Create(this, () => calls.Add("notgoing")))
-            .Add(x => x.OnEditAttendance, EventCallback.Factory.Create(this, () => calls.Add("edit"))));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+        attendance.Attended = false;
 
-        Button(cut, "Vou").GetAttribute("aria-pressed").Should().Be("false");
-        Button(cut, "Vou").GetAttribute("title").Should().Be("Marcar presença");
-        Button(cut, "Não vou").GetAttribute("aria-pressed").Should().Be("false");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
 
-        Button(cut, "Vou").Click();
-        Button(cut, "Não vou").Click();
-
-        calls.Should().Equal("pending", "notgoing");
+        // Assert
+        var pendingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-pending"));
+        pendingButton.ClassList.Should().Contain("btn-selected", "pending button should be selected when attendance is pending");
     }
 
     [Fact]
-    public void RehearsalCard_PendingAttendance_VouPressedWithPendingNote_ClickEdits()
+    public void RehearsalCard_RedNotAttendingButtonSelected_WhenNotGoing()
     {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.UserAttendance, Attendance(true, attended: false))
-            .Add(x => x.OnEditAttendance, EventCallback.Factory.Create(this, () => calls.Add("edit")))
-            .Add(x => x.OnAttendNotGoing, EventCallback.Factory.Create(this, () => calls.Add("notgoing"))));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = false;
 
-        var vou = Button(cut, "Vou");
-        vou.GetAttribute("aria-pressed").Should().Be("true");
-        vou.TextContent.Should().Contain("pendente");
-        vou.GetAttribute("title").Should().Be("Editar presença pendente");
-        Button(cut, "Não vou").GetAttribute("title").Should().Be("Mudar para não vou");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
 
-        vou.Click();
-        Button(cut, "Não vou").Click();
-
-        calls.Should().Equal("edit", "notgoing");
+        // Assert
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-attending"));
+        notGoingButton.ClassList.Should().Contain("btn-selected", "not attending button should be selected when user is not going");
     }
 
     [Fact]
-    public void RehearsalCard_ApprovedAttendance_VouPressedWithoutPendingNote()
+    public void RehearsalCard_GreenApprovedButtonSelected_WhenAttendanceApproved()
     {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.UserAttendance, Attendance(true, attended: true)));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+        attendance.Attended = true;
 
-        var vou = Button(cut, "Vou");
-        vou.GetAttribute("aria-pressed").Should().Be("true");
-        vou.TextContent.Should().NotContain("pendente");
-        vou.GetAttribute("title").Should().Be("Editar presença aprovada");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert
+        var approvedButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-approved"));
+        approvedButton.ClassList.Should().Contain("btn-selected", "approved button should be selected when attendance is approved");
     }
 
     [Fact]
-    public void RehearsalCard_NotGoing_NaoVouPressed_ClickEdits_VouSwitches()
+    public void RehearsalCard_SecondaryButtonSmaller_WhenAttendanceMarked()
     {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.UserAttendance, Attendance(false))
-            .Add(x => x.OnEditAttendance, EventCallback.Factory.Create(this, () => calls.Add("edit")))
-            .Add(x => x.OnAttendPending, EventCallback.Factory.Create(this, () => calls.Add("pending"))));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
 
-        Button(cut, "Não vou").GetAttribute("aria-pressed").Should().Be("true");
-        Button(cut, "Não vou").GetAttribute("title").Should().Be("Editar impossibilidade");
-        Button(cut, "Vou").GetAttribute("title").Should().Be("Mudar para vou");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1));
 
-        Button(cut, "Não vou").Click();
-        Button(cut, "Vou").Click();
-
-        calls.Should().Equal("edit", "pending");
+        // Assert
+        var notAttendingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-attending"));
+        notAttendingButton.ClassList.Should().Contain("btn-secondary-small", "not attending button should be smaller when user has attendance marked");
     }
 
     [Fact]
-    public void RehearsalCard_Past_NoAnswerToggle()
+    public void RehearsalCard_BothButtonsSameSize_WhenNoAttendance()
     {
-        RenderCard(Past(), p => p.Add(x => x.IsPastRehearsal, true)).FindAll("[role=group]").Should().BeEmpty();
-    }
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
-    [Fact]
-    public void RehearsalCard_PastPending_ShowsStatusAndRemove()
-    {
-        var removed = false;
-        var cut = RenderCard(Past(), p => p
-            .Add(x => x.IsPastRehearsal, true)
-            .Add(x => x.UserAttendance, Attendance(true, attended: false))
-            .Add(x => x.OnRemoveAttendance, EventCallback.Factory.Create(this, () => removed = true)));
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 0));
 
-        cut.Find(".item-status").TextContent.Should().Contain("Presença pendente");
-        var remove = Button(cut, "Remover");
-        remove.GetAttribute("title").Should().Be("Remover presença pendente");
-        remove.Click();
-        removed.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData(true, true, "Fui")]
-    [InlineData(false, false, "Não fui")]
-    public void RehearsalCard_PastAnswered_ShowsStatus_NoRemove(bool willAttend, bool attended, string status)
-    {
-        var cut = RenderCard(Past(), p => p
-            .Add(x => x.IsPastRehearsal, true)
-            .Add(x => x.UserAttendance, Attendance(willAttend, attended)));
-
-        cut.Find(".item-status").TextContent.Should().Contain(status);
-        HasButton(cut, "Remover").Should().BeFalse();
+        // Assert
+        var addButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-add-attendance"));
+        var notAttendingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-attending"));
+        addButton.ClassList.Should().NotContain("btn-secondary-small", "add button should not be smaller when no attendance");
+        notAttendingButton.ClassList.Should().NotContain("btn-secondary-small", "not attending button should not be smaller when no attendance");
     }
 
     #endregion
 
-    #region Secondary actions
+    #region Past Rehearsal Tests
 
     [Fact]
-    public void RehearsalCard_DetailsAndAttendances_InvokeCallbacks()
+    public void RehearsalCard_ShowsDeleteAndPendingIcon_ForPastRehearsalWithPendingAttendance()
     {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.AttendanceCount, 7)
-            .Add(x => x.OnViewDetails, EventCallback.Factory.Create(this, () => calls.Add("details")))
-            .Add(x => x.OnViewAttendances, EventCallback.Factory.Create(this, () => calls.Add("attendances"))));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+        attendance.Attended = false;
 
-        Button(cut, "Detalhes").Click();
-        Button(cut, "Ver presenças (7)").Click();
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.AttendanceCount, 1));
 
-        calls.Should().Equal("details", "attendances");
+        // Assert
+        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock icon for past rehearsal with pending attendance");
+        cut.Markup.Should().Contain("bi-trash-fill", "should show delete button for past rehearsal with pending attendance");
     }
 
     [Fact]
-    public void RehearsalCard_AdminPastWithPendingApprovals_ShowsPendingReminder()
+    public void RehearsalCard_DoesNotShowDeleteButton_ForPastRehearsalWithApprovedAttendance()
     {
-        var cut = RenderCard(Past(), p => p
-            .Add(x => x.IsAdmin, true)
-            .Add(x => x.IsPastRehearsal, true)
-            .Add(x => x.HasPendingApprovals, true)
-            .Add(x => x.AttendanceCount, 3));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        attendance.WillAttend = true;
+        attendance.Attended = true;
 
-        var reminder = Button(cut, "Ver presenças pendentes para aprovar (3)");
-        reminder.GetAttribute("title").Should().Contain("pendentes para aprovar");
-        reminder.InnerHtml.Should().Contain("bi-clock-fill");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.AttendanceCount, 1));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-trash-fill", "should not show delete button for past rehearsal with approved attendance");
     }
 
     #endregion
 
-    #region Management menu
+    #region Pending Approvals Reminder Tests
 
     [Fact]
-    public void RehearsalCard_NoMenu_ForMember()
+    public void RehearsalCard_ShowsPendingApprovalsReminder_WhenAdminAndPastRehearsalWithPending()
     {
-        RenderCard(Upcoming()).FindAll(".dropdown-menu").Should().BeEmpty();
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Ver Presenças button should be yellow with clock icon for pending approvals
+        cut.Markup.Should().Contain("bi-clock-fill", "should show clock icon on Ver Presenças button");
+        // Styling moved to CSS (no inline hex in markup). Assert semantic class instead.
+        cut.Markup.Should().Contain("btn-pending-approvals", "Ver Presenças button should use the pending-approvals styling class");
+        cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
     }
 
     [Fact]
-    public void RehearsalCard_AdminMenu_Upcoming_DestructiveLast()
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotAdmin()
     {
-        var cut = RenderCard(Upcoming(), p => p.Add(x => x.IsAdmin, true));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
-        cut.Find("[data-bs-toggle=dropdown]").GetAttribute("aria-label").Should().StartWith("Gerir: ensaio de ");
-        MenuItems(cut).Should().Equal("Editar ensaio", "Notificar por push", "Cancelar ensaio", "Eliminar ensaio");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should show regular people icon, not clock, for non-admin
+        cut.Markup.Should().Contain("bi-people", "should show people icon for non-admin");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for non-admin");
     }
 
     [Fact]
-    public void RehearsalCard_AdminMenu_Past_CanStillCancel_NoPush()
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotPastRehearsal()
     {
-        var cut = RenderCard(Past(), p => p.Add(x => x.IsAdmin, true).Add(x => x.IsPastRehearsal, true));
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
 
-        MenuItems(cut).Should().Equal("Editar ensaio", "Cancelar ensaio", "Eliminar ensaio");
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should show regular people icon for upcoming rehearsals, not clock
+        cut.Markup.Should().Contain("bi-people", "should show people icon for upcoming rehearsals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for upcoming rehearsals");
     }
 
     [Fact]
-    public void RehearsalCard_AdminMenu_CancelledUpcoming_OffersReactivate()
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNoPendingApprovals()
     {
-        var r = Upcoming();
-        r.Cancel("Feriado");
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
 
-        MenuItems(RenderCard(r, p => p.Add(x => x.IsAdmin, true)))
-            .Should().Equal("Editar ensaio", "Reativar ensaio", "Eliminar ensaio");
-    }
+        // Act
+        var cut = Render<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, false)
+            .Add(p => p.AttendanceCount, 5));
 
-    [Fact]
-    public void RehearsalCard_AdminMenu_CancelledPast_NoReactivate()
-    {
-        var r = Past();
-        r.Cancel("Feriado");
-
-        MenuItems(RenderCard(r, p => p.Add(x => x.IsAdmin, true).Add(x => x.IsPastRehearsal, true)))
-            .Should().Equal("Editar ensaio", "Eliminar ensaio");
-    }
-
-    [Fact]
-    public void RehearsalCard_AdminMenu_RespectsRestrictedPermissions()
-    {
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.IsAdmin, true)
-            .Add(x => x.ShowDeleteButton, false)
-            .Add(x => x.ShowCancelButton, false));
-
-        MenuItems(cut).Should().Equal("Editar ensaio", "Notificar por push");
-    }
-
-    [Fact]
-    public void RehearsalCard_AdminMenu_InvokesCallbacks()
-    {
-        var calls = new List<string>();
-        var cut = RenderCard(Upcoming(), p => p
-            .Add(x => x.IsAdmin, true)
-            .Add(x => x.OnEdit, EventCallback.Factory.Create(this, () => calls.Add("edit")))
-            .Add(x => x.OnSendPushNotification, EventCallback.Factory.Create(this, () => calls.Add("push")))
-            .Add(x => x.OnCancel, EventCallback.Factory.Create(this, () => calls.Add("cancel")))
-            .Add(x => x.OnDelete, EventCallback.Factory.Create(this, () => calls.Add("delete"))));
-
-        foreach (var item in new[] { "Editar ensaio", "Notificar por push", "Cancelar ensaio", "Eliminar ensaio" })
-        {
-            cut.FindAll(".dropdown-menu button").Single(b => b.TextContent.Trim() == item).Click();
-        }
-
-        calls.Should().Equal("edit", "push", "cancel", "delete");
+        // Assert - Should show regular people icon when no pending approvals
+        cut.Markup.Should().Contain("bi-people", "should show people icon when no pending approvals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color when no pending approvals");
     }
 
     #endregion

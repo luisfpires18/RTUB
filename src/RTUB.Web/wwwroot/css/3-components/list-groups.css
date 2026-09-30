@@ -47,10 +47,10 @@
     font-size: inherit;
   }
 
-  /* Improve badge visibility on mobile: wrap between words only. Breaking inside
-     words split money/date badges into one character per line (UI refactor 033). */
+  /* Improve badge visibility on mobile */
   .badge {
     white-space: normal;
+    word-break: break-word;
   }
 
   /* Better form validation message display */
@@ -59,16 +59,46 @@
     font-size: 0.875rem;
   }
 
+  /* Improve alert spacing on mobile */
+  .alert {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
+  }
+
   /* Better breadcrumb display on mobile */
   .breadcrumb {
     font-size: 0.875rem;
     padding: 0.375rem 0;
   }
 
+  /* Improve empty state display on mobile */
+  .empty-state-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .empty-state-icon {
+    font-size: 1.75rem;
+  }
+
+  /* Error display responsive styles */
+  .error-display-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .error-display-icon {
+    font-size: 1.75rem;
+  }
+
   /* Better positioning badge display on mobile */
   .badge-position {
     font-size: 0.7em;
     padding: 0.25em 0.5em;
+  }
+
+  /* Improve navbar category badge on mobile */
+  .navbar-category-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
   }
 
   /* Better handling of long text in cards */
@@ -267,7 +297,11 @@
     height: auto;
   }
 
-  /* Form focus on mobile uses the focus foundation in forms.css (UI refactor 033). */
+  /* Improve form focus states on mobile */
+  .form-control:focus,
+  .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.3);
+  }
 
   /* Better handling of long URLs/text */
   .card-text,
@@ -277,9 +311,8 @@
     hyphens: auto;
   }
 
-  /* Improve loading spinner on mobile. Small spinners (inside buttons) keep
-     their size so a busy button does not grow (UI refactor 033). */
-  .spinner-border:not(.spinner-border-sm) {
+  /* Improve loading spinner on mobile */
+  .spinner-border {
     width: 2rem;
     height: 2rem;
   }

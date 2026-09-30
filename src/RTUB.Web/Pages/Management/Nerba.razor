@@ -15,10 +15,19 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Nerba> Logger
 
-<AppTitle>Encomendas Nerba</AppTitle>
-
-<AppErrorBoundary>
-<PageHeader Title="Encomendas Nerba" Icon="bi-basket" Subtitle="Registo de encomendas de material por evento." OnBack="GoBack" />
+<div class="page-header-centered mb-4">
+    <div class="page-header-left d-none d-xl-flex">
+        <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="page-header-center">
+        <h1><i class="bi bi-basket"></i> Encomendas Nerba</h1>
+        <p class="page-header-subtitle">Registo de encomendas de material por evento.</p>
+    </div>
+    <div class="page-header-right d-none d-xl-flex">
+    </div>
+</div>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
@@ -94,8 +103,9 @@ else
                    OnConfirm="ConfirmDeleteOrder"
                    OnCancel="@(() => showDeleteConfirm = false)" />
 }
-</AppErrorBoundary>
 
+<!-- Mobile Bottom Nav -->
+<MobileBottomNav Items="@mobileNavItems" ActiveKey="" OnSelect="HandleMobileNavSelect" />
 
 @code {
     [Parameter]
@@ -110,15 +120,30 @@ else
     private bool showDeleteConfirm = false;
     private bool canEdit = false;
     private Event? deleteTarget;
+    private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
 
     private record DisplayItem(Event Event, int Count, decimal Total);
 
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadData(), CheckAuthorization());
+        BuildMobileNavItems();
     }
 
+    private void BuildMobileNavItems()
+    {
+        var items = new List<MobileBottomNav.MobileNavItem>();
+        items.Add(new("action-back", "Voltar", "bi-arrow-left"));
+        mobileNavItems = items;
+    }
 
+    private void HandleMobileNavSelect(string key)
+    {
+        switch (key)
+        {
+            case "action-back": GoBack(); break;
+        }
+    }
 
     private void NavigateToDetail(Event ev) =>
         NavigationManager.NavigateTo($"/nerba/event/{ev.Id}");
@@ -185,7 +210,7 @@ else
     private void ConfirmDeleteEntry(Event ev)
     {
         deleteTarget = ev;
-        deleteConfirmMessage = $"Tem a certeza que deseja eliminar todas as encomendas do evento \"{ev.Name}\"? Esta ação é irreversível.";
+        deleteConfirmMessage = $"Tem a certeza que deseja eliminar todas as encomendas do evento \"{ev.Name}\"? Esta aÃ§Ã£o Ã© irreversÃ­vel.";
         showDeleteConfirm = true;
     }
 

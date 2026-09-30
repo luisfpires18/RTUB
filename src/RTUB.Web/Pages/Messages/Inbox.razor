@@ -27,9 +27,8 @@
 @inject IHubContext<RTUB.Web.Hubs.MessagesHub, RTUB.Web.Hubs.IMessagesHubClient> HubContext
 @implements IAsyncDisposable
 
-<AppTitle>Mensagens</AppTitle>
+<PageTitle>Mensagens - RTUB</PageTitle>
 
-<AppErrorBoundary>
 <div class="rtub-messages">
     <div class="container-fluid h-100">
         <div class="row g-0 h-100">
@@ -63,7 +62,11 @@
 
                 @if (isLoadingConversations)
                 {
-                    <LoadingSpinner Message="A carregar conversas..." />
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
                 }
                 else if (!conversations.Any())
                 {
@@ -508,7 +511,7 @@
     </div>
 
     <!-- Mobile Bottom Nav (inside .rtub-messages so it's visible above z-index:1050 on mobile) -->
-    <MobileBottomNav Items="@CurrentMobileNavItems" OnSelect="HandleMobileNavSelect" AriaLabel="Mensagens" />
+    <MobileBottomNav Items="@CurrentMobileNavItems" OnSelect="HandleMobileNavSelect" />
 </div>
 <Modal Show="@modals.IsOpen(ModalType.NewMessage)"
        ShowChanged="@(async (bool show) => { if (!show) await CloseNewMessageModal(); })"
@@ -604,13 +607,15 @@
        OnClose="CloseNewGroupModal">
     <BodyContent>
         @* Group name input *@
-        <FormField Label="Nome do grupo" Help="Escolha um nome descritivo para o grupo" Context="field">
-            <input @attributes="field.Attributes" type="text"
+        <div class="mb-3">
+            <label class="form-label">Nome do grupo</label>
+            <input type="text" 
                    class="form-control messaging-input" 
                    placeholder="Inserir nome para o grupo..."
                    @bind="newGroupName"
                    maxlength="100" />
-        </FormField>
+            <small class="text-muted">Escolha um nome descritivo para o grupo</small>
+        </div>
 
         @* Member selection *@
         <div class="mb-3">
@@ -750,7 +755,6 @@
         <button type="button" class="btn btn-secondary" @onclick="CloseGroupMembersModal">Voltar Atrás</button>
     </FooterContent>
 </Modal>
-</AppErrorBoundary>
 
 @code {
     [Parameter]
