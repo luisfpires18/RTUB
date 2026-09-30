@@ -11,7 +11,19 @@ export const legacy = {
   music: '/music',
   gallery: '/gallery',
   roles: '/roles',
+  profile: '/profile',
 } as const;
+
+/** React-owned routes (Program.cs maps exactly these). */
+export const portal = {
+  home: '/portal',
+  privacy: '/portal/privacidade',
+  profile: '/portal/perfil',
+  request: '/portal/pedidos',
+} as const;
+
+/** Sign in through the Blazor login, then come back to the React profile. */
+export const loginToProfile = `${legacy.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
 
 export const contactEmail = 'realtunab@gmail.com';
 

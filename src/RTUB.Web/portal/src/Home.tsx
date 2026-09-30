@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { EmptyState, ExternalLink } from './App';
-import { albums, contactEmail, galleryTiles, legacy, naipes, orgaosSociais, social, upcomingEvents } from './content';
+import { AccountLink, EmptyState, ExternalLink } from './App';
+import { albums, contactEmail, galleryTiles, legacy, naipes, orgaosSociais, portal, social, upcomingEvents } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -362,7 +362,7 @@ function Doors() {
             </li>
           </ol>
           <div className="door__actions">
-            <a className="btn btn--light btn--lg" href={legacy.request}>
+            <a className="btn btn--light btn--lg" href={portal.request}>
               <Icon name="send" />
               Fazer um pedido
             </a>
@@ -376,10 +376,7 @@ function Doors() {
           <p className="eyebrow">Área de membros</p>
           <h2 className="door__title">És tuno?</h2>
           <p className="door__lead">Ensaios, atuações, logística e mensagens da tuna, num só lugar.</p>
-          <a className="btn btn--ghost btn--lg" href={legacy.login}>
-            <Icon name="login" />
-            Entrar
-          </a>
+          <AccountLink className="btn btn--ghost btn--lg" />
           <Skyline patternId="merlons-members" />
         </div>
       </div>

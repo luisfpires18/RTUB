@@ -7,7 +7,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Route ownership for the React public-portal pilot (React track 001, docs/react-portal-pilot.md).
-/// React owns exactly /portal and /portal/privacidade, served from the committed build in
+/// React owns exactly /portal, /portal/privacidade, /portal/perfil and /portal/pedidos, served from the committed build in
 /// wwwroot/portal; every other page, including the public ones the portal links to, stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
@@ -20,6 +20,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/portal")]
     [InlineData("/portal/")]
     [InlineData("/portal/privacidade")]
+    [InlineData("/portal/perfil")]
+    [InlineData("/portal/pedidos")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -72,6 +74,9 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/login")]
     [InlineData("/request")]
     [InlineData("/events")]
+    [InlineData("/music")]
+    [InlineData("/gallery")]
+    [InlineData("/roles")]
     public async Task LegacyBlazorRoutes_StayBlazor(string path)
     {
         var client = Factory.CreateClient();

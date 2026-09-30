@@ -1,5 +1,6 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
-import { contactEmail, legacy, social } from './content';
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { getCurrentUser, type CurrentUser } from './api';
+import { contactEmail, legacy, portal, social } from './content';
 import { Icon, type IconName } from './icons';
 
 export const sections = [
@@ -105,10 +106,7 @@ function Header() {
           </ul>
         </nav>
         <div className="header__actions">
-          <a className="btn btn--ghost btn--sm" href={legacy.login}>
-            <Icon name="login" />
-            Entrar
-          </a>
+          <AccountLink className="btn btn--ghost btn--sm" />
           <MobileMenu />
         </div>
       </div>
@@ -163,14 +161,11 @@ function MobileMenu() {
           </ol>
         </nav>
         <div className="menu__actions">
-          <a className="btn btn--primary" href={legacy.request}>
+          <a className="btn btn--primary" href={portal.request}>
             <Icon name="send" />
             Fazer um pedido
           </a>
-          <a className="btn btn--ghost" href={legacy.login}>
-            <Icon name="login" />
-            Área de membros
-          </a>
+          <AccountLink className="btn btn--ghost" signedOutLabel="Área de membros" />
         </div>
       </dialog>
     </>
@@ -199,13 +194,13 @@ function Footer() {
           <h2 className="footer__title">RTUB</h2>
           <ul>
             <li>
-              <a href={legacy.request}>Fazer um pedido</a>
+              <a href={portal.request}>Fazer um pedido</a>
             </li>
             <li>
-              <a href={legacy.login}>Área de membros</a>
+              <a href={portal.profile}>A minha conta</a>
             </li>
             <li>
-              <a href="/portal/privacidade">Política de Privacidade</a>
+              <a href={portal.privacy}>Política de Privacidade</a>
             </li>
             <li>
               <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
@@ -259,6 +254,44 @@ function VersionTag() {
   );
 }
 
+// ---------- session ----------
+
+/** The signed-in state for this page load; `retry` asks the server again. */
+export function useCurrentUser() {
+  const [state, setState] = useState<{ user?: CurrentUser; failed?: boolean }>({});
+
+  const load = useCallback((refresh: boolean) => {
+    setState({});
+    getCurrentUser(refresh).then(
+      (user) => setState({ user }),
+      () => setState({ failed: true }),
+    );
+  }, []);
+
+  useEffect(() => load(false), [load]);
+  return { ...state, retry: () => load(true) };
+}
+
+/**
+ * "Entrar" for visitors (to the Blazor login), "A minha conta" once signed in. While the session is
+ * unknown or unavailable it stays "Entrar", which is always a safe place to send someone.
+ */
+export function AccountLink({ className, signedOutLabel = 'Entrar' }: { className: string; signedOutLabel?: string }) {
+  const { user } = useCurrentUser();
+
+  return user?.authenticated ? (
+    <a className={`${className} btn--account`} href={portal.profile}>
+      <Icon name="person" />
+      <span className="btn__label">A minha conta</span>
+    </a>
+  ) : (
+    <a className={className} href={legacy.login}>
+      <Icon name="login" />
+      {signedOutLabel}
+    </a>
+  );
+}
+
 // ---------- shared pieces ----------
 
 export function ExternalLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
@@ -272,7 +305,7 @@ export function ExternalLink({ href, className, children }: { href: string; clas
 
 export function Loading({ label }: { label: string }) {
   return (
-    <div className="state wrap" role="status">
+    <div className="state" role="status">
       <span className="spinner" aria-hidden="true" />
       <p>{label}</p>
     </div>

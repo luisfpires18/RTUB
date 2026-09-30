@@ -462,6 +462,24 @@ main:focus {
   }
 }
 
+/* Signed in on a phone: the header account button is icon-only (label kept for screen readers). */
+@media (max-width: 479px) {
+  .header__actions > .btn--account {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .header__actions > .btn--account .btn__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 @media (min-width: 1000px) {
   .header__nav {
     display: block;
@@ -1381,6 +1399,163 @@ main:focus {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ---------- inner pages (perfil, pedidos) ---------- */
+
+.page {
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
+  padding-block: clamp(40px, 7vw, 88px) var(--section);
+}
+
+.page__head {
+  display: grid;
+  gap: 14px;
+  max-width: 44rem;
+}
+
+.page__title {
+  font-size: clamp(2.25rem, 4vw + 1rem, 4rem);
+}
+
+.page__lead {
+  font-size: clamp(1.0625rem, 0.4vw + 1rem, 1.25rem);
+  line-height: 1.55;
+}
+
+.account {
+  display: grid;
+  gap: 24px;
+  max-width: 40rem;
+}
+
+.account__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 24px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(80% 90% at 0% 0%, rgba(111, 66, 193, 0.22), transparent 60%),
+    var(--bg-raise);
+}
+
+.account__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px var(--purple);
+}
+
+.account__who {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account__name {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.25rem);
+  font-weight: 560;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.account__full {
+  color: var(--muted);
+}
+
+.account__lead {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.account__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.request {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+.request__prep,
+.request__go {
+  display: grid;
+  gap: 18px;
+  padding: clamp(24px, 4vw, 40px);
+  border-radius: var(--radius-lg);
+}
+
+.request__prep {
+  border: 1px solid var(--line);
+  background: var(--bg-raise);
+}
+
+.request__go {
+  justify-items: start;
+  color: var(--ink);
+  background:
+    radial-gradient(80% 70% at 100% 0%, rgba(185, 160, 238, 0.28), transparent 60%),
+    linear-gradient(150deg, #4a2f9a, var(--royal) 45%, #1c1236);
+}
+
+.request__go .note {
+  color: #d9ccf5;
+}
+
+.request__title {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--purple-ink);
+}
+
+.request__go .request__title {
+  color: #e2d6ff;
+}
+
+.request__prep .request__title:not(:first-child) {
+  margin-top: 12px;
+}
+
+.checklist {
+  display: grid;
+  gap: 12px;
+}
+
+.checklist li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  color: var(--ink-soft);
+}
+
+.checklist .icon {
+  flex: none;
+  color: var(--purple-ink);
+  transform: translateY(2px);
+}
+
+@media (min-width: 900px) {
+  .request {
+    grid-template-columns: 1.3fr 1fr;
+  }
+
+  .request__go {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
   }
 }
 

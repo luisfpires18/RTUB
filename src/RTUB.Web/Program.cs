@@ -644,14 +644,14 @@ public class Program
            .AddInteractiveServerRenderMode();
 
         // --------- React public-portal pilot (React track, task 001) ---------
-        // Route ownership: React owns exactly these two paths; every other page stays Blazor.
+        // Route ownership: React owns exactly these paths; every other page stays Blazor.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
         {
             OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
         };
-        foreach (var route in new[] { "/portal", "/portal/privacidade" })
+        foreach (var route in new[] { "/portal", "/portal/privacidade", "/portal/perfil", "/portal/pedidos" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

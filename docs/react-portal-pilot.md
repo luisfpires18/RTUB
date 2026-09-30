@@ -1,4 +1,4 @@
-# React public-portal pilot (React track, task 001)
+# React public portal (React track, tasks 001–002)
 
 A bounded pilot: a React public portal served by the existing ASP.NET Core host, next to the Blazor
 app, which keeps every other page. Not the start of a rewrite. Decision record:
@@ -16,9 +16,12 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | --- | --- | --- |
 | `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
 | `/portal/privacidade` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
+| `/portal/perfil` | **React** (002) | Session summary: signed out → Blazor login and back; signed in → who you are and the way into the member area. |
+| `/portal/pedidos` | **React** (002) | Request preparation; submission hands off to the Blazor `/request` (see Request migration). |
+| `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
 | `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
 | any other `/portal/*` | nobody | 404. POST/PUT to the two pages → 405. |
-| everything else | **Blazor** | Unchanged, including the public pages the portal links to: `/`, `/login`, `/request`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, and every member/admin page. |
+| everything else | **Blazor** | Unchanged, including the public pages the portal links to: `/`, `/login`, `/request`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, `/profile`, sign-out, and every member/admin page. |
 
 The shell `index.html` is served `Cache-Control: no-cache` so a deploy is picked up at once. It
 carries the enforced CSP like every HTML document. Nothing in Blazor links to `/portal` yet; the
@@ -82,6 +85,48 @@ Sources consulted for task 001: the public pages of the live site (home, `/music
 seeded labels (`SeedData.Labels.cs`), `Roles.razor`, `Request.razor` and `EventType`. The RGI and
 the cancioneiro are member-only documents in R2 storage and were not accessed.
 
+## Session and profile (task 002)
+
+- **Signing in and out stay Blazor.** `/login` posts to the antiforgery-protected, rate-limited
+  `POST /auth/login`, which already honours a local `returnUrl`; the portal sends visitors to
+  `/login?returnUrl=/portal/perfil`. Sign-out is a POST from the Blazor layout with its own token;
+  the portal only points to it.
+- **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
+  `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
+  `fullName`, `avatarUrl` and category labels (`StatusHelper.GetCategoryDisplay`). No email, phone,
+  birth date, roles, IDs or other users. Expelled or deleted members arrive anonymous: the cookie
+  validator rejects their session on every request. Pinned by `AccountEndpointTests`.
+- React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header and menu
+  show "Entrar" or "A minha conta", and `/portal/perfil` has loading, error (retry), signed-out and
+  signed-in states. Unknown or failed session state falls back to "Entrar".
+- Authorization is unchanged: nothing in React grants or hides access; every member page still
+  enforces its own rules in Blazor.
+
+## Request migration (task 002: prepared, not migrated)
+
+What `/request` does today, all inside `Pages/Public/Request.razor`: fields name, email, phone,
+event type (free text), preferred date, optional end date, location, message (limits in
+`RTUB.Core.Entities.Request`); date rules (not in the past, end ≥ start) inline and duplicated in
+`RequestValidationService`; `RequestService.CreateRequestAsync` saves and pushes a notification to
+every Admin and Owner; `SetRequestDateRangeAsync`; then `EmailNotificationService` emails RTUB.
+Anonymous, over the Blazor circuit, with **no rate limit, honeypot or other anti-spam**.
+
+Why React does not submit yet: an anonymous JSON endpoint is far easier to script than a circuit,
+and each submission fans out to every admin's phone and the RTUB inbox. Doing it safely needs a
+rate-limit policy, but the only one today (login) has a global rejection handler with a
+login-specific message - changing it touches login. And the orchestration lives in the component,
+so a second entry point would duplicate it instead of sharing it. `/portal/pedidos` therefore
+prepares the visitor and links to `/request`; `RequestSubmission` in `api.ts` fixes the contract.
+
+Plan for the slice that migrates it:
+1. Move the orchestration into one application service (validation + create + date range + email),
+   and point the Blazor page at it with behaviour-preserving tests.
+2. `POST /api/requests`, form-bound so the framework enforces antiforgery (as `/auth/login` does),
+   token issued to the React page; a per-IP fixed-window policy with per-policy rejection text.
+3. Honeypot field and server-side limits; `400` with field errors, `429` when throttled.
+4. React form on `/portal/pedidos` with the same rules; `/request` stays until the owner retires it.
+5. Tests: missing token → 400, throttled → 429, invalid → 400, success → one row, one email, one push fan-out.
+
 ## Launch splash
 
 Black screen with the RTUB emblem, as static markup in `index.html`, so it covers the only real wait
@@ -127,6 +172,11 @@ cd src/RTUB.Web && npm ci --ignore-scripts && npm run check:portal && npm run bu
 
 That fails a PR whose committed bundle does not match its source. Deploy workflows need no change:
 they publish the committed `wwwroot/portal`.
+
+## Next recommended slice
+
+Task 003: migrate request submission per the plan above. Then Órgãos Sociais (read-only public
+API), before Gallery, Music and Events.
 
 ## Next steps (outside this pilot)
 
