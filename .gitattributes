@@ -61,3 +61,8 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# React portal pilot: LF everywhere, so `npm run build:portal` is byte-identical on every OS
+# (Vite keeps index.html line endings). Binary files (fonts) stay auto-detected.
+src/RTUB.Web/portal/** text=auto eol=lf
+src/RTUB.Web/wwwroot/portal/** text=auto eol=lf

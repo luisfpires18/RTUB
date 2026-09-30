@@ -643,6 +643,20 @@ public class Program
         app.MapRazorComponents<RTUB.App>()
            .AddInteractiveServerRenderMode();
 
+        // --------- React public-portal pilot (React track, task 001) ---------
+        // Route ownership: React owns exactly these two paths; every other page stays Blazor.
+        // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
+        // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
+        var portalShell = new StaticFileOptions
+        {
+            OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+        };
+        foreach (var route in new[] { "/portal", "/portal/privacidade" })
+        {
+            app.MapFallbackToFile(route, "portal/index.html", portalShell)
+               .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
+        }
+
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
 
