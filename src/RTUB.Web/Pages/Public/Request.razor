@@ -4,14 +4,13 @@
 @using RTUB.Core.Enums
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
+@using RTUB.Application.DTOs
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using RequestEntity = RTUB.Core.Entities.Request
-@inject IRequestService RequestService
-@inject IRequestValidationService RequestValidationService
-@inject IEmailNotificationService EmailNotificationService
+@inject IPublicRequestService PublicRequestService
 @inject ILabelService LabelService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -331,68 +330,35 @@
         dateValidationError = string.Empty;
         endDateValidationError = string.Empty;
 
-        // Validate dates
-        if (request.PreferredDate.Date < DateTime.Today)
-        {
-            dateValidationError = "A data não pode ser no passado.";
-            isSubmitting = false;
-            return;
-        }
-
-        if (request.IsDateRange)
-        {
-            if (request.PreferredEndDate == null)
-            {
-                endDateValidationError = "A data de fim é obrigatória para intervalo de datas.";
-                isSubmitting = false;
-                return;
-            }
-
-            if (request.PreferredEndDate.Value.Date < DateTime.Today)
-            {
-                endDateValidationError = "A data de fim não pode ser no passado.";
-                isSubmitting = false;
-                return;
-            }
-
-            if (request.PreferredEndDate.Value.Date < request.PreferredDate.Date)
-            {
-                endDateValidationError = "A data de fim deve ser posterior ou igual à data de início.";
-                isSubmitting = false;
-                return;
-            }
-        }
-
         try
         {
-            var newRequest = await RequestService.CreateRequestAsync(
+            // Validation, persistence, the admin push and the RTUB email live in one shared service
+            // (also behind POST /api/public/requests for the React portal).
+            var errors = await PublicRequestService.SubmitAsync(new PublicRequestSubmission(
                 request.Name,
                 request.Email,
                 request.Phone,
                 request.EventType,
                 request.PreferredDate,
-                request.Location,
-                request.Message
-            );
-
-            if (request.PreferredEndDate.HasValue)
-            {
-                await RequestService.SetRequestDateRangeAsync(newRequest.Id, request.PreferredEndDate.Value);
-            }
-
-            // Send email notification to RTUB
-            await EmailNotificationService.SendNewRequestNotificationAsync(
-                newRequest.Id,
-                request.Name,
-                request.Email,
-                request.Phone,
-                request.EventType,
-                request.PreferredDate,
+                request.IsDateRange,
                 request.PreferredEndDate,
                 request.Location,
-                request.Message,
-                newRequest.CreatedAt
-            );
+                request.Message));
+
+            if (errors.Count > 0)
+            {
+                dateValidationError = errors.TryGetValue(nameof(RequestEntity.PreferredDate), out var dateErrors) ? dateErrors[0] : string.Empty;
+                endDateValidationError = errors.TryGetValue(nameof(RequestEntity.PreferredEndDate), out var endErrors) ? endErrors[0] : string.Empty;
+
+                // The EditForm already enforces the field annotations, so only the date rules are
+                // expected here; anything else is still surfaced rather than swallowed.
+                if (dateValidationError.Length == 0 && endDateValidationError.Length == 0)
+                {
+                    errorMessage = errors.Values.First()[0];
+                }
+
+                return;
+            }
 
             showSuccessMessage = true;
             request = new RequestEntity { PreferredDate = DateTime.Today.AddDays(1) };

@@ -15,6 +15,7 @@ using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
 using RTUB.Security;
+using RTUB.Web.Endpoints;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
@@ -58,6 +59,7 @@ public class Program
 
         // Per-client throttle on POST /auth/login only. Named policy, no global limiter.
         services.AddLoginRateLimiting(builder.Configuration);
+        services.AddPublicRequestRateLimiting(builder.Configuration);
 
         var myTunoScaling = builder.Configuration
             .GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName)
@@ -642,6 +644,9 @@ public class Program
 
         app.MapRazorComponents<RTUB.App>()
            .AddInteractiveServerRenderMode();
+
+        // --------- Public request API for the React portal (React track 003) ---------
+        app.MapPublicRequestEndpoints();
 
         // --------- React public-portal pilot (React track, task 001) ---------
         // Route ownership: React owns exactly these paths; every other page stays Blazor.

@@ -1,4 +1,4 @@
-# React public portal (React track, tasks 001–002)
+# React public portal (React track, tasks 001–003)
 
 A bounded pilot: a React public portal served by the existing ASP.NET Core host, next to the Blazor
 app, which keeps every other page. Not the start of a rewrite. Decision record:
@@ -45,8 +45,9 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
 | `/portal/privacy` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
 | `/portal/profile` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
-| `/portal/request` | **React** (002) | Request preparation; submission hands off to the Blazor `/request` (see Request migration). |
+| `/portal/request` | **React** (003) | The public performance request form (see Request). |
 | `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
+| `GET /api/public/antiforgery-token`, `POST /api/public/requests` | ASP.NET (003) | `Endpoints/PublicRequestEndpoints.cs`: request submission for React. |
 | `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
 | any other `/portal/*` | nobody | 404. POST/PUT to the two pages → 405. |
 | everything else | **Blazor** | Unchanged, including the public pages the portal links to: `/`, `/login`, `/request`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, `/profile`, sign-out, and every member/admin page. |
@@ -130,76 +131,59 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
 - Authorization is unchanged: nothing in React grants or hides access; every member page still
   enforces its own rules in Blazor.
 
-## Request migration (task 002: prepared, not migrated)
+## Request (task 003: migrated; Blazor `/request` kept)
 
-What `/request` does today, all inside `Pages/Public/Request.razor`: fields name, email, phone,
-event type (free text), preferred date, optional end date, location, message (limits in
-`RTUB.Core.Entities.Request`); date rules (not in the past, end ≥ start) inline and duplicated in
-`RequestValidationService`; `RequestService.CreateRequestAsync` saves and pushes a notification to
-every Admin and Owner; `SetRequestDateRangeAsync`; then `EmailNotificationService` emails RTUB.
-Anonymous, over the Blazor circuit, with **no rate limit, honeypot or other anti-spam**.
+One submission path: **`IPublicRequestService.SubmitAsync`** (Application layer), extracted verbatim
+from the old inline handler in `Pages/Public/Request.razor`: the `Request` entity's annotations, the
+date rules of `RequestValidationService` (same messages), `RequestService.CreateRequestAsync` (which
+still pushes to every Admin and Owner), `SetRequestDateRangeAsync` when an end date is given, then
+the RTUB email. Both the Blazor page (unchanged markup) and the API call it.
 
-Why React does not submit yet: an anonymous JSON endpoint is far easier to script than a circuit,
-and each submission fans out to every admin's phone and the RTUB inbox. Doing it safely needs a
-rate-limit policy, but the only one today (login) has a global rejection handler with a
-login-specific message - changing it touches login. And the orchestration lives in the component,
-so a second entry point would duplicate it instead of sharing it. `/portal/request` therefore
-prepares the visitor and links to `/request`; `RequestSubmission` in `api.ts` fixes the contract.
+**`POST /api/public/requests`** (anonymous, form-encoded; dates `yyyy-MM-dd`):
+- **CSRF:** form-bound, so the framework enforces antiforgery (400 before the handler without a
+  valid token); the React page first calls `GET /api/public/antiforgery-token` (no-store).
+- **Rate limit:** policy `public-requests`, 5 per client IP per 60 min (`PublicRequestRateLimit`
+  settings), fixed window, no queue; 429 as `application/problem+json` with its own message and
+  `Retry-After`. The shared `OnRejected` now answers per policy; the login text is unchanged.
+  Partitioned on `RemoteIpAddress` only - on Azure this relies on forwarded headers being enabled,
+  otherwise every visitor shares one budget: **check on DEV**.
+- **Honeypot:** hidden `website` field; if filled, the answer looks like success and nothing is
+  stored or sent.
+- **Validation:** server-side through the shared service; `400` validation problem with camelCase
+  field keys. Unparseable dates are field errors too. Body limit 32 KB.
+- **Failures:** logged; the client gets a generic `500` problem, never exception details.
+- Answers: `200 {submitted:true}` · `400` field errors · `400` without errors = token refused ·
+  `429` · `500`.
 
-Plan for the slice that migrates it:
-1. Move the orchestration into one application service (validation + create + date range + email),
-   and point the Blazor page at it with behaviour-preserving tests.
-2. `POST /api/requests`, form-bound so the framework enforces antiforgery (as `/auth/login` does),
-   token issued to the React page; a per-IP fixed-window policy with per-policy rejection text.
-3. Honeypot field and server-side limits; `400` with field errors, `429` when throttled.
-4. React form on `/portal/request` with the same rules; `/request` stays until the owner retires it.
-5. Tests: missing token → 400, throttled → 429, invalid → 400, success → one row, one email, one push fan-out.
+**React form** (`portal/src/Request.tsx`): the same fields and limits, client checks mirroring the
+server messages, event-type suggestions via `<datalist>` (free text, as today), optional date range,
+states for submitting, success (focused), field errors (focus to the first), refused token ("recarregue
+a página"), throttled and generic failure. Labels, `aria-invalid`/`aria-describedby`, no login needed.
 
-## Launch splash
+### Request field audit (EF entity = snapshot = real `app.db`, read-only check)
 
-Black screen with the RTUB emblem, as static markup in `index.html`, so it covers the only real wait
-(the bundle) and adds none. After React's first commit it lifts like a stage curtain (≈0.7 s) on the
-first load of a session - every PWA launch is a new session - and is removed instantly on later
-loads or under `prefers-reduced-motion`. A CSS failsafe uncovers the static fallback text after 10 s
-if the app never mounts. On phones the revealed hero shows only a small badge, since the splash has
-just shown the full emblem.
+| Field | Type / limit | Blazor | React | Notes |
+| --- | --- | --- | --- | --- |
+| Id | int PK | - | - | internal |
+| Name | text, required, ≤200 | yes | yes | |
+| Email | text, required, email, ≤200 | yes | yes | |
+| Phone | text, required, ≤20 | yes | yes | |
+| EventType | text, required, ≤100 | yes | yes | free text; real rows are free descriptions, so no enum |
+| PreferredDate | date, required, not past | yes | yes | |
+| PreferredEndDate | date?, ≥ start, not past | yes | yes | only with the range option |
+| IsDateRange | bool | toggle | toggle | stored `true` only through `SetDateRange`; Blazor stores an end date typed before switching the toggle off (kept as is) |
+| Location | text, required, ≤200 | yes | yes | |
+| Message | text **NOT NULL**, ≤2000 | yes | yes | empty is stored as `""` |
+| Status | int (Pending = 0) | - | - | internal, admin workflow |
+| CreatedAt/By, UpdatedAt/By | audit | - | - | internal; `CreatedBy` is null for public requests |
 
-## Real vs illustrative content
+**No migration.** Every field the form needs already exists with the right limits; the React DTO
+maps onto the existing entity. The real database was only read (schema, row count, max lengths): its
+3 requests fit every limit, and all dated migrations in the repo are applied except the two known
+never-run ones (STATE.md).
 
-| Content | Status |
-| --- | --- |
-| Agenda dates | **Illustrative**, labelled on the page. Real agenda: `/events`. |
-| Gallery tiles | **Illustrative artwork**, labelled. Real photos: `/gallery`. |
-| Discography (4 albums, years, track counts) | Fact, from `/music`. |
-| Rehearsal days and place, instruments, request event types | Fact, rewritten in the portal's own words. |
-| Órgãos Sociais bodies and positions | Fact (`Roles.razor`); holders deliberately not shown. |
-| Social links, contact email | Fact. |
-| Privacy Policy | Verbatim legal text (see Copy rule). |
-
-## Validate locally
-
-```bash
-cd src/RTUB.Web
-npm ci --ignore-scripts
-npm run check:portal
-npm run build:portal
-git status --porcelain wwwroot/portal   # must be empty after a rebuild of committed source
-```
-
-Then `dotnet test` for `RTUB.Integration.Tests` (route ownership) and `RTUB.Web.Tests` (privacy
-parity, copy originality, CSP/inline guards over the bundle).
-
-## CI change still needed (not done here)
-
-**CI • Build & Test** does not run Node. Add a job step, before the .NET tests:
-
-```bash
-cd src/RTUB.Web && npm ci --ignore-scripts && npm run check:portal && npm run build:portal \
-  && git diff --exit-code -- wwwroot/portal && test -z "$(git status --porcelain -- wwwroot/portal)"
-```
-
-That fails a PR whose committed bundle does not match its source. Deploy workflows need no change:
-they publish the committed `wwwroot/portal`.
+Still Blazor: `/request` itself (kept, same behaviour, now on the shared service), the admin
+`/requests` management page, and turning a request into an event.
 
 ## Install guidance (task 002)
 
@@ -224,8 +208,9 @@ footer link until a route exists.
 
 ## Next recommended slice
 
-Task 003: migrate request submission per the plan above. Then Órgãos Sociais (read-only public
-API), before Gallery, Music and Events.
+Task 004: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
+then Gallery, Music and Events. Retiring Blazor `/request` (a redirect to `/portal/request`) is a
+separate, owner-approved step once the React form has run on DEV.
 
 ## Next steps (outside this pilot)
 

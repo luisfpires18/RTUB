@@ -6,14 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-09-30_
 
 ## Phase
-**Open: `feat/002/react-auth-profile-request-foundation`** (React track, task 002; from `dev` @
-`00835af8`, where task 001 is merged; committed locally, not pushed). Adds `GET /api/account/me`,
-React `/portal/profile` (members-only notice) and `/portal/request` (request prepared, submission still
-Blazor `/request`), an install-the-app section, a compact "Quem somos", a FITAB highlight, a "Novidades · Em breve"
-line (News plan: future `/portal/news`, docs only), and English routes/code names.
-Route ownership, session rules, request migration plan and the production-release gate for the
-preview banner: `docs/react-portal-pilot.md`. Next: review, then PR → `dev`; task 003 = request
-submission.
+**Open: `feat/003/react-public-request-workflow`** (React track, task 003; from `dev` @ `e5eac4e5`,
+committed locally, not pushed). `/portal/request` is now the real React request form, posting to
+`POST /api/public/requests` (antiforgery, own per-IP rate limit, honeypot, server validation) through
+the shared `IPublicRequestService`, which Blazor `/request` also uses now. No migration. Details and
+the Request field audit: `docs/react-portal-pilot.md`. Next: review, PR → `dev`, then check on DEV
+that the rate limit sees real client IPs.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -136,12 +134,14 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
-Raised by React track 001-002 (portal pilot):
+Raised by React track 001-003 (portal pilot):
 - CI • Build & Test has no Node step for the portal bundle (command in `docs/react-portal-pilot.md`).
 - `/portal`'s preview banner and illustrative content must be removed, flagged or accepted before the
   next `dev → master` release.
-- `/request` has no rate limit or anti-spam; each anonymous submission pushes to every Admin/Owner and
-  emails RTUB (task 003 plan in `docs/react-portal-pilot.md`).
+- Blazor `/request` still has no rate limit or honeypot (only the React API does); retire or protect it.
+- `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
+- Blazor `/request` stores an end date typed before the range toggle was switched off (kept as is).
+- Real `app.db`: 8 non-dated IDs in `__EFMigrationsHistory` (seen read-only in task 003; unexplained).
 - The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
 - Windows-only local test noise: an ignored `src/RTUB.Web/publish/` output, when present, fails 5 guard
   tests that sweep `src/` on disk; `VersionTests` fails on the CRLF working copy of `VERSION`
