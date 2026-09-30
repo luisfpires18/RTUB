@@ -45,6 +45,15 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/wwwroot/offline.html` | Offline fallback page. |
 | `docs/pwa-practices.md` | Authoritative PWA guidance. |
 
+## React public-portal pilot
+
+| Path | Responsibility |
+| --- | --- |
+| `src/RTUB.Web/portal/` | React 19 + Vite source of the public portal (`/portal`, `/portal/privacidade`). Not published. |
+| `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
+| `src/RTUB.Web/Program.cs` (`/portal` mapping) | Route ownership: the only paths React owns. |
+| `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
+
 ## Push notifications
 
 | Path | Responsibility |

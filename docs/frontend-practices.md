@@ -2,6 +2,8 @@
 
 This document outlines frontend development best practices for the RTUB project, focusing on Blazor/Razor components, CSS, and PWA development.
 
+The React public-portal pilot (`src/RTUB.Web/portal/`, routes `/portal*`) has its own constraints: see `docs/react-portal-pilot.md`.
+
 ## Table of Contents
 - [Component Design](#component-design)
 - [Layout & Styling](#layout--styling)

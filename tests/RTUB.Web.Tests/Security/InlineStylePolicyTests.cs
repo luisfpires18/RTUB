@@ -315,7 +315,11 @@ public class InlineStylePolicyTests
     {
         var normalized = path.Replace('\\', '/');
 
+        // wwwroot/portal/assets/vendor-react-*.js is third-party React, split out by
+        // portal/vite.config.ts - the portal's counterpart of wwwroot/lib. Its <style precedence>
+        // hoisting path is never used by the portal. The portal's own chunks stay in the sweep.
         return normalized.Contains("/wwwroot/lib/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/wwwroot/portal/assets/vendor-", StringComparison.OrdinalIgnoreCase)
             || normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase)
             || normalized.Contains("/bin/", StringComparison.OrdinalIgnoreCase)
             || normalized.Contains("/node_modules/", StringComparison.OrdinalIgnoreCase);

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <title>RTUB · Real Tuna Universitária de Bragança</title>
+    <meta name="description" content="Portal público da RTUB: próximas atuações, discografia, galeria, órgãos sociais e pedidos de atuação." />
+    <meta name="theme-color" content="#000000" />
+    <!-- Same manifest, icons and Apple meta as App.razor: one installed app identity (manifest id "/"). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" type="image/png" />
+    <meta name="apple-mobile-web-app-title" content="RTUB" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- The existing, single service-worker registration path (and its update toast). -->
+    <link rel="stylesheet" href="/css/3-components/sw-update-toast.css" />
+    <script src="/js/sw-register.js" defer></script>
+    <script type="module" crossorigin src="/portal/assets/index-BPqSHo34.js"></script>
+    <link rel="modulepreload" crossorigin href="/portal/assets/vendor-react-CRpCRhFI.js">
+    <link rel="stylesheet" crossorigin href="/portal/assets/index-DFbBu_WT.css">
+  </head>
+  <body>
+    <!-- Launch splash: visible from first paint, lifted by React once the app has rendered. -->
+    <div id="splash" class="splash" aria-hidden="true">
+      <img class="splash__logo" src="/icons/rtub-logo-512.png" alt="" width="176" height="176" />
+    </div>
+    <div id="root">
+      <p class="boot">
+        A abrir o portal da RTUB… Se não abrir, <a href="/portal">recarrega a página</a> ou
+        <a href="/">abre o site atual</a>.
+      </p>
+    </div>
+    <noscript>
+      <p class="boot">O portal precisa de JavaScript. <a href="/">Abrir o site atual</a>.</p>
+    </noscript>
+  </body>
+</html>

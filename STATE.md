@@ -3,9 +3,17 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-23_
+_Last updated: 2026-09-30_
 
 ## Phase
+**Open: `feat/001/react-portal-pilot`** (React track, task 001; from `dev` @ `95441bd6`, committed locally,
+not pushed). React 19 public-portal pilot at `/portal` and `/portal/privacidade` inside the existing
+host; Blazor keeps every other route. No API, schema or business-logic change. Supersedes the local
+draft `feat/039/react-portal-pilot` (kept only as reference). Route ownership, copy rule, illustrative
+content, the production-release gate for the preview banner and the missing CI step:
+`docs/react-portal-pilot.md`; decision: ADR 0002 (Proposed). Next: review, then PR → `dev` and a DEV
+check on phones (installed PWA included).
+
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
 goes live only through the owner actions below, then a `dev → master` merge.
@@ -127,6 +135,19 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 001 (portal pilot):
+- CI • Build & Test has no Node step for the portal bundle (command in `docs/react-portal-pilot.md`).
+- `/portal`'s preview banner and illustrative content must be removed, flagged or accepted before the
+  next `dev → master` release.
+- The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
+- Windows-only local test noise: an ignored `src/RTUB.Web/publish/` output, when present, fails 5 guard
+  tests that sweep `src/` on disk; `VersionTests` fails on the CRLF working copy of `VERSION`
+  (`core.autocrlf=true`). CI is unaffected.
+- `MessagesHubTests.SendTypingStarted_WhenUserNotParticipant_DoesNotNotify` fails when its class runs
+  from a fresh checkout and passes alone (order-dependent; reproduced at `95441bd6`).
+- A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/`,
+  `/events`, `/music`, `/gallery`, `/roles`); the integration tests' placeholder values avoid it.
+
 Raised by fix/030 (iOS media association):
 - `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and
   `apple-mobile-web-app-status-bar-style` from `App.razor` (identical values, harmless).

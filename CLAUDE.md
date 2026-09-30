@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite public-portal pilot (`/portal` only) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
@@ -31,7 +31,7 @@ Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (service
 - `dev` = GitHub default + integration branch. `feat`/`fix`/`chore` branches merge into `dev` → Deploy • DEV.
 - `master` = production. A `dev → master` PR (merged with a **merge commit**) is a release → Deploy • PROD. Root `VERSION` (SemVer) must go up.
 - After **every** production release, and after every `hotfix/*` → `master`, merge `master` back into `dev`, then bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → 2.0.1, or 2.1.0/3.0.0 if planned) — never leave `dev` on a released number.
-- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence.
+- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence. Exception: the React migration track has its own sequence from `001` (`feat/001/react-portal-pilot`).
 - Never push, merge, open PRs, touch remotes, delete branches, or force-push without explicit authorization in the current request.
 - Never discard or reset pre-existing working-tree changes.
 
@@ -53,6 +53,7 @@ Run only what the change can break.
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
 | Blazor / Razor / CSS standards | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
+| React public-portal pilot (route ownership) | `docs/react-portal-pilot.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
