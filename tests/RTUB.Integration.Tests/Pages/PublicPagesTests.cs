@@ -21,42 +21,6 @@ public class PublicPagesTests : IntegrationTestBase
         });
     }
 
-    #region Requests Page Tests
-
-    [Fact]
-    public async Task RequestsPage_ReturnsSuccessStatusCode()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/request");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task RequestsPage_ContainsExpectedContent()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/request");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("Pedido", "page should display Requests/Pedidos");
-    }
-
-    [Fact]
-    public async Task RequestsPage_HasCorrectContentType()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/request");
-
-        // Assert
-        response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
-    }
-
-    #endregion
-
     #region Roles Page Tests
 
     [Fact]
@@ -154,7 +118,7 @@ public class PublicPagesTests : IntegrationTestBase
         var homeResponse = await _client.GetAsync("/");
 
         // Act - Navigate to each public page
-        var requestsResponse = await _client.GetAsync("/request");
+        var requestsResponse = await _client.GetAsync("/portal/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
@@ -167,7 +131,7 @@ public class PublicPagesTests : IntegrationTestBase
     public async Task PublicPages_NavigationBetweenPages_Works()
     {
         // Arrange & Act - Navigate through public pages in sequence
-        var requestsResponse = await _client.GetAsync("/request");
+        var requestsResponse = await _client.GetAsync("/portal/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert

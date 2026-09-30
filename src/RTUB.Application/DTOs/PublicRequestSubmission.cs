@@ -1,8 +1,8 @@
 namespace RTUB.Application.DTOs;
 
 /// <summary>
-/// A performance request from the public, as both the Blazor /request page and the React
-/// POST /api/public/requests hand it to <see cref="Interfaces.IPublicRequestService"/>.
+/// A performance request from the public, as the React form's POST /api/public/requests hands it
+/// to <see cref="Interfaces.IPublicRequestService"/>.
 /// Maps onto the existing <see cref="Core.Entities.Request"/>; no persisted field is added.
 /// </summary>
 public sealed record PublicRequestSubmission(

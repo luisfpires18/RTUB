@@ -12,8 +12,8 @@ namespace RTUB.Web.Endpoints;
 /// <summary>
 /// Public request submission for the React portal (React track 003, docs/react-portal-pilot.md).
 /// Anonymous by design; protected by antiforgery (form-bound, like POST /auth/login), a per-IP rate
-/// limit of its own, a honeypot field and the same server-side validation as the Blazor /request
-/// page, through the shared <see cref="IPublicRequestService"/>.
+/// limit of its own, a honeypot field and server-side validation through
+/// <see cref="IPublicRequestService"/>. The only public request submission path.
 /// </summary>
 public static class PublicRequestEndpoints
 {

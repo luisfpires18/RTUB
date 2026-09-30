@@ -34,23 +34,11 @@ public class DataWorkflowTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task RequestsPage_IsAccessibleAndFunctional()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/request");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeNullOrEmpty();
-    }
-
-    [Fact]
     public async Task MultiplePageLoads_DoNotCauseMemoryLeak()
     {
         // Test that multiple page loads don't cause issues
         // Arrange
-        var urls = new[] { "/", "/music", "/request" };
+        var urls = new[] { "/", "/music", "/portal/request" };
 
         // Act - Load each page multiple times
         foreach (var url in urls)
@@ -116,7 +104,7 @@ public class DataWorkflowTests : IntegrationTestBase
         {
             "/",
             "/music",
-            "/request",
+            "/portal/request",
             "/roles"
         };
 

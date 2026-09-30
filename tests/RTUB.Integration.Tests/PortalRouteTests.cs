@@ -78,7 +78,6 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/")]
     [InlineData("/privacy")]
     [InlineData("/login")]
-    [InlineData("/request")]
     [InlineData("/events")]
     [InlineData("/music")]
     [InlineData("/gallery")]
@@ -92,5 +91,44 @@ public class PortalRouteTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync()).Should().NotContain("id=\"splash\"",
             "{0} is owned by Blazor during the pilot", path);
+    }
+
+    // ---------- retired Blazor /request (React track 003) ----------
+
+    [Theory]
+    [InlineData("/request", "/portal/request")]
+    [InlineData("/request?utm_source=cartaz", "/portal/request?utm_source=cartaz")]
+    public async Task RetiredBlazorRequest_RedirectsToTheReactForm(string path, string target)
+    {
+        var client = Factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Be(target);
+    }
+
+    [Fact]
+    public void NoBlazorComponent_OwnsTheRetiredRequestRoute()
+    {
+        var owners = typeof(RTUB.App).Assembly.GetTypes()
+            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
+                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                .Select(r => (Type: t, r.Template)))
+            .Where(r => r.Template.Equals("/request", StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Type.FullName)
+            .ToList();
+
+        owners.Should().BeEmpty("React /portal/request is the only public request form");
+    }
+
+    [Fact]
+    public async Task RetiredBlazorRequest_HasNoSubmissionPathLeft()
+    {
+        var client = Factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsync("/request", new FormUrlEncodedContent(new Dictionary<string, string> { ["Name"] = "x" }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed, "only the redirect (GET/HEAD) exists at /request");
     }
 }

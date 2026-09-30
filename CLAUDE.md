@@ -31,7 +31,7 @@ Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (service
 - `dev` = GitHub default + integration branch. `feat`/`fix`/`chore` branches merge into `dev` → Deploy • DEV.
 - `master` = production. A `dev → master` PR (merged with a **merge commit**) is a release → Deploy • PROD. Root `VERSION` (SemVer) must go up.
 - After **every** production release, and after every `hotfix/*` → `master`, merge `master` back into `dev`, then bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → 2.0.1, or 2.1.0/3.0.0 if planned) — never leave `dev` on a released number.
-- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence. Exception: the React migration track has its own sequence from `001` (`feat/001/react-portal-pilot`).
+- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence. Exception: the React track has its own sequence from `001` (`feat/001/react-portal-pilot`); once a module's React version works, its legacy Blazor UI path is retired (`docs/react-portal-pilot.md`).
 - Never push, merge, open PRs, touch remotes, delete branches, or force-push without explicit authorization in the current request.
 - Never discard or reset pre-existing working-tree changes.
 

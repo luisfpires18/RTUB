@@ -3,8 +3,8 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The one submission path for public performance requests (Blazor /request and React
-/// /portal/request): validation, persistence, the admin push and the email to RTUB.
+/// The one submission path for public performance requests (React /portal/request via
+/// POST /api/public/requests): validation, persistence, the admin push and the email to RTUB.
 /// </summary>
 public interface IPublicRequestService
 {

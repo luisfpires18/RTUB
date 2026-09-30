@@ -6,8 +6,8 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Extracted verbatim from the former inline handler in Pages/Public/Request.razor (React track
-/// 003): the entity's data annotations (what the page's EditForm enforced), the date rules of
+/// Extracted verbatim from the handler of the retired Blazor /request page (React track 003): the
+/// entity's data annotations (what that page's EditForm enforced), the date rules of
 /// <see cref="IRequestValidationService"/>, then create, optional date range and the RTUB email.
 /// </summary>
 public class PublicRequestService : IPublicRequestService
@@ -76,8 +76,7 @@ public class PublicRequestService : IPublicRequestService
             .GroupBy(e => e.member)
             .ToDictionary(g => g.Key, g => g.Select(e => e.message).ToArray());
 
-        // The Blazor page only gets here once its EditForm passed the same annotations; the API gets
-        // every error in one answer.
+        // Every error in one answer: field annotations and date rules together.
         var (dateError, endDateError) = _validationService.ValidateRequestDates(request);
         if (dateError.Length > 0)
         {

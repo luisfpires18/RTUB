@@ -8,7 +8,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Tests.Services;
 
 /// <summary>
-/// The shared public request submission (React track 003): same rules and side effects the Blazor
+/// The public request submission (React track 003): the rules and side effects the retired Blazor
 /// /request page had inline - annotations, date rules, create, optional range, one RTUB email.
 /// </summary>
 public class PublicRequestServiceTests

@@ -4,8 +4,14 @@ A bounded pilot: a React public portal served by the existing ASP.NET Core host,
 app, which keeps every other page. Not the start of a rewrite. Decision record:
 `docs/architecture/adr/0002-react-public-portal-pilot.md`.
 
-The React migration track numbers its own tasks from **001** (`feat/001/react-portal-pilot`),
-separately from the repository's global unit sequence.
+The React track numbers its own tasks from **001** (`feat/001/react-portal-pilot`), separately
+from the repository's global unit sequence.
+
+**Replacement rule.** Each module moves to React + API; once its React version works, the legacy
+Blazor UI path for that module is retired (removed, with a redirect so old links keep working).
+DEV runs hybrid meanwhile; the `master`/PROD cutover happens later, once `dev` no longer depends on
+Blazor UI pages. Wording: "migration" means EF Core/database migrations only - never in UI, routes,
+feature names, page titles or user-facing copy.
 
 ## Audience
 
@@ -45,12 +51,13 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
 | `/portal/privacy` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
 | `/portal/profile` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
-| `/portal/request` | **React** (003) | The public performance request form (see Request). |
+| `/portal/request` | **React** (003) | The only public performance request form (see Request). |
+| `/request` | redirect (003) | Retired Blazor page; `302` → `/portal/request`, query string kept. GET/HEAD only. |
 | `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token`, `POST /api/public/requests` | ASP.NET (003) | `Endpoints/PublicRequestEndpoints.cs`: request submission for React. |
 | `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
 | any other `/portal/*` | nobody | 404. POST/PUT to the two pages → 405. |
-| everything else | **Blazor** | Unchanged, including the public pages the portal links to: `/`, `/login`, `/request`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, `/profile`, sign-out, and every member/admin page. |
+| everything else | **Blazor** | Unchanged for now: `/`, `/login`, `/events`, `/music`, `/gallery`, `/roles`, `/privacy`, `/profile`, sign-out, the admin `/requests` page and every other member/admin page. |
 
 The shell `index.html` is served `Cache-Control: no-cache` so a deploy is picked up at once. It
 carries the enforced CSP like every HTML document. Nothing in Blazor links to `/portal` yet; the
@@ -131,13 +138,16 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
 - Authorization is unchanged: nothing in React grants or hides access; every member page still
   enforces its own rules in Blazor.
 
-## Request (task 003: migrated; Blazor `/request` kept)
+## Request (task 003: React replacement; legacy Blazor page retired)
 
-One submission path: **`IPublicRequestService.SubmitAsync`** (Application layer), extracted verbatim
-from the old inline handler in `Pages/Public/Request.razor`: the `Request` entity's annotations, the
-date rules of `RequestValidationService` (same messages), `RequestService.CreateRequestAsync` (which
-still pushes to every Admin and Owner), `SetRequestDateRangeAsync` when an end date is given, then
-the RTUB email. Both the Blazor page (unchanged markup) and the API call it.
+React `/portal/request` is **the only public request form**. The legacy Blazor `/request` page
+(`Pages/Public/Request.razor`) and its form were removed; `/request` now redirects to
+`/portal/request` (query string kept, `302` while DEV is hybrid), and the Blazor navbar's "Pedidos"
+link points at the React form directly. There is one submission path:
+**`IPublicRequestService.SubmitAsync`** (Application layer), extracted verbatim from the retired
+page's handler: the `Request` entity's annotations, the date rules of `RequestValidationService`
+(same messages), `RequestService.CreateRequestAsync` (which still pushes to every Admin and Owner),
+`SetRequestDateRangeAsync` when an end date is given, then the RTUB email. Only the API calls it.
 
 **`POST /api/public/requests`** (anonymous, form-encoded; dates `yyyy-MM-dd`):
 - **CSRF:** form-bound, so the framework enforces antiforgery (400 before the handler without a
@@ -171,19 +181,20 @@ a página"), throttled and generic failure. Labels, `aria-invalid`/`aria-describ
 | EventType | text, required, ≤100 | yes | yes | free text; real rows are free descriptions, so no enum |
 | PreferredDate | date, required, not past | yes | yes | |
 | PreferredEndDate | date?, ≥ start, not past | yes | yes | only with the range option |
-| IsDateRange | bool | toggle | toggle | stored `true` only through `SetDateRange`; Blazor stores an end date typed before switching the toggle off (kept as is) |
+| IsDateRange | bool | toggle | toggle | stored `true` only through `SetDateRange`; the API sends an end date only with the range option |
 | Location | text, required, ≤200 | yes | yes | |
 | Message | text **NOT NULL**, ≤2000 | yes | yes | empty is stored as `""` |
 | Status | int (Pending = 0) | - | - | internal, admin workflow |
 | CreatedAt/By, UpdatedAt/By | audit | - | - | internal; `CreatedBy` is null for public requests |
 
-**No migration.** Every field the form needs already exists with the right limits; the React DTO
-maps onto the existing entity. The real database was only read (schema, row count, max lengths): its
+**No database migration.** The existing `Requests` table and `Request` entity were reused as they
+are; the React DTO maps onto them. Pinned by `MigrationChainTests` (no pending model changes; the
+`Requests` columns unchanged). The real database was only read (schema, row count, max lengths): its
 3 requests fit every limit, and all dated migrations in the repo are applied except the two known
 never-run ones (STATE.md).
 
-Still Blazor: `/request` itself (kept, same behaviour, now on the shared service), the admin
-`/requests` management page, and turning a request into an event.
+Still Blazor, unchanged: the admin `/requests` management page and turning a request into an
+event.
 
 ## Install guidance (task 002)
 
@@ -209,8 +220,7 @@ footer link until a route exists.
 ## Next recommended slice
 
 Task 004: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
-then Gallery, Music and Events. Retiring Blazor `/request` (a redirect to `/portal/request`) is a
-separate, owner-approved step once the React form has run on DEV.
+then Gallery, Music and Events - each retiring its legacy Blazor page once the React one works.
 
 ## Next steps (outside this pilot)
 

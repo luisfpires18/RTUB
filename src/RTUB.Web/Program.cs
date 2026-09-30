@@ -648,6 +648,11 @@ public class Program
         // --------- Public request API for the React portal (React track 003) ---------
         app.MapPublicRequestEndpoints();
 
+        // The Blazor /request page was retired: React /portal/request is the only public request
+        // form. Old links (and bookmarks) land on it. Temporary (302) during the hybrid DEV phase.
+        app.MapGet("/request", (HttpContext context) =>
+            Results.Redirect("/portal/request" + context.Request.QueryString));
+
         // --------- React public-portal pilot (React track, task 001) ---------
         // Route ownership: React owns exactly these paths; every other page stays Blazor.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
