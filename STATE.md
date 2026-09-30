@@ -3,16 +3,15 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-09-29_
+_Last updated: 2026-09-30_
 
 ## Phase
 **2.0.2 development on `dev`.** Unit 030 (production release pipeline) is **complete**. UI refactor
-program: 032-036 merged. **037 (Task 006, forms, dialogs and data safety: unsaved-change guard on
-dialogs and page forms, Back closes the top dialog, busy/failure handling on saves, shared failure
-nets in ConfirmDialog/CrudModalManager, PWA update held while unsaved, working reconnect UI)
-complete on `chore/037/ui-form-data-safety`, not yet merged.** Fixes two live defects: the shared
-`SearchBar` could end the whole server process (async timer callback), and the reconnect modal was
-never shown. Contract: `docs/design/RTUB_UI_REFACTOR.md` sections 20-24.
+program: 032-037 merged. **038 (Task 007, primary workflow visual polish: Events, Rehearsals and
+Members redesigned on one card contract - date tile, labelled Vou/Não vou toggle, quiet count chips,
+management actions in a "⋮" menu, directory identity rows; Profile header aligned) complete on
+`chore/038/ui-primary-workflows`, not yet merged.** Contract: `docs/design/RTUB_UI_REFACTOR.md`
+sections 20-25.
 
 ## Where things are
 | Topic | Doc |
@@ -50,6 +49,11 @@ SHA-256 matches `src/RTUB.Web/wwwroot/.well-known/assetlinks.json`. Production b
 releases. Regenerated with PWABuilder - no RTUB code change.
 
 ## Deferred - recorded, not fixed
+Raised by 038 (detail: `docs/design/RTUB_UI_REFACTOR.md` 25.9):
+- Month abbreviations on cards follow the server culture ("Oct", "Sept") - owner decision 18.4.
+- `PositionBadge` is a fake button (`role="button"`, `tabindex="0"`, no behavior) on other pages.
+- Vacuous tests asserting their own literals: `ProfileCSS_OrganizedInSeparateFile`, `MembersPageGridTests`.
+
 Raised by 037 (detail: `docs/design/RTUB_UI_REFACTOR.md` 24.14):
 - **Meetings search is broken in every environment:** `MeetingService.GetAllMeetingsAsync` uses
   `Contains(..., StringComparison.OrdinalIgnoreCase)`, which EF cannot translate for SQLite. Until
@@ -128,9 +132,9 @@ Carried (one line each; detail in git history):
   delete when convenient.
 
 ## Next
-- UI refactor Task 007 (primary workflow visual polish: Events, Rehearsals, Members, Profile,
-  Leaderboard, Home - roadmap Phase 5) per `docs/design/RTUB_UI_REFACTOR.md` sections 17 and 24;
-  owner decisions in its section 18 (18.3 draft persistence is still open).
+- UI refactor Task 008 (management and dense screens: Meetings, Finance, Logistics, Requests,
+  Inventory, Shop...) on the 038 card contract (`docs/design/RTUB_UI_REFACTOR.md` 25.2); owner
+  decisions in its section 18 (18.3 draft persistence and 18.4 pt-PT dates still open).
 - The next normal merge to `dev` is the first real **Deploy • DEV** run on F1: check it is green and
   `/api/version` shows the new `2.0.2-dev.<run>` and commit. No commit just to test it.
 - Check the scheduled PROD backup stays fresh: `rtub-db/database/current.db` Last-Modified is today

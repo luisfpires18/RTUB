@@ -410,12 +410,24 @@ th:hover {
     margin-left: auto;
 }
 
+/* Phones: search on its own row, filters two per row (one alone fills the row) */
 @media (max-width: 575.98px) {
-    .filter-toolbar > .search-bar-container,
-    .filter-toolbar > .filter-dropdown {
+    .filter-toolbar > .search-bar-container {
         flex-basis: 100%;
         max-width: none;
         margin-left: 0;
+    }
+
+    .filter-toolbar > .filter-dropdown {
+        flex: 1 1 calc(50% - 0.375rem);
+        min-width: 0;
+        max-width: none;
+        margin-left: 0;
+    }
+
+    /* Half-width: the decorative funnel gives its room to the value */
+    .filter-toolbar > .filter-dropdown .filter-dropdown__icon {
+        display: none;
     }
 }
 

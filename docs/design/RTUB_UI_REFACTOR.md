@@ -1864,3 +1864,141 @@ existing small spinner; failures use the 036 toast/Alert; no new visual language
 - Dialogs not guarded (listed in 24.1) and forms on untargeted pages (Songs, Albums, Gallery,
   Naipes, Shop reservation, Inventory, EventContacts, Leaderboard comments, discussion composers).
 - Labels B/C/D (24.11); ConfirmDialog still used for some info dialogs (22.11).
+
+---
+
+## 25. Implemented: Primary Workflow Visual Polish (unit 038, Task 007)
+
+The first visible redesign phase (roadmap Phase 5, first half), on
+`chore/038/ui-primary-workflows`: Events, Rehearsals, Members, and the Profile header for
+coherence. Behavior, routes, authorization, callbacks and available actions are unchanged; every
+card keeps its parameter API. Sections 1-24 stay as recorded.
+
+### 25.1 Before (V, R; 1440/1024/820/390/360, Owner and Tuno, scratch DB)
+
+- **Events:** half of each card was placeholder art (a 200px calendar icon) or a bordered image
+  box inside a bordered card; 7-11 equally weighted square icon buttons (edit, delete, push, email,
+  cancel overlaid on the image; details, participants, repertoire, discussion; unlabelled green and
+  red icons for the member's own answer). The answer lived in two places (a "VOU"/"NÃO VOU" pill on
+  the image and the icon pair). At 820 the count row scrolled sideways inside the card.
+- **Rehearsals:** ~310px cards led by a 100px decorative music-note header carrying four admin
+  icons (red cancel, white bell, white edit, red delete) on every card; date/time/place as equal
+  rows; unlabelled green/red attendance icons that shrank to 24-30px when the other was chosen;
+  "Próximos Ensaios" as `h3` straight under the `h1`.
+- **Members:** ~330px centered cards with edit/delete floating over the photo, a full-width purple
+  "Ver Detalhes" on every card (93 identical primary buttons), "Online/Offline" on every card, a
+  category pill plus a position pill; broken photos spilled their alt text over the card. Two per
+  row on phones, 5 per row at 1440.
+- **Profile:** a centered gradient card with a 150px avatar - a different visual language from the
+  directory.
+
+### 25.2 Card and list contract (`3-components/item-cards.css`)
+
+- **One surface:** `item-card` = `--rtub-surface`, 1px `--rtub-border`, `--rtub-radius-lg`, no
+  shadow, no hover lift (a transform would trap the menu under the next card); hover/focus-within
+  tints the border purple. No box inside the card: groups are separated by spacing and one rule
+  above the footer.
+- **Order:** optional image -> date tile + title + when/where -> notes -> footer (secondary
+  actions, then the member's own answer). Title `h3` under a section `h2` (with a muted count); the
+  card is an `article` named by its title.
+- **Metadata:** the "when" line is stronger (`--rtub-text`, 500) than place and notes
+  (`--rtub-text-muted`); one accent icon per line, text wraps beside it, never under it.
+- **Status:** one uppercase word with an icon above the title (`Cancelado`, `Próximo ensaio`,
+  `Fui`, `Não fui`, `Presença pendente`, `Expulso`) - never color alone, never a pill.
+- **Actions:**
+  - *Member action* - `participation`: a labelled two-option toggle (`Vou` / `Não vou`) with
+    `aria-pressed`, 44px high, full card width. The chosen answer is tinted with a colored border
+    and a filled icon; the other steps back. Clicking the chosen answer edits it (same callbacks and
+    titles as before).
+  - *Secondary* - `item-chip`: quiet 36px (44px on touch) outlined chips; "Detalhes" as the accent
+    text chip, counts as icon + number named "Participantes (12)" etc.
+  - *Management* - `CardMenu` / `CardMenuItem` (new, Shared): a "⋮" trigger named "Gerir: {item}"
+    opening the Bootstrap dropdown already loaded for the navbar (arrow keys, Escape, focus back to
+    the trigger). Destructive items (cancel, expel, delete) are red, after a divider, last. Only
+    rendered when the caller grants an action; the menu never decides authorization.
+- **Grids:** `item-grid` columns come from the width (`auto-fill, minmax(min(100%, 17-19rem))`):
+  4 per row at 1440, 3 at 1024, 2 at 820, 1 on phones. Event cards keep their own height
+  (`align-items: start`) because image and no-image cards mix in one row.
+
+### 25.3 Events
+
+- Image only when there is one: 16:9 crop (2:1 on phones), top of the card, `alt` = event name; a
+  failing image removes the media area instead of showing a broken box. No placeholder art.
+- `DateTile` (new, Shared) leads: month / day, year when not the current one or past; muted for
+  past/cancelled. The date text line keeps its existing format and the HOJE/AMANHÃ badge.
+- Footer: Detalhes, Participantes, Repertório, Discussão (+ Prémios for festivals and Vídeos on
+  past events); upcoming: the Vou/Não vou toggle; past + attended: "Fui" status and a quiet red
+  "Remover inscrição" chip. Cancelled: status + Detalhes only.
+- Menu (admin): Editar; Notificar por push / por email (upcoming, not cancelled); Reativar
+  (upcoming cancelled); Cancelar (`ShowCancelButton`); Eliminar (`ShowDeleteButton`). Same
+  conditions as the old overlay buttons.
+- Page: "Próximas atuações" `h2` with count; "Atuações anteriores" `h2` shares its line with its
+  own search on desktop (search below on phones). The `hr` divider is gone.
+
+### 25.4 Rehearsals
+
+- Date tile + weekday as the title (full date read by screen readers) + time + place; Tema /
+  Descrição as a small definition list (3 lines max).
+- The next rehearsal (earliest upcoming, not cancelled - picked by date in the page, presentation
+  only) carries "Próximo ensaio", a purple border and a faint purple tint. Past and cancelled cards
+  sit on the page background and recede.
+- The attendance toggle keeps the four states: none, pending (`Vou` + "pendente", amber),
+  approved (`Vou`, green), not going (`Não vou`, red), with the same callbacks per state as before.
+  Past pending: "Presença pendente" status + "Remover". Admin pending-approval reminder: amber
+  clock chip.
+- Statistics and "Minhas Presenças" stay page actions, out of the list.
+
+### 25.5 Members and Profile
+
+- Directory entry = compact identity row: 64px photo (52px on phones), nome de tuna as the title,
+  real name, category pill (the only pill) + current position as accent text, instrument, and a
+  green dot + "Online" only when online (the "Offline" label on every card was dropped; no mark
+  means offline).
+- The name is the card's link: a real `button` whose hit area covers the card (stretched
+  `::after`); the full-width "Ver Detalhes" button and the `tabindex` div are gone.
+- Broken photos use the existing `avatarFallback.js` (`data-avatar-fallback`), like the rest of the
+  app.
+- Menu: Editar; Definir Alcunha (leitões); Reativar / Expulsar; Eliminar last.
+- Loading uses the shared `LoadingSpinner` instead of a local skeleton grid.
+- **Profile:** the header uses the same identity layout one size up (120px photo beside name, real
+  name, category, positions as text, the two actions as quiet outlines); centered on phones; no
+  gradient. The rest of Profile is unchanged.
+
+### 25.6 Toolbar (every `FilterToolbar` page)
+
+Phones: search on its own row, filter dropdowns two per row (one alone fills the row), their
+decorative funnel hidden so the value fits. Desktop unchanged.
+
+### 25.7 Retired
+
+`3-components/rehearsal-card.css` (only RehearsalCard used it; the DateBadge rules moved to
+`item-cards.css`, flat instead of gradient), the old EventCard/RehearsalCard scoped styles and the
+Profile header rules in `profile-components.css`. Kept on purpose: global `.event-card`,
+`.event-buttons-container`, `.event-icon-btn` (BetCard, MeetingCard, participation dialogs) and
+`avatar-card.css` (UserCard) - their pages belong to Tasks 008/009.
+
+### 25.8 Validation performed
+
+- **Automated:** the CI command set (16.1). EventCard, RehearsalCard and AvatarCard tests rewritten
+  from class strings to behavior (accessible names, `aria-pressed`, menu contents and order per
+  permission and state, callbacks); one Rehearsals page test moved to the section heading.
+- **Browser (Playwright/Chromium, scratch DB, Owner + Tuno):** before/after at
+  1440/1024/820/390/360 for all four pages (0 horizontal overflow); 42 workflow checks: menu
+  contents per role and state, edit/create/details/statistics/attendances dialogs, delete
+  confirmation cancelled, keyboard menu (Enter, ArrowDown, Escape + focus return), fiscal-year and
+  type filters, past-event search, member Vou -> confirm -> pressed (event) and pending
+  (rehearsal), members search, category filter, whole-card open, no menus for the Tuno, no console
+  errors. At 390 for both roles: one `h1`, no heading skips, no unnamed buttons, no target under
+  36px. Event images checked with a local image (the local CSP blocks R2 media).
+- **Not verified:** real devices, screen-reader output, real R2 photos and posters.
+
+### 25.9 Remaining
+
+- Month abbreviations follow the server culture ("Oct", "Sept") in the tile and in the existing
+  date text - part of owner decision 18.4 (pt-PT dates).
+- `PositionBadge` is a `span` with `role="button"`, `tabindex="0"` and no behavior (still used on
+  other pages); the Members card and Profile no longer use it.
+- Vacuous tests: `ProfilePageTests.ProfileCSS_OrganizedInSeparateFile` and `MembersPageGridTests`
+  (grid class) assert their own string literals.
+- BetCard/MeetingCard and the participation dialogs still use the old icon-button language
+  (Tasks 008/009).

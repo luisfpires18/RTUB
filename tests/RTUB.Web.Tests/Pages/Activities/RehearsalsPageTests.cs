@@ -105,7 +105,8 @@ public class RehearsalsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert
-        cut.Markup.Should().Contain("Próximos Ensaios", "page should show 'Próximos Ensaios' section");
+        cut.Find("h2#upcoming-rehearsals-title").TextContent.Should().Contain("Próximos ensaios");
+        cut.Markup.Should().Contain("Nenhum ensaio agendado");
     }
 
     [Fact]

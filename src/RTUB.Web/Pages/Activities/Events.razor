@@ -105,10 +105,14 @@ else
 {
     @if (filteredFutureEvents.Any() && !showVideosOnly)
     {
-        <div class="row g-3" @key="@($"future-events-{eventListRefreshTrigger}")">
+        <section class="item-section" aria-labelledby="upcoming-events-title">
+        <h2 class="item-section-title" id="upcoming-events-title">
+            Próximas atuações <span class="item-section-title__count">@filteredFutureEvents.Count</span>
+        </h2>
+        <div class="item-grid event-grid" @key="@($"future-events-{eventListRefreshTrigger}")">
             @foreach (var eventItem in paginatedFutureEvents)
             {
-                <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
+                <div @key="eventItem.Id">
                     <AuthorizeView>
                         <Authorized>
                             @{
@@ -164,22 +168,24 @@ else
                             OnPageChanged="@HandleFutureEventsPageChange"
                             OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
         }
+        </section>
     }
 }
 
 <!-- Previous Events Section -->
-@if (!showVideosOnly)
-{
-    <hr class="my-5" />
-}
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>@(showVideosOnly ? "Atuações com Videos" : "Atuações Anteriores")</h2>
+<section class="item-section" aria-labelledby="previous-events-title">
+<div class="item-section-head">
+    <h2 class="item-section-title" id="previous-events-title">
+        @(showVideosOnly ? "Atuações com vídeos" : "Atuações anteriores")
+        @if (filteredPreviousEvents != null)
+        {
+            <span class="item-section-title__count">@filteredPreviousEvents.Count</span>
+        }
+    </h2>
+    <SearchBar @bind-Value="previousEventsSearch"
+               Placeholder="Pesquisar atuações anteriores..."
+               OnSearch="@HandlePreviousEventsSearch" />
 </div>
-
-<SearchBar @bind-Value="previousEventsSearch"
-           Placeholder="Pesquisar atuações anteriores..."
-           OnSearch="@HandlePreviousEventsSearch" />
 
 @if (filteredPreviousEvents == null)
 {
@@ -193,10 +199,10 @@ else if (!filteredPreviousEvents.Any())
 }
 else
 {
-    <div class="row g-3" @key="@($"previous-events-{eventListRefreshTrigger}")">
+    <div class="item-grid event-grid" @key="@($"previous-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <div class="col-12 col-sm-6 col-md-4 mb-3" @key="eventItem.Id">
+            <div @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -275,6 +281,7 @@ else
                     OnPageChanged="@HandlePreviousEventsPageChange"
                     OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
 }
+</section>
 
 <!-- Edit/Create Modal -->
 <Modal @ref="editModal"
