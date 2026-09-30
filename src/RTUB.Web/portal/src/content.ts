@@ -25,6 +25,10 @@ export const portal = {
 /** Sign in through the Blazor login, then come back to the React profile. */
 export const loginToProfile = `${legacy.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
 
+// FACT: the store listing the Blazor PlayStorePrompt links to; package matches
+// wwwroot/.well-known/assetlinks.json (the Android app is a TWA of this site).
+export const playStoreUrl = 'https://play.google.com/store/apps/details?id=ipb.pt.rtub.app';
+
 export const contactEmail = 'realtunab@gmail.com';
 
 export const social = [

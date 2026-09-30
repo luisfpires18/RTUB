@@ -75,7 +75,7 @@ export default function Pedidos() {
             <Icon name="envelope" />
             {contactEmail}
           </a>
-          <p className="note">Nesta pré-visualização, o formulário abre na página atual da RTUB.</p>
+          <p className="note">Por agora, o pedido é concluído na página atual da RTUB.</p>
         </aside>
       </div>
     </section>

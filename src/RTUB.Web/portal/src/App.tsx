@@ -98,7 +98,7 @@ function Header() {
         <Brand />
         <nav className="header__nav" aria-label="Principal">
           <ul>
-            {sections.map((s) => (
+            {sections.filter((s) => s.id !== 'pedidos').map((s) => (
               <li key={s.id}>
                 <a href={sectionHref(s.id)}>{s.label}</a>
               </li>
@@ -106,7 +106,10 @@ function Header() {
           </ul>
         </nav>
         <div className="header__actions">
-          <AccountLink className="btn btn--ghost btn--sm" />
+          <a className="btn btn--primary btn--sm header__cta" href={portal.request}>
+            Pedir atuação
+          </a>
+          <AccountLink className="member-link" />
           <MobileMenu />
         </div>
       </div>
@@ -163,9 +166,9 @@ function MobileMenu() {
         <div className="menu__actions">
           <a className="btn btn--primary" href={portal.request}>
             <Icon name="send" />
-            Fazer um pedido
+            Pedir uma atuação
           </a>
-          <AccountLink className="btn btn--ghost" signedOutLabel="Área de membros" />
+          <AccountLink className="member-link member-link--menu" signedOutLabel="Área reservada a membros" />
         </div>
       </dialog>
     </>
@@ -178,7 +181,10 @@ function Footer() {
       <div className="wrap footer__grid">
         <div className="footer__about">
           <Brand />
-          <p>Música, capa e tradição académica em Bragança desde 1991.</p>
+          <p>
+            Portal público da RTUB: atuações, música, órgãos sociais, galeria e pedidos de atuação. Música, capa e
+            tradição académica em Bragança desde 1991.
+          </p>
         </div>
         <nav className="footer__col" aria-label="Portal">
           <h2 className="footer__title">Portal</h2>
@@ -197,7 +203,10 @@ function Footer() {
               <a href={portal.request}>Fazer um pedido</a>
             </li>
             <li>
-              <a href={portal.profile}>A minha conta</a>
+              <a href="/portal#app">Instalar a app</a>
+            </li>
+            <li>
+              <a href={portal.profile}>Área de membros</a>
             </li>
             <li>
               <a href={portal.privacy}>Política de Privacidade</a>
@@ -273,21 +282,18 @@ export function useCurrentUser() {
 }
 
 /**
- * "Entrar" for visitors (to the Blazor login), "A minha conta" once signed in. While the session is
- * unknown or unavailable it stays "Entrar", which is always a safe place to send someone.
+ * The quiet way into the members-only area. Always /portal/perfil, which explains the area is
+ * reserved to RTUB members before offering the login - the portal has no public accounts. Reads
+ * "Membros" for visitors (and while the session is unknown), "A minha conta" once signed in.
  */
-export function AccountLink({ className, signedOutLabel = 'Entrar' }: { className: string; signedOutLabel?: string }) {
+export function AccountLink({ className, signedOutLabel = 'Membros' }: { className: string; signedOutLabel?: string }) {
   const { user } = useCurrentUser();
+  const signedIn = user?.authenticated === true;
 
-  return user?.authenticated ? (
-    <a className={`${className} btn--account`} href={portal.profile}>
-      <Icon name="person" />
-      <span className="btn__label">A minha conta</span>
-    </a>
-  ) : (
-    <a className={className} href={legacy.login}>
-      <Icon name="login" />
-      {signedOutLabel}
+  return (
+    <a className={className} href={portal.profile}>
+      <Icon name={signedIn ? 'person' : 'lock'} />
+      <span className="member-link__label">{signedIn ? 'A minha conta' : signedOutLabel}</span>
     </a>
   );
 }

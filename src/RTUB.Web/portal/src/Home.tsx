@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { AccountLink, EmptyState, ExternalLink } from './App';
-import { albums, contactEmail, galleryTiles, legacy, naipes, orgaosSociais, portal, social, upcomingEvents } from './content';
+import { albums, contactEmail, galleryTiles, legacy, naipes, orgaosSociais, playStoreUrl, portal, social, upcomingEvents } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -13,6 +13,7 @@ export function Home() {
       <JoinUs />
       <Orgaos />
       <Doors />
+      <InstallApp />
     </>
   );
 }
@@ -374,11 +375,59 @@ function Doors() {
         </div>
         <div className="door door--members">
           <p className="eyebrow">Área de membros</p>
-          <h2 className="door__title">És tuno?</h2>
-          <p className="door__lead">Ensaios, atuações, logística e mensagens da tuna, num só lugar.</p>
-          <AccountLink className="btn btn--ghost btn--lg" />
+          <h2 className="door__title">Só para a tuna</h2>
+          <p className="door__lead">
+            Ensaios, atuações e mensagens dos membros da RTUB. O acesso é criado pela própria tuna; não há registo
+            público.
+          </p>
+          <AccountLink className="member-link" signedOutLabel="Entrar como membro" />
           <Skyline patternId="merlons-members" />
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------- install ----------
+
+function InstallApp() {
+  return (
+    <section id="app" className="section section--raise" aria-labelledby="app-title">
+      <div className="wrap">
+        <SectionHead id="app-title" eyebrow="No telemóvel" title="Instalar a app">
+          A RTUB também vive no ecrã principal do telemóvel. Escolhe o caminho do teu aparelho.
+        </SectionHead>
+        <ol className="install">
+          <li className="install__step">
+            <Icon name="googlePlay" className="install__icon" />
+            <h3 className="install__title">Android</h3>
+            <p>Instala a app RTUB a partir da Google Play.</p>
+            <ExternalLink href={playStoreUrl} className="more">
+              Abrir na Google Play
+            </ExternalLink>
+          </li>
+          <li className="install__step">
+            <Icon name="apple" className="install__icon" />
+            <h3 className="install__title">iPhone e iPad</h3>
+            <p>
+              Abre este site no Safari, toca em <strong>Partilhar</strong> e escolhe{' '}
+              <strong>Adicionar ao ecrã principal</strong>.
+            </p>
+          </li>
+          <li className="install__step">
+            <Icon name="phone" className="install__icon" />
+            <h3 className="install__title">Android, pelo navegador</h3>
+            <p>
+              No Chrome, abre o menu <strong>⋮</strong> e escolhe <strong>Instalar app</strong> ou{' '}
+              <strong>Adicionar ao ecrã principal</strong>, se a opção aparecer.
+            </p>
+          </li>
+          <li className="install__step">
+            <Icon name="laptop" className="install__icon" />
+            <h3 className="install__title">Computador</h3>
+            <p>No Chrome ou no Edge, o ícone de instalar surge na barra de endereço quando o navegador o permite.</p>
+          </li>
+        </ol>
       </div>
     </section>
   );

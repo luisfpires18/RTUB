@@ -8,7 +8,8 @@ _Last updated: 2026-09-30_
 ## Phase
 **Open: `feat/002/react-auth-profile-request-foundation`** (React track, task 002; from `dev` @
 `00835af8`, where task 001 is merged; committed locally, not pushed). Adds `GET /api/account/me`,
-React `/portal/perfil` and `/portal/pedidos` (request prepared, submission still Blazor `/request`).
+React `/portal/perfil` (members-only notice) and `/portal/pedidos` (request prepared, submission still
+Blazor `/request`), an install-the-app section, and a Feed planning note (docs only).
 Route ownership, session rules, request migration plan and the production-release gate for the
 preview banner: `docs/react-portal-pilot.md`. Next: review, then PR → `dev`; task 003 = request
 submission.

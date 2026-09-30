@@ -462,15 +462,48 @@ main:focus {
   }
 }
 
-/* Signed in on a phone: the header account button is icon-only (label kept for screen readers). */
+/* The members link is deliberately quiet: public actions lead, the member area is a side door. */
+.member-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.member-link:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.member-link--menu {
+  justify-content: center;
+}
+
+.header__cta {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  .header__cta {
+    display: inline-flex;
+  }
+}
+
+/* Phones: the header members link is icon-only (label kept for screen readers). */
 @media (max-width: 479px) {
-  .header__actions > .btn--account {
+  .header__actions > .member-link {
     width: 44px;
-    min-height: 44px;
     padding: 0;
+    justify-content: center;
   }
 
-  .header__actions > .btn--account .btn__label {
+  .header__actions > .member-link .member-link__label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -1556,6 +1589,207 @@ main:focus {
   .request__go {
     position: sticky;
     top: calc(var(--header-h) + 24px);
+  }
+}
+
+/* ---------- members page ---------- */
+
+.members {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .members {
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+    gap: 40px;
+  }
+}
+
+.account__card--info {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.account__lock {
+  flex: none;
+  font-size: 1.5rem;
+  color: var(--purple-ink);
+  margin-top: 2px;
+}
+
+.account__card--info .account__who {
+  gap: 10px;
+  font-size: 1.0625rem;
+}
+
+.account__muted {
+  color: var(--muted);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+}
+
+.account__card--skeleton {
+  min-height: 160px;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #211d27 0%, #2d2735 50%, #211d27 100%);
+  background-size: 200% 100%;
+}
+
+.skeleton--avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.skeleton__lines {
+  display: grid;
+  flex: 1;
+  gap: 12px;
+  min-width: 140px;
+}
+
+.skeleton--line {
+  height: 18px;
+  width: 70%;
+}
+
+.skeleton--short {
+  width: 40%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+}
+
+.shortcuts {
+  display: grid;
+  gap: 14px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raise);
+}
+
+.shortcuts ul {
+  display: grid;
+  gap: 6px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.shortcut .icon {
+  color: var(--purple-ink);
+}
+
+.shortcut:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.shortcut__go {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.shortcut--primary {
+  background: var(--purple);
+  color: #fff;
+}
+
+.shortcut--primary .icon {
+  color: #fff;
+}
+
+.shortcut--primary:hover {
+  background: var(--purple-hover);
+}
+
+/* ---------- install the app ---------- */
+
+.install {
+  display: grid;
+  gap: 16px;
+}
+
+.install__step {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--ink-soft);
+}
+
+.install__step strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.install__icon {
+  font-size: 1.5rem;
+  color: var(--purple-ink);
+}
+
+.install__title {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.install .more {
+  margin-top: 4px;
+  justify-self: start;
+}
+
+@media (min-width: 640px) {
+  .install {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .install {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

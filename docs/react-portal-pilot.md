@@ -7,6 +7,15 @@ app, which keeps every other page. Not the start of a rewrite. Decision record:
 The React migration track numbers its own tasks from **001** (`feat/001/react-portal-pilot`),
 separately from the repository's global unit sequence.
 
+## Audience
+
+The portal is **public**: an overview of RTUB, public performances, music, the current Órgãos
+Sociais, the gallery, performance requests and, later, a public Feed. The **member area is only for
+RTUB members**: there are no public accounts - the tuna creates each member's login. Portal copy and
+layout follow that: public actions ("Pedir atuação") lead; the members link is quiet ("Membros" /
+"A minha conta") and always opens `/portal/perfil`, which says the area is reserved before offering
+the login. Never present login or registration as a public feature.
+
 ## Route ownership
 
 Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD only). Pinned by
@@ -16,7 +25,7 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | --- | --- | --- |
 | `/portal` | **React** | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member login entry. |
 | `/portal/privacidade` | **React** | Privacy Policy, verbatim copy of `Privacy.razor` (see below). |
-| `/portal/perfil` | **React** (002) | Session summary: signed out → Blazor login and back; signed in → who you are and the way into the member area. |
+| `/portal/perfil` | **React** (002) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are and the way into the member area. |
 | `/portal/pedidos` | **React** (002) | Request preparation; submission hands off to the Blazor `/request` (see Request migration). |
 | `GET /api/account/me` | ASP.NET (002) | `AccountController`: the caller's own session summary for React. |
 | `/portal/assets/*` | static files | Content-hashed Vite output, normal static caching. |
@@ -172,6 +181,24 @@ cd src/RTUB.Web && npm ci --ignore-scripts && npm run check:portal && npm run bu
 
 That fails a PR whose committed bundle does not match its source. Deploy workflows need no change:
 they publish the committed `wwwroot/portal`.
+
+## Install guidance (task 002)
+
+The `#app` section on `/portal` (linked from the footer) shows four short routes. Android: the
+Google Play listing `https://play.google.com/store/apps/details?id=ipb.pt.rtub.app`, taken from the
+existing `PlayStorePrompt.razor`; its package matches `wwwroot/.well-known/assetlinks.json` (the
+app is a TWA of this site). iPhone/iPad: Safari → Partilhar → Adicionar ao ecrã principal. Android
+browser: Chrome menu → Instalar app / Adicionar ao ecrã principal, when offered. Computer: the
+install icon in Chrome/Edge, when offered. No promise about notifications. Manifest, service worker
+and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`).
+
+## Feed (planning only - nothing built)
+
+A future public Feed: posts/topics published by Admins, readable by anyone and shareable like
+public social posts - announcements, event recaps, photos, news. Not in the UI yet; no table, API or
+admin screen exists. To decide before building: moderation and edit history, visibility (public vs
+members-only posts), attachments and image storage (R2), sharing metadata (OpenGraph/SEO, stable
+URLs), the admin creation flow, and whether posts notify members.
 
 ## Next recommended slice
 
