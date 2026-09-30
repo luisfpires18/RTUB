@@ -1354,74 +1354,83 @@
     {
         if (!canManageLogistics || selectedCard == null) return;
         await CardService.SetCardStatusAsync(selectedCard.Id, status);
-        selectedCard.Status = status;
+        await RefreshSelectedCardAsync();
+    }
+
+    // Reloads the board and repoints selectedCard at the fresh copy, so the board, a reopened
+    // card and the next save all see what was just persisted instead of a stale instance.
+    private async Task RefreshSelectedCardAsync()
+    {
         await LoadData();
+        if (selectedCard == null) return;
+        selectedCard = lists?.SelectMany(l => l.Cards).FirstOrDefault(c => c.Id == selectedCard.Id) ?? selectedCard;
     }
 
     // Label methods
-    private void AddLabel()
+    private async Task AddLabel()
     {
         if (string.IsNullOrWhiteSpace(newLabelText)) return;
         cardLabels ??= new List<LabelItem>();
         cardLabels.Add(new LabelItem { Text = newLabelText, Color = newLabelColor });
         newLabelText = string.Empty;
         newLabelColor = "#6f42c1";
-        SaveLabels();
+        await SaveLabels();
     }
 
-    private void RemoveLabel(LabelItem label)
+    private async Task RemoveLabel(LabelItem label)
     {
         cardLabels?.Remove(label);
-        SaveLabels();
+        await SaveLabels();
     }
 
-    private async void SaveLabels()
+    private async Task SaveLabels()
     {
         if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
         await CardService.SetCardLabelsAsync(selectedCard.Id, json);
-        await LoadData();
+        await RefreshSelectedCardAsync();
     }
 
     // Checklist methods
-    private void HandleChecklistKeyDown(KeyboardEventArgs e)
+    private async Task HandleChecklistKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
-            AddChecklistItem();
+            await AddChecklistItem();
         }
     }
 
-    private void AddChecklistItem()
+    private async Task AddChecklistItem()
     {
         if (string.IsNullOrWhiteSpace(newChecklistItem)) return;
         checklistItems ??= new List<ChecklistItem>();
         checklistItems.Add(new ChecklistItem { Task = newChecklistItem, Done = false });
         newChecklistItem = string.Empty;
-        SaveChecklist();
+        await SaveChecklist();
     }
 
-    private void ToggleChecklistItem(ChecklistItem item)
+    private async Task ToggleChecklistItem(ChecklistItem item)
     {
         item.Done = !item.Done;
-        SaveChecklist();
+        await SaveChecklist();
     }
 
-    private void RemoveChecklistItem(ChecklistItem item)
+    private async Task RemoveChecklistItem(ChecklistItem item)
     {
         checklistItems?.Remove(item);
-        SaveChecklist();
+        await SaveChecklist();
     }
 
-    private async void SaveChecklist()
+    private async Task SaveChecklist()
     {
         if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
         await CardService.SetCardChecklistAsync(selectedCard.Id, json);
+        await RefreshSelectedCardAsync();
     }
 
     // Attachment methods
-    private void AddAttachment()
+    private async Task AddAttachment()
     {
         if (!newAttachmentCardId.HasValue) return;
         
@@ -1431,20 +1440,21 @@
         cardAttachments ??= new List<AttachmentItem>();
         cardAttachments.Add(new AttachmentItem { Name = linkedCard.Title, CardId = newAttachmentCardId });
         newAttachmentCardId = null;
-        SaveAttachments();
+        await SaveAttachments();
     }
 
-    private void RemoveAttachment(AttachmentItem attachment)
+    private async Task RemoveAttachment(AttachmentItem attachment)
     {
         cardAttachments?.Remove(attachment);
-        SaveAttachments();
+        await SaveAttachments();
     }
 
-    private async void SaveAttachments()
+    private async Task SaveAttachments()
     {
         if (!canManageLogistics || selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
         await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
+        await RefreshSelectedCardAsync();
     }
 
     // File handling methods
@@ -1616,6 +1626,7 @@
     {
         if (!canManageLogistics || selectedCard == null) return;
         await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, cardDetailsText);
+        await RefreshSelectedCardAsync();
     }
 
     private async Task UpdateCardTitle()
@@ -1628,7 +1639,7 @@
             return;
         }
         await CardService.UpdateCardAsync(selectedCard.Id, trimmed, selectedCard.Description ?? string.Empty);
-        selectedCard.Title = trimmed;
+        await RefreshSelectedCardAsync();
     }
 
     private async Task UpdateCardDates()
@@ -1637,6 +1648,7 @@
         DateTime? start = string.IsNullOrEmpty(cardStartDate) ? null : DateTime.Parse(cardStartDate);
         DateTime? due = string.IsNullOrEmpty(cardDueDate) ? null : DateTime.Parse(cardDueDate);
         await CardService.SetCardDatesAsync(selectedCard.Id, start, due, null);
+        await RefreshSelectedCardAsync();
     }
 
     // Member assignment methods
