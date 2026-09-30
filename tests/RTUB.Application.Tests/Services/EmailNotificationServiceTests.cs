@@ -347,4 +347,28 @@ public class EmailNotificationServiceTests
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once, "template should only be rendered once due to rate limiting");
     }
+
+    [Fact]
+    public async Task SendNewRequestNotificationAsync_GoesToTheRtubInbox_WithoutEmailSettingsRecipient()
+    {
+        // EmailSettings:RecipientEmail is deliberately unset (production points it at no-reply):
+        // the public request flow must not depend on it.
+        var service = CreateService(new EmailConfiguration
+        {
+            SenderEmail = "sender@test.com",
+            SenderName = "Test Sender",
+            SmtpServer = "smtp.test.com",
+            SmtpPort = 587,
+            SmtpUsername = "user",
+            SmtpPassword = "pass"
+        });
+
+        await service.SendNewRequestNotificationAsync(42, "Cliente", "cliente@test.com", "912345678",
+            "Casamento", DateTime.Today, null, "Braga", "Mensagem", DateTime.Now);
+
+        EmailNotificationService.RequestNotificationRecipient.Should().Be("realtunab@gmail.com");
+        _mockTemplateRenderer.Verify(x => x.RenderNewRequestNotificationAsync(
+            "Cliente", "cliente@test.com", "912345678", "Casamento", It.IsAny<string>(), "Braga", "Mensagem", It.IsAny<DateTime>()),
+            Times.Once, "the email is built even though EmailSettings:RecipientEmail is not configured");
+    }
 }
