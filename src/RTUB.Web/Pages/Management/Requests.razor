@@ -478,7 +478,7 @@ else
             // Use service to create navigation parameters
             var queryParams = RequestToEventService.CreateEventNavigationParameters(approvingRequest);
             
-            var uri = Navigation.GetUriWithQueryParameters("/events", queryParams);
+            var uri = Navigation.GetUriWithQueryParameters("/member/events", queryParams);
             Navigation.NavigateTo(uri);
         }
         

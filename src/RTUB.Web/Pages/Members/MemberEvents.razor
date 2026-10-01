@@ -1,5 +1,7 @@
-@page "/events"
+@page "/member/events"
 @rendermode InteractiveServer
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
@@ -41,14 +43,14 @@
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
 @inject RTUB.Web.Interop.PwaHelperInterop PwaHelper
 @inject IJSRuntime JSRuntime
-@inject ILogger<Events> Logger
+@inject ILogger<MemberEvents> Logger
 
 <div class="events-page container-fluid">
     <div class="page-header-centered">
         <div class="page-header-left"></div>
         <div class="page-header-center">
             <h1><i class="bi bi-calendar-event"></i> Atuações</h1>
-            <p class="lead page-header-subtitle text-light-theme">Próximas atuações e atividades.</p>
+            <p class="lead page-header-subtitle text-light-theme">Gestão de atuações, prémios, vídeos e inscrições. <a href="/events" data-enhance-nav="false">Ver a agenda</a></p>
         </div>
         <div class="page-header-right d-none d-xl-flex gap-2">
             <AuthorizeView Roles="Admin">
@@ -143,25 +145,15 @@ else
                                        OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
                                        OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
                                        OnUncancelEvent="@(() => UncancelEvent(eventItem))"
-                                       OnEnrollGoing="@(() => OpenEnrollModalWithParticipation(eventItem, true))"
-                                       OnEnrollNotGoing="@(() => OpenEnrollModalWithParticipation(eventItem, false))"
-                                       OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
-                                       OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
+                                       OnEnrollGoing="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnEnrollNotGoing="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnEditEnrollment="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                        OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                        OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                        OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                        OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
                         </Authorized>
-                        <NotAuthorized Context="unauthorizedContext">
-                            <EventCard Event="@eventItem"
-                                       ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
-                                       EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                       RepertoireCount="@GetRepertoireCount(eventItem.Id)"
-                                       DiscussionCount="@GetDiscussionCount(eventItem.Id)"
-                                       IsAdmin="false"
-                                       IsPastEvent="false"
-                                       ShowButtons="false" />
-                        </NotAuthorized>
                     </AuthorizeView>
                 </div>
             }
@@ -234,7 +226,7 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
+                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </Authorized>
@@ -254,27 +246,12 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
+                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </NotAuthorized>
                         </AuthorizeView>
                     </Authorized>
-                    <NotAuthorized>
-                        <EventCard Event="@eventItem"
-                                   ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
-                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
-                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
-                                   VideoCount="@GetVideoCount(eventItem.Id)"
-                                   TrophyCount="@GetTrophyCount(eventItem.Id)"
-                                   IsAdmin="false"
-                                   IsPastEvent="true"
-                                   ShowButtons="false"
-                                   ShowOnlyTrophy="true"
-                                   OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
-                                   OnViewVideos="@(() => OpenVideosModal(eventItem))" />
-                    </NotAuthorized>
                 </AuthorizeView>
             </div>
         }
@@ -420,41 +397,6 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="DeleteEvent"
                OnCancel="CloseDeleteModal" />
-
-<!-- Enrollment Modal (using unified ParticipationModal) -->
-@if (enrollmentForm != null)
-{
-    <ParticipationModal Show="@modals.IsOpen(ModalType.Enroll)"
-                       ShowChanged="@((bool show) => modals.Toggle(ModalType.Enroll, show))"
-                       Title="@GetEnrollmentModalTitle()"
-                       ShowWillAttend="@(!isParticipationPreSelected)"
-                       WillAttend="@enrollmentForm.WillAttend"
-                       WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
-                       IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
-                       Instrument="@enrollmentForm.Instrument"
-                       InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
-                       AvailableInstruments="@availableInstruments"
-                       Notes="@enrollmentForm.Notes"
-                       NotesChanged="@((string value) => enrollmentForm.Notes = value)"
-                       NotesRows="4"
-                       NotesPlaceholder="@(enrollmentForm.WillAttend ? "Informações adicionais..." : "Motivo da impossibilidade...")"
-                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Confirmar")"
-                       WantToPlay="@wantToPlay"
-                       WantToPlayChanged="@((bool value) => wantToPlay = value)"
-                       OnSubmit="@SaveEnrollment"
-                       OnCancel="@CloseEnrollModal" />
-}
-
-<!-- Remove Enrollment Confirmation Modal -->
-<ConfirmDialog Show="@modals.IsOpen(ModalType.RemoveEnrollment)"
-               ShowChanged="@((bool show) => modals.Toggle(ModalType.RemoveEnrollment, show))"
-               Title="Confirmar Cancelamento de Inscrição"
-               Message="Tem certeza que deseja cancelar sua inscrição neste evento?"
-               ConfirmText="Sim, Cancelar"
-               CancelText="Não"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="RemoveEnrollment"
-               OnCancel="CloseRemoveEnrollmentModal" />
 
 <!-- View Enrollments Modal -->
 @if (selectedEvent != null)
@@ -1527,14 +1469,10 @@ else
     private Dictionary<int, int> eventVideoCounts = new(); // eventId -> video count
     private Dictionary<int, int> eventTrophyCounts = new(); // eventId -> trophy count
     private ApplicationUser? currentUser;
-    private List<MemberInstrument>? currentUserInstruments;
-    private List<InstrumentType>? availableInstruments;
     private enum ModalType
     {
         Edit,
         Delete,
-        Enroll,
-        RemoveEnrollment,
         EnrollmentList,
         Cropper,
         Repertoire,
@@ -1553,9 +1491,6 @@ else
 
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
-    private bool isEditingEnrollment = false;
-    private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
-    private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     private bool isTrophyCreateMode = false;
@@ -1570,8 +1505,6 @@ else
     private Event? selectedEventForEmail;
     private Event? selectedEventForPush;
     private Event? selectedEventForCancellation;
-    private Enrollment? enrollmentForm;
-    private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
     private Trophy? editingTrophy;
     private Trophy? deletingTrophy;
@@ -1922,7 +1855,7 @@ else
 
         // Use service to build query string (business logic extracted)
         var queryString = EventUrlService.BuildQueryString(selectedFiscalYear, currentFiscalYear, selectedEventType);
-        var newUrl = Navigation.ToAbsoluteUri("/events" + (string.IsNullOrEmpty(queryString) ? "" : "?" + queryString)).ToString();
+        var newUrl = Navigation.ToAbsoluteUri("/member/events" + (string.IsNullOrEmpty(queryString) ? "" : "?" + queryString)).ToString();
         Navigation.NavigateTo(newUrl, false); // false = don't force reload
     }
     
@@ -2114,13 +2047,6 @@ else
         {
             currentUser = await UserManager.FindByNameAsync(userName);
             isUserAdmin = authState.User.IsInRole("Admin");
-            
-            // Load member's instruments
-            if (currentUser != null)
-            {
-                currentUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(currentUser.Id)).ToList();
-                availableInstruments = currentUserInstruments.Select(mi => mi.InstrumentType).ToList();
-            }
         }
     }
 
@@ -2382,251 +2308,10 @@ else
     }
 
     // Enrollment methods
-    private void OpenEnrollModal(Event eventItem)
-    {
-        if (currentUser == null) return;
-
-        isEditingEnrollment = false;
-        isParticipationPreSelected = false; // Show WillAttend selection in modal
-        selectedEvent = eventItem;
-        
-        var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
-        wantToPlay = shouldWantToPlay;
-        
-        enrollmentForm = new Enrollment
-        {
-            UserId = currentUser.Id,
-            EventId = eventItem.Id,
-            Instrument = defaultInstrument,
-            Notes = string.Empty
-        };
-        modals.Open(ModalType.Enroll);
-    }
-
-    private void OpenEnrollModalWithParticipation(Event eventItem, bool willParticipate)
-    {
-        if (currentUser == null) return;
-
-        isParticipationPreSelected = true; // Hide WillAttend selection in modal
-        selectedEvent = eventItem;
-        
-        // Check if user already has an enrollment for this event
-        var existingEnrollment = GetUserEnrollment(eventItem.Id);
-        
-        if (existingEnrollment != null)
-        {
-            // Update existing enrollment
-            isEditingEnrollment = true;
-            wantToPlay = existingEnrollment.Instrument.HasValue;
-            
-            // Clear notes if changing participation status (different reasons)
-            var shouldClearNotes = existingEnrollment.WillAttend != willParticipate;
-            
-            enrollmentForm = new Enrollment
-            {
-                Id = existingEnrollment.Id,
-                UserId = existingEnrollment.UserId,
-                EventId = existingEnrollment.EventId,
-                Instrument = existingEnrollment.Instrument,
-                Notes = shouldClearNotes ? string.Empty : existingEnrollment.Notes,
-                WillAttend = willParticipate // Set the new participation value
-            };
-        }
-        else
-        {
-            // Create new enrollment
-            isEditingEnrollment = false;
-            var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
-            wantToPlay = shouldWantToPlay;
-            
-            enrollmentForm = new Enrollment
-            {
-                UserId = currentUser.Id,
-                EventId = eventItem.Id,
-                Instrument = defaultInstrument,
-                Notes = string.Empty,
-                WillAttend = willParticipate
-            };
-        }
-        modals.Open(ModalType.Enroll);
-    }
-
-    /// <summary>
-    /// Gets the default instrument and "want to play" toggle settings for enrollment.
-    /// </summary>
-    /// <returns>Tuple of (defaultInstrument, wantToPlay)</returns>
-    private (InstrumentType? defaultInstrument, bool wantToPlay) GetDefaultInstrumentSettings()
-    {
-        if (currentUserInstruments != null && currentUserInstruments.Any())
-        {
-            var primaryInstrument = currentUserInstruments.FirstOrDefault(mi => mi.IsPrimary);
-            var defaultInstrument = primaryInstrument?.InstrumentType ?? currentUserInstruments.First().InstrumentType;
-            return (defaultInstrument, true); // Enable "Quero tocar" if instruments are available
-        }
-        return (null, false); // Disable "Quero tocar" if no instruments configured
-    }
-
-    private void OpenEditEnrollmentModal(Enrollment enrollment)
-    {
-        isEditingEnrollment = true;
-        isParticipationPreSelected = false; // Show WillAttend selection when editing
-        selectedEvent = events?.FirstOrDefault(e => e.Id == enrollment.EventId);
-        wantToPlay = enrollment.Instrument.HasValue; // Set toggle based on whether instrument is set
-        enrollmentForm = new Enrollment
-        {
-            Id = enrollment.Id,
-            UserId = enrollment.UserId,
-            EventId = enrollment.EventId,
-            Instrument = enrollment.Instrument,
-            Notes = enrollment.Notes,
-            WillAttend = enrollment.WillAttend
-        };
-        modals.Open(ModalType.Enroll);
-    }
-
-    private string GetEnrollmentModalTitle()
-    {
-        if (isEditingEnrollment)
-        {
-            return enrollmentForm?.WillAttend == true 
-                ? "Editar Inscrição" 
-                : $"Editar Impossibilidade em {selectedEvent?.Name}";
-        }
-        
-        return enrollmentForm?.WillAttend == true 
-            ? $"Inscrever em {selectedEvent?.Name}" 
-            : $"Impossibilidade de inscrição em {selectedEvent?.Name}";
-    }
-
-    private void CloseEnrollModal()
-    {
-        modals.Close(ModalType.Enroll);
-        enrollmentForm = null;
-        selectedEvent = null;
-        isEditingEnrollment = false;
-        isParticipationPreSelected = false;
-        wantToPlay = false;
-    }
-
-    private async Task SaveEnrollment()
-    {
-        if (enrollmentForm == null || currentUser == null) return;
-
-        InstrumentType? instrumentToSave = null;
-        string? otherInstrumentsText = null;
-
-        // Only process instrument info if wanting to play
-        if (wantToPlay)
-        {
-            instrumentToSave = enrollmentForm.Instrument;
-            
-            // Get all member instruments and calculate other instruments
-            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUser.Id);
-            
-            if (enrollmentForm.Instrument.HasValue)
-            {
-                // Get all instruments except the selected one
-                var otherInstruments = memberInstruments
-                    .Where(mi => mi.InstrumentType != enrollmentForm.Instrument.Value)
-                    .Select(mi => StatusHelper.GetInstrumentDisplay(mi.InstrumentType))
-                    .ToList();
-                
-                if (otherInstruments.Any())
-                {
-                    otherInstrumentsText = string.Join(", ", otherInstruments);
-                }
-            }
-        }
-
-        if (isEditingEnrollment)
-        {
-            var existingEnrollment = await EnrollmentService.GetEnrollmentByIdAsync(enrollmentForm.Id);
-            if (existingEnrollment != null && existingEnrollment.UserId == currentUser.Id)
-            {
-                // Update enrollment using the new UpdateEnrollmentAsync method
-                await EnrollmentService.UpdateEnrollmentAsync(
-                    enrollmentForm.Id,
-                    enrollmentForm.WillAttend,
-                    instrumentToSave,
-                    enrollmentForm.Notes,
-                    otherInstrumentsText
-                );
-            }
-        }
-        else
-        {
-            // Check if enrollment already exists to prevent duplicate constraint violations
-            var existingEnrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(
-                enrollmentForm.EventId,
-                enrollmentForm.UserId
-            );
-            
-            if (existingEnrollment != null)
-            {
-                // Update existing enrollment instead of creating duplicate
-                await EnrollmentService.UpdateEnrollmentAsync(
-                    existingEnrollment.Id,
-                    enrollmentForm.WillAttend,
-                    instrumentToSave,
-                    enrollmentForm.Notes,
-                    otherInstrumentsText
-                );
-            }
-            else
-            {
-                // Create new enrollment
-                await EnrollmentService.CreateEnrollmentAsync(
-                    enrollmentForm.UserId,
-                    enrollmentForm.EventId,
-                    instrumentToSave,
-                    enrollmentForm.Notes,
-                    enrollmentForm.WillAttend,
-                    otherInstrumentsText
-                );
-            }
-        }
-
-        await LoadEnrollments();
-        CloseEnrollModal();
-        StateHasChanged();
-    }
-
-    private void OpenRemoveEnrollmentModal(Enrollment enrollment)
-    {
-        removingEnrollment = enrollment;
-        modals.Open(ModalType.RemoveEnrollment);
-    }
-
-    private void CloseRemoveEnrollmentModal()
-    {
-        modals.Close(ModalType.RemoveEnrollment);
-        removingEnrollment = null;
-    }
-
-    private async Task RemoveEnrollment()
-    {
-        if (removingEnrollment == null || currentUser == null) return;
-
-        var enrollmentToRemove = await EnrollmentService.GetEnrollmentByIdAsync(removingEnrollment.Id);
-        if (enrollmentToRemove != null && enrollmentToRemove.UserId == currentUser.Id)
-        {
-            await EnrollmentService.DeleteEnrollmentAsync(removingEnrollment.Id);
-            await LoadEnrollments();
-
-            // Refresh enrollment list modal data if open
-            if (selectedEvent != null && modals.IsOpen(ModalType.EnrollmentList))
-            {
-                eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(selectedEvent.Id)).ToList();
-                enrollmentSearchTerm = string.Empty;
-                FilterEnrollments();
-                await CalculateInstrumentCountsAsync();
-                FilterAvailableMembersForEnrollment();
-            }
-        }
-
-        CloseRemoveEnrollmentModal();
-        StateHasChanged();
-    }
+    // Answering (going / not going, withdrawing from a past one) is the React
+    // /events/{id}/enrollment page (React track 011), not a modal here.
+    private void OpenEnrollmentPage(Event eventItem) =>
+        Navigation.NavigateTo($"/events/{eventItem.Id}/enrollment", forceLoad: true);
 
     private async Task OpenEnrollmentListModal(Event eventItem)
     {

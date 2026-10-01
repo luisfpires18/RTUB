@@ -96,7 +96,7 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
         </div>
       </div>
       <div className="account__actions">
-        <a className="btn btn--primary" href={legacy.events}>
+        <a className="btn btn--primary" href={legacy.memberEvents}>
           <Icon name="arrow" />
           Abrir a área de membros
         </a>

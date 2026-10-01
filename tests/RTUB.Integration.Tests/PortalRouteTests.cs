@@ -8,7 +8,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
-/// React owns exactly /, /privacy, /profile, /request, /music, /login, /roles and /gallery, served from the committed build in
+/// React owns exactly /, /privacy, /profile, /request, /music, /login, /roles, /gallery and /events (011), served from the committed build in
 /// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
@@ -33,6 +33,10 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/roles?fy=2024-2025")]
     [InlineData("/gallery")]
     [InlineData("/gallery?item=1")]
+    [InlineData("/events")]
+    [InlineData("/events?season=2025-2026&type=Festival")]
+    [InlineData("/events/1")]
+    [InlineData("/events/1/enrollment")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -163,7 +167,7 @@ public class PortalRouteTests : IntegrationTestBase
             (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
         }
 
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1" })
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1", "/events/1/enrollment" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
@@ -181,6 +185,9 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/login")]
     [InlineData("/roles")]
     [InlineData("/gallery")]
+    [InlineData("/events")]
+    [InlineData("/events/{id:int}")]
+    [InlineData("/events/{id:int}/enrollment")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -194,20 +201,56 @@ public class PortalRouteTests : IntegrationTestBase
         owners.Should().BeEmpty("React owns {0}; its Blazor page was retired", route);
     }
 
-    // ---------- temporary Blazor bridges ----------
+    // ---------- Blazor member/admin bridges ----------
 
     [Theory]
-    [InlineData("/events")]
-    public async Task BlazorBridgeRoutes_StayBlazor(string path)
+    [InlineData("/member/events")]
+    [InlineData("/member/events?openModal=true&name=x")]
+    public async Task BlazorEventManagement_LivesAtMemberEvents_AndRequiresSignIn(string path)
     {
-        var client = Factory.CreateClient();
+        var response = await NoRedirectClient().GetAsync(path);
 
-        var response = await client.GetAsync(path);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "event management is for signed-in members only (011)");
+        response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fevents");
+    }
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var html = await response.Content.ReadAsStringAsync();
-        html.Should().NotContain("id=\"splash\"", "{0} is still owned by Blazor", path);
-        html.Should().Contain("blazor.web.js", "{0} is still a Blazor page", path);
+    /// <summary>
+    /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. The
+    /// /events/{id}/attendance URL of the first 011 draft never reached dev, so it is simply not served.
+    /// </summary>
+    [Fact]
+    public async Task EventEnrollmentRoute_IsEnrollment_AndTheDraftAttendanceUrlIs404()
+    {
+        var client = NoRedirectClient();
+
+        (await client.GetAsync("/events/1/enrollment")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var root = FindRepoRoot();
+        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"))
+            .Should().Contain("$\"/events/{eventItem.Id}/enrollment\"", "the bridge's answer buttons open the React enrollment page");
+        var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
+        Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
+            .Select(File.ReadAllText).Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
+                "event pages speak of enrollment, never attendance");
+    }
+
+    [Fact]
+    public void EventsLinks_GoToTheReactAgenda_AndManagementToMemberEvents()
+    {
+        var root = FindRepoRoot();
+        var src = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
+
+        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("events: '/events'").And.Contain("memberEvents: '/member/events'");
+        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.events}>",
+            "the home agenda's call to action opens the React agenda");
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("events: portal.events,",
+            "the top bar, the mobile menu and the footer open the agenda page, not the home section");
+        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Management", "Requests.razor"))
+            .Should().Contain("\"/member/events\"", "turning a request into an event opens the management page");
+        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Shared", "MainLayout.razor"))
+            .Should().Contain("href=\"/events\" data-enhance-nav=\"false\"", "the Blazor menu opens the React agenda with a full load");
     }
 
     [Fact]
@@ -239,7 +282,7 @@ public class PortalRouteTests : IntegrationTestBase
 
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("music: '/music'");
         File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("{ music: portal.music,",
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("music: portal.music,",
             "the top bar, the mobile menu and the footer open the Music page, not the home section");
         Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
             "the React Music area links to /music/albums/{id}, never the retired Blazor route");
