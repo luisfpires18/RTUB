@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { getGalleryPreview, getUpcomingEvents, type GalleryItem, type UpcomingEvent } from './api';
 import { AccountLink, ExternalLink, Loading } from './App';
-import { albums, contactEmail, governingBodies, playStoreUrl, portal, social } from './content';
+import { albums, contactEmail, playStoreUrl, portal, social } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -13,7 +13,6 @@ export function Home() {
       <Music />
       <Gallery />
       <JoinUs />
-      <Governance />
       <Doors />
       <InstallApp />
       <NewsTeaser />
@@ -410,38 +409,6 @@ function JoinUs() {
             <dd>Entra-se como Leitão, passa-se a Caloiro e depois a Tuno; os cordões do traje mostram cada etapa.</dd>
           </div>
         </dl>
-      </div>
-    </section>
-  );
-}
-
-// ---------- órgãos sociais ----------
-
-function Governance() {
-  return (
-    <section id="governance" className="section section--raise" aria-labelledby="governance-title">
-      <div className="wrap">
-        {/* The cards say what each body is; the heading stays for screen readers and the menu anchor. */}
-        <h2 id="governance-title" className="sr-only">
-          Órgãos Sociais
-        </h2>
-        <p className="section__lead governance__lead">
-          Quatro órgãos, renovados a cada ano letivo, e um Ensaiador que dá o tom aos ensaios.
-        </p>
-        <ul className="governance">
-          {governingBodies.map((o) => (
-            <li key={o.name} className="governance__card">
-              <Icon name="bank" className="governance__icon" />
-              <h3 className="governance__name">{o.name}</h3>
-              <ul className="governance__roles">
-                {o.roles.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-        <MoreLink href={portal.roles}>Ver quem ocupa os cargos</MoreLink>
       </div>
     </section>
   );

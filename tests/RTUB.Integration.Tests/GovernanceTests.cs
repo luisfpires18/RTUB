@@ -109,8 +109,9 @@ public class GovernanceTests : IntegrationTestBase
         var content = File.ReadAllText(Path.Combine(src, "content.ts"));
 
         content.Should().Contain("roles: '/roles'").And.Contain("memberGovernance: '/member/roles'");
-        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.roles}>",
-            "the home Órgãos Sociais section opens the React page");
+        var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
+        home.Should().NotContain("id=\"governance\"").And.NotContain("Órgãos Sociais").And.NotContain("governingBodies",
+            "011: the home has no Órgãos Sociais block at all; the top bar, menu and footer open /roles");
         File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("governance: portal.roles",
             "the top bar, menu and footer open /roles, not the home anchor");
         Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));

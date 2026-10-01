@@ -303,7 +303,7 @@
                        Icon="bi-people" />
         }
         
-        <AuthorizeView Roles="Admin">
+        <AuthorizeView Roles="Admin,Owner">
             <Authorized>
                 <div class="mt-3">
                     <!-- Success Alert (auto-dismiss) -->
@@ -482,7 +482,7 @@
         {
             currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             
-            isUserAdmin = user.IsInRole("Admin");
+            isUserAdmin = RTUB.Application.Helpers.EventsAuthorization.CanManage(user);
             
             // Load user's category to determine if Leitão (needed for modal)
             // and instruments for the enrollment modal (once during initialization)

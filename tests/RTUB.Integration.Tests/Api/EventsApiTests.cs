@@ -100,7 +100,7 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task ASignedInMember_GetsTheMemberView_WithTheReasonAndTheirOwnAnswerOnly()
+    public async Task ASignedInMember_GetsTheMemberView_WithTheReasonTheirOwnAnswerAndWhoIsGoing()
     {
         var seed = await SeedAsync();
         var (member, _) = await SignInAsync();
@@ -114,7 +114,10 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         open.GetProperty("event").GetProperty("member").GetProperty("myStatus").ValueKind.Should().Be(JsonValueKind.Null,
             "someone else's answer is never this member's");
         open.GetProperty("event").GetProperty("member").GetProperty("goingCount").GetInt32().Should().Be(1);
-        open.ToString().Should().NotContain(MemberNote).And.NotContain(seed.MemberId);
+        var going = open.GetProperty("member").GetProperty("participants").GetProperty("going").EnumerateArray().ToList();
+        going.Should().ContainSingle(p => p.GetProperty("notes").GetString() == MemberNote,
+            "members see who is going and their notes on the event page, as the members' list always showed");
+        open.ToString().Should().NotContain(seed.MemberId, "no user id leaves the server").And.NotContain("@test.com", "nor an email");
     }
 
     // ---------- enrollment ----------

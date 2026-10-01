@@ -24,12 +24,9 @@ const Page = pages[path];
 const MusicAlbum = lazy(() => import('./MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
-// /events/{id} and /events/{id}/enrollment (React track 011), mapped with {id:int} as well.
+// /events/{id} (React track 011), mapped with {id:int} as well. Answering is a modal on that page.
 const EventDetail = lazy(() => import('./EventDetail'));
-const EventEnrollmentPage = lazy(() => import('./EventEnrollment'));
-const eventMatch = /^\/events\/(\d+)(\/enrollment)?$/.exec(path);
-const eventId = eventMatch ? Number(eventMatch[1]) : undefined;
-const enrollment = Boolean(eventMatch?.[2]);
+const eventId = Number(/^\/events\/(\d+)$/.exec(path)?.[1]) || undefined;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -46,11 +43,7 @@ createRoot(document.getElementById('root')!).render(
             {albumId ? (
               <MusicAlbum albumId={Number(albumId)} />
             ) : eventId ? (
-              enrollment ? (
-                <EventEnrollmentPage eventId={eventId} />
-              ) : (
-                <EventDetail eventId={eventId} />
-              )
+              <EventDetail eventId={eventId} />
             ) : (
               <Page />
             )}

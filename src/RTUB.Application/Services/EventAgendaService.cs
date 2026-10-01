@@ -94,7 +94,8 @@ public sealed class EventAgendaService : IEventAgendaService
                     DateText(g.Key),
                     g.OrderBy(r => r.DisplayOrder).ThenBy(r => r.Id).Select(r => r.Title).ToList()))
                 .ToList();
-            member = new EventMemberDetailDto(e.IsCancelled ? e.CancellationReason : null, notGoing, repertoire);
+            member = new EventMemberDetailDto(e.IsCancelled ? e.CancellationReason : null, notGoing, repertoire,
+                await ParticipantsAsync(db, id));
         }
 
         return new EventDetailDto(extras.IsMember, EventsAuthorization.CanManage(user), ToSummary(e, extras), videos, member);
@@ -225,6 +226,50 @@ public sealed class EventAgendaService : IEventAgendaService
 
         return true;
     }
+
+    private static async Task<EventParticipantsDto> ParticipantsAsync(ApplicationDbContext db, int eventId)
+    {
+        var rows = await db.Enrollments.AsNoTracking()
+            .Where(x => x.EventId == eventId && x.User != null)
+            .OrderByDescending(x => x.EnrolledAt).ThenByDescending(x => x.Id)
+            .Select(x => new
+            {
+                x.WillAttend,
+                x.Instrument,
+                x.Notes,
+                x.CategoryAtEvent,
+                x.User!.Nickname,
+                x.User.FirstName,
+                x.User.LastName,
+                x.User.ImageUrl,
+                x.User.Categories,
+                x.User.Positions,
+            })
+            .ToListAsync();
+
+        var people = rows.Select(r =>
+        {
+            // The category at the event when it was recorded, else the member's current one (as before).
+            var category = r.CategoryAtEvent
+                ?? new ApplicationUser { Categories = r.Categories ?? new List<MemberCategory>() }.GetPrimaryCategory();
+            var fullName = $"{r.FirstName} {r.LastName}".Trim();
+            var dto = new EventParticipantDto(
+                string.IsNullOrWhiteSpace(r.Nickname) ? (string.IsNullOrEmpty(fullName) ? "Membro" : fullName) : r.Nickname,
+                string.IsNullOrEmpty(fullName) ? null : fullName,
+                IsSafeUrl(r.ImageUrl) ? r.ImageUrl! : DefaultAvatar,
+                r.Positions?.Contains(Position.Magister) == true ? "MAGISTER" : category is { } c ? StatusHelper.GetCategoryDisplay(c) : null,
+                r.WillAttend && r.Instrument is { } i ? StatusHelper.GetInstrumentDisplay(i) : null,
+                string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes);
+            return (r.WillAttend, Leitao: category == MemberCategory.Leitao, dto);
+        }).ToList();
+
+        return new EventParticipantsDto(
+            people.Where(p => p.WillAttend && !p.Leitao).Select(p => p.dto).ToList(),
+            people.Where(p => p.WillAttend && p.Leitao).Select(p => p.dto).ToList(),
+            people.Where(p => !p.WillAttend).Select(p => p.dto).ToList());
+    }
+
+    private const string DefaultAvatar = "/images/default-avatar.webp";
 
     // ---------- rules ----------
 

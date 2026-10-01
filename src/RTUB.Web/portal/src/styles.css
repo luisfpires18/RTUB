@@ -1234,58 +1234,6 @@ main:focus {
   line-height: 1.5;
 }
 
-/* ---------- órgãos sociais ---------- */
-
-.governance__lead {
-  max-width: 44rem;
-  margin-bottom: clamp(24px, 4vw, 40px);
-}
-
-.governance {
-  display: grid;
-  gap: 16px;
-}
-
-.governance__card {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-card);
-}
-
-.governance__icon {
-  font-size: 1.375rem;
-  color: var(--purple-ink);
-}
-
-.governance__name {
-  font-size: 1.5rem;
-}
-
-.governance__roles {
-  display: grid;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  color: var(--ink-soft);
-  font-size: 0.9375rem;
-}
-
-@media (min-width: 640px) {
-  .governance {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .governance {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 /* ---------- request + members ---------- */
 
 .doors {
@@ -3779,7 +3727,7 @@ video.tile__media {
   padding-block: 20px;
 }
 
-/* ---------- events (React track 011): agenda, one event, a member's answer ---------- */
+/* ---------- events (React track 011): agenda, one event, the answer and prizes modals ---------- */
 
 .events-page__head {
   display: grid;
@@ -3793,6 +3741,27 @@ video.tile__media {
     justify-content: space-between;
     align-items: end;
   }
+}
+
+.events-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn--gold {
+  border-color: rgba(245, 196, 107, 0.55);
+  background: rgba(245, 196, 107, 0.08);
+  color: #f7d79b;
+}
+
+.btn--gold:hover {
+  border-color: #f5c46b;
+  background: rgba(245, 196, 107, 0.16);
+}
+
+.btn--gold svg {
+  color: #f5c46b;
 }
 
 .events-block {
@@ -3834,7 +3803,6 @@ video.tile__media {
   border-radius: var(--radius);
   background: linear-gradient(160deg, var(--bg-card), var(--bg-raise));
   color: var(--ink);
-  text-decoration: none;
   transition: border-color 160ms ease, translate 160ms ease;
 }
 
@@ -3845,7 +3813,28 @@ video.tile__media {
   }
 }
 
-.agenda-card:focus-visible {
+.agenda-card:focus-within {
+  border-color: var(--purple-ink);
+}
+
+/* The title link covers the card; the quick reply sits above it. */
+.agenda-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.agenda-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.agenda-card__link:focus-visible {
+  outline: none;
+}
+
+.agenda-card__link:focus-visible::after {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -3918,8 +3907,17 @@ video.tile__media {
   color: var(--purple-ink);
 }
 
+.agenda-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .agenda-card__count {
-  margin: 2px 0 0;
   color: var(--muted);
   font-size: 0.8125rem;
 }
@@ -3936,6 +3934,50 @@ video.tile__media {
 
 .agenda-card--cancelled .agenda-card__date {
   background: var(--line);
+}
+
+/* Quick reply: a quiet pill that turns green/red once answered. */
+.quick-reply {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--purple);
+  border-radius: 999px;
+  background: var(--royal);
+  color: var(--ink);
+  font: 600 0.8125rem/1 var(--font-body);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.quick-reply:hover {
+  background: var(--purple);
+}
+
+.quick-reply:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.quick-reply--going {
+  border-color: rgba(64, 192, 120, 0.55);
+  background: rgba(64, 192, 120, 0.14);
+  color: #8fe0b0;
+}
+
+.quick-reply--notGoing {
+  border-color: rgba(255, 143, 134, 0.5);
+  background: rgba(255, 143, 134, 0.12);
+  color: #ffb3ad;
+}
+
+.quick-reply--going:hover,
+.quick-reply--notGoing:hover {
+  background: var(--bg-card);
 }
 
 @media (max-width: 479px) {
@@ -4134,35 +4176,21 @@ video.tile__media {
   }
 }
 
-/* Prizes: a gold-touched band between the agenda and the archive. */
-.prizes {
+/* Prizes (modal): this event's prizes first, then the history by festival. */
+.prizes-current {
   display: grid;
-  gap: 18px;
-  padding: clamp(20px, 3vw, 32px);
-  border: 1px solid rgba(245, 196, 107, 0.35);
-  border-radius: var(--radius-lg);
-  background: radial-gradient(120% 140% at 0% 0%, rgba(245, 196, 107, 0.1), transparent 60%), var(--bg-raise);
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
 }
 
-.prizes__head {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-.prizes__head > svg {
-  width: 32px;
-  height: 32px;
-  color: #f5c46b;
-}
-
-.prizes__head .note {
-  margin: 4px 0 0;
+.prizes__summary {
+  margin-bottom: 12px;
 }
 
 .prizes__list {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4217,6 +4245,13 @@ video.tile__media {
 /* One event. */
 .event-page {
   gap: clamp(20px, 3vw, 32px);
+}
+
+.event-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .event-hero {
@@ -4294,21 +4329,39 @@ video.tile__media {
   align-items: start;
 }
 
+/* On a phone the member panel (the answer) comes before the long sections. */
+.event-layout .member-panel {
+  order: -1;
+}
+
 @media (min-width: 900px) {
   .event-layout {
     grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .event-layout .member-panel {
+    order: 0;
   }
 }
 
 .event-main {
   display: grid;
-  gap: 36px;
+  gap: 40px;
   min-width: 0;
 }
 
 .event-section {
   display: grid;
   gap: 14px;
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.event-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .event-section__title {
@@ -4316,6 +4369,14 @@ video.tile__media {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 500;
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.event-section__count {
+  margin-left: 6px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 1rem;
 }
 
 .event-description {
@@ -4364,6 +4425,106 @@ video.tile__media {
   font-variant-numeric: tabular-nums;
 }
 
+/* Who is going: compact people tiles. */
+.who {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .who {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.who__person {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.who__avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.who__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.who__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.who__badge {
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.who__meta,
+.who__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.who__note {
+  font-style: italic;
+}
+
+.who__group {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.who__more {
+  display: grid;
+  gap: 10px;
+}
+
+.who__more summary,
+.answer__more summary {
+  width: fit-content;
+  min-height: 36px;
+  padding: 6px 0;
+  color: var(--purple-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.who__more[open] summary {
+  margin-bottom: 8px;
+}
+
 .trophies {
   display: grid;
   gap: 10px;
@@ -4385,7 +4546,8 @@ video.tile__media {
   padding: 14px 16px;
   border: 1px solid rgba(245, 196, 107, 0.35);
   border-radius: 12px;
-  background: var(--bg-raise);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .trophies svg {
@@ -4444,7 +4606,7 @@ video.tile__media {
   outline-offset: 2px;
 }
 
-/* The members' side panel on one event. */
+/* The members' panel on one event. */
 .member-panel {
   display: grid;
   gap: 16px;
@@ -4527,80 +4689,69 @@ video.tile__media {
   color: var(--ink);
 }
 
-/* A member's answer: its own page, mobile first. */
-.enrollment {
-  display: grid;
-  gap: 24px;
-  max-width: 40rem;
-}
-
-.enrollment-event {
-  display: grid;
-  gap: 8px;
-}
-
-.enrollment-event__name {
-  margin: 0;
-  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
-  overflow-wrap: anywhere;
-}
-
+/* The answer modal: two large choices, an optional instrument and note. */
 .answer {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 16px 18px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--bg-raise);
+  display: grid;
+  gap: 16px;
 }
 
-.answer > svg {
-  flex: none;
-  margin-top: 3px;
-}
-
-.answer--going {
-  border-color: rgba(64, 192, 120, 0.45);
-}
-
-.answer--going > svg {
-  color: #8fe0b0;
-}
-
-.answer--notGoing {
-  border-color: rgba(255, 143, 134, 0.4);
-}
-
-.answer--notGoing > svg {
-  color: #ffb3ad;
-}
-
-.answer__label {
+.answer p {
   margin: 0;
-  font-weight: 600;
 }
 
-.answer__detail {
-  margin: 4px 0 0;
+.answer-event {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.answer-event strong {
+  color: var(--ink);
+  font-size: 1.0625rem;
+}
+
+.answer-event span {
   color: var(--muted);
-  font-size: 0.9375rem;
-  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
+.answer-note {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.answer__more textarea {
+  width: 100%;
+  min-height: 88px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.4 var(--font-body);
+  resize: vertical;
+}
+
+.answer__more textarea:focus-visible {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.answer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 .choice {
-  display: grid;
-  gap: 12px;
   margin: 0;
   padding: 0;
   border: 0;
-}
-
-.choice__legend {
-  margin-bottom: 12px;
-  padding: 0;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
 }
 
 .choice__options {
@@ -4648,24 +4799,4 @@ video.tile__media {
   border-color: #ff8f86;
   background: rgba(255, 143, 134, 0.12);
   color: #ffd0cc;
-}
-
-.form__banner--ok {
-  border-left-color: #40c078;
-}
-
-.enrollment-remove {
-  display: grid;
-  gap: 12px;
-  justify-items: start;
-}
-
-.enrollment-remove p {
-  margin: 0;
-}
-
-.enrollment-remove__confirm {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }

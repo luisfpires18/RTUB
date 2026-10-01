@@ -273,7 +273,7 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            isUserEditor = user.IsInRole("Admin") || user.IsInRole("Mod");
+            isUserEditor = RTUB.Application.Helpers.EventsAuthorization.CanTrackContacts(user);
         }
 
         await LoadData();

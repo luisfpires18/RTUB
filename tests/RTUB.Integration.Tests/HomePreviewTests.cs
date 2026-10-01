@@ -110,7 +110,8 @@ public class HomePreviewTests : IntegrationTestBase
         home.Should().Contain("Ninguém nasce a tocar instrumentos. Aprende-se aqui.")
             .And.NotContain("Ninguém nasce a tocar bandolim");
         home.Should().NotContain("Quem conduz a tuna");
-        home.Should().Contain("<MoreLink href={portal.roles}>").And.Contain("<MoreLink href={portal.gallery}>")
+        home.Should().NotContain("<MoreLink href={portal.roles}>", "the Órgãos Sociais block left the home in 011");
+        home.Should().Contain("<MoreLink href={portal.gallery}>")
             .And.Contain("<MoreLink href={portal.music}>").And.Contain("<MoreLink href={portal.events}>", "the agenda is React since 011");
     }
 

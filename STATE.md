@@ -26,11 +26,14 @@ home gallery shows the latest public photos (`GET /api/gallery?public=true`). Co
 Órgãos Sociais, Pedidos, no gallery members teaser); one shared `.control` for search/selects and `.back-link`.
 Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
 
-**Open: `feat/011-react-events`** (React track 011, from `dev` @ `84276caa`; local, not pushed; DEV only).
-`/events`, `/events/{id}` and `/events/{id}/enrollment` are React over `/api/events` (`IEventAgendaService`);
-members answer on a dedicated page (no modal), through the unchanged `EnrollmentService`. Event management
-moved unchanged to the members' Blazor `/member/events`. Home preview reads the same service. No schema
-change. Audit, rules, API and follow-ups: `docs/react-events.md`.
+**Open: `feat/011-react-events`** (React track 011; first part merged to `dev` @ `8a3da9d2`; follow-up local,
+not pushed; DEV only). `/events` and `/events/{id}` are React over `/api/events` (`IEventAgendaService`).
+Members answer (Vou / Não vou) in a modal - card quick reply or the event page - never a page of its own;
+the first build's `/events/{id}/enrollment` now redirects to `/events/{id}?respond=1`. Quem vai is on the
+event page, Prémios is a button + modal. Event roles inherit (Owner ⊇ Admin ⊇ Mod). The home's
+Órgãos Sociais block is gone (`/roles` stays). Management stays on the Blazor `/member/events`. No schema
+change. Terminology: events = enrollment / inscrição; rehearsals = attendance / presença. Detail:
+`docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -154,8 +157,6 @@ migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
 Raised by React track 011 (Events):
-- `/member/events` management checks `IsInRole("Admin")` only (an Owner without Admin has no event tools);
-  kept as it was.
 - A local run without `Cloudflare:R2:PublicUrl` leaves the R2 origin out of the CSP, so event images and
   videos are blocked locally only (DEV/PROD have the setting).
 - `/member/events` still lists events and members' enrolment details for members (bridge until management

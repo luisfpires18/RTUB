@@ -40,7 +40,18 @@ export type EventDetail = {
     cancellationReason: string | null;
     notGoingCount: number;
     repertoire: { date: string; songs: string[] }[];
+    participants: { going: EventParticipant[]; leitoes: EventParticipant[]; notGoing: EventParticipant[] };
   } | null;
+};
+
+/** One answer in "Quem vai" (members only). */
+export type EventParticipant = {
+  name: string;
+  fullName: string | null;
+  avatarUrl: string;
+  badge: string | null;
+  instrument: string | null;
+  notes: string | null;
 };
 
 export type InstrumentOption = { value: string; label: string };

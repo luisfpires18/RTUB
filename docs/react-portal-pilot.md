@@ -49,7 +49,7 @@ DTOs and branches are English: "Novidades" on screen, `/news` in the URL; "Pedid
 ## Home page and navigation
 
 Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (a pointer to the full
-agenda, with the FITAB highlight) → Música → Galeria → Junta-te a nós → Órgãos Sociais → Pedidos +
+agenda, with the FITAB highlight) → Música → Galeria → Junta-te a nós → Pedidos +
 member area → install the app → a small "Novidades · Em breve" line.
 
 - **Top bar:** Atuações, Música, Galeria, Órgãos Sociais; the **"Pedir atuação"** call to action
@@ -90,7 +90,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
 | Galeria | React `/gallery` (009) | photos and videos | `/#gallery` latest public photos (010) + `/gallery` timeline | homepage now + navbar now; done (009, `docs/react-gallery.md`) |
-| Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/#governance` bodies and positions + `/roles` | homepage now + navbar now; done (008) |
+| Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/roles` (the home block was removed in 011; top bar, menu and footer link there) | navbar now; done (008) |
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
 | Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
@@ -113,7 +113,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 
 | Path | Class | Notes |
 | --- | --- | --- |
-| `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member entry. The Blazor `Index.razor` was retired. |
+| `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
 | `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Abrir a área de membros" (`/member/events` since 011) and "Editar o perfil" (`/member/profile`). |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
@@ -125,9 +125,10 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
 | `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
-| `/events`, `/events/{id}`, `/events/{id}/enrollment` | **React canonical** (011) | Agenda, one event, a member's own answer (own page, no modal). Events say *enrollment*, never *attendance* (rehearsals); the draft `/events/{id}/attendance` is 404. Signed-in members still land on `/events` after login. `docs/react-events.md`. |
+| `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
+| `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
 | `/member/events` | **Blazor member/admin, pending** (moved in 011) | The former Blazor `/events`: management, statistics, "Minhas Inscrições", video upload. Requires sign-in. Its answer buttons open the React enrollment page. |
-| `/events/{id}/enrollments`, `/discussion`, `/contacts` | **Blazor member, pending** | Unchanged member pages; back links open the React event page. |
+| `/events/{id}/enrollments`, `/discussion`, `/contacts` | **Blazor member, pending** | Admin enrollment tools, discussion, contact tracking; back links open the React event page. Quem vai itself is on the React event page. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
