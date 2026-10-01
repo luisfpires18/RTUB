@@ -278,10 +278,13 @@ public class PortalRouteTests : IntegrationTestBase
         manage.Should().Contain("eventsApi.uploadVideo(").And.Contain("eventsApi.renameVideo(").And.Contain("eventsApi.reorderVideos(")
             .And.Contain("eventsApi.deleteVideo(");
         detail.Should().Contain("<VideoManagerDialog").And.Contain("Gerir vídeos");
+        detail.Should().Contain("<RepertoireManagerDialog").And.Contain("Gerir repertório");
+        manage.Should().Contain("eventsApi.addToRepertoire(").And.Contain("eventsApi.removeFromRepertoire(")
+            .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
     }
 
     [Fact]
-    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesPrizesAndVideosAreReact()
+    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesPrizesVideosAndRepertoireAreReact()
     {
         var root = FindRepoRoot();
         var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
@@ -297,9 +300,19 @@ public class PortalRouteTests : IntegrationTestBase
             "OpenTrophyModal", "OpenCreateTrophyModal", "SaveTrophy", "DeleteTrophy", "TrophyService", "OnViewTrophies=", "ShowTrophy=",
             // 012C: videos are managed on the React event page; the bridge only plays them.
             "InputFile", "AddVideoAsync", "UpdateVideoTitleAsync", "UpdateVideoOrderAsync", "DeleteVideoAsync", "draggable", "EditVideo",
+            // 012D: the repertoire is managed on the React event page.
+            "OnRepertoireChanged", "HandleRepertoireChanged",
         });
 
-        // The bridge scope that stays: prizes, videos, repertoire, statistics, Minhas Inscrições, enrollment lists.
+        // 012D: the shared repertoire modal (used only here) is read-only.
+        var repertoire = File.ReadAllText(Path.Combine(root, "src", "RTUB.Shared", "Components", "Modals", "RepertoireModal.razor"));
+        repertoire.Should().NotContainAny(new[]
+        {
+            "AddSongToRepertoireAsync", "RemoveSongFromRepertoireAsync", "UpdateRepertoireOrderAsync", "RemoveRepertoireDayAsync",
+            "draggable", "IsAdmin", "ISongService",
+        });
+
+        // What stays: read-only videos and repertoire, statistics (incl. prizes), Minhas Inscrições, enrollment lists.
         page.Should().Contain("ModalType.Videos").And.Contain("<RepertoireModal")
             .And.Contain("TrophiesStats").And.Contain("<MyEnrollmentsButton").And.Contain("OpenEnrollmentListModal");
     }

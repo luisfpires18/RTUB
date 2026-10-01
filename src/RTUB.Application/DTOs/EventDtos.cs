@@ -221,3 +221,26 @@ public sealed record EventVideoTitleInput(string? Title);
 
 /// <summary>A new order: every video id of the event, exactly once, first to last.</summary>
 public sealed record EventVideoOrderInput(IReadOnlyList<int>? VideoIds);
+
+// ---------- repertoire (Admin/Owner, React track 012D) ----------
+
+/// <summary>
+/// The repertoire as the management modal edits it: every day it can hold songs (the event's days,
+/// plus any other day that already has some), each with its songs in running order.
+/// </summary>
+public sealed record EventRepertoireManageDto(IReadOnlyList<EventRepertoireManageDayDto> Days);
+
+/// <summary>One day ("yyyy-MM-dd") and its songs, first to last.</summary>
+public sealed record EventRepertoireManageDayDto(string Date, IReadOnlyList<EventRepertoireItemDto> Items);
+
+/// <summary>One repertoire row: its id (for remove / reorder) and the song's title.</summary>
+public sealed record EventRepertoireItemDto(int Id, string Title);
+
+/// <summary>A song the caller may add: id, title and its album's title. Only songs Music would show them.</summary>
+public sealed record EventRepertoireSongDto(int Id, string Title, string? Album);
+
+/// <summary>Adds a song on one of the event's days ("yyyy-MM-dd").</summary>
+public sealed record EventRepertoireAddInput(int SongId, string? Date);
+
+/// <summary>A day's new running order: every repertoire row id of that day, exactly once.</summary>
+public sealed record EventRepertoireOrderInput(string? Date, IReadOnlyList<int>? ItemIds);

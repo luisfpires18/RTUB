@@ -616,6 +616,113 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         (await owner.GetFromJsonAsync<JsonElement>($"/api/events/{past}/videos")).GetArrayLength().Should().Be(0);
     }
 
+    // ---------- repertoire (Admin/Owner, 012D) ----------
+
+    [Fact]
+    public async Task RepertoireWrites_AreRefused_ForVisitorsMembersAndMods_AndWithoutTheAntiforgeryHeader()
+    {
+        var day = DateTime.Today.AddDays(320);
+        var id = await AddEventAsync("Arraial com repertório protegido", day);
+        var song = await AddSongAsync("Intocável");
+        var item = await AddRepertoireItemAsync(id, song, day, 1);
+        var other = await AddSongAsync("Nova para o arraial");
+        var date = day.ToString("yyyy-MM-dd");
+        var visitor = Anonymous();
+        await WithTokenAsync(visitor);
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var (adminWithoutToken, _) = await SignInAsync("Admin");
+
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        {
+            (await client.GetAsync($"/api/events/{id}/repertoire")).StatusCode.Should().Be(expected);
+            (await client.GetAsync($"/api/events/{id}/repertoire/songs?q=")).StatusCode.Should().Be(expected);
+            (await client.PostAsJsonAsync($"/api/events/{id}/repertoire", new { songId = other, date })).StatusCode.Should().Be(expected);
+            (await client.PostAsJsonAsync($"/api/events/{id}/repertoire/reorder", new { date, itemIds = new[] { item } })).StatusCode.Should().Be(expected);
+            (await client.DeleteAsync($"/api/events/{id}/repertoire/{item}")).StatusCode.Should().Be(expected);
+            (await client.DeleteAsync($"/api/events/{id}/repertoire/days/{date}")).StatusCode.Should().Be(expected);
+        }
+
+        (await adminWithoutToken.PostAsJsonAsync($"/api/events/{id}/repertoire", new { songId = other, date })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{id}/repertoire/{item}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{id}/repertoire/days/{date}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var page = await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}");
+        page.GetProperty("member").GetProperty("repertoire")[0].GetProperty("songs").EnumerateArray().Select(s => s.GetString())
+            .Should().Equal("Intocável");
+        (await Anonymous().GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("member").ValueKind
+            .Should().Be(JsonValueKind.Null, "visitors never saw the repertoire");
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Owner")]
+    public async Task AdminOrOwner_ManageTheRepertoire_AndMembersReadIt(string role)
+    {
+        var day = DateTime.Today.AddDays(role == "Admin" ? 321 : 322);
+        var id = await AddEventAsync($"Arraial cantado ({role})", day);
+        var first = await AddSongAsync($"Abertura {role}");
+        var second = await AddSongAsync($"Fecho {role}");
+        var date = day.ToString("yyyy-MM-dd");
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var (member, _) = await SignInAsync();
+
+        var found = await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/repertoire/songs?q={Uri.EscapeDataString("abertura " + role)}");
+        found.EnumerateArray().Select(s => s.GetProperty("id").GetInt32()).Should().Contain(first);
+
+        (await client.PostAsJsonAsync($"/api/events/{id}/repertoire", new { songId = first, date })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var added = await client.PostAsJsonAsync($"/api/events/{id}/repertoire", new { songId = second, date });
+        var items = (await added.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("days")[0].GetProperty("items");
+        items.EnumerateArray().Select(i => i.GetProperty("title").GetString()).Should().Equal($"Abertura {role}", $"Fecho {role}");
+
+        var duplicate = await client.PostAsJsonAsync($"/api/events/{id}/repertoire", new { songId = first, date });
+        duplicate.StatusCode.Should().Be(HttpStatusCode.BadRequest, "a song goes once per event");
+        (await duplicate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("songId", out _).Should().BeTrue();
+
+        var ids = items.EnumerateArray().Select(i => i.GetProperty("id").GetInt32()).ToArray();
+        (await client.PostAsJsonAsync($"/api/events/{id}/repertoire/reorder", new { date, itemIds = new[] { ids[1], ids[0] } }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("member").GetProperty("repertoire")[0].GetProperty("songs")
+            .EnumerateArray().Select(s => s.GetString()).Should().Equal($"Fecho {role}", $"Abertura {role}");
+
+        (await client.DeleteAsync($"/api/events/{id}/repertoire/{ids[1]}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var cleared = await client.DeleteAsync($"/api/events/{id}/repertoire/days/{date}");
+        (await cleared.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("days")[0].GetProperty("items").GetArrayLength().Should().Be(0);
+        (await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("member").GetProperty("repertoire").GetArrayLength()
+            .Should().Be(0, "the last song gone, members see no repertoire");
+    }
+
+    private async Task<int> AddSongAsync(string title)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var album = await db.Albums.FirstOrDefaultAsync(a => a.Title == "Cancioneiro de teste");
+        if (album is null)
+        {
+            album = Album.Create("Cancioneiro de teste", 2020);
+            db.Albums.Add(album);
+            await db.SaveChangesAsync();
+        }
+
+        var song = Song.Create(title, album.Id);
+        db.Songs.Add(song);
+        await db.SaveChangesAsync();
+        return song.Id;
+    }
+
+    private async Task<int> AddRepertoireItemAsync(int eventId, int songId, DateTime day, int order)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var r = EventRepertoire.Create(eventId, songId, order, day);
+        db.EventRepertoires.Add(r);
+        await db.SaveChangesAsync();
+        return r.Id;
+    }
+
     private static MultipartFormDataContent VideoForm(string contentType = "video/mp4", string name = "festa.mp4", string title = "Festa")
     {
         var file = new ByteArrayContent(new byte[] { 0, 0, 0, 24, (byte)'f', (byte)'t', (byte)'y', (byte)'p' });

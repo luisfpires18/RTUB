@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { legacy, portal } from './content';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
-import { CancelEventDialog, NoticeDialog, ReactivateEventDialog, VideoManagerDialog } from './EventManage';
+import { CancelEventDialog, NoticeDialog, ReactivateEventDialog, RepertoireManagerDialog, VideoManagerDialog } from './EventManage';
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
@@ -31,6 +31,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [prizes, setPrizes] = useState(false);
   const [managing, setManaging] = useState<'notice' | 'cancel' | 'reactivate'>();
   const [managingVideos, setManagingVideos] = useState(false);
+  const [managingRepertoire, setManagingRepertoire] = useState(false);
   const respond = useRef(wantsToRespond());
 
   const load = (quiet = false) => {
@@ -106,6 +107,8 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           onAnswer={() => setAnswering(true)}
           // Admin/Owner (012C): uploads go to past events, as before; existing videos stay manageable anywhere.
           onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
+          // Admin/Owner (012D): the repertoire of any event, as the old modal allowed.
+          onManageRepertoire={detail.canManage ? () => setManagingRepertoire(true) : undefined}
         />
       )}
       {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
@@ -124,6 +127,9 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       {manage && managing === 'reactivate' && (
         <ReactivateEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />
       )}
+      {managingRepertoire && loaded && (
+        <RepertoireManagerDialog event={loaded.event} onClose={() => setManagingRepertoire(false)} onChanged={() => load(true)} />
+      )}
       {managingVideos && loaded && (
         <VideoManagerDialog event={loaded.event} onClose={() => setManagingVideos(false)} onChanged={() => load(true)} />
       )}
@@ -131,7 +137,17 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   );
 }
 
-function Body({ detail, onAnswer, onManageVideos }: { detail: Detail; onAnswer: () => void; onManageVideos?: () => void }) {
+function Body({
+  detail,
+  onAnswer,
+  onManageVideos,
+  onManageRepertoire,
+}: {
+  detail: Detail;
+  onAnswer: () => void;
+  onManageVideos?: () => void;
+  onManageRepertoire?: () => void;
+}) {
   const { event, member } = detail;
   const time = timeLabel(event.time);
 
@@ -186,11 +202,20 @@ function Body({ detail, onAnswer, onManageVideos }: { detail: Detail; onAnswer: 
             </section>
           )}
 
-          {member && member.repertoire.length > 0 && (
+          {member && (member.repertoire.length > 0 || onManageRepertoire) && (
             <section className="event-section" aria-labelledby="repertoire-title">
-              <h2 id="repertoire-title" className="event-section__title">
-                Repertório
-              </h2>
+              <div className="event-section__head">
+                <h2 id="repertoire-title" className="event-section__title">
+                  Repertório
+                </h2>
+                {onManageRepertoire && (
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={onManageRepertoire}>
+                    <Icon name="music" />
+                    Gerir repertório
+                  </button>
+                )}
+              </div>
+              {member.repertoire.length === 0 && <p className="note">Ainda sem repertório nesta atuação.</p>}
               {member.repertoire.map((day) => (
                 <div key={day.date} className="repertoire-day">
                   {member.repertoire.length > 1 && <h3 className="repertoire-day__date">{dateLabel({ date: day.date, endDate: null })}</h3>}
