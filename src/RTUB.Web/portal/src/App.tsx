@@ -33,7 +33,6 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <>
       <a className="skip" href="#conteudo">Saltar para o conteúdo</a>
-      <PilotBanner />
       <Header />
       <main id="conteudo" tabIndex={-1}>
         {children}
@@ -77,23 +76,6 @@ function revealApp() {
 }
 
 // ---------- chrome ----------
-
-/**
- * Only test builds carry a SemVer pre-release version (DEV reports 2.0.4-dev.N); a release
- * (2.0.4) or an unknown version shows nothing, so this strip can never reach production.
- */
-function PilotBanner() {
-  const { version } = useVersion();
-  if (!version?.includes('-')) return null;
-  return (
-    <div className="pilot">
-      <p className="pilot__text">
-        <strong>Versão de testes</strong>
-        <span className="pilot__more"> · o que vês aqui pode mudar antes de chegar ao site da RTUB.</span>
-      </p>
-    </div>
-  );
-}
 
 function Brand() {
   return (

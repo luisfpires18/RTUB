@@ -162,64 +162,42 @@ public class ServiceWorkerReliabilityTests
 
     /// <summary>
     /// install() used to call self.skipWaiting() unconditionally, so every new worker activated
-    /// at once, claimed clients and forced a reload - which made the "Nova versao disponivel /
-    /// Atualizar" prompt unreachable in practice. skipWaiting is now reached only through the
-    /// SKIP_WAITING message the user's "Atualizar" click posts.
+    /// at once, claimed clients and forced a reload mid-use. Since 006 updates are silent: a new
+    /// worker waits and activates on its own once every RTUB window is closed. Nothing may
+    /// activate it early - no skipWaiting anywhere, no SKIP_WAITING message to ask for it.
     /// </summary>
     [Fact]
-    public void ServiceWorker_SkipsWaitingOnlyOnUserRequest()
+    public void ServiceWorker_NeverForcesActivation()
     {
-        var content = ServiceWorker;
-
-        Section(content, "addEventListener('install'", "addEventListener('activate'")
-            .Should().NotContain("skipWaiting",
-                "a new worker must wait so the user can choose when to update");
-
-        var messageHandler = Section(content, "addEventListener('message'", "addEventListener('pushsubscriptionchange'");
-        messageHandler.Should().Contain("SKIP_WAITING");
-        messageHandler.Should().Contain("self.skipWaiting()",
-            "the SKIP_WAITING message posted by the update toast is the only activation trigger");
-    }
-
-    [Fact]
-    public void SwRegister_PostsSkipWaitingOnlyFromTheUpdateButton()
-    {
-        var register = SwRegister();
-
-        Regex.Matches(register, @"SKIP_WAITING").Count.Should().Be(1,
-            "exactly one place may ask the waiting worker to activate");
-
-        Section(register, "updateBtn.addEventListener('click'", "dismissBtn.addEventListener")
-            .Should().Contain("SKIP_WAITING",
-                "the only SKIP_WAITING post must be the 'Atualizar' click handler");
+        ServiceWorker.Should().NotContain("skipWaiting",
+            "a new worker must wait for every RTUB window to close instead of taking over mid-use");
+        ServiceWorker.Should().NotContain("SKIP_WAITING");
+        SwRegister().Should().NotContain("SKIP_WAITING");
     }
 
     /// <summary>
-    /// controllerchange fires both for a real update and for the first-ever install, where
-    /// clients.claim() takes control of a page that was never controlled. Reloading in the
-    /// latter case is a pointless extra navigation, and an unguarded reload is how a
-    /// controllerchange loop starts.
+    /// The "Nova versão disponível! / Atualizar / Depois" toast was retired in 006: React assets
+    /// are hashed, Blazor assets carry ?v=, and documents are network-only, so there is no stale
+    /// page to warn about. No prompt, and no reload path that could fire mid-use.
     /// </summary>
     [Fact]
-    public void SwRegister_HasOneGuardedReloadPath()
+    public void SwRegister_UpdatesSilently()
     {
         var register = SwRegister();
 
-        Regex.Matches(register, @"location\.reload\(").Count.Should().Be(1,
-            "exactly one reload path may exist");
+        register.Should().NotContain("Nova vers").And.NotContain("Atualizar").And.NotContain("Depois")
+            .And.NotContain("rtub-sw-toast", "the update prompt is gone");
+        register.Should().NotContain("location.reload(", "an update must never reload an open page");
+        register.Should().Contain(".update()", "update checks still fetch new workers in the background");
 
-        var handler = Section(register, "addEventListener('controllerchange'", "})();");
-        handler.Should().Contain("if (refreshing) return;",
-            "the reload must be guarded against firing twice");
-        handler.Should().Contain("hadControllerAtStartup",
-            "a first-ever install must not trigger a reload");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css", "3-components", "sw-update-toast.css"))
+            .Should().BeFalse("the toast stylesheet was only used by the retired prompt");
     }
 
     /// <summary>
     /// registerServiceWorker() is invoked twice (immediately, then on window load). register()
     /// itself is idempotent, but each call attached another updatefound listener, another
-    /// visibilitychange listener and another update-check timer - which is how one update
-    /// produced two toasts.
+    /// visibilitychange listener and another update-check timer.
     /// </summary>
     [Fact]
     public void SwRegister_WiresTheUpdateLifecycleOnlyOnce()

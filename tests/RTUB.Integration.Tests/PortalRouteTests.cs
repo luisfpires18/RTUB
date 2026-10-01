@@ -43,6 +43,49 @@ public class PortalRouteTests : IntegrationTestBase
         html.Should().NotContain("blazor.web.js", "{0} is React, not a Blazor page", path);
         html.Should().Contain("href=\"/manifest.webmanifest\"", "the portal must keep the one installed-app identity");
         html.Should().Contain("src=\"/js/sw-register.js\"", "the portal reuses the single service-worker registration path");
+        html.Should().NotContain("sw-update-toast", "the update prompt was retired in 006");
+    }
+
+    /// <summary>
+    /// 006: the "Versão de testes" strip and the "Nova versão disponível! · Atualizar · Depois" update
+    /// prompt are gone from the shell, its sources, its committed build and the one script it shares
+    /// with Blazor. Matched on ASCII fragments because the build escapes non-ASCII text.
+    /// </summary>
+    [Fact]
+    public void ReactShell_CarriesNoTestBannerOrUpdatePrompt()
+    {
+        var root = FindRepoRoot();
+        var web = Path.Combine(root, "src", "RTUB.Web");
+        var files = Directory.GetFiles(Path.Combine(web, "portal", "src"))
+            .Append(Path.Combine(web, "portal", "index.html"))
+            .Concat(Directory.GetFiles(Path.Combine(web, "wwwroot", "portal"), "*", SearchOption.AllDirectories)
+                .Where(f => f.EndsWith(".html") || f.EndsWith(".css") || (f.EndsWith(".js") && !Path.GetFileName(f).StartsWith("vendor-"))))
+            .Append(Path.Combine(web, "wwwroot", "js", "sw-register.js"))
+            .ToList();
+
+        files.Should().HaveCountGreaterThan(5);
+        foreach (var file in files)
+        {
+            File.ReadAllText(file).Should()
+                .NotContain("de testes").And.NotContain("PilotBanner").And.NotContain("pilot__")
+                .And.NotContain("Nova vers").And.NotContain("Atualizar").And.NotContain("rtub-sw-")
+                .And.NotContain("sw-update-toast", "{0} must not bring back the test banner or the update prompt", Path.GetFileName(file));
+        }
+    }
+
+    /// <summary>
+    /// The shell itself is never cached (above), and every script, stylesheet and font it loads has a
+    /// content hash in its name, so a deploy is picked up on the next navigation with no prompt.
+    /// </summary>
+    [Fact]
+    public async Task PortalShell_LoadsOnlyContentHashedAssets()
+    {
+        var html = await Factory.CreateClient().GetStringAsync("/");
+
+        var assets = Regex.Matches(html, "(?:src|href)=\"(/portal/assets/[^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+
+        assets.Should().NotBeEmpty().And.OnlyContain(a => Regex.IsMatch(a, @"-[A-Za-z0-9_-]{8}\.(js|css)$"),
+            "the React build must stay cache-busted by content hash");
     }
 
     [Fact]

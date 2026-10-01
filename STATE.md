@@ -20,6 +20,12 @@ consecutive months from the current month even before it had activity, so on mon
 with 3 full months never returned to active; it now counts from the last completed month, as
 `MemberStatusService` already did. No schema change.
 
+**Open: `fix/006-remove-obsolete-shell-banners`** (from `dev` @ `3f206d17`). Removed the "Versão de testes"
+strip from the React shell and the service worker's "Nova versão disponível! · Atualizar · Depois" toast
+(+ its stylesheet, SKIP_WAITING path and forced reload). Updates are silent: a new worker waits for every
+RTUB window to close; freshness comes from hashed/`?v=` asset URLs. Details: `docs/react-portal-pilot.md`
+(Layout). No schema change.
+
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
 goes live only through the owner actions below, then a `dev → master` merge.
@@ -141,6 +147,12 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 006 (shell banners):
+- `VersionTests.VersionFile_IsStrictSemVer_WithNothingElseInIt` fails on Windows checkouts (`core.autocrlf`
+  gives `VERSION` a CRLF); green on CI. A `.gitattributes` `VERSION text eol=lf` rule would fix it.
+- Portal `index.html` loads `/js/sw-register.js` unversioned (stale-while-revalidate), so one visit after a
+  deploy can still run the old script.
+
 Raised by React track 006 (Music):
 - `AlbumAccesses` holds 18 stale rows for album 12 (not exclusive); ignored by the rules, not deleted.
 - Retired-Music leftovers still loaded globally: `css/3-components/music.css`, `song-card.css`,

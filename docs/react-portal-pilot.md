@@ -67,9 +67,9 @@ member area → install the app → a small "Novidades · Em breve" line.
   on the Blazor `/hierarchy` (members only).
 - **No invented data (005):** the agenda no longer shows illustrative dates; it points to `/events`
   until a read-only events API exists. The gallery tiles are artwork, labelled "Ilustrações".
-- **Test-build banner (005):** "Versão de testes" shows only when `/api/version` reports a SemVer
-  pre-release (DEV: `2.0.4-dev.N`). Releases and local builds (`2.0.4`) show nothing, so it cannot
-  reach production. It appears once the version call answers (a small shift on DEV only).
+- **No test or update banners (006):** the "Versão de testes" strip (005) and the service worker's
+  "Nova versão disponível! · Atualizar · Depois" prompt are retired. Updates are silent; see
+  Layout below.
 
 ## Public content coverage (task 005)
 
@@ -147,7 +147,7 @@ notifications without a URL now open the React home. Members reach their area th
 ## Before any production release
 
 The React public shell ships with whatever `dev` holds at the next `dev → master` release. Since 005
-the test-build banner cannot show on a release and the agenda has no invented dates; the **artwork
+the agenda has no invented dates; the **artwork
 gallery tiles and the static (not admin-editable) copy must still be accepted by the owner, or
 replaced, before that release.**
 
@@ -178,9 +178,17 @@ below. Sources are pinned to LF so the build is byte-identical on Windows and Li
   chunks; only `vendor-react-*.js` is excluded, as vendored code like `wwwroot/lib` (its
   `<style precedence>` path is never used).
 - **PWA identity unchanged.** Same `manifest.webmanifest` (id `/`, `start_url` `/?utm_source=pwa`),
-  same Apple meta, same single service-worker registration (`/js/sw-register.js`). The service
-  worker is untouched: React page navigations are network-only with the offline fallback, the hashed
+  same Apple meta, same single service-worker registration (`/js/sw-register.js`). React page
+  navigations are network-only (and the shell is `no-cache`) with the offline fallback; the hashed
   assets stale-while-revalidate like any JS/CSS.
+- **Cache busting, no update prompt (006).** The old "Nova versão disponível" prompt made users
+  reload when a new service worker was waiting. It is gone: a new worker downloads in the background
+  and takes over once every RTUB window is closed (no `skipWaiting`, no forced reload). Freshness
+  comes from URLs, not from the worker: Vite names every script, stylesheet and font by content hash,
+  Blazor assets carry `?v=` (`VersionedAsset`), so a deploy is picked up on the next navigation.
+  Ceiling: the image cache is cache-first by URL, so an image replaced *at the same URL* stays stale
+  until the worker's `CACHE_VERSION` changes and it activates; publish changed images under a new
+  URL.
 - **No business logic in React, no database change.** Task 001 called only `GET /api/version`
   (footer); 002 and 003 added the two APIs in the route table. Login stays the Blazor `/login`, which
   keeps its antiforgery and rate limiting.
