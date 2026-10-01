@@ -154,28 +154,6 @@ public class InlineStylePolicyTests
     }
 
     /// <summary>
-    /// The service-worker update toast is built in JavaScript. Its appearance moved to
-    /// css/3-components/sw-update-toast.css, including the slide-up keyframes that used to be
-    /// injected as a &lt;style&gt; element.
-    /// </summary>
-    [Fact]
-    public void ServiceWorkerUpdateToast_IsStyledByClassesFromAnExternalStylesheet()
-    {
-        var register = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "sw-register.js");
-
-        register.Should().Contain("rtub-sw-toast",
-            "the toast must carry the class its external stylesheet targets");
-
-        var toastCss = ReadRepoFile("src", "RTUB.Web", "wwwroot", "css", "3-components", "sw-update-toast.css");
-
-        toastCss.Should().Contain("@keyframes rtub-toast-slide-up",
-            "the slide-up animation must live in the stylesheet, not be injected as a <style> element");
-
-        ReadRepoFile("src", "RTUB.Web", "wwwroot", "css", "site.css")
-            .Should().Contain("sw-update-toast.css", "site.css must import the toast stylesheet");
-    }
-
-    /// <summary>
     /// Runtime-valued styles travel as validated data-* attributes and are applied through the
     /// CSSOM, which CSP does not govern. The bridge must stay narrow: it accepts a percentage
     /// and a six-digit hex colour, not arbitrary CSS - otherwise it would hand back exactly the

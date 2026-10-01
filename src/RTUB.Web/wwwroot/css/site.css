@@ -87,7 +87,6 @@
 
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');
-@import url('3-components/sw-update-toast.css');
 
 /* Game Styles (shared across game pages) */
 @import url('3-components/game-avoid-questions.css');

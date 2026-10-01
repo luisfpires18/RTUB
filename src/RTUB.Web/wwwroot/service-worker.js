@@ -65,10 +65,8 @@ self.addEventListener('install', (event) => {
                 console.error('[Service Worker] Failed to cache static assets:', error);
             })
             // Deliberately NO forced activation here. Doing it on install made every new
-            // worker take over immediately, claim clients and trigger a reload, which
-            // defeated the "Nova versão disponível / Atualizar" prompt entirely.
-            // The worker now waits; it activates only via the SKIP_WAITING message that
-            // sw-register.js posts after the user chooses "Atualizar".
+            // worker take over immediately, claim clients and trigger a reload mid-use.
+            // The worker waits and activates on its own once every RTUB window is closed.
     );
 });
 
@@ -437,13 +435,6 @@ self.addEventListener('notificationclick', (event) => {
                 }
             })
     );
-});
-
-// Message event - handle messages from the client
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
 });
 
 // Push subscription change event - handle browser-initiated subscription rotation

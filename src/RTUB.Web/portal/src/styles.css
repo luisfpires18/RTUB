@@ -344,31 +344,6 @@ main:focus {
   color: var(--purple-ink);
 }
 
-/* ---------- pilot banner ---------- */
-
-.pilot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px 16px;
-  padding: 8px var(--gutter);
-  background: var(--royal);
-  color: var(--ink);
-  font-size: 0.8125rem;
-  text-align: center;
-}
-
-.pilot__more {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .pilot__more {
-    display: inline;
-  }
-}
-
 /* ---------- header ---------- */
 
 .header {
