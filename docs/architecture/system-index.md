@@ -49,13 +49,14 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RTUB.Web/portal/` | React 19 + Vite source of the public shell (`/`, `/privacy`, `/profile`, `/request`). Not published. |
+| `src/RTUB.Web/portal/` | React 19 + Vite source of the public shell (`/`, `/privacy`, `/profile`, `/request`, `/music`). Not published. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |
 | `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React. |
 | `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
 | `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |
 | `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
+| `src/RTUB.Web/Endpoints/MusicEndpoints.cs`, `src/RTUB.Application/Services/MusicService.cs` | React Music API and its rules (`MusicAuthorization`). `docs/react-music.md`. |
 
 ## Push notifications
 

@@ -242,7 +242,7 @@ function Music() {
               </ExternalLink>
             ))}
           </div>
-          <MoreLink href={legacy.music}>Álbuns e letras</MoreLink>
+          <MoreLink href={portal.music}>Ouvir os álbuns e ler as letras</MoreLink>
         </div>
         <div className="record-wrap" aria-hidden="true">
           <div className="sleeve">

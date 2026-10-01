@@ -648,6 +648,9 @@ public class Program
         // --------- Public request API for the React portal (React track 003) ---------
         app.MapPublicRequestEndpoints();
 
+        // --------- Music API for the React Music area (React track 006) ---------
+        app.MapMusicEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths; every other page stays Blazor.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
@@ -666,6 +669,17 @@ public class Program
             app.MapMethods("/portal" + route.TrimEnd('/'), ["GET", "HEAD"], (HttpContext context) =>
                 Results.Redirect(route + context.Request.QueryString));
         }
+
+        // React Music (track 006): the album list and one album page. The retired Blazor album page
+        // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
+        foreach (var route in new[] { "/music", "/music/albums/{id:int}" })
+        {
+            app.MapFallbackToFile(route, "portal/index.html", portalShell)
+               .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
+        }
+
+        app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
+            Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));
 
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
