@@ -45,7 +45,7 @@ export type EventDetail = {
 
 export type InstrumentOption = { value: string; label: string };
 
-export type EventAttendance = {
+export type EventEnrollment = {
   event: EventSummary;
   state: 'open' | 'past' | 'cancelled';
   status: 'going' | 'notGoing' | null;
@@ -57,7 +57,7 @@ export type EventAttendance = {
   canRemove: boolean;
 };
 
-export type AttendanceInput = { willAttend: boolean; instrument: string | null; notes: string | null };
+export type EnrollmentInput = { willAttend: boolean; instrument: string | null; notes: string | null };
 
 /** Every answer maps onto one of these; nothing throws. */
 export type Outcome<T> =
@@ -122,10 +122,10 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
 export const eventsApi = {
   agenda: () => call<EventAgenda>('GET', '/api/events'),
   event: (id: number) => call<EventDetail>('GET', `/api/events/${id}`),
-  attendance: (id: number) => call<EventAttendance>('GET', `/api/events/${id}/attendance`),
-  saveAttendance: (id: number, input: AttendanceInput) =>
-    call<EventAttendance>('PUT', `/api/events/${id}/attendance`, input),
-  removeAttendance: (id: number) => call<EventAttendance>('DELETE', `/api/events/${id}/attendance`),
+  getEnrollment: (id: number) => call<EventEnrollment>('GET', `/api/events/${id}/enrollment`),
+  saveEnrollment: (id: number, input: EnrollmentInput) =>
+    call<EventEnrollment>('PUT', `/api/events/${id}/enrollment`, input),
+  removeEnrollment: (id: number) => call<EventEnrollment>('DELETE', `/api/events/${id}/enrollment`),
   videoPlayed: (videoId: number) => call<void>('POST', `/api/events/videos/${videoId}/plays`),
 };
 

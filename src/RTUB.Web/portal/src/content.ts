@@ -25,7 +25,7 @@ export const portal = {
   gallery: '/gallery',
   events: '/events',
   event: (id: number) => `/events/${id}`,
-  eventAttendance: (id: number) => `/events/${id}/attendance`,
+  eventEnrollment: (id: number) => `/events/${id}/enrollment`,
 } as const;
 
 /** Sign in, then come back to the React profile. */

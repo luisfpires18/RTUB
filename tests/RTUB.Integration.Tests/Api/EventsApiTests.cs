@@ -96,7 +96,7 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
 
         (await Anonymous().GetAsync("/api/events/987654")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.GetAsync("/api/events/987654")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await member.GetAsync("/api/events/987654/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await member.GetAsync("/api/events/987654/enrollment")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -117,19 +117,19 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         open.ToString().Should().NotContain(MemberNote).And.NotContain(seed.MemberId);
     }
 
-    // ---------- attendance ----------
+    // ---------- enrollment ----------
 
     [Fact]
-    public async Task Attendance_IsForSignedInMembersOnly()
+    public async Task Enrollment_IsForSignedInMembersOnly()
     {
         var seed = await SeedAsync();
         var visitor = Anonymous();
         await WithTokenAsync(visitor);
 
-        (await visitor.GetAsync($"/api/events/{seed.Open}/attendance")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await visitor.PutAsJsonAsync($"/api/events/{seed.Open}/attendance", Answer(true))).StatusCode
+        (await visitor.GetAsync($"/api/events/{seed.Open}/enrollment")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await visitor.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true))).StatusCode
             .Should().Be(HttpStatusCode.Unauthorized);
-        (await visitor.DeleteAsync($"/api/events/{seed.Past}/attendance")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await visitor.DeleteAsync($"/api/events/{seed.Past}/enrollment")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -138,8 +138,8 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync();
 
-        var put = await member.PutAsJsonAsync($"/api/events/{seed.Open}/attendance", Answer(true));
-        var delete = await member.DeleteAsync($"/api/events/{seed.Past}/attendance");
+        var put = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true));
+        var delete = await member.DeleteAsync($"/api/events/{seed.Past}/enrollment");
         var play = await member.PostAsync($"/api/events/videos/{seed.Video}/plays", null);
 
         put.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -155,11 +155,11 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         var (member, user) = await SignInAsync();
         await WithTokenAsync(member);
 
-        var going = await member.PutAsJsonAsync($"/api/events/{seed.Open}/attendance", Answer(true, notes: "levo capa"));
+        var going = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true, notes: "levo capa"));
         going.StatusCode.Should().Be(HttpStatusCode.OK);
         (await going.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString().Should().Be("going");
 
-        var notGoing = await member.PutAsJsonAsync($"/api/events/{seed.Open}/attendance", Answer(false, notes: "doente"));
+        var notGoing = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(false, notes: "doente"));
         notGoing.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var stored = await EnrollmentAsync(seed.Open, user.Id);
@@ -175,7 +175,7 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         var (member, user) = await SignInAsync();
         await WithTokenAsync(member);
 
-        var response = await member.PutAsJsonAsync($"/api/events/{seed.Open}/attendance", Answer(true, instrument: "Violino"));
+        var response = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true, instrument: "Violino"));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("instrument", out _).Should().BeTrue();
@@ -189,8 +189,8 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         var (member, user) = await SignInAsync();
         await WithTokenAsync(member);
 
-        (await member.PutAsJsonAsync($"/api/events/{seed.Cancelled}/attendance", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await member.PutAsJsonAsync($"/api/events/{seed.Past}/attendance", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await member.PutAsJsonAsync($"/api/events/{seed.Cancelled}/enrollment", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await member.PutAsJsonAsync($"/api/events/{seed.Past}/enrollment", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await EnrollmentAsync(seed.Cancelled, user.Id)).Should().BeNull();
     }
 
@@ -202,7 +202,7 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         await AddEnrollmentAsync(seed.Past, user.Id, willAttend: true);
         await WithTokenAsync(member);
 
-        var response = await member.DeleteAsync($"/api/events/{seed.Past}/attendance");
+        var response = await member.DeleteAsync($"/api/events/{seed.Past}/enrollment");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await EnrollmentAsync(seed.Past, user.Id)).Should().BeNull();

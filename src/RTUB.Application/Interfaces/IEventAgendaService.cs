@@ -18,11 +18,11 @@ public interface IEventAgendaService
     /// <summary>One event, or null when it does not exist.</summary>
     Task<EventDetailDto?> GetEventAsync(int id, ClaimsPrincipal user);
 
-    Task<EventResult<EventAttendanceDto>> GetAttendanceAsync(int id, ClaimsPrincipal user);
+    Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user);
 
-    Task<EventResult<EventAttendanceDto>> SaveAttendanceAsync(int id, EventAttendanceInput input, ClaimsPrincipal user);
+    Task<EventResult<EventEnrollmentDto>> SaveEnrollmentAsync(int id, EventEnrollmentInput input, ClaimsPrincipal user);
 
-    Task<EventResult<EventAttendanceDto>> RemoveAttendanceAsync(int id, ClaimsPrincipal user);
+    Task<EventResult<EventEnrollmentDto>> RemoveEnrollmentAsync(int id, ClaimsPrincipal user);
 
     /// <summary>Audits a video play, as the Blazor page did; false when the video does not exist.</summary>
     Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user);

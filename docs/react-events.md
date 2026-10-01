@@ -1,11 +1,16 @@
 # React Events (`/events`, React track 011)
 
 `/events` is a React agenda (`portal/src/Events.tsx`), `/events/{id}` one event (`EventDetail.tsx`) and
-`/events/{id}/attendance` a member's own answer on its own page (`EventAttendance.tsx`, no modal). They
+`/events/{id}/enrollment` a member's own answer on its own page (`EventEnrollment.tsx`, no modal). They
 read a thin, viewer-aware API (`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). The old Blazor
 `Pages/Activities/Events.razor` mixed a public agenda, member answers and every management tool; only
 management stayed Blazor, moved unchanged in function to the members' **`/member/events`**
 (`Pages/Members/MemberEvents.razor`, `[Authorize]`). DEV only; no schema change.
+
+**Terminology.** Events use *enrollment* (Inscrições): `/events/{id}/enrollment`, `EventEnrollment*`,
+`eventsApi.getEnrollment/saveEnrollment`. *Attendance* (Presenças) belongs to rehearsals and is not used
+here. The draft URL `/events/{id}/attendance` never reached `dev`, so it is not served (404, no redirect).
+Not to be confused with the members' Blazor list of everyone's answers, `/events/{id}/enrollments`.
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -39,7 +44,7 @@ management stayed Blazor, moved unchanged in function to the members' **`/member
 - **Signed-in member:** adds the description, the cancellation reason, their *own* answer,
   going / not-going / repertoire / discussion counts and the repertoire titles. Other members'
   names, instruments and notes stay on the members' Blazor `/events/{id}/enrollments`.
-- **Answering (`/events/{id}/attendance`):** any signed-in member, own row only. Open (not
+- **Answering (`/events/{id}/enrollment`):** any signed-in member, own row only. Open (not
   cancelled, last day not passed): going / not going, an instrument from their own instruments
   (every instrument for a Leitão with none), a note. Past: only someone who went may withdraw.
   Cancelled: nothing. Writes go through `IEnrollmentService`, so its push notifications, category
@@ -55,9 +60,9 @@ management stayed Blazor, moved unchanged in function to the members' **`/member
 | `GET /api/public/events/upcoming` | anyone | Home preview (010), now from the same service; next 3, no ids. |
 | `GET /api/events` | anyone | `{ isMember, canManage, upcoming, past }`; `no-store`. |
 | `GET /api/events/{id}` | anyone | One event + videos; `member` section for members; 404 if missing. |
-| `GET /api/events/{id}/attendance` | member | 401 signed out, 404 missing. |
-| `PUT /api/events/{id}/attendance` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
-| `DELETE /api/events/{id}/attendance` | member | Withdraw from a past event; `X-CSRF-TOKEN`; 409 otherwise. |
+| `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
+| `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
+| `DELETE /api/events/{id}/enrollment` | member | Withdraw from a past event; `X-CSRF-TOKEN`; 409 otherwise. |
 | `POST /api/events/videos/{id}/plays` | anyone | Audits a play (`EventVideo` / `Played`, as before); `X-CSRF-TOKEN`. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
@@ -71,7 +76,7 @@ confirmed count for members), a gold "Prémios" band (festivals with prizes, new
 archive by season with search (name, place; description for members), season, type and "Só com
 vídeos" filters kept in the URL. Event page: hero with image, facts, cancellation notice, about,
 repertoire, prizes, videos; members get a side panel with their answer, counts and links.
-Attendance page: two large choices, "Vou tocar" + instrument, note, inline confirmation for
+Enrollment page: two large choices, "Vou tocar" + instrument, note, inline confirmation for
 withdrawing; states for signed out, missing, closed and failures.
 
 ## Changed on purpose
@@ -86,7 +91,7 @@ withdrawing; states for signed out, missing, closed and failures.
 
 - Retired from `/events`: the public page, its anonymous branches and the enrolment modal
   (`ParticipationModal` + remove confirmation). The page itself is `/member/events`; its
-  "Vou / Não vou / remover" buttons open the React attendance page.
+  "Vou / Não vou / remover" buttons open the React enrollment page.
 - Still Blazor (members): `/member/events` (create, edit, delete, cancel/uncancel, image, email and
   push notices, trophies, video upload/rename/reorder/delete, repertoire editing, adding members,
   statistics, "Minhas Inscrições"), `/events/{id}/enrollments`, `/discussion`, `/contacts`. Their

@@ -15,7 +15,7 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// The React Events area (React track 011, docs/react-events.md). Reads the existing Events,
 /// Enrollments, Trophies, EventVideos, EventRepertoires and Discussions; no schema change.
-/// Attendance writes go through <see cref="IEnrollmentService"/>, so its notifications, category
+/// Enrollment writes go through <see cref="IEnrollmentService"/>, so its notifications, category
 /// snapshot and retirement update stay exactly as they were.
 ///
 /// Upcoming/past is the old page's rule: an event is past once its last day (EndDate, else Date) is
@@ -100,43 +100,43 @@ public sealed class EventAgendaService : IEventAgendaService
         return new EventDetailDto(extras.IsMember, EventsAuthorization.CanManage(user), ToSummary(e, extras), videos, member);
     }
 
-    public async Task<EventResult<EventAttendanceDto>> GetAttendanceAsync(int id, ClaimsPrincipal user)
+    public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)
     {
         var userId = EventsAuthorization.UserId(user);
         if (userId is null)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.SignInRequired);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var context = await LoadAttendanceAsync(id, userId);
+        var context = await LoadEnrollmentAsync(id, userId);
         return context is null
-            ? EventResult<EventAttendanceDto>.Fail(EventResultStatus.NotFound)
-            : EventResult<EventAttendanceDto>.Ok(context.ToDto());
+            ? EventResult<EventEnrollmentDto>.Fail(EventResultStatus.NotFound)
+            : EventResult<EventEnrollmentDto>.Ok(context.ToDto());
     }
 
-    public async Task<EventResult<EventAttendanceDto>> SaveAttendanceAsync(int id, EventAttendanceInput input, ClaimsPrincipal user)
+    public async Task<EventResult<EventEnrollmentDto>> SaveEnrollmentAsync(int id, EventEnrollmentInput input, ClaimsPrincipal user)
     {
         var userId = EventsAuthorization.UserId(user);
         if (userId is null)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.SignInRequired);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var context = await LoadAttendanceAsync(id, userId);
+        var context = await LoadEnrollmentAsync(id, userId);
         if (context is null)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.NotFound);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.NotFound);
         }
 
         if (context.State != "open")
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.Closed);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.Closed);
         }
 
         var notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
         if (notes?.Length > MaxNotesLength)
         {
-            return EventResult<EventAttendanceDto>.Invalid("notes", $"A nota não pode exceder {MaxNotesLength} caracteres.");
+            return EventResult<EventEnrollmentDto>.Invalid("notes", $"A nota não pode exceder {MaxNotesLength} caracteres.");
         }
 
         // Only someone who is going plays; the choice must be one the page offered.
@@ -145,7 +145,7 @@ public sealed class EventAgendaService : IEventAgendaService
         {
             if (!Enum.TryParse<InstrumentType>(input.Instrument, out var offered) || !context.Options.Contains(offered))
             {
-                return EventResult<EventAttendanceDto>.Invalid("instrument", "Escolha um dos instrumentos indicados.");
+                return EventResult<EventEnrollmentDto>.Invalid("instrument", "Escolha um dos instrumentos indicados.");
             }
 
             instrument = offered;
@@ -166,30 +166,30 @@ public sealed class EventAgendaService : IEventAgendaService
             await _enrollments.CreateEnrollmentAsync(userId, id, instrument, notes, input.WillAttend, others);
         }
 
-        return EventResult<EventAttendanceDto>.Ok((await LoadAttendanceAsync(id, userId))!.ToDto());
+        return EventResult<EventEnrollmentDto>.Ok((await LoadEnrollmentAsync(id, userId))!.ToDto());
     }
 
-    public async Task<EventResult<EventAttendanceDto>> RemoveAttendanceAsync(int id, ClaimsPrincipal user)
+    public async Task<EventResult<EventEnrollmentDto>> RemoveEnrollmentAsync(int id, ClaimsPrincipal user)
     {
         var userId = EventsAuthorization.UserId(user);
         if (userId is null)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.SignInRequired);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var context = await LoadAttendanceAsync(id, userId);
+        var context = await LoadEnrollmentAsync(id, userId);
         if (context is null)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.NotFound);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.NotFound);
         }
 
         if (!context.CanRemove)
         {
-            return EventResult<EventAttendanceDto>.Fail(EventResultStatus.Closed);
+            return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.Closed);
         }
 
         await _enrollments.DeleteEnrollmentAsync(context.Enrollment!.Id);
-        return EventResult<EventAttendanceDto>.Ok((await LoadAttendanceAsync(id, userId))!.ToDto());
+        return EventResult<EventEnrollmentDto>.Ok((await LoadEnrollmentAsync(id, userId))!.ToDto());
     }
 
     public async Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user)
@@ -312,9 +312,9 @@ public sealed class EventAgendaService : IEventAgendaService
         && ((url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\"))
             || (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps));
 
-    // ---------- attendance ----------
+    // ---------- enrollment ----------
 
-    private sealed record AttendanceContext(
+    private sealed record EnrollmentContext(
         EventSummaryDto Event,
         string State,
         Enrollment? Enrollment,
@@ -325,7 +325,7 @@ public sealed class EventAgendaService : IEventAgendaService
     {
         public bool CanRemove => State == "past" && Enrollment?.WillAttend == true;
 
-        public EventAttendanceDto ToDto() => new(
+        public EventEnrollmentDto ToDto() => new(
             Event,
             State,
             Enrollment is null ? null : Enrollment.WillAttend ? "going" : "notGoing",
@@ -342,7 +342,7 @@ public sealed class EventAgendaService : IEventAgendaService
     /// (going / not going, instrument, note); a past one only lets someone who went withdraw;
     /// a cancelled one takes no answers. Null when the event does not exist.
     /// </summary>
-    private async Task<AttendanceContext?> LoadAttendanceAsync(int id, string userId)
+    private async Task<EnrollmentContext?> LoadEnrollmentAsync(int id, string userId)
     {
         await using var db = await _contexts.CreateDbContextAsync();
         var e = await db.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
@@ -365,7 +365,7 @@ public sealed class EventAgendaService : IEventAgendaService
         var options = registered.Count > 0 ? registered : isLeitao ? Enum.GetValues<InstrumentType>().ToList() : new List<InstrumentType>();
         var state = e.IsCancelled ? "cancelled" : IsPast(e) ? "past" : "open";
 
-        return new AttendanceContext(
+        return new EnrollmentContext(
             ToSummary(e, extras), state, enrollment, isLeitao, registered, options,
             registered.Count > 0 ? registered[0] : null);
     }

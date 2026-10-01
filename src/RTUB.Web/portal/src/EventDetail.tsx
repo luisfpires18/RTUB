@@ -7,7 +7,7 @@ import { Icon } from './icons';
 
 /**
  * /events/{id} - one event. Visitors get the public facts, prizes and videos; signed-in members
- * also get the description, their own answer (answered on /events/{id}/attendance), the counts,
+ * also get the description, their own answer (answered on /events/{id}/enrollment), the counts,
  * the repertoire, and links to the members' participants and discussion pages.
  */
 export default function EventDetail({ eventId }: { eventId: number }) {
@@ -168,14 +168,14 @@ function MemberPanel({ detail }: { detail: Detail }) {
       {open ? (
         <>
           <p className="member-panel__answer">{answer}</p>
-          <a className="btn btn--primary" href={portal.eventAttendance(event.id)}>
+          <a className="btn btn--primary" href={portal.eventEnrollment(event.id)}>
             <Icon name="check" />
             {m.myStatus ? 'Alterar a resposta' : 'Responder'}
           </a>
         </>
       ) : event.past && m.myStatus === 'going' && !event.cancelled ? (
-        <a className="btn btn--ghost btn--sm" href={portal.eventAttendance(event.id)}>
-          A minha presença
+        <a className="btn btn--ghost btn--sm" href={portal.eventEnrollment(event.id)}>
+          A minha inscrição
         </a>
       ) : null}
       <dl className="member-panel__counts">

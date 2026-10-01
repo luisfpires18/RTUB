@@ -3,7 +3,7 @@ namespace RTUB.Application.DTOs;
 // Contracts of the React Events area (React track 011, docs/react-events.md). Built for the browser
 // and the caller: a visitor gets only what the old Blazor /events showed every visitor (name, dates,
 // location, type, image, cancelled, trophies, videos). Descriptions, cancellation reasons, counts,
-// repertoire and the caller's own attendance are for signed-in members. No user id, enrollment id,
+// repertoire and the caller's own enrollment are for signed-in members. No user id, enrollment id,
 // note of another member, audit field or EF entity leaves the server. Dates are the stored local
 // (Portugal) values as plain "yyyy-MM-dd" / "HH:mm" text, so no time zone can shift them.
 
@@ -64,11 +64,11 @@ public sealed record EventMemberDetailDto(
 public sealed record EventRepertoireDayDto(string Date, IReadOnlyList<string> Songs);
 
 /// <summary>
-/// The caller's own attendance page. <c>State</c>: "open" (can answer), "past" or "cancelled".
+/// The caller's own enrollment page. <c>State</c>: "open" (can answer), "past" or "cancelled".
 /// <c>Instruments</c> are the choices the caller may play (their own; every instrument for a Leitão
 /// with none registered); <c>DefaultInstrument</c> is their primary one.
 /// </summary>
-public sealed record EventAttendanceDto(
+public sealed record EventEnrollmentDto(
     EventSummaryDto Event,
     string State,
     string? Status,
@@ -82,7 +82,7 @@ public sealed record EventAttendanceDto(
 public sealed record EventInstrumentOptionDto(string Value, string Label);
 
 /// <summary>The answer a member gives. <c>Instrument</c> is an InstrumentType name or null (not playing).</summary>
-public sealed record EventAttendanceInput(bool WillAttend, string? Instrument, string? Notes);
+public sealed record EventEnrollmentInput(bool WillAttend, string? Instrument, string? Notes);
 
 public enum EventResultStatus
 {

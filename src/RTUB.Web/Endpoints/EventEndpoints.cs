@@ -35,17 +35,17 @@ public static class EventEndpoints
         events.MapGet("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
             await service.GetEventAsync(id, http.User) is { } detail ? Results.Ok(detail) : NotFound());
 
-        events.MapGet("/{id:int}/attendance", async (int id, HttpContext http, IEventAgendaService service) =>
-            ToResult(await service.GetAttendanceAsync(id, http.User)));
+        events.MapGet("/{id:int}/enrollment", async (int id, HttpContext http, IEventAgendaService service) =>
+            ToResult(await service.GetEnrollmentAsync(id, http.User)));
 
         var writes = events.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
 
-        writes.MapPut("/{id:int}/attendance", async (int id, EventAttendanceInput input, HttpContext http, IEventAgendaService service) =>
-                ToResult(await service.SaveAttendanceAsync(id, input, http.User)))
+        writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
+                ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
-        writes.MapDelete("/{id:int}/attendance", async (int id, HttpContext http, IEventAgendaService service) =>
-            ToResult(await service.RemoveAttendanceAsync(id, http.User)));
+        writes.MapDelete("/{id:int}/enrollment", async (int id, HttpContext http, IEventAgendaService service) =>
+            ToResult(await service.RemoveEnrollmentAsync(id, http.User)));
 
         writes.MapPost("/videos/{id:int}/plays", async (int id, HttpContext http, IEventAgendaService service) =>
                 await service.RecordVideoPlayAsync(id, http.User) ? Results.NoContent() : NotFound())

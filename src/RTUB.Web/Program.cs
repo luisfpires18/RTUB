@@ -692,10 +692,10 @@ public class Program
         // React Music (track 006): the album list and one album page. The retired Blazor album page
         // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
-        // React Events (track 011): the agenda, one event, and a member's own attendance page; event
+        // React Events (track 011): the agenda, one event, and a member's own enrollment page; event
         // management moved to the members' Blazor /member/events.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
-                     "/events", "/events/{id:int}", "/events/{id:int}/attendance" })
+                     "/events", "/events/{id:int}", "/events/{id:int}/enrollment" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

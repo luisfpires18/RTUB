@@ -125,8 +125,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
 | `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
-| `/events`, `/events/{id}`, `/events/{id}/attendance` | **React canonical** (011) | Agenda, one event, a member's own answer (own page, no modal). Signed-in members still land on `/events` after login. `docs/react-events.md`. |
-| `/member/events` | **Blazor member/admin, pending** (moved in 011) | The former Blazor `/events`: management, statistics, "Minhas Inscrições", video upload. Requires sign-in. Its answer buttons open the React attendance page. |
+| `/events`, `/events/{id}`, `/events/{id}/enrollment` | **React canonical** (011) | Agenda, one event, a member's own answer (own page, no modal). Events say *enrollment*, never *attendance* (rehearsals); the draft `/events/{id}/attendance` is 404. Signed-in members still land on `/events` after login. `docs/react-events.md`. |
+| `/member/events` | **Blazor member/admin, pending** (moved in 011) | The former Blazor `/events`: management, statistics, "Minhas Inscrições", video upload. Requires sign-in. Its answer buttons open the React enrollment page. |
 | `/events/{id}/enrollments`, `/discussion`, `/contacts` | **Blazor member, pending** | Unchanged member pages; back links open the React event page. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
@@ -139,7 +139,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
 | `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only; `?public=true` gives anyone the visitors' view (home preview, 010). |
 | `GET /api/public/events/upcoming` | **API** (010) | Next three events for the home; anonymous, read-only, public fields only. Since 011 from `IEventAgendaService`. |
-| `/api/events/...` | **API** (011) | `Endpoints/EventEndpoints.cs`; reads viewer-aware and open; attendance and video-play writes need the antiforgery header. |
+| `/api/events/...` | **API** (011) | `Endpoints/EventEndpoints.cs`; reads viewer-aware and open; enrollment and video-play writes need the antiforgery header. |
 | `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |

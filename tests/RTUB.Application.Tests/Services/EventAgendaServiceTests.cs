@@ -253,29 +253,29 @@ public class EventAgendaServiceTests
         Names<EventMemberSummaryDto>().Should().BeEquivalentTo("Description", "MyStatus", "GoingCount", "RepertoireCount", "DiscussionCount");
         Names<EventMemberDetailDto>().Should().BeEquivalentTo("CancellationReason", "NotGoingCount", "Repertoire");
         Names<EventVideoDto>().Should().BeEquivalentTo("Id", "Title", "Url", "MimeType");
-        Names<EventAttendanceDto>().Should().BeEquivalentTo("Event", "State", "Status", "Instrument", "Notes", "IsLeitao",
+        Names<EventEnrollmentDto>().Should().BeEquivalentTo("Event", "State", "Status", "Instrument", "Notes", "IsLeitao",
             "Instruments", "DefaultInstrument", "CanRemove");
     }
 
-    // ---------- attendance ----------
+    // ---------- enrollment ----------
 
     [Fact]
-    public async Task Attendance_NeedsASignedInMember()
+    public async Task Enrollment_NeedsASignedInMember()
     {
         var id = AddEvent("Serenata", _today.AddDays(5));
 
-        (await _service.GetAttendanceAsync(id, Visitor)).Status.Should().Be(EventResultStatus.SignInRequired);
-        (await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, null, null), Visitor)).Status
+        (await _service.GetEnrollmentAsync(id, Visitor)).Status.Should().Be(EventResultStatus.SignInRequired);
+        (await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, null, null), Visitor)).Status
             .Should().Be(EventResultStatus.SignInRequired);
-        (await _service.RemoveAttendanceAsync(id, Visitor)).Status.Should().Be(EventResultStatus.SignInRequired);
+        (await _service.RemoveEnrollmentAsync(id, Visitor)).Status.Should().Be(EventResultStatus.SignInRequired);
         _enrollments.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task Attendance_OfAnUnknownEvent_IsNotFound()
+    public async Task Enrollment_OfAnUnknownEvent_IsNotFound()
     {
-        (await _service.GetAttendanceAsync(999_999, _member)).Status.Should().Be(EventResultStatus.NotFound);
-        (await _service.SaveAttendanceAsync(999_999, new EventAttendanceInput(true, null, null), _member)).Status
+        (await _service.GetEnrollmentAsync(999_999, _member)).Status.Should().Be(EventResultStatus.NotFound);
+        (await _service.SaveEnrollmentAsync(999_999, new EventEnrollmentInput(true, null, null), _member)).Status
             .Should().Be(EventResultStatus.NotFound);
     }
 
@@ -286,14 +286,14 @@ public class EventAgendaServiceTests
         AddInstrument(_memberId, InstrumentType.Bandolim);
         AddInstrument(_memberId, InstrumentType.Guitarra, primary: true);
 
-        var attendance = (await _service.GetAttendanceAsync(id, _member)).Value!;
+        var enrollment = (await _service.GetEnrollmentAsync(id, _member)).Value!;
 
-        attendance.State.Should().Be("open");
-        attendance.Status.Should().BeNull();
-        attendance.IsLeitao.Should().BeFalse();
-        attendance.Instruments.Select(i => i.Value).Should().Equal("Guitarra", "Bandolim");
-        attendance.DefaultInstrument.Should().Be("Guitarra");
-        attendance.CanRemove.Should().BeFalse();
+        enrollment.State.Should().Be("open");
+        enrollment.Status.Should().BeNull();
+        enrollment.IsLeitao.Should().BeFalse();
+        enrollment.Instruments.Select(i => i.Value).Should().Equal("Guitarra", "Bandolim");
+        enrollment.DefaultInstrument.Should().Be("Guitarra");
+        enrollment.CanRemove.Should().BeFalse();
     }
 
     [Fact]
@@ -303,7 +303,7 @@ public class EventAgendaServiceTests
         AddInstrument(_memberId, InstrumentType.Guitarra, primary: true);
         AddInstrument(_memberId, InstrumentType.Bandolim);
 
-        var result = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, "Bandolim", "  chego tarde  "), _member);
+        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, "Bandolim", "  chego tarde  "), _member);
 
         result.Status.Should().Be(EventResultStatus.Ok);
         result.Value!.Status.Should().Be("going");
@@ -319,7 +319,7 @@ public class EventAgendaServiceTests
         AddInstrument(_memberId, InstrumentType.Guitarra, primary: true);
         var enrollment = Enroll(id, _memberId, willAttend: true, instrument: InstrumentType.Guitarra);
 
-        var result = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(false, "Guitarra", "doente"), _member);
+        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(false, "Guitarra", "doente"), _member);
 
         result.Value!.Status.Should().Be("notGoing");
         result.Value.Instrument.Should().BeNull();
@@ -337,7 +337,7 @@ public class EventAgendaServiceTests
         var id = AddEvent("Serenata", _today.AddDays(5));
         AddInstrument(_memberId, InstrumentType.Guitarra, primary: true);
 
-        var result = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, instrument, null), _member);
+        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, instrument, null), _member);
 
         result.Status.Should().Be(EventResultStatus.Invalid);
         result.Errors!.Keys.Should().Contain("instrument");
@@ -349,11 +349,11 @@ public class EventAgendaServiceTests
     {
         var id = AddEvent("Serenata", _today.AddDays(5));
 
-        var attendance = (await _service.GetAttendanceAsync(id, _member)).Value!;
-        var refused = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, "Guitarra", null), _member);
-        var accepted = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, null, null), _member);
+        var enrollment = (await _service.GetEnrollmentAsync(id, _member)).Value!;
+        var refused = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, "Guitarra", null), _member);
+        var accepted = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, null, null), _member);
 
-        attendance.Instruments.Should().BeEmpty();
+        enrollment.Instruments.Should().BeEmpty();
         refused.Status.Should().Be(EventResultStatus.Invalid);
         accepted.Status.Should().Be(EventResultStatus.Ok);
     }
@@ -364,11 +364,11 @@ public class EventAgendaServiceTests
         var leitao = AddUser("Leitão", MemberCategory.Leitao);
         var id = AddEvent("Serenata", _today.AddDays(5));
 
-        var attendance = (await _service.GetAttendanceAsync(id, SignedIn(leitao))).Value!;
-        var result = await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, "Pandeireta", null), SignedIn(leitao));
+        var enrollment = (await _service.GetEnrollmentAsync(id, SignedIn(leitao))).Value!;
+        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, "Pandeireta", null), SignedIn(leitao));
 
-        attendance.IsLeitao.Should().BeTrue();
-        attendance.Instruments.Should().HaveCount(Enum.GetValues<InstrumentType>().Length);
+        enrollment.IsLeitao.Should().BeTrue();
+        enrollment.Instruments.Should().HaveCount(Enum.GetValues<InstrumentType>().Length);
         result.Value!.Instrument.Should().Be("Pandeireta");
     }
 
@@ -377,8 +377,8 @@ public class EventAgendaServiceTests
     {
         var id = AddEvent("Serenata", _today.AddDays(5));
 
-        var result = await _service.SaveAttendanceAsync(id,
-            new EventAttendanceInput(true, null, new string('x', EventAgendaService.MaxNotesLength + 1)), _member);
+        var result = await _service.SaveEnrollmentAsync(id,
+            new EventEnrollmentInput(true, null, new string('x', EventAgendaService.MaxNotesLength + 1)), _member);
 
         result.Status.Should().Be(EventResultStatus.Invalid);
         result.Errors!.Keys.Should().Contain("notes");
@@ -389,8 +389,8 @@ public class EventAgendaServiceTests
     {
         var id = AddEvent("Cancelada", _today.AddDays(5), cancelReason: "chuva");
 
-        (await _service.GetAttendanceAsync(id, _member)).Value!.State.Should().Be("cancelled");
-        (await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, null, null), _member)).Status
+        (await _service.GetEnrollmentAsync(id, _member)).Value!.State.Should().Be("cancelled");
+        (await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, null, null), _member)).Status
             .Should().Be(EventResultStatus.Closed);
         _enrollments.VerifyNoOtherCalls();
     }
@@ -400,8 +400,8 @@ public class EventAgendaServiceTests
     {
         var id = AddEvent("Passada", _today.AddDays(-2));
 
-        (await _service.GetAttendanceAsync(id, _member)).Value!.State.Should().Be("past");
-        (await _service.SaveAttendanceAsync(id, new EventAttendanceInput(true, null, null), _member)).Status
+        (await _service.GetEnrollmentAsync(id, _member)).Value!.State.Should().Be("past");
+        (await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, null, null), _member)).Status
             .Should().Be(EventResultStatus.Closed);
         _enrollments.VerifyNoOtherCalls();
     }
@@ -414,8 +414,8 @@ public class EventAgendaServiceTests
         var other = AddUser("Faltou");
         Enroll(id, other, willAttend: false);
 
-        (await _service.RemoveAttendanceAsync(id, SignedIn(other))).Status.Should().Be(EventResultStatus.Closed);
-        var result = await _service.RemoveAttendanceAsync(id, _member);
+        (await _service.RemoveEnrollmentAsync(id, SignedIn(other))).Status.Should().Be(EventResultStatus.Closed);
+        var result = await _service.RemoveEnrollmentAsync(id, _member);
 
         result.Status.Should().Be(EventResultStatus.Ok);
         result.Value!.Status.Should().BeNull();
@@ -428,7 +428,7 @@ public class EventAgendaServiceTests
         var id = AddEvent("Serenata", _today.AddDays(5));
         Enroll(id, _memberId, willAttend: true);
 
-        (await _service.RemoveAttendanceAsync(id, _member)).Status.Should().Be(EventResultStatus.Closed);
+        (await _service.RemoveEnrollmentAsync(id, _member)).Status.Should().Be(EventResultStatus.Closed);
     }
 
     [Fact]
@@ -437,10 +437,10 @@ public class EventAgendaServiceTests
         var id = AddEvent("Serenata", _today.AddDays(5));
         Enroll(id, AddUser("Outro"), willAttend: true, notes: "nota de outro");
 
-        var attendance = (await _service.GetAttendanceAsync(id, _member)).Value!;
+        var enrollment = (await _service.GetEnrollmentAsync(id, _member)).Value!;
 
-        attendance.Status.Should().BeNull();
-        attendance.Notes.Should().BeNull();
+        enrollment.Status.Should().BeNull();
+        enrollment.Notes.Should().BeNull();
     }
 
     // ---------- video plays ----------

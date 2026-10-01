@@ -6,8 +6,8 @@ namespace RTUB.Application.Helpers;
 /// The Events rules (React track 011, docs/react-events.md), taken from the retired public Blazor
 /// /events and enforced server-side by <c>EventAgendaService</c>.
 ///
-/// - Visitors: the public agenda only (no descriptions, counts, repertoire or attendance).
-/// - Any signed-in member: the member view, and their own attendance (expelled members arrive
+/// - Visitors: the public agenda only (no descriptions, counts, repertoire or enrollments).
+/// - Any signed-in member: the member view, and their own enrollment (expelled members arrive
 ///   anonymous: the cookie validator drops their session).
 /// - Managing events stays on the Blazor /member/events, which checks the Admin role only (an Owner
 ///   without Admin has no management tools there); <see cref="CanManage"/> mirrors that, it only

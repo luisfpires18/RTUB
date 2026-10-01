@@ -1,15 +1,15 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { portal } from './content';
-import { dateLabel, eventsApi, timeLabel, type EventAttendance as Attendance } from './eventsApi';
+import { dateLabel, eventsApi, timeLabel, type EventEnrollment as Enrollment } from './eventsApi';
 import { Icon } from './icons';
 
 const NOTES_MAX = 1000;
 
-type Load = Attendance | 'signin' | 'missing' | 'failed';
+type Load = Enrollment | 'signin' | 'missing' | 'failed';
 type Draft = { willAttend: boolean | null; play: boolean; instrument: string; notes: string };
 
-function draftFrom(a: Attendance): Draft {
+function draftFrom(a: Enrollment): Draft {
   const going = a.status === 'going';
   return {
     willAttend: a.status ? going : null,
@@ -20,16 +20,16 @@ function draftFrom(a: Attendance): Draft {
 }
 
 /**
- * /events/{id}/attendance - a member's own answer for one event, on its own page (never a modal).
+ * /events/{id}/enrollment - a member's own answer for one event, on its own page (never a modal).
  * Open events take "vou" / "não vou", an instrument and a note; past events only let someone who
  * went withdraw; cancelled events take nothing. The server enforces all of it.
  */
-export default function EventAttendance({ eventId }: { eventId: number }) {
+export default function EventEnrollmentPage({ eventId }: { eventId: number }) {
   const [data, setData] = useState<Load>();
 
   const load = () => {
     setData(undefined);
-    eventsApi.attendance(eventId).then((o) =>
+    eventsApi.getEnrollment(eventId).then((o) =>
       setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'notfound' ? 'missing' : 'failed'),
     );
   };
@@ -42,7 +42,7 @@ export default function EventAttendance({ eventId }: { eventId: number }) {
   const back = typeof data === 'object' ? portal.event(eventId) : portal.events;
 
   return (
-    <section className="page wrap attendance-page" aria-labelledby="attendance-title">
+    <section className="page wrap enrollment-page" aria-labelledby="enrollment-title">
       <a className="back-link" href={back}>
         <Icon name="arrow" />
         {typeof data === 'object' ? 'Voltar à atuação' : 'Agenda'}
@@ -51,42 +51,42 @@ export default function EventAttendance({ eventId }: { eventId: number }) {
         <Loading label="A carregar a tua resposta…" />
       ) : data === 'signin' ? (
         <div className="notice" role="status">
-          <p id="attendance-title">Responder a uma atuação é para membros da RTUB.</p>
+          <p id="enrollment-title">Responder a uma atuação é para membros da RTUB.</p>
           <a
             className="btn btn--primary btn--sm"
-            href={`${portal.login}?returnUrl=${encodeURIComponent(portal.eventAttendance(eventId))}`}
+            href={`${portal.login}?returnUrl=${encodeURIComponent(portal.eventEnrollment(eventId))}`}
           >
             Entrar
           </a>
         </div>
       ) : data === 'missing' ? (
         <div className="notice" role="status">
-          <p id="attendance-title">Esta atuação não existe ou foi removida.</p>
+          <p id="enrollment-title">Esta atuação não existe ou foi removida.</p>
           <a className="btn btn--ghost btn--sm" href={portal.events}>
             Ver a agenda
           </a>
         </div>
       ) : data === 'failed' ? (
         <div className="notice" role="status">
-          <p id="attendance-title">Não conseguimos abrir esta página agora.</p>
+          <p id="enrollment-title">Não conseguimos abrir esta página agora.</p>
           <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
             Tentar novamente
           </button>
         </div>
       ) : (
-        <Answer attendance={data} onSaved={setData} />
+        <Answer enrollment={data} onSaved={setData} />
       )}
     </section>
   );
 }
 
-function Summary({ attendance }: { attendance: Attendance }) {
-  const e = attendance.event;
+function Summary({ enrollment }: { enrollment: Enrollment }) {
+  const e = enrollment.event;
   const time = timeLabel(e.time);
   return (
-    <header className="attendance-event">
+    <header className="enrollment-event">
       <p className="eyebrow">A minha resposta</p>
-      <h1 id="attendance-title" className="attendance-event__name">
+      <h1 id="enrollment-title" className="enrollment-event__name">
         {e.name}
       </h1>
       <p className="agenda-card__meta">
@@ -104,51 +104,51 @@ function Summary({ attendance }: { attendance: Attendance }) {
   );
 }
 
-function CurrentAnswer({ attendance }: { attendance: Attendance }) {
+function CurrentAnswer({ enrollment }: { enrollment: Enrollment }) {
   const label =
-    attendance.status === 'going'
-      ? attendance.state === 'past'
+    enrollment.status === 'going'
+      ? enrollment.state === 'past'
         ? 'Foste a esta atuação.'
         : 'Vais a esta atuação.'
-      : attendance.status === 'notGoing'
-        ? attendance.state === 'past'
+      : enrollment.status === 'notGoing'
+        ? enrollment.state === 'past'
           ? 'Não foste a esta atuação.'
           : 'Não vais a esta atuação.'
         : 'Ainda não respondeste.';
-  const instrument = attendance.instruments.find((i) => i.value === attendance.instrument)?.label;
+  const instrument = enrollment.instruments.find((i) => i.value === enrollment.instrument)?.label;
   return (
-    <div className={`answer answer--${attendance.status ?? 'none'}`} role="status">
-      <Icon name={attendance.status === 'going' ? 'check' : attendance.status === 'notGoing' ? 'close' : 'clock'} />
+    <div className={`answer answer--${enrollment.status ?? 'none'}`} role="status">
+      <Icon name={enrollment.status === 'going' ? 'check' : enrollment.status === 'notGoing' ? 'close' : 'clock'} />
       <div>
         <p className="answer__label">{label}</p>
         {instrument && <p className="answer__detail">A tocar: {instrument}</p>}
-        {attendance.notes && <p className="answer__detail">“{attendance.notes}”</p>}
+        {enrollment.notes && <p className="answer__detail">“{enrollment.notes}”</p>}
       </div>
     </div>
   );
 }
 
-function Answer({ attendance, onSaved }: { attendance: Attendance; onSaved: (a: Attendance) => void }) {
+function Answer({ enrollment, onSaved }: { enrollment: Enrollment; onSaved: (a: Enrollment) => void }) {
   return (
-    <div className="attendance">
-      <Summary attendance={attendance} />
-      <CurrentAnswer attendance={attendance} />
-      {attendance.state === 'open' ? (
-        <AnswerForm attendance={attendance} onSaved={onSaved} />
-      ) : attendance.state === 'cancelled' ? (
+    <div className="enrollment">
+      <Summary enrollment={enrollment} />
+      <CurrentAnswer enrollment={enrollment} />
+      {enrollment.state === 'open' ? (
+        <AnswerForm enrollment={enrollment} onSaved={onSaved} />
+      ) : enrollment.state === 'cancelled' ? (
         <p className="warning">
           <Icon name="warning" />
           Esta atuação foi cancelada; já não há nada a responder.
         </p>
       ) : (
-        <PastAnswer attendance={attendance} onSaved={onSaved} />
+        <PastAnswer enrollment={enrollment} onSaved={onSaved} />
       )}
     </div>
   );
 }
 
-function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: (a: Attendance) => void }) {
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(attendance));
+function AnswerForm({ enrollment, onSaved }: { enrollment: Enrollment; onSaved: (a: Enrollment) => void }) {
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(enrollment));
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<'saved' | 'closed' | 'failed' | 'signin'>();
@@ -161,10 +161,10 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
 
   // Changing the answer starts a fresh note: a reason for missing it is not a note for going.
   const choose = (willAttend: boolean) =>
-    set(willAttend === draft.willAttend ? {} : { willAttend, notes: willAttend === (attendance.status === 'going') ? attendance.notes ?? '' : '' });
+    set(willAttend === draft.willAttend ? {} : { willAttend, notes: willAttend === (enrollment.status === 'going') ? enrollment.notes ?? '' : '' });
 
-  const hasOptions = attendance.instruments.length > 0;
-  const plays = draft.willAttend === true && (attendance.isLeitao ? draft.instrument !== '' : draft.play && hasOptions);
+  const hasOptions = enrollment.instruments.length > 0;
+  const plays = draft.willAttend === true && (enrollment.isLeitao ? draft.instrument !== '' : draft.play && hasOptions);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -172,13 +172,13 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
       setErrors({ willAttend: 'Escolhe se vais ou não.' });
       return;
     }
-    if (draft.willAttend && !attendance.isLeitao && draft.play && hasOptions && !draft.instrument) {
+    if (draft.willAttend && !enrollment.isLeitao && draft.play && hasOptions && !draft.instrument) {
       setErrors({ instrument: 'Escolhe o instrumento.' });
       return;
     }
     setErrors({});
     setBusy(true);
-    const outcome = await eventsApi.saveAttendance(attendance.event.id, {
+    const outcome = await eventsApi.saveEnrollment(enrollment.event.id, {
       willAttend: draft.willAttend,
       instrument: plays ? draft.instrument : null,
       notes: draft.notes.trim() || null,
@@ -193,8 +193,8 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
   };
 
   return (
-    <form className="form attendance-form" onSubmit={submit} noValidate>
-      <fieldset className="choice" aria-describedby={errors.willAttend ? 'attendance-will-error' : undefined}>
+    <form className="form enrollment-form" onSubmit={submit} noValidate>
+      <fieldset className="choice" aria-describedby={errors.willAttend ? 'enrollment-will-error' : undefined}>
         <legend className="choice__legend">Vais?</legend>
         <div className="choice__options">
           <label className={draft.willAttend === true ? 'choice__option choice__option--yes is-on' : 'choice__option choice__option--yes'}>
@@ -209,21 +209,21 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
           </label>
         </div>
         {errors.willAttend && (
-          <p id="attendance-will-error" className="form__error">
+          <p id="enrollment-will-error" className="form__error">
             {errors.willAttend}
           </p>
         )}
       </fieldset>
 
       {draft.willAttend === true &&
-        (attendance.isLeitao ? (
+        (enrollment.isLeitao ? (
           hasOptions && (
             <div className="form__field">
               <label htmlFor={ids.instrument}>Instrumento (se quiseres)</label>
               <span className="control control--select">
                 <select id={ids.instrument} value={draft.instrument} onChange={(e) => set({ instrument: e.target.value })}>
                   <option value="">Sem instrumento</option>
-                  {attendance.instruments.map((i) => (
+                  {enrollment.instruments.map((i) => (
                     <option key={i.value} value={i.value}>
                       {i.label}
                     </option>
@@ -246,7 +246,7 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
             </label>
             {!hasOptions && (
               <p className="form__hint">
-                Não tens instrumentos no perfil, por isso a presença fica registada sem instrumento.
+                Não tens instrumentos no perfil, por isso a inscrição fica registada sem instrumento.
               </p>
             )}
             {draft.play && hasOptions && (
@@ -255,7 +255,7 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
                 <span className="control control--select">
                   <select id={ids.instrument} value={draft.instrument} onChange={(e) => set({ instrument: e.target.value })}>
                     <option value="">Escolher…</option>
-                    {attendance.instruments.map((i) => (
+                    {enrollment.instruments.map((i) => (
                       <option key={i.value} value={i.value}>
                         {i.label}
                       </option>
@@ -286,7 +286,7 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
       {banner === 'saved' && (
         <p className="form__banner form__banner--ok" role="status">
           Resposta guardada.{' '}
-          <a href={portal.event(attendance.event.id)}>Voltar à atuação</a>
+          <a href={portal.event(enrollment.event.id)}>Voltar à atuação</a>
         </p>
       )}
       {banner === 'closed' && (
@@ -307,34 +307,34 @@ function AnswerForm({ attendance, onSaved }: { attendance: Attendance; onSaved: 
 
       <button type="submit" className="btn btn--primary form__submit" disabled={busy}>
         {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-        {attendance.status ? 'Guardar alteração' : 'Guardar resposta'}
+        {enrollment.status ? 'Guardar alteração' : 'Guardar resposta'}
       </button>
     </form>
   );
 }
 
-function PastAnswer({ attendance, onSaved }: { attendance: Attendance; onSaved: (a: Attendance) => void }) {
+function PastAnswer({ enrollment, onSaved }: { enrollment: Enrollment; onSaved: (a: Enrollment) => void }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  if (!attendance.canRemove) {
+  if (!enrollment.canRemove) {
     return <p className="note">Esta atuação já passou e já não aceita respostas.</p>;
   }
 
   const remove = async () => {
     setBusy(true);
-    const outcome = await eventsApi.removeAttendance(attendance.event.id);
+    const outcome = await eventsApi.removeEnrollment(enrollment.event.id);
     setBusy(false);
     if (outcome.kind === 'ok') onSaved(outcome.data);
     else setFailed(true);
   };
 
   return (
-    <div className="attendance-remove">
-      <p>Afinal não foste? Podes retirar a tua presença desta atuação.</p>
+    <div className="enrollment-remove">
+      <p>Afinal não foste? Podes retirar a tua inscrição desta atuação.</p>
       {confirming ? (
-        <div className="attendance-remove__confirm">
+        <div className="enrollment-remove__confirm">
           <button type="button" className="btn btn--danger btn--sm" onClick={remove} disabled={busy}>
             {busy && <span className="spinner spinner--small" aria-hidden="true" />}
             Sim, retirar
@@ -345,7 +345,7 @@ function PastAnswer({ attendance, onSaved }: { attendance: Attendance; onSaved: 
         </div>
       ) : (
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirming(true)}>
-          Retirar a minha presença
+          Retirar a minha inscrição
         </button>
       )}
       {failed && (

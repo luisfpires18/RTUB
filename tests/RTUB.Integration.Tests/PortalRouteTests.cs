@@ -36,7 +36,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/events")]
     [InlineData("/events?season=2025-2026&type=Festival")]
     [InlineData("/events/1")]
-    [InlineData("/events/1/attendance")]
+    [InlineData("/events/1/enrollment")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -167,7 +167,7 @@ public class PortalRouteTests : IntegrationTestBase
             (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
         }
 
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1", "/events/1/attendance" })
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1", "/events/1/enrollment" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
@@ -187,7 +187,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/gallery")]
     [InlineData("/events")]
     [InlineData("/events/{id:int}")]
-    [InlineData("/events/{id:int}/attendance")]
+    [InlineData("/events/{id:int}/enrollment")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -212,6 +212,28 @@ public class PortalRouteTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect, "event management is for signed-in members only (011)");
         response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fevents");
+    }
+
+    /// <summary>
+    /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. The
+    /// /events/{id}/attendance URL of the first 011 draft never reached dev, so it is simply not served.
+    /// </summary>
+    [Fact]
+    public async Task EventEnrollmentRoute_IsEnrollment_AndTheDraftAttendanceUrlIs404()
+    {
+        var client = NoRedirectClient();
+
+        (await client.GetAsync("/events/1/enrollment")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var root = FindRepoRoot();
+        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"))
+            .Should().Contain("$\"/events/{eventItem.Id}/enrollment\"", "the bridge's answer buttons open the React enrollment page");
+        var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
+        Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
+            .Select(File.ReadAllText).Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
+                "event pages speak of enrollment, never attendance");
     }
 
     [Fact]

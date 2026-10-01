@@ -145,10 +145,10 @@ else
                                        OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
                                        OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
                                        OnUncancelEvent="@(() => UncancelEvent(eventItem))"
-                                       OnEnrollGoing="@(() => OpenAttendancePage(eventItem))"
-                                       OnEnrollNotGoing="@(() => OpenAttendancePage(eventItem))"
-                                       OnEditEnrollment="@(() => OpenAttendancePage(eventItem))"
-                                       OnRemoveEnrollment="@(() => OpenAttendancePage(eventItem))"
+                                       OnEnrollGoing="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnEnrollNotGoing="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnEditEnrollment="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                        OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                        OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                        OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
@@ -226,7 +226,7 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => OpenAttendancePage(eventItem))"
+                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </Authorized>
@@ -246,7 +246,7 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => OpenAttendancePage(eventItem))"
+                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </NotAuthorized>
@@ -2309,9 +2309,9 @@ else
 
     // Enrollment methods
     // Answering (going / not going, withdrawing from a past one) is the React
-    // /events/{id}/attendance page (React track 011), not a modal here.
-    private void OpenAttendancePage(Event eventItem) =>
-        Navigation.NavigateTo($"/events/{eventItem.Id}/attendance", forceLoad: true);
+    // /events/{id}/enrollment page (React track 011), not a modal here.
+    private void OpenEnrollmentPage(Event eventItem) =>
+        Navigation.NavigateTo($"/events/{eventItem.Id}/enrollment", forceLoad: true);
 
     private async Task OpenEnrollmentListModal(Event eventItem)
     {

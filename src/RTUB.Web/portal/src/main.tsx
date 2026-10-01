@@ -24,12 +24,12 @@ const Page = pages[path];
 const MusicAlbum = lazy(() => import('./MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
-// /events/{id} and /events/{id}/attendance (React track 011), mapped with {id:int} as well.
+// /events/{id} and /events/{id}/enrollment (React track 011), mapped with {id:int} as well.
 const EventDetail = lazy(() => import('./EventDetail'));
-const EventAttendance = lazy(() => import('./EventAttendance'));
-const eventMatch = /^\/events\/(\d+)(\/attendance)?$/.exec(path);
+const EventEnrollmentPage = lazy(() => import('./EventEnrollment'));
+const eventMatch = /^\/events\/(\d+)(\/enrollment)?$/.exec(path);
 const eventId = eventMatch ? Number(eventMatch[1]) : undefined;
-const attendance = Boolean(eventMatch?.[2]);
+const enrollment = Boolean(eventMatch?.[2]);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -46,8 +46,8 @@ createRoot(document.getElementById('root')!).render(
             {albumId ? (
               <MusicAlbum albumId={Number(albumId)} />
             ) : eventId ? (
-              attendance ? (
-                <EventAttendance eventId={eventId} />
+              enrollment ? (
+                <EventEnrollmentPage eventId={eventId} />
               ) : (
                 <EventDetail eventId={eventId} />
               )

@@ -4528,18 +4528,18 @@ video.tile__media {
 }
 
 /* A member's answer: its own page, mobile first. */
-.attendance {
+.enrollment {
   display: grid;
   gap: 24px;
   max-width: 40rem;
 }
 
-.attendance-event {
+.enrollment-event {
   display: grid;
   gap: 8px;
 }
 
-.attendance-event__name {
+.enrollment-event__name {
   margin: 0;
   font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
   overflow-wrap: anywhere;
@@ -4654,17 +4654,17 @@ video.tile__media {
   border-left-color: #40c078;
 }
 
-.attendance-remove {
+.enrollment-remove {
   display: grid;
   gap: 12px;
   justify-items: start;
 }
 
-.attendance-remove p {
+.enrollment-remove p {
   margin: 0;
 }
 
-.attendance-remove__confirm {
+.enrollment-remove__confirm {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;

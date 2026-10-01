@@ -46,7 +46,7 @@ export function filterPast(past: EventSummary[], f: Filters) {
 /**
  * /events - the agenda. Upcoming dates first, then the archive by season with its prizes and
  * videos. Visitors see what was always public; signed-in members also see their own answer and
- * the counts, and answer on /events/{id}/attendance. Everything is decided by GET /api/events.
+ * the counts, and answer on /events/{id}/enrollment. Everything is decided by GET /api/events.
  */
 export default function Events() {
   const [agenda, setAgenda] = useState<EventAgenda | null>();

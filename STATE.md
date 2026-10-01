@@ -27,7 +27,7 @@ home gallery shows the latest public photos (`GET /api/gallery?public=true`). Co
 Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
 
 **Open: `feat/011-react-events`** (React track 011, from `dev` @ `84276caa`; local, not pushed; DEV only).
-`/events`, `/events/{id}` and `/events/{id}/attendance` are React over `/api/events` (`IEventAgendaService`);
+`/events`, `/events/{id}` and `/events/{id}/enrollment` are React over `/api/events` (`IEventAgendaService`);
 members answer on a dedicated page (no modal), through the unchanged `EnrollmentService`. Event management
 moved unchanged to the members' Blazor `/member/events`. Home preview reads the same service. No schema
 change. Audit, rules, API and follow-ups: `docs/react-events.md`.
