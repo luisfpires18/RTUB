@@ -521,8 +521,12 @@ public class Program
         // The IFormCollection parameter makes this endpoint an antiforgery-protected form
         // endpoint: the framework requires a valid token and returns 400 before the handler
         // runs. Do not replace it with HttpContext.Request.ReadFormAsync() — that silently
-        // removes CSRF protection. The token is rendered by <AntiforgeryToken /> in Login.razor.
-        app.MapPost("/auth/login", async (IFormCollection form,
+        // removes CSRF protection. The React /login (React track 007) takes the token from
+        // GET /api/public/antiforgery-token and posts with Accept: application/json, so every
+        // outcome below answers as JSON ({ error } with 401, or { redirect }) instead of a
+        // redirect. Same checks, same order, either way.
+        app.MapPost("/auth/login", async (HttpContext context,
+                                          IFormCollection form,
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
                                           ApplicationDbContext db,
@@ -536,6 +540,12 @@ public class Program
             var remember = bool.TryParse(rememberRaw, out var b) ? b : string.Equals(rememberRaw, "on", StringComparison.OrdinalIgnoreCase);
             var returnUrl = form["ReturnUrl"].ToString();
 
+            var wantsJson = context.Request.GetTypedHeaders().Accept
+                .Any(a => a.MediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase));
+            IResult Fail(string error) => wantsJson
+                ? Results.Json(new { error }, statusCode: StatusCodes.Status401Unauthorized)
+                : Results.Redirect($"/login?error={error}");
+
             var user = await userManager.FindByNameAsync(username);
 
             // If not found by username, try to find by email (for users who might enter their email)
@@ -546,19 +556,19 @@ public class Program
 
             if (user is null || !await userManager.IsEmailConfirmedAsync(user))
             {
-                return Results.Redirect("/login?error=Invalid");
+                return Fail("Invalid");
             }
 
             // Check if account is locked out before any other checks
             if (await userManager.IsLockedOutAsync(user))
             {
-                return Results.Redirect("/login?error=Locked");
+                return Fail("Locked");
             }
 
             // Check if member has been expelled
             if (user.IsExpelled)
             {
-                return Results.Redirect("/login?error=Expelled");
+                return Fail("Expelled");
             }
 
             // Check password is valid BEFORE updating last login date to avoid race condition
@@ -569,7 +579,7 @@ public class Program
             {
                 // Track failed login attempt for lockout purposes
                 await userManager.AccessFailedAsync(user);
-                return Results.Redirect("/login?error=Invalid");
+                return Fail("Invalid");
             }
 
             // Password is valid - reset access failed count
@@ -623,12 +633,10 @@ public class Program
                 });
             }
 
-            // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
-            if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
-            {
-                return Results.Redirect(returnUrl);
-            }
-            return Results.Redirect("/");
+            // A local return URL is honoured; anything else (missing, external, malformed) lands on
+            // the members' landing page.
+            var target = MemberLanding(returnUrl);
+            return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
         })
         .RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);
 
@@ -652,7 +660,8 @@ public class Program
         app.MapMusicEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
-        // Route ownership: React owns exactly these paths; every other page stays Blazor.
+        // Route ownership: React owns exactly these paths (plus /music and /login below); every other
+        // page stays Blazor.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -681,6 +690,21 @@ public class Program
         app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
             Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));
 
+        // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
+        // A signed-in member never sees the form and goes to the members' landing page. The return
+        // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member
+        // bounced off a page their role cannot open would be sent straight back to it, in a loop.
+        app.MapMethods("/login", ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+        {
+            if (context.User.Identity?.IsAuthenticated == true)
+            {
+                return Results.Redirect(MemberLanding(null));
+            }
+
+            context.Response.Headers.CacheControl = "no-cache";
+            return Results.File(env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!, "text/html");
+        });
+
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
 
@@ -689,4 +713,8 @@ public class Program
 
         app.Run();
     }
+
+    /// <summary>Where a signed-in member goes: a local return URL, otherwise the events page.</summary>
+    internal static string MemberLanding(string? returnUrl) =>
+        RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
 }

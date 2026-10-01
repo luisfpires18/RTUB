@@ -4,7 +4,7 @@
 
 /** Blazor routes the portal links out to: temporary bridges until each module has a React version. */
 export const legacy = {
-  login: '/login',
+  forgotPassword: '/forgot-password',
   events: '/events',
   gallery: '/gallery',
   roles: '/roles',
@@ -18,10 +18,11 @@ export const portal = {
   profile: '/profile',
   request: '/request',
   music: '/music',
+  login: '/login',
 } as const;
 
-/** Sign in through the Blazor login, then come back to the React profile. */
-export const loginToProfile = `${legacy.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
+/** Sign in, then come back to the React profile. */
+export const loginToProfile = `${portal.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
 
 // FACT: the store listing the Blazor PlayStorePrompt links to; package matches
 // wwwroot/.well-known/assetlinks.json (the Android app is a TWA of this site).

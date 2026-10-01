@@ -125,9 +125,7 @@ public class CookieApiCsrfTests : IntegrationTestBase
     /// </summary>
     private async Task<HttpResponseMessage> SignInAsync(HttpClient client)
     {
-        var page = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await page.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty();
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         return await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>

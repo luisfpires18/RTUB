@@ -10,7 +10,7 @@ namespace RTUB.Controllers;
 /// Session state for the React portal (React track 002, docs/react-portal-pilot.md).
 /// Read-only and about the caller only: never another user, never contact details, dates of
 /// birth, roles or anything else a member's own profile page does not already show them.
-/// Signing in and out stay with the Blazor login and the antiforgery-protected /auth endpoints.
+/// Signing in and out stay with the antiforgery-protected /auth endpoints (React /login posts there).
 /// </summary>
 [ApiController]
 [Route("api/account")]

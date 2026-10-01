@@ -302,9 +302,7 @@ internal static class CookieTestSession
             }
         }
 
-        var loginPage = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await loginPage.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty();
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         var loginResponse = await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>

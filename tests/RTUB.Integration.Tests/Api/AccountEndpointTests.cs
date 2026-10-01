@@ -95,8 +95,7 @@ public class AccountEndpointTests : IntegrationTestBase
             HandleCookies = true
         });
 
-        var page = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await page.Content.ReadAsStringAsync());
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         var response = await client.PostAsync("/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
         {
