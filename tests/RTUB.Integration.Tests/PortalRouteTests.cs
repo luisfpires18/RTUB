@@ -275,10 +275,13 @@ public class PortalRouteTests : IntegrationTestBase
         detail.Should().Contain("loaded.canManagePrizes", "Admin/Owner manage prizes in the Prémios modal (012B)");
         File.ReadAllText(Path.Combine(src, "EventDialogs.tsx")).Should().Contain("<PrizeManager");
         manage.Should().Contain("eventsApi.addPrize(").And.Contain("eventsApi.renamePrize(").And.Contain("eventsApi.deletePrize(");
+        manage.Should().Contain("eventsApi.uploadVideo(").And.Contain("eventsApi.renameVideo(").And.Contain("eventsApi.reorderVideos(")
+            .And.Contain("eventsApi.deleteVideo(");
+        detail.Should().Contain("<VideoManagerDialog").And.Contain("Gerir vídeos");
     }
 
     [Fact]
-    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesAndPrizesAreReact()
+    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesPrizesAndVideosAreReact()
     {
         var root = FindRepoRoot();
         var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
@@ -292,6 +295,8 @@ public class PortalRouteTests : IntegrationTestBase
             "SendEventCancellationNotificationAsync", "SendToSelectedUsersAsync",
             // 012B: prizes are managed in the React Prémios modal.
             "OpenTrophyModal", "OpenCreateTrophyModal", "SaveTrophy", "DeleteTrophy", "TrophyService", "OnViewTrophies=", "ShowTrophy=",
+            // 012C: videos are managed on the React event page; the bridge only plays them.
+            "InputFile", "AddVideoAsync", "UpdateVideoTitleAsync", "UpdateVideoOrderAsync", "DeleteVideoAsync", "draggable", "EditVideo",
         });
 
         // The bridge scope that stays: prizes, videos, repertoire, statistics, Minhas Inscrições, enrollment lists.

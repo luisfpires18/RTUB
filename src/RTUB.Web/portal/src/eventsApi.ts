@@ -83,6 +83,12 @@ export type NoticeResult = { sent: number; failed: number; warning: string | nul
 /** One prize with its id, for the Admin/Owner management modal (012B). */
 export type EventPrize = { id: number; name: string };
 
+/** One video for the Admin/Owner management modal (012C): `title` null when none was given. */
+export type ManagedVideo = { id: number; title: string | null };
+
+/** The old page's limit, also enforced by the server. */
+export const MAX_EVENT_VIDEO_BYTES = 100 * 1024 * 1024;
+
 export type EventVideo = { id: number; title: string; url: string; mimeType: string };
 
 export type EventDetail = {
@@ -220,6 +226,18 @@ export const eventsApi = {
   renamePrize: (id: number, prizeId: number, name: string) =>
     call<EventPrize[]>('PUT', `/api/events/${id}/prizes/${prizeId}`, { name }),
   deletePrize: (id: number, prizeId: number) => call<EventPrize[]>('DELETE', `/api/events/${id}/prizes/${prizeId}`),
+  // Admin/Owner, 012C. Every write answers the event's videos in order.
+  videos: (id: number) => call<ManagedVideo[]>('GET', `/api/events/${id}/videos`),
+  uploadVideo: (id: number, file: File, title: string) => {
+    const form = new FormData();
+    form.set('file', file);
+    form.set('title', title);
+    return call<ManagedVideo[]>('POST', `/api/events/${id}/videos`, form);
+  },
+  renameVideo: (id: number, videoId: number, title: string) =>
+    call<ManagedVideo[]>('PUT', `/api/events/${id}/videos/${videoId}`, { title }),
+  reorderVideos: (id: number, videoIds: number[]) => call<ManagedVideo[]>('POST', `/api/events/${id}/videos/reorder`, { videoIds }),
+  deleteVideo: (id: number, videoId: number) => call<ManagedVideo[]>('DELETE', `/api/events/${id}/videos/${videoId}`),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------

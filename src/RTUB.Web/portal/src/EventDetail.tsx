@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { legacy, portal } from './content';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
-import { CancelEventDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
+import { CancelEventDialog, NoticeDialog, ReactivateEventDialog, VideoManagerDialog } from './EventManage';
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
@@ -30,6 +30,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [answering, setAnswering] = useState(false);
   const [prizes, setPrizes] = useState(false);
   const [managing, setManaging] = useState<'notice' | 'cancel' | 'reactivate'>();
+  const [managingVideos, setManagingVideos] = useState(false);
   const respond = useRef(wantsToRespond());
 
   const load = (quiet = false) => {
@@ -100,7 +101,12 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           </button>
         </div>
       ) : (
-        <Body detail={detail} onAnswer={() => setAnswering(true)} />
+        <Body
+          detail={detail}
+          onAnswer={() => setAnswering(true)}
+          // Admin/Owner (012C): uploads go to past events, as before; existing videos stay manageable anywhere.
+          onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
+        />
       )}
       {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
       {prizes && loaded && (
@@ -118,11 +124,14 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       {manage && managing === 'reactivate' && (
         <ReactivateEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />
       )}
+      {managingVideos && loaded && (
+        <VideoManagerDialog event={loaded.event} onClose={() => setManagingVideos(false)} onChanged={() => load(true)} />
+      )}
     </section>
   );
 }
 
-function Body({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
+function Body({ detail, onAnswer, onManageVideos }: { detail: Detail; onAnswer: () => void; onManageVideos?: () => void }) {
   const { event, member } = detail;
   const time = timeLabel(event.time);
 
@@ -197,7 +206,7 @@ function Body({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
 
           {member && !event.cancelled && <WhoIsGoing participants={member.participants} past={event.past} />}
 
-          {detail.videos.length > 0 && <Videos videos={detail.videos} />}
+          {(detail.videos.length > 0 || onManageVideos) && <Videos videos={detail.videos} onManage={onManageVideos} />}
 
           {!detail.isMember && detail.videos.length === 0 && (
             <p className="note">{event.past ? 'Ainda não há vídeos desta atuação.' : 'Mais novidades nas redes da RTUB.'}</p>
@@ -331,15 +340,28 @@ function People({ people }: { people: EventParticipant[] }) {
 }
 
 /** A list of videos and one player; each first play is recorded, as the old page did. */
-function Videos({ videos }: { videos: EventVideo[] }) {
-  const [current, setCurrent] = useState(videos[0]);
+function Videos({ videos, onManage }: { videos: EventVideo[]; onManage?: () => void }) {
+  const [picked, setCurrent] = useState<number>();
   const played = useRef(new Set<number>());
+  // The list can change under it (a video added, renamed or deleted): fall back to the first.
+  const current = videos.find((v) => v.id === picked) ?? videos[0];
 
   return (
     <section className="event-section" aria-labelledby="videos-title">
-      <h2 id="videos-title" className="event-section__title">
-        Vídeos
-      </h2>
+      <div className="event-section__head">
+        <h2 id="videos-title" className="event-section__title">
+          Vídeos
+        </h2>
+        {onManage && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={onManage}>
+            <Icon name="video" />
+            Gerir vídeos
+          </button>
+        )}
+      </div>
+      {!current ? (
+        <p className="note">Ainda não há vídeos desta atuação.</p>
+      ) : (
       <div className="event-video">
         <p className="event-video__title">{current.title}</p>
         <video
@@ -359,7 +381,8 @@ function Videos({ videos }: { videos: EventVideo[] }) {
         </video>
         <p className="note">Se o vídeo não abrir, experimente outro navegador: alguns telemóveis gravam num formato pouco suportado.</p>
       </div>
-      {videos.length > 1 && (
+      )}
+      {videos.length > 1 && current && (
         <ul className="event-video__list">
           {videos.map((v) => (
             <li key={v.id}>
@@ -367,7 +390,7 @@ function Videos({ videos }: { videos: EventVideo[] }) {
                 type="button"
                 className={v.id === current.id ? 'video-pick video-pick--on' : 'video-pick'}
                 aria-pressed={v.id === current.id}
-                onClick={() => setCurrent(v)}
+                onClick={() => setCurrent(v.id)}
               >
                 <Icon name="play" />
                 {v.title}

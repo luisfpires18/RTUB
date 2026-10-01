@@ -36,7 +36,7 @@ answers with its admin tools, `/events/{id}/enrollments`.
 | `Enrollments` | `Notes` | text?, no limit | 67 set, max 144 | lists (all members) | own answer; "Quem vai" (all members, as before); ≤1000 on write | members | no |
 | `Enrollments` | `EnrolledAt`, `CategoryAtEvent` | datetime; int? | snapshot on 246 | lists, statistics | not sent; still written by `EnrollmentService` | internal | no |
 | `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name; managed there by Admin/Owner (012B) | public (names); ids for Admin/Owner only | no |
-| `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder` | public | no |
+| `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder`; managed by Admin/Owner on the event page (012C) | public | no |
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
 | `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day | members | no |
 | `Discussions` / `Posts` | per event | - | 9 discussions | member count + page | member count + link | members | no |
@@ -114,6 +114,28 @@ Every write answers the event's prizes; the page refreshes behind, so a first pr
 button and the history, and deleting the last one removes it for everyone but Admin/Owner (who keep the
 button on a past festival to add again). Duplicate names are allowed, as before.
 
+## Videos (Admin/Owner, 012C) - audited against the old page
+
+`EventVideos`: `EventId`, `Url` (≤2048, the public R2 URL), `Title` (≤200, optional), `MimeType` (≤100),
+`SizeBytes`, `SortOrder`, `CreatedByUserId`, audit columns; FK cascade on event delete. No thumbnail
+column. Storage: `IEventVideoStorageService`, key `events/{env}/videos/{eventId}_{timestamp}_{file}`,
+public-read; delete only removes objects this environment owns (a DEV copy never deletes from the
+production bucket) and a storage failure is logged, the row still goes.
+
+| | Old Blazor `/member/events` | React now |
+| --- | --- | --- |
+| Who | **upload: any signed-in member**; rename / delete: the uploader or Admin/Owner; reorder: Admin/Owner (drag-and-drop) | **Admin or Owner** for all of it, enforced in `EventAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write. Members no longer upload (this task's rule); see Changed on purpose |
+| Where | videos button on past cards → modal (upload, list, rename, delete, drag) | event page: **Gerir vídeos** in the Vídeos section (shown to Admin/Owner on a past event, or on any event that has videos) → modal |
+| Upload | past events (only those cards had the button); `video/*`, ≤100 MB, title required; `EventService.AddVideoAsync` (storage key above, next sort position, push to every other member); errors swallowed | same rules, now server-side: past event (409 otherwise), a `video/*` type or a known extension (.mp4 .mov .m4v .webm .3gp .mkv .avi), 1 B-100 MB, title required ≤200; same `AddVideoAsync`, so the same key, position and push. A storage failure answers 500 and leaves no row |
+| Rename | title; blank clears it | same (`UpdateVideoTitleAsync`) |
+| Reorder | drag-and-drop | Subir / Descer buttons; the server takes the whole order once (`UpdateVideoOrderAsync`) and refuses a stale or partial one |
+| Delete | storage then row (`DeleteVideoAsync`), no confirm | same call, inline confirm |
+| Watch | everyone; plays audited | unchanged: the event page player, `POST /api/events/videos/{id}/plays` |
+
+Every write answers the event's videos (id and title only); the page refreshes behind, so a first video
+shows the section and deleting the last one leaves Admin/Owner an empty state (visitors no section).
+The upload is one request with a spinner ("A enviar…"); no byte progress.
+
 ## API
 
 | Endpoint | Who | Notes |
@@ -138,12 +160,17 @@ button on a past festival to add again). Duplicate names are allowed, as before.
 | `POST /api/events/{id}/prizes` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the event's prizes; 400 `errors.name`; 409 unless a past festival. |
 | `PUT /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the prizes; 404 if the prize is not this event's. |
 | `DELETE /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the prizes left; 404 as above. |
+| `GET /api/events/{id}/videos` | Admin/Owner | `[{ id, title }]` in play order (012C). |
+| `POST /api/events/{id}/videos` | Admin/Owner | multipart `file` (≤100 MB) + `title`; `X-CSRF-TOKEN`; `200` the videos; 400 `errors.file` / `errors.title`; 409 unless past. |
+| `PUT /api/events/{id}/videos/{videoId}` | Admin/Owner | `{ title }` (blank clears); `X-CSRF-TOKEN`; `200` the videos; 404 if not this event's. |
+| `POST /api/events/{id}/videos/reorder` | Admin/Owner | `{ videoIds }`, every id once; `X-CSRF-TOKEN`; `200`; 400 `errors.videoIds` when stale. |
+| `DELETE /api/events/{id}/videos/{videoId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the videos left (stored file deleted as before). |
 | `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
 its last day. Seasons run September-August. Images and videos are absolute public R2 URLs
-(https or same-site only); no object key or credential is sent. The only upload is the Admin/Owner event
-image (012A), through the existing storage service.
+(https or same-site only); no object key or credential is sent. The only uploads are the Admin/Owner event
+image (012A) and videos (012C), through the existing storage services.
 
 ## UI
 
@@ -174,6 +201,8 @@ image (012A), through the existing storage service.
 - Festivals without prizes are left out of "Prémios"; the old modal listed them with 0.
 - A "não vou" answer no longer stores an instrument (the old form could; nothing read it).
 - Visitors' search no longer matches descriptions (it was an oracle on member-only text).
+- 012C: only Admin/Owner upload, rename, reorder and delete event videos (members could upload and
+  manage their own on the old page). Existing videos keep their uploader; nothing was deleted.
 
 ## Old Blazor UI
 
@@ -184,18 +213,18 @@ image (012A), through the existing storage service.
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
 - Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
-  do yet - video upload / rename / reorder / delete, repertoire editing, statistics (including the read-only
-  "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
+  do yet - repertoire editing, statistics (including the read-only "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
   Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
   announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
-  edit / delete): prizes are managed only in the React Prémios modal.
+  edit / delete): prizes are managed only in the React Prémios modal. 012C removed its video upload,
+  rename, delete and drag-and-drop reorder; its videos modal only lists and plays them.
 
 ## Follow-ups
 
-- Advanced management in React: video upload and ordering, repertoire editing, statistics,
-  "Minhas Inscrições", others' enrollments (012C-E); then `/member/events` and
+- Advanced management in React: repertoire editing, statistics, "Minhas Inscrições", others'
+  enrollments (012D-E); then `/member/events` and
   `/events/{id}/enrollments` can go.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
   a background job.

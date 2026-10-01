@@ -829,72 +829,6 @@ else
        ShowCloseButton="true"
        OnClose="@CloseVideosModal">
     <BodyContent>
-        @* Upload Section - Visible to all logged-in users (members only) *@
-        <AuthorizeView>
-            <Authorized>
-                <div class="mb-4">
-                    <h6 class="mb-3">
-                        <i class="bi bi-upload text-primary me-2"></i>Adicionar Vídeo
-                    </h6>
-                    
-                    @if (isUploadingVideo)
-                    {
-                        <LoadingSpinner Message="A enviar vídeo..." />
-                    }
-                    else
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Ficheiro de vídeo</label>
-                            <div class="localized-file-picker">
-                                <InputFile id="@videoInputId" 
-                                           @key="videoUploadKey"
-                                           class="d-none" 
-                                           OnChange="@HandleVideoSelection" 
-                                           accept="video/*" 
-                                           aria-label="Escolher vídeo" />
-                                <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
-                                    <i class="bi bi-upload me-2"></i>Escolher vídeo
-                                </label>
-                                <span class="localized-file-name">
-                                    @if (!string.IsNullOrEmpty(selectedVideoName))
-                                    {
-                                        <text>@selectedVideoName</text>
-                                    }
-                                    else
-                                    {
-                                        <text>Nenhum vídeo selecionado</text>
-                                    }
-                                </span>
-                            </div>
-                            <small class="text-muted d-block mt-1">
-                                <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
-                            </small>
-                        </div>
-                        
-                        @if (selectedVideoFile != null)
-                        {
-                            <div class="mb-3">
-                                <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
-                                <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
-                                <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
-                            </div>
-                            
-                            <div class="d-flex justify-content-end">
-                                <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
-                                    Cancelar
-                                </button>
-                                <button type="button" class="btn btn-primary" @onclick="UploadVideo" disabled="@(string.IsNullOrWhiteSpace(videoTitle))">
-                                    <i class="bi bi-upload me-2"></i>Enviar vídeo
-                                </button>
-                            </div>
-                        }
-                    }
-                </div>
-                
-                <hr class="my-4" />
-            </Authorized>
-        </AuthorizeView>
-        
         @* View Section - Visible to everyone *@
         <div>
             <h6 class="mb-3">
@@ -923,45 +857,12 @@ else
                             // Generate clean display title
                             var displayTitle = GetCleanVideoTitle(video, i + 1);
                             
-                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "") @(draggingVideoId == video.Id ? "dragging" : "") @(dragOverVideoId == video.Id ? "drag-over" : "")"
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
                                  role="button"
-                                 draggable="@(isUserAdmin ? "true" : "false")"
-                                 @ondragstart="@(() => HandleVideoDragStart(video.Id))"
-                                 @ondragover="HandleVideoDragOver"
-                                 @ondragover:preventDefault
-                                 @ondragenter="@(() => HandleVideoDragEnter(video.Id))"
-                                 @ondragleave="@(() => HandleVideoDragLeave())"
-                                 @ondrop="@(async () => await HandleVideoDrop(video.Id))"
-                                 @ondragend="@(() => HandleVideoDragEnd())"
                                  @onclick="() => SelectVideoByIndex(video.Id)">
-                                @if (isUserAdmin)
-                                {
-                                    <div class="drag-handle-video" title="Arrastar para reordenar">
-                                        <i class="bi bi-grip-vertical"></i>
-                                    </div>
-                                }
                                 <span class="video-title-content">
                                     <i class="bi bi-play-circle me-2"></i>@displayTitle
                                 </span>
-                                @if (CanDeleteVideo(video))
-                                {
-                                    <div class="position-absolute top-50 end-0 translate-middle-y me-2 d-flex gap-1">
-                                        <button type="button" 
-                                                class="btn btn-sm admin-btn-edit" 
-                                                @onclick:stopPropagation="true"
-                                                @onclick="() => OpenEditVideoModal(video)"
-                                                title="Renomear vídeo">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button type="button" 
-                                                class="btn btn-sm admin-btn-delete" 
-                                                @onclick:stopPropagation="true"
-                                                @onclick="() => DeleteVideoFromModal(video)"
-                                                title="Eliminar vídeo">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                }
                             </div>
                         }
                     </div>
@@ -991,32 +892,6 @@ else
             }
         </div>
     </BodyContent>
-</Modal>
-
-<!-- Edit Video Title Modal -->
-<Modal Show="@modals.IsOpen(ModalType.EditVideo)" 
-       ShowChanged="@((value) => modals.Toggle(ModalType.EditVideo, value))"
-       Title="Renomear Vídeo" 
-       Size="Modal.ModalSize.Default"
-       Centered="true"
-       ShowCloseButton="false">
-    <BodyContent>
-        @if (editingVideo != null)
-        {
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-camera-video text-primary me-2"></i>Título do Vídeo
-                </label>
-                <input type="text" class="form-control" @bind="editingVideoTitle" placeholder="Digite o título do vídeo" maxlength="200" />
-                <small class="text-muted">Máximo 200 caracteres</small>
-            </div>
-            
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEditVideoModal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveVideoTitle">Guardar</button>
-    </FooterContent>
 </Modal>
 
 <!-- Delete Enrollment Confirmation Modal -->
@@ -1055,7 +930,6 @@ else
         Repertoire,
         EventDetails,
         Videos,
-        EditVideo,
         DeleteEnrollment,
         TrophiesStats
     }
@@ -1099,18 +973,6 @@ else
     // Video modal state (view and upload)
     private List<EventVideo>? eventVideos = null;
     private int? selectedVideoId = null;
-    private bool isUploadingVideo = false;
-    private Guid videoUploadKey = Guid.NewGuid();
-    private string videoInputId = $"event-video-{Guid.NewGuid():N}";
-    private string? selectedVideoName = null;
-    private IBrowserFile? selectedVideoFile = null;
-    private string videoTitle = string.Empty;
-    private EventVideo? editingVideo = null;
-    private string editingVideoTitle = string.Empty;
-    
-    // Video drag-and-drop state
-    private int? draggingVideoId = null;
-    private int? dragOverVideoId = null;
     
     private string dateValidationError = string.Empty;
     private bool showPastDateWarning = false;
@@ -2320,7 +2182,6 @@ else
             eventVideos = new List<EventVideo>();
         }
         selectedVideoId = null;
-        videoUploadKey = Guid.NewGuid();
         modals.Open(ModalType.Videos);
     }
     
@@ -2330,10 +2191,6 @@ else
         selectedEventForVideos = null;
         eventVideos = null;
         selectedVideoId = null;
-        isUploadingVideo = false;
-        selectedVideoName = null;
-        selectedVideoFile = null;
-        videoTitle = string.Empty;
         
         // Clear media session when modal closes
         try
@@ -2396,107 +2253,6 @@ else
         }
     }
     
-    private void HandleVideoSelection(InputFileChangeEventArgs e)
-    {
-        if (selectedEventForVideos == null) return;
-        
-        var file = e.File;
-        var maxFileSize = 100 * 1024 * 1024; // 100MB
-        
-        if (file.Size > maxFileSize)
-        {
-            selectedVideoName = null;
-            selectedVideoFile = null;
-            return;
-        }
-        
-        selectedVideoFile = file;
-        selectedVideoName = file.Name;
-        
-        var existingCount = eventVideos?.Count ?? 0;
-        var videoNumber = existingCount + 1;
-        videoTitle = $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
-        
-        StateHasChanged();
-    }
-    
-    private void CancelVideoSelection()
-    {
-        selectedVideoFile = null;
-        selectedVideoName = null;
-        videoTitle = string.Empty;
-        videoUploadKey = Guid.NewGuid();
-    }
-    
-    private async Task UploadVideo()
-    {
-        if (selectedEventForVideos == null || selectedVideoFile == null) return;
-        
-        var maxFileSize = 100 * 1024 * 1024; // 100MB
-        isUploadingVideo = true;
-        StateHasChanged();
-        
-        try
-        {
-            using var browserStream = selectedVideoFile.OpenReadStream(maxFileSize);
-            using var memoryStream = new MemoryStream();
-            await browserStream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-            
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-            
-            await EventService.AddVideoAsync(
-                selectedEventForVideos.Id,
-                memoryStream,
-                selectedVideoFile.Name,
-                selectedVideoFile.ContentType,
-                currentUserId,
-                videoTitle
-            );
-            
-            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
-            selectedVideoId = null;
-            CancelVideoSelection();
-        }
-        catch
-        {
-            // Log error but keep UI responsive - error will be visible to user via state
-        }
-        finally
-        {
-            isUploadingVideo = false;
-            StateHasChanged();
-        }
-    }
-    
-    private async Task DeleteVideoFromModal(EventVideo video)
-    {
-        if (selectedEventForVideos == null) return;
-        
-        try
-        {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-            
-            await EventService.DeleteVideoAsync(video.Id, currentUserId, isUserAdmin);
-            
-            if (selectedVideoId == video.Id)
-            {
-                selectedVideoId = null;
-            }
-            
-            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
-            StateHasChanged();
-        }
-        catch
-        {
-            // Log error silently - deletion failure won't block UI updates
-        }
-    }
-    
     private string GetCleanVideoTitle(EventVideo video, int videoNumber)
     {
         if (selectedEventForVideos == null) 
@@ -2523,138 +2279,6 @@ else
         return title;
     }
     
-    private bool CanDeleteVideo(EventVideo video)
-    {
-        if (currentUser == null)
-            return false;
-            
-        return video.CreatedByUserId == currentUser.Id || isUserAdmin;
-    }
-    
-    private void OpenEditVideoModal(EventVideo video)
-    {
-        editingVideo = video;
-        editingVideoTitle = video.Title ?? string.Empty;
-        modals.Open(ModalType.EditVideo);
-    }
-    
-    private void CloseEditVideoModal()
-    {
-        modals.Close(ModalType.EditVideo);
-        editingVideo = null;
-        editingVideoTitle = string.Empty;
-    }
-    
-    private async Task SaveVideoTitle()
-    {
-        if (editingVideo == null || currentUser == null)
-            return;
-            
-        try
-        {
-            await EventService.UpdateVideoTitleAsync(
-                editingVideo.Id, 
-                string.IsNullOrWhiteSpace(editingVideoTitle) ? null : editingVideoTitle,
-                currentUser.Id,
-                isUserAdmin);
-            
-            // Refresh the video list
-            if (selectedEventForVideos != null)
-            {
-                eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
-            }
-            
-            CloseEditVideoModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating video title: {ex.Message}");
-        }
-    }
-    
-    // Video drag-and-drop handlers
-    private void HandleVideoDragStart(int videoId)
-    {
-        if (!isUserAdmin) return;
-        draggingVideoId = videoId;
-        dragOverVideoId = null;
-    }
-
-    private void HandleVideoDragEnter(int videoId)
-    {
-        if (!isUserAdmin || draggingVideoId == null || draggingVideoId == videoId) return;
-        dragOverVideoId = videoId;
-    }
-
-    private void HandleVideoDragLeave()
-    {
-        if (!isUserAdmin) return;
-        dragOverVideoId = null;
-    }
-
-    private void HandleVideoDragOver()
-    {
-        // Combined with @ondragover:preventDefault directive to allow drops
-        if (!isUserAdmin) return;
-    }
-
-    private void HandleVideoDragEnd()
-    {
-        if (!isUserAdmin) return;
-        // Always clean up drag state when drag ends
-        draggingVideoId = null;
-        dragOverVideoId = null;
-    }
-
-    private async Task HandleVideoDrop(int targetVideoId)
-    {
-        if (!isUserAdmin || draggingVideoId == null || draggingVideoId == targetVideoId) 
-        {
-            // Clean up even if we don't process the drop
-            draggingVideoId = null;
-            dragOverVideoId = null;
-            return;
-        }
-
-        var draggingVideo = eventVideos?.FirstOrDefault(v => v.Id == draggingVideoId);
-        var targetVideo = eventVideos?.FirstOrDefault(v => v.Id == targetVideoId);
-
-        if (draggingVideo != null && targetVideo != null && selectedEventForVideos != null)
-        {
-            // Get the current ordered list
-            var orderedList = eventVideos!.OrderBy(v => v.SortOrder).ToList();
-            
-            // Find current indices
-            var draggedIndex = orderedList.IndexOf(draggingVideo);
-            var targetIndex = orderedList.IndexOf(targetVideo);
-            
-            // Reorder logic matching EventRepertoire pattern
-            // 1. Remove the dragged item
-            orderedList.RemoveAt(draggedIndex);
-            
-            // 2. Calculate insertion index
-            var insertIndex = (draggedIndex < targetIndex) ? targetIndex : targetIndex;
-            
-            // 3. Insert at calculated position
-            orderedList.Insert(insertIndex, draggingVideo);
-
-            // Update sort orders based on new list order
-            var videoIds = orderedList.Select(v => v.Id).ToList();
-            
-            await EventService.UpdateVideoOrderAsync(selectedEventForVideos.Id, videoIds);
-            
-            // Force reload to get updated order from database
-            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
-            
-            // Force UI refresh
-            StateHasChanged();
-        }
-
-        // Clean up drag state
-        draggingVideoId = null;
-        dragOverVideoId = null;
-    }
-
     private async Task LogVideoPlaybackAsync(EventVideo video, Event eventItem)
     {
         try
