@@ -7,8 +7,8 @@ export const legacy = {
   forgotPassword: '/forgot-password',
   events: '/events',
   gallery: '/gallery',
-  roles: '/roles',
   memberProfile: '/member/profile',
+  memberGovernance: '/member/roles',
 } as const;
 
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
@@ -19,6 +19,7 @@ export const portal = {
   request: '/request',
   music: '/music',
   login: '/login',
+  roles: '/roles',
 } as const;
 
 /** Sign in, then come back to the React profile. */
@@ -57,7 +58,7 @@ export const galleryTiles = [
   { caption: 'Ensaio geral', icon: 'clock', tone: 'e' },
 ] as const;
 
-// FACT: the bodies and positions shown on /roles. Holders are not shown in the pilot.
+// FACT: the bodies and positions of the Órgãos Sociais; holders live on /roles (GET /api/public/governance).
 export const governingBodies = [
   { name: 'Direção', roles: ['Magister', 'Vice-Magister', 'Secretário', '1.º Tesoureiro', '2.º Tesoureiro'] },
   { name: 'Mesa da Assembleia', roles: ['Presidente', '1.º Secretário', '2.º Secretário'] },

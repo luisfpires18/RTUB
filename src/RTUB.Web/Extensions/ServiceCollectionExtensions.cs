@@ -172,6 +172,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
         services.AddScoped<IMusicService, MusicService>();
+        services.AddScoped<IGovernanceService, GovernanceService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();
