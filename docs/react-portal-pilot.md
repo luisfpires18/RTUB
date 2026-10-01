@@ -1,4 +1,4 @@
-# React public portal (React track, tasks 001–005)
+# React public portal (React track, tasks 001–006)
 
 A React public shell served by the existing ASP.NET Core host, next to the Blazor app, which keeps
 every page React does not own yet. Since task 004 it is the **DEV public baseline**: React owns `/`.
@@ -84,7 +84,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | via `/events` | temporary Blazor bridge; future React page (Events) |
 | FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
-| Música | `/music`, `/music/songs/{id}` | discography, lyrics, player | `/#music` preview, streaming links | homepage now + navbar now + temporary Blazor bridge |
+| Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
 | Galeria | `/gallery` | photos and videos | `/#gallery` artwork preview | homepage now + navbar now + temporary Blazor bridge |
 | Órgãos Sociais | `/roles` (`bodies_*` labels) | bodies and the current mandate | `/#governance`: bodies and positions, no names | homepage now + navbar now + temporary Blazor bridge |
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
@@ -117,7 +117,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
 | `/portal/profile` | **Redirect** → `/profile` | Same. |
 | `/portal/request` | **Redirect** → `/request` | Same. |
-| `/music` | **Temporary Blazor bridge** | Until Music has a React version. |
+| `/music`, `/music/albums/{id}` | **React canonical** (006) | Music area: albums, songs, player, lyrics, videos, statistics, management. `docs/react-music.md`. |
+| `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **Temporary Blazor bridge** | Until Gallery has a React version. |
 | `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
 | `/roles` | **Temporary Blazor bridge** | Órgãos Sociais, until Governance has a React version. |
@@ -127,6 +128,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
+| `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
 | any other `/portal/*` | nobody | 404. |
 

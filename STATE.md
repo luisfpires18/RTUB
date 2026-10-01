@@ -6,12 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-01_
 
 ## Phase
-**Open: `feat/005/react-public-shell-content-audit`** (React track, task 005; from `dev` @
-`415bc7b5`, committed locally, not pushed; DEV only). Public content coverage audit of the old site
-(table + decisions in `docs/react-portal-pilot.md`, pinned by `PortalContentCoverageTests`); home
-polish: no invented agenda dates, FITAB and Junta-te anchors in the footer, one Hierarquia line in
-Junta-te, hero CTA straight to `/request`; the "Versão de testes" banner shows only on pre-release
-builds (DEV). News plan updated, nothing built. No schema change. Next: review, PR → `dev`.
+**Open: `feat/006/react-music-refactor`** (React track, task 006; from `dev` @ `94b77e4a`, committed
+locally, not pushed; DEV only). Music is React: `/music`, `/music/albums/{id}` (old `/music/songs/{id}`
+redirects), thin `/api/music` endpoints over a new `MusicService` with `MusicAuthorization`; server-side
+play cooldown; Blazor Music UI and its circuit-only services retired. No schema change. Audit, rules,
+API and follow-ups: `docs/react-music.md`. Next: review, PR → `dev`, then a DEV check with real audio
+(local runs have no R2 credentials).
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -134,6 +134,14 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 006 (Music):
+- `AlbumAccesses` holds 18 stale rows for album 12 (not exclusive); ignored by the rules, not deleted.
+- Retired-Music leftovers still loaded globally: `css/3-components/music.css`, `song-card.css`,
+  `audio-player.css`, and the PWA-queue half of `pwaMediaSession.js`/`MediaSessionInterop`.
+- Play cooldown is per app instance (in-memory); a scaled-out App Service would need a shared cache.
+- Seen while validating 006 (2026-10-01): 8 `MemberStatusServiceTests`/`RetirementStatusServiceTests` fail on
+  clean `dev` too (`94b77e4a`) - month-boundary/date-dependent expectations; not Music.
+
 Raised by React track 005 (content audit):
 - **Security:** `/calotes`, `/mbway` and `/nerba/{id}` have no `[Authorize]` (no folder-level rule
   either), so anonymous visitors can open these finance pages. Not changed in 005; review what they

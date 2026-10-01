@@ -160,9 +160,6 @@ public static class ServiceCollectionExtensions
         // Core domain services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IAlbumService, AlbumService>();
-        services.AddScoped<IAlbumStatisticsService, AlbumStatisticsService>();
-        services.AddScoped<IAlbumFilterService, AlbumFilterService>();
-        services.AddScoped<IAlbumImageService, AlbumImageService>();
         services.AddScoped<IEventFilterService, EventFilterService>();
         services.AddScoped<IEventUrlService, EventUrlService>();
         services.AddScoped<IEventStatisticsService, EventStatisticsService>();
@@ -174,10 +171,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventContactService, EventContactService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
+        services.AddScoped<IMusicService, MusicService>();
         services.AddScoped<ISongContentService, SongContentService>();
-        services.AddScoped<ISongUrlCacheService, SongUrlCacheService>();
-        services.AddScoped<ISongPlayService, SongPlayService>();
-        services.AddScoped<ISongValidationService, SongValidationService>();
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();
         services.AddScoped<ISlideshowService, SlideshowService>();
@@ -1020,9 +1015,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AdminRefreshService>();
         services.AddSingleton<AnnouncementService>();
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
-        services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
         services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
-        services.AddScoped<MediaQueueService>();
 
         return services;
     }

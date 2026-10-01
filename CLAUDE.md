@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite public shell on DEV (`/`, `/privacy`, `/profile`, `/request`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite public shell on DEV (`/`, `/privacy`, `/profile`, `/request`, `/music`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
@@ -54,6 +54,7 @@ Run only what the change can break.
 | Blazor / Razor / CSS standards | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
 | React public shell (route ownership, module rules) | `docs/react-portal-pilot.md` |
+| React Music area (API, rules, data audit) | `docs/react-music.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

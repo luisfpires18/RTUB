@@ -6,7 +6,6 @@
 export const legacy = {
   login: '/login',
   events: '/events',
-  music: '/music',
   gallery: '/gallery',
   roles: '/roles',
   memberProfile: '/member/profile',
@@ -18,6 +17,7 @@ export const portal = {
   privacy: '/privacy',
   profile: '/profile',
   request: '/request',
+  music: '/music',
 } as const;
 
 /** Sign in through the Blazor login, then come back to the React profile. */

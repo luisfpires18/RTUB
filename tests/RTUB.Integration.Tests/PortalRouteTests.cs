@@ -25,6 +25,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/privacy")]
     [InlineData("/profile")]
     [InlineData("/request")]
+    [InlineData("/music")]
+    [InlineData("/music/albums/1")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -112,7 +114,7 @@ public class PortalRouteTests : IntegrationTestBase
             (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
         }
 
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request" })
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
@@ -124,6 +126,9 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/privacy")]
     [InlineData("/profile")]
     [InlineData("/request")]
+    [InlineData("/music")]
+    [InlineData("/music/albums/{id:int}")]
+    [InlineData("/music/songs/{AlbumId:int}")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -142,7 +147,6 @@ public class PortalRouteTests : IntegrationTestBase
     [Theory]
     [InlineData("/login")]
     [InlineData("/events")]
-    [InlineData("/music")]
     [InlineData("/gallery")]
     [InlineData("/roles")]
     public async Task BlazorBridgeRoutes_StayBlazor(string path)
@@ -164,6 +168,32 @@ public class PortalRouteTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fprofile");
+    }
+
+    // ---------- retired Blazor Music (React track 006) ----------
+
+    [Theory]
+    [InlineData("/music/songs/12", "/music/albums/12")]
+    [InlineData("/music/songs/3?from=share", "/music/albums/3?from=share")]
+    public async Task RetiredBlazorAlbumPage_RedirectsToTheReactAlbum(string path, string target)
+    {
+        var response = await NoRedirectClient().GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Be(target);
+    }
+
+    [Fact]
+    public void HomeMusicLink_GoesToTheReactMusicPage()
+    {
+        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
+
+        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("music: '/music'");
+        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("{ music: portal.music }",
+            "the top bar, the mobile menu and the footer open the Music page, not the home section");
+        Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
+            "the React Music area links to /music/albums/{id}, never the retired Blazor route");
     }
 
     // ---------- retired Blazor /request (React track 003) ----------

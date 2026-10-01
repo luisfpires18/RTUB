@@ -11,14 +11,20 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/privacy': lazy(() => import('./Privacy')),
   '/profile': lazy(() => import('./Profile')),
   '/request': lazy(() => import('./Request')),
+  '/music': lazy(() => import('./Music')),
 };
-const Page = pages[location.pathname.replace(/\/+$/, '')];
+const path = location.pathname.replace(/\/+$/, '');
+const Page = pages[path];
+
+// /music/albums/{id} carries its id; Program.cs maps it with an {id:int} constraint.
+const MusicAlbum = lazy(() => import('./MusicAlbum'));
+const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page ? (
+        {Page || albumId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -26,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
               </div>
             }
           >
-            <Page />
+            {albumId ? <MusicAlbum albumId={Number(albumId)} /> : <Page />}
           </Suspense>
         ) : (
           <Home />
