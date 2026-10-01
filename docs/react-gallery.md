@@ -25,9 +25,10 @@ Verdict: **no schema change, no migration.** The real `app.db` was only read (ag
 
 ## Visibility and permissions (server-side)
 
-- `GET /api/gallery?page=&pageSize=&year=&q=&person=` and `GET /api/gallery/items/{id}`
+- `GET /api/gallery?page=&pageSize=&year=&q=&person=&public=` and `GET /api/gallery/items/{id}`
   (`Endpoints/GalleryEndpoints.cs` → `IGalleryTimelineService`). Anonymous allowed, `no-store`,
-  GET only. The session decides, never a parameter.
+  GET only. The session decides, never a parameter; `public=true` (the home preview, 010) can only
+  narrow a member's view to the visitors' one, never widen anyone's.
 - **Visitor:** `IsPrivate = false` only - in the items, the count and the year list. A members-only
   item id answers `404`, like a missing one. No person tags, no person filter (`person` is ignored).
 - **Signed-in member:** every item, members-only ones flagged `membersOnly`; person tags and the
@@ -59,8 +60,8 @@ items carry a small "Membros" badge. Search by title, year filter, and for membe
 "Mostrar mais" pages by 24. Lightbox: native `<dialog>`, the photo or video (`controls`) on black,
 date, tagged members, "Abrir original", previous/next buttons and arrow keys, Esc. `?item=<id>` opens
 one item directly (members-only ones only when signed in). Missing or broken files show a
-placeholder. Visitors see a quiet "Entrar como membro" line; members get "Carregar ou editar" →
-`/member/gallery`.
+placeholder. Visitors simply see the public gallery (no members-only teaser, 010); members get
+"Carregar ou editar" → `/member/gallery`. Search and filters use the shared `.control` field.
 
 ## Follow-ups
 

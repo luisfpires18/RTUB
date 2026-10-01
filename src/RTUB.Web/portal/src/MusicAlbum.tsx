@@ -168,7 +168,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
 
       <div className="album-tools">
         <h2 className="section__title album-tools__title">Faixas</h2>
-        <label className="search">
+        <label className="control album-tools__search">
           <Icon name="search" />
           <span className="sr-only">Pesquisar faixas</span>
           <input type="search" placeholder="Título, autor da letra ou da música…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -330,7 +330,8 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
 
 function BackLink() {
   return (
-    <a className="doc__back" href="/music">
+    <a className="back-link" href="/music">
+      <Icon name="arrow" />
       Música
     </a>
   );

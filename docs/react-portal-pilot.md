@@ -65,8 +65,12 @@ member area → install the app → a small "Novidades · Em breve" line.
   detail). One public line in Junta-te a nós ("Percurso"). The full explanation belongs, with the
   História, in a future public "Conhece a Tuna" page (English route `/about`); the member view stays
   on the Blazor `/hierarchy` (members only).
-- **No invented data (005):** the agenda no longer shows illustrative dates; it points to `/events`
-  until a read-only events API exists. The gallery tiles are artwork, labelled "Ilustrações".
+- **No invented data (005, 010):** the agenda shows the next three events from
+  `GET /api/public/events/upcoming` (read-only; the same events, fields and order `/events` already
+  shows visitors: name, date, time, location, type, cancelled) and an empty state when there are none.
+  It is a preview, not the Events rebuild: `/events` stays the Blazor agenda. The gallery preview
+  shows the five latest **public** photos from `GET /api/gallery?public=true` (members-only photos
+  never appear on the home, signed in or not).
 - **No test or update banners (006):** the "Versão de testes" strip (005) and the service worker's
   "Nova versão disponível! · Atualizar · Depois" prompt are retired. Updates are silent; see
   Layout below.
@@ -80,12 +84,12 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | --- | --- | --- | --- | --- |
 | Quem somos / Sobre | old home: `AboutUsContent` (labels) | who the RTUB is | `/#about`, short, facts only | homepage now |
 | História | old home: `HistoryContent` (`history_*` labels) | founding (1 Dec 1991), mission, identity | founding year in hero and Quem somos | future React page ("Conhece a Tuna", `/about`) |
-| Atuações / agenda | `/events` (`Events.razor`) | upcoming and past performances | `/#events` points to the full agenda | homepage now + navbar now + temporary Blazor bridge |
+| Atuações / agenda | `/events` (`Events.razor`) | upcoming and past performances | `/#events`: next three events (010) + the full agenda | homepage now + navbar now + temporary Blazor bridge |
 | Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | via `/events` | temporary Blazor bridge; future React page (Events) |
 | FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
-| Galeria | React `/gallery` (009) | photos and videos | `/#gallery` artwork preview + `/gallery` timeline | homepage now + navbar now; done (009, `docs/react-gallery.md`) |
+| Galeria | React `/gallery` (009) | photos and videos | `/#gallery` latest public photos (010) + `/gallery` timeline | homepage now + navbar now; done (009, `docs/react-gallery.md`) |
 | Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/#governance` bodies and positions + `/roles` | homepage now + navbar now; done (008) |
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
@@ -131,7 +135,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
-| `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only. |
+| `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only; `?public=true` gives anyone the visitors' view (home preview, 010). |
+| `GET /api/public/events/upcoming` | **API** (010) | Next three events for the home; anonymous, read-only, public fields only. |
 | `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
@@ -151,10 +156,9 @@ notifications without a URL now open the React home. Members reach their area th
 
 ## Before any production release
 
-The React public shell ships with whatever `dev` holds at the next `dev → master` release. Since 005
-the agenda has no invented dates; the **artwork
-gallery tiles and the static (not admin-editable) copy must still be accepted by the owner, or
-replaced, before that release.**
+The React public shell ships with whatever `dev` holds at the next `dev → master` release. Since 010
+the agenda and the gallery preview read real data; the **static (not admin-editable) copy must still
+be accepted by the owner, or replaced, before that release.**
 
 ## Layout
 

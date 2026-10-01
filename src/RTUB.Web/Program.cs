@@ -665,6 +665,9 @@ public class Program
         // --------- Gallery timeline for the React /gallery (React track 009) ---------
         app.MapGalleryEndpoints();
 
+        // --------- Upcoming events for the React home preview (React track 010) ---------
+        app.MapPublicEventEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music and /login below); every other
         // page stays Blazor. /roles (008) and /gallery (009) are React; their members' tools moved to

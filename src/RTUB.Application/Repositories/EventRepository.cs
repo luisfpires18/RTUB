@@ -24,6 +24,7 @@ public class EventRepository : Repository<Event>, IEventRepository
             .AsNoTracking()
             .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) >= today)
             .OrderBy(e => e.Date)
+            .ThenBy(e => e.Id) // same start: a stable order, so Take(count) always picks the same ones
             .Take(count)
             .ToListAsync();
     }

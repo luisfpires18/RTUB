@@ -69,6 +69,20 @@ public class GalleryTimelineServiceTests
     }
 
     [Fact]
+    public async Task PublicOnly_NarrowsAMembersView_ToWhatVisitorsSee()
+    {
+        // The home preview (React track 010) shows visitors' photos to everyone.
+        Add("public", 2024, isPrivate: false);
+        Add("members", 2025, isPrivate: true);
+
+        var result = await _service.GetTimelineAsync(Member, new GalleryQuery(PublicOnly: true));
+
+        result.Items.Select(i => i.Title).Should().Equal("public");
+        result.Years.Should().Equal(new[] { 2024 });
+        result.IsMember.Should().BeFalse("nothing member-only, tags included, comes back on this view");
+    }
+
+    [Fact]
     public async Task Items_AreNewestFirst_ByYearMonthDay_ThenNewestRecordFirst()
     {
         Add("2023", 2023, month: 12, day: 31);

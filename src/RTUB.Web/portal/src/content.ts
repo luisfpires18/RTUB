@@ -47,18 +47,6 @@ export const albums = [
   { title: 'É Esta a Tuna', year: '2013', tracks: 11 },
 ];
 
-// FACT: the instruments the tuna plays.
-export const instruments = ['Guitarra', 'Bandolim', 'Cavaquinho', 'Voz'];
-
-// ILLUSTRATIVE captions, labelled as such on the page: the tiles are artwork, not photographs.
-export const galleryTiles = [
-  { caption: 'Serenata ao luar', icon: 'music', tone: 'a' },
-  { caption: 'Casa cheia', icon: 'play', tone: 'b' },
-  { caption: 'Noites de FITAB', icon: 'calendar', tone: 'c' },
-  { caption: 'De estrada em estrada', icon: 'geo', tone: 'd' },
-  { caption: 'Ensaio geral', icon: 'clock', tone: 'e' },
-] as const;
-
 // FACT: the bodies and positions of the Órgãos Sociais; holders live on /roles (GET /api/public/governance).
 export const governingBodies = [
   { name: 'Direção', roles: ['Magister', 'Vice-Magister', 'Secretário', '1.º Tesoureiro', '2.º Tesoureiro'] },

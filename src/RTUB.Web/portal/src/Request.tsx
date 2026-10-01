@@ -23,7 +23,6 @@ const fieldOrder: (keyof RequestForm)[] = ['name', 'email', 'phone', 'eventType'
 
 const hints: FieldErrors = {
   eventType: 'Por exemplo: serenata, casamento, aniversário.',
-  location: 'Localidade e, se já souber, o sítio.',
   message: 'Horário, duração, número de pessoas ou o que ajudar a preparar a atuação.',
 };
 
@@ -206,7 +205,7 @@ export default function RequestPage() {
 
               <label className="form__check">
                 <input type="checkbox" checked={form.isDateRange} onChange={set('isDateRange')} />
-                Ainda sem data fechada? Indicar um intervalo de datas
+                Definir intervalo de datas
               </label>
 
               <div className="form__row">

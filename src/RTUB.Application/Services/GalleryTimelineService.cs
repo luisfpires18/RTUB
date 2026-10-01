@@ -29,7 +29,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
     public async Task<GalleryTimelineDto> GetTimelineAsync(ClaimsPrincipal user, GalleryQuery query)
     {
-        var isMember = IsMember(user);
+        var isMember = IsMember(user) && !query.PublicOnly;
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 

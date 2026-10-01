@@ -54,13 +54,15 @@ export default function Governance() {
         {data && data.fiscalYears.length > 1 && (
           <label className="governance-page__year" htmlFor={yearId}>
             Ano letivo
-            <select id={yearId} value={data.fiscalYear ?? ''} onChange={(e) => choose(e.target.value)}>
-              {data.fiscalYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+            <span className="control control--select">
+              <select id={yearId} value={data.fiscalYear ?? ''} onChange={(e) => choose(e.target.value)}>
+                {data.fiscalYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
         )}
       </header>
