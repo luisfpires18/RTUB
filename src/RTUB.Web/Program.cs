@@ -665,13 +665,13 @@ public class Program
         // --------- Gallery timeline for the React /gallery (React track 009) ---------
         app.MapGalleryEndpoints();
 
-        // --------- Upcoming events for the React home preview (React track 010) ---------
-        app.MapPublicEventEndpoints();
+        // --------- Events API for the React /events and the home preview (React tracks 010, 011) ---------
+        app.MapEventEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
-        // Route ownership: React owns exactly these paths (plus /music and /login below); every other
-        // page stays Blazor. /roles (008) and /gallery (009) are React; their members' tools moved to
-        // /member/roles and /member/gallery.
+        // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
+        // /login below); every other page stays Blazor. The members' tools of /roles (008), /gallery
+        // (009) and /events (011) moved to /member/roles, /member/gallery and /member/events.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -692,7 +692,10 @@ public class Program
         // React Music (track 006): the album list and one album page. The retired Blazor album page
         // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
-        foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery" })
+        // React Events (track 011): the agenda, one event, and a member's own attendance page; event
+        // management moved to the members' Blazor /member/events.
+        foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
+                     "/events", "/events/{id:int}", "/events/{id:int}/attendance" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
@@ -725,7 +728,7 @@ public class Program
         app.Run();
     }
 
-    /// <summary>Where a signed-in member goes: a local return URL, otherwise the events page.</summary>
+    /// <summary>Where a signed-in member goes: a local return URL, otherwise the (React) events page.</summary>
     internal static string MemberLanding(string? returnUrl) =>
         RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
 }

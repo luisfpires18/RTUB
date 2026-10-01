@@ -865,7 +865,7 @@
         => currentUser != null && comment.AuthorId == currentUser.Id;
 
     private void NavigateBack()
-        => Navigation.NavigateTo("/events");
+        => Navigation.NavigateTo($"/events/{EventId}", forceLoad: true); // the React event page
 
     private async Task HandleSearch(string term)
     {

@@ -42,8 +42,8 @@
                     </NotAuthorized>
                 </AuthorizeView>
 
-                <!-- 3. Atuações (Public / Member) -->
-                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
+                <!-- 3. Atuações (Public / Member): the React /events (React track 011), a full page load -->
+                <li class="nav-item"><a class="nav-link" href="/events" data-enhance-nav="false"><i class="bi bi-calendar-event"></i> Atuações</a></li>
 
                 <AuthorizeView Context="mainAuthContext">
                     <Authorized>

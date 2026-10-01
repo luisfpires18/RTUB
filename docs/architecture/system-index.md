@@ -57,6 +57,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |
 | `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
 | `src/RTUB.Web/Endpoints/MusicEndpoints.cs`, `src/RTUB.Application/Services/MusicService.cs` | React Music API and its rules (`MusicAuthorization`). `docs/react-music.md`. |
+| `src/RTUB.Web/Endpoints/EventEndpoints.cs`, `src/RTUB.Application/Services/EventAgendaService.cs` | React Events API: agenda, one event, a member's attendance (`EventsAuthorization`). Management stays on `Pages/Members/MemberEvents.razor` (`/member/events`). `docs/react-events.md`. |
 
 ## Push notifications
 

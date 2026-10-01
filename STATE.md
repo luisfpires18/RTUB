@@ -26,6 +26,12 @@ home gallery shows the latest public photos (`GET /api/gallery?public=true`). Co
 Órgãos Sociais, Pedidos, no gallery members teaser); one shared `.control` for search/selects and `.back-link`.
 Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
 
+**Open: `feat/011-react-events`** (React track 011, from `dev` @ `84276caa`; local, not pushed; DEV only).
+`/events`, `/events/{id}` and `/events/{id}/attendance` are React over `/api/events` (`IEventAgendaService`);
+members answer on a dedicated page (no modal), through the unchanged `EnrollmentService`. Event management
+moved unchanged to the members' Blazor `/member/events`. Home preview reads the same service. No schema
+change. Audit, rules, API and follow-ups: `docs/react-events.md`.
+
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
 goes live only through the owner actions below, then a `dev → master` merge.
@@ -147,6 +153,14 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 011 (Events):
+- `/member/events` management checks `IsInRole("Admin")` only (an Owner without Admin has no event tools);
+  kept as it was.
+- A local run without `Cloudflare:R2:PublicUrl` leaves the R2 origin out of the CSP, so event images and
+  videos are blocked locally only (DEV/PROD have the setting).
+- `/member/events` still lists events and members' enrolment details for members (bridge until management
+  moves to React).
+
 Raised by React track 009 (Gallery):
 - Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not
   "not reachable" by a leaked URL. Private objects + signed URLs would be a storage change.

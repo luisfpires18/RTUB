@@ -111,7 +111,7 @@ public class HomePreviewTests : IntegrationTestBase
             .And.NotContain("Ninguém nasce a tocar bandolim");
         home.Should().NotContain("Quem conduz a tuna");
         home.Should().Contain("<MoreLink href={portal.roles}>").And.Contain("<MoreLink href={portal.gallery}>")
-            .And.Contain("<MoreLink href={portal.music}>").And.Contain("<MoreLink href={legacy.events}>");
+            .And.Contain("<MoreLink href={portal.music}>").And.Contain("<MoreLink href={portal.events}>", "the agenda is React since 011");
     }
 
     [Fact]

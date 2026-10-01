@@ -301,7 +301,7 @@
         selectedEvent = await EventService.GetEventByIdAsync(EventId);
         if (selectedEvent == null)
         {
-            Navigation.NavigateTo("/events");
+            Navigation.NavigateTo("/events", forceLoad: true);
             return;
         }
 
@@ -470,6 +470,6 @@
 
     private void NavigateBack()
     {
-        Navigation.NavigateTo("/events");
+        Navigation.NavigateTo($"/events/{EventId}", forceLoad: true); // the React event page
     }
 }

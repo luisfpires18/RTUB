@@ -24,7 +24,12 @@ const footerSections = [
 
 // A section with its own React page links there (top bar, menu, footer); the rest are home
 // anchors, always /#id so the same link scrolls on the home page and navigates from elsewhere.
-const sectionPages: Record<string, string> = { music: portal.music, governance: portal.roles, gallery: portal.gallery };
+const sectionPages: Record<string, string> = {
+  events: portal.events,
+  music: portal.music,
+  governance: portal.roles,
+  gallery: portal.gallery,
+};
 const sectionHref = (id: string) => sectionPages[id] ?? `/#${id}`;
 
 export function Layout({ children }: { children: ReactNode }) {

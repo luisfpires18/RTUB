@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { getGalleryPreview, getUpcomingEvents, type GalleryItem, type UpcomingEvent } from './api';
 import { AccountLink, ExternalLink, Loading } from './App';
-import { albums, contactEmail, legacy, governingBodies, playStoreUrl, portal, social } from './content';
+import { albums, contactEmail, governingBodies, playStoreUrl, portal, social } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -218,7 +218,7 @@ function Events() {
             <p className="note">As datas de cada edição são anunciadas nas redes da RTUB.</p>
           </div>
         </aside>
-        <MoreLink href={legacy.events}>Ver a agenda completa</MoreLink>
+        <MoreLink href={portal.events}>Ver a agenda completa</MoreLink>
       </div>
     </section>
   );

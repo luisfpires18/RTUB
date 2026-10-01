@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite public shell on DEV (`/`, `/privacy`, `/profile`, `/request`, `/music`, `/login`, `/roles`, `/gallery`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite public shell on DEV (`/`, `/privacy`, `/profile`, `/request`, `/music`, `/login`, `/roles`, `/gallery`, `/events`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
@@ -56,6 +56,7 @@ Run only what the change can break.
 | React public shell (route ownership, module rules) | `docs/react-portal-pilot.md` |
 | React Music area (API, rules, data audit) | `docs/react-music.md` |
 | React Gallery (API, visibility, data audit) | `docs/react-gallery.md` |
+| React Events (API, visibility, attendance, data audit) | `docs/react-events.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

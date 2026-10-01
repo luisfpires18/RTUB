@@ -15,6 +15,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/login': lazy(() => import('./Login')),
   '/roles': lazy(() => import('./Governance')),
   '/gallery': lazy(() => import('./Gallery')),
+  '/events': lazy(() => import('./Events')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];
@@ -23,11 +24,18 @@ const Page = pages[path];
 const MusicAlbum = lazy(() => import('./MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
+// /events/{id} and /events/{id}/attendance (React track 011), mapped with {id:int} as well.
+const EventDetail = lazy(() => import('./EventDetail'));
+const EventAttendance = lazy(() => import('./EventAttendance'));
+const eventMatch = /^\/events\/(\d+)(\/attendance)?$/.exec(path);
+const eventId = eventMatch ? Number(eventMatch[1]) : undefined;
+const attendance = Boolean(eventMatch?.[2]);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId ? (
+        {Page || albumId || eventId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -35,7 +43,17 @@ createRoot(document.getElementById('root')!).render(
               </div>
             }
           >
-            {albumId ? <MusicAlbum albumId={Number(albumId)} /> : <Page />}
+            {albumId ? (
+              <MusicAlbum albumId={Number(albumId)} />
+            ) : eventId ? (
+              attendance ? (
+                <EventAttendance eventId={eventId} />
+              ) : (
+                <EventDetail eventId={eventId} />
+              )
+            ) : (
+              <Page />
+            )}
           </Suspense>
         ) : (
           <Home />

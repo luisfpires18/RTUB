@@ -68,7 +68,7 @@ member area → install the app → a small "Novidades · Em breve" line.
 - **No invented data (005, 010):** the agenda shows the next three events from
   `GET /api/public/events/upcoming` (read-only; the same events, fields and order `/events` already
   shows visitors: name, date, time, location, type, cancelled) and an empty state when there are none.
-  It is a preview, not the Events rebuild: `/events` stays the Blazor agenda. The gallery preview
+  The full agenda is the React `/events` (011, `docs/react-events.md`), from the same service. The gallery preview
   shows the five latest **public** photos from `GET /api/gallery?public=true` (members-only photos
   never appear on the home, signed in or not).
 - **No test or update banners (006):** the "Versão de testes" strip (005) and the service worker's
@@ -84,8 +84,8 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | --- | --- | --- | --- | --- |
 | Quem somos / Sobre | old home: `AboutUsContent` (labels) | who the RTUB is | `/#about`, short, facts only | homepage now |
 | História | old home: `HistoryContent` (`history_*` labels) | founding (1 Dec 1991), mission, identity | founding year in hero and Quem somos | future React page ("Conhece a Tuna", `/about`) |
-| Atuações / agenda | `/events` (`Events.razor`) | upcoming and past performances | `/#events`: next three events (010) + the full agenda | homepage now + navbar now + temporary Blazor bridge |
-| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | via `/events` | temporary Blazor bridge; future React page (Events) |
+| Atuações / agenda | React `/events`, `/events/{id}` (011) | upcoming and past performances | `/#events`: next three events (010) + the React agenda | homepage now + navbar now; done (011, `docs/react-events.md`) |
+| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | archive, "Prémios" and videos on `/events` (011) | navbar now; done (011); management on the Blazor `/member/events` |
 | FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
@@ -115,7 +115,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Abrir a área de membros" (`/events`) and "Editar o perfil" (`/member/profile`). |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Abrir a área de membros" (`/member/events` since 011) and "Editar o perfil" (`/member/profile`). |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -125,7 +125,9 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
 | `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
-| `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
+| `/events`, `/events/{id}`, `/events/{id}/attendance` | **React canonical** (011) | Agenda, one event, a member's own answer (own page, no modal). Signed-in members still land on `/events` after login. `docs/react-events.md`. |
+| `/member/events` | **Blazor member/admin, pending** (moved in 011) | The former Blazor `/events`: management, statistics, "Minhas Inscrições", video upload. Requires sign-in. Its answer buttons open the React attendance page. |
+| `/events/{id}/enrollments`, `/discussion`, `/contacts` | **Blazor member, pending** | Unchanged member pages; back links open the React event page. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
@@ -136,7 +138,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
 | `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only; `?public=true` gives anyone the visitors' view (home preview, 010). |
-| `GET /api/public/events/upcoming` | **API** (010) | Next three events for the home; anonymous, read-only, public fields only. |
+| `GET /api/public/events/upcoming` | **API** (010) | Next three events for the home; anonymous, read-only, public fields only. Since 011 from `IEventAgendaService`. |
+| `/api/events/...` | **API** (011) | `Endpoints/EventEndpoints.cs`; reads viewer-aware and open; attendance and video-play writes need the antiforgery header. |
 | `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
@@ -376,8 +379,9 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 ## Next recommended slice
 
-Events, retiring its legacy Blazor page once the React one works (Music: 006, Login: 007,
-Órgãos Sociais: 008, Gallery: 009).
+Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011. Next: the members'
+management tools still on Blazor (`/member/events`, `/member/gallery`, `/member/roles`), or the public
+"Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 
