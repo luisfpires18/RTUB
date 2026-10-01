@@ -13,6 +13,13 @@ play cooldown; Blazor Music UI and its circuit-only services retired. No schema 
 API and follow-ups: `docs/react-music.md`. Next: review, PR → `dev`, then a DEV check with real audio
 (local runs have no R2 credentials).
 
+**Open: `fix/006-ci-red-after-music`** (from `dev` @ `2a2d8e89`). CI went red on 2026-10-01: 8 member/retirement
+status tests built "current month" activity as `now.AddDays(-n)`, which is last month on the 1st. Fixtures
+now use a moment earlier in the current month. One was a real bug: `RetirementStatusService` counted
+consecutive months from the current month even before it had activity, so on month starts a retired member
+with 3 full months never returned to active; it now counts from the last completed month, as
+`MemberStatusService` already did. No schema change.
+
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
 goes live only through the owner actions below, then a `dev → master` merge.
@@ -139,8 +146,6 @@ Raised by React track 006 (Music):
 - Retired-Music leftovers still loaded globally: `css/3-components/music.css`, `song-card.css`,
   `audio-player.css`, and the PWA-queue half of `pwaMediaSession.js`/`MediaSessionInterop`.
 - Play cooldown is per app instance (in-memory); a scaled-out App Service would need a shared cache.
-- Seen while validating 006 (2026-10-01): 8 `MemberStatusServiceTests`/`RetirementStatusServiceTests` fail on
-  clean `dev` too (`94b77e4a`) - month-boundary/date-dependent expectations; not Music.
 
 Raised by React track 005 (content audit):
 - **Security:** `/calotes`, `/mbway` and `/nerba/{id}` have no `[Authorize]` (no folder-level rule

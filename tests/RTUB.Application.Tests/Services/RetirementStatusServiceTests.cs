@@ -18,6 +18,13 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
+    /// <summary>
+    /// A moment earlier in the current month: halfway between the month's first instant and now.
+    /// "now.AddDays(-n)" is not this - on the first days of a month it lands in the previous month.
+    /// </summary>
+    private static DateTime EarlierThisMonth(DateTime now) =>
+        now - (now - new DateTime(now.Year, now.Month, 1, 0, 0, 0, now.Kind)) / 2;
+
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly RetirementStatusService _retirementStatusService;
@@ -116,8 +123,8 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var rehearsal2 = await CreateTestRehearsal(now.AddMonths(-1));
         await CreateAttendedRehearsal(user.Id, rehearsal2.Id, now.AddMonths(-1));
 
-        var rehearsal3 = await CreateTestRehearsal(now.AddDays(-5));
-        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, now.AddDays(-5));
+        var rehearsal3 = await CreateTestRehearsal(EarlierThisMonth(now));
+        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, EarlierThisMonth(now));
 
         // Act
         var result = await _retirementStatusService.EvaluateRetirementStatusAsync(user.Id);
@@ -313,8 +320,8 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var now = DateTime.UtcNow;
 
         // Create activities in current month (Jan 2026 scenario)
-        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
-        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+        var rehearsal1 = await CreateTestRehearsal(EarlierThisMonth(now));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, EarlierThisMonth(now));
 
         // Create activities in previous month (Dec 2025 scenario)
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
@@ -410,8 +417,8 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var now = DateTime.UtcNow;
 
         // Create activities in current month
-        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
-        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+        var rehearsal1 = await CreateTestRehearsal(EarlierThisMonth(now));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, EarlierThisMonth(now));
 
         // NO activity in previous month - creates a gap
 
@@ -460,8 +467,8 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var now = DateTime.UtcNow;
 
         // Create activities in current month
-        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
-        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+        var rehearsal1 = await CreateTestRehearsal(EarlierThisMonth(now));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, EarlierThisMonth(now));
 
         // Create activities in previous month
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
