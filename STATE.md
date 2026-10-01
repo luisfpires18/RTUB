@@ -34,13 +34,14 @@ avatar tiles; no Blazor management links from the event page. `/member/events` s
 management. Answers stay a modal; Prémios stays a modal. No schema change. Terminology: events =
 enrollment / inscrição; rehearsals = attendance / presença. Detail: `docs/react-events.md`.
 
-**Open: `feat/012b-react-event-prizes`** (React track 012B, from `dev` @ `4344b3a8`, 012A merged; local, not
-pushed; DEV only). Admin/Owner add, rename and delete prizes (`Trophies`) in the React Prémios modal on
-`/events/{id}` (`/api/events/{id}/prizes`, antiforgery, 401/403 server-side, through `TrophyService`). Old rules
-kept: new prizes only on past festivals (now server-side), name required ≤200, hard delete, ordered by name.
-`/member/events` lost its per-event prizes button and modal; it keeps videos, repertoire, statistics (incl.
-read-only "Prémios por Evento"), Minhas Inscrições and the participant tools. No schema change, no storage,
-email or push. Detail: `docs/react-events.md`.
+**Open: `feat/012c-react-event-videos`** (React track 012C, from `dev` @ `e823c9df`, 012B merged; local, not
+pushed; DEV only). Admin/Owner upload, rename, reorder (Subir/Descer) and delete event videos from **Gerir
+vídeos** on `/events/{id}` (`/api/events/{id}/videos`, antiforgery, 401/403 server-side) through the existing
+`EventService` and `IEventVideoStorageService`: same key, 100 MB, past events only, push to the other members,
+owned-only delete. **Changed on purpose:** members could upload on the old page; now only Admin/Owner.
+`/member/events` keeps a play-only videos modal, repertoire, statistics, Minhas Inscrições and participant
+tools. No schema change. A successful real upload still needs a DEV check (local R2 is fake). Detail:
+`docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

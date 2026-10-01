@@ -4637,6 +4637,20 @@ video.tile__media {
   margin-bottom: 8px;
 }
 
+/* Admin/Owner video management (012C) reuses the prize rows; the upload sits under the list. */
+.video-manager__file {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.video-manager__upload {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
 /* Admin/Owner prize management inside the Prémios modal (012B). */
 .prize-manager {
   display: grid;

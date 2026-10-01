@@ -521,6 +521,119 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         (await owner.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("canManagePrizes").GetBoolean().Should().BeFalse();
     }
 
+    // ---------- videos (Admin/Owner, 012C) ----------
+
+    [Fact]
+    public async Task VideoWrites_AreRefused_ForVisitorsMembersAndMods_AndWithoutTheAntiforgeryHeader()
+    {
+        var id = await AddEventAsync("Arraial com vídeo protegido", DateTime.Today.AddDays(-210));
+        var video = await AddEventVideoAsync(id, "Intocável", 0);
+        var visitor = Anonymous();
+        await WithTokenAsync(visitor);
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var (adminWithoutToken, _) = await SignInAsync("Admin");
+        _factory.VideoStorage.Invocations.Clear();
+
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        {
+            (await client.GetAsync($"/api/events/{id}/videos")).StatusCode.Should().Be(expected);
+            (await client.PostAsync($"/api/events/{id}/videos", VideoForm())).StatusCode.Should().Be(expected);
+            (await client.PutAsJsonAsync($"/api/events/{id}/videos/{video}", new { title = "Mudado" })).StatusCode.Should().Be(expected);
+            (await client.PostAsJsonAsync($"/api/events/{id}/videos/reorder", new { videoIds = new[] { video } })).StatusCode.Should().Be(expected);
+            (await client.DeleteAsync($"/api/events/{id}/videos/{video}")).StatusCode.Should().Be(expected);
+        }
+
+        (await adminWithoutToken.PostAsync($"/api/events/{id}/videos", VideoForm())).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.PutAsJsonAsync($"/api/events/{id}/videos/{video}", new { title = "x" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.PostAsJsonAsync($"/api/events/{id}/videos/reorder", new { videoIds = new[] { video } })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{id}/videos/{video}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        _factory.VideoStorage.Invocations.Should().BeEmpty("nothing is uploaded or deleted for them");
+        (await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("videos")[0].GetProperty("title").GetString()
+            .Should().Be("Intocável", "members still watch it");
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Owner")]
+    public async Task AdminOrOwner_UploadRenameReorderAndDelete_ThroughTheStorageFake(string role)
+    {
+        var id = await AddEventAsync($"Arraial filmado ({role})", DateTime.Today.AddDays(-211));
+        var first = await AddEventVideoAsync(id, "Primeiro", 0);
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var stored = $"https://pub-test.r2.dev/events/test/videos/{id}_new.mp4";
+        _factory.VideoStorage.Setup(s => s.UploadVideoAsync(It.IsAny<Stream>(), "festa.mp4", "video/mp4", id)).ReturnsAsync(stored);
+
+        var refused = await client.PostAsync($"/api/events/{id}/videos", VideoForm(contentType: "text/plain", name: "notas.txt"));
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("file", out _).Should().BeTrue();
+        (await client.PostAsync($"/api/events/{id}/videos", VideoForm(title: ""))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var uploaded = await client.PostAsync($"/api/events/{id}/videos", VideoForm(title: "A atuação toda"));
+        uploaded.StatusCode.Should().Be(HttpStatusCode.OK);
+        var list = await uploaded.Content.ReadFromJsonAsync<JsonElement>();
+        list.EnumerateArray().Select(v => v.GetProperty("title").GetString()).Should().Equal("Primeiro", "A atuação toda");
+        var second = list[1].GetProperty("id").GetInt32();
+        list.GetRawText().Should().NotContain("pub-test", "the management list carries no URL");
+
+        var page = await Anonymous().GetFromJsonAsync<JsonElement>($"/api/events/{id}");
+        page.GetProperty("videos")[1].GetProperty("url").GetString().Should().Be(stored, "visitors watch it straight away");
+
+        (await client.PutAsJsonAsync($"/api/events/{id}/videos/{second}", new { title = "Atuação completa" })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var reordered = await client.PostAsJsonAsync($"/api/events/{id}/videos/reorder", new { videoIds = new[] { second, first } });
+        reordered.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Anonymous().GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("videos").EnumerateArray()
+            .Select(v => v.GetProperty("title").GetString()).Should().Equal("Atuação completa", "Primeiro");
+
+        (await client.PostAsync($"/api/events/videos/{second}/plays", null)).StatusCode.Should().Be(HttpStatusCode.NoContent, "plays are still audited");
+
+        (await client.DeleteAsync($"/api/events/{id}/videos/{second}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        _factory.VideoStorage.Verify(s => s.DeleteVideoAsync(stored), Times.Once);
+        var last = await client.DeleteAsync($"/api/events/{id}/videos/{first}");
+        (await last.Content.ReadFromJsonAsync<JsonElement>()).GetArrayLength().Should().Be(0);
+        (await Anonymous().GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("videos").GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AVideoUpload_ToAnUpcomingEvent_OrFailingInStorage_LeavesNoRow()
+    {
+        var upcoming = await AddEventAsync("Arraial por filmar", DateTime.Today.AddDays(305));
+        var past = await AddEventAsync("Arraial sem sorte", DateTime.Today.AddDays(-212));
+        var (owner, _) = await SignInAsync("Owner");
+        await WithTokenAsync(owner);
+        _factory.VideoStorage.Setup(s => s.UploadVideoAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), past))
+            .ThrowsAsync(new InvalidOperationException("R2 down"));
+
+        (await owner.PostAsync($"/api/events/{upcoming}/videos", VideoForm())).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var failed = await owner.PostAsync($"/api/events/{past}/videos", VideoForm());
+        failed.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await failed.Content.ReadAsStringAsync()).Should().NotContain("R2 down", "no internal detail reaches the browser");
+
+        (await owner.GetFromJsonAsync<JsonElement>($"/api/events/{past}/videos")).GetArrayLength().Should().Be(0);
+    }
+
+    private static MultipartFormDataContent VideoForm(string contentType = "video/mp4", string name = "festa.mp4", string title = "Festa")
+    {
+        var file = new ByteArrayContent(new byte[] { 0, 0, 0, 24, (byte)'f', (byte)'t', (byte)'y', (byte)'p' });
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        return new MultipartFormDataContent { { file, "file", name }, { new StringContent(title), "title" } };
+    }
+
+    private async Task<int> AddEventVideoAsync(int eventId, string title, int order)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var uploader = await db.Users.Select(u => u.Id).FirstAsync();
+        var v = EventVideo.CreateVideo(eventId, $"https://pub-test.r2.dev/events/test/videos/{eventId}_{order}.mp4", "video/mp4", 8, uploader, title, order);
+        db.EventVideos.Add(v);
+        await db.SaveChangesAsync();
+        return v.Id;
+    }
+
     private async Task<int> AddTrophyAsync(int eventId, string name)
     {
         using var scope = _factory.Services.CreateScope();
@@ -702,6 +815,7 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
     public Mock<IPushNotificationService> Push { get; } = new();
     public Mock<IEmailNotificationService> Email { get; } = new();
     public Mock<IImageStorageService> Storage { get; } = new();
+    public Mock<IEventVideoStorageService> VideoStorage { get; } = new();
 
     public EventsApiFactory()
     {
@@ -724,6 +838,8 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
             services.AddSingleton(Email.Object);
             services.RemoveAll<IImageStorageService>();
             services.AddSingleton(Storage.Object);
+            services.RemoveAll<IEventVideoStorageService>();
+            services.AddSingleton(VideoStorage.Object);
         });
     }
 }

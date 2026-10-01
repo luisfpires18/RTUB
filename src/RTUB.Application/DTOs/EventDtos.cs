@@ -204,3 +204,20 @@ public sealed record EventPrizeDto(int Id, string Name);
 
 /// <summary>A prize as the form sends it: the name, required, at most 200 characters.</summary>
 public sealed record EventPrizeInput(string? Name);
+
+// ---------- videos (Admin/Owner, React track 012C) ----------
+
+/// <summary>
+/// One video as the management modal edits it: its id and the stored title (null when none was
+/// given; the page then shows "Vídeo N"). No URL, size, uploader or storage key.
+/// </summary>
+public sealed record EventManagedVideoDto(int Id, string? Title);
+
+/// <summary>An uploaded video file as the endpoint reads it (≤100 MB, a video type or extension) and its title.</summary>
+public sealed record EventVideoUpload(Stream Content, string FileName, string ContentType, long Length, string? Title);
+
+/// <summary>A rename: blank clears the title, as the old page allowed; at most 200 characters.</summary>
+public sealed record EventVideoTitleInput(string? Title);
+
+/// <summary>A new order: every video id of the event, exactly once, first to last.</summary>
+public sealed record EventVideoOrderInput(IReadOnlyList<int>? VideoIds);

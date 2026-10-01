@@ -43,4 +43,22 @@ public interface IEventAdminService
 
     /// <summary>Deletes one of the event's prizes (a hard delete, as before); answers the prizes left.</summary>
     Task<EventResult<IReadOnlyList<EventPrizeDto>>> DeletePrizeAsync(int id, int prizeId, ClaimsPrincipal user);
+
+    /// <summary>The event's videos in their order, for the management modal (012C).</summary>
+    Task<EventResult<IReadOnlyList<EventManagedVideoDto>>> GetVideosAsync(int id, ClaimsPrincipal user);
+
+    /// <summary>
+    /// Uploads a video to a past event through the existing storage and <see cref="IEventService.AddVideoAsync"/>
+    /// (same key convention, same push to the other members); answers the event's videos.
+    /// </summary>
+    Task<EventResult<IReadOnlyList<EventManagedVideoDto>>> AddVideoAsync(int id, EventVideoUpload upload, ClaimsPrincipal user);
+
+    /// <summary>Renames one of the event's videos; answers the event's videos.</summary>
+    Task<EventResult<IReadOnlyList<EventManagedVideoDto>>> RenameVideoAsync(int id, int videoId, EventVideoTitleInput input, ClaimsPrincipal user);
+
+    /// <summary>Sets the event's video order; answers the event's videos.</summary>
+    Task<EventResult<IReadOnlyList<EventManagedVideoDto>>> ReorderVideosAsync(int id, EventVideoOrderInput input, ClaimsPrincipal user);
+
+    /// <summary>Deletes a video: its stored file (when this environment owns it) and its row, as before; answers the videos left.</summary>
+    Task<EventResult<IReadOnlyList<EventManagedVideoDto>>> DeleteVideoAsync(int id, int videoId, ClaimsPrincipal user);
 }
