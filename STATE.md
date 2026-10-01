@@ -20,10 +20,11 @@ consecutive months from the current month even before it had activity, so on mon
 with 3 full months never returned to active; it now counts from the last completed month, as
 `MemberStatusService` already did. No schema change.
 
-**Open: `feat/008-react-governance`** (React track 008, from `dev` @ `b27cff81`; local, not pushed; DEV only).
-`/roles` is React over `GET /api/public/governance` (`GovernanceService`, public fields only). The
-Blazor page moved to the signed-in `/member/roles` (RGI + Mod/Admin management, unchanged). No schema
-change. Details: `docs/react-portal-pilot.md` (Órgãos Sociais (008)). Next: review, PR → `dev`, DEV check.
+**Open: `feat/009-react-gallery-timeline`** (React track 009, from `dev` @ `408cb32b`; local, not pushed; DEV only).
+`/gallery` is a React timeline over `GET /api/gallery` (`GalleryTimelineService`, viewer-aware: visitors
+get public items only; tags member-only). The Blazor page moved to the signed-in `/member/gallery`
+(upload, tags, push, edit, delete, unchanged). No schema change. Details: `docs/react-gallery.md`.
+Next: review, PR → `dev`, DEV check.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -146,6 +147,12 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 009 (Gallery):
+- Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not
+  "not reachable" by a leaked URL. Private objects + signed URLs would be a storage change.
+- `/member/gallery` edit/delete checks `IsInRole("Admin")` only (an Owner without Admin cannot edit
+  others' media); management still Blazor.
+
 Raised by React track 008 (Órgãos Sociais):
 - Governance management (fiscal years, assignments) and the RGI are still Blazor at `/member/roles`;
   a React version would let that page go.

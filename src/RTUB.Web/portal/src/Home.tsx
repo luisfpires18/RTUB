@@ -282,7 +282,7 @@ function Gallery() {
             </li>
           ))}
         </ul>
-        <MoreLink href={legacy.gallery}>Abrir a galeria</MoreLink>
+        <MoreLink href={portal.gallery}>Abrir a galeria</MoreLink>
       </div>
     </section>
   );

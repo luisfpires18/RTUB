@@ -85,7 +85,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
-| Galeria | `/gallery` | photos and videos | `/#gallery` artwork preview | homepage now + navbar now + temporary Blazor bridge |
+| Galeria | React `/gallery` (009) | photos and videos | `/#gallery` artwork preview + `/gallery` timeline | homepage now + navbar now; done (009, `docs/react-gallery.md`) |
 | Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/#governance` bodies and positions + `/roles` | homepage now + navbar now; done (008) |
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
@@ -119,7 +119,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/portal/request` | **Redirect** → `/request` | Same. |
 | `/music`, `/music/albums/{id}` | **React canonical** (006) | Music area: albums, songs, player, lyrics, videos, statistics, management. `docs/react-music.md`. |
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
-| `/gallery` | **Temporary Blazor bridge** | Until Gallery has a React version. |
+| `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
+| `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
 | `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
@@ -130,6 +131,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
+| `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only. |
 | `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
@@ -370,8 +372,8 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 ## Next recommended slice
 
-Gallery and Events, each retiring its legacy Blazor page once the React one works (Music: 006,
-Login: 007, Órgãos Sociais: 008).
+Events, retiring its legacy Blazor page once the React one works (Music: 006, Login: 007,
+Órgãos Sociais: 008, Gallery: 009).
 
 ## Next steps (outside this pilot)
 

@@ -1,5 +1,9 @@
-@page "/gallery"
+@page "/member/gallery"
 @rendermode InteractiveServer
+@attribute [Authorize]
+@* Members' gallery tools (React track 009): upload to R2, person tags and their push notification,
+   edit and delete (uploader or Admin). The public/member timeline is the React /gallery
+   (GET /api/gallery). *@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -22,7 +26,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ILogger<Gallery> Logger
+@inject ILogger<MemberGallery> Logger
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
 
 <div class="page-header-centered">
