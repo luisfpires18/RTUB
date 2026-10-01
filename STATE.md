@@ -20,11 +20,11 @@ consecutive months from the current month even before it had activity, so on mon
 with 3 full months never returned to active; it now counts from the last completed month, as
 `MemberStatusService` already did. No schema change.
 
-**Open: `feat/009-react-gallery-timeline`** (React track 009, from `dev` @ `408cb32b`; local, not pushed; DEV only).
-`/gallery` is a React timeline over `GET /api/gallery` (`GalleryTimelineService`, viewer-aware: visitors
-get public items only; tags member-only). The Blazor page moved to the signed-in `/member/gallery`
-(upload, tags, push, edit, delete, unchanged). No schema change. Details: `docs/react-gallery.md`.
-Next: review, PR → `dev`, DEV check.
+**Open: `fix/010-public-shell-polish-real-previews`** (React track 010, from `dev` @ `c007e207`; local, not pushed; DEV only).
+Home agenda shows the next 3 events (`GET /api/public/events/upcoming`, read-only, not the Events rebuild);
+home gallery shows the latest public photos (`GET /api/gallery?public=true`). Copy fixes (Música, Junta-te,
+Órgãos Sociais, Pedidos, no gallery members teaser); one shared `.control` for search/selects and `.back-link`.
+Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

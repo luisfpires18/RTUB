@@ -183,13 +183,15 @@ export function Pager({
       </button>
       <label className="pager__size" htmlFor={sizeId}>
         Por página
-        <select id={sizeId} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-          {[5, 10, 15, 20, 25].map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+        <span className="control control--select control--sm">
+          <select id={sizeId} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
+            {[5, 10, 15, 20, 25].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </span>
       </label>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { portal } from './content';
+import { Icon } from './icons';
 
 // The legal source of the Privacy Policy served at /privacy, carried verbatim from the retired Blazor
 // Pages/Public/Privacy.razor (React track 004). Edit it as legal text, not as portal copy.
@@ -23,7 +24,8 @@ export default function Privacy() {
   return (
     <article className="doc wrap" aria-labelledby="privacy-title">
       <header className="doc__head">
-        <a className="doc__back" href={portal.home}>
+        <a className="back-link" href={portal.home}>
+          <Icon name="arrow" />
           Portal RTUB
         </a>
         <h1 id="privacy-title" className="doc__title">

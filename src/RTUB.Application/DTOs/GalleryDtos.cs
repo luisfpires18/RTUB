@@ -32,5 +32,8 @@ public sealed record GalleryItemDto(
 /// <summary>A tagged member, for members only. <c>Id</c> is the person filter key.</summary>
 public sealed record GalleryPersonDto(string Id, string Name);
 
-/// <summary>Timeline filters; anything out of range is clamped or ignored.</summary>
-public sealed record GalleryQuery(int Page = 1, int PageSize = 24, int? Year = null, string? Search = null, string? PersonId = null);
+/// <summary>
+/// Timeline filters; anything out of range is clamped or ignored. <c>PublicOnly</c> narrows a
+/// member's view to what visitors see (the home preview); it can never widen anyone's.
+/// </summary>
+public sealed record GalleryQuery(int Page = 1, int PageSize = 24, int? Year = null, string? Search = null, string? PersonId = null, bool PublicOnly = false);

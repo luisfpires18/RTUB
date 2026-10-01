@@ -16,11 +16,12 @@ public static class GalleryEndpoints
     {
         var gallery = app.MapGroup("/api/gallery").AllowAnonymous();
 
-        gallery.MapGet("/", async (int? page, int? pageSize, int? year, string? q, string? person,
+        // ?public=true: what a visitor sees, whoever asks (the home preview).
+        gallery.MapGet("/", async (int? page, int? pageSize, int? year, string? q, string? person, bool? @public,
                 ClaimsPrincipal user, HttpContext context, IGalleryTimelineService timeline) =>
             {
                 NoStore(context);
-                var query = new GalleryQuery(page ?? 1, pageSize ?? 24, year, q, person);
+                var query = new GalleryQuery(page ?? 1, pageSize ?? 24, year, q, person, @public == true);
                 return Results.Json(await timeline.GetTimelineAsync(user, query));
             });
 

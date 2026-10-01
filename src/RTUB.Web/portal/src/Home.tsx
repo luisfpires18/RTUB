@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
-import { AccountLink, ExternalLink } from './App';
-import { albums, contactEmail, galleryTiles, legacy, instruments, governingBodies, playStoreUrl, portal, social } from './content';
+import { useEffect, useState, type ReactNode } from 'react';
+import { getGalleryPreview, getUpcomingEvents, type GalleryItem, type UpcomingEvent } from './api';
+import { AccountLink, ExternalLink, Loading } from './App';
+import { albums, contactEmail, legacy, governingBodies, playStoreUrl, portal, social } from './content';
 import { Icon } from './icons';
 
 export function Home() {
@@ -169,21 +170,39 @@ function About() {
 
 // ---------- agenda ----------
 
-// No dates are invented here: until a read-only events API exists, confirmed dates live on /events.
+/** The next events exactly as the agenda has them (GET /api/public/events/upcoming); none invented. */
 function Events() {
+  const [events, setEvents] = useState<UpcomingEvent[] | null>();
+
+  useEffect(() => {
+    getUpcomingEvents().then(setEvents, () => setEvents(null));
+  }, []);
+
   return (
     <section id="events" className="section section--raise" aria-labelledby="events-title">
       <div className="wrap">
         <SectionHead id="events-title" eyebrow="Agenda" title="Próximas atuações">
           Os próximos palcos, praças e salões onde a tuna vai tocar.
         </SectionHead>
-        <div className="agenda">
-          <Icon name="calendar" className="agenda__icon" />
-          <div className="agenda__body">
-            <p className="agenda__title">As datas confirmadas estão na agenda completa.</p>
-            <p>Cada atuação marcada aparece na página de Atuações, com data e local, ao lado do histórico das anteriores.</p>
+        {events === undefined ? (
+          <Loading label="A carregar a agenda…" />
+        ) : !events?.length ? (
+          <div className="upcoming-empty">
+            <Icon name="calendar" />
+            <p>
+              {events ? 'Ainda não há atuações marcadas.' : 'Não foi possível carregar as próximas datas.'} A agenda
+              completa tem as datas confirmadas e o histórico.
+            </p>
           </div>
-        </div>
+        ) : (
+          <ul className="upcoming">
+            {events.slice(0, 3).map((e, i) => (
+              <li key={`${e.date}-${i}`}>
+                <UpcomingCard event={e} />
+              </li>
+            ))}
+          </ul>
+        )}
         <aside id="fitab" className="fitab" aria-labelledby="fitab-title">
           <div>
             <p className="eyebrow">O festival da casa</p>
@@ -205,6 +224,40 @@ function Events() {
   );
 }
 
+const shortMonth = (month: number) =>
+  new Intl.DateTimeFormat('pt-PT', { month: 'short' }).format(new Date(2000, month - 1, 1)).replace('.', '');
+
+function UpcomingCard({ event }: { event: UpcomingEvent }) {
+  const [, month, day] = event.date.split('-').map(Number);
+  const until = event.endDate?.split('-').map(Number);
+  const when = [until && `até ${until[2]} ${shortMonth(until[1])}`, event.time && `às ${event.time.replace(':', 'h')}`]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <article className={event.cancelled ? 'gig gig--cancelled' : 'gig'}>
+      <time className="gig__date" dateTime={event.time ? `${event.date}T${event.time}` : event.date}>
+        <span className="gig__day">{day}</span>
+        <span className="gig__month">{shortMonth(month)}</span>
+      </time>
+      <div className="gig__body">
+        <h3 className="gig__name">{event.name}</h3>
+        {when && (
+          <p className="gig__meta">
+            <Icon name="clock" />
+            {when}
+          </p>
+        )}
+        <p className="gig__meta">
+          <Icon name="geo" />
+          {event.location}
+        </p>
+        <span className="gig__status">{event.cancelled ? 'Cancelada' : event.type}</span>
+      </div>
+    </article>
+  );
+}
+
 // ---------- music ----------
 
 function Music() {
@@ -215,7 +268,7 @@ function Music() {
     <section id="music" className="section" aria-labelledby="music-title">
       <div className="wrap split">
         <div>
-          <SectionHead id="music-title" eyebrow="Discografia" title="Quatro discos, uma só voz">
+          <SectionHead id="music-title" eyebrow="Discografia" title={`${albums.length} álbuns para ouvir e recordar`}>
             Temas tradicionais e originais, gravados entre 1995 e 2013 por sucessivas gerações de tunos.
           </SectionHead>
           <ol className="discs">
@@ -227,13 +280,6 @@ function Music() {
               </li>
             ))}
           </ol>
-          <ul className="chips" aria-label="Instrumentos">
-            {instruments.map((n) => (
-              <li key={n} className="chip">
-                {n}
-              </li>
-            ))}
-          </ul>
           <div className="stream">
             {listen.map((s, i) => (
               <ExternalLink key={s.name} href={s.href} className={`btn ${i === 0 ? 'btn--primary' : 'btn--ghost'}`}>
@@ -262,29 +308,62 @@ function Music() {
 
 // ---------- gallery ----------
 
+const PREVIEW_PHOTOS = 5;
+
+/** The latest public photos (GET /api/gallery?public=true): members-only ones never show here. */
 function Gallery() {
+  const [photos, setPhotos] = useState<GalleryItem[] | null>();
+
+  useEffect(() => {
+    getGalleryPreview(PREVIEW_PHOTOS).then(
+      (items) => setPhotos(items.filter((i) => i.type === 'image' && !i.membersOnly)),
+      () => setPhotos(null),
+    );
+  }, []);
+
   return (
     <section id="gallery" className="section section--raise" aria-labelledby="gallery-title">
       <div className="wrap">
-        <SectionHead
-          id="gallery-title"
-          eyebrow="Galeria"
-          title="Em palco e fora dele"
-          note="Ilustrações: as fotografias estão na Galeria."
-        />
-        <ul className="gallery">
-          {galleryTiles.map((t) => (
-            <li key={t.caption}>
-              <figure className={`tile tile--${t.tone}`}>
-                <Icon name={t.icon} className="tile__icon" />
-                <figcaption className="tile__caption">{t.caption}</figcaption>
-              </figure>
-            </li>
-          ))}
-        </ul>
+        <SectionHead id="gallery-title" eyebrow="Galeria" title="Em palco e fora dele" />
+        {photos === undefined ? (
+          <ul className="photos" aria-hidden="true">
+            {Array.from({ length: PREVIEW_PHOTOS }, (_, i) => (
+              <li key={i}>
+                <span className="photo photo--skeleton" />
+              </li>
+            ))}
+          </ul>
+        ) : photos?.length ? (
+          <ul className="photos">
+            {photos.map((p) => (
+              <li key={p.id}>
+                <PreviewPhoto photo={p} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="note">As fotografias estão na Galeria.</p>
+        )}
         <MoreLink href={portal.gallery}>Abrir a galeria</MoreLink>
       </div>
     </section>
+  );
+}
+
+/** Opens the photo in the Galeria; a missing or broken file becomes a quiet placeholder. */
+function PreviewPhoto({ photo }: { photo: GalleryItem }) {
+  const [broken, setBroken] = useState(!photo.url);
+  return (
+    <a className="photo" href={`${portal.gallery}?item=${photo.id}`}>
+      {broken ? (
+        <span className="photo__missing">
+          <Icon name="images" />
+        </span>
+      ) : (
+        <img src={photo.url!} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
+      )}
+      <span className="photo__caption">{photo.title}</span>
+    </a>
   );
 }
 
@@ -299,7 +378,7 @@ function JoinUs() {
             Estudas na UPB e gostas de música, de noites longas e de boa companhia? Vem a um ensaio e conhece a
             tuna por dentro.
           </SectionHead>
-          <p className="join__quote">Ninguém nasce a tocar bandolim. Aprende-se aqui.</p>
+          <p className="join__quote">Ninguém nasce a tocar instrumentos. Aprende-se aqui.</p>
         </div>
         <dl className="join__facts">
           <div>
@@ -342,10 +421,13 @@ function Governance() {
   return (
     <section id="governance" className="section section--raise" aria-labelledby="governance-title">
       <div className="wrap">
-        <SectionHead id="governance-title" eyebrow="Quem conduz a tuna" title="Órgãos Sociais">
-          Quatro órgãos, renovados a cada ano letivo, e um Ensaiador que dá o tom aos ensaios. Os nomes do mandato em
-          curso estão na página dos Órgãos Sociais.
-        </SectionHead>
+        {/* The cards say what each body is; the heading stays for screen readers and the menu anchor. */}
+        <h2 id="governance-title" className="sr-only">
+          Órgãos Sociais
+        </h2>
+        <p className="section__lead governance__lead">
+          Quatro órgãos, renovados a cada ano letivo, e um Ensaiador que dá o tom aos ensaios.
+        </p>
         <ul className="governance">
           {governingBodies.map((o) => (
             <li key={o.name} className="governance__card">

@@ -197,3 +197,25 @@ export function getGalleryItem(id: number): Promise<GalleryItem> {
     json<GalleryItem>,
   );
 }
+
+/** The latest photos visitors can see, whoever is signed in (?public=true): the home preview. */
+export function getGalleryPreview(count: number): Promise<GalleryItem[]> {
+  return fetch(`/api/gallery?public=true&pageSize=${count}`, { headers: { Accept: 'application/json' } })
+    .then(json<GalleryTimeline>)
+    .then((t) => t.items);
+}
+
+/** GET /api/public/events/upcoming: at most 3, soonest first. Dates are local "yyyy-MM-dd" text. */
+export type UpcomingEvent = {
+  name: string;
+  date: string;
+  time: string | null;
+  endDate: string | null;
+  location: string;
+  type: string;
+  cancelled: boolean;
+};
+
+export function getUpcomingEvents(): Promise<UpcomingEvent[]> {
+  return fetch('/api/public/events/upcoming', { headers: { Accept: 'application/json' } }).then(json<UpcomingEvent[]>);
+}
