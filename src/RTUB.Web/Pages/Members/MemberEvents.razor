@@ -27,7 +27,6 @@
 @inject IFiscalYearService FiscalYearService
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
-@inject ITrophyService TrophyService
 @inject IPushNotificationService PushNotificationService
 @inject IPushNotificationFactory PushNotificationFactory
 @inject IEventRepertoireService EventRepertoireService
@@ -209,10 +208,8 @@ else
                                            RepertoireCount="@GetRepertoireCount(eventItem.Id)"
                                            DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                            VideoCount="@GetVideoCount(eventItem.Id)"
-                                           TrophyCount="@GetTrophyCount(eventItem.Id)"
                                            IsAdmin="true"
                                            IsPastEvent="true"
-                                           ShowTrophy="true"
                                            OnEdit="@(() => OpenEditModal(eventItem))"
                                            OnDelete="@(() => OpenDeleteModal(eventItem))"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
@@ -220,7 +217,6 @@ else
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
-                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </Authorized>
                             <NotAuthorized Context="adminOnlyContext">
@@ -231,16 +227,13 @@ else
                                            RepertoireCount="@GetRepertoireCount(eventItem.Id)"
                                            DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                            VideoCount="@GetVideoCount(eventItem.Id)"
-                                           TrophyCount="@GetTrophyCount(eventItem.Id)"
                                            IsAdmin="false"
                                            IsPastEvent="true"
-                                           ShowTrophy="true"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
-                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </NotAuthorized>
                         </AuthorizeView>
@@ -733,101 +726,6 @@ else
     </DetailsModal>
 }
 
-<!-- Trophy Modal -->
-<Modal Show="@modals.IsOpen(ModalType.Trophy)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.Trophy, show))"
-       Title="@($"Prémios  de {selectedEventForTrophies?.Name ?? ""}")"
-       Size="Modal.ModalSize.Large"
-       Centered="true">
-    <BodyContent>
-        <AuthorizeView Roles="Admin,Owner">
-            <Authorized>
-                <div class="mb-3">
-                    <button class="btn btn-success btn-sm" @onclick="OpenCreateTrophyModal">
-                        <i class="bi bi-plus-lg"></i> Adicionar Prémio
-                    </button>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-
-        @if (eventTrophies == null || !eventTrophies.Any())
-        {
-            <EmptyState Title="Nenhum prémio conquistado neste evento."
-                            Icon="bi-trophy" />
-        }
-        else
-        {
-            <div class="row g-3">
-                @foreach (var trophy in eventTrophies)
-                {
-                    <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 text-center p-3 position-relative trophy-card">
-                            <AuthorizeView Roles="Admin,Owner">
-                                <Authorized>
-                                    <div class="position-absolute top-0 end-0 p-2">
-                                        <button class="btn btn-sm admin-btn-edit me-1" @onclick="() => OpenEditTrophyModal(trophy)" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm admin-btn-delete" @onclick="() => OpenDeleteTrophyModal(trophy)" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </Authorized>
-                            </AuthorizeView>
-                            <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                                <i class="bi bi-trophy-fill text-warning mb-3 trophy-icon-large"></i>
-                                <h5 class="card-title mb-0">@trophy.Name</h5>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Voltar Atrás</button>
-    </FooterContent>
-</Modal>
-
-<!-- Trophy Edit Modal -->
-<Modal Show="@modals.IsOpen(ModalType.TrophyEdit)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.TrophyEdit, show))"
-       Title="@(isTrophyCreateMode ? "Adicionar Prémio" : "Editar Prémio")"
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        @if (editingTrophy != null)
-        {
-            <EditForm Model="editingTrophy" OnValidSubmit="SaveTrophy" id="editTrophyForm">
-                <DataAnnotationsValidator />
-                <ErrorDisplay />
-
-                <div class="mb-3">
-                    <label class="form-label">Nome do Prémio</label>
-                    <InputText class="form-control" @bind-Value="editingTrophy.Name" placeholder="Inserir nome do prémio..." />
-                </div>
-
-            </EditForm>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyEditModal">Cancelar</button>
-        <button type="submit" form="editTrophyForm" class="btn btn-primary btn-primary-purple">Guardar</button>
-    </FooterContent>
-</Modal>
-
-<!-- Trophy Delete Modal -->
-<ConfirmDialog Show="@modals.IsOpen(ModalType.TrophyDelete)"
-               ShowChanged="@((bool show) => modals.Toggle(ModalType.TrophyDelete, show))"
-               Title="Confirmar Eliminação"
-               Message="@($"Tem a certeza que deseja eliminar o prémio {deletingTrophy?.Name}?")"
-               WarningMessage="Esta ação não pode ser revertida."
-               ConfirmText="Eliminar"
-               CancelText="Cancelar"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="DeleteTrophy"
-               OnCancel="CloseTrophyDeleteModal" />
-
 <!-- Trophies Statistics Modal -->
 <Modal Show="@modals.IsOpen(ModalType.TrophiesStats)"
        ShowChanged="@((value) => modals.Toggle(ModalType.TrophiesStats, value))"
@@ -1148,7 +1046,6 @@ else
     private List<EventRepertoire>? eventRepertoires;
     private Dictionary<int, int>? discussionPostCounts; // eventId -> post count
     private Dictionary<int, int> eventVideoCounts = new(); // eventId -> video count
-    private Dictionary<int, int> eventTrophyCounts = new(); // eventId -> trophy count
     private ApplicationUser? currentUser;
     private enum ModalType
     {
@@ -1157,9 +1054,6 @@ else
         EnrollmentList,
         Repertoire,
         EventDetails,
-        Trophy,
-        TrophyEdit,
-        TrophyDelete,
         Videos,
         EditVideo,
         DeleteEnrollment,
@@ -1170,19 +1064,14 @@ else
     private bool isCreateMode = false;
     private bool isUserAdmin = false;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
-    private bool isTrophyCreateMode = false;
     private bool isLoadingTrophiesStats = false;
     private bool isInitializing = true;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
-    private Event? selectedEventForTrophies;
     private Event? selectedEventForVideos;
     private Enrollment? deletingEnrollment;
-    private Trophy? editingTrophy;
-    private Trophy? deletingTrophy;
-    private List<Trophy>? eventTrophies;
     
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -1304,7 +1193,6 @@ else
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
         await LoadEventVideoCounts();
-        await LoadEventTrophyCounts();
         await LoadCurrentUser();
         BuildMobileNavItems();
         
@@ -1583,30 +1471,6 @@ else
         eventVideoCounts = counts;
     }
 
-    private async Task LoadEventTrophyCounts()
-    {
-        // Load trophy counts for all past festival events using parallel loading
-        var counts = new Dictionary<int, int>();
-        
-        if (allEvents != null)
-        {
-            var pastFestivalEvents = allEvents.Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < DateTime.Today && e.Type == EventType.Festival).ToList();
-            var tasks = pastFestivalEvents.Select(async evt =>
-            {
-                var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
-                return (EventId: evt.Id, Count: trophies.Count());
-            });
-            
-            var results = await Task.WhenAll(tasks);
-            foreach (var result in results)
-            {
-                counts[result.EventId] = result.Count;
-            }
-        }
-        
-        eventTrophyCounts = counts;
-    }
-
     private void FilterPreviousEvents()
     {
         if (allEvents == null)
@@ -1701,11 +1565,6 @@ else
     private int GetVideoCount(int eventId)
     {
         return eventVideoCounts.TryGetValue(eventId, out var count) ? count : 0;
-    }
-
-    private int GetTrophyCount(int eventId)
-    {
-        return eventTrophyCounts.TryGetValue(eventId, out var count) ? count : 0;
     }
 
     private void OpenCreateModal()
@@ -2148,107 +2007,6 @@ else
         StateHasChanged();
     }
 
-    // Trophy modal methods
-    private async Task OpenTrophyModal(Event eventItem)
-    {
-        selectedEventForTrophies = eventItem;
-        eventTrophies = (await TrophyService.GetByEventIdAsync(eventItem.Id)).ToList();
-        modals.Open(ModalType.Trophy);
-    }
-
-    private void CloseTrophyModal()
-    {
-        modals.Close(ModalType.Trophy);
-        selectedEventForTrophies = null;
-        eventTrophies = null;
-    }
-
-    private void OpenCreateTrophyModal()
-    {
-        if (selectedEventForTrophies == null) return;
-        
-        editingTrophy = new Trophy(selectedEventForTrophies.Id);
-        isTrophyCreateMode = true;
-        modals.Open(ModalType.TrophyEdit);
-    }
-
-    private void OpenEditTrophyModal(Trophy trophy)
-    {
-        editingTrophy = trophy;
-        isTrophyCreateMode = false;
-        modals.Open(ModalType.TrophyEdit);
-    }
-
-    private void CloseTrophyEditModal()
-    {
-        modals.Close(ModalType.TrophyEdit);
-        editingTrophy = null;
-        isTrophyCreateMode = false;
-    }
-
-    private async Task SaveTrophy()
-    {
-        if (editingTrophy == null) return;
-
-        try
-        {
-            if (isTrophyCreateMode)
-            {
-                await TrophyService.CreateAsync(editingTrophy);
-            }
-            else
-            {
-                await TrophyService.UpdateAsync(editingTrophy);
-            }
-
-            // Refresh trophy list
-            if (selectedEventForTrophies != null)
-            {
-                eventTrophies = (await TrophyService.GetByEventIdAsync(selectedEventForTrophies.Id)).ToList();
-            }
-
-            CloseTrophyEditModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving trophy: {ex.Message}");
-        }
-    }
-
-    private void OpenDeleteTrophyModal(Trophy trophy)
-    {
-        deletingTrophy = trophy;
-        modals.Open(ModalType.TrophyDelete);
-    }
-
-    private void CloseTrophyDeleteModal()
-    {
-        modals.Close(ModalType.TrophyDelete);
-        deletingTrophy = null;
-    }
-
-    private async Task DeleteTrophy()
-    {
-        if (deletingTrophy == null) return;
-
-        try
-        {
-            await TrophyService.DeleteAsync(deletingTrophy.Id);
-
-            // Refresh trophy list
-            if (selectedEventForTrophies != null)
-            {
-                eventTrophies = (await TrophyService.GetByEventIdAsync(selectedEventForTrophies.Id)).ToList();
-            }
-
-            CloseTrophyDeleteModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting trophy: {ex.Message}");
-        }
-    }
-    
     // Enrollment deletion methods
     private void OpenDeleteEnrollmentModal(Enrollment enrollment)
     {

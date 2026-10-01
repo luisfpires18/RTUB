@@ -80,11 +80,16 @@ export type NoticeInput =
 /** What a notice (or the cancellation email) did; `warning` when part of it did not go out. */
 export type NoticeResult = { sent: number; failed: number; warning: string | null };
 
+/** One prize with its id, for the Admin/Owner management modal (012B). */
+export type EventPrize = { id: number; name: string };
+
 export type EventVideo = { id: number; title: string; url: string; mimeType: string };
 
 export type EventDetail = {
   isMember: boolean;
   canManage: boolean;
+  /** Admin/Owner on a past festival: prizes can be added here (012B). */
+  canManagePrizes: boolean;
   event: EventSummary;
   videos: EventVideo[];
   member: {
@@ -209,6 +214,12 @@ export const eventsApi = {
   reactivateEvent: (id: number) => call<void>('POST', `/api/events/${id}/reactivate`),
   noticeAudience: (id: number) => call<NoticeAudience>('GET', `/api/events/${id}/notices`),
   sendNotice: (id: number, input: NoticeInput) => call<NoticeResult>('POST', `/api/events/${id}/notices`, input),
+  // Admin/Owner, 012B. Every write answers the event's prizes as they now are.
+  prizes: (id: number) => call<EventPrize[]>('GET', `/api/events/${id}/prizes`),
+  addPrize: (id: number, name: string) => call<EventPrize[]>('POST', `/api/events/${id}/prizes`, { name }),
+  renamePrize: (id: number, prizeId: number, name: string) =>
+    call<EventPrize[]>('PUT', `/api/events/${id}/prizes/${prizeId}`, { name }),
+  deletePrize: (id: number, prizeId: number) => call<EventPrize[]>('DELETE', `/api/events/${id}/prizes/${prizeId}`),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------

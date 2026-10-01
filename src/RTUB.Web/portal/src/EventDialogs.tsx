@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
+import { PrizeManager } from './EventManage';
 import { portal } from './content';
 import { dateLabel, eventsApi, timeLabel, yearOf, type EventEnrollment, type EventSummary } from './eventsApi';
 import { Icon } from './icons';
@@ -264,10 +265,13 @@ function Withdraw({
 export function PrizesDialog({
   history,
   current,
+  manage,
   onClose,
 }: {
   history?: EventSummary[];
   current?: EventSummary;
+  /** Admin/Owner on the event page (012B): the current event's prizes become editable. */
+  manage?: { canAdd: boolean; onChanged: () => void };
   onClose: () => void;
 }) {
   const [past, setPast] = useState<EventSummary[] | null | undefined>(history);
@@ -282,7 +286,8 @@ export function PrizesDialog({
 
   return (
     <Dialog title="Prémios" onClose={onClose} size="lg">
-      {current && current.trophies.length > 0 && (
+      {current && manage && <PrizeManager eventId={current.id} canAdd={manage.canAdd} onChanged={manage.onChanged} />}
+      {current && !manage && current.trophies.length > 0 && (
         <section className="prizes-current" aria-label="Prémios desta atuação">
           <p className="eyebrow">Nesta atuação</p>
           <ul className="trophies">

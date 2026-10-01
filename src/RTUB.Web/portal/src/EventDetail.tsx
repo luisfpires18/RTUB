@@ -75,7 +75,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
               {manage.cancelled ? 'Reativar' : 'Cancelar atuação'}
             </button>
           )}
-          {loaded && loaded.event.trophies.length > 0 && (
+          {loaded && (loaded.event.trophies.length > 0 || loaded.canManagePrizes) && (
             <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
               <Icon name="trophy" />
               Prémios
@@ -103,7 +103,14 @@ export default function EventDetail({ eventId }: { eventId: number }) {
         <Body detail={detail} onAnswer={() => setAnswering(true)} />
       )}
       {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
-      {prizes && loaded && <PrizesDialog current={loaded.event} onClose={() => setPrizes(false)} />}
+      {prizes && loaded && (
+        <PrizesDialog
+          current={loaded.event}
+          // Admin/Owner manage the prizes here (012B): a past festival takes new ones; existing ones stay editable anywhere.
+          manage={loaded.canManage ? { canAdd: loaded.canManagePrizes, onChanged: () => load(true) } : undefined}
+          onClose={() => setPrizes(false)}
+        />
+      )}
       {manage && managing === 'notice' && <NoticeDialog event={manage} onClose={() => setManaging(undefined)} />}
       {manage && managing === 'cancel' && (
         <CancelEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />

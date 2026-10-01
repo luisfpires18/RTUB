@@ -36,13 +36,14 @@ public class EventAdminServiceTests
     private readonly Mock<IPushNotificationService> _push = new();
     private readonly Mock<IPushNotificationFactory> _pushFactory = new();
     private readonly Mock<IAuditLogService> _audit = new();
+    private readonly Mock<ITrophyService> _trophies = new();
     private readonly EventAdminService _service;
     private readonly DateTime _future = DateTime.Today.AddDays(30);
 
     public EventAdminServiceTests()
     {
         _service = new EventAdminService(new Contexts(_db), _events.Object, _email.Object, _push.Object, _pushFactory.Object,
-            _audit.Object, NullLogger<EventAdminService>.Instance);
+            _audit.Object, _trophies.Object, NullLogger<EventAdminService>.Instance);
         FakeEventWrites();
         _pushFactory.Setup(f => f.CreateEventCustomNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns((Event e, string body, string url) => new SendPushNotificationDto { Title = e.Name, Body = body, Url = url + "/events" });

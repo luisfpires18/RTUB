@@ -272,10 +272,13 @@ public class PortalRouteTests : IntegrationTestBase
             .And.Contain("eventsApi.reactivateEvent(").And.Contain("eventsApi.sendNotice(")
             .And.NotContain("área de membros", "image, cancel and notices no longer send anyone to /member/events (012A)");
         detail.Should().Contain("<NoticeDialog").And.Contain("<CancelEventDialog").And.Contain("<ReactivateEventDialog");
+        detail.Should().Contain("loaded.canManagePrizes", "Admin/Owner manage prizes in the Prémios modal (012B)");
+        File.ReadAllText(Path.Combine(src, "EventDialogs.tsx")).Should().Contain("<PrizeManager");
+        manage.Should().Contain("eventsApi.addPrize(").And.Contain("eventsApi.renamePrize(").And.Contain("eventsApi.deletePrize(");
     }
 
     [Fact]
-    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelAndNoticesAreReact()
+    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesAndPrizesAreReact()
     {
         var root = FindRepoRoot();
         var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
@@ -287,10 +290,12 @@ public class PortalRouteTests : IntegrationTestBase
             "OnSendEmail=", "OnSendPushNotification=", "OnCancelEvent=", "OnUncancelEvent=",
             "CancelEventAsync", "UncancelEventAsync", "SendEventNotificationAsync", "SendEventReminderNotificationAsync",
             "SendEventCancellationNotificationAsync", "SendToSelectedUsersAsync",
+            // 012B: prizes are managed in the React Prémios modal.
+            "OpenTrophyModal", "OpenCreateTrophyModal", "SaveTrophy", "DeleteTrophy", "TrophyService", "OnViewTrophies=", "ShowTrophy=",
         });
 
         // The bridge scope that stays: prizes, videos, repertoire, statistics, Minhas Inscrições, enrollment lists.
-        page.Should().Contain("OpenTrophyModal").And.Contain("ModalType.Videos").And.Contain("<RepertoireModal")
+        page.Should().Contain("ModalType.Videos").And.Contain("<RepertoireModal")
             .And.Contain("TrophiesStats").And.Contain("<MyEnrollmentsButton").And.Contain("OpenEnrollmentListModal");
     }
 

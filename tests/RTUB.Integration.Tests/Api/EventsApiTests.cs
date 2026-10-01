@@ -442,7 +442,103 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         empty.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    private const string FakeImageUrl = "https://pub-test.r2.dev/images/test/events/new.webp";
+    // ---------- prizes (Admin/Owner, 012B) ----------
+
+    [Fact]
+    public async Task PrizeWrites_AreRefused_ForVisitorsMembersAndMods_AndWithoutTheAntiforgeryHeader()
+    {
+        var id = await AddEventAsync("Festival protegido", DateTime.Today.AddDays(-200), type: EventType.Festival);
+        var prize = await AddTrophyAsync(id, "Intocável");
+        var visitor = Anonymous();
+        await WithTokenAsync(visitor);
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var (adminWithoutToken, _) = await SignInAsync("Admin");
+
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        {
+            (await client.GetAsync($"/api/events/{id}/prizes")).StatusCode.Should().Be(expected);
+            (await client.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = "Novo" })).StatusCode.Should().Be(expected);
+            (await client.PutAsJsonAsync($"/api/events/{id}/prizes/{prize}", new { name = "Mudado" })).StatusCode.Should().Be(expected);
+            (await client.DeleteAsync($"/api/events/{id}/prizes/{prize}")).StatusCode.Should().Be(expected);
+        }
+
+        (await adminWithoutToken.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = "Sem token" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.PutAsJsonAsync($"/api/events/{id}/prizes/{prize}", new { name = "Sem token" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{id}/prizes/{prize}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await TrophyNamesAsync(id)).Should().Equal("Intocável");
+        var page = await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}");
+        page.GetProperty("canManagePrizes").GetBoolean().Should().BeFalse();
+        page.GetProperty("event").GetProperty("trophies").EnumerateArray().Select(t => t.GetString()).Should().Equal("Intocável");
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Owner")]
+    public async Task AdminOrOwner_ManagePrizes_AndThePublicViewFollows(string role)
+    {
+        var id = await AddEventAsync($"Festival com prémios ({role})", DateTime.Today.AddDays(-201), type: EventType.Festival);
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var visitor = Anonymous();
+
+        (await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("canManagePrizes").GetBoolean().Should().BeTrue();
+        (await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/prizes")).GetArrayLength().Should().Be(0);
+
+        var empty = await client.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = " " });
+        empty.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await empty.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("name", out _).Should().BeTrue();
+
+        var added = await client.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = "Melhor Tuna" });
+        added.StatusCode.Should().Be(HttpStatusCode.OK);
+        var prizeId = (await added.Content.ReadFromJsonAsync<JsonElement>())[0].GetProperty("id").GetInt32();
+        (await visitor.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("event").GetProperty("trophies")[0].GetString()
+            .Should().Be("Melhor Tuna", "visitors see a festival's prizes, as before");
+
+        var renamed = await client.PutAsJsonAsync($"/api/events/{id}/prizes/{prizeId}", new { name = "Melhor Tuna 2026" });
+        renamed.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await TrophyNamesAsync(id)).Should().Equal("Melhor Tuna 2026");
+
+        var deleted = await client.DeleteAsync($"/api/events/{id}/prizes/{prizeId}");
+        deleted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await deleted.Content.ReadFromJsonAsync<JsonElement>()).GetArrayLength().Should().Be(0);
+        (await visitor.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("event").GetProperty("trophies").GetArrayLength()
+            .Should().Be(0, "the last prize gone, nothing is left to show");
+        (await client.DeleteAsync($"/api/events/{id}/prizes/{prizeId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task NewPrizes_AreRefused_ForAnUpcomingEvent()
+    {
+        var id = await AddEventAsync("Festival por vir", DateTime.Today.AddDays(304), type: EventType.Festival);
+        var (owner, _) = await SignInAsync("Owner");
+        await WithTokenAsync(owner);
+
+        (await owner.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = "Cedo demais" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await owner.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("canManagePrizes").GetBoolean().Should().BeFalse();
+    }
+
+    private async Task<int> AddTrophyAsync(int eventId, string name)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var t = Trophy.Create(name, eventId);
+        db.Trophies.Add(t);
+        await db.SaveChangesAsync();
+        return t.Id;
+    }
+
+    private async Task<List<string>> TrophyNamesAsync(int eventId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Trophies.AsNoTracking()
+            .Where(t => t.EventId == eventId).OrderBy(t => t.Name).Select(t => t.Name).ToListAsync();
+    }
+
+    private const string FakeImageUrl ="https://pub-test.r2.dev/images/test/events/new.webp";
 
     private static readonly byte[] WebpBytes = "RIFF\0\0\0\0WEBPVP8 "u8.ToArray();
 
@@ -455,11 +551,11 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
 
     private static object EmailNotice(string kind = "new") => new { channel = "email", kind, message = (string?)null, onlyLeitoesAndCaloiros = false };
 
-    private async Task<int> AddEventAsync(string name, DateTime date, string? imageUrl = null)
+    private async Task<int> AddEventAsync(string name, DateTime date, string? imageUrl = null, EventType type = EventType.Arraial)
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var e = Event.Create(name, date, "Bragança", EventType.Arraial, "");
+        var e = Event.Create(name, date, "Bragança", type, "");
         e.ImageUrl = imageUrl;
         db.Events.Add(e);
         await db.SaveChangesAsync();

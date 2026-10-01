@@ -35,7 +35,7 @@ answers with its admin tools, `/events/{id}/enrollments`.
 | `Enrollments` | `Instrument`, `OtherInstruments` | int?; text? | 924 with an instrument | lists, instrument counters | own answer; "Quem vai" (going only) | members | no |
 | `Enrollments` | `Notes` | text?, no limit | 67 set, max 144 | lists (all members) | own answer; "Quem vai" (all members, as before); ≤1000 on write | members | no |
 | `Enrollments` | `EnrolledAt`, `CategoryAtEvent` | datetime; int? | snapshot on 246 | lists, statistics | not sent; still written by `EnrollmentService` | internal | no |
-| `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name | public | no |
+| `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name; managed there by Admin/Owner (012B) | public (names); ids for Admin/Owner only | no |
 | `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder` | public | no |
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
 | `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day | members | no |
@@ -95,6 +95,25 @@ Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
 Emails link to `/events`, as before. Sends run inside the request, as in the Blazor circuit. Tests replace
 email, push and storage with recording fakes: nothing is sent or written to R2.
 
+## Prizes (Admin/Owner, 012B) - audited against the old page
+
+The `Trophies` table: `Id`, `Name` (required, ≤200), `EventId` (FK, cascade on event delete) and the
+audit columns (`CreatedAt/By`, `UpdatedAt/By`, filled by the context). No type, order or category column:
+a prize is a name on one event. Writes go through the existing `TrophyService`; no storage, email or push.
+
+| | Old Blazor `/member/events` | React now |
+| --- | --- | --- |
+| Who | buttons inside `AuthorizeView Roles="Admin,Owner"`; the service itself checked nothing | Admin or Owner, enforced in `EventAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write |
+| Where | a prizes button on **past Festival** cards → per-event modal with Adicionar / Editar / Eliminar (members saw it read-only) | the event page's **Prémios** modal: Admin/Owner get the event's prizes with rename and delete in place, and an add field on a past festival (`CanManagePrizes`); the button also shows for them on a past festival with no prize yet |
+| Add | past festivals only (the only cards with the button); name not trimmed; errors swallowed | past festivals only, now server-side (409 otherwise; a festival is past once its last day is over); name trimmed, required, ≤200, shown as a field error |
+| Edit / delete | rename (name only); hard delete after a confirm | same; an inline confirm; a prize id only counts under its own event; existing prizes stay editable on any event |
+| Order | by name | by name (current culture), then id, everywhere |
+| Read | everyone, per event; members' "Prémios por Evento" statistics | unchanged: names in every summary (visitors included), history modal on the agenda and the event page |
+
+Every write answers the event's prizes; the page refreshes behind, so a first prize shows the Prémios
+button and the history, and deleting the last one removes it for everyone but Admin/Owner (who keep the
+button on a past festival to add again). Duplicate names are allowed, as before.
+
 ## API
 
 | Endpoint | Who | Notes |
@@ -115,6 +134,10 @@ email, push and storage with recording fakes: nothing is sent or written to R2.
 | `POST /api/events/{id}/cancel` | Admin/Owner | `{ reason, notifyByEmail }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 `errors.reason`; 409 past or already cancelled. |
 | `POST /api/events/{id}/reactivate` | Admin/Owner | `X-CSRF-TOKEN`; `204`; 409 unless cancelled and upcoming. |
 | `GET /api/events/{id}/notices` | Admin/Owner | Audience counts only (email, push, push Leitões e Caloiros). |
+| `GET /api/events/{id}/prizes` | Admin/Owner | `[{ id, name }]` in display order (012B). |
+| `POST /api/events/{id}/prizes` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the event's prizes; 400 `errors.name`; 409 unless a past festival. |
+| `PUT /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the prizes; 404 if the prize is not this event's. |
+| `DELETE /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the prizes left; 404 as above. |
 | `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
@@ -132,8 +155,8 @@ image (012A), through the existing storage service.
   the list refreshes in place. Header: **Prémios** (modal with the prize
   history) and "Área de membros" (members). Archive by season with search (name, place; description for
   members), season, type and "Só com vídeos" filters kept in the URL.
-- **Event page:** back link and **Prémios** (top right, when the event won any: its prizes, then the
-  history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**
+- **Event page:** back link and **Prémios** (top right, when the event won any - or, for Admin/Owner, on
+  any past festival: its prizes, editable by them, then the history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**
   → vídeos. Members get a side panel (first on a phone): their answer and "Responder" (the modal), the
   counts, and links to Quem vai / Quem foi and the discussion. Admin/Owner get **Enviar aviso** and
   **Cancelar atuação / Reativar** in the top bar (upcoming only). No link to the Blazor management pages.
@@ -161,17 +184,18 @@ image (012A), through the existing storage service.
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
 - Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
-  do yet - prizes, video upload / rename / reorder / delete, repertoire editing, statistics, "Minhas
-  Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
+  do yet - video upload / rename / reorder / delete, repertoire editing, statistics (including the read-only
+  "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
   Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
-  announces a new event by push, as before.
+  announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
+  edit / delete): prizes are managed only in the React Prémios modal.
 
 ## Follow-ups
 
-- Advanced management in React: prizes, video upload and ordering, repertoire editing, statistics,
-  "Minhas Inscrições", others' enrollments (012B-E); then `/member/events` and
+- Advanced management in React: video upload and ordering, repertoire editing, statistics,
+  "Minhas Inscrições", others' enrollments (012C-E); then `/member/events` and
   `/events/{id}/enrollments` can go.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
   a background job.

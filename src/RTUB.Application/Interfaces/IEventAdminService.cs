@@ -31,4 +31,16 @@ public interface IEventAdminService
 
     /// <summary>Sends one email or push notice about an upcoming, not cancelled event.</summary>
     Task<EventResult<EventNoticeResultDto>> SendNoticeAsync(int id, EventNoticeInput input, ClaimsPrincipal user, string baseUrl);
+
+    /// <summary>The event's prizes with their ids, for the management modal (012B).</summary>
+    Task<EventResult<IReadOnlyList<EventPrizeDto>>> GetPrizesAsync(int id, ClaimsPrincipal user);
+
+    /// <summary>Adds a prize to a past festival, as the old page allowed; answers the event's prizes.</summary>
+    Task<EventResult<IReadOnlyList<EventPrizeDto>>> AddPrizeAsync(int id, EventPrizeInput input, ClaimsPrincipal user);
+
+    /// <summary>Renames one of the event's prizes; answers the event's prizes.</summary>
+    Task<EventResult<IReadOnlyList<EventPrizeDto>>> UpdatePrizeAsync(int id, int prizeId, EventPrizeInput input, ClaimsPrincipal user);
+
+    /// <summary>Deletes one of the event's prizes (a hard delete, as before); answers the prizes left.</summary>
+    Task<EventResult<IReadOnlyList<EventPrizeDto>>> DeletePrizeAsync(int id, int prizeId, ClaimsPrincipal user);
 }
