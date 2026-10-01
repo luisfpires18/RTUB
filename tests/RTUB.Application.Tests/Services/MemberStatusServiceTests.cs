@@ -21,6 +21,13 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
+    /// <summary>
+    /// A moment earlier in the current month: halfway between the month's first instant and now.
+    /// "now.AddDays(-n)" is not this - on the first days of a month it lands in the previous month.
+    /// </summary>
+    private static DateTime EarlierThisMonth(DateTime now) =>
+        now - (now - new DateTime(now.Year, now.Month, 1, 0, 0, 0, now.Kind)) / 2;
+
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly MemberStatusService _service;
@@ -209,7 +216,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Current month - 1 day ago to ensure it's in the past
-        var oneDayAgo = now.AddDays(-1);
+        var oneDayAgo = EarlierThisMonth(now);
         var rehearsalCurrent = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsalCurrent);
         await _context.SaveChangesAsync();
@@ -270,7 +277,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Current month - 1 day ago
-        var oneDayAgo = now.AddDays(-1);
+        var oneDayAgo = EarlierThisMonth(now);
         var rehearsalCurrent = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsalCurrent);
         await _context.SaveChangesAsync();
@@ -320,7 +327,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Current month - 1 day ago (past activity)
-        var oneDayAgo = now.AddDays(-1);
+        var oneDayAgo = EarlierThisMonth(now);
         var rehearsal0 = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsal0);
         await _context.SaveChangesAsync();
@@ -391,7 +398,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Current month - 1 day ago
-        var oneDayAgo = now.AddDays(-1);
+        var oneDayAgo = EarlierThisMonth(now);
         var rehearsal0 = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsal0);
         await _context.SaveChangesAsync();
@@ -762,7 +769,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Add activity in current month (yesterday)
-        var yesterday = now.AddDays(-1);
+        var yesterday = EarlierThisMonth(now);
         var rehearsal1 = Rehearsal.Create(yesterday, "Recent Rehearsal");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
@@ -847,7 +854,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Add activity in current month only (yesterday)
-        var yesterday = now.AddDays(-1);
+        var yesterday = EarlierThisMonth(now);
         var rehearsal = Rehearsal.Create(yesterday, "Recent Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
@@ -885,7 +892,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Add activity in current month
-        var yesterday = now.AddDays(-1);
+        var yesterday = EarlierThisMonth(now);
         var rehearsal1 = Rehearsal.Create(yesterday, "Current Month");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
@@ -1106,7 +1113,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Add activity in current month and last month (2 consecutive months)
-        var currentMonthActivity = now.AddDays(-2);
+        var currentMonthActivity = EarlierThisMonth(now);
         var rehearsal1 = Rehearsal.Create(currentMonthActivity, "Current Month Rehearsal");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
@@ -1222,7 +1229,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // If these counted, the user would become active (3/3)
         var rehearsalDates = new[]
         {
-            now.AddDays(-5), // Current month - unapproved
+            EarlierThisMonth(now), // Current month - unapproved
             new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15), // Last month - unapproved
             new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15), // 2 months ago - unapproved
         };
@@ -1267,7 +1274,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
 
         // Current month - APPROVED rehearsal (1 day ago)
-        var janRehearsal = Rehearsal.Create(now.AddDays(-1), "January Rehearsal");
+        var janRehearsal = Rehearsal.Create(EarlierThisMonth(now), "January Rehearsal");
         _context.Rehearsals.Add(janRehearsal);
         await _context.SaveChangesAsync();
         var janAttendance = RehearsalAttendance.Create(janRehearsal.Id, userId);

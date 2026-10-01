@@ -157,6 +157,13 @@ public class RetirementStatusService : IRetirementStatusService
             .ToHashSet();
 
         var currentMonth = new DateTime(referenceDate.Year, referenceDate.Month, 1);
+        // A month that has only just started is not a gap: with no activity in it yet, count from
+        // the last completed month (the same rule as MemberStatusService.ConsecutiveActivityMonths).
+        if (!activitiesByMonth.Contains(currentMonth))
+        {
+            currentMonth = currentMonth.AddMonths(-1);
+        }
+
         int consecutiveCount = 0;
 
         // Check from current month backwards
