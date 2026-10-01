@@ -12,7 +12,7 @@ namespace RTUB.Web.Endpoints;
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
 /// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
-/// <see cref="IEventAdminService"/>), prizes (012B) and videos (012C); repertoire and statistics stay on the Blazor /member/events.
+/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C) and repertoire (012D); statistics stay on the Blazor /member/events.
 /// </summary>
 public static class EventEndpoints
 {
@@ -126,6 +126,27 @@ public static class EventEndpoints
 
         writes.MapDelete("/{id:int}/videos/{videoId:int}", async (int id, int videoId, HttpContext http, IEventAdminService admin) =>
             ToResult(await admin.DeleteVideoAsync(id, videoId, http.User)));
+
+        // Repertoire (Admin/Owner, 012D). Members already read it in GET /api/events/{id}.
+        events.MapGet("/{id:int}/repertoire", async (int id, HttpContext http, IEventRepertoireAdminService repertoire) =>
+            ToResult(await repertoire.GetAsync(id, http.User)));
+
+        events.MapGet("/{id:int}/repertoire/songs", async (int id, string? q, HttpContext http, IEventRepertoireAdminService repertoire) =>
+            ToResult(await repertoire.SearchSongsAsync(id, q, http.User)));
+
+        writes.MapPost("/{id:int}/repertoire", async (int id, EventRepertoireAddInput input, HttpContext http, IEventRepertoireAdminService repertoire) =>
+                ToResult(await repertoire.AddAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapPost("/{id:int}/repertoire/reorder", async (int id, EventRepertoireOrderInput input, HttpContext http, IEventRepertoireAdminService repertoire) =>
+                ToResult(await repertoire.ReorderAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapDelete("/{id:int}/repertoire/{itemId:int}", async (int id, int itemId, HttpContext http, IEventRepertoireAdminService repertoire) =>
+            ToResult(await repertoire.RemoveAsync(id, itemId, http.User)));
+
+        writes.MapDelete("/{id:int}/repertoire/days/{date}", async (int id, string date, HttpContext http, IEventRepertoireAdminService repertoire) =>
+            ToResult(await repertoire.RemoveDayAsync(id, date, http.User)));
 
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))

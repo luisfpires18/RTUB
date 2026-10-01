@@ -38,7 +38,7 @@ answers with its admin tools, `/events/{id}/enrollments`.
 | `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name; managed there by Admin/Owner (012B) | public (names); ids for Admin/Owner only | no |
 | `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder`; managed by Admin/Owner on the event page (012C) | public | no |
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
-| `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day | members | no |
+| `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day; managed by Admin/Owner on the event page (012D) | members | no |
 | `Discussions` / `Posts` | per event | - | 9 discussions | member count + page | member count + link | members | no |
 | `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | link-free, unchanged | members | no |
 
@@ -136,6 +136,26 @@ Every write answers the event's videos (id and title only); the page refreshes b
 shows the section and deleting the last one leaves Admin/Owner an empty state (visitors no section).
 The upload is one request with a spinner ("A enviar…"); no byte progress.
 
+## Repertoire (Admin/Owner, 012D) - audited against the old page
+
+`EventRepertoires`: `EventId`, `SongId` (FKs, cascade), `DisplayOrder` (1-1000, per day), `RepertoireDate`
+(date only), audit columns. Indexes: (EventId, DisplayOrder) and a **unique (EventId, SongId)**, so a song
+can appear once per event, whichever day. Songs come from Music (`Songs` → `Albums`); no lyrics or audio
+in the repertoire, titles only. No song is created here.
+
+| | Old Blazor modal (`RepertoireModal`, from `/member/events`) | React now |
+| --- | --- | --- |
+| Who | everyone read it; add / remove / reorder / clear a day behind `IsAdmin` (= Admin or Owner) in the UI only | Admin or Owner, enforced in `EventRepertoireAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write |
+| Where | repertoire button on every card → modal | event page: **Gerir repertório** in the Repertório section (any event; the section shows for Admin/Owner even when empty) → modal |
+| Days | tabs: the days that have songs, or the event's days when none has | tabs: the event's days plus any other day that already has songs (so a multi-day event's empty days can be filled) |
+| Add | a select of every song (all albums, de-duplicated by title), minus the day's songs; appended after the day's last (max + 1); a song already on another day hit the unique index and failed silently | a title search (accents and case ignored, prefix first, 20 at a time) of the songs Music shows the caller (the Owner every album; others not exclusive albums they are not listed on), minus every song already in the event or with the same title (case and accents ignored; the old select listed each title once); appended the same way; a duplicate is refused up front with a field error |
+| Reorder | drag-and-drop (per day) | Subir / Descer; the server takes the day's whole order (`UpdateRepertoireOrderAsync`) and refuses a stale or partial one |
+| Remove | one song; clear a day (confirm) | same (`RemoveSongFromRepertoireAsync`, `RemoveRepertoireDayAsync`); clearing asks first |
+| Read | members (the modal) | unchanged: the members' Repertório section, titles per day; visitors none |
+
+Every write answers the whole repertoire; the page refreshes behind, so a first song shows the section to
+members and clearing the last leaves them none (Admin/Owner keep an empty state with the button).
+
 ## API
 
 | Endpoint | Who | Notes |
@@ -165,6 +185,12 @@ The upload is one request with a spinner ("A enviar…"); no byte progress.
 | `PUT /api/events/{id}/videos/{videoId}` | Admin/Owner | `{ title }` (blank clears); `X-CSRF-TOKEN`; `200` the videos; 404 if not this event's. |
 | `POST /api/events/{id}/videos/reorder` | Admin/Owner | `{ videoIds }`, every id once; `X-CSRF-TOKEN`; `200`; 400 `errors.videoIds` when stale. |
 | `DELETE /api/events/{id}/videos/{videoId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the videos left (stored file deleted as before). |
+| `GET /api/events/{id}/repertoire` | Admin/Owner | `{ days: [{ date, items: [{ id, title }] }] }` (012D). |
+| `GET /api/events/{id}/repertoire/songs?q=` | Admin/Owner | Up to 20 `{ id, title, album }` the caller may add. |
+| `POST /api/events/{id}/repertoire` | Admin/Owner | `{ songId, date }`; `X-CSRF-TOKEN`; `200` the repertoire; 400 `errors.songId` (unknown, hidden or already in the event) / `errors.date`. |
+| `POST /api/events/{id}/repertoire/reorder` | Admin/Owner | `{ date, itemIds }`, the day's every row once; `X-CSRF-TOKEN`; 400 `errors.itemIds` when stale. |
+| `DELETE /api/events/{id}/repertoire/{itemId}` | Admin/Owner | `X-CSRF-TOKEN`; `200`; 404 if not this event's. |
+| `DELETE /api/events/{id}/repertoire/days/{date}` | Admin/Owner | Clears one day; `X-CSRF-TOKEN`; `200`. |
 | `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
@@ -203,6 +229,9 @@ image (012A) and videos (012C), through the existing storage services.
 - Visitors' search no longer matches descriptions (it was an oracle on member-only text).
 - 012C: only Admin/Owner upload, rename, reorder and delete event videos (members could upload and
   manage their own on the old page). Existing videos keep their uploader; nothing was deleted.
+- 012D: the repertoire song picker follows Music's album rule (the old select listed every song, exclusive
+  albums included); a song already in the event on another day is refused with a message instead of
+  failing silently; a multi-day event's days are all offered.
 
 ## Old Blazor UI
 
@@ -213,18 +242,18 @@ image (012A) and videos (012C), through the existing storage services.
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
 - Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
-  do yet - repertoire editing, statistics (including the read-only "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
+  do yet - statistics (including the read-only "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
   Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
   announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
   edit / delete): prizes are managed only in the React Prémios modal. 012C removed its video upload,
-  rename, delete and drag-and-drop reorder; its videos modal only lists and plays them.
+  rename, delete and drag-and-drop reorder; its videos modal only lists and plays them. 012D made the
+  shared `RepertoireModal` (used only there) read-only: no add, remove, reorder or clear-day.
 
 ## Follow-ups
 
-- Advanced management in React: repertoire editing, statistics, "Minhas Inscrições", others'
-  enrollments (012D-E); then `/member/events` and
+- Advanced management in React: statistics, "Minhas Inscrições", others' enrollments (012E-F); then `/member/events` and
   `/events/{id}/enrollments` can go.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
   a background job.

@@ -661,9 +661,8 @@ else
                 EventId="@(selectedEventForRepertoire?.Id ?? 0)"
                 EventName="@(selectedEventForRepertoire?.Name ?? "")"
                 EventDate="@(selectedEventForRepertoire?.Date ?? DateTime.Now)"
-                EventEndDate="@selectedEventForRepertoire?.EndDate"
-                IsAdmin="@isUserAdmin"
-                OnRepertoireChanged="@HandleRepertoireChanged" />
+                EventEndDate="@selectedEventForRepertoire?.EndDate" />
+
 
 <!-- Event Details Modal -->
 @if (selectedEvent != null)
@@ -1861,12 +1860,6 @@ else
     {
         selectedEvent = eventItem;
         modals.Open(ModalType.EventDetails);
-    }
-
-    private async Task HandleRepertoireChanged()
-    {
-        await LoadEventRepertoires();
-        StateHasChanged();
     }
 
     // Enrollment deletion methods

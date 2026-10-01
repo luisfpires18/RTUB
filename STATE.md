@@ -34,14 +34,14 @@ avatar tiles; no Blazor management links from the event page. `/member/events` s
 management. Answers stay a modal; Prémios stays a modal. No schema change. Terminology: events =
 enrollment / inscrição; rehearsals = attendance / presença. Detail: `docs/react-events.md`.
 
-**Open: `feat/012c-react-event-videos`** (React track 012C, from `dev` @ `e823c9df`, 012B merged; local, not
-pushed; DEV only). Admin/Owner upload, rename, reorder (Subir/Descer) and delete event videos from **Gerir
-vídeos** on `/events/{id}` (`/api/events/{id}/videos`, antiforgery, 401/403 server-side) through the existing
-`EventService` and `IEventVideoStorageService`: same key, 100 MB, past events only, push to the other members,
-owned-only delete. **Changed on purpose:** members could upload on the old page; now only Admin/Owner.
-`/member/events` keeps a play-only videos modal, repertoire, statistics, Minhas Inscrições and participant
-tools. No schema change. A successful real upload still needs a DEV check (local R2 is fake). Detail:
-`docs/react-events.md`.
+**Open: `feat/012d-react-event-repertoire`** (React track 012D, from `dev` @ `0f66ca20`, 012C merged; local, not
+pushed; DEV only). Admin/Owner manage the repertoire from **Gerir repertório** on `/events/{id}` (day tabs,
+song search, add, Subir/Descer, remove, clear a day) through `EventRepertoireAdminService` and
+`/api/events/{id}/repertoire` (antiforgery, 401/403 server-side) over the existing `EventRepertoireService`.
+Rules kept: append after the day's last; a song once per event (the database's unique index, now refused up
+front). Song picker follows Music's album visibility. The shared Blazor `RepertoireModal` is now read-only.
+`/member/events` keeps statistics, Minhas Inscrições and participant tools. No schema change, no storage or
+notifications. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

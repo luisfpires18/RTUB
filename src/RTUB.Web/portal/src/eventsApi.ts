@@ -86,6 +86,12 @@ export type EventPrize = { id: number; name: string };
 /** One video for the Admin/Owner management modal (012C): `title` null when none was given. */
 export type ManagedVideo = { id: number; title: string | null };
 
+/** The repertoire for the Admin/Owner modal (012D): every day it can hold songs, each in running order. */
+export type RepertoireManage = { days: { date: string; items: { id: number; title: string }[] }[] };
+
+/** A song Admin/Owner may add: only what Music shows them, not already in the event. */
+export type RepertoireSong = { id: number; title: string; album: string | null };
+
 /** The old page's limit, also enforced by the server. */
 export const MAX_EVENT_VIDEO_BYTES = 100 * 1024 * 1024;
 
@@ -238,6 +244,16 @@ export const eventsApi = {
     call<ManagedVideo[]>('PUT', `/api/events/${id}/videos/${videoId}`, { title }),
   reorderVideos: (id: number, videoIds: number[]) => call<ManagedVideo[]>('POST', `/api/events/${id}/videos/reorder`, { videoIds }),
   deleteVideo: (id: number, videoId: number) => call<ManagedVideo[]>('DELETE', `/api/events/${id}/videos/${videoId}`),
+  // Admin/Owner, 012D. Every write answers the whole repertoire.
+  repertoire: (id: number) => call<RepertoireManage>('GET', `/api/events/${id}/repertoire`),
+  repertoireSongs: (id: number, q: string) =>
+    call<RepertoireSong[]>('GET', `/api/events/${id}/repertoire/songs?q=${encodeURIComponent(q)}`),
+  addToRepertoire: (id: number, songId: number, date: string) =>
+    call<RepertoireManage>('POST', `/api/events/${id}/repertoire`, { songId, date }),
+  removeFromRepertoire: (id: number, itemId: number) => call<RepertoireManage>('DELETE', `/api/events/${id}/repertoire/${itemId}`),
+  clearRepertoireDay: (id: number, date: string) => call<RepertoireManage>('DELETE', `/api/events/${id}/repertoire/days/${date}`),
+  reorderRepertoire: (id: number, date: string, itemIds: number[]) =>
+    call<RepertoireManage>('POST', `/api/events/${id}/repertoire/reorder`, { date, itemIds }),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------
