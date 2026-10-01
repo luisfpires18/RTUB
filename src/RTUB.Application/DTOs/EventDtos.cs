@@ -7,12 +7,47 @@ namespace RTUB.Application.DTOs;
 // note of another member, audit field or EF entity leaves the server. Dates are the stored local
 // (Portugal) values as plain "yyyy-MM-dd" / "HH:mm" text, so no time zone can shift them.
 
-/// <summary>The whole agenda: upcoming soonest first, past newest first.</summary>
+/// <summary>
+/// The whole agenda: upcoming soonest first, past newest first. <c>Types</c> are the event types to
+/// pick from when creating or editing; only for Admin/Owner (null for everyone else).
+/// </summary>
 public sealed record EventAgendaDto(
     bool IsMember,
     bool CanManage,
     IReadOnlyList<EventSummaryDto> Upcoming,
-    IReadOnlyList<EventSummaryDto> Past);
+    IReadOnlyList<EventSummaryDto> Past,
+    IReadOnlyList<EventTypeOptionDto>? Types = null);
+
+/// <summary>An event type: <c>Value</c> is the EventType name the API takes, <c>Label</c> what people read.</summary>
+public sealed record EventTypeOptionDto(string Value, string Label);
+
+/// <summary>
+/// An event as the Admin/Owner edit form loads it. <c>Time</c> is null for a whole-day or multi-day
+/// event; <c>EndDate</c> only for a multi-day one. The image is kept as it is (changed on /member/events).
+/// </summary>
+public sealed record EventEditDto(
+    int Id,
+    string Name,
+    string Date,
+    string? Time,
+    string? EndDate,
+    string Location,
+    string Type,
+    string Description,
+    bool HasImage);
+
+/// <summary>
+/// What the Admin/Owner form sends. Dates are "yyyy-MM-dd", the time "HH:mm". A multi-day event
+/// (an <c>EndDate</c> after <c>Date</c>) has no time, as on the old form.
+/// </summary>
+public sealed record EventInput(
+    string? Name,
+    string? Date,
+    string? Time,
+    string? EndDate,
+    string? Location,
+    string? Type,
+    string? Description);
 
 /// <summary>
 /// One event as the agenda shows it. <c>Time</c> is null for a whole-day event, <c>EndDate</c> only for
@@ -113,6 +148,8 @@ public enum EventResultStatus
     SignInRequired,
     Closed,
     Invalid,
+    Forbidden,
+    InUse,
 }
 
 /// <summary>Outcome of an Events call that a member makes; the endpoint maps it to HTTP.</summary>

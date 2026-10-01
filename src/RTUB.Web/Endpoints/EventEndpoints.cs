@@ -9,8 +9,8 @@ namespace RTUB.Web.Endpoints;
 /// The React Events area's API (React track 011, docs/react-events.md). Thin by design: visibility
 /// and every rule live in <see cref="IEventAgendaService"/>, decided from the session. Reads are
 /// open to anonymous callers and give them the public agenda only. Every write needs the
-/// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Managing events
-/// stays on the members' Blazor /member/events.
+/// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
+/// and deleting events is Admin/Owner (011.5); advanced management stays on the members' Blazor /member/events.
 /// </summary>
 public static class EventEndpoints
 {
@@ -35,10 +35,25 @@ public static class EventEndpoints
         events.MapGet("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
             await service.GetEventAsync(id, http.User) is { } detail ? Results.Ok(detail) : NotFound());
 
+        events.MapGet("/{id:int}/edit", async (int id, HttpContext http, IEventAgendaService service) =>
+            ToResult(await service.GetEventForEditAsync(id, http.User)));
+
         events.MapGet("/{id:int}/enrollment", async (int id, HttpContext http, IEventAgendaService service) =>
             ToResult(await service.GetEnrollmentAsync(id, http.User)));
 
         var writes = events.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
+
+        writes.MapPost("/", async (EventInput input, HttpContext http, IEventAgendaService service) =>
+                ToResult(await service.CreateEventAsync(input, http.User, $"{http.Request.Scheme}://{http.Request.Host}"),
+                    created => Results.Created($"/api/events/{created.Id}", created)))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapPut("/{id:int}", async (int id, EventInput input, HttpContext http, IEventAgendaService service) =>
+                ToResult(await service.UpdateEventAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapDelete("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
+            ToResult(await service.DeleteEventAsync(id, http.User), _ => Results.NoContent()));
 
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))
@@ -91,15 +106,19 @@ public static class EventEndpoints
 
     private static IResult NotFound() => Results.Problem(title: "Atuação não encontrada.", statusCode: StatusCodes.Status404NotFound);
 
-    private static IResult ToResult<T>(EventResult<T> result) => result.Status switch
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
     {
-        EventResultStatus.Ok => Results.Ok(result.Value),
+        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
         EventResultStatus.Invalid => Results.ValidationProblem(
             (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
         EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
             statusCode: StatusCodes.Status401Unauthorized),
         EventResultStatus.Closed => Results.Problem(title: "Esta atuação já não aceita respostas.",
             statusCode: StatusCodes.Status409Conflict),
+        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.",
+            statusCode: StatusCodes.Status403Forbidden),
+        EventResultStatus.InUse => Results.Problem(title: "Esta atuação tem encomendas NERBA associadas e não pode ser apagada.",
+            statusCode: StatusCodes.Status409Conflict, type: "events:in-use"),
         _ => NotFound(),
     };
 }

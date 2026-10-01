@@ -3936,6 +3936,19 @@ video.tile__media {
   background: var(--line);
 }
 
+/* Admin/Owner edit and delete on a card or row, above its stretched link. */
+.manage {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.agenda-card__tags .manage {
+  margin-top: -6px;
+}
+
 /* Quick reply: a quiet pill that turns green/red once answered. */
 .quick-reply {
   position: relative;
@@ -4097,6 +4110,7 @@ video.tile__media {
 }
 
 .archive-row {
+  position: relative;
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
   gap: 14px;
@@ -4113,7 +4127,22 @@ video.tile__media {
   }
 }
 
-.archive-row:focus-visible {
+.archive-row:focus-within {
+  background: var(--bg-raise);
+}
+
+.archive-row__name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+}
+
+.archive-row__name:focus-visible {
+  outline: none;
+}
+
+.archive-row__name:focus-visible::after {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
@@ -4139,7 +4168,9 @@ video.tile__media {
 }
 
 .archive-row__name {
+  color: inherit;
   font-weight: 600;
+  text-decoration: none;
   overflow-wrap: anywhere;
 }
 
@@ -4425,56 +4456,49 @@ video.tile__media {
   font-variant-numeric: tabular-nums;
 }
 
-/* Who is going: compact people tiles. */
+/* Who is going / went: avatar-led tiles, face first. */
 .who {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-@media (min-width: 640px) {
-  .who {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 .who__person {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 16px 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--bg-raise);
+  text-align: center;
 }
 
 .who__avatar {
-  flex: none;
-  width: 40px;
-  height: 40px;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 6px;
+  border: 2px solid var(--royal);
   border-radius: 50%;
   object-fit: cover;
   background: var(--bg-card);
-}
-
-.who__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
+  box-shadow: 0 0 0 3px var(--bg-raise), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .who__name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  max-width: 100%;
   margin: 0;
   color: var(--ink);
-  font-weight: 600;
-  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .who__badge {
@@ -4487,16 +4511,35 @@ video.tile__media {
   letter-spacing: 0.06em;
 }
 
-.who__meta,
-.who__note {
-  margin: 0;
-  color: var(--muted);
+.who__meta {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
   font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
 .who__note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
   font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 479px) {
+  .who {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  .who__avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .who__name {
+    font-size: 0.875rem;
+  }
 }
 
 .who__group {
@@ -4738,6 +4781,10 @@ video.tile__media {
   border-color: var(--purple-ink);
   outline: 2px solid var(--focus);
   outline-offset: 1px;
+}
+
+.event-form .form__row {
+  gap: 14px;
 }
 
 .answer__actions {

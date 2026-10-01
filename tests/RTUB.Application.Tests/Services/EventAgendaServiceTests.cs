@@ -33,7 +33,8 @@ public class EventAgendaServiceTests
 
     public EventAgendaServiceTests()
     {
-        _service = new EventAgendaService(new Contexts(_db), _enrollments.Object, _audit.Object, NullLogger<EventAgendaService>.Instance);
+        _service = new EventAgendaService(new Contexts(_db), _enrollments.Object, Mock.Of<IEventService>(), Mock.Of<IPushNotificationFactory>(),
+            Mock.Of<IPushNotificationService>(), _audit.Object, NullLogger<EventAgendaService>.Instance);
         _memberId = AddUser("Tuno");
         _member = SignedIn(_memberId);
         FakeEnrollmentWrites();

@@ -26,14 +26,13 @@ home gallery shows the latest public photos (`GET /api/gallery?public=true`). Co
 Órgãos Sociais, Pedidos, no gallery members teaser); one shared `.control` for search/selects and `.back-link`.
 Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
 
-**Open: `feat/011-react-events`** (React track 011; first part merged to `dev` @ `8a3da9d2`; follow-up local,
-not pushed; DEV only). `/events` and `/events/{id}` are React over `/api/events` (`IEventAgendaService`).
-Members answer (Vou / Não vou) in a modal - card quick reply or the event page - never a page of its own;
-the first build's `/events/{id}/enrollment` now redirects to `/events/{id}?respond=1`. Quem vai is on the
-event page, Prémios is a button + modal. Event roles inherit (Owner ⊇ Admin ⊇ Mod). The home's
-Órgãos Sociais block is gone (`/roles` stays). Management stays on the Blazor `/member/events`. No schema
-change. Terminology: events = enrollment / inscrição; rehearsals = attendance / presença. Detail:
-`docs/react-events.md`.
+**Open: `fix/0115-react-events-polish-admin-actions`** (React track 011.5, from `dev` @ `72200cd3`; 011 itself
+is merged; local, not pushed; DEV only). Admin/Owner create, edit and delete events in React modals on
+`/events` (`POST`/`PUT`/`DELETE /api/events`, antiforgery, 403 for Mod/Member); delete keeps the old hard
+delete + cascades and now refuses events with NERBA orders (409). "Quem vai" / "Quem foi" (past) with
+avatar tiles; no Blazor management links from the event page. `/member/events` stays only for advanced
+management. Answers stay a modal; Prémios stays a modal. No schema change. Terminology: events =
+enrollment / inscrição; rehearsals = attendance / presença. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

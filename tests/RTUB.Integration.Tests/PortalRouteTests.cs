@@ -243,6 +243,31 @@ public class PortalRouteTests : IntegrationTestBase
         string.Concat(events).Should().Contain("<EnrollmentDialog").And.Contain("<PrizesDialog").And.Contain("className={`quick-reply");
     }
 
+    /// <summary>
+    /// 011.5: the event page says "Quem foi" once the event is over and never sends anyone to the
+    /// Blazor management page; the agenda's cards carry no "Quem vai" action, and create/edit/delete
+    /// are React modals shown only when the server says the caller can manage (and enforced there).
+    /// </summary>
+    [Fact]
+    public void EventPages_UsePastWording_AndManageInReact()
+    {
+        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var detail = File.ReadAllText(Path.Combine(src, "EventDetail.tsx"));
+        var agenda = File.ReadAllText(Path.Combine(src, "Events.tsx"));
+        var manage = File.ReadAllText(Path.Combine(src, "EventManage.tsx"));
+
+        detail.Should().Contain("past ? 'Quem foi' : 'Quem vai'").And.Contain("whoLabel(past)").And.Contain("whoLabel(event.past)");
+        detail.Should().NotContain("Gerir atuações").And.NotContain("legacy.memberEvents").And.NotContain("eventEnrollments",
+            "the event page sends nobody to the Blazor management pages");
+
+        var card = agenda[agenda.IndexOf("function AgendaCard", StringComparison.Ordinal)..agenda.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
+        card.Should().NotContain("Quem vai", "who is going lives on the event page only");
+        agenda.Should().Contain("{agenda?.canManage && (").And.Contain("Adicionar atuação")
+            .And.Contain("agenda?.canManage ? { onEdit: () => setEditing(e.id), onDelete: () => setDeleting(e) } : undefined");
+        agenda.Should().NotContain("Gerir atuações");
+        manage.Should().Contain("eventsApi.createEvent(").And.Contain("eventsApi.updateEvent(").And.Contain("eventsApi.deleteEvent(");
+    }
+
     [Fact]
     public void EventsLinks_GoToTheReactAgenda_AndManagementToMemberEvents()
     {

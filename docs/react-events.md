@@ -2,15 +2,16 @@
 
 `/events` is a React agenda (`portal/src/Events.tsx`) and `/events/{id}` one event
 (`EventDetail.tsx`). A member answers (Vou / Não vou) in a **modal** (`EventDialogs.tsx`), from a card's
-quick reply or the event page, never on a page of its own. Both read a thin, viewer-aware API
+quick reply or the event page, never on a page of its own. Admin/Owner **create, edit and delete**
+events in React modals on the agenda (011.5). Everything reads a thin, viewer-aware API
 (`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). The old Blazor `Pages/Activities/Events.razor`
-mixed a public agenda, member answers and every management tool; only management stayed Blazor,
-moved unchanged in function to the members' **`/member/events`** (`Pages/Members/MemberEvents.razor`,
-`[Authorize]`). DEV only; no schema change.
+moved to the members' **`/member/events`** (`Pages/Members/MemberEvents.razor`, `[Authorize]`), kept only
+for the management React does not have yet (see Old Blazor UI). DEV only; no schema change.
 
 **Terminology.** Events use *enrollment* (Inscrições): `EventEnrollment*`, `eventsApi.getEnrollment` /
 `saveEnrollment`, `/api/events/{id}/enrollment`. *Attendance* (Presenças) belongs to rehearsals and is not
-used here.
+used here. Participants: **"Quem vai"** before and during an event, **"Quem foi"** once it is over (the
+counts follow: Vão / Não vão, Foram / Não foram).
 
 **Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal (used
 by the `/member/events` buttons). `/events/{id}/enrollment` - the answer page of the first 011 build, which
@@ -58,10 +59,24 @@ Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
   Leitão with none), an optional note. Past: only someone who went may withdraw. Cancelled: nothing.
   Writes go through `IEnrollmentService`, so its push notifications, category snapshot and retirement
   update are unchanged.
-- **Management** (`/member/events` tools, adding/removing others' enrollments on
-  `/events/{id}/enrollments`): Admin or Owner (was `IsInRole("Admin")` only). Contact tracking
-  (`/events/{id}/contacts`): Mod and above (was Admin or Mod). React shows "Gerir atuações" and
-  "Gerir inscrições" to those roles; it hides nothing the server allows.
+- **Management:** Admin or Owner (was `IsInRole("Admin")` only) - the React create/edit/delete and the
+  remaining `/member/events` and `/events/{id}/enrollments` tools. Mod and Member get 403 from the
+  API. Contact tracking (`/events/{id}/contacts`): Mod and above (was Admin or Mod). The agenda shows
+  the controls only when the API says `canManage`; the server enforces it on every write.
+
+## Create, edit, delete (Admin/Owner, 011.5) - audited against the old page
+
+| | Old Blazor page | React now |
+| --- | --- | --- |
+| Fields | name, date + time (default 19:00) or a date range without time, location, type, description, optional cropped image | same, except the image |
+| Rules | entity annotations: name and location required ≤200, description ≤2000, end not before start | same, server-side, as field errors |
+| Create | `EventService.CreateEventAsync`, then a push broadcast of the new event to everyone | same calls (push to a fake in tests; no VAPID keys outside DEV/PROD) |
+| Edit | `UpdateEventAsync` (or `UpdateEventWithImageAsync` when a new image was cropped) | `UpdateEventAsync`; image, cancellation and answers kept |
+| Delete | `DeleteEventAsync`: deletes the image from R2 and **hard-deletes** the row; the database cascades enrollments, trophies, video rows, repertoire, discussion and contacts (video files stay in R2) | same call, behind a confirm modal naming the event and what goes with it |
+| Delete with NERBA orders | FK `RESTRICT`: unhandled error | refused, `409` "tem encomendas NERBA" (1 real event has orders) |
+| Cancel / reactivate | separate action (cancel deletes enrollments) | not in React yet: `/member/events` |
+
+
 
 ## API
 
@@ -74,6 +89,10 @@ Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
 | `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
 | `DELETE /api/events/{id}/enrollment` | member | Withdraw from a past event; `X-CSRF-TOKEN`; 409 otherwise. |
 | `POST /api/events/videos/{id}/plays` | anyone | Audits a play (`EventVideo` / `Played`, as before); `X-CSRF-TOKEN`. |
+| `GET /api/events/{id}/edit` | Admin/Owner | The edit form's values; 401 / 403 otherwise. |
+| `POST /api/events` | Admin/Owner | `{ name, date, time, endDate, location, type, description }`; `X-CSRF-TOKEN`; `201` with the agenda card; 400 field errors; push broadcast. |
+| `PUT /api/events/{id}` | Admin/Owner | Same body; `X-CSRF-TOKEN`; `200` with the card. |
+| `DELETE /api/events/{id}` | Admin/Owner | `X-CSRF-TOKEN`; `204`; `409 events:in-use` with NERBA orders. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
 its last day. Seasons run September-August. Images and videos are absolute public R2 URLs
@@ -83,13 +102,18 @@ its last day. Seasons run September-August. Images and videos are absolute publi
 
 - **Agenda:** upcoming date cards (the whole card opens the event); signed-in members get a quick-reply
   pill on each open date ("Responder", or "Vais" / "Não vais" once answered) that opens the answer
-  modal in place, plus the confirmed count. Header: **Prémios** (modal with the prize history) and
-  "Gerir atuações" / "Área de membros". Archive by season with search (name, place; description for
+  modal in place, plus the confirmed count; no participant action on cards. Admin/Owner get small
+  edit / delete buttons on every card and archive row and **Adicionar atuação** in the header; all
+  three are modals and the list refreshes in place. Header: **Prémios** (modal with the prize
+  history) and "Área de membros" (members). Archive by season with search (name, place; description for
   members), season, type and "Só com vídeos" filters kept in the URL.
 - **Event page:** back link and **Prémios** (top right, when the event won any: its prizes, then the
-  history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai** → vídeos.
-  Members get a side panel (first on a phone): their answer and "Responder" (the modal), Vão / Não vão
-  / Músicas, and links to Quem vai, the Blazor discussion and management.
+  history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**
+  → vídeos. Members get a side panel (first on a phone): their answer and "Responder" (the modal), the
+  counts, and links to Quem vai / Quem foi and the discussion. No link to the Blazor management pages.
+- **Quem vai / Quem foi:** avatar-led tiles (a large round photo, then nickname, category and
+  instrument, the note in small italics), members going, then Leitões, then "Não vão / Não foram"
+  folded.
 - **Modals:** the shared native `<dialog>` (`Dialog.tsx`, also used by Music): focus kept inside, Esc
   closes. The answer modal is two large choices, the instrument when going, a folded note, Cancelar /
   Guardar; the page or card refreshes in place after saving.
@@ -107,16 +131,19 @@ its last day. Seasons run September-August. Images and videos are absolute publi
 - Retired from `/events`: the public page, its anonymous branches and the enrolment modal. The page
   itself is `/member/events`; its "Vou / Não vou / remover" buttons open the React answer modal
   (`/events/{id}?respond=1`).
-- Retired in the 011 follow-up: the React answer page (`EventEnrollment.tsx`, now a modal) and the
-  "Prémios" band on the agenda (now a button + modal).
-- Still Blazor (members): `/member/events` (create, edit, delete, cancel/uncancel, image, email and
-  push notices, trophies, video upload/rename/reorder/delete, repertoire editing, statistics, "Minhas
-  Inscrições"), `/events/{id}/enrollments` (admin: add or remove someone's enrollment),
-  `/discussion`, `/contacts`. Their back links open the React event page.
+- Retired in the 011 follow-ups: the React answer page (`EventEnrollment.tsx`, now a modal), the
+  "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
+  management (011.5).
+- Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
+  do yet - image upload, cancel / reactivate, email and push notices, prizes, video upload / rename /
+  reorder / delete, repertoire editing, statistics, "Minhas Inscrições"; `/events/{id}/enrollments`
+  (add or remove someone's enrollment); `/discussion`; `/contacts`.
 
 ## Follow-ups
 
-- Management in React (create/edit/cancel, trophies, videos, repertoire, notices, others'
-  enrollments); then `/member/events` and `/events/{id}/enrollments` can go.
+- Advanced management in React: cancel / reactivate, image upload (R2), prizes, video upload and
+  ordering, repertoire editing, email/push notices, others' enrollments; then `/member/events` and
+  `/events/{id}/enrollments` can go.
+- Deleting an event leaves its video files in R2 (the rows go, as before).
 - Event images and videos are `PublicRead` objects: never listed beyond what visitors see, but
-  reachable by URL (same as Gallery).
+  reachable by URL (same as Gallery). Private storage would need signed URLs.

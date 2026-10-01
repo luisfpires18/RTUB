@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
+import { DeleteEventDialog, EventFormDialog } from './EventManage';
 import { legacy, portal } from './content';
 import {
   dateLabel,
@@ -53,6 +54,8 @@ export default function Events() {
   const [agenda, setAgenda] = useState<EventAgenda | null>();
   const [filters, setFilters] = useState<Filters>(filtersFromUrl);
   const [answering, setAnswering] = useState<number>();
+  const [editing, setEditing] = useState<number | 'new'>();
+  const [deleting, setDeleting] = useState<EventSummary>();
   const [prizes, setPrizes] = useState(false);
 
   useEffect(() => {
@@ -68,6 +71,9 @@ export default function Events() {
   };
   useEffect(() => load(), []);
   const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
+  // Admin/Owner only: the server sends canManage, and refuses the writes for anyone else.
+  const manage = (e: EventSummary) =>
+    agenda?.canManage ? { onEdit: () => setEditing(e.id), onDelete: () => setDeleting(e) } : undefined;
 
   const update = (next: Partial<Filters>) =>
     setFilters((f) => {
@@ -94,6 +100,12 @@ export default function Events() {
         </div>
         {(hasPrizes || agenda?.isMember) && (
           <div className="events-page__actions">
+            {agenda?.canManage && (
+              <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
+                <Icon name="plus" />
+                Adicionar atuação
+              </button>
+            )}
             {hasPrizes && (
               <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
                 <Icon name="trophy" />
@@ -102,8 +114,8 @@ export default function Events() {
             )}
             {agenda?.isMember && (
               <a className="btn btn--ghost btn--sm" href={legacy.memberEvents}>
-                <Icon name={agenda.canManage ? 'pencil' : 'arrow'} />
-                {agenda.canManage ? 'Gerir atuações' : 'Área de membros'}
+                <Icon name="arrow" />
+                Área de membros
               </a>
             )}
           </div>
@@ -134,7 +146,7 @@ export default function Events() {
               <ul className="agenda">
                 {agenda.upcoming.map((e) => (
                   <li key={e.id}>
-                    <AgendaCard event={e} onAnswer={() => setAnswering(e.id)} />
+                    <AgendaCard event={e} onAnswer={() => setAnswering(e.id)} manage={manage(e)} />
                   </li>
                 ))}
               </ul>
@@ -170,7 +182,7 @@ export default function Events() {
                     <ul className="archive__list">
                       {events.map((e) => (
                         <li key={e.id}>
-                          <ArchiveRow event={e} />
+                          <ArchiveRow event={e} manage={manage(e)} />
                         </li>
                       ))}
                     </ul>
@@ -181,6 +193,15 @@ export default function Events() {
           </section>
         </>
       )}
+      {editing !== undefined && agenda?.types && (
+        <EventFormDialog
+          eventId={editing === 'new' ? undefined : editing}
+          types={agenda.types}
+          onClose={() => setEditing(undefined)}
+          onSaved={() => load(true)}
+        />
+      )}
+      {deleting && <DeleteEventDialog event={deleting} onClose={() => setDeleting(undefined)} onDeleted={() => load(true)} />}
       {answering !== undefined && (
         <EnrollmentDialog eventId={answering} onClose={() => setAnswering(undefined)} onSaved={() => load(true)} />
       )}
@@ -273,7 +294,26 @@ export function MyStatus({ event }: { event: EventSummary }) {
  * One upcoming date. The whole card opens the event (a stretched link); a signed-in member also gets a
  * quick reply that opens the answer modal without leaving the agenda.
  */
-function AgendaCard({ event, onAnswer }: { event: EventSummary; onAnswer: () => void }) {
+type Manage = { onEdit: () => void; onDelete: () => void } | undefined;
+
+/** Edit and delete, over the card's stretched link; Admin/Owner only. */
+function ManageButtons({ event, manage }: { event: EventSummary; manage: Manage }) {
+  if (!manage) return null;
+  return (
+    <span className="manage">
+      <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onEdit}>
+        <Icon name="pencil" />
+        <span className="sr-only">Editar {event.name}</span>
+      </button>
+      <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete}>
+        <Icon name="trash" />
+        <span className="sr-only">Apagar {event.name}</span>
+      </button>
+    </span>
+  );
+}
+
+function AgendaCard({ event, onAnswer, manage }: { event: EventSummary; onAnswer: () => void; manage: Manage }) {
   const time = timeLabel(event.time);
   const m = event.member;
   const canAnswer = m !== null && !event.cancelled;
@@ -288,6 +328,7 @@ function AgendaCard({ event, onAnswer }: { event: EventSummary; onAnswer: () => 
         <div className="agenda-card__tags">
           <span className="tag">{event.type}</span>
           {event.cancelled && <span className="tag tag--cancelled">Cancelada</span>}
+          <ManageButtons event={event} manage={manage} />
         </div>
         <h3 className="agenda-card__name">
           <a className="agenda-card__link" href={portal.event(event.id)}>
@@ -338,14 +379,17 @@ function AgendaCard({ event, onAnswer }: { event: EventSummary; onAnswer: () => 
   );
 }
 
-function ArchiveRow({ event }: { event: EventSummary }) {
+/** One past event; the whole row opens it (a stretched link), with Admin/Owner tools on top. */
+function ArchiveRow({ event, manage }: { event: EventSummary; manage: Manage }) {
   return (
-    <a className={event.cancelled ? 'archive-row archive-row--cancelled' : 'archive-row'} href={portal.event(event.id)}>
+    <div className={event.cancelled ? 'archive-row archive-row--cancelled' : 'archive-row'}>
       <time className="archive-row__date" dateTime={event.date}>
         <span>{dayOf(event.date)}</span> {monthShort(event.date)}
       </time>
       <span className="archive-row__main">
-        <span className="archive-row__name">{event.name}</span>
+        <a className="archive-row__name" href={portal.event(event.id)}>
+          {event.name}
+        </a>
         <span className="archive-row__meta">
           {event.location} · {event.type}
           {event.cancelled && ' · cancelada'}
@@ -365,7 +409,8 @@ function ArchiveRow({ event }: { event: EventSummary }) {
             {event.videoCount}
           </span>
         )}
+        <ManageButtons event={event} manage={manage} />
       </span>
-    </a>
+    </div>
   );
 }

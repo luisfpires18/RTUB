@@ -159,7 +159,7 @@ function Body({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
             </section>
           )}
 
-          {member && !event.cancelled && <WhoIsGoing participants={member.participants} canManage={detail.canManage} eventId={event.id} />}
+          {member && !event.cancelled && <WhoIsGoing participants={member.participants} past={event.past} />}
 
           {detail.videos.length > 0 && <Videos videos={detail.videos} />}
 
@@ -200,11 +200,11 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
       ) : null}
       <dl className="member-panel__counts">
         <div>
-          <dt>Vão</dt>
+          <dt>{event.past ? 'Foram' : 'Vão'}</dt>
           <dd>{m.goingCount}</dd>
         </div>
         <div>
-          <dt>Não vão</dt>
+          <dt>{event.past ? 'Não foram' : 'Não vão'}</dt>
           <dd>{detail.member?.notGoingCount ?? 0}</dd>
         </div>
         <div>
@@ -217,7 +217,7 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
           <li>
             <a href="#who-title">
               <Icon name="person" />
-              Quem vai
+              {whoLabel(event.past)}
             </a>
           </li>
         )}
@@ -227,42 +227,30 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
             Discussão{m.discussionCount > 0 && ` (${m.discussionCount})`}
           </a>
         </li>
-        <li>
-          <a href={legacy.memberEvents}>
-            <Icon name={detail.canManage ? 'pencil' : 'upload'} />
-            {detail.canManage ? 'Gerir atuações' : 'Carregar vídeos'}
-          </a>
-        </li>
       </ul>
     </aside>
   );
 }
 
+/** "Quem vai" before and during an event, "Quem foi" once it is over. */
+export const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
+
 /** Who answered, on this page: members going, Leitões going, and (folded) who is not going. */
 function WhoIsGoing({
   participants,
-  canManage,
-  eventId,
+  past,
 }: {
   participants: { going: EventParticipant[]; leitoes: EventParticipant[]; notGoing: EventParticipant[] };
-  canManage: boolean;
-  eventId: number;
+  past: boolean;
 }) {
   const { going, leitoes, notGoing } = participants;
   const total = going.length + leitoes.length;
 
   return (
     <section className="event-section" aria-labelledby="who-title">
-      <div className="event-section__head">
-        <h2 id="who-title" className="event-section__title">
-          Quem vai <span className="event-section__count">{total}</span>
-        </h2>
-        {canManage && (
-          <a className="btn btn--ghost btn--sm" href={legacy.eventEnrollments(eventId)}>
-            Gerir inscrições
-          </a>
-        )}
-      </div>
+      <h2 id="who-title" className="event-section__title">
+        {whoLabel(past)} <span className="event-section__count">{total}</span>
+      </h2>
       {total === 0 && notGoing.length === 0 ? (
         <p className="note">Ainda ninguém respondeu.</p>
       ) : (
@@ -274,10 +262,12 @@ function WhoIsGoing({
               <People people={leitoes} />
             </>
           )}
-          {total === 0 && <p className="note">Por agora ninguém confirmou.</p>}
+          {total === 0 && <p className="note">{past ? 'Ninguém confirmou presença.' : 'Por agora ninguém confirmou.'}</p>}
           {notGoing.length > 0 && (
             <details className="who__more">
-              <summary>Não vão · {notGoing.length}</summary>
+              <summary>
+                {past ? 'Não foram' : 'Não vão'} · {notGoing.length}
+              </summary>
               <People people={notGoing} />
             </details>
           )}
@@ -287,20 +277,17 @@ function WhoIsGoing({
   );
 }
 
+/** Avatar-led tiles: the face first, then the nickname, the category and what they play. */
 function People({ people }: { people: EventParticipant[] }) {
   return (
     <ul className="who">
       {people.map((p, i) => (
-        <li key={i} className="who__person">
-          <img className="who__avatar" src={p.avatarUrl} alt="" loading="lazy" width="40" height="40" />
-          <div className="who__text">
-            <p className="who__name">
-              {p.name}
-              {p.badge && <span className="who__badge">{p.badge}</span>}
-            </p>
-            {(p.instrument || p.fullName) && <p className="who__meta">{p.instrument ?? p.fullName}</p>}
-            {p.notes && <p className="who__note">“{p.notes}”</p>}
-          </div>
+        <li key={i} className="who__person" title={p.fullName ?? undefined}>
+          <img className="who__avatar" src={p.avatarUrl} alt="" loading="lazy" width="72" height="72" />
+          <p className="who__name">{p.name}</p>
+          {p.badge && <span className="who__badge">{p.badge}</span>}
+          {p.instrument && <p className="who__meta">{p.instrument}</p>}
+          {p.notes && <p className="who__note">“{p.notes}”</p>}
         </li>
       ))}
     </ul>
