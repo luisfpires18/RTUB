@@ -251,10 +251,89 @@ public class EventAgendaServiceTests
         Names<EventSummaryDto>().Should().BeEquivalentTo("Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Cancelled",
             "Past", "Season", "ImageUrl", "VideoCount", "Trophies", "Member");
         Names<EventMemberSummaryDto>().Should().BeEquivalentTo("Description", "MyStatus", "GoingCount", "RepertoireCount", "DiscussionCount");
-        Names<EventMemberDetailDto>().Should().BeEquivalentTo("CancellationReason", "NotGoingCount", "Repertoire");
+        Names<EventMemberDetailDto>().Should().BeEquivalentTo("CancellationReason", "NotGoingCount", "Repertoire", "Participants");
+        Names<EventParticipantsDto>().Should().BeEquivalentTo("Going", "Leitoes", "NotGoing");
+        Names<EventParticipantDto>().Should().BeEquivalentTo("Name", "FullName", "AvatarUrl", "Badge", "Instrument", "Notes");
         Names<EventVideoDto>().Should().BeEquivalentTo("Id", "Title", "Url", "MimeType");
         Names<EventEnrollmentDto>().Should().BeEquivalentTo("Event", "State", "Status", "Instrument", "Notes", "IsLeitao",
             "Instruments", "DefaultInstrument", "CanRemove");
+    }
+
+    // ---------- who is going ----------
+
+    [Fact]
+    public async Task WhoIsGoing_IsForMembersOnly_GroupedLikeTheMembersList()
+    {
+        var id = AddEvent("Serenata", _today.AddDays(5));
+        Enroll(id, AddUser("Bandolim", categories: new[] { MemberCategory.Tuno }), willAttend: true, instrument: InstrumentType.Bandolim, notes: "levo capa");
+        Enroll(id, AddUser("Porco", categories: new[] { MemberCategory.Leitao }), willAttend: true);
+        Enroll(id, AddUser("Ausente"), willAttend: false, instrument: InstrumentType.Guitarra, notes: "exame");
+
+        var forVisitor = await _service.GetEventAsync(id, Visitor);
+        var who = (await _service.GetEventAsync(id, _member))!.Member!.Participants;
+
+        forVisitor!.Member.Should().BeNull("visitors never learn who answered");
+        who.Going.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Name = "Bandolim", FullName = "First Last", Badge = "TUNO", Instrument = "Bandolim", Notes = "levo capa",
+        });
+        who.Leitoes.Single().Name.Should().Be("Porco");
+        who.NotGoing.Single().Should().Match<EventParticipantDto>(p => p.Name == "Ausente" && p.Instrument == null && p.Notes == "exame",
+            "someone not going plays nothing");
+    }
+
+    [Fact]
+    public async Task WhoIsGoing_UsesTheCategoryAtTheEvent_AndShowsTheMagister()
+    {
+        var id = AddEvent("Serenata", _today.AddDays(5));
+        var promoted = AddUser("Promovido");
+        var magister = AddUser("Chefe", positions: Position.Magister);
+        Enroll(id, promoted, willAttend: true, category: MemberCategory.Leitao);
+        Enroll(id, magister, willAttend: true);
+
+        var who = (await _service.GetEventAsync(id, _member))!.Member!.Participants;
+
+        who.Leitoes.Select(p => p.Name).Should().Equal(new[] { "Promovido" }, "a promotion does not rewrite who was a Leitão then");
+        who.Going.Single().Badge.Should().Be("MAGISTER");
+    }
+
+    [Fact]
+    public async Task WhoIsGoing_IsNewestAnswerFirst_WithSafeAvatarsOnly()
+    {
+        var id = AddEvent("Serenata", _today.AddDays(5));
+        Enroll(id, AddUser("Primeiro", imageUrl: "javascript:alert(1)"), willAttend: true, enrolledAt: DateTime.UtcNow.AddHours(-2));
+        Enroll(id, AddUser("Segundo", imageUrl: "https://pub-test.r2.dev/images/a.webp"), willAttend: true, enrolledAt: DateTime.UtcNow);
+
+        var going = (await _service.GetEventAsync(id, _member))!.Member!.Participants.Going;
+
+        going.Select(p => p.Name).Should().Equal("Segundo", "Primeiro");
+        going.Select(p => p.AvatarUrl).Should().Equal("https://pub-test.r2.dev/images/a.webp", "/images/default-avatar.webp");
+    }
+
+    // ---------- permissions ----------
+
+    [Theory]
+    [InlineData(new string[0], false, false)]
+    [InlineData(new[] { "Member" }, false, false)]
+    [InlineData(new[] { "Mod" }, false, true)]
+    [InlineData(new[] { "Admin" }, true, true)]
+    [InlineData(new[] { "Owner" }, true, true)]
+    public void Roles_Inherit_OwnerAboveAdminAboveMod(string[] roles, bool canManage, bool canTrackContacts)
+    {
+        var user = SignedIn(Guid.NewGuid().ToString(), roles);
+
+        RTUB.Application.Helpers.EventsAuthorization.CanManage(user).Should().Be(canManage);
+        RTUB.Application.Helpers.EventsAuthorization.CanTrackContacts(user).Should().Be(canTrackContacts);
+        RTUB.Application.Helpers.EventsAuthorization.CanManage(Visitor).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnOwner_GetsTheManageLink_ARegularMemberDoesNot()
+    {
+        AddEvent("Serenata", _today.AddDays(5));
+
+        (await _service.GetAgendaAsync(SignedIn(_memberId, "Owner"))).CanManage.Should().BeTrue();
+        (await _service.GetAgendaAsync(_member)).CanManage.Should().BeFalse();
     }
 
     // ---------- enrollment ----------
@@ -361,7 +440,7 @@ public class EventAgendaServiceTests
     [Fact]
     public async Task ALeitaoWithoutInstruments_MayPickAnyInstrument()
     {
-        var leitao = AddUser("Leitão", MemberCategory.Leitao);
+        var leitao = AddUser("Leitão", categories: new[] { MemberCategory.Leitao });
         var id = AddEvent("Serenata", _today.AddDays(5));
 
         var enrollment = (await _service.GetEnrollmentAsync(id, SignedIn(leitao))).Value!;
@@ -503,7 +582,7 @@ public class EventAgendaServiceTests
             });
     }
 
-    private string AddUser(string nickname, params MemberCategory[] categories)
+    private string AddUser(string nickname, string? imageUrl = null, Position? positions = null, params MemberCategory[] categories)
     {
         using var db = _db.CreateContext();
         var user = new ApplicationUser
@@ -515,6 +594,8 @@ public class EventAgendaServiceTests
             FirstName = "First",
             LastName = "Last",
             Categories = categories.ToList(),
+            Positions = positions is { } p ? new List<Position> { p } : new List<Position>(),
+            ImageUrl = imageUrl,
         };
         db.Users.Add(user);
         db.SaveChanges();
@@ -538,11 +619,13 @@ public class EventAgendaServiceTests
         return e.Id;
     }
 
-    private int Enroll(int eventId, string userId, bool willAttend, string? notes = null, InstrumentType? instrument = null)
+    private int Enroll(int eventId, string userId, bool willAttend, string? notes = null, InstrumentType? instrument = null,
+        MemberCategory? category = null, DateTime? enrolledAt = null)
     {
         using var db = _db.CreateContext();
         var e = Enrollment.Create(userId, eventId);
-        (e.WillAttend, e.Notes, e.Instrument) = (willAttend, notes, instrument);
+        (e.WillAttend, e.Notes, e.Instrument, e.CategoryAtEvent) = (willAttend, notes, instrument, category);
+        e.EnrolledAt = enrolledAt ?? e.EnrolledAt;
         db.Enrollments.Add(e);
         db.SaveChanges();
         return e.Id;

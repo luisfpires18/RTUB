@@ -53,7 +53,7 @@
             <p class="lead page-header-subtitle text-light-theme">Gestão de atuações, prémios, vídeos e inscrições. <a href="/events" data-enhance-nav="false">Ver a agenda</a></p>
         </div>
         <div class="page-header-right d-none d-xl-flex gap-2">
-            <AuthorizeView Roles="Admin">
+            <AuthorizeView Roles="Admin,Owner">
                 <Authorized>
                     <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
                         <i class="bi bi-plus-lg"></i> Adicionar Atuação
@@ -145,10 +145,10 @@ else
                                        OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
                                        OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
                                        OnUncancelEvent="@(() => UncancelEvent(eventItem))"
-                                       OnEnrollGoing="@(() => OpenEnrollmentPage(eventItem))"
-                                       OnEnrollNotGoing="@(() => OpenEnrollmentPage(eventItem))"
-                                       OnEditEnrollment="@(() => OpenEnrollmentPage(eventItem))"
-                                       OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
+                                       OnEnrollGoing="@(() => OpenEventResponse(eventItem))"
+                                       OnEnrollNotGoing="@(() => OpenEventResponse(eventItem))"
+                                       OnEditEnrollment="@(() => OpenEventResponse(eventItem))"
+                                       OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
                                        OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                        OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                        OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
@@ -207,7 +207,7 @@ else
                         @{
                             var userEnrollment = GetUserEnrollment(eventItem.Id);
                         }
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Admin,Owner">
                             <Authorized Context="editContext">
                                 <EventCard Event="@eventItem"
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
@@ -226,7 +226,7 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
+                                           OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </Authorized>
@@ -246,7 +246,7 @@ else
                                            OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
-                                           OnRemoveEnrollment="@(() => OpenEnrollmentPage(eventItem))"
+                                           OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
                                            OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </NotAuthorized>
@@ -598,7 +598,7 @@ else
                            Icon="bi-people" />
             }
             
-            <AuthorizeView Roles="Admin">
+            <AuthorizeView Roles="Admin,Owner">
                 <Authorized>
                     <div class="mt-3">
                         <!-- Success Alert (auto-dismiss) -->
@@ -764,7 +764,7 @@ else
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <AuthorizeView Roles="Admin">
+        <AuthorizeView Roles="Admin,Owner">
             <Authorized>
                 <div class="mb-3">
                     <button class="btn btn-success btn-sm" @onclick="OpenCreateTrophyModal">
@@ -786,7 +786,7 @@ else
                 {
                     <div class="col-md-4 col-sm-6">
                         <div class="card h-100 text-center p-3 position-relative trophy-card">
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Admin,Owner">
                                 <Authorized>
                                     <div class="position-absolute top-0 end-0 p-2">
                                         <button class="btn btn-sm admin-btn-edit me-1" @onclick="() => OpenEditTrophyModal(trophy)" title="Editar">
@@ -2046,7 +2046,7 @@ else
         if (!string.IsNullOrEmpty(userName))
         {
             currentUser = await UserManager.FindByNameAsync(userName);
-            isUserAdmin = authState.User.IsInRole("Admin");
+            isUserAdmin = RTUB.Application.Helpers.EventsAuthorization.CanManage(authState.User);
         }
     }
 
@@ -2308,10 +2308,10 @@ else
     }
 
     // Enrollment methods
-    // Answering (going / not going, withdrawing from a past one) is the React
-    // /events/{id}/enrollment page (React track 011), not a modal here.
-    private void OpenEnrollmentPage(Event eventItem) =>
-        Navigation.NavigateTo($"/events/{eventItem.Id}/enrollment", forceLoad: true);
+    // Answering (going / not going, withdrawing from a past one) is the answer modal on the React
+    // event page (React track 011), opened by ?respond=1; not a modal here.
+    private void OpenEventResponse(Event eventItem) =>
+        Navigation.NavigateTo($"/events/{eventItem.Id}?respond=1", forceLoad: true);
 
     private async Task OpenEnrollmentListModal(Event eventItem)
     {

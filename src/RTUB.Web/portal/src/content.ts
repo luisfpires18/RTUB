@@ -25,7 +25,6 @@ export const portal = {
   gallery: '/gallery',
   events: '/events',
   event: (id: number) => `/events/${id}`,
-  eventEnrollment: (id: number) => `/events/${id}/enrollment`,
 } as const;
 
 /** Sign in, then come back to the React profile. */
@@ -50,12 +49,4 @@ export const albums = [
   { title: '50% Música 51% Álcool', year: '1998', tracks: 16 },
   { title: 'Boémios e Trovadores', year: '2007', tracks: 15 },
   { title: 'É Esta a Tuna', year: '2013', tracks: 11 },
-];
-
-// FACT: the bodies and positions of the Órgãos Sociais; holders live on /roles (GET /api/public/governance).
-export const governingBodies = [
-  { name: 'Direção', roles: ['Magister', 'Vice-Magister', 'Secretário', '1.º Tesoureiro', '2.º Tesoureiro'] },
-  { name: 'Mesa da Assembleia', roles: ['Presidente', '1.º Secretário', '2.º Secretário'] },
-  { name: 'Conselho Fiscal', roles: ['Presidente', '1.º Relator', '2.º Relator'] },
-  { name: 'Conselho de Veteranos', roles: ['Presidente'] },
 ];

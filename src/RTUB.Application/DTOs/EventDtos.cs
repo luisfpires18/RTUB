@@ -54,11 +54,33 @@ public sealed record EventDetailDto(
 /// <summary>A video on the public R2 host, in its stored order.</summary>
 public sealed record EventVideoDto(int Id, string Title, string Url, string MimeType);
 
-/// <summary>Member-only detail: why it was cancelled, who is not going (a count) and the repertoire per day.</summary>
+/// <summary>Member-only detail: why it was cancelled, the repertoire per day and who answered.</summary>
 public sealed record EventMemberDetailDto(
     string? CancellationReason,
     int NotGoingCount,
-    IReadOnlyList<EventRepertoireDayDto> Repertoire);
+    IReadOnlyList<EventRepertoireDayDto> Repertoire,
+    EventParticipantsDto Participants);
+
+/// <summary>
+/// "Quem vai", for members only, as the old members' list grouped it: members going, Leitões going,
+/// and who is not going; each newest answer first.
+/// </summary>
+public sealed record EventParticipantsDto(
+    IReadOnlyList<EventParticipantDto> Going,
+    IReadOnlyList<EventParticipantDto> Leitoes,
+    IReadOnlyList<EventParticipantDto> NotGoing);
+
+/// <summary>
+/// One answer. <c>Badge</c> is "MAGISTER" or the category label (StatusHelper) at the event; <c>Instrument</c> only for
+/// someone going; <c>AvatarUrl</c> is https/same-site or the default avatar. No user id, email or phone.
+/// </summary>
+public sealed record EventParticipantDto(
+    string Name,
+    string? FullName,
+    string AvatarUrl,
+    string? Badge,
+    string? Instrument,
+    string? Notes);
 
 /// <summary>The songs played on one day of the event, in their running order.</summary>
 public sealed record EventRepertoireDayDto(string Date, IReadOnlyList<string> Songs);

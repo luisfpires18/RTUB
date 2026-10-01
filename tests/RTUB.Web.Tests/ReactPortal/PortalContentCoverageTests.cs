@@ -48,16 +48,23 @@ public class PortalContentCoverageTests
         var src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
         var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
 
-        // Literal "/#id" links, and the { id: '...' } section lists that App.tsx turns into "/#id".
+        // Literal "/#id" links, and the { id: '...' } section lists that App.tsx turns into "/#id" -
+        // except the sections App.tsx's sectionPages sends to their own page (e.g. governance -> /roles).
+        var app = File.ReadAllText(Path.Combine(src, "App.tsx"));
+        var ownPages = Regex.Matches(Regex.Match(app, @"const sectionPages[^}]*\}").Value, @"(\w+): portal\.")
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet();
         var anchors = Directory.GetFiles(src, "*.tsx")
             .SelectMany(f =>
             {
                 var text = File.ReadAllText(f);
-                return Regex.Matches(text, @"['""`]/#([a-z-]+)").Concat(Regex.Matches(text, @"\{ id: '([a-z-]+)'"));
+                return Regex.Matches(text, @"['""`]/#([a-z-]+)").Select(m => m.Groups[1].Value)
+                    .Concat(Regex.Matches(text, @"\{ id: '([a-z-]+)'").Select(m => m.Groups[1].Value).Where(id => !ownPages.Contains(id)));
             })
-            .Select(m => m.Groups[1].Value)
             .Distinct()
             .ToList();
+
+        ownPages.Should().Contain("governance", "the home no longer has an Órgãos Sociais section; the link opens /roles");
 
         anchors.Should().Contain(new[] { "events", "fitab", "join", "app" });
         anchors.Where(id => !home.Contains($"id=\"{id}\"", StringComparison.Ordinal))

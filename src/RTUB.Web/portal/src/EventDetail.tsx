@@ -1,34 +1,66 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { legacy, portal } from './content';
+import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
 import { MyStatus } from './Events';
-import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventVideo } from './eventsApi';
+import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
 
 /**
+ * ?respond=1 (from the members' Blazor page or an old link) opens the answer modal once. Read
+ * without side effects: React may render and discard a first attempt (lazy pages), so the URL is
+ * only cleaned once the modal actually opens.
+ */
+const wantsToRespond = () => new URLSearchParams(location.search).get('respond') === '1';
+
+function dropRespondFlag() {
+  const url = new URL(location.href);
+  url.searchParams.delete('respond');
+  history.replaceState(null, '', url.pathname + url.search);
+}
+
+/**
  * /events/{id} - one event. Visitors get the public facts, prizes and videos; signed-in members
- * also get the description, their own answer (answered on /events/{id}/enrollment), the counts,
- * the repertoire, and links to the members' participants and discussion pages.
+ * also get the description, their own answer (a modal, never another page), the counts, the
+ * repertoire and who is going, all on this page.
  */
 export default function EventDetail({ eventId }: { eventId: number }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
+  const [answering, setAnswering] = useState(false);
+  const [prizes, setPrizes] = useState(false);
+  const respond = useRef(wantsToRespond());
 
-  const load = () => {
-    setDetail(undefined);
+  const load = (quiet = false) => {
+    if (!quiet) setDetail(undefined);
     eventsApi.event(eventId).then((o) => setDetail(o.kind === 'ok' ? o.data : o.kind === 'notfound' ? 'missing' : null));
   };
-  useEffect(load, [eventId]);
+  useEffect(() => load(), [eventId]);
 
   useEffect(() => {
     document.title = detail && detail !== 'missing' ? `${detail.event.name} · Atuações · RTUB` : 'Atuações · RTUB';
+    if (detail && detail !== 'missing' && respond.current) {
+      respond.current = false;
+      dropRespondFlag();
+      setAnswering(true);
+    }
   }, [detail]);
+
+  const loaded = detail && detail !== 'missing' ? detail : null;
 
   return (
     <section className="page wrap event-page" aria-labelledby="event-title">
-      <a className="back-link" href={portal.events}>
-        <Icon name="arrow" />
-        Agenda
-      </a>
+      <div className="event-topbar">
+        <a className="back-link" href={portal.events}>
+          <Icon name="arrow" />
+          Agenda
+        </a>
+        {loaded && loaded.event.trophies.length > 0 && (
+          <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
+            <Icon name="trophy" />
+            Prémios
+          </button>
+        )}
+      </div>
       {detail === undefined ? (
         <Loading label="A carregar a atuação…" />
       ) : detail === 'missing' ? (
@@ -41,18 +73,20 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       ) : detail === null ? (
         <div className="notice" role="status">
           <p id="event-title">Não conseguimos abrir esta atuação agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
             Tentar novamente
           </button>
         </div>
       ) : (
-        <Body detail={detail} />
+        <Body detail={detail} onAnswer={() => setAnswering(true)} />
       )}
+      {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
+      {prizes && loaded && <PrizesDialog current={loaded.event} onClose={() => setPrizes(false)} />}
     </section>
   );
 }
 
-function Body({ detail }: { detail: Detail }) {
+function Body({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
   const { event, member } = detail;
   const time = timeLabel(event.time);
 
@@ -96,7 +130,7 @@ function Body({ detail }: { detail: Detail }) {
         </div>
       )}
 
-      <div className="event-layout">
+      <div className={detail.isMember ? 'event-layout' : 'event-layout event-layout--public'}>
         <div className="event-main">
           {event.member?.description && (
             <section className="event-section" aria-labelledby="about-title">
@@ -125,36 +159,22 @@ function Body({ detail }: { detail: Detail }) {
             </section>
           )}
 
-          {event.trophies.length > 0 && (
-            <section className="event-section" aria-labelledby="trophies-title">
-              <h2 id="trophies-title" className="event-section__title">
-                Prémios conquistados
-              </h2>
-              <ul className="trophies">
-                {event.trophies.map((t, i) => (
-                  <li key={i}>
-                    <Icon name="trophy" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {member && !event.cancelled && <WhoIsGoing participants={member.participants} canManage={detail.canManage} eventId={event.id} />}
 
           {detail.videos.length > 0 && <Videos videos={detail.videos} />}
 
-          {!detail.isMember && event.trophies.length === 0 && detail.videos.length === 0 && (
-            <p className="note">{event.past ? 'Sem vídeos nem prémios registados.' : 'Mais detalhes nas redes da RTUB.'}</p>
+          {!detail.isMember && detail.videos.length === 0 && (
+            <p className="note">{event.past ? 'Ainda não há vídeos desta atuação.' : 'Mais novidades nas redes da RTUB.'}</p>
           )}
         </div>
 
-        {detail.isMember && event.member && <MemberPanel detail={detail} />}
+        {detail.isMember && event.member && <MemberPanel detail={detail} onAnswer={onAnswer} />}
       </div>
     </>
   );
 }
 
-function MemberPanel({ detail }: { detail: Detail }) {
+function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
   const { event } = detail;
   const m = event.member!;
   const open = !event.past && !event.cancelled;
@@ -168,15 +188,15 @@ function MemberPanel({ detail }: { detail: Detail }) {
       {open ? (
         <>
           <p className="member-panel__answer">{answer}</p>
-          <a className="btn btn--primary" href={portal.eventEnrollment(event.id)}>
+          <button type="button" className="btn btn--primary" onClick={onAnswer}>
             <Icon name="check" />
-            {m.myStatus ? 'Alterar a resposta' : 'Responder'}
-          </a>
+            {m.myStatus ? 'Alterar resposta' : 'Responder'}
+          </button>
         </>
       ) : event.past && m.myStatus === 'going' && !event.cancelled ? (
-        <a className="btn btn--ghost btn--sm" href={portal.eventEnrollment(event.id)}>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onAnswer}>
           A minha inscrição
-        </a>
+        </button>
       ) : null}
       <dl className="member-panel__counts">
         <div>
@@ -193,12 +213,14 @@ function MemberPanel({ detail }: { detail: Detail }) {
         </div>
       </dl>
       <ul className="member-panel__links">
-        <li>
-          <a href={legacy.eventEnrollments(event.id)}>
-            <Icon name="person" />
-            Quem vai
-          </a>
-        </li>
+        {!event.cancelled && (
+          <li>
+            <a href="#who-title">
+              <Icon name="person" />
+              Quem vai
+            </a>
+          </li>
+        )}
         <li>
           <a href={legacy.eventDiscussion(event.id)}>
             <Icon name="envelope" />
@@ -213,6 +235,75 @@ function MemberPanel({ detail }: { detail: Detail }) {
         </li>
       </ul>
     </aside>
+  );
+}
+
+/** Who answered, on this page: members going, Leitões going, and (folded) who is not going. */
+function WhoIsGoing({
+  participants,
+  canManage,
+  eventId,
+}: {
+  participants: { going: EventParticipant[]; leitoes: EventParticipant[]; notGoing: EventParticipant[] };
+  canManage: boolean;
+  eventId: number;
+}) {
+  const { going, leitoes, notGoing } = participants;
+  const total = going.length + leitoes.length;
+
+  return (
+    <section className="event-section" aria-labelledby="who-title">
+      <div className="event-section__head">
+        <h2 id="who-title" className="event-section__title">
+          Quem vai <span className="event-section__count">{total}</span>
+        </h2>
+        {canManage && (
+          <a className="btn btn--ghost btn--sm" href={legacy.eventEnrollments(eventId)}>
+            Gerir inscrições
+          </a>
+        )}
+      </div>
+      {total === 0 && notGoing.length === 0 ? (
+        <p className="note">Ainda ninguém respondeu.</p>
+      ) : (
+        <>
+          {going.length > 0 && <People people={going} />}
+          {leitoes.length > 0 && (
+            <>
+              <h3 className="who__group">Leitões · {leitoes.length}</h3>
+              <People people={leitoes} />
+            </>
+          )}
+          {total === 0 && <p className="note">Por agora ninguém confirmou.</p>}
+          {notGoing.length > 0 && (
+            <details className="who__more">
+              <summary>Não vão · {notGoing.length}</summary>
+              <People people={notGoing} />
+            </details>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function People({ people }: { people: EventParticipant[] }) {
+  return (
+    <ul className="who">
+      {people.map((p, i) => (
+        <li key={i} className="who__person">
+          <img className="who__avatar" src={p.avatarUrl} alt="" loading="lazy" width="40" height="40" />
+          <div className="who__text">
+            <p className="who__name">
+              {p.name}
+              {p.badge && <span className="who__badge">{p.badge}</span>}
+            </p>
+            {(p.instrument || p.fullName) && <p className="who__meta">{p.instrument ?? p.fullName}</p>}
+            {p.notes && <p className="who__note">“{p.notes}”</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 

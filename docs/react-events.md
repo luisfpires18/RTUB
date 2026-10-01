@@ -1,16 +1,22 @@
 # React Events (`/events`, React track 011)
 
-`/events` is a React agenda (`portal/src/Events.tsx`), `/events/{id}` one event (`EventDetail.tsx`) and
-`/events/{id}/enrollment` a member's own answer on its own page (`EventEnrollment.tsx`, no modal). They
-read a thin, viewer-aware API (`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). The old Blazor
-`Pages/Activities/Events.razor` mixed a public agenda, member answers and every management tool; only
-management stayed Blazor, moved unchanged in function to the members' **`/member/events`**
-(`Pages/Members/MemberEvents.razor`, `[Authorize]`). DEV only; no schema change.
+`/events` is a React agenda (`portal/src/Events.tsx`) and `/events/{id}` one event
+(`EventDetail.tsx`). A member answers (Vou / Não vou) in a **modal** (`EventDialogs.tsx`), from a card's
+quick reply or the event page, never on a page of its own. Both read a thin, viewer-aware API
+(`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). The old Blazor `Pages/Activities/Events.razor`
+mixed a public agenda, member answers and every management tool; only management stayed Blazor,
+moved unchanged in function to the members' **`/member/events`** (`Pages/Members/MemberEvents.razor`,
+`[Authorize]`). DEV only; no schema change.
 
-**Terminology.** Events use *enrollment* (Inscrições): `/events/{id}/enrollment`, `EventEnrollment*`,
-`eventsApi.getEnrollment/saveEnrollment`. *Attendance* (Presenças) belongs to rehearsals and is not used
-here. The draft URL `/events/{id}/attendance` never reached `dev`, so it is not served (404, no redirect).
-Not to be confused with the members' Blazor list of everyone's answers, `/events/{id}/enrollments`.
+**Terminology.** Events use *enrollment* (Inscrições): `EventEnrollment*`, `eventsApi.getEnrollment` /
+`saveEnrollment`, `/api/events/{id}/enrollment`. *Attendance* (Presenças) belongs to rehearsals and is not
+used here.
+
+**Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal (used
+by the `/member/events` buttons). `/events/{id}/enrollment` - the answer page of the first 011 build, which
+reached DEV - is a temporary `302` to `/events/{id}?respond=1`; the draft `/events/{id}/attendance` never
+reached `dev` and is not served (404). Not to be confused with the members' Blazor list of everyone's
+answers with its admin tools, `/events/{id}/enrollments`.
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -24,10 +30,10 @@ Not to be confused with the members' Blazor list of everyone's answers, `/events
 | `Events` | `ImageUrl` | text? | 13 set, all on the public R2 host | card image | hero, https/same-site only | public | no |
 | `Events` | `CreatedBy/At`, `UpdatedBy/At` | audit | - | - | never sent | internal | no |
 | `Enrollments` | `UserId`, `EventId`, `WillAttend` | text; int; bool | 1085 (769 going, 316 not); 0 duplicates, 0 orphans, 0 on cancelled events | counts, lists, own badge | own answer; going / not-going counts | own row + counts: members | no |
-| `Enrollments` | `Instrument`, `OtherInstruments` | int?; text? | 924 with an instrument | lists, instrument counters | own answer only | member (own) | no |
-| `Enrollments` | `Notes` | text?, no limit | 67 set, max 144 | lists (all members) | own answer only; ≤1000 on write | member (own) | no |
+| `Enrollments` | `Instrument`, `OtherInstruments` | int?; text? | 924 with an instrument | lists, instrument counters | own answer; "Quem vai" (going only) | members | no |
+| `Enrollments` | `Notes` | text?, no limit | 67 set, max 144 | lists (all members) | own answer; "Quem vai" (all members, as before); ≤1000 on write | members | no |
 | `Enrollments` | `EnrolledAt`, `CategoryAtEvent` | datetime; int? | snapshot on 246 | lists, statistics | not sent; still written by `EnrollmentService` | internal | no |
-| `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | Prémios band, event page (all), by name | public | no |
+| `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name | public | no |
 | `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder` | public | no |
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
 | `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day | members | no |
@@ -38,20 +44,24 @@ Not to be confused with the members' Blazor list of everyone's answers, `/events
 
 ## Visibility and permissions (server-side, `EventAgendaService` + `EventsAuthorization`)
 
+Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
+
 - **Visitor:** name, dates, time, location, type, cancelled, image, trophies, videos, season. No
   description, cancellation reason, counts, repertoire, answers, user ids or notes; the `member`
-  parts are `null`. Same set the old public page showed (it also showed nothing else to visitors).
-- **Signed-in member:** adds the description, the cancellation reason, their *own* answer,
-  going / not-going / repertoire / discussion counts and the repertoire titles. Other members'
-  names, instruments and notes stay on the members' Blazor `/events/{id}/enrollments`.
-- **Answering (`/events/{id}/enrollment`):** any signed-in member, own row only. Open (not
-  cancelled, last day not passed): going / not going, an instrument from their own instruments
-  (every instrument for a Leitão with none), a note. Past: only someone who went may withdraw.
-  Cancelled: nothing. Writes go through `IEnrollmentService`, so its push notifications, category
-  snapshot and retirement update are unchanged.
-- **Management:** Admin only, as before, on `/member/events` (`IsInRole("Admin")`; an Owner without
-  Admin still has no tools there, recorded in STATE). React shows "Gerir atuações" to Admins and
-  "Área de membros" / "Carregar vídeos" to other members; it hides nothing that the server allows.
+  parts are `null`. Same set the old public page showed.
+- **Signed-in member:** adds the description, the cancellation reason, their own answer, the counts,
+  the repertoire and **Quem vai**: name, full name, avatar, category (or MAGISTER), instrument and
+  note of everyone who answered, grouped as members going / Leitões / not going (the same the old
+  members' list showed every member). Never user ids, emails or phones.
+- **Answering:** any signed-in member, own row only. Open (not cancelled, last day not passed): Vou /
+  Não vou, an instrument from their own instruments (primary preselected; every instrument for a
+  Leitão with none), an optional note. Past: only someone who went may withdraw. Cancelled: nothing.
+  Writes go through `IEnrollmentService`, so its push notifications, category snapshot and retirement
+  update are unchanged.
+- **Management** (`/member/events` tools, adding/removing others' enrollments on
+  `/events/{id}/enrollments`): Admin or Owner (was `IsInRole("Admin")` only). Contact tracking
+  (`/events/{id}/contacts`): Mod and above (was Admin or Mod). React shows "Gerir atuações" and
+  "Gerir inscrições" to those roles; it hides nothing the server allows.
 
 ## API
 
@@ -59,7 +69,7 @@ Not to be confused with the members' Blazor list of everyone's answers, `/events
 | --- | --- | --- |
 | `GET /api/public/events/upcoming` | anyone | Home preview (010), now from the same service; next 3, no ids. |
 | `GET /api/events` | anyone | `{ isMember, canManage, upcoming, past }`; `no-store`. |
-| `GET /api/events/{id}` | anyone | One event + videos; `member` section for members; 404 if missing. |
+| `GET /api/events/{id}` | anyone | One event + videos; `member` section (reason, repertoire, Quem vai) for members; 404 if missing. |
 | `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
 | `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
 | `DELETE /api/events/{id}/enrollment` | member | Withdraw from a past event; `X-CSRF-TOKEN`; 409 otherwise. |
@@ -71,13 +81,18 @@ its last day. Seasons run September-August. Images and videos are absolute publi
 
 ## UI
 
-Agenda: upcoming date cards (date block, type, cancelled, the member's "Vais / Não vais",
-confirmed count for members), a gold "Prémios" band (festivals with prizes, newest first), and the
-archive by season with search (name, place; description for members), season, type and "Só com
-vídeos" filters kept in the URL. Event page: hero with image, facts, cancellation notice, about,
-repertoire, prizes, videos; members get a side panel with their answer, counts and links.
-Enrollment page: two large choices, "Vou tocar" + instrument, note, inline confirmation for
-withdrawing; states for signed out, missing, closed and failures.
+- **Agenda:** upcoming date cards (the whole card opens the event); signed-in members get a quick-reply
+  pill on each open date ("Responder", or "Vais" / "Não vais" once answered) that opens the answer
+  modal in place, plus the confirmed count. Header: **Prémios** (modal with the prize history) and
+  "Gerir atuações" / "Área de membros". Archive by season with search (name, place; description for
+  members), season, type and "Só com vídeos" filters kept in the URL.
+- **Event page:** back link and **Prémios** (top right, when the event won any: its prizes, then the
+  history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai** → vídeos.
+  Members get a side panel (first on a phone): their answer and "Responder" (the modal), Vão / Não vão
+  / Músicas, and links to Quem vai, the Blazor discussion and management.
+- **Modals:** the shared native `<dialog>` (`Dialog.tsx`, also used by Music): focus kept inside, Esc
+  closes. The answer modal is two large choices, the instrument when going, a folded note, Cancelar /
+  Guardar; the page or card refreshes in place after saving.
 
 ## Changed on purpose
 
@@ -89,18 +104,19 @@ withdrawing; states for signed out, missing, closed and failures.
 
 ## Old Blazor UI
 
-- Retired from `/events`: the public page, its anonymous branches and the enrolment modal
-  (`ParticipationModal` + remove confirmation). The page itself is `/member/events`; its
-  "Vou / Não vou / remover" buttons open the React enrollment page.
+- Retired from `/events`: the public page, its anonymous branches and the enrolment modal. The page
+  itself is `/member/events`; its "Vou / Não vou / remover" buttons open the React answer modal
+  (`/events/{id}?respond=1`).
+- Retired in the 011 follow-up: the React answer page (`EventEnrollment.tsx`, now a modal) and the
+  "Prémios" band on the agenda (now a button + modal).
 - Still Blazor (members): `/member/events` (create, edit, delete, cancel/uncancel, image, email and
-  push notices, trophies, video upload/rename/reorder/delete, repertoire editing, adding members,
-  statistics, "Minhas Inscrições"), `/events/{id}/enrollments`, `/discussion`, `/contacts`. Their
-  back links now open the React event page. Requests → "create event" opens `/member/events`.
+  push notices, trophies, video upload/rename/reorder/delete, repertoire editing, statistics, "Minhas
+  Inscrições"), `/events/{id}/enrollments` (admin: add or remove someone's enrollment),
+  `/discussion`, `/contacts`. Their back links open the React event page.
 
 ## Follow-ups
 
-- Management in React (create/edit/cancel, trophies, videos, repertoire, notices); then
-  `/member/events` can go, and with it the duplicate member list there.
-- Participants list (names, instruments, notes) in React; today `/events/{id}/enrollments`.
+- Management in React (create/edit/cancel, trophies, videos, repertoire, notices, others'
+  enrollments); then `/member/events` and `/events/{id}/enrollments` can go.
 - Event images and videos are `PublicRead` objects: never listed beyond what visitors see, but
   reachable by URL (same as Gallery).

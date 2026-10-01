@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
+import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
 import { legacy, portal } from './content';
 import {
   dateLabel,
@@ -46,21 +47,27 @@ export function filterPast(past: EventSummary[], f: Filters) {
 /**
  * /events - the agenda. Upcoming dates first, then the archive by season with its prizes and
  * videos. Visitors see what was always public; signed-in members also see their own answer and
- * the counts, and answer on /events/{id}/enrollment. Everything is decided by GET /api/events.
+ * the counts, and answer in a modal (from the card or the event page). Everything is decided by GET /api/events.
  */
 export default function Events() {
   const [agenda, setAgenda] = useState<EventAgenda | null>();
   const [filters, setFilters] = useState<Filters>(filtersFromUrl);
+  const [answering, setAnswering] = useState<number>();
+  const [prizes, setPrizes] = useState(false);
 
   useEffect(() => {
     document.title = 'Atuações · RTUB';
   }, []);
 
-  const load = () => {
-    setAgenda(undefined);
-    eventsApi.agenda().then((o) => setAgenda(o.kind === 'ok' ? o.data : null));
+  const load = (quiet = false) => {
+    if (!quiet) setAgenda(undefined);
+    eventsApi.agenda().then((o) => {
+      if (o.kind === 'ok') setAgenda(o.data);
+      else if (!quiet) setAgenda(null);
+    });
   };
-  useEffect(load, []);
+  useEffect(() => load(), []);
+  const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
 
   const update = (next: Partial<Filters>) =>
     setFilters((f) => {
@@ -85,11 +92,21 @@ export default function Events() {
             meio.
           </p>
         </div>
-        {agenda?.isMember && (
-          <a className="btn btn--ghost btn--sm" href={legacy.memberEvents}>
-            <Icon name={agenda.canManage ? 'pencil' : 'arrow'} />
-            {agenda.canManage ? 'Gerir atuações' : 'Área de membros'}
-          </a>
+        {(hasPrizes || agenda?.isMember) && (
+          <div className="events-page__actions">
+            {hasPrizes && (
+              <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
+                <Icon name="trophy" />
+                Prémios
+              </button>
+            )}
+            {agenda?.isMember && (
+              <a className="btn btn--ghost btn--sm" href={legacy.memberEvents}>
+                <Icon name={agenda.canManage ? 'pencil' : 'arrow'} />
+                {agenda.canManage ? 'Gerir atuações' : 'Área de membros'}
+              </a>
+            )}
+          </div>
         )}
       </header>
 
@@ -98,7 +115,7 @@ export default function Events() {
       ) : agenda === null ? (
         <div className="notice" role="status">
           <p>Não conseguimos abrir a agenda neste momento.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
             Tentar novamente
           </button>
         </div>
@@ -117,14 +134,12 @@ export default function Events() {
               <ul className="agenda">
                 {agenda.upcoming.map((e) => (
                   <li key={e.id}>
-                    <AgendaCard event={e} />
+                    <AgendaCard event={e} onAnswer={() => setAnswering(e.id)} />
                   </li>
                 ))}
               </ul>
             )}
           </section>
-
-          <Prizes past={agenda.past} />
 
           <section className="events-block" aria-labelledby="past-title">
             <h2 id="past-title" className="events-block__title">
@@ -166,6 +181,10 @@ export default function Events() {
           </section>
         </>
       )}
+      {answering !== undefined && (
+        <EnrollmentDialog eventId={answering} onClose={() => setAnswering(undefined)} onSaved={() => load(true)} />
+      )}
+      {prizes && agenda && <PrizesDialog history={agenda.past} onClose={() => setPrizes(false)} />}
     </section>
   );
 }
@@ -250,10 +269,16 @@ export function MyStatus({ event }: { event: EventSummary }) {
   );
 }
 
-function AgendaCard({ event }: { event: EventSummary }) {
+/**
+ * One upcoming date. The whole card opens the event (a stretched link); a signed-in member also gets a
+ * quick reply that opens the answer modal without leaving the agenda.
+ */
+function AgendaCard({ event, onAnswer }: { event: EventSummary; onAnswer: () => void }) {
   const time = timeLabel(event.time);
+  const m = event.member;
+  const canAnswer = m !== null && !event.cancelled;
   return (
-    <a className={event.cancelled ? 'agenda-card agenda-card--cancelled' : 'agenda-card'} href={portal.event(event.id)}>
+    <article className={event.cancelled ? 'agenda-card agenda-card--cancelled' : 'agenda-card'}>
       <time className="agenda-card__date" dateTime={event.date}>
         <span className="agenda-card__day">{dayOf(event.date)}</span>
         <span className="agenda-card__month">{monthShort(event.date)}</span>
@@ -263,9 +288,12 @@ function AgendaCard({ event }: { event: EventSummary }) {
         <div className="agenda-card__tags">
           <span className="tag">{event.type}</span>
           {event.cancelled && <span className="tag tag--cancelled">Cancelada</span>}
-          <MyStatus event={event} />
         </div>
-        <h3 className="agenda-card__name">{event.name}</h3>
+        <h3 className="agenda-card__name">
+          <a className="agenda-card__link" href={portal.event(event.id)}>
+            {event.name}
+          </a>
+        </h3>
         <p className="agenda-card__meta">
           <Icon name="clock" />
           <span>
@@ -277,14 +305,36 @@ function AgendaCard({ event }: { event: EventSummary }) {
           <Icon name="geo" />
           <span>{event.location}</span>
         </p>
-        {event.member && !event.cancelled && (
-          <p className="agenda-card__count">
-            {event.member.goingCount === 1 ? '1 confirmado' : `${event.member.goingCount} confirmados`}
-          </p>
+        {canAnswer && (
+          <div className="agenda-card__foot">
+            <span className="agenda-card__count">
+              {m.goingCount === 1 ? '1 confirmado' : `${m.goingCount} confirmados`}
+            </span>
+            <button
+              type="button"
+              className={`quick-reply quick-reply--${m.myStatus ?? 'none'}`}
+              onClick={onAnswer}
+              aria-label={`${m.myStatus ? 'Alterar resposta' : 'Responder'}: ${event.name}`}
+            >
+              {m.myStatus === 'going' ? (
+                <>
+                  <Icon name="check" />
+                  Vais
+                </>
+              ) : m.myStatus === 'notGoing' ? (
+                <>
+                  <Icon name="close" />
+                  Não vais
+                </>
+              ) : (
+                'Responder'
+              )}
+            </button>
+          </div>
         )}
       </div>
       <Icon name="arrow" className="agenda-card__go" />
-    </a>
+    </article>
   );
 }
 
@@ -317,43 +367,5 @@ function ArchiveRow({ event }: { event: EventSummary }) {
         )}
       </span>
     </a>
-  );
-}
-
-/** Every prize, newest festival first (the old "Prémios" list, festivals without prizes left out). */
-function Prizes({ past }: { past: EventSummary[] }) {
-  const won = past.filter((e) => e.trophies.length > 0);
-  if (won.length === 0) return null;
-  const total = won.reduce((n, e) => n + e.trophies.length, 0);
-
-  return (
-    <section className="prizes" aria-labelledby="prizes-title">
-      <div className="prizes__head">
-        <Icon name="trophy" />
-        <div>
-          <h2 id="prizes-title" className="events-block__title">
-            Prémios
-          </h2>
-          <p className="note">
-            {total === 1 ? '1 prémio' : `${total} prémios`} em {won.length === 1 ? '1 festival' : `${won.length} festivais`}
-          </p>
-        </div>
-      </div>
-      <ul className="prizes__list">
-        {won.map((e) => (
-          <li key={e.id} className="prizes__festival">
-            <a href={portal.event(e.id)} className="prizes__event">
-              {e.name}
-              <span>{yearOf(e.date)}</span>
-            </a>
-            <ul className="prizes__items">
-              {e.trophies.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

@@ -36,7 +36,6 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/events")]
     [InlineData("/events?season=2025-2026&type=Festival")]
     [InlineData("/events/1")]
-    [InlineData("/events/1/enrollment")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -167,7 +166,7 @@ public class PortalRouteTests : IntegrationTestBase
             (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
         }
 
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1", "/events/1/enrollment" })
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
@@ -187,7 +186,6 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/gallery")]
     [InlineData("/events")]
     [InlineData("/events/{id:int}")]
-    [InlineData("/events/{id:int}/enrollment")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -215,25 +213,34 @@ public class PortalRouteTests : IntegrationTestBase
     }
 
     /// <summary>
-    /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. The
-    /// /events/{id}/attendance URL of the first 011 draft never reached dev, so it is simply not served.
+    /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. A member
+    /// answers in a modal on the event page: the first 011 build's /events/{id}/enrollment page is
+    /// gone and its URL lands on the event with the modal open (?respond=1); the draft
+    /// /events/{id}/attendance never reached dev and is not served.
     /// </summary>
     [Fact]
-    public async Task EventEnrollmentRoute_IsEnrollment_AndTheDraftAttendanceUrlIs404()
+    public async Task EventAnswers_AreAModalOnTheEventPage_NotAPageOfTheirOwn()
     {
         var client = NoRedirectClient();
 
-        (await client.GetAsync("/events/1/enrollment")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var old = await client.GetAsync("/events/12/enrollment");
+        old.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        old.Headers.Location!.ToString().Should().Be("/events/12?respond=1");
+        (await client.PostAsync("/events/12/enrollment", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
         (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var root = FindRepoRoot();
         File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"))
-            .Should().Contain("$\"/events/{eventItem.Id}/enrollment\"", "the bridge's answer buttons open the React enrollment page");
+            .Should().Contain("$\"/events/{eventItem.Id}?respond=1\"", "the bridge's answer buttons open the React answer modal");
         var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
-        Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
-            .Select(File.ReadAllText).Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
-                "event pages speak of enrollment, never attendance");
+        File.Exists(Path.Combine(portal, "EventEnrollment.tsx")).Should().BeFalse("the standalone answer page was retired");
+        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("enrollment");
+        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
+            .Select(File.ReadAllText).ToList();
+        events.Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
+            "event pages speak of enrollment, never attendance");
+        string.Concat(events).Should().Contain("<EnrollmentDialog").And.Contain("<PrizesDialog").And.Contain("className={`quick-reply");
     }
 
     [Fact]
