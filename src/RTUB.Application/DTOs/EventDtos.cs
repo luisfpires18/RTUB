@@ -23,7 +23,8 @@ public sealed record EventTypeOptionDto(string Value, string Label);
 
 /// <summary>
 /// An event as the Admin/Owner edit form loads it. <c>Time</c> is null for a whole-day or multi-day
-/// event; <c>EndDate</c> only for a multi-day one. The image is kept as it is (changed on /member/events).
+/// event; <c>EndDate</c> only for a multi-day one. <c>ImageUrl</c> is the current image (https/same-site) or null;
+/// the image itself changes through /api/events/{id}/image (012A).
 /// </summary>
 public sealed record EventEditDto(
     int Id,
@@ -34,7 +35,8 @@ public sealed record EventEditDto(
     string Location,
     string Type,
     string Description,
-    bool HasImage);
+    bool HasImage,
+    string? ImageUrl = null);
 
 /// <summary>
 /// What the Admin/Owner form sends. Dates are "yyyy-MM-dd", the time "HH:mm". A multi-day event
@@ -160,3 +162,33 @@ public sealed record EventResult<T>(EventResultStatus Status, T? Value = default
     public static EventResult<T> Invalid(string field, string message) =>
         new(EventResultStatus.Invalid, Errors: new Dictionary<string, string[]> { [field] = new[] { message } });
 }
+
+// ---------- advanced management (Admin/Owner, React track 012A) ----------
+
+/// <summary>A cropped event image as the browser sends it: WebP (JPEG/PNG where WebP cannot be encoded), at most 5 MB.</summary>
+public sealed record EventImageUpload(Stream Content, string FileName, string ContentType, long Length);
+
+/// <summary>Cancelling: the reason is required (≤1000), as on the old page; the email to subscribers is opt-in.</summary>
+public sealed record EventCancelInput(string? Reason, bool NotifyByEmail);
+
+/// <summary>
+/// Who a notice would reach, as counts only (never names or addresses): email = members with
+/// "Notificações por email" on out of every confirmed address; push = members with an active push
+/// subscription out of every member, and the same for Leitões and Caloiros only.
+/// </summary>
+public sealed record EventNoticeAudienceDto(
+    int EmailSubscribed,
+    int EmailTotal,
+    int PushSubscribed,
+    int PushTotal,
+    int PushLeitoesCaloirosSubscribed,
+    int PushLeitoesCaloirosTotal);
+
+/// <summary>
+/// One notice, as the old page offered it. <c>Channel</c> "email" (<c>Kind</c> "new" or "reminder") or
+/// "push" (a <c>Message</c> ≤500, the event name as title; <c>OnlyLeitoesAndCaloiros</c> narrows the audience).
+/// </summary>
+public sealed record EventNoticeInput(string? Channel, string? Kind, string? Message, bool OnlyLeitoesAndCaloiros);
+
+/// <summary>What a notice (or the cancellation email) did. <c>Warning</c> when part of it did not go out.</summary>
+public sealed record EventNoticeResultDto(int Sent, int Failed, string? Warning);

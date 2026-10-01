@@ -28,10 +28,8 @@
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
 @inject ITrophyService TrophyService
-@inject IEmailNotificationService EmailNotificationService
 @inject IPushNotificationService PushNotificationService
 @inject IPushNotificationFactory PushNotificationFactory
-@inject IImageStorageService ImageStorageService
 @inject IEventRepertoireService EventRepertoireService
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
@@ -138,13 +136,8 @@ else
                                        IsAdmin="@isUserAdmin"
                                        IsPastEvent="false"
                                        ShowDeleteButton="@CanDeleteEvent()"
-                                       ShowCancelButton="@CanCancelEvent()"
                                        OnEdit="@(() => OpenEditModal(eventItem))"
                                        OnDelete="@(() => OpenDeleteModal(eventItem))"
-                                       OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
-                                       OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
-                                       OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
-                                       OnUncancelEvent="@(() => UncancelEvent(eventItem))"
                                        OnEnrollGoing="@(() => OpenEventResponse(eventItem))"
                                        OnEnrollNotGoing="@(() => OpenEventResponse(eventItem))"
                                        OnEditEnrollment="@(() => OpenEventResponse(eventItem))"
@@ -363,13 +356,6 @@ else
                     }
                 </InputSelect>
             </div>
-
-            <ImageUploadManager @ref="imageUploadManager"
-                               Label="Imagem do Evento"
-                               CurrentImageUrl="@(uploadedImagePath == null && !string.IsNullOrEmpty(editingEvent!.ImageSrc) ? GetEventImageUrl(editingEvent.ImageSrc) : null)"
-                               ShowCurrentImage="@(uploadedImagePath == null)"
-                               PreviewCssClass="slideshow-preview"
-                               OnFileSelected="HandleImageUpload" />
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
@@ -675,16 +661,6 @@ else
         </FooterContent>
     </Modal>
 }
-
-<!-- Image Cropper Component -->
-<ImageCropper @ref="imageCropper"
-              ShowModal="@modals.IsOpen(ModalType.Cropper)"
-              ShowModalChanged="OnCropperModalChanged"
-              OnImageCropped="OnImageCropped"
-              AspectRatio="1.5"
-              AspectRatioHelp="Event images are displayed in 3:2 aspect ratio for better presentation"
-              ImageFormat="image/webp"
-              ImageQuality="0.85" />
 
 <!-- Repertoire Modal -->
 <RepertoireModal Show="@modals.IsOpen(ModalType.Repertoire)"
@@ -1157,301 +1133,6 @@ else
                OnConfirm="DeleteEnrollment"
                OnCancel="CloseDeleteEnrollmentModal" />
 
-<!-- Email Notification Confirmation Modal -->
-<Modal Show="@modals.IsOpen(ModalType.EmailNotification)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.EmailNotification, show))"
-       Title="Enviar notificação desta atuação"
-       Size="Modal.ModalSize.Large"
-       Centered="true"
-       ShowCloseButton="true">
-    <BodyContent>
-        @if (selectedEventForEmail != null)
-        {
-            <!-- Loading Overlay for Sending Emails -->
-            @if (IsSendingEmails)
-            {
-                <div class="position-relative loading-overlay-container">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
-                        <div class="spinner-border text-primary mb-3 spinner-large" role="status">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
-                        <h5 class="text-white mb-2">Enviando emails...</h5>
-                        <p class="text-white-full mb-0">
-                            @EmailsSent / @EmailsTotal
-                            @if (!string.IsNullOrEmpty(LastRecipient))
-                            {
-                                <span> (último: @LastRecipient)</span>
-                            }
-                        </p>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="mb-3">
-                    <h6 class="text-white-full">Detalhes do Evento:</h6>
-                    <div class="event-summary p-3 rounded bg-dark">
-                        <div><strong>Título:</strong> @selectedEventForEmail.Name</div>
-                        <div><strong>Data:</strong> @selectedEventForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
-                        <div><strong>Local:</strong> @selectedEventForEmail.Location</div>
-                    </div>
-                </div>
-
-                @if (emailLoadingSubscribers)
-                {
-                    <LoadingSpinner Message="A carregar subscritores..." />
-                }
-                else if (!string.IsNullOrEmpty(emailErrorMessage))
-                {
-                    <Alert Message="@emailErrorMessage" 
-                           Type="Alert.AlertType.Error" 
-                           Dismissible="true"
-                           OnDismiss="@(() => emailErrorMessage = null)" />
-                }
-                else
-                {
-                    <!-- Notification Type Selection -->
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                        <select class="form-select" @bind="selectedNotificationType">
-                            <option value="@NotificationTypeNew">Nova Atuação</option>
-                            <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
-                        </select>
-                        <small class="text-muted">
-                            @if (selectedNotificationType == NotificationTypeNew)
-                            {
-                                <text>Notifica os membros sobre uma nova atuação criada.</text>
-                            }
-                            else
-                            {
-                                var daysText = GetDaysUntilEventText(selectedEventForEmail.Date);
-                                if (daysText != null)
-                                {
-                                    var reminderText = daysText == "hoje" ? "a atuação é hoje" : $"a atuação é em {daysText}";
-                                    <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
-                                }
-                                else
-                                {
-                                    <text>Não é possível enviar lembretes para eventos passados.</text>
-                                }
-                            }
-                        </small>
-                    </div>
-                    
-                    <EmailRecipientsPreview 
-                        SubscribedUsers="@(subscribedUsers ?? new List<ApplicationUser>())"
-                        NonSubscribedUsers="@(nonSubscribedUsers ?? new List<ApplicationUser>())"
-                        SubscribedUsersTitle="Membros que irão receber:"
-                        NonSubscribedUsersTitle="Quem não irá receber:"
-                        ShowNonSubscribedUsers="true"
-                        MaxHeight="300px"
-                        InfoBadgeText="@($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")"
-                        ShowEmptySubscribedMessage="true"
-                        EmptySubscribedMessage="Nenhum membro subscrito às notificações por email." />
-                }
-            }
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal" disabled="@IsSendingEmails">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendEventNotification" disabled="@(IsSendingEmails || subscribedUsers == null || !subscribedUsers.Any())">
-            Enviar Notificação
-        </button>
-    </FooterContent>
-</Modal>
-
-<!-- Push Notification Confirmation Modal -->
-<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
-       Title="Enviar notificação push desta atuação"
-       Size="Modal.ModalSize.Large"
-       Centered="true"
-       ShowCloseButton="true">
-    <BodyContent>
-        @if (selectedEventForPush != null)
-        {
-            <!-- Loading Overlay for Sending Push Notifications -->
-            @if (IsSendingPushNotifications)
-            {
-                <div class="position-relative loading-overlay-container">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
-                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
-                        <h5 class="text-white mb-2">Enviando notificações push...</h5>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="mb-3">
-                    <h6 class="text-white-full">Detalhes do Evento:</h6>
-                    <div class="event-summary p-3 rounded bg-dark">
-                        <div><strong>Título:</strong> @selectedEventForPush.Name</div>
-                        <div><strong>Data:</strong> @selectedEventForPush.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
-                        <div><strong>Local:</strong> @selectedEventForPush.Location</div>
-                    </div>
-                </div>
-
-                @if (pushLoadingSubscribers)
-                {
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">A carregar...</span>
-                        </div>
-                    </div>
-                }
-                else if (!string.IsNullOrEmpty(pushErrorMessage))
-                {
-                    <Alert Message="@pushErrorMessage" 
-                           Type="Alert.AlertType.Error" 
-                           Dismissible="true"
-                           OnDismiss="@(() => pushErrorMessage = null)" />
-                }
-                else
-                {
-                    <!-- Custom Notification Message -->
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
-                        <textarea class="form-control" 
-                                  rows="4" 
-                                  @bind="customNotificationBody" 
-                                  placeholder="Ex: Atuação importante, confirma a tua presença!"
-                                  maxlength="500"></textarea>
-                        <small class="text-muted">
-                            A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres.
-                        </small>
-                    </div>
-
-                    <!-- Filter Option -->
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" 
-                                   type="checkbox" 
-                                   id="eventFilterLeitaoCaloiro"
-                                   @bind="filterOnlyLeitaoAndCaloiro"
-                                   @bind:after="OnEventFilterChanged" />
-                            <label class="form-check-label text-white-full" for="eventFilterLeitaoCaloiro">
-                                Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
-                            </label>
-                        </div>
-                        @if (filterOnlyLeitaoAndCaloiro)
-                        {
-                            <small class="text-warning d-block mt-1">
-                                <i class="bi bi-info-circle me-1"></i>
-                                As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
-                            </small>
-                        }
-                    </div>
-                    
-                    <EmailRecipientsPreview 
-                        SubscribedUsers="@(pushFilteredSubscribedUsers ?? new List<ApplicationUser>())"
-                        NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
-                        SubscribedUsersTitle="Membros que irão receber:"
-                        NonSubscribedUsersTitle="Quem não irá receber:"
-                        ShowNonSubscribedUsers="true"
-                        MaxHeight="300px"
-                        InfoBadgeText="@($"{pushSubscribedUsersCount} / {pushTotalUsersCount} membros têm notificações push ativas e irão receber esta mensagem.")"
-                        ShowEmptySubscribedMessage="true"
-                        EmptySubscribedMessage="Nenhum membro subscrito às notificações push." />
-                }
-            }
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendPushNotification" disabled="@(IsSendingPushNotifications || pushSubscribedUsers == null || !pushSubscribedUsers.Any())">
-            Enviar Notificação Push
-        </button>
-    </FooterContent>
-</Modal>
-
-<!-- Cancel Event Confirmation Modal -->
-<Modal Show="@modals.IsOpen(ModalType.CancelEvent)"
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelEvent, show))"
-       Title="Cancelar Evento"
-       Size="Modal.ModalSize.Large"
-       Centered="true"
-       ShowCloseButton="true">
-    <BodyContent>
-        @if (selectedEventForCancellation != null)
-        {
-            <!-- Loading Overlay for Sending Cancellation Emails -->
-            @if (IsSendingEmails)
-            {
-                <div class="position-relative loading-overlay-container">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
-                        <div class="spinner-border text-primary mb-3 spinner-large" role="status">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
-                        <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
-                        <p class="text-white-full mb-0">
-                            @EmailsSent / @EmailsTotal
-                            @if (!string.IsNullOrEmpty(LastRecipient))
-                            {
-                                <span> (último: @LastRecipient)</span>
-                            }
-                        </p>
-                    </div>
-                </div>
-            }
-            
-            <div class="mb-3">
-                <h6 class="text-white-full">Evento:</h6>
-                <div class="event-summary p-3 rounded bg-dark">
-                    <div><strong>Título:</strong> @selectedEventForCancellation.Name</div>
-                    <div><strong>Data:</strong> @FormatEventDateRange(selectedEventForCancellation)</div>
-                    <div><strong>Local:</strong> @selectedEventForCancellation.Location</div>
-                </div>
-            </div>
-
-            @if (!string.IsNullOrEmpty(cancelEventErrorMessage))
-            {
-                <ErrorDisplay Errors="@(new[] { cancelEventErrorMessage })" />
-            }
-
-            @if (cancelEventLoadingSubscribers)
-            {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
-            }
-            
-            <div class="mb-3 form-check">
-                <input class="form-check-input" type="checkbox" id="notifySubscribersCheckbox"
-                       @bind="notifySubscribersOnCancel">
-                <label class="form-check-label text-white-full" for="notifySubscribersCheckbox">
-                    Notificar todos os inscritos por email
-                </label>
-            </div>
-            
-            @if (notifySubscribersOnCancel)
-            {
-                <EmailRecipientsPreview 
-                    SubscribedUsers="@(cancelEventSubscribedUsers ?? new List<ApplicationUser>())"
-                    NonSubscribedUsers="@(cancelEventNonSubscribedUsers ?? new List<ApplicationUser>())"
-                    SubscribedUsersTitle="Membros que irão receber:"
-                    NonSubscribedUsersTitle="Quem não irá receber:"
-                    ShowNonSubscribedUsers="true"
-                    MaxHeight="200px"
-                    InfoBadgeText="@($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")" />
-            }
-
-            <div class="mb-3">
-                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                <textarea class="form-control" rows="4" 
-                          @bind="cancelEventReason" 
-                          placeholder="Descreva o motivo do cancelamento do evento..."
-                          maxlength="1000"></textarea>
-                <small class="text-muted">Máximo 1000 caracteres</small>
-            </div>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal" disabled="@IsSendingEmails">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent" disabled="@IsSendingEmails">Cancelar Evento</button>
-    </FooterContent>
-</Modal>
 
 
 </div>
@@ -1474,7 +1155,6 @@ else
         Edit,
         Delete,
         EnrollmentList,
-        Cropper,
         Repertoire,
         EventDetails,
         Trophy,
@@ -1483,9 +1163,6 @@ else
         Videos,
         EditVideo,
         DeleteEnrollment,
-        EmailNotification,
-        PushNotification,
-        CancelEvent,
         TrophiesStats
     }
 
@@ -1502,9 +1179,6 @@ else
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
     private Event? selectedEventForVideos;
-    private Event? selectedEventForEmail;
-    private Event? selectedEventForPush;
-    private Event? selectedEventForCancellation;
     private Enrollment? deletingEnrollment;
     private Trophy? editingTrophy;
     private Trophy? deletingTrophy;
@@ -1549,18 +1223,11 @@ else
     private int? draggingVideoId = null;
     private int? dragOverVideoId = null;
     
-    private string? uploadedImagePath;
     private string dateValidationError = string.Empty;
     private bool showPastDateWarning = false;
     private bool isDateRange = false;
     private string eventTimeString = "19:00"; // Default to 19:00 (7 PM)
-    private ImageCropper? imageCropper;
-    private IBrowserFile? selectedFile;
-    private ImageUploadManager? imageUploadManager;
-    private int imageRefreshTrigger = 0;
     private int eventListRefreshTrigger = 0; // Force event list re-render
-    private byte[]? croppedImageBytes;
-    private string? croppedImageFileName = "event-image.webp";
 
     // Future events pagination
     private PaginationHelper<Event> futureEventsPaginationHelper = new() { PageSize = 9 };
@@ -1594,51 +1261,9 @@ else
     private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
     private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
     
-    // Email notification modal variables
-    private List<ApplicationUser>? subscribedUsers;
-    private List<ApplicationUser>? nonSubscribedUsers;
-    private int subscribedUsersCount = 0;
-    private int totalUsersCount = 0;
-    private bool emailLoadingSubscribers = false;
-    private string? emailErrorMessage;
-    private string selectedNotificationType = NotificationTypeNew;
-    
-    // Email sending progress variables
-    private bool IsSendingEmails = false;
-    private int EmailsTotal = 0;
-    private int EmailsSent = 0;
-    private string? LastRecipient = null;
-    
-    // Push notification modal variables
-    private List<ApplicationUser>? pushSubscribedUsers;
-    private List<ApplicationUser>? pushNonSubscribedUsers;
-    private List<ApplicationUser>? pushFilteredSubscribedUsers;
-    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
-    private int pushSubscribedUsersCount = 0;
-    private int pushTotalUsersCount = 0;
-    private bool pushLoadingSubscribers = false;
-    private string? pushErrorMessage;
-    private bool IsSendingPushNotifications = false;
-    private string? customNotificationBody;
-    private bool filterOnlyLeitaoAndCaloiro = false;
-    
-    // Notification type constants
-    private const string NotificationTypeNew = "new";
-    private const string NotificationTypeReminder = "reminder";
-    
     // Media session constants
     private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
     
-    // Cancel event modal variables
-    private bool notifySubscribersOnCancel = false;
-    private string cancelEventReason = string.Empty;
-    private List<ApplicationUser>? cancelEventSubscribedUsers;
-    private List<ApplicationUser>? cancelEventNonSubscribedUsers;
-    private int cancelEventSubscribedCount = 0;
-    private int cancelEventTotalCount = 0;
-    private bool cancelEventLoadingSubscribers = false;
-    private string? cancelEventErrorMessage;
-
     // Add member to enrollment variables (for past events)
     private string addMemberToEnrollmentSearchTerm = "";
     private string addMemberToEnrollmentFeedbackMessage = "";
@@ -1690,7 +1315,6 @@ else
         {
             // Pre-fill event creation modal from request data
             isCreateMode = true;
-            uploadedImagePath = null;
             dateValidationError = string.Empty;
             showPastDateWarning = false;
             isDateRange = false;
@@ -2087,7 +1711,6 @@ else
     private void OpenCreateModal()
     {
         isCreateMode = true;
-        uploadedImagePath = null;
         dateValidationError = string.Empty;
         showPastDateWarning = false;
         isDateRange = false;
@@ -2109,7 +1732,6 @@ else
     private void OpenEditModal(Event eventItem)
     {
         isCreateMode = false;
-        uploadedImagePath = null;
         dateValidationError = string.Empty;
         showPastDateWarning = false;
         
@@ -2138,59 +1760,7 @@ else
     {
         modals.Close(ModalType.Edit);
         editingEvent = null;
-        uploadedImagePath = null;
         showPastDateWarning = false;
-    }
-
-    private async Task HandleImageUpload(IBrowserFile file)
-    {
-        try
-        {
-            if (file != null)
-            {
-                var maxFileSize = 10 * 1024 * 1024;
-                if (file.Size > maxFileSize)
-                {
-                    return;
-                }
-
-                selectedFile = file;
-
-                if (imageCropper != null)
-                {
-                    await imageCropper.LoadImageAsync(selectedFile);
-                }
-            }
-        }
-        catch (Exception)
-        {
-            // Handle error silently or show message
-        }
-    }
-
-    private void OnImageCropped(byte[] croppedImageData)
-    {
-        try
-        {
-            if (editingEvent != null && croppedImageData != null && croppedImageData.Length > 0)
-            {
-                // Store the cropped image bytes for upload when saving
-                croppedImageBytes = croppedImageData;
-                uploadedImagePath = "uploaded";
-                
-                StateHasChanged();
-            }
-        }
-        catch (Exception)
-        {
-            // Handle error
-        }
-    }
-
-    private void OnCropperModalChanged(bool isOpen)
-    {
-        modals.Toggle(ModalType.Cropper, isOpen);
-        StateHasChanged();
     }
 
     private async Task SaveEvent()
@@ -2202,23 +1772,13 @@ else
 
         if (isCreateMode)
         {
-            // Upload image BEFORE creating entity to include in single Create audit log
-            string? imageUrl = null;
-            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
-            {
-                using var stream = new MemoryStream(croppedImageBytes);
-                var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingEvent.Name);
-                imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "events", normalizedName);
-            }
-
             var createdEvent = await EventService.CreateEventAsync(
                 editingEvent.Name,
                 editingEvent.Date,
                 editingEvent.Location,
                 editingEvent.Type,
                 editingEvent.Description ?? string.Empty,
-                editingEvent.EndDate,
-                imageUrl
+                editingEvent.EndDate
             );
 
             // Broadcast push notification for new event
@@ -2235,36 +1795,16 @@ else
         }
         else
         {
-            // Check if we're updating both details and image - combine into single transaction to avoid duplicate audit logs
-            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
-            {
-                using var stream = new MemoryStream(croppedImageBytes);
-                await EventService.UpdateEventWithImageAsync(
-                    editingEvent.Id,
-                    editingEvent.Name,
-                    editingEvent.Date,
-                    editingEvent.Location,
-                    editingEvent.Description ?? string.Empty,
-                    editingEvent.Type,
-                    editingEvent.EndDate,
-                    stream,
-                    croppedImageFileName!,
-                    "image/webp");
-                imageRefreshTrigger++;
-            }
-            else
-            {
-                // Only updating event details (no new image)
-                await EventService.UpdateEventAsync(
-                    editingEvent.Id,
-                    editingEvent.Name,
-                    editingEvent.Date,
-                    editingEvent.Location,
-                    editingEvent.Description ?? string.Empty,
-                    editingEvent.Type,
-                    editingEvent.EndDate
-                );
-            }
+            // Details only; the image is managed on the React agenda (012A).
+            await EventService.UpdateEventAsync(
+                editingEvent.Id,
+                editingEvent.Name,
+                editingEvent.Date,
+                editingEvent.Location,
+                editingEvent.Description ?? string.Empty,
+                editingEvent.Type,
+                editingEvent.EndDate
+            );
         }
 
         // Reload all event-related data to ensure UI is fully updated
@@ -2756,354 +2296,7 @@ else
     {
         if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
         
-        // Add refresh trigger only when an image has been updated
-        // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?r={imageRefreshTrigger}";
-        }
-        
         return imageSrc;
-    }
-
-    // Email notification methods
-    private async Task OpenEmailNotificationModal(Event eventItem)
-    {
-        selectedEventForEmail = eventItem;
-        emailLoadingSubscribers = true;
-        emailErrorMessage = null;
-        selectedNotificationType = NotificationTypeNew; // Reset to default
-        modals.Open(ModalType.EmailNotification);
-        StateHasChanged();
-
-        try
-        {
-            // Get all users with Subscribed = true and EmailConfirmed = true
-            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            subscribedUsers = allUsers
-                .Where(u => u.Subscribed && u.EmailConfirmed)
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            nonSubscribedUsers = allUsers
-                .Where(u => !u.Subscribed && u.EmailConfirmed)
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            subscribedUsersCount = subscribedUsers.Count;
-            totalUsersCount = allUsers.Count(u => u.EmailConfirmed);
-        }
-        catch (Exception ex)
-        {
-            emailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
-        }
-        finally
-        {
-            emailLoadingSubscribers = false;
-            StateHasChanged();
-        }
-    }
-
-    private void CloseEmailNotificationModal()
-    {
-        modals.Close(ModalType.EmailNotification);
-        selectedEventForEmail = null;
-        subscribedUsers = null;
-        nonSubscribedUsers = null;
-        subscribedUsersCount = 0;
-        totalUsersCount = 0;
-        emailErrorMessage = null;
-    }
-
-    private async Task SendEventNotification()
-    {
-        if (selectedEventForEmail == null || subscribedUsers == null || !subscribedUsers.Any())
-        {
-            CloseEmailNotificationModal();
-            return;
-        }
-
-        // Initialize progress tracking
-        IsSendingEmails = true;
-        EmailsTotal = subscribedUsers.Count;
-        EmailsSent = 0;
-        LastRecipient = null;
-        emailErrorMessage = null;
-        
-        StateHasChanged();
-
-        try
-        {
-            // Get the event link (absolute URL)
-            var baseUri = Navigation.BaseUri.TrimEnd('/');
-            var eventLink = $"{baseUri}/events";
-
-            // Get recipient emails
-            var recipientEmails = subscribedUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                .Select(u => u.Email!)
-                .ToList();
-
-            // Build recipient data dictionary with nickname and full name
-            var recipientData = subscribedUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                .ToDictionary(
-                    u => u.Email!,
-                    u => (
-                        nickname: u.Nickname ?? "",
-                        fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
-                    )
-                );
-
-            // Create progress reporter
-            var progress = new Progress<EmailSendProgress>(update =>
-            {
-                EmailsTotal = update.Total;
-                EmailsSent = update.Sent;
-                LastRecipient = update.LastRecipient;
-                StateHasChanged();
-            });
-
-            // Send the appropriate notification based on selected type
-            (bool success, int count, string? errorMessage) result;
-            
-            if (selectedNotificationType == NotificationTypeReminder)
-            {
-                // Send reminder notification
-                result = await EmailNotificationService.SendEventReminderNotificationAsync(
-                    selectedEventForEmail.Id,
-                    selectedEventForEmail.Name,
-                    selectedEventForEmail.Date,
-                    selectedEventForEmail.Location,
-                    eventLink,
-                    recipientEmails,
-                    recipientData,
-                    selectedEventForEmail.Description ?? "",
-                    selectedEventForEmail.EndDate,
-                    progress
-                );
-            }
-            else
-            {
-                // Send new event notification
-                result = await EmailNotificationService.SendEventNotificationAsync(
-                    selectedEventForEmail.Id,
-                    selectedEventForEmail.Name,
-                    selectedEventForEmail.Date,
-                    selectedEventForEmail.Location,
-                    eventLink,
-                    recipientEmails,
-                    recipientData,
-                    selectedEventForEmail.Description ?? "",
-                    selectedEventForEmail.EndDate,
-                    progress
-                );
-            }
-
-            if (result.success)
-            {
-                // Success - close modal
-                emailErrorMessage = null;
-                CloseEmailNotificationModal();
-            }
-            else
-            {
-                emailErrorMessage = result.errorMessage ?? "Erro ao enviar notificação.";
-            }
-        }
-        catch (Exception ex)
-        {
-            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
-        }
-        finally
-        {
-            IsSendingEmails = false;
-            StateHasChanged();
-        }
-    }
-
-    // Push notification methods
-    private async Task OpenPushNotificationModal(Event eventItem)
-    {
-        selectedEventForPush = eventItem;
-        pushLoadingSubscribers = true;
-        pushErrorMessage = null;
-        customNotificationBody = string.Empty;
-        filterOnlyLeitaoAndCaloiro = false;
-        modals.Open(ModalType.PushNotification);
-        StateHasChanged();
-
-        try
-        {
-            // Get all user IDs with active push subscriptions via service
-            var userIdsWithPushSubscriptions = (await PushNotificationService.GetSubscribedUserIdsAsync()).ToHashSet();
-
-            // Get all users
-            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            
-            // Split users into subscribed (has push subscriptions) and non-subscribed
-            pushSubscribedUsers = allUsers
-                .Where(u => userIdsWithPushSubscriptions.Contains(u.Id))
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            pushNonSubscribedUsers = allUsers
-                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            ApplyPushNotificationFilter();
-        }
-        catch (Exception ex)
-        {
-            pushErrorMessage = $"Erro ao carregar membros: {ex.Message}";
-        }
-        finally
-        {
-            pushLoadingSubscribers = false;
-            StateHasChanged();
-        }
-    }
-
-    private void ClosePushNotificationModal()
-    {
-        modals.Close(ModalType.PushNotification);
-        selectedEventForPush = null;
-        pushSubscribedUsers = null;
-        pushNonSubscribedUsers = null;
-        pushFilteredSubscribedUsers = null;
-        pushFilteredNonSubscribedUsers = null;
-        pushSubscribedUsersCount = 0;
-        pushTotalUsersCount = 0;
-        pushErrorMessage = null;
-        customNotificationBody = string.Empty;
-        filterOnlyLeitaoAndCaloiro = false;
-    }
-
-    private async Task SendPushNotification()
-    {
-        if (selectedEventForPush == null || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any())
-        {
-            ClosePushNotificationModal();
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(customNotificationBody))
-        {
-            pushErrorMessage = "A mensagem da notificação é obrigatória.";
-            return;
-        }
-
-        IsSendingPushNotifications = true;
-        pushErrorMessage = null;
-        StateHasChanged();
-
-        try
-        {
-            // Get the base URL
-            var baseUri = Navigation.BaseUri.TrimEnd('/');
-
-            // Create the push notification using the factory
-            SendPushNotificationDto notification;
-            try
-            {
-                notification = PushNotificationFactory.CreateEventCustomNotification(
-                    selectedEventForPush,
-                    customNotificationBody!,
-                    baseUri);
-            }
-            catch (ArgumentException ex)
-            {
-                pushErrorMessage = ex.Message;
-                IsSendingPushNotifications = false;
-                StateHasChanged();
-                return;
-            }
-
-            // Send to filtered subscribed users only
-            var recipientIds = pushFilteredSubscribedUsers.Select(u => u.Id).ToList();
-            await PushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
-
-            // Audit logging for push notification
-            try
-            {
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-                var userId = user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userName = user?.Identity?.Name;
-
-                if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(userName))
-                {
-                    var changes = JsonSerializer.Serialize(new
-                    {
-                        RecipientCount = recipientIds.Count,
-                        NotificationBody = customNotificationBody
-                    });
-
-                    var auditLog = new AuditLog
-                    {
-                        EntityType = "Event",
-                        EntityId = selectedEventForPush.Id,
-                        Action = "PushNotificationSent",
-                        UserId = userId,
-                        UserName = userName,
-                        Timestamp = DateTime.UtcNow,
-                        Changes = changes,
-                        EntityDisplayName = selectedEventForPush.Name,
-                        IsCriticalAction = false
-                    };
-
-                    await AuditLogService.AddAsync(auditLog);
-                }
-            }
-            catch (Exception auditEx)
-            {
-                // Log error but don't fail the operation
-                Logger.LogError(auditEx, "Failed to create audit log for push notification sent to event {EventId}", selectedEventForPush.Id);
-            }
-
-            // Success - close modal
-            ClosePushNotificationModal();
-        }
-        catch (Exception ex)
-        {
-            pushErrorMessage = $"Erro ao enviar notificação push: {ex.Message}";
-        }
-        finally
-        {
-            IsSendingPushNotifications = false;
-            StateHasChanged();
-        }
-    }
-
-    private void ApplyPushNotificationFilter()
-    {
-        if (filterOnlyLeitaoAndCaloiro)
-        {
-            // Filter to include ONLY users with Leitao OR Caloiro category
-            pushFilteredSubscribedUsers = pushSubscribedUsers?
-                .Where(u => u.IsLeitao() || u.IsCaloiro())
-                .ToList();
-
-            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
-                .Where(u => u.IsLeitao() || u.IsCaloiro())
-                .ToList();
-        }
-        else
-        {
-            // No filter - use original lists directly
-            pushFilteredSubscribedUsers = pushSubscribedUsers;
-            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
-        }
-
-        // Update counts based on filtered lists
-        pushSubscribedUsersCount = pushFilteredSubscribedUsers?.Count ?? 0;
-        pushTotalUsersCount = (pushFilteredSubscribedUsers?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
-    }
-
-    private void OnEventFilterChanged()
-    {
-        ApplyPushNotificationFilter();
     }
 
     private void OnDateChanged()
@@ -3155,172 +2348,10 @@ else
         }
     }
     
-    // Cancel event methods
-    private async Task OpenCancelEventModal(Event eventItem)
-    {
-        selectedEventForCancellation = eventItem;
-        notifySubscribersOnCancel = false;
-        cancelEventReason = string.Empty;
-        cancelEventLoadingSubscribers = true;
-        cancelEventErrorMessage = null;
-        modals.Open(ModalType.CancelEvent);
-        StateHasChanged();
-
-        try
-        {
-            // Get all users with Subscribed = true and EmailConfirmed = true
-            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            cancelEventSubscribedUsers = allUsers
-                .Where(u => u.Subscribed && u.EmailConfirmed)
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            cancelEventNonSubscribedUsers = allUsers
-                .Where(u => !u.Subscribed && u.EmailConfirmed)
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .ToList();
-            
-            cancelEventSubscribedCount = cancelEventSubscribedUsers.Count;
-            cancelEventTotalCount = allUsers.Count(u => u.EmailConfirmed);
-        }
-        catch (Exception ex)
-        {
-            cancelEventErrorMessage = $"Erro ao carregar membros: {ex.Message}";
-        }
-        finally
-        {
-            cancelEventLoadingSubscribers = false;
-            StateHasChanged();
-        }
-    }
-
-    private void CloseCancelEventModal()
-    {
-        modals.Close(ModalType.CancelEvent);
-        selectedEventForCancellation = null;
-        notifySubscribersOnCancel = false;
-        cancelEventReason = string.Empty;
-        cancelEventSubscribedUsers = null;
-        cancelEventNonSubscribedUsers = null;
-        cancelEventSubscribedCount = 0;
-        cancelEventTotalCount = 0;
-        cancelEventErrorMessage = null;
-    }
-
-    private async Task ConfirmCancelEvent()
-    {
-        if (selectedEventForCancellation == null || string.IsNullOrWhiteSpace(cancelEventReason))
-        {
-            cancelEventErrorMessage = "O motivo do cancelamento é obrigatório.";
-            StateHasChanged();
-            return;
-        }
-
-        // Initialize progress tracking if sending emails
-        if (notifySubscribersOnCancel && cancelEventSubscribedUsers != null && cancelEventSubscribedUsers.Any())
-        {
-            IsSendingEmails = true;
-            EmailsTotal = cancelEventSubscribedUsers.Count;
-            EmailsSent = 0;
-            LastRecipient = null;
-            StateHasChanged();
-        }
-
-        try
-        {
-            // Cancel the event
-            await EventService.CancelEventAsync(selectedEventForCancellation.Id, cancelEventReason);
-
-            // Send notification emails if checkbox is selected
-            if (notifySubscribersOnCancel && cancelEventSubscribedUsers != null && cancelEventSubscribedUsers.Any())
-            {
-                var baseUri = Navigation.BaseUri.TrimEnd('/');
-                var eventLink = $"{baseUri}/events";
-
-                // Get recipient emails
-                var recipientEmails = cancelEventSubscribedUsers
-                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                    .Select(u => u.Email!)
-                    .ToList();
-
-                // Build recipient data dictionary with nickname and full name
-                var recipientData = cancelEventSubscribedUsers
-                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                    .ToDictionary(
-                        u => u.Email!,
-                        u => (
-                            nickname: u.Nickname ?? "",
-                            fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
-                        )
-                    );
-
-                // Create progress reporter
-                var progress = new Progress<EmailSendProgress>(update =>
-                {
-                    EmailsTotal = update.Total;
-                    EmailsSent = update.Sent;
-                    LastRecipient = update.LastRecipient;
-                    StateHasChanged();
-                });
-
-                // Send the cancellation notification email
-                await EmailNotificationService.SendEventCancellationNotificationAsync(
-                    selectedEventForCancellation.Id,
-                    selectedEventForCancellation.Name,
-                    selectedEventForCancellation.Date,
-                    selectedEventForCancellation.Location,
-                    cancelEventReason,
-                    eventLink,
-                    recipientEmails,
-                    recipientData,
-                    selectedEventForCancellation.EndDate,
-                    progress
-                );
-            }
-
-            // Reload events
-            await LoadAllEvents();
-
-            CloseCancelEventModal();
-        }
-        catch (Exception ex)
-        {
-            cancelEventErrorMessage = $"Erro ao cancelar evento: {ex.Message}";
-        }
-        finally
-        {
-            IsSendingEmails = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task UncancelEvent(Event eventItem)
-    {
-        try
-        {
-            await EventService.UncancelEventAsync(eventItem.Id);
-            await LoadAllEvents();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            // Could show an error message here
-            Console.WriteLine($"Error uncanceling event: {ex.Message}");
-        }
-    }
-    
     /// <summary>
     /// Determines if the delete action should be available for events.
     /// </summary>
     private bool CanDeleteEvent()
-    {
-        return isUserAdmin;
-    }
-    
-    /// <summary>
-    /// Determines if the cancel action should be available for events.
-    /// </summary>
-    private bool CanCancelEvent()
     {
         return isUserAdmin;
     }

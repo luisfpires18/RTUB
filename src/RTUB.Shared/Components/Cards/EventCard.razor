@@ -70,23 +70,30 @@
                 }
             </div>
             
-            @* Email notification and cancellation buttons in bottom-right corner *@
-            @if (!IsPastEvent)
+            @* Email notification and cancellation buttons in bottom-right corner. Each shows only when
+               its callback is wired: /member/events no longer wires them (React agenda, 012A). *@
+            @if (!IsPastEvent && (OnSendPushNotification.HasDelegate || OnSendEmail.HasDelegate || OnCancelEvent.HasDelegate || OnUncancelEvent.HasDelegate))
             {
                 <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2">
                     @if (!Event.IsCancelled)
                     {
-                        <button class="btn btn-sm btn-admin-notification" 
-                                @onclick="OnSendPushNotification" 
-                                title="Notificar por push">
-                            <i class="bi bi-bell-fill"></i>
-                        </button>
-                        <button class="btn btn-sm btn-admin-notification" 
-                                @onclick="OnSendEmail" 
-                                title="Notificar por email">
-                            <i class="bi bi-envelope-fill"></i>
-                        </button>
-                        @if (ShowCancelButton)
+                        @if (OnSendPushNotification.HasDelegate)
+                        {
+                            <button class="btn btn-sm btn-admin-notification"
+                                    @onclick="OnSendPushNotification"
+                                    title="Notificar por push">
+                                <i class="bi bi-bell-fill"></i>
+                            </button>
+                        }
+                        @if (OnSendEmail.HasDelegate)
+                        {
+                            <button class="btn btn-sm btn-admin-notification"
+                                    @onclick="OnSendEmail"
+                                    title="Notificar por email">
+                                <i class="bi bi-envelope-fill"></i>
+                            </button>
+                        }
+                        @if (ShowCancelButton && OnCancelEvent.HasDelegate)
                         {
                             <button class="btn btn-sm btn-danger music-btn-cancel" 
                                     @onclick="OnCancelEvent" 
@@ -95,9 +102,9 @@
                             </button>
                         }
                     }
-                    else
+                    else if (OnUncancelEvent.HasDelegate)
                     {
-                        <button class="btn btn-sm btn-warning music-btn-uncancel" 
+                        <button class="btn btn-sm btn-warning music-btn-uncancel"
                                 @onclick="OnUncancelEvent" 
                                 title="Reativar evento">
                             <i class="bi bi-arrow-counterclockwise"></i>
