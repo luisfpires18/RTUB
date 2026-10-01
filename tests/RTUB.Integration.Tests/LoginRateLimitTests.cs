@@ -39,7 +39,7 @@ public class LoginRateLimitTests : IntegrationTestBase
         var response = await PostLoginWithTokenAsync(client, user.UserName!, password);
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be("/");
+        response.Headers.Location!.ToString().Should().Be("/events");
         SetCookieHeaders(response).Should().Contain(c => c.Contains(IdentityCookieName),
             "a login inside the limit must behave exactly as it did before rate limiting");
     }
@@ -190,11 +190,7 @@ public class LoginRateLimitTests : IntegrationTestBase
     private static async Task<HttpResponseMessage> PostLoginWithTokenAsync(
         HttpClient client, string userName, string password)
     {
-        var page = await client.GetAsync("/login");
-        page.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var token = AntiforgeryFormToken.Find(await page.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty("/login must render a framework antiforgery token");
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         return await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>

@@ -9,7 +9,7 @@ const DEFAULT_AVATAR = '/images/default-avatar.webp';
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the
  * tuna creates its members' logins, so this page states that first and keeps the public portal
- * one tap away. Signing in itself stays on the Blazor /login.
+ * one tap away. Signing in is the React /login.
  */
 export default function Profile() {
   const { user, failed, retry } = useCurrentUser();

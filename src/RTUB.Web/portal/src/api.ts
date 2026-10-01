@@ -95,3 +95,48 @@ export async function submitRequest(form: RequestForm): Promise<SubmitOutcome> {
     return { kind: 'failed' };
   }
 }
+
+export type SignInFailure = 'invalid' | 'locked' | 'expelled' | 'throttled' | 'expired' | 'failed';
+export type SignInOutcome = { kind: 'signedIn'; redirect: string } | { kind: SignInFailure };
+
+const signInErrors: Record<string, SignInFailure> = { Invalid: 'invalid', Locked: 'locked', Expelled: 'expelled' };
+
+/**
+ * The existing POST /auth/login (Program.cs): same form fields, antiforgery and per-IP limit as
+ * the old Blazor form. Accept: application/json makes it answer { redirect } or 401 { error }
+ * instead of redirecting. The server alone validates the return URL. Nothing throws.
+ */
+export async function signIn(username: string, password: string, rememberMe: boolean, returnUrl: string): Promise<SignInOutcome> {
+  try {
+    const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
+    if (!tokenResponse.ok) return { kind: 'failed' };
+    const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+
+    const body = new FormData();
+    body.set(fieldName, token);
+    body.set('Username', username);
+    body.set('Password', password);
+    body.set('RememberMe', String(rememberMe));
+    body.set('ReturnUrl', returnUrl);
+
+    const response = await fetch('/auth/login', {
+      method: 'POST',
+      body,
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (response.ok) {
+      const { redirect } = (await response.json()) as { redirect: string };
+      return { kind: 'signedIn', redirect };
+    }
+    if (response.status === 401) {
+      const { error } = (await response.json().catch(() => ({}))) as { error?: string };
+      return { kind: signInErrors[error ?? ''] ?? 'invalid' };
+    }
+    if (response.status === 429) return { kind: 'throttled' };
+    if (response.status === 400) return { kind: 'expired' };
+    return { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
+  }
+}

@@ -20,11 +20,12 @@ consecutive months from the current month even before it had activity, so on mon
 with 3 full months never returned to active; it now counts from the last completed month, as
 `MemberStatusService` already did. No schema change.
 
-**Open: `fix/006-remove-obsolete-shell-banners`** (from `dev` @ `3f206d17`). Removed the "Versão de testes"
-strip from the React shell and the service worker's "Nova versão disponível! · Atualizar · Depois" toast
-(+ its stylesheet, SKIP_WAITING path and forced reload). Updates are silent: a new worker waits for every
-RTUB window to close; freshness comes from hashed/`?v=` asset URLs. Details: `docs/react-portal-pilot.md`
-(Layout). No schema change.
+**Open: `feat/007-react-login`** (React track 007, from `dev` @ `0a9232fa`; local, not pushed; DEV only).
+`/login` is React; `Login.razor` retired. `POST /auth/login` unchanged in checks and order; it also
+answers JSON for `Accept: application/json`, and with no local return URL lands on `/events` (was `/`).
+Signed-in `GET /login` → `/events` (return URL ignored: `/login` is also `AccessDeniedPath`). Password
+recovery/confirmation stay Blazor bridges. No schema change. Details: `docs/react-portal-pilot.md`
+(Login (007)). Next: review, PR → `dev`, DEV check with a real member.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -147,6 +148,11 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 007 (Login):
+- `POST /auth/login` reports Locked/Expelled before checking the password, so those states are
+  visible to anyone who knows a username (pre-existing; kept to preserve behaviour).
+- Sign-out exists only in the Blazor layout; the React shell has no sign-out yet.
+
 Raised by 006 (shell banners):
 - `VersionTests.VersionFile_IsStrictSemVer_WithNothingElseInIt` fails on Windows checkouts (`core.autocrlf`
   gives `VERSION` a CRLF); green on CI. A `.gitattributes` `VERSION text eol=lf` rule would fix it.

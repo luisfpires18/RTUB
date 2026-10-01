@@ -34,19 +34,6 @@ public class IdentityPagesTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task LoginPage_ContainsLoginForm()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/login");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("Entrar", "page should contain Login/Entrar text");
-        content.Should().Contain("form", "page should contain a form");
-    }
-
-    [Fact]
     public async Task LoginPage_HasCorrectContentType()
     {
         // Arrange & Act

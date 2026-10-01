@@ -8,7 +8,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
-/// React owns exactly /, /privacy, /profile and /request, served from the committed build in
+/// React owns exactly /, /privacy, /profile, /request, /music and /login, served from the committed build in
 /// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
@@ -27,6 +27,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/request")]
     [InlineData("/music")]
     [InlineData("/music/albums/1")]
+    [InlineData("/login")]
+    [InlineData("/login?ReturnUrl=%2Fprofile")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -172,6 +174,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/music")]
     [InlineData("/music/albums/{id:int}")]
     [InlineData("/music/songs/{AlbumId:int}")]
+    [InlineData("/login")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -188,7 +191,6 @@ public class PortalRouteTests : IntegrationTestBase
     // ---------- temporary Blazor bridges ----------
 
     [Theory]
-    [InlineData("/login")]
     [InlineData("/events")]
     [InlineData("/gallery")]
     [InlineData("/roles")]

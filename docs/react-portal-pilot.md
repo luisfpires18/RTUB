@@ -93,8 +93,8 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: needs a read-only public slides API; revisit with Gallery |
 | Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
 | Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
-| Área de membros / login | React `/profile`, Blazor `/login` | members-only entry | quiet header link, home card, footer | navbar now (quiet link) + temporary Blazor bridge (`/login`) |
-| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from `/login` and emails | temporary Blazor bridge |
+| Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet header link, home card, footer | navbar now (quiet link); login done (007) |
+| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | temporary Blazor bridge |
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
 | Novidades / News | none | future public posts | "Em breve" line | homepage now (teaser only); future React page (`/news`) |
@@ -111,7 +111,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Órgãos Sociais, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → Blazor login and back; signed in → who you are, "Abrir a área de membros" (`/events`) and "Editar o perfil" (`/member/profile`). |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Abrir a área de membros" (`/events`) and "Editar o perfil" (`/member/profile`). |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -122,11 +122,12 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/gallery` | **Temporary Blazor bridge** | Until Gallery has a React version. |
 | `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
 | `/roles` | **Temporary Blazor bridge** | Órgãos Sociais, until Governance has a React version. |
-| `/login`, `POST /auth/login`, `POST /auth/logout` | **Temporary Blazor bridge** | Signing in and out stay Blazor (see Session and profile). |
+| `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
+| `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
 | `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
 | every other member/admin page | **Blazor member/admin, pending** | `/rehearsals`, `/messages`, `/members`, the admin `/requests` page, etc. Unchanged. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
-| `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form. |
+| `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
@@ -190,8 +191,8 @@ below. Sources are pinned to LF so the build is byte-identical on Windows and Li
   until the worker's `CACHE_VERSION` changes and it activates; publish changed images under a new
   URL.
 - **No business logic in React, no database change.** Task 001 called only `GET /api/version`
-  (footer); 002 and 003 added the two APIs in the route table. Login stays the Blazor `/login`, which
-  keeps its antiforgery and rate limiting.
+  (footer); 002 and 003 added the two APIs in the route table. Login is the React `/login` (007) over the
+  unchanged `POST /auth/login`, which keeps its antiforgery and rate limiting.
 
 ## Copy rule
 
@@ -211,12 +212,31 @@ Sources consulted for task 001: the public pages of the live site (home, `/music
 seeded labels (`SeedData.Labels.cs`), `Roles.razor`, `Request.razor` and `EventType`. The RGI and
 the cancioneiro are member-only documents in R2 storage and were not accessed.
 
+## Login (007)
+
+`/login` is React (`portal/src/Login.tsx`); the Blazor `Pages/Identity/Login.razor` is retired. The
+auth backend is unchanged: no Identity, hashing, schema or data change, no public registration.
+
+| Route / endpoint | Owner | Behaviour | Decision |
+| --- | --- | --- | --- |
+| `GET /login` | Program.cs → React shell | Signed out: the form. Signed in: `302 /events`, `returnUrl` ignored on purpose (`/login` is also the cookie's `AccessDeniedPath`; honouring it would loop a member on a page their role cannot open). | React (changed) |
+| `POST /auth/login` | Program.cs | Username, or email when it contains `@`; unconfirmed email → Invalid; lockout and expelled checked before the password; wrong password → `AccessFailedAsync` (5 → 5 min lockout); remember-me; `LastLoginDate`. Antiforgery form token, per-IP limit (10/window, 429). | Keep. Adds `Accept: application/json` answers: `200 { redirect }` or `401 { error: Invalid/Locked/Expelled }`; plain form posts still redirect to `/login?error=…`. Default landing `/` → `/events`. |
+| local-only `returnUrl` | `UrlHelper.IsLocalUrl` | `/x` yes; `//x`, `/\x`, absolute or scheme URLs → `/events`. Read case-insensitively (`ReturnUrl` from the cookie handler, `returnUrl` from links). | Keep (server-side only) |
+| `POST /auth/logout` | Program.cs + Blazor layout form | Antiforgery form, signs out, `302 /`. | Keep |
+| `/forgot-password`, `/reset-password`, `/confirm-email` | Blazor `Pages/Identity` | Recovery and confirmation; link back to `/login`. | Keep as Blazor bridges; React login links to `/forgot-password` |
+| Expelled member with a live cookie | cookie validator | Session rejected on every request, so `/login` shows the form again. | Keep |
+
+The page reads `?error=` for the plain-form fallback, shows field errors, a busy button and one
+banner per outcome (invalid, locked, expelled, throttled, expired token, failure). Copy is
+members-only: no public registration, access created and managed by the tuna, the portal open to
+everyone. Pinned by `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTests` and
+`PortalRouteTests`.
+
 ## Session and profile (task 002)
 
-- **Signing in and out stay Blazor.** `/login` posts to the antiforgery-protected, rate-limited
-  `POST /auth/login`, which already honours a local `returnUrl`; the portal sends visitors to
-  `/login?returnUrl=/profile`. Sign-out is a POST from the Blazor layout with its own token;
-  the portal only points to it.
+- **Signing in is the React `/login` (007)**, over the antiforgery-protected, rate-limited
+  `POST /auth/login`; the portal sends visitors to `/login?returnUrl=/profile`. Sign-out is still
+  a POST from the Blazor layout with its own token; the portal only points to it.
 - **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
   `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
   `fullName`, `avatarUrl` and category labels (`StatusHelper.GetCategoryDisplay`). No email, phone,
