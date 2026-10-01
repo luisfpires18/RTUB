@@ -86,7 +86,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
 | Galeria | `/gallery` | photos and videos | `/#gallery` artwork preview | homepage now + navbar now + temporary Blazor bridge |
-| Órgãos Sociais | `/roles` (`bodies_*` labels) | bodies and the current mandate | `/#governance`: bodies and positions, no names | homepage now + navbar now + temporary Blazor bridge |
+| Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/#governance` bodies and positions + `/roles` | homepage now + navbar now; done (008) |
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
 | Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
@@ -121,7 +121,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **Temporary Blazor bridge** | Until Gallery has a React version. |
 | `/events` | **Temporary Blazor bridge** | Atuações, until Events has a React version; also the members' way in from `/profile`. |
-| `/roles` | **Temporary Blazor bridge** | Órgãos Sociais, until Governance has a React version. |
+| `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
+| `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
 | `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
 | `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
@@ -129,6 +130,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
+| `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
 | `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
 | `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
 | any other `/portal/*` | nobody | 404. |
@@ -211,6 +213,41 @@ contexto do IPB, hoje UPB"). Legal text in the Privacy Policy is left as the pol
 Sources consulted for task 001: the public pages of the live site (home, `/music`, `/roles`), the
 seeded labels (`SeedData.Labels.cs`), `Roles.razor`, `Request.razor` and `EventType`. The RGI and
 the cancioneiro are member-only documents in R2 storage and were not accessed.
+
+## Órgãos Sociais (008)
+
+`/roles` is React (`portal/src/Governance.tsx`) over `GET /api/public/governance`
+(`Endpoints/GovernanceEndpoints.cs` → `IGovernanceService`). The old Blazor `/roles` mixed three
+audiences; only its public view was rebuilt. The page itself moved unchanged in function to the
+members' **`/member/roles`** (`Pages/Members/MemberGovernance.razor`, `[Authorize]`): the RGI viewer
+and the Mod/Admin fiscal-year and position management. Its `?manage=1` (from a long-gone
+`/admin/roles`) still works there.
+
+| Source | Field / data | Public | Private / internal | Old public UI | React | Schema change |
+| --- | --- | --- | --- | --- | --- | --- |
+| `RoleAssignments` | `Position`, `StartYear`, `EndYear` | yes | – | yes | yes | no |
+| `RoleAssignments` | `Notes`, `CreatedBy`, audit dates, `Id`, `UserId` | no | yes | no | no | no |
+| `AspNetUsers` | `Nickname`, `FirstName`, `LastName` | yes | – | yes (nickname + full name) | yes, same | no |
+| `AspNetUsers` | `ImageUrl` (public R2 URL) | yes | – | yes (default avatar if empty) | https or same-site only, else default | no |
+| `AspNetUsers` | email, phone, birth date, address, roles, categories, ids | no | yes | no | no | no |
+| `FiscalYears` | years created by Mod/Admin | – | – | selector, all years | not read: the selector lists years with holders | no |
+| `Position` enum | 13 positions in 5 groups | yes | – | fixed layout | `GovernanceService.Structure` | no |
+| RGI (`docs/rtub_rgi.pdf`, R2) | members-only document | no | yes | members | `/member/roles` only | no |
+
+- **Real data (read-only, counts):** 36 fiscal years (1991-2027), 16 with holders, 124 assignments,
+  58 distinct holders; no orphan, duplicate position, note or expelled holder; nickname always set;
+  every photo is on the public R2 host or empty (41 empty → default avatar). Positions are
+  per fiscal year; there are no separate mandate/term dates.
+- **Verdict:** no schema change, no migration.
+- **Mandate shown:** `?fy=` when it has holders; otherwise the current fiscal year when it has
+  holders, else the latest one that does (in September the new year has no holders yet). The page
+  always says which (`Mandato 2025-2026`).
+- **Changed on purpose:** every holder of a position is listed (the old page showed only the first,
+  so a second Ensaiador was hidden); vacant positions read "Sem registo" instead of "N/D"; empty
+  fiscal years are no longer offered.
+- **Hierarquia:** the old `/roles` never showed it; still not shown (future "Conhece a Tuna").
+- **Follow-ups:** management (fiscal years, assignments) and the RGI in React; then `/member/roles`
+  can go.
 
 ## Login (007)
 
@@ -333,8 +370,8 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 ## Next recommended slice
 
-Task 006: Órgãos Sociais from a read-only public API (current mandate, no personal contact data),
-then Gallery, Music and Events - each retiring its legacy Blazor page once the React one works.
+Gallery and Events, each retiring its legacy Blazor page once the React one works (Music: 006,
+Login: 007, Órgãos Sociais: 008).
 
 ## Next steps (outside this pilot)
 

@@ -1,5 +1,8 @@
-@page "/roles"
+@page "/member/roles"
 @rendermode InteractiveServer
+@attribute [Authorize]
+@* Members' Órgãos Sociais (React track 008): the RGI and, for Mod/Admin, fiscal years and position
+   assignments. The public view is the React /roles (GET /api/public/governance). *@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -1027,7 +1030,7 @@ else
     private async Task OnFiscalYearChanged()
     {
         // Update URL with query parameter
-        NavigationManager.NavigateTo($"/roles?fy={selectedFiscalYear}", forceLoad: false);
+        NavigationManager.NavigateTo($"/member/roles?fy={selectedFiscalYear}", forceLoad: false);
         await LoadRoleAssignments();
     }
 

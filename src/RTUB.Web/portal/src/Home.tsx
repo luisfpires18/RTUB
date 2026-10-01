@@ -359,7 +359,7 @@ function Governance() {
             </li>
           ))}
         </ul>
-        <MoreLink href={legacy.roles}>Ver o mandato atual</MoreLink>
+        <MoreLink href={portal.roles}>Ver quem ocupa os cargos</MoreLink>
       </div>
     </section>
   );

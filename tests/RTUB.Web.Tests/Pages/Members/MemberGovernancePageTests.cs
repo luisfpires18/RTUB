@@ -7,15 +7,16 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Web.Tests.Pages.Base;
-using RolesPage = RTUB.Pages.Public.Roles;
+using RolesPage = RTUB.Pages.Members.MemberGovernance;
 
-namespace RTUB.Web.Tests.Pages.Public;
+namespace RTUB.Web.Tests.Pages.Members;
 
 /// <summary>
-/// Component tests for Roles.razor page (/roles).
+/// Component tests for the members' Órgãos Sociais page, MemberGovernance.razor (/member/roles),
+/// formerly the public Blazor /roles (the public view is React since track 008).
 /// Tests page rendering, loading state, empty state, fiscal year filtering, and authorization (Phase 0.5).
 /// </summary>
-public class RolesPageTests : PageTestBase
+public class MemberGovernancePageTests : PageTestBase
 {
     private const string SkipModal = "Modal renders outside component fragment; cannot assert modal markup in bUnit.";
     private const string SkipUserManagerQuery = "Roles page uses UserManager.Users IQueryable which is complex to mock in bUnit.";
@@ -26,7 +27,7 @@ public class RolesPageTests : PageTestBase
     private readonly Mock<IDocumentStorageService> _mockDocumentStorageService;
     private readonly AuditContext _auditContext;
 
-    public RolesPageTests()
+    public MemberGovernancePageTests()
     {
         _mockRoleAssignmentService = SetupService<IRoleAssignmentService>();
         _mockFiscalYearService = SetupService<IFiscalYearService>();

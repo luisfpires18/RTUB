@@ -659,9 +659,12 @@ public class Program
         // --------- Music API for the React Music area (React track 006) ---------
         app.MapMusicEndpoints();
 
+        // --------- Public Órgãos Sociais for the React /roles (React track 008) ---------
+        app.MapGovernanceEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music and /login below); every other
-        // page stays Blazor.
+        // page stays Blazor. /roles is React since track 008 (the members' tools moved to /member/roles).
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -681,7 +684,8 @@ public class Program
 
         // React Music (track 006): the album list and one album page. The retired Blazor album page
         // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
-        foreach (var route in new[] { "/music", "/music/albums/{id:int}" })
+        // React Órgãos Sociais (track 008): /roles, public.
+        foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

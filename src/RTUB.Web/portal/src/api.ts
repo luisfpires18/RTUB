@@ -140,3 +140,17 @@ export async function signIn(username: string, password: string, rememberMe: boo
     return { kind: 'failed' };
   }
 }
+
+/** GET /api/public/governance (Endpoints/GovernanceEndpoints.cs). Public fields only. */
+export type GovernanceMember = { displayName: string; fullName: string | null; avatarUrl: string | null };
+export type GovernancePosition = { title: string; holders: GovernanceMember[] };
+export type GovernanceBody = { name: string; positions: GovernancePosition[] };
+export type Governance = { fiscalYears: string[]; fiscalYear: string | null; bodies: GovernanceBody[] };
+
+/** One mandate; the server picks the default and ignores an unknown year. */
+export function getGovernance(fiscalYear?: string): Promise<Governance> {
+  const query = fiscalYear ? `?fiscalYear=${encodeURIComponent(fiscalYear)}` : '';
+  return fetch(`/api/public/governance${query}`, { headers: { Accept: 'application/json' } }).then((r) =>
+    r.ok ? (r.json() as Promise<Governance>) : Promise.reject(new Error(`HTTP ${r.status}`)),
+  );
+}

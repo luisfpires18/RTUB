@@ -8,7 +8,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
-/// React owns exactly /, /privacy, /profile, /request, /music and /login, served from the committed build in
+/// React owns exactly /, /privacy, /profile, /request, /music, /login and /roles, served from the committed build in
 /// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
 /// </summary>
 public class PortalRouteTests : IntegrationTestBase
@@ -29,6 +29,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/music/albums/1")]
     [InlineData("/login")]
     [InlineData("/login?ReturnUrl=%2Fprofile")]
+    [InlineData("/roles")]
+    [InlineData("/roles?fy=2024-2025")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();
@@ -175,6 +177,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/music/albums/{id:int}")]
     [InlineData("/music/songs/{AlbumId:int}")]
     [InlineData("/login")]
+    [InlineData("/roles")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -193,7 +196,6 @@ public class PortalRouteTests : IntegrationTestBase
     [Theory]
     [InlineData("/events")]
     [InlineData("/gallery")]
-    [InlineData("/roles")]
     public async Task BlazorBridgeRoutes_StayBlazor(string path)
     {
         var client = Factory.CreateClient();
@@ -235,7 +237,7 @@ public class PortalRouteTests : IntegrationTestBase
 
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("music: '/music'");
         File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("{ music: portal.music }",
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("{ music: portal.music,",
             "the top bar, the mobile menu and the footer open the Music page, not the home section");
         Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
             "the React Music area links to /music/albums/{id}, never the retired Blazor route");

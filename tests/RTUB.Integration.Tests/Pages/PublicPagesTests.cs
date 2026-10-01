@@ -23,6 +23,8 @@ public class PublicPagesTests : IntegrationTestBase
 
     #region Roles Page Tests
 
+    // /roles is the React shell since track 008; its content is pinned by GovernanceTests.
+
     [Fact]
     public async Task RolesPage_ReturnsSuccessStatusCode()
     {
@@ -31,18 +33,6 @@ public class PublicPagesTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task RolesPage_ContainsExpectedContent()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/roles");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("rg", "page should display Órgãos Sociais");
     }
 
     [Fact]
@@ -63,48 +53,6 @@ public class PublicPagesTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task RolesPage_WithManageParam_ReturnsSuccess()
-    {
-        // Arrange & Act - manage=1 parameter (would open fiscal year modal for admins)
-        var response = await _client.GetAsync("/roles?manage=1");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task RolesPage_HasFiscalYearDropdown()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/roles");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("select", "page should have fiscal year dropdown select element");
-    }
-
-    [Fact]
-    public async Task RolesPage_ContainsPositionSections()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/roles");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-
-        // Page might show "A carregar..." if data is loading, or empty state if no fiscal years exist
-        if (!content.Contains("A carregar") && !content.Contains("Nenhum ano letivo"))
-        {
-            content.Should().Contain("DIREÇÃO", "page should have Direção section");
-            content.Should().Contain("MESA DE ASSEMBLEIA", "page should have Mesa section");
-            content.Should().Contain("CONSELHO FISCAL", "page should have Conselho Fiscal section");
-        }
-        // If page is loading or has no data, that's acceptable - the page structure is correct
     }
 
     #endregion
