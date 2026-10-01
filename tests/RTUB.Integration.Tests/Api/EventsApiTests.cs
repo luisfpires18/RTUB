@@ -233,7 +233,96 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         raw.Should().NotContain("\"id\"").And.NotContain(Description).And.NotContain(Reason);
     }
 
+    // ---------- management (Admin/Owner, 011.5) ----------
+
+    [Fact]
+    public async Task EventWrites_AreRefused_ForVisitorsAndMembers_AndWithoutTheAntiforgeryHeader()
+    {
+        var seed = await SeedAsync();
+        var visitor = Anonymous();
+        await WithTokenAsync(visitor);
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (adminWithoutToken, _) = await SignInAsync("Admin");
+
+        (await visitor.PostAsJsonAsync("/api/events", NewEvent("Do visitante"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await member.PostAsJsonAsync("/api/events", NewEvent("Do membro"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await member.PutAsJsonAsync($"/api/events/{seed.Open}", NewEvent("Mudado"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await member.DeleteAsync($"/api/events/{seed.Open}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await member.GetAsync($"/api/events/{seed.Open}/edit")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await adminWithoutToken.PostAsJsonAsync("/api/events", NewEvent("Sem token"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{seed.Open}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await EventNamedAsync("Do visitante")).Should().BeNull();
+        (await EventNamedAsync("Do membro")).Should().BeNull();
+        (await EventNamedAsync("Sem token")).Should().BeNull();
+        (await member.GetFromJsonAsync<JsonElement>("/api/events")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Owner")]
+    public async Task AdminOrOwner_CreatesEditsAndDeletes_AnEvent(string role)
+    {
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var name = $"Arraial de {role}";
+
+        var agenda = await client.GetFromJsonAsync<JsonElement>("/api/events");
+        agenda.GetProperty("canManage").GetBoolean().Should().BeTrue();
+        agenda.GetProperty("types").GetArrayLength().Should().BeGreaterThan(5);
+
+        var created = await client.PostAsJsonAsync("/api/events", NewEvent(name));
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        _factory.Push.Verify(p => p.BroadcastAsync(It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.AtLeastOnce, "a new event is announced, as before (to a fake)");
+
+        var edit = await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/edit");
+        edit.GetProperty("name").GetString().Should().Be(name);
+        edit.GetProperty("time").GetString().Should().Be("21:00");
+
+        var updated = await client.PutAsJsonAsync($"/api/events/{id}", NewEvent(name + " (adiado)", location: "Castelo"));
+        updated.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await EventNamedAsync(name + " (adiado)"))!.Location.Should().Be("Castelo");
+
+        var invalid = await client.PutAsJsonAsync($"/api/events/{id}", NewEvent(""));
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await invalid.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").TryGetProperty("name", out _).Should().BeTrue();
+
+        (await client.DeleteAsync($"/api/events/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await client.GetAsync($"/api/events/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.DeleteAsync($"/api/events/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AMod_CannotManageEvents()
+    {
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+
+        (await mod.PostAsJsonAsync("/api/events", NewEvent("Do Mod"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     // ---------- helpers ----------
+
+    private static object NewEvent(string name, string location = "Bragança") => new
+    {
+        name,
+        date = DateTime.Today.AddDays(400).ToString("yyyy-MM-dd"),
+        time = "21:00",
+        endDate = (string?)null,
+        location,
+        type = "Arraial",
+        description = "Só para membros",
+    };
+
+    private async Task<Event?> EventNamedAsync(string name)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Events.AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Name == name);
+    }
 
     private sealed record Seed(int Open, int MultiDay, int Cancelled, int Past, int Festival, int Video, string MemberId);
 
@@ -295,10 +384,10 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
 
     private static int _ip;
 
-    private Task<(HttpClient Client, ApplicationUser User)> SignInAsync()
+    private Task<(HttpClient Client, ApplicationUser User)> SignInAsync(string? role = null)
     {
         var n = Interlocked.Increment(ref _ip);
-        return CookieTestSession.SignInAsync(_factory, $"events-{Guid.NewGuid():N}"[..24], $"10.71.{n / 250}.{n % 250 + 1}");
+        return CookieTestSession.SignInAsync(_factory, $"events-{Guid.NewGuid():N}"[..24], $"10.71.{n / 250}.{n % 250 + 1}", role);
     }
 
     private HttpClient Anonymous()

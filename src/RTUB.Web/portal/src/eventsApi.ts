@@ -27,7 +27,40 @@ export type EventSummary = {
   member: EventMemberSummary | null;
 };
 
-export type EventAgenda = { isMember: boolean; canManage: boolean; upcoming: EventSummary[]; past: EventSummary[] };
+export type EventTypeOption = { value: string; label: string };
+
+/** `types` only for Admin/Owner (the create and edit form); null for everyone else. */
+export type EventAgenda = {
+  isMember: boolean;
+  canManage: boolean;
+  upcoming: EventSummary[];
+  past: EventSummary[];
+  types: EventTypeOption[] | null;
+};
+
+/** GET /api/events/{id}/edit (Admin/Owner). `time` is null for whole-day and multi-day events. */
+export type EventEdit = {
+  id: number;
+  name: string;
+  date: string;
+  time: string | null;
+  endDate: string | null;
+  location: string;
+  type: string;
+  description: string;
+  hasImage: boolean;
+};
+
+/** POST /api/events, PUT /api/events/{id}. A multi-day event (endDate) has no time. */
+export type EventInput = {
+  name: string;
+  date: string;
+  time: string | null;
+  endDate: string | null;
+  location: string;
+  type: string;
+  description: string;
+};
 
 export type EventVideo = { id: number; title: string; url: string; mimeType: string };
 
@@ -77,6 +110,8 @@ export type Outcome<T> =
   | { kind: 'signin' }
   | { kind: 'closed' }
   | { kind: 'notfound' }
+  | { kind: 'forbidden' }
+  | { kind: 'inuse' }
   | { kind: 'failed' };
 
 let token: Promise<string> | null = null;
@@ -110,7 +145,7 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
     if (r.status === 204) return { kind: 'ok', data: undefined as T };
     if (r.ok) return { kind: 'ok', data: (await r.json()) as T };
 
-    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]> };
+    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]>; type?: string };
     if (r.status === 400 && problem.errors) {
       const errors: Record<string, string> = {};
       for (const [k, v] of Object.entries(problem.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
@@ -123,7 +158,8 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
     }
     if (r.status === 401) return { kind: 'signin' };
     if (r.status === 404) return { kind: 'notfound' };
-    if (r.status === 409) return { kind: 'closed' };
+    if (r.status === 403) return { kind: 'forbidden' };
+    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : 'closed' };
     return { kind: 'failed' };
   } catch {
     return { kind: 'failed' };
@@ -138,6 +174,11 @@ export const eventsApi = {
     call<EventEnrollment>('PUT', `/api/events/${id}/enrollment`, input),
   removeEnrollment: (id: number) => call<EventEnrollment>('DELETE', `/api/events/${id}/enrollment`),
   videoPlayed: (videoId: number) => call<void>('POST', `/api/events/videos/${videoId}/plays`),
+  // Admin/Owner; the server refuses everyone else (401/403).
+  eventForEdit: (id: number) => call<EventEdit>('GET', `/api/events/${id}/edit`),
+  createEvent: (input: EventInput) => call<EventSummary>('POST', '/api/events', input),
+  updateEvent: (id: number, input: EventInput) => call<EventSummary>('PUT', `/api/events/${id}`, input),
+  deleteEvent: (id: number) => call<void>('DELETE', `/api/events/${id}`),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------

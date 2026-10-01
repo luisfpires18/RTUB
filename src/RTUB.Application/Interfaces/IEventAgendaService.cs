@@ -24,6 +24,22 @@ public interface IEventAgendaService
 
     Task<EventResult<EventEnrollmentDto>> RemoveEnrollmentAsync(int id, ClaimsPrincipal user);
 
+    /// <summary>One event for the Admin/Owner edit form.</summary>
+    Task<EventResult<EventEditDto>> GetEventForEditAsync(int id, ClaimsPrincipal user);
+
+    /// <summary>Creates an event (Admin/Owner) and announces it by push, as the old form did; <paramref name="baseUrl"/> builds the push link.</summary>
+    Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user, string baseUrl);
+
+    /// <summary>Updates an event's details (Admin/Owner); image, cancellation and answers are kept.</summary>
+    Task<EventResult<EventSummaryDto>> UpdateEventAsync(int id, EventInput input, ClaimsPrincipal user);
+
+    /// <summary>
+    /// Deletes an event (Admin/Owner), as the old page did: the row and its image go, and the database
+    /// cascades its enrollments, prizes, videos, repertoire, discussion and contacts. Refused (InUse) when
+    /// NERBA orders point at it.
+    /// </summary>
+    Task<EventResult<bool>> DeleteEventAsync(int id, ClaimsPrincipal user);
+
     /// <summary>Audits a video play, as the Blazor page did; false when the video does not exist.</summary>
     Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user);
 }
