@@ -3260,6 +3260,73 @@ video.tile__media {
   justify-items: start;
 }
 
+/* Event images are 3:2 (012A). */
+.cover-pick__img--wide {
+  width: 180px;
+  height: 120px;
+}
+
+/* Admin/Owner event notices (012A): channel switch, audience line, second confirmation. */
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.segmented__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.segmented__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented__option.is-on {
+  background: var(--line-strong);
+  font-weight: 600;
+}
+
+.segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.notice-audience {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.notice-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.notice-confirm p {
+  margin: 0;
+}
+
+.event-topbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .cropper {
   display: grid;
   gap: 16px;
@@ -3267,9 +3334,9 @@ video.tile__media {
 }
 
 .cropper__canvas {
+  /* The width/height attributes give the ratio (square covers, 3:2 event images). */
   width: min(100%, 360px);
   height: auto;
-  aspect-ratio: 1;
   border-radius: 12px;
   outline: 2px solid var(--line-strong);
   cursor: grab;

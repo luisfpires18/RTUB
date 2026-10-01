@@ -154,7 +154,8 @@ public class EventManagementTests
         var one = (await _service.GetEventForEditAsync(single, Owner)).Value!;
         var many = (await _service.GetEventForEditAsync(multi, Admin)).Value!;
 
-        one.Should().BeEquivalentTo(new EventEditDto(single, "Serenata", "2031-05-03", "21:30", null, "Bragança", "Atuacao", "nota", true));
+        one.Should().BeEquivalentTo(new EventEditDto(single, "Serenata", "2031-05-03", "21:30", null, "Bragança", "Atuacao", "nota", true,
+            "https://pub-test.r2.dev/a.webp"));
         many.Time.Should().BeNull();
         many.EndDate.Should().Be("2031-06-03");
         many.Type.Should().Be("Festival");
@@ -218,7 +219,7 @@ public class EventManagementTests
     public void ManagementContracts_CarryNoInternalField()
     {
         typeof(EventEditDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
-            "Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "HasImage");
+            "Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "HasImage", "ImageUrl");
         typeof(EventInput).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
             "Name", "Date", "Time", "EndDate", "Location", "Type", "Description");
     }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services;
 
 namespace RTUB.Web.Endpoints;
 
@@ -10,7 +11,8 @@ namespace RTUB.Web.Endpoints;
 /// and every rule live in <see cref="IEventAgendaService"/>, decided from the session. Reads are
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
-/// and deleting events is Admin/Owner (011.5); advanced management stays on the members' Blazor /member/events.
+/// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
+/// <see cref="IEventAdminService"/>); prizes, videos, repertoire and statistics stay on the Blazor /member/events.
 /// </summary>
 public static class EventEndpoints
 {
@@ -44,7 +46,7 @@ public static class EventEndpoints
         var writes = events.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
 
         writes.MapPost("/", async (EventInput input, HttpContext http, IEventAgendaService service) =>
-                ToResult(await service.CreateEventAsync(input, http.User, $"{http.Request.Scheme}://{http.Request.Host}"),
+                ToResult(await service.CreateEventAsync(input, http.User, BaseUrl(http)),
                     created => Results.Created($"/api/events/{created.Id}", created)))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
@@ -54,6 +56,31 @@ public static class EventEndpoints
 
         writes.MapDelete("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
             ToResult(await service.DeleteEventAsync(id, http.User), _ => Results.NoContent()));
+
+        // Admin/Owner (012A). The image is multipart ("image", already cropped in the browser).
+        writes.MapPost("/{id:int}/image", async (int id, IFormCollection form, HttpContext http, IEventAdminService admin) =>
+                form.Files.GetFile("image") is { } file
+                    ? ToResult(await admin.SetImageAsync(id, new EventImageUpload(file.OpenReadStream(), file.FileName, file.ContentType ?? string.Empty, file.Length), http.User),
+                        _ => Results.NoContent())
+                    : Results.ValidationProblem(new Dictionary<string, string[]> { ["image"] = new[] { "Escolha uma imagem." } }, title: "Há campos por corrigir."))
+            .WithMetadata(new RequestSizeLimitAttribute(EventAdminService.MaxImageBytes + 16 * 1024));
+
+        writes.MapDelete("/{id:int}/image", async (int id, HttpContext http, IEventAdminService admin) =>
+            ToResult(await admin.RemoveImageAsync(id, http.User), _ => Results.NoContent()));
+
+        writes.MapPost("/{id:int}/cancel", async (int id, EventCancelInput input, HttpContext http, IEventAdminService admin) =>
+                ToResult(await admin.CancelAsync(id, input, http.User, BaseUrl(http))))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapPost("/{id:int}/reactivate", async (int id, HttpContext http, IEventAdminService admin) =>
+            ToResult(await admin.ReactivateAsync(id, http.User), _ => Results.NoContent()));
+
+        events.MapGet("/{id:int}/notices", async (int id, HttpContext http, IEventAdminService admin) =>
+            ToResult(await admin.GetNoticeAudienceAsync(id, http.User)));
+
+        writes.MapPost("/{id:int}/notices", async (int id, EventNoticeInput input, HttpContext http, IEventAdminService admin) =>
+                ToResult(await admin.SendNoticeAsync(id, input, http.User, BaseUrl(http))))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))
@@ -103,6 +130,9 @@ public static class EventEndpoints
 
         return await next(context);
     }
+
+    /// <summary>The absolute site address the push and email links are built from.</summary>
+    private static string BaseUrl(HttpContext http) => $"{http.Request.Scheme}://{http.Request.Host}";
 
     private static IResult NotFound() => Results.Problem(title: "Atuação não encontrada.", statusCode: StatusCodes.Status404NotFound);
 

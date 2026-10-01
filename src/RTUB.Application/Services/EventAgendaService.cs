@@ -235,7 +235,8 @@ public sealed class EventAgendaService : IEventAgendaService
             e.Location,
             e.Type.ToString(),
             e.Description,
-            !string.IsNullOrEmpty(e.ImageUrl)));
+            !string.IsNullOrEmpty(e.ImageUrl),
+            IsSafeUrl(e.ImageUrl) ? e.ImageUrl : null));
     }
 
     public async Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user, string baseUrl)

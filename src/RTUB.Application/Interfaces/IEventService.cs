@@ -19,6 +19,8 @@ public interface IEventService
     Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, CancellationToken cancellationToken = default);
     Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default);
     Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default);
+    /// <summary>Deletes the event's image from storage (only what this environment owns) and clears it.</summary>
+    Task RemoveEventImageAsync(int id, CancellationToken cancellationToken = default);
     Task DeleteEventAsync(int id, CancellationToken cancellationToken = default);
     Task CancelEventAsync(int id, string reason, CancellationToken cancellationToken = default);
     Task UncancelEventAsync(int id, CancellationToken cancellationToken = default);

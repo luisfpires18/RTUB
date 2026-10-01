@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
-import { DeleteEventDialog, EventFormDialog } from './EventManage';
+import { CancelEventDialog, DeleteEventDialog, EventFormDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
 import { legacy, portal } from './content';
 import {
   dateLabel,
@@ -56,6 +56,7 @@ export default function Events() {
   const [answering, setAnswering] = useState<number>();
   const [editing, setEditing] = useState<number | 'new'>();
   const [deleting, setDeleting] = useState<EventSummary>();
+  const [acting, setActing] = useState<{ action: 'notice' | 'cancel' | 'reactivate'; event: EventSummary }>();
   const [prizes, setPrizes] = useState(false);
 
   useEffect(() => {
@@ -72,8 +73,16 @@ export default function Events() {
   useEffect(() => load(), []);
   const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
   // Admin/Owner only: the server sends canManage, and refuses the writes for anyone else.
-  const manage = (e: EventSummary) =>
-    agenda?.canManage ? { onEdit: () => setEditing(e.id), onDelete: () => setDeleting(e) } : undefined;
+  // Notices and cancel / reactivate only for upcoming dates, as the old page.
+  const manage = (e: EventSummary): Manage =>
+    agenda?.canManage
+      ? {
+          onEdit: () => setEditing(e.id),
+          onDelete: () => setDeleting(e),
+          onNotice: e.past || e.cancelled ? undefined : () => setActing({ action: 'notice', event: e }),
+          onCancel: e.past ? undefined : () => setActing({ action: e.cancelled ? 'reactivate' : 'cancel', event: e }),
+        }
+      : undefined;
 
   const update = (next: Partial<Filters>) =>
     setFilters((f) => {
@@ -201,6 +210,13 @@ export default function Events() {
           onSaved={() => load(true)}
         />
       )}
+      {acting?.action === 'notice' && <NoticeDialog event={acting.event} onClose={() => setActing(undefined)} />}
+      {acting?.action === 'cancel' && (
+        <CancelEventDialog event={acting.event} onClose={() => setActing(undefined)} onDone={() => load(true)} />
+      )}
+      {acting?.action === 'reactivate' && (
+        <ReactivateEventDialog event={acting.event} onClose={() => setActing(undefined)} onDone={() => load(true)} />
+      )}
       {deleting && <DeleteEventDialog event={deleting} onClose={() => setDeleting(undefined)} onDeleted={() => load(true)} />}
       {answering !== undefined && (
         <EnrollmentDialog eventId={answering} onClose={() => setAnswering(undefined)} onSaved={() => load(true)} />
@@ -294,18 +310,34 @@ export function MyStatus({ event }: { event: EventSummary }) {
  * One upcoming date. The whole card opens the event (a stretched link); a signed-in member also gets a
  * quick reply that opens the answer modal without leaving the agenda.
  */
-type Manage = { onEdit: () => void; onDelete: () => void } | undefined;
+type Manage =
+  | { onEdit: () => void; onDelete: () => void; onNotice?: () => void; onCancel?: () => void }
+  | undefined;
 
-/** Edit and delete, over the card's stretched link; Admin/Owner only. */
+/** Edit, notice, cancel / reactivate and delete, over the card's stretched link; Admin/Owner only. */
 function ManageButtons({ event, manage }: { event: EventSummary; manage: Manage }) {
   if (!manage) return null;
   return (
     <span className="manage">
-      <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onEdit}>
+      <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onEdit} title="Editar">
         <Icon name="pencil" />
         <span className="sr-only">Editar {event.name}</span>
       </button>
-      <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete}>
+      {manage.onNotice && (
+        <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onNotice} title="Enviar aviso">
+          <Icon name="bell" />
+          <span className="sr-only">Enviar aviso sobre {event.name}</span>
+        </button>
+      )}
+      {manage.onCancel && (
+        <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onCancel} title={event.cancelled ? 'Reativar' : 'Cancelar atuação'}>
+          <Icon name={event.cancelled ? 'restore' : 'ban'} />
+          <span className="sr-only">
+            {event.cancelled ? 'Reativar' : 'Cancelar'} {event.name}
+          </span>
+        </button>
+      )}
+      <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete} title="Apagar">
         <Icon name="trash" />
         <span className="sr-only">Apagar {event.name}</span>
       </button>

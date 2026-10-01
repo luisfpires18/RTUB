@@ -517,6 +517,28 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
+    public async Task RemoveEventImageAsync_DeletesTheImageFromStorage_AndClearsIt()
+    {
+        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Festival,
+            imageUrl: "https://example.com/old-image.webp");
+
+        await _eventService.RemoveEventImageAsync(eventEntity.Id);
+
+        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.ImageUrl.Should().BeNull();
+        _mockImageStorageService.Verify(x => x.DeleteImageAsync("https://example.com/old-image.webp"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveEventImageAsync_WithoutAnImage_TouchesNothing()
+    {
+        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Festival);
+
+        await _eventService.RemoveEventImageAsync(eventEntity.Id);
+
+        _mockImageStorageService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task SetEventImageAsync_WithNonExistentEvent_ThrowsException()
     {
         // Arrange

@@ -49,6 +49,7 @@ export type EventEdit = {
   type: string;
   description: string;
   hasImage: boolean;
+  imageUrl: string | null;
 };
 
 /** POST /api/events, PUT /api/events/{id}. A multi-day event (endDate) has no time. */
@@ -61,6 +62,23 @@ export type EventInput = {
   type: string;
   description: string;
 };
+
+/** GET /api/events/{id}/notices (Admin/Owner): who a notice would reach, as counts. */
+export type NoticeAudience = {
+  emailSubscribed: number;
+  emailTotal: number;
+  pushSubscribed: number;
+  pushTotal: number;
+  pushLeitoesCaloirosSubscribed: number;
+  pushLeitoesCaloirosTotal: number;
+};
+
+export type NoticeInput =
+  | { channel: 'email'; kind: 'new' | 'reminder'; message: null; onlyLeitoesAndCaloiros: false }
+  | { channel: 'push'; kind: null; message: string; onlyLeitoesAndCaloiros: boolean };
+
+/** What a notice (or the cancellation email) did; `warning` when part of it did not go out. */
+export type NoticeResult = { sent: number; failed: number; warning: string | null };
 
 export type EventVideo = { id: number; title: string; url: string; mimeType: string };
 
@@ -134,12 +152,12 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (method !== 'GET') headers['X-CSRF-TOKEN'] = await antiforgeryToken();
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
 
     const r = await fetch(url, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
       credentials: 'same-origin',
     });
     if (r.status === 204) return { kind: 'ok', data: undefined as T };
@@ -179,6 +197,18 @@ export const eventsApi = {
   createEvent: (input: EventInput) => call<EventSummary>('POST', '/api/events', input),
   updateEvent: (id: number, input: EventInput) => call<EventSummary>('PUT', `/api/events/${id}`, input),
   deleteEvent: (id: number) => call<void>('DELETE', `/api/events/${id}`),
+  // Admin/Owner, 012A. The image arrives already cropped (WebP, JPEG where WebP cannot be encoded).
+  setImage: (id: number, image: Blob) => {
+    const form = new FormData();
+    form.set('image', image, image.type === 'image/jpeg' ? 'event-image.jpg' : 'event-image.webp');
+    return call<void>('POST', `/api/events/${id}/image`, form);
+  },
+  removeImage: (id: number) => call<void>('DELETE', `/api/events/${id}/image`),
+  cancelEvent: (id: number, reason: string, notifyByEmail: boolean) =>
+    call<NoticeResult>('POST', `/api/events/${id}/cancel`, { reason, notifyByEmail }),
+  reactivateEvent: (id: number) => call<void>('POST', `/api/events/${id}/reactivate`),
+  noticeAudience: (id: number) => call<NoticeAudience>('GET', `/api/events/${id}/notices`),
+  sendNotice: (id: number, input: NoticeInput) => call<NoticeResult>('POST', `/api/events/${id}/notices`, input),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------

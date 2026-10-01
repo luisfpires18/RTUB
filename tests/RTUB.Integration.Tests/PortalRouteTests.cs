@@ -263,9 +263,15 @@ public class PortalRouteTests : IntegrationTestBase
         var card = agenda[agenda.IndexOf("function AgendaCard", StringComparison.Ordinal)..agenda.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
         card.Should().NotContain("Quem vai", "who is going lives on the event page only");
         agenda.Should().Contain("{agenda?.canManage && (").And.Contain("Adicionar atuação")
-            .And.Contain("agenda?.canManage ? { onEdit: () => setEditing(e.id), onDelete: () => setDeleting(e) } : undefined");
+            .And.Contain("onEdit: () => setEditing(e.id),").And.Contain("onDelete: () => setDeleting(e),")
+            .And.Contain("onNotice: e.past || e.cancelled ? undefined", "notices only for upcoming, not cancelled dates (012A)")
+            .And.Contain("onCancel: e.past ? undefined", "cancel / reactivate only for upcoming dates (012A)");
         agenda.Should().NotContain("Gerir atuações");
         manage.Should().Contain("eventsApi.createEvent(").And.Contain("eventsApi.updateEvent(").And.Contain("eventsApi.deleteEvent(");
+        manage.Should().Contain("eventsApi.setImage(").And.Contain("eventsApi.removeImage(").And.Contain("eventsApi.cancelEvent(")
+            .And.Contain("eventsApi.reactivateEvent(").And.Contain("eventsApi.sendNotice(")
+            .And.NotContain("área de membros", "image, cancel and notices no longer send anyone to /member/events (012A)");
+        detail.Should().Contain("<NoticeDialog").And.Contain("<CancelEventDialog").And.Contain("<ReactivateEventDialog");
     }
 
     [Fact]

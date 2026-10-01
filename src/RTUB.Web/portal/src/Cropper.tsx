@@ -1,17 +1,37 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Dialog } from './MusicUi';
 
-const VIEW = 600; // canvas units of the on-screen square
-const OUT = 800; // pixels of the saved cover
+const VIEW = 600; // canvas units of the on-screen frame's width
 
-type Frame = { img: HTMLImageElement; zoom: number; x: number; y: number };
+type Frame = { img: HTMLImageElement; zoom: number; x: number; y: number; h: number };
+
+const SQUARE = {
+  title: 'Recortar a capa',
+  label: 'Pré-visualização da capa quadrada. Arraste ou use as setas para enquadrar.',
+  note: 'As capas são sempre quadradas. Arraste a imagem para escolher o enquadramento.',
+};
 
 /**
- * Square (1:1) crop for album covers, the only way a new cover reaches the form. Canvas only: the
- * picked file is read as a data: URL (CSP allows data: images, not blob:), panned by drag or the
- * arrow keys, zoomed with a slider, and exported as WebP (JPEG where the browser cannot encode WebP).
+ * Fixed-ratio crop: square (1:1) album covers, 3:2 event images (as the old event cropper). Canvas
+ * only: the picked file is read as a data: URL (CSP allows data: images, not blob:), panned by drag or
+ * the arrow keys, zoomed with a slider, and exported as WebP (JPEG where the browser cannot encode WebP).
  */
-export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover: Blob, preview: string) => void; onCancel: () => void }) {
+export function Cropper({
+  file,
+  onDone,
+  onCancel,
+  aspect = 1,
+  outWidth = 800,
+  text = SQUARE,
+}: {
+  file: File;
+  onDone: (cover: Blob, preview: string) => void;
+  onCancel: () => void;
+  aspect?: number;
+  outWidth?: number;
+  text?: typeof SQUARE;
+}) {
+  const viewH = Math.round(VIEW / aspect);
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
   const [frame, setFrame] = useState<Frame | null>(null);
@@ -21,7 +41,7 @@ export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
-      img.onload = () => setFrame(center({ img, zoom: 1, x: 0, y: 0 }));
+      img.onload = () => setFrame(center({ img, zoom: 1, x: 0, y: 0, h: viewH }));
       img.onerror = () => setFailed(true);
       img.src = String(reader.result);
     };
@@ -59,11 +79,11 @@ export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover
   const save = () => {
     if (!frame) return;
     const out = document.createElement('canvas');
-    out.width = OUT;
-    out.height = OUT;
+    out.width = outWidth;
+    out.height = Math.round(outWidth / aspect);
     const ctx = out.getContext('2d');
     if (!ctx) return;
-    draw(ctx, frame, OUT);
+    draw(ctx, frame, outWidth);
     const finish = (blob: Blob | null) => {
       if (blob) onDone(blob, out.toDataURL(blob.type));
       else setFailed(true);
@@ -76,7 +96,7 @@ export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover
 
   return (
     <Dialog
-      title="Recortar a capa"
+      title={text.title}
       onClose={onCancel}
       footer={
         <>
@@ -99,10 +119,10 @@ export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover
             ref={canvas}
             className="cropper__canvas"
             width={VIEW}
-            height={VIEW}
+            height={viewH}
             tabIndex={0}
             role="img"
-            aria-label="Pré-visualização da capa quadrada. Arraste ou use as setas para enquadrar."
+            aria-label={text.label}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={() => (drag.current = null)}
@@ -121,40 +141,41 @@ export function Cropper({ file, onDone, onCancel }: { file: File; onDone: (cover
               onChange={(e) => setFrame((f) => (f ? zoomTo(f, Number(e.target.value)) : f))}
             />
           </label>
-          <p className="note">As capas são sempre quadradas. Arraste a imagem para escolher o enquadramento.</p>
+          <p className="note">{text.note}</p>
         </div>
       )}
     </Dialog>
   );
 }
 
-/** The image scale at zoom 1: it just covers the square. */
-const base = (img: HTMLImageElement) => Math.max(VIEW / img.naturalWidth, VIEW / img.naturalHeight);
+/** The image scale at zoom 1: it just covers the frame. */
+const base = (f: Frame) => Math.max(VIEW / f.img.naturalWidth, f.h / f.img.naturalHeight);
 
 function clamp(f: Frame): Frame {
-  const s = base(f.img) * f.zoom;
+  const s = base(f) * f.zoom;
   const minX = VIEW - f.img.naturalWidth * s;
-  const minY = VIEW - f.img.naturalHeight * s;
+  const minY = f.h - f.img.naturalHeight * s;
   return { ...f, x: Math.min(0, Math.max(minX, f.x)), y: Math.min(0, Math.max(minY, f.y)) };
 }
 
 function center(f: Frame): Frame {
-  const s = base(f.img) * f.zoom;
-  return clamp({ ...f, x: (VIEW - f.img.naturalWidth * s) / 2, y: (VIEW - f.img.naturalHeight * s) / 2 });
+  const s = base(f) * f.zoom;
+  return clamp({ ...f, x: (VIEW - f.img.naturalWidth * s) / 2, y: (f.h - f.img.naturalHeight * s) / 2 });
 }
 
-/** Zoom around the middle of the square, keeping what is there in place. */
+/** Zoom around the middle of the frame, keeping what is there in place. */
 function zoomTo(f: Frame, zoom: number): Frame {
   const ratio = zoom / f.zoom;
-  const mid = VIEW / 2;
-  return clamp({ ...f, zoom, x: mid - (mid - f.x) * ratio, y: mid - (mid - f.y) * ratio });
+  const midX = VIEW / 2;
+  const midY = f.h / 2;
+  return clamp({ ...f, zoom, x: midX - (midX - f.x) * ratio, y: midY - (midY - f.y) * ratio });
 }
 
-function draw(ctx: CanvasRenderingContext2D, f: Frame, size: number) {
-  const k = size / VIEW;
-  const s = base(f.img) * f.zoom * k;
+function draw(ctx: CanvasRenderingContext2D, f: Frame, width: number) {
+  const k = width / VIEW;
+  const s = base(f) * f.zoom * k;
   ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, width, f.h * k);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(f.img, f.x * k, f.y * k, f.img.naturalWidth * s, f.img.naturalHeight * s);
 }

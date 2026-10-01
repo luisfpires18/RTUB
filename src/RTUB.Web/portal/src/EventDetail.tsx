@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { legacy, portal } from './content';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
+import { CancelEventDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
@@ -28,6 +29,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
   const [answering, setAnswering] = useState(false);
   const [prizes, setPrizes] = useState(false);
+  const [managing, setManaging] = useState<'notice' | 'cancel' | 'reactivate'>();
   const respond = useRef(wantsToRespond());
 
   const load = (quiet = false) => {
@@ -46,6 +48,8 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   }, [detail]);
 
   const loaded = detail && detail !== 'missing' ? detail : null;
+  // Admin/Owner, upcoming only (as the old page); the server refuses everyone else.
+  const manage = loaded?.canManage && !loaded.event.past ? loaded.event : null;
 
   return (
     <section className="page wrap event-page" aria-labelledby="event-title">
@@ -54,12 +58,30 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           <Icon name="arrow" />
           Agenda
         </a>
-        {loaded && loaded.event.trophies.length > 0 && (
-          <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
-            <Icon name="trophy" />
-            Prémios
-          </button>
-        )}
+        <span className="event-topbar__actions">
+          {manage && !manage.cancelled && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setManaging('notice')}>
+              <Icon name="bell" />
+              Enviar aviso
+            </button>
+          )}
+          {manage && (
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setManaging(manage.cancelled ? 'reactivate' : 'cancel')}
+            >
+              <Icon name={manage.cancelled ? 'restore' : 'ban'} />
+              {manage.cancelled ? 'Reativar' : 'Cancelar atuação'}
+            </button>
+          )}
+          {loaded && loaded.event.trophies.length > 0 && (
+            <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
+              <Icon name="trophy" />
+              Prémios
+            </button>
+          )}
+        </span>
       </div>
       {detail === undefined ? (
         <Loading label="A carregar a atuação…" />
@@ -82,6 +104,13 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       )}
       {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
       {prizes && loaded && <PrizesDialog current={loaded.event} onClose={() => setPrizes(false)} />}
+      {manage && managing === 'notice' && <NoticeDialog event={manage} onClose={() => setManaging(undefined)} />}
+      {manage && managing === 'cancel' && (
+        <CancelEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />
+      )}
+      {manage && managing === 'reactivate' && (
+        <ReactivateEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />
+      )}
     </section>
   );
 }
