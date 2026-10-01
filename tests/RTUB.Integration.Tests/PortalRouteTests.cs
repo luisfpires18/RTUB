@@ -275,6 +275,26 @@ public class PortalRouteTests : IntegrationTestBase
     }
 
     [Fact]
+    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelAndNoticesAreReact()
+    {
+        var root = FindRepoRoot();
+        var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
+
+        // 012A: one way to do each of these, the React agenda.
+        page.Should().NotContainAny(new[]
+        {
+            "ImageUploadManager", "ImageCropper", "UploadImageAsync", "UpdateEventWithImageAsync",
+            "OnSendEmail=", "OnSendPushNotification=", "OnCancelEvent=", "OnUncancelEvent=",
+            "CancelEventAsync", "UncancelEventAsync", "SendEventNotificationAsync", "SendEventReminderNotificationAsync",
+            "SendEventCancellationNotificationAsync", "SendToSelectedUsersAsync",
+        });
+
+        // The bridge scope that stays: prizes, videos, repertoire, statistics, Minhas Inscrições, enrollment lists.
+        page.Should().Contain("OpenTrophyModal").And.Contain("ModalType.Videos").And.Contain("<RepertoireModal")
+            .And.Contain("TrophiesStats").And.Contain("<MyEnrollmentsButton").And.Contain("OpenEnrollmentListModal");
+    }
+
+    [Fact]
     public void EventsLinks_GoToTheReactAgenda_AndManagementToMemberEvents()
     {
         var root = FindRepoRoot();

@@ -40,8 +40,8 @@ and email / push notices in React (`/events` cards, `/events/{id}` top bar) thro
 `/api/events/{id}/image|cancel|reactivate|notices` (antiforgery, 401/403 server-side). Old rules kept: cancel
 needs a reason and deletes enrollments; past events get none of these; notices never for cancelled events;
 same email templates, audiences, rate limit and push audit. Notices show counts and need a second click.
-`/member/events` now only needed for prizes, videos, repertoire, statistics, Minhas Inscrições. No schema
-change. Detail: `docs/react-events.md`.
+`/member/events` lost its image, cancel / reactivate and notice controls and keeps prizes, videos,
+repertoire, statistics, Minhas Inscrições and the enrollment lists. No schema change. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

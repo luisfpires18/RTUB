@@ -163,8 +163,10 @@ image (012A), through the existing storage service.
 - Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
   do yet - prizes, video upload / rename / reorder / delete, repertoire editing, statistics, "Minhas
   Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
-  Its image, cancel / reactivate and notice buttons still work but are no longer needed (012A); they go
-  with the rest of the page once the React versions are reviewed.
+  Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
+  were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
+  of these has one way to do it: the React agenda. Its edit form still saves details and still
+  announces a new event by push, as before.
 
 ## Follow-ups
 

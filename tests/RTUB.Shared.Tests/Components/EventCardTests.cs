@@ -502,12 +502,36 @@ public class EventCardTests : BunitContext
             .Add(p => p.Event, eventEntity)
             .Add(p => p.IsAdmin, true)
             .Add(p => p.IsPastEvent, false)
-            .Add(p => p.EnrollmentCount, 0));
+            .Add(p => p.EnrollmentCount, 0)
+            .Add(p => p.OnSendPushNotification, () => { }));
 
         // Assert
         cut.Markup.Should().Contain("bi-bell-fill", "should show push notification button icon");
         cut.Markup.Should().Contain("btn-admin-notification", "push notification button should have correct style class");
         cut.Markup.Should().Contain("Notificar por push", "push notification button should have correct title");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EventCard_ShowsNoNoticeOrCancelButtons_WhenThePageDoesNotWireThem(bool cancelled)
+    {
+        // /member/events no longer wires them: notices and cancel / reactivate live on the React agenda (012A).
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        if (cancelled)
+        {
+            eventEntity.Cancel("Chuva");
+        }
+
+        var cut = Render<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        cut.Markup.Should().NotContain("Notificar por push").And.NotContain("Notificar por email")
+            .And.NotContain("Cancelar evento").And.NotContain("Reativar evento");
+        cut.Markup.Should().Contain("Editar evento", "edit and delete stay");
     }
 
     [Fact]
