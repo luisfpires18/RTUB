@@ -154,3 +154,46 @@ export function getGovernance(fiscalYear?: string): Promise<Governance> {
     r.ok ? (r.json() as Promise<Governance>) : Promise.reject(new Error(`HTTP ${r.status}`)),
   );
 }
+
+/** GET /api/gallery (Endpoints/GalleryEndpoints.cs). Viewer-aware: visitors get public items only. */
+export type GalleryPerson = { id: string; name: string };
+export type GalleryItem = {
+  id: number;
+  title: string;
+  type: 'image' | 'video';
+  url: string | null;
+  year: number;
+  month: number | null;
+  day: number | null;
+  membersOnly: boolean;
+  people: GalleryPerson[];
+};
+export type GalleryTimeline = {
+  isMember: boolean;
+  items: GalleryItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  years: number[];
+  people: GalleryPerson[];
+};
+export type GalleryFilters = { year?: number; q?: string; person?: string };
+
+const json = <T,>(r: Response) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`)));
+
+export function getGallery(page: number, filters: GalleryFilters): Promise<GalleryTimeline> {
+  const query = new URLSearchParams({ page: String(page) });
+  if (filters.year) query.set('year', String(filters.year));
+  if (filters.q) query.set('q', filters.q);
+  if (filters.person) query.set('person', filters.person);
+  return fetch(`/api/gallery?${query}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(
+    json<GalleryTimeline>,
+  );
+}
+
+/** One item for a shared ?item= link; rejects when it is missing or members-only for a visitor. */
+export function getGalleryItem(id: number): Promise<GalleryItem> {
+  return fetch(`/api/gallery/items/${id}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(
+    json<GalleryItem>,
+  );
+}

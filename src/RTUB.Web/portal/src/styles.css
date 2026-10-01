@@ -2248,6 +2248,414 @@ main:focus {
   padding-block: 40px;
 }
 
+/* ---------- /gallery ---------- */
+
+.gallery-page__head {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 760px) {
+  .gallery-page__head {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+}
+
+.gallery-tools {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 640px) {
+  .gallery-tools {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+}
+
+.gallery-tools__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-raise);
+  color: var(--muted);
+}
+
+.gallery-tools__field:focus-within {
+  border-color: var(--purple-ink);
+}
+
+.gallery-tools input,
+.gallery-tools select {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+
+.gallery-tools select option {
+  background: var(--bg-card);
+}
+
+.gallery-page__members {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0 0 28px;
+}
+
+.gallery-page__members svg {
+  color: var(--purple-ink);
+}
+
+.gallery-page__more {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+/* The timeline: a thin rail with the year set large beside it, months as quiet subheads. */
+.timeline {
+  display: grid;
+  gap: clamp(40px, 6vw, 72px);
+  margin: 12px 0 0;
+  padding: 0 0 0 22px;
+  border-left: 1px solid var(--line-strong);
+  list-style: none;
+}
+
+.timeline__year {
+  position: relative;
+  display: grid;
+  gap: 28px;
+}
+
+.timeline__year::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: -28px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--purple);
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 5px var(--purple-ink);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.timeline__year-label {
+  position: sticky;
+  top: calc(var(--header-h) + 8px);
+  z-index: 1;
+  justify-self: start;
+  margin: 0;
+  padding-right: 12px;
+  background: linear-gradient(90deg, var(--bg) 70%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.timeline__month {
+  display: grid;
+  gap: 14px;
+}
+
+.timeline__month-label {
+  margin: 0;
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Masonry by columns: every photo keeps its own proportions, nothing is cropped. */
+.mosaic {
+  columns: 1;
+  column-gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mosaic > li {
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 520px) {
+  .mosaic {
+    columns: 2;
+  }
+}
+
+@media (min-width: 1000px) {
+  .mosaic {
+    columns: 3;
+    column-gap: 18px;
+  }
+
+  .mosaic > li {
+    margin-bottom: 18px;
+  }
+}
+
+/* Sparse months read better wide: one photo spans the row, two share it. */
+@media (min-width: 520px) {
+  .mosaic:has(> li:only-child) {
+    columns: 1;
+    max-width: 760px;
+  }
+
+  .mosaic:has(> li:nth-child(2):last-child) {
+    columns: 2;
+  }
+}
+
+.tile {
+  display: grid;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: zoom-in;
+}
+
+.tile__frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.tile__media {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 400ms ease, filter 400ms ease;
+}
+
+video.tile__media {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--bg-deep);
+}
+
+@media (hover: hover) {
+  .tile:hover .tile__media {
+    transform: scale(1.025);
+    filter: brightness(1.06);
+  }
+}
+
+.tile:focus-visible {
+  outline: none;
+}
+
+.tile:focus-visible .tile__frame {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.tile__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(12, 11, 14, 0.15), rgba(12, 11, 14, 0.55));
+  color: var(--ink);
+  font-size: 2rem;
+}
+
+.tile__play svg {
+  padding: 14px;
+  border-radius: 50%;
+  background: rgba(111, 66, 193, 0.85);
+  box-sizing: content-box;
+}
+
+.tile__missing {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 180px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.tile__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(12, 11, 14, 0.72);
+  backdrop-filter: blur(6px);
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tile__badge--inline {
+  position: static;
+  margin-left: 10px;
+  background: var(--bg-raise);
+}
+
+.tile__caption {
+  display: grid;
+  gap: 2px;
+  padding: 10px 2px 0;
+}
+
+.tile__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tile__date {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Lightbox: the photo on black, its details below; arrows and Esc from the keyboard. */
+.lightbox {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(7, 6, 8, 0.97);
+  color: var(--ink);
+}
+
+.lightbox[open] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.lightbox::backdrop {
+  background: rgba(7, 6, 8, 0.9);
+}
+
+.lightbox__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+/* Fills the stage and letterboxes inside it, so a tall photo never runs under the caption. */
+.lightbox__media {
+  position: absolute;
+  inset: 64px 12px 8px;
+  width: calc(100% - 24px);
+  height: calc(100% - 72px);
+  object-fit: contain;
+}
+
+.lightbox__info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  width: min(100%, var(--wrap));
+  margin-inline: auto;
+  padding: 16px var(--gutter) max(20px, env(safe-area-inset-bottom));
+}
+
+.lightbox__text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lightbox__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw + 0.75rem, 1.75rem);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.lightbox__date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+.lightbox__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lightbox__count {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lightbox__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(12, 11, 14, 0.6);
+}
+
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  background: rgba(12, 11, 14, 0.6);
+}
+
+.lightbox__nav--prev {
+  left: 12px;
+}
+
+.lightbox__nav--next {
+  right: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile__media {
+    transition: none;
+  }
+}
+
 /* ---------- /roles ---------- */
 
 .governance-page__head {

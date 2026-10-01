@@ -6,9 +6,9 @@
 export const legacy = {
   forgotPassword: '/forgot-password',
   events: '/events',
-  gallery: '/gallery',
   memberProfile: '/member/profile',
   memberGovernance: '/member/roles',
+  memberGallery: '/member/gallery',
 } as const;
 
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
@@ -20,6 +20,7 @@ export const portal = {
   music: '/music',
   login: '/login',
   roles: '/roles',
+  gallery: '/gallery',
 } as const;
 
 /** Sign in, then come back to the React profile. */
