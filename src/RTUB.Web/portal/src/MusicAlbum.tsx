@@ -192,49 +192,46 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
         <ol className="songs">
           {shown.map((s) => (
             <li key={s.id} className={`song${now?.songId === s.id ? ' song--now' : ''}`}>
-              <div className="song__head">
+              <span className="song__track" aria-hidden={s.trackNumber === null}>
+                {s.trackNumber ?? '·'}
+              </span>
+              <div className="song__main">
                 <h3 className="song__title">
-                  {s.trackNumber !== null && <span className="song__track">{s.trackNumber}</span>}
+                  {s.trackNumber !== null && <span className="sr-only">Faixa {s.trackNumber}: </span>}
                   {s.title}
                 </h3>
-                {(can.canManage || can.canDelete) && (
-                  <div className="song__manage">
-                    {can.canManage && <IconButton icon="pencil" label={`Editar ${s.title}`} onClick={() => setEditing(s.id)} />}
-                    {can.canDelete && <IconButton icon="trash" tone="danger" label={`Eliminar ${s.title}`} onClick={() => setDeleting(s)} />}
-                  </div>
-                )}
+                <p className="song__credits">
+                  {s.lyricAuthor && (
+                    <span>
+                      <span className="song__label">Letra</span> {s.lyricAuthor}
+                    </span>
+                  )}
+                  {s.musicAuthor && (
+                    <span>
+                      <span className="song__label">Música</span> {s.musicAuthor}
+                    </span>
+                  )}
+                  {s.adaptation && (
+                    <span>
+                      <span className="song__label">Adaptação</span> {s.adaptation}
+                    </span>
+                  )}
+                  {!s.lyricAuthor && !s.musicAuthor && <span className="song__unknown">Autor desconhecido</span>}
+                </p>
               </div>
-              <dl className="song__credits">
-                {s.lyricAuthor && (
-                  <div>
-                    <dt>Letra</dt>
-                    <dd>{s.lyricAuthor}</dd>
-                  </div>
+              <span className="song__plays" title={plays(s.playCount)}>
+                {s.playCount > 0 && (
+                  <>
+                    <Icon name="playFill" />
+                    {s.playCount}
+                    <span className="sr-only"> {s.playCount === 1 ? 'reprodução' : 'reproduções'}</span>
+                  </>
                 )}
-                {s.musicAuthor && (
-                  <div>
-                    <dt>Música</dt>
-                    <dd>{s.musicAuthor}</dd>
-                  </div>
-                )}
-                {s.adaptation && (
-                  <div>
-                    <dt>Adaptação</dt>
-                    <dd>{s.adaptation}</dd>
-                  </div>
-                )}
-                {!s.lyricAuthor && !s.musicAuthor && (
-                  <div>
-                    <dt className="sr-only">Autor</dt>
-                    <dd className="song__unknown">Autor desconhecido</dd>
-                  </div>
-                )}
-              </dl>
-              {s.playCount > 0 && <p className="song__plays">{plays(s.playCount)}</p>}
+              </span>
               <div className="song__actions">
                 <button
                   type="button"
-                  className="btn btn--primary btn--sm"
+                  className="song__btn song__btn--play"
                   onClick={() => play(s)}
                   disabled={!s.hasAudio || playing === s.id}
                   title={s.hasAudio ? undefined : 'Áudio não disponível'}
@@ -242,20 +239,33 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
                   {playing === s.id ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="playFill" />}
                   Ouvir<span className="sr-only"> {s.title}</span>
                 </button>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLyricsFor(s)}>
+                <button type="button" className="song__btn" onClick={() => setLyricsFor(s)}>
                   <Icon name="lyrics" />
                   Letra<span className="sr-only"> de {s.title}</span>
                 </button>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLinksFor(s)} disabled={s.links.length === 0}>
+                <button
+                  type="button"
+                  className={`song__btn song__btn--count${s.links.length === 0 ? ' song__btn--quiet' : ''}`}
+                  onClick={() => setLinksFor(s)}
+                  disabled={s.links.length === 0}
+                >
                   <Icon name="link" />
-                  Links ({s.links.length})<span className="sr-only"> de {s.title}</span>
+                  {s.links.length}
+                  <span className="sr-only"> links de {s.title}</span>
                 </button>
                 {s.videoCount !== null && (
-                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setVideosFor(s)}>
+                  <button
+                    type="button"
+                    className={`song__btn song__btn--count${s.videoCount === 0 ? ' song__btn--quiet' : ''}`}
+                    onClick={() => setVideosFor(s)}
+                  >
                     <Icon name="video" />
-                    Vídeos ({s.videoCount})<span className="sr-only"> de {s.title}</span>
+                    {s.videoCount}
+                    <span className="sr-only"> vídeos de {s.title}</span>
                   </button>
                 )}
+                {can.canManage && <IconButton icon="pencil" label={`Editar ${s.title}`} onClick={() => setEditing(s.id)} />}
+                {can.canDelete && <IconButton icon="trash" tone="danger" label={`Eliminar ${s.title}`} onClick={() => setDeleting(s)} />}
               </div>
             </li>
           ))}

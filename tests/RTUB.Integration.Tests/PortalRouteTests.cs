@@ -190,6 +190,8 @@ public class PortalRouteTests : IntegrationTestBase
 
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("music: '/music'");
         File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("{ music: portal.music }",
+            "the top bar, the mobile menu and the footer open the Music page, not the home section");
         Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
             "the React Music area links to /music/albums/{id}, never the retired Blazor route");
     }

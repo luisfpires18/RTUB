@@ -22,8 +22,10 @@ const footerSections = [
   { id: 'join', label: 'Junta-te a nós' },
 ];
 
-// Always /#id, so the same link scrolls on the home page and navigates from Privacy.
-const sectionHref = (id: string) => `/#${id}`;
+// A section with its own React page links there (top bar, menu, footer); the rest are home
+// anchors, always /#id so the same link scrolls on the home page and navigates from elsewhere.
+const sectionPages: Record<string, string> = { music: portal.music };
+const sectionHref = (id: string) => sectionPages[id] ?? `/#${id}`;
 
 export function Layout({ children }: { children: ReactNode }) {
   useEffect(revealApp, []);

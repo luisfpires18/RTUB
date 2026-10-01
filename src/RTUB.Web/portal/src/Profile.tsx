@@ -135,7 +135,7 @@ function SignedOut() {
 const shortcuts: { href: string; icon: IconName; label: string }[] = [
   { href: portal.request, icon: 'send', label: 'Pedir uma atuação' },
   { href: '/#events', icon: 'calendar', label: 'Próximas atuações' },
-  { href: '/#music', icon: 'music', label: 'Discografia' },
+  { href: portal.music, icon: 'music', label: 'Discografia' },
   { href: '/#governance', icon: 'bank', label: 'Órgãos Sociais' },
   { href: '/#gallery', icon: 'images', label: 'Galeria' },
 ];
