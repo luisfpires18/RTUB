@@ -695,6 +695,82 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
             .Should().Be(0, "the last song gone, members see no repertoire");
     }
 
+    // ---------- other members' answers (Admin/Owner, 012E) ----------
+
+    [Fact]
+    public async Task ParticipantManagement_IsRefused_ForVisitorsMembersAndMods_AndWithoutTheAntiforgeryHeader()
+    {
+        var id = await AddEventAsync("Serenata com inscrições protegidas", DateTime.Today.AddDays(330));
+        var (someone, someoneUser) = await SignInAsync();
+        await AddEnrollmentAsync(id, someoneUser.Id, willAttend: true);
+        var answer = (await EnrollmentAsync(id, someoneUser.Id))!.Id;
+        var (target, targetUser) = await SignInAsync();
+        var visitor = Anonymous();
+        await WithTokenAsync(visitor);
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var (adminWithoutToken, _) = await SignInAsync("Admin");
+
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        {
+            (await client.GetAsync($"/api/events/{id}/enrollments")).StatusCode.Should().Be(expected);
+            (await client.GetAsync($"/api/events/{id}/enrollments/members?q=events")).StatusCode.Should().Be(expected);
+            (await client.PostAsJsonAsync($"/api/events/{id}/enrollments", new { userId = targetUser.Id })).StatusCode.Should().Be(expected);
+            (await client.DeleteAsync($"/api/events/{id}/enrollments/{answer}")).StatusCode.Should().Be(expected);
+        }
+
+        (await adminWithoutToken.PostAsJsonAsync($"/api/events/{id}/enrollments", new { userId = targetUser.Id })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await adminWithoutToken.DeleteAsync($"/api/events/{id}/enrollments/{answer}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await EnrollmentAsync(id, targetUser.Id)).Should().BeNull();
+        (await EnrollmentAsync(id, someoneUser.Id)).Should().NotBeNull();
+        var page = await member.GetAsync($"/api/events/{id}");
+        (await page.Content.ReadAsStringAsync()).Should().NotContain(someoneUser.Id, "members see who goes, never user ids");
+        (await Anonymous().GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("member").ValueKind
+            .Should().Be(JsonValueKind.Null, "visitors never see who goes");
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Owner")]
+    public async Task AdminOrOwner_AddAndRemoveOthersAnswers_AndTheMembersOwnAnswerStillWorks(string role)
+    {
+        var id = await AddEventAsync($"Serenata gerida ({role})", DateTime.Today.AddDays(role == "Admin" ? 331 : 332));
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var (member, memberUser) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (_, addedUser) = await SignInAsync();
+        _factory.Push.Invocations.Clear();
+
+        var found = await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/enrollments/members?q={Uri.EscapeDataString(addedUser.Nickname!)}");
+        var option = found.EnumerateArray().Single();
+        option.GetProperty("id").GetString().Should().Be(addedUser.Id);
+        option.GetRawText().Should().NotContain("@", "no email in the picker");
+
+        var added = await client.PostAsJsonAsync($"/api/events/{id}/enrollments", new { userId = addedUser.Id });
+        added.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await EnrollmentAsync(id, addedUser.Id))!.WillAttend.Should().BeTrue();
+        _factory.Push.Invocations.Should().BeEmpty("adding someone by hand notifies nobody, as before");
+
+        (await client.PostAsJsonAsync($"/api/events/{id}/enrollments", new { userId = addedUser.Id })).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest, "one answer per member");
+
+        // The member still answers for themselves in the usual modal.
+        (await member.PutAsJsonAsync($"/api/events/{id}/enrollment", Answer(false))).StatusCode.Should().Be(HttpStatusCode.OK);
+        var list = await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/enrollments");
+        list.GetProperty("notGoing").GetArrayLength().Should().Be(1);
+        list.GetProperty("going").GetArrayLength().Should().Be(1);
+
+        var mine = list.GetProperty("notGoing")[0].GetProperty("id").GetInt32();
+        (await client.DeleteAsync($"/api/events/{id}/enrollments/{mine}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await EnrollmentAsync(id, memberUser.Id)).Should().BeNull();
+        (await member.GetFromJsonAsync<JsonElement>($"/api/events/{id}/enrollment")).GetProperty("status").ValueKind
+            .Should().Be(JsonValueKind.Null, "the member sees no answer of theirs any more");
+    }
+
     private async Task<int> AddSongAsync(string title)
     {
         using var scope = _factory.Services.CreateScope();

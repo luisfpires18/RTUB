@@ -9,7 +9,7 @@ export const legacy = {
   memberGovernance: '/member/roles',
   memberGallery: '/member/gallery',
   memberEvents: '/member/events',
-  eventEnrollments: (id: number) => `/events/${id}/enrollments`,
+  eventContacts: (id: number) => `/events/${id}/contacts`,
   eventDiscussion: (id: number) => `/events/${id}/discussion`,
 } as const;
 
@@ -25,6 +25,7 @@ export const portal = {
   gallery: '/gallery',
   events: '/events',
   event: (id: number) => `/events/${id}`,
+  myEnrollments: '/events/my-enrollments',
 } as const;
 
 /** Sign in, then come back to the React profile. */

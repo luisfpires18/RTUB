@@ -111,7 +111,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
         var canManage = EventsAuthorization.CanManage(user);
         return new EventDetailDto(extras.IsMember, canManage, ToSummary(e, extras), videos, member,
-            canManage && EventAdminService.TakesPrizes(e));
+            canManage && EventAdminService.TakesPrizes(e), EventsAuthorization.CanTrackContacts(user));
     }
 
     public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)
@@ -419,11 +419,25 @@ public sealed class EventAgendaService : IEventAgendaService
 
     private static async Task<EventParticipantsDto> ParticipantsAsync(ApplicationDbContext db, int eventId)
     {
+        var people = await PeopleAsync(db, eventId);
+        return new EventParticipantsDto(
+            people.Where(p => p.WillAttend && !p.Leitao).Select(p => p.Dto).ToList(),
+            people.Where(p => p.WillAttend && p.Leitao).Select(p => p.Dto).ToList(),
+            people.Where(p => !p.WillAttend).Select(p => p.Dto).ToList());
+    }
+
+    /// <summary>One answer as "Quem vai" shows it, with its row id (only the Admin/Owner manager sends that, 012E).</summary>
+    internal sealed record Person(int EnrollmentId, bool WillAttend, bool Leitao, EventParticipantDto Dto);
+
+    /// <summary>Every answer of an event, newest first, in the shape "Quem vai" shows.</summary>
+    internal static async Task<List<Person>> PeopleAsync(ApplicationDbContext db, int eventId)
+    {
         var rows = await db.Enrollments.AsNoTracking()
             .Where(x => x.EventId == eventId && x.User != null)
             .OrderByDescending(x => x.EnrolledAt).ThenByDescending(x => x.Id)
             .Select(x => new
             {
+                x.Id,
                 x.WillAttend,
                 x.Instrument,
                 x.Notes,
@@ -437,7 +451,7 @@ public sealed class EventAgendaService : IEventAgendaService
             })
             .ToListAsync();
 
-        var people = rows.Select(r =>
+        return rows.Select(r =>
         {
             // The category at the event when it was recorded, else the member's current one (as before).
             var category = r.CategoryAtEvent
@@ -450,16 +464,11 @@ public sealed class EventAgendaService : IEventAgendaService
                 r.Positions?.Contains(Position.Magister) == true ? "MAGISTER" : category is { } c ? StatusHelper.GetCategoryDisplay(c) : null,
                 r.WillAttend && r.Instrument is { } i ? StatusHelper.GetInstrumentDisplay(i) : null,
                 string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes);
-            return (r.WillAttend, Leitao: category == MemberCategory.Leitao, dto);
+            return new Person(r.Id, r.WillAttend, category == MemberCategory.Leitao, dto);
         }).ToList();
-
-        return new EventParticipantsDto(
-            people.Where(p => p.WillAttend && !p.Leitao).Select(p => p.dto).ToList(),
-            people.Where(p => p.WillAttend && p.Leitao).Select(p => p.dto).ToList(),
-            people.Where(p => !p.WillAttend).Select(p => p.dto).ToList());
     }
 
-    private const string DefaultAvatar = "/images/default-avatar.webp";
+    internal const string DefaultAvatar = "/images/default-avatar.webp";
 
     // ---------- rules ----------
 
@@ -542,7 +551,7 @@ public sealed class EventAgendaService : IEventAgendaService
     private static string DateText(DateTime date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     /// <summary>An https URL or a same-site path; anything else (http:, javascript:, data:, //host) is dropped.</summary>
-    private static bool IsSafeUrl(string? url) =>
+    internal static bool IsSafeUrl(string? url) =>
         !string.IsNullOrWhiteSpace(url)
         && ((url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\"))
             || (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps));

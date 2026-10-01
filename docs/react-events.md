@@ -17,8 +17,9 @@ counts follow: Vão / Não vão, Foram / Não foram).
 **Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal (used
 by the `/member/events` buttons). `/events/{id}/enrollment` - the answer page of the first 011 build, which
 reached DEV - is a temporary `302` to `/events/{id}?respond=1`; the draft `/events/{id}/attendance` never
-reached `dev` and is not served (404). Not to be confused with the members' Blazor list of everyone's
-answers with its admin tools, `/events/{id}/enrollments`.
+reached `dev` and is not served (404). `/events/{id}/enrollments` - the members' Blazor list of everyone's
+answers with its admin tools - is retired since 012E: a `302` to `/events/{id}#who-title` ("Quem vai / Quem
+foi", with the Admin/Owner manager). `/events/my-enrollments` is the member's own answers (012E).
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -61,8 +62,9 @@ Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
   Writes go through `IEnrollmentService`, so its push notifications, category snapshot and retirement
   update are unchanged.
 - **Management:** Admin or Owner (was `IsInRole("Admin")` only) - the React create/edit/delete, image,
-  cancel / reactivate and notices, and the remaining `/member/events` and `/events/{id}/enrollments` tools. Mod and Member get 403 from the
-  API. Contact tracking (`/events/{id}/contacts`): Mod and above (was Admin or Mod). The agenda shows
+  cancel / reactivate and notices, prizes, videos, repertoire and other members' answers, and the remaining
+  `/member/events` tools. Mod and Member get 403 from the API. Contact tracking (`/events/{id}/contacts`): Mod
+  and above (was Admin or Mod), linked from the React event page's member panel since 012E. The agenda shows
   the controls only when the API says `canManage`; the server enforces it on every write.
 
 ## Create, edit, delete (Admin/Owner, 011.5) - audited against the old page
@@ -156,6 +158,24 @@ in the repertoire, titles only. No song is created here.
 Every write answers the whole repertoire; the page refreshes behind, so a first song shows the section to
 members and clearing the last leaves them none (Admin/Owner keep an empty state with the button).
 
+## Participants and "As minhas inscrições" (012E) - audited against the old pages
+
+`Enrollments`: `UserId`, `EventId` (unique together), `WillAttend`, `Instrument` (enum, optional),
+`OtherInstruments` (text), `Notes` (text), `EnrolledAt`, `CategoryAtEvent` (snapshot), audit columns. Events
+use *enrollment* / *inscrição*; *attendance* / *presença* stays with rehearsals.
+
+| | Old Blazor | React now |
+| --- | --- | --- |
+| Everyone's answers | `/events/{id}/enrollments` (any member): going members / Leitões / not going, search, instrument counters; also a modal in `/member/events` | the event page's "Quem vai / Quem foi" for members (unchanged); visitors none; the Blazor page redirects there |
+| Add a member | Admin/Owner: name search over **every** user not answered yet; added as going with their primary instrument, `skipNotification`; an existing answer was silently overwritten to going | Admin/Owner (server-side) **Gerir inscrições** → "Inscrever um membro": search by nickname or name (accents ignored, 20 at a time) over members who have not answered and are **not expelled**; same going + primary instrument + no notification (`IEnrollmentService`); a duplicate is refused; a cancelled event takes none (the answer modal already refused them) |
+| Remove an answer | Admin/Owner any; a member their own (trash on the list) | Admin/Owner any, in the manager (inline confirm); a member changes their own in the answer modal (withdrawing from a past event they went to, as in 011) |
+| Edit someone else's answer | not offered | not offered |
+| "Minhas Inscrições" | `/member/events` modal: the last 10 (or all) past, not cancelled events, Foi / Não foi (no answer = Não foi), participation share, search | `/events/my-enrollments` (signed-in; visitors get a sign-in prompt): the next dates with Vais / Não vais / Responder (the usual answer modal), then the same archive view - Foste / Não foste, the share, last 10 or all, search; built on `GET /api/events` (own answers only). Linked from the agenda, the event page and `/profile` |
+
+The picker sends user ids and display fields to Admin/Owner only; no email or phone anywhere. No
+notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above) lost its
+only link with the Blazor participants page and is linked from the event page's member panel instead.
+
 ## API
 
 | Endpoint | Who | Notes |
@@ -191,6 +211,10 @@ members and clearing the last leaves them none (Admin/Owner keep an empty state 
 | `POST /api/events/{id}/repertoire/reorder` | Admin/Owner | `{ date, itemIds }`, the day's every row once; `X-CSRF-TOKEN`; 400 `errors.itemIds` when stale. |
 | `DELETE /api/events/{id}/repertoire/{itemId}` | Admin/Owner | `X-CSRF-TOKEN`; `200`; 404 if not this event's. |
 | `DELETE /api/events/{id}/repertoire/days/{date}` | Admin/Owner | Clears one day; `X-CSRF-TOKEN`; `200`. |
+| `GET /api/events/{id}/enrollments` | Admin/Owner | `{ canAdd, going, leitoes, notGoing }`, each `{ id, participant }` ("Quem vai" fields) (012E). |
+| `GET /api/events/{id}/enrollments/members?q=` | Admin/Owner | Up to 20 `{ id, name, fullName, avatarUrl }`: not answered, not expelled. |
+| `POST /api/events/{id}/enrollments` | Admin/Owner | `{ userId }`; going, primary instrument, no notification; `X-CSRF-TOKEN`; 400 `errors.userId`; 409 cancelled. |
+| `DELETE /api/events/{id}/enrollments/{enrollmentId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the list; 404 if not this event's. |
 | `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
@@ -232,6 +256,9 @@ image (012A) and videos (012C), through the existing storage services.
 - 012D: the repertoire song picker follows Music's album rule (the old select listed every song, exclusive
   albums included); a song already in the event on another day is refused with a message instead of
   failing silently; a multi-day event's days are all offered.
+- 012E: the "Inscrever um membro" picker leaves out expelled members, refuses a member who already
+  answered (the old page overwrote the answer to going) and refuses cancelled events; a member no longer
+  deletes their own upcoming answer from a list (they change it in the answer modal).
 
 ## Old Blazor UI
 
@@ -242,19 +269,21 @@ image (012A) and videos (012C), through the existing storage services.
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
 - Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
-  do yet - statistics (including the read-only "Prémios por Evento"), "Minhas Inscrições"; `/events/{id}/enrollments` (add or remove someone's enrollment); `/discussion`; `/contacts`.
+  do yet - statistics (including the read-only "Prémios por Evento"), read-only videos and repertoire, the
+  details-only edit; `/discussion`; `/contacts`.
   Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
   announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
   edit / delete): prizes are managed only in the React Prémios modal. 012C removed its video upload,
   rename, delete and drag-and-drop reorder; its videos modal only lists and plays them. 012D made the
-  shared `RepertoireModal` (used only there) read-only: no add, remove, reorder or clear-day.
+  shared `RepertoireModal` (used only there) read-only: no add, remove, reorder or clear-day. 012E removed
+  its participants modal, its "Participantes" buttons and "Minhas Inscrições" (and the `MyEnrollmentsButton`
+  component), and retired the Blazor `/events/{id}/enrollments` page.
 
 ## Follow-ups
 
-- Advanced management in React: statistics, "Minhas Inscrições", others' enrollments (012E-F); then `/member/events` and
-  `/events/{id}/enrollments` can go.
+- Statistics (012F), then discussion and contacts; then `/member/events` can go.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
   a background job.
 - Deleting an event leaves its video files in R2 (the rows go, as before).

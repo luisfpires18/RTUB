@@ -195,13 +195,16 @@
                                 <i class="bi bi-eye"></i>
                             </button>
 
-                            <!-- View Enrollments button with centered count -->
-                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
-                                    @onclick="OnViewEnrollments" 
-                                    title="Participantes">
-                                <i class="bi bi-people"></i>
-                                <span class="enrollment-count-centered">@EnrollmentCount</span>
-                            </button>
+                            <!-- View Enrollments button with centered count (only where a page wires it; /member/events no longer does, 012E) -->
+                            @if (OnViewEnrollments.HasDelegate)
+                            {
+                                <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                        @onclick="OnViewEnrollments" 
+                                        title="Participantes">
+                                    <i class="bi bi-people"></i>
+                                    <span class="enrollment-count-centered">@EnrollmentCount</span>
+                                </button>
+                            }
 
                             <!-- Watch Repertoire button with count -->
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
@@ -265,13 +268,16 @@
                                 <i class="bi bi-eye"></i>
                             </button>
 
-                            <!-- View Enrollments button with centered count -->
-                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
-                                    @onclick="OnViewEnrollments"
-                                    title="Participantes">
-                                <i class="bi bi-people"></i>
-                                <span class="enrollment-count-centered">@EnrollmentCount</span>
-                            </button>
+                            <!-- View Enrollments button with centered count (only where a page wires it; /member/events no longer does, 012E) -->
+                            @if (OnViewEnrollments.HasDelegate)
+                            {
+                                <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
+                                        @onclick="OnViewEnrollments"
+                                        title="Participantes">
+                                    <i class="bi bi-people"></i>
+                                    <span class="enrollment-count-centered">@EnrollmentCount</span>
+                                </button>
+                            }
 
                             <!-- Watch Repertoire button with count -->
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary"

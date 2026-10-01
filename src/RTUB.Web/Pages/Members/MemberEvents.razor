@@ -22,7 +22,6 @@
 @inject IEventFilterService EventFilterService
 @inject IEventUrlService EventUrlService
 @inject IEventStatisticsService EventStatisticsService
-@inject IEnrollmentFilterService EnrollmentFilterService
 @inject IEnrollmentStatisticsService EnrollmentStatisticsService
 @inject IFiscalYearService FiscalYearService
 @inject IEnrollmentService EnrollmentService
@@ -65,9 +64,6 @@
                     <button class="btn btn-outline-primary" @onclick="() => _enrollmentStatsRef?.Open()" title="Ver Estatísticas">
                         <i class="bi bi-bar-chart"></i> Estatísticas
                     </button>
-                    <button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsViaRef" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
-                        <i class="bi bi-calendar-check"></i> Minhas Inscrições
-                    </button>
                 </Authorized>
             </AuthorizeView>
         </div>
@@ -75,7 +71,6 @@
 
     @* Component instances outside hidden container so their modals work on all viewports *@
     <EnrollmentStatisticsButton @ref="_enrollmentStatsRef" HideButton="true"/>
-    <MyEnrollmentsButton @ref="_myEnrollmentsRef" HideButton="true"/>
 
     <!-- Filter Controls -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-4">
@@ -142,7 +137,6 @@ else
                                        OnEditEnrollment="@(() => OpenEventResponse(eventItem))"
                                        OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
                                        OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                       OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                        OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                        OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
                         </Authorized>
@@ -213,7 +207,6 @@ else
                                            OnEdit="@(() => OpenEditModal(eventItem))"
                                            OnDelete="@(() => OpenDeleteModal(eventItem))"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                           OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
@@ -230,7 +223,6 @@ else
                                            IsAdmin="false"
                                            IsPastEvent="true"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                           OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => OpenEventResponse(eventItem))"
@@ -376,284 +368,6 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="DeleteEvent"
                OnCancel="CloseDeleteModal" />
-
-<!-- View Enrollments Modal -->
-@if (selectedEvent != null)
-{
-    <Modal Show="@modals.IsOpen(ModalType.EnrollmentList)" 
-           ShowChanged="@((bool show) => { if (!show) CloseEnrollmentListModal(); })"
-           Size="Modal.ModalSize.Large"
-           Centered="true">
-        <HeaderActions>
-            <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="@(async () => await NavigateToEnrollmentsPage(selectedEvent.Id))" title="Abrir em página completa">
-                <i class="bi bi-box-arrow-up-right"></i>
-            </button>
-            <h5 class="modal-title mb-0">@($"Inscrições em {selectedEvent.Name}")</h5>
-        </HeaderActions>
-        <BodyContent>
-            @if (eventEnrollments != null && eventEnrollments.Any())
-            {
-                var performingMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() != MemberCategory.Leitao).ToList();
-                var leitaoMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() == MemberCategory.Leitao).ToList();
-                var notAttendingMembers = eventEnrollments.Where(e => e.User != null && !e.WillAttend).ToList();
-
-                @if (performingMembers.Any())
-                {
-                    <h6 class="mb-3 heading-purple">Membros (@performingMembers.Count)</h6>
-
-                    <!-- Search Control -->
-                    <SearchBar @bind-Value="enrollmentSearchTerm"
-                               Placeholder="Pesquisar por nome..."
-                               OnSearch="HandleEnrollmentSearch" />
-                    
-                    <div class="enrollment-card-grid mb-4">
-                        @foreach (var enrollment in paginatedPerformingMembers)
-                        {
-                            <EnrollmentCard 
-                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
-                                TunaName="@enrollment.User?.Nickname"
-                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
-                                InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
-                                OtherInstruments="@enrollment.OtherInstruments"
-                                Notes="@enrollment.Notes"
-                                AltText="@enrollment.User?.GetDisplayName()"
-                                ShowEditButton="false"
-                                ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
-                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
-                                DeleteTooltip="Eliminar Inscrição">
-                                <BadgeContent>
-                                    @if (enrollment.User != null)
-                                    {
-                                        <div class="enrollment-card-badges-row">
-                                            @{
-                                                var __pmCat = enrollment.EffectiveCategory();
-                                            }
-                                            @if (enrollment.User.Positions.Contains(Position.Magister))
-                                            {
-                                                <PositionBadge Position="Position.Magister" />
-                                            }
-                                            else if (__pmCat == MemberCategory.Tuno)
-                                            {
-                                                <CategoryBadge Category="MemberCategory.Tuno" />
-                                            }
-                                            else if (__pmCat == MemberCategory.Caloiro)
-                                            {
-                                                <CategoryBadge Category="MemberCategory.Caloiro" />
-                                            }
-                                        </div>
-                                    }
-                                </BadgeContent>
-                            </EnrollmentCard>
-                        }
-                    </div>
-
-                    <!-- Pagination for Performing Members -->
-                    @if (filteredPerformingMembers.Count > 0)
-                    {
-                        <div class="mb-3">
-                            <TablePagination 
-                                TotalItems="@filteredPerformingMembers.Count"
-                                CurrentPage="@performingMembersPagination.CurrentPage"
-                                PageSize="@performingMembersPagination.PageSize"
-                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                OnPageChanged="@HandlePerformingMembersPageChange"
-                                OnPageSizeChanged="@HandlePerformingMembersPageSizeChange" />
-                        </div>
-                    }
-
-                    @* Instrument Counts - Horizontal Counter Section *@
-                    <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
-                    <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
-                }
-
-                @if (leitaoMembers.Any())
-                {
-                    <h6 class="mb-3 heading-warning">Leitões (@leitaoMembers.Count)</h6>
-                    <div class="enrollment-card-grid">
-                        @foreach (var enrollment in paginatedLeitoes)
-                        {
-                            <EnrollmentCard 
-                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
-                                TunaName="@enrollment.User?.Nickname"
-                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
-                                InstrumentText=""
-                                OtherInstruments=""
-                                Notes="@enrollment.Notes"
-                                AltText="@enrollment.User?.GetDisplayName()"
-                                ShowEditButton="false"
-                                ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
-                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
-                                DeleteTooltip="Eliminar Inscrição">
-                                <BadgeContent>
-                                    <div class="enrollment-card-badges-row">
-                                        <CategoryBadge Category="MemberCategory.Leitao" />
-                                    </div>
-                                </BadgeContent>
-                            </EnrollmentCard>
-                        }
-                    </div>
-                    
-                    <!-- Pagination for Leitões -->
-                    @if (filteredLeitoes.Count > 0)
-                    {
-                        <div class="mt-3">
-                            <TablePagination 
-                                TotalItems="@filteredLeitoes.Count"
-                                CurrentPage="@leitoesPagination.CurrentPage"
-                                PageSize="@leitoesPagination.PageSize"
-                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                OnPageChanged="@HandleLeitoesPageChange"
-                                OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
-                        </div>
-                    }
-                }
-
-                @if (notAttendingMembers.Any())
-                {
-                    <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
-                    <div class="enrollment-card-grid">
-                        @foreach (var enrollment in paginatedNotAttending)
-                        {
-                            <EnrollmentCard 
-                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
-                                TunaName="@enrollment.User?.Nickname"
-                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
-                                InstrumentText=""
-                                OtherInstruments=""
-                                Notes="@enrollment.Notes"
-                                AltText="@enrollment.User?.GetDisplayName()"
-                                ShowEditButton="false"
-                                ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
-                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
-                                DeleteTooltip="Eliminar Inscrição">
-                                <BadgeContent>
-                                    @if (enrollment.User != null)
-                                    {
-                                        <div class="enrollment-card-badges-row">
-                                            @{
-                                                var __naCat = enrollment.EffectiveCategory();
-                                            }
-                                            @if (enrollment.User.Positions.Contains(Position.Magister))
-                                            {
-                                                <PositionBadge Position="Position.Magister" />
-                                            }
-                                            else if (__naCat == MemberCategory.Tuno)
-                                            {
-                                                <CategoryBadge Category="MemberCategory.Tuno" />
-                                            }
-                                            else if (__naCat == MemberCategory.Caloiro)
-                                            {
-                                                <CategoryBadge Category="MemberCategory.Caloiro" />
-                                            }
-                                            else if (__naCat == MemberCategory.Leitao)
-                                            {
-                                                <CategoryBadge Category="MemberCategory.Leitao" />
-                                            }
-                                        </div>
-                                    }
-                                </BadgeContent>
-                            </EnrollmentCard>
-                        }
-                    </div>
-                    
-                    <!-- Pagination for Not Attending Members -->
-                    @if (filteredNotAttending.Count > 0)
-                    {
-                        <div class="mt-3">
-                            <TablePagination 
-                                TotalItems="@filteredNotAttending.Count"
-                                CurrentPage="@notAttendingPagination.CurrentPage"
-                                PageSize="@notAttendingPagination.PageSize"
-                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                OnPageChanged="@HandleNotAttendingPageChange"
-                                OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
-                        </div>
-                    }
-                }
-            }
-            else
-            {
-                <EmptyState Title="Nenhuma inscrição ainda para este evento"
-                           Icon="bi-people" />
-            }
-            
-            <AuthorizeView Roles="Admin,Owner">
-                <Authorized>
-                    <div class="mt-3">
-                        <!-- Success Alert (auto-dismiss) -->
-                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && !addMemberToEnrollmentFeedbackIsError)
-                        {
-                            <Alert Type="Alert.AlertType.Purple"
-                                   Title="@addMemberToEnrollmentFeedbackMessage"
-                                   Dismissible="true"
-                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
-                                   AdditionalClasses="mb-2" />
-                        }
-
-                        <!-- Error Alert (manual dismiss) -->
-                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && addMemberToEnrollmentFeedbackIsError)
-                        {
-                            <Alert Type="Alert.AlertType.Error"
-                                   Title="@addMemberToEnrollmentFeedbackMessage"
-                                   Dismissible="true"
-                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
-                                   AdditionalClasses="mb-2" />
-                        }
-
-                        @if (!showAddMemberToEnrollmentSearch)
-                        {
-                            <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberToEnrollmentSearch">
-                                <i class="bi bi-plus-circle"></i>
-                                Adicionar Membro
-                            </button>
-                        }
-                        else
-                        {
-                            <div class="mb-2">
-                                <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
-                                           Placeholder="Pesquisar membro por nome..."
-                                           OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
-
-                                @if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm) && filteredAvailableMembersForEnrollment.Any())
-                                {
-                                    <div class="member-list member-list-scrollable mt-2">
-                                        @foreach (var member in filteredAvailableMembersForEnrollment)
-                                        {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                 @onclick="() => AddMemberToEvent(member)"
-                                                 tabindex="0"
-                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                         class="member-avatar-small me-2" />
-                                                    <div>
-                                                        <strong>@member.GetDisplayName()</strong>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
-                                {
-                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                }
-                            </div>
-
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberToEnrollmentSearch">
-                                <i class="bi bi-x-circle"></i>
-                                Cancelar
-                            </button>
-                        }
-                    </div>
-                </Authorized>
-            </AuthorizeView>
-        </BodyContent>
-        <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseEnrollmentListModal">Voltar Atrás</button>
-        </FooterContent>
-    </Modal>
-}
 
 <!-- Repertoire Modal -->
 <RepertoireModal Show="@modals.IsOpen(ModalType.Repertoire)"
@@ -893,20 +607,6 @@ else
     </BodyContent>
 </Modal>
 
-<!-- Delete Enrollment Confirmation Modal -->
-<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteEnrollment)"
-               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteEnrollment, show))"
-               Title="Confirmar Eliminação de Inscrição"
-               Message="@($"Tem a certeza que deseja eliminar a inscrição de {deletingEnrollment?.User?.GetDisplayName()} neste evento?")"
-               WarningMessage="Esta ação não pode ser revertida."
-               ConfirmText="Eliminar"
-               CancelText="Cancelar"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="DeleteEnrollment"
-               OnCancel="CloseDeleteEnrollmentModal" />
-
-
-
 </div>
 
 <!-- Mobile Bottom Nav -->
@@ -916,7 +616,6 @@ else
     private List<Event>? allEvents; // All events (unfiltered)
     private List<Event> events = new(); // Future events (filtered)
     private List<Enrollment>? enrollments;
-    private List<Enrollment>? eventEnrollments;
     private List<EventRepertoire>? eventRepertoires;
     private Dictionary<int, int>? discussionPostCounts; // eventId -> post count
     private Dictionary<int, int> eventVideoCounts = new(); // eventId -> video count
@@ -925,11 +624,9 @@ else
     {
         Edit,
         Delete,
-        EnrollmentList,
         Repertoire,
         EventDetails,
         Videos,
-        DeleteEnrollment,
         TrophiesStats
     }
 
@@ -944,7 +641,6 @@ else
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForVideos;
-    private Enrollment? deletingEnrollment;
     
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -991,36 +687,10 @@ else
     private SearchHelper<Event> searchHelper = new();
     private PaginationHelper<Event> paginationHelper = new() { PageSize = 9 };
     private List<Event> paginatedPreviousEvents => paginationHelper.GetPageData(filteredPreviousEvents);
-    
-    // Enrollment modal filter variables
-    private string enrollmentSearchTerm = string.Empty;
-    private SortableTableHelper<Enrollment> enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
-    private List<Enrollment> filteredPerformingMembers = new();
-    private List<Enrollment> filteredLeitoes = new();
-    private List<Enrollment> filteredNotAttending = new();
-    
-    // Instrument count tracking
-    private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
-    private Dictionary<InstrumentType, int> otherInstrumentCounts = new();
-    
-    // Pagination for enrollment modals
-    private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 8 };
-    private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 8 };
-    private PaginationHelper<Enrollment> notAttendingPagination = new() { PageSize = 8 };
-    private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
-    private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
-    private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
-    
+
     // Media session constants
     private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
     
-    // Add member to enrollment variables (for past events)
-    private string addMemberToEnrollmentSearchTerm = "";
-    private string addMemberToEnrollmentFeedbackMessage = "";
-    private bool addMemberToEnrollmentFeedbackIsError = false;
-    private bool showAddMemberToEnrollmentSearch = false;
-    private List<ApplicationUser> allMembersForEnrollment = new();
-    private List<ApplicationUser> filteredAvailableMembersForEnrollment = new();
     
     // PWA mode detection
     private bool isMobilePwa = false;
@@ -1106,7 +776,6 @@ else
         if (currentUser != null)
         {
             items.Add(new("action-stats", "Estatísticas", "bi-bar-chart"));
-            items.Add(new("action-enrollments", "Inscrições", "bi-calendar-check"));
         }
         mobileNavItems = items;
     }
@@ -1118,19 +787,10 @@ else
             case "action-add": OpenCreateModal(); break;
             case "action-trophies": await OpenTrophiesStatsModal(); break;
             case "action-stats": _enrollmentStatsRef?.Open(); break;
-            case "action-enrollments":
-                if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
-                break;
         }
     }
 
     private EnrollmentStatisticsButton? _enrollmentStatsRef;
-    private MyEnrollmentsButton? _myEnrollmentsRef;
-
-    private async Task OpenMyEnrollmentsViaRef()
-    {
-        if (_myEnrollmentsRef != null) await _myEnrollmentsRef.Open();
-    }
 
     private bool _pwaDetectionCompleted = false;
     
@@ -1573,254 +1233,6 @@ else
     private void OpenEventResponse(Event eventItem) =>
         Navigation.NavigateTo($"/events/{eventItem.Id}?respond=1", forceLoad: true);
 
-    private async Task OpenEnrollmentListModal(Event eventItem)
-    {
-        selectedEvent = eventItem;
-        eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(eventItem.Id)).ToList();
-        enrollmentSearchTerm = string.Empty;
-        enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
-        FilterEnrollments();
-        
-        // Calculate primary and other instrument counts
-        await CalculateInstrumentCountsAsync();
-        
-        // Load all members for adding if admin
-        // Use projection to load only needed fields for better performance
-        if (isUserAdmin)
-        {
-            allMembersForEnrollment = await UserManager.Users
-                .Select(u => new ApplicationUser
-                {
-                    Id = u.Id,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Nickname = u.Nickname,
-                    ImageUrl = u.ImageUrl
-                })
-                .ToListAsync();
-            addMemberToEnrollmentSearchTerm = string.Empty;
-            addMemberToEnrollmentFeedbackMessage = string.Empty;
-            FilterAvailableMembersForEnrollment();
-        }
-        
-        modals.Open(ModalType.EnrollmentList);
-    }
-    
-    private async Task HandleViewEnrollments(Event eventItem)
-    {
-        // On mobile PWA, navigate directly to the enrollment page
-        // On web, open the modal
-        if (isMobilePwa)
-        {
-            await NavigateToEnrollmentsPage(eventItem.Id);
-        }
-        else
-        {
-            await OpenEnrollmentListModal(eventItem);
-        }
-    }
-
-    private void CloseEnrollmentListModal()
-    {
-        modals.Close(ModalType.EnrollmentList);
-        selectedEvent = null;
-        eventEnrollments = null;
-        filteredPerformingMembers.Clear();
-        filteredLeitoes.Clear();
-        filteredNotAttending.Clear();
-        
-        // Clean up add member state
-        allMembersForEnrollment.Clear();
-        filteredAvailableMembersForEnrollment.Clear();
-        addMemberToEnrollmentSearchTerm = "";
-        addMemberToEnrollmentFeedbackMessage = "";
-        addMemberToEnrollmentFeedbackIsError = false;
-        showAddMemberToEnrollmentSearch = false;
-    }
-
-    private Task HandleEnrollmentSearch(string term)
-    {
-        enrollmentSearchTerm = term;
-        performingMembersPagination.CurrentPage = 1;
-        leitoesPagination.CurrentPage = 1;
-        notAttendingPagination.CurrentPage = 1;
-        FilterEnrollments();
-        return Task.CompletedTask;
-    }
-
-    private void FilterEnrollments()
-    {
-        if (eventEnrollments == null)
-        {
-            filteredPerformingMembers = new List<Enrollment>();
-            filteredLeitoes = new List<Enrollment>();
-            filteredNotAttending = new List<Enrollment>();
-            return;
-        }
-        
-        var performingMembers = eventEnrollments
-            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() != MemberCategory.Leitao)
-            .ToList();
-
-        var leitaoMembers = eventEnrollments
-            .Where(e => e.User != null && e.WillAttend && e.EffectiveCategory() == MemberCategory.Leitao)
-            .ToList();
-        
-        var notAttendingMembers = eventEnrollments
-            .Where(e => e.User != null && !e.WillAttend)
-            .ToList();
-        
-        // Apply search filter to performing members, leitões, and not attending
-        if (!string.IsNullOrWhiteSpace(enrollmentSearchTerm))
-        {
-            var searchTerms = enrollmentSearchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(t => t.ToLower())
-                .ToArray();
-            
-            performingMembers = performingMembers.Where(e =>
-            {
-                if (e.User == null) return false;
-                
-                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
-                return searchTerms.All(term => searchableText.Contains(term));
-            }).ToList();
-            
-            leitaoMembers = leitaoMembers.Where(e =>
-            {
-                if (e.User == null) return false;
-                
-                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
-                return searchTerms.All(term => searchableText.Contains(term));
-            }).ToList();
-            
-            notAttendingMembers = notAttendingMembers.Where(e =>
-            {
-                if (e.User == null) return false;
-                
-                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
-                return searchTerms.All(term => searchableText.Contains(term));
-            }).ToList();
-        }
-        
-        filteredPerformingMembers = performingMembers
-            .OrderByDescending(e => e.EnrolledAt)
-            .ToList();
-        filteredLeitoes = leitaoMembers
-            .OrderByDescending(e => e.EnrolledAt)
-            .ToList();
-        filteredNotAttending = notAttendingMembers
-            .OrderByDescending(e => e.EnrolledAt)
-            .ToList();
-        
-        // Reset to page 1 when search changes
-        performingMembersPagination.CurrentPage = 1;
-        leitoesPagination.CurrentPage = 1;
-        notAttendingPagination.CurrentPage = 1;
-        
-        ApplySortToEnrollments();
-    }
-    
-    private void HandlePerformingMembersPageChange(int page)
-    {
-        performingMembersPagination.CurrentPage = page;
-        StateHasChanged();
-    }
-
-    private void HandlePerformingMembersPageSizeChange(int pageSize)
-    {
-        performingMembersPagination.PageSize = pageSize;
-        performingMembersPagination.CurrentPage = 1;
-        StateHasChanged();
-    }
-
-    private void HandleLeitoesPageChange(int page)
-    {
-        leitoesPagination.CurrentPage = page;
-        StateHasChanged();
-    }
-
-    private void HandleLeitoesPageSizeChange(int pageSize)
-    {
-        leitoesPagination.PageSize = pageSize;
-        leitoesPagination.CurrentPage = 1;
-        StateHasChanged();
-    }
-    
-    private void HandleNotAttendingPageChange(int page)
-    {
-        notAttendingPagination.CurrentPage = page;
-        StateHasChanged();
-    }
-
-    private void HandleNotAttendingPageSizeChange(int pageSize)
-    {
-        notAttendingPagination.PageSize = pageSize;
-        notAttendingPagination.CurrentPage = 1;
-        StateHasChanged();
-    }
-    
-    private void SortEnrollmentsBy(string column)
-    {
-        enrollmentSortHelper.ChangeSortColumn(column);
-        ApplySortToEnrollments();
-    }
-    
-    private void ApplySortToEnrollments()
-    {
-        if (filteredPerformingMembers == null || !filteredPerformingMembers.Any())
-            return;
-        
-        var columnSelectors = new Dictionary<string, Func<Enrollment, IComparable>>
-        {
-            [nameof(ApplicationUser.FirstName)] = e => e.User?.FirstName ?? "",
-            ["Category"] = e =>
-            {
-                if (e.User == null) return "3";
-                if (e.User.Positions.Contains(Position.Magister)) return "0";
-                var cat = e.EffectiveCategory();
-                if (cat == MemberCategory.Tuno) return "1";
-                if (cat == MemberCategory.Caloiro) return "2";
-                return "3";
-            },
-            ["Instrument"] = e => e.Instrument?.ToString() ?? "ZZZ",
-            ["EnrolledAt"] = e => e.EnrolledAt
-        };
-        
-        filteredPerformingMembers = enrollmentSortHelper.ApplySort(filteredPerformingMembers, columnSelectors);
-    }
-
-    private async Task CalculateInstrumentCountsAsync()
-    {
-        primaryInstrumentCounts = new Dictionary<InstrumentType, int>();
-        otherInstrumentCounts = new Dictionary<InstrumentType, int>();
-        
-        if (selectedEvent == null || eventEnrollments == null)
-            return;
-        
-        // Assign the loaded enrollments to the Event's navigation property
-        // so that GetPrimaryInstrumentCounts and GetOtherInstrumentCounts can iterate over them
-        selectedEvent.Enrollments = eventEnrollments;
-        
-        // Get all user IDs from enrollments
-        var userIds = eventEnrollments
-            .Where(e => e.WillAttend && !string.IsNullOrEmpty(e.UserId))
-            .Select(e => e.UserId)
-            .Distinct()
-            .ToList();
-        
-        if (!userIds.Any())
-            return;
-        
-        // Fetch all member instruments in one query
-        var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
-        
-        // Use service to calculate counts (business logic extracted)
-        (primaryInstrumentCounts, otherInstrumentCounts) = EnrollmentStatisticsService.CalculateInstrumentCounts(
-            selectedEvent,
-            memberInstruments
-        );
-    }
-
     private string GetEventTypeDisplay(EventType type)
     {
         return type switch
@@ -1862,49 +1274,6 @@ else
         modals.Open(ModalType.EventDetails);
     }
 
-    // Enrollment deletion methods
-    private void OpenDeleteEnrollmentModal(Enrollment enrollment)
-    {
-        deletingEnrollment = enrollment;
-        modals.Toggle(ModalType.DeleteEnrollment, true);
-    }
-    
-    private void CloseDeleteEnrollmentModal()
-    {
-        modals.Close(ModalType.DeleteEnrollment);
-        deletingEnrollment = null;
-    }
-    
-    private async Task DeleteEnrollment()
-    {
-        if (deletingEnrollment == null) return;
-        
-        try
-        {
-            await EnrollmentService.DeleteEnrollmentAsync(deletingEnrollment.Id);
-            
-            // Refresh the enrollment list for the selected event
-            if (selectedEvent != null)
-            {
-                eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(selectedEvent.Id)).ToList();
-                enrollmentSearchTerm = string.Empty;
-                FilterEnrollments();
-                await CalculateInstrumentCountsAsync();
-                FilterAvailableMembersForEnrollment();
-            }
-            
-            // Also reload general enrollments to update counts
-            await LoadEnrollments();
-            
-            CloseDeleteEnrollmentModal();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting enrollment: {ex.Message}");
-        }
-    }
-    
     private string GetEventImageUrl(string imageSrc)
     {
         if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
@@ -1969,18 +1338,6 @@ else
         return isUserAdmin;
     }
     
-    /// <summary>
-    /// Determines if the delete action should be available for enrollments.
-    /// </summary>
-    private bool CanDeleteEnrollment(Enrollment? enrollment = null)
-    {
-        if (isUserAdmin)
-        {
-            return true;
-        }
-
-        return enrollment != null && currentUser != null && enrollment.UserId == currentUser.Id;
-    }
     
     /// <summary>
     /// Gets the days until event formatted as text in Portuguese.
@@ -2001,158 +1358,9 @@ else
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
     }
     
-    // Add Member to Enrollment Methods
-
-    private async Task HandleAddMemberToEnrollmentSearchChanged(string searchTerm)
-    {
-        addMemberToEnrollmentSearchTerm = searchTerm;
-        FilterAvailableMembersForEnrollment();
-        await Task.CompletedTask;
-    }
-
-    private void FilterAvailableMembersForEnrollment()
-    {
-        if (eventEnrollments == null)
-        {
-            filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
-            return;
-        }
-
-        // Get list of user IDs already enrolled
-        var enrolledUserIds = eventEnrollments.Select(e => e.UserId).ToHashSet();
-
-        // Filter members who are not already enrolled
-        var available = allMembersForEnrollment.Where(u => !enrolledUserIds.Contains(u.Id));
-
-        if (string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
-        {
-            filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
-            return;
-        }
-
-        var search = addMemberToEnrollmentSearchTerm.ToLower();
-        filteredAvailableMembersForEnrollment = available
-            .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
-                       (u.LastName?.ToLower().Contains(search) ?? false) ||
-                       (u.Nickname?.ToLower().Contains(search) ?? false))
-            .OrderBy(u => u.FirstName)
-            .ToList();
-    }
-
-    private async Task AddMemberToEvent(ApplicationUser user)
-    {
-        if (selectedEvent == null) return;
-
-        try
-        {
-            // Get the member's primary instrument
-            var primaryInstrument = await MemberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
-            var instrumentToUse = primaryInstrument?.InstrumentType;
-            
-            // Check if enrollment already exists to prevent duplicate constraint violations
-            var existingEnrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(selectedEvent.Id, user.Id);
-            
-            if (existingEnrollment != null)
-            {
-                // Update existing enrollment instead of creating duplicate
-                await EnrollmentService.UpdateEnrollmentAsync(
-                    existingEnrollment.Id,
-                    true, // willAttend = true (approved)
-                    instrumentToUse,
-                    null, // notes
-                    null  // otherInstruments
-                );
-                addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" atualizada com sucesso.";
-            }
-            else
-            {
-                // Add the enrollment, marking it as approved for past events (willAttend = true)
-                // Skip notification since this is an admin adding a user manually
-                await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true, null, skipNotification: true);
-                addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
-            }
-            
-            addMemberToEnrollmentFeedbackIsError = false;
-            
-            // Hide the search after successful addition
-            showAddMemberToEnrollmentSearch = false;
-            addMemberToEnrollmentSearchTerm = string.Empty;
-            
-            // Refresh enrollment list
-            await OpenEnrollmentListModal(selectedEvent);
-            
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            addMemberToEnrollmentFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
-            addMemberToEnrollmentFeedbackIsError = true;
-            Console.WriteLine($"Error adding member to event: {ex.Message}");
-        }
-    }
-
-    private void ClearAddMemberToEnrollmentFeedback()
-    {
-        addMemberToEnrollmentFeedbackMessage = "";
-        addMemberToEnrollmentFeedbackIsError = false;
-    }
-
-    private void ShowAddMemberToEnrollmentSearch()
-    {
-        showAddMemberToEnrollmentSearch = true;
-        addMemberToEnrollmentSearchTerm = string.Empty;
-        addMemberToEnrollmentFeedbackMessage = string.Empty;
-        addMemberToEnrollmentFeedbackIsError = false;
-    }
-
-    private void HideAddMemberToEnrollmentSearch()
-    {
-        showAddMemberToEnrollmentSearch = false;
-        addMemberToEnrollmentSearchTerm = string.Empty;
-        addMemberToEnrollmentFeedbackMessage = string.Empty;
-        addMemberToEnrollmentFeedbackIsError = false;
-    }
-    
-    private async Task HandleMemberItemKeyDownForEnrollment(KeyboardEventArgs e, ApplicationUser member)
-    {
-        if (e.Key == "Enter" || e.Key == " ")
-        {
-            await AddMemberToEvent(member);
-        }
-    }
-
     private void NavigateToDiscussion(Event eventItem)
     {
         Navigation.NavigateTo($"/events/{eventItem.Id}/discussion");
-    }
-
-    private async Task NavigateToEnrollmentsPage(int eventId)
-    {
-        // Scroll to top before navigation for better UX on mobile
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
-        }
-        catch
-        {
-            // Ignore errors if scrollToTop is not available
-        }
-        
-        Navigation.NavigateTo($"/events/{eventId}/enrollments");
-    }
-
-    private async Task NavigateToContactsPage(int eventId)
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
-        }
-        catch
-        {
-            // Ignore errors if scrollToTop is not available
-        }
-
-        Navigation.NavigateTo($"/events/{eventId}/contacts");
     }
 
     private string FormatEventDateRange(Event eventItem)

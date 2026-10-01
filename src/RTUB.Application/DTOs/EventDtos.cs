@@ -82,7 +82,8 @@ public sealed record EventMemberSummaryDto(
 
 /// <summary>
 /// One event page. <c>Member</c> is null for visitors. <c>CanManagePrizes</c>: the caller is Admin/Owner
-/// and the event is a past festival, where prizes are added (012B).
+/// and the event is a past festival, where prizes are added (012B). <c>CanTrackContacts</c>: Mod and above,
+/// who get the link to the Blazor /events/{id}/contacts (012E; it was linked from the retired participants page).
 /// </summary>
 public sealed record EventDetailDto(
     bool IsMember,
@@ -90,7 +91,8 @@ public sealed record EventDetailDto(
     EventSummaryDto Event,
     IReadOnlyList<EventVideoDto> Videos,
     EventMemberDetailDto? Member,
-    bool CanManagePrizes = false);
+    bool CanManagePrizes = false,
+    bool CanTrackContacts = false);
 
 /// <summary>A video on the public R2 host, in its stored order.</summary>
 public sealed record EventVideoDto(int Id, string Title, string Url, string MimeType);
@@ -244,3 +246,24 @@ public sealed record EventRepertoireAddInput(int SongId, string? Date);
 
 /// <summary>A day's new running order: every repertoire row id of that day, exactly once.</summary>
 public sealed record EventRepertoireOrderInput(string? Date, IReadOnlyList<int>? ItemIds);
+
+// ---------- participants (Admin/Owner, React track 012E) ----------
+
+/// <summary>
+/// Every answer of an event for the Admin/Owner manager, grouped as "Quem vai" groups them, each with
+/// its row id (to remove it). <c>CanAdd</c>: the event takes new answers from the manager (not cancelled).
+/// </summary>
+public sealed record EventEnrollmentListDto(
+    bool CanAdd,
+    IReadOnlyList<EventManagedEnrollmentDto> Going,
+    IReadOnlyList<EventManagedEnrollmentDto> Leitoes,
+    IReadOnlyList<EventManagedEnrollmentDto> NotGoing);
+
+/// <summary>One answer: the row id and what "Quem vai" already shows members. No user id, email or phone.</summary>
+public sealed record EventManagedEnrollmentDto(int Id, EventParticipantDto Participant);
+
+/// <summary>A member the manager may add: the user id (Admin/Owner only), name, full name and avatar.</summary>
+public sealed record EventMemberOptionDto(string Id, string Name, string? FullName, string AvatarUrl);
+
+/// <summary>Adds a member as going, with their primary instrument, as the old "Adicionar Membro" did.</summary>
+public sealed record EventEnrollmentAddInput(string? UserId);
