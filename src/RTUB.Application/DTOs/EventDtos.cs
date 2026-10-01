@@ -80,13 +80,17 @@ public sealed record EventMemberSummaryDto(
     int RepertoireCount,
     int DiscussionCount);
 
-/// <summary>One event page. <c>Member</c> is null for visitors.</summary>
+/// <summary>
+/// One event page. <c>Member</c> is null for visitors. <c>CanManagePrizes</c>: the caller is Admin/Owner
+/// and the event is a past festival, where prizes are added (012B).
+/// </summary>
 public sealed record EventDetailDto(
     bool IsMember,
     bool CanManage,
     EventSummaryDto Event,
     IReadOnlyList<EventVideoDto> Videos,
-    EventMemberDetailDto? Member);
+    EventMemberDetailDto? Member,
+    bool CanManagePrizes = false);
 
 /// <summary>A video on the public R2 host, in its stored order.</summary>
 public sealed record EventVideoDto(int Id, string Title, string Url, string MimeType);
@@ -192,3 +196,11 @@ public sealed record EventNoticeInput(string? Channel, string? Kind, string? Mes
 
 /// <summary>What a notice (or the cancellation email) did. <c>Warning</c> when part of it did not go out.</summary>
 public sealed record EventNoticeResultDto(int Sent, int Failed, string? Warning);
+
+// ---------- prizes (Admin/Owner, React track 012B) ----------
+
+/// <summary>One prize (a Trophies row) as the management modal edits it: its id and name, nothing else.</summary>
+public sealed record EventPrizeDto(int Id, string Name);
+
+/// <summary>A prize as the form sends it: the name, required, at most 200 characters.</summary>
+public sealed record EventPrizeInput(string? Name);

@@ -1661,7 +1661,8 @@ main:focus {
 }
 
 .form__field input,
-.form__field textarea {
+.form__field textarea,
+.prize-manager__row input {
   width: 100%;
   min-height: 48px;
   padding: 12px 14px;
@@ -1679,7 +1680,8 @@ main:focus {
 }
 
 .form__field input:focus-visible,
-.form__field textarea:focus-visible {
+.form__field textarea:focus-visible,
+.prize-manager__row input:focus-visible {
   border-color: var(--purple-ink);
   outline: 2px solid var(--focus);
   outline-offset: 1px;
@@ -4633,6 +4635,47 @@ video.tile__media {
 
 .who__more[open] summary {
   margin-bottom: 8px;
+}
+
+/* Admin/Owner prize management inside the Prémios modal (012B). */
+.prize-manager {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.prize-manager__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prize-manager__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 196, 107, 0.35);
+  border-radius: 12px;
+}
+
+.prize-manager__row input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.prize-manager__name {
+  /* Basis 0: a long name wraps in its own column, the buttons stay on the row. */
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prize-manager__add {
+  border-style: dashed;
 }
 
 .trophies {

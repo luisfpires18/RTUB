@@ -12,7 +12,7 @@ namespace RTUB.Web.Endpoints;
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
 /// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
-/// <see cref="IEventAdminService"/>); prizes, videos, repertoire and statistics stay on the Blazor /member/events.
+/// <see cref="IEventAdminService"/>), and prizes (012B); videos, repertoire and statistics stay on the Blazor /member/events.
 /// </summary>
 public static class EventEndpoints
 {
@@ -81,6 +81,21 @@ public static class EventEndpoints
         writes.MapPost("/{id:int}/notices", async (int id, EventNoticeInput input, HttpContext http, IEventAdminService admin) =>
                 ToResult(await admin.SendNoticeAsync(id, input, http.User, BaseUrl(http))))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        // Prizes (Admin/Owner, 012B). Visitors already read prize names in every event summary.
+        events.MapGet("/{id:int}/prizes", async (int id, HttpContext http, IEventAdminService admin) =>
+            ToResult(await admin.GetPrizesAsync(id, http.User)));
+
+        writes.MapPost("/{id:int}/prizes", async (int id, EventPrizeInput input, HttpContext http, IEventAdminService admin) =>
+                ToResult(await admin.AddPrizeAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapPut("/{id:int}/prizes/{prizeId:int}", async (int id, int prizeId, EventPrizeInput input, HttpContext http, IEventAdminService admin) =>
+                ToResult(await admin.UpdatePrizeAsync(id, prizeId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapDelete("/{id:int}/prizes/{prizeId:int}", async (int id, int prizeId, HttpContext http, IEventAdminService admin) =>
+            ToResult(await admin.DeletePrizeAsync(id, prizeId, http.User)));
 
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))
