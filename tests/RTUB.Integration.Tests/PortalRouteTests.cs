@@ -190,6 +190,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/member/events")]
     [InlineData("/events/{eventId:int}/discussion")]
     [InlineData("/events/{eventId:int}/contacts")]
+    [InlineData("/rehearsals")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -371,6 +372,44 @@ public class PortalRouteTests : IntegrationTestBase
             .Where(t => t.StartsWith("/events", StringComparison.OrdinalIgnoreCase))
             .ToList();
         blazorEventRoutes.Should().BeEmpty("no Blazor event page is left (013)");
+    }
+
+    /// <summary>
+    /// 014: Rehearsals are React. Rehearsals speak of presença (attendance), events of inscrição (enrollment);
+    /// neither borrows the other's word. The Blazor page and its rehearsal-only parts are gone, and the Blazor
+    /// menu opens the React page with a full load.
+    /// </summary>
+    [Fact]
+    public void Rehearsals_AreReact_WithTheirOwnTerminology_AndTheBlazorPageIsGone()
+    {
+        var src = Path.Combine(FindRepoRoot(), "src");
+        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
+        var rehearsals = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Rehearsal", StringComparison.Ordinal)
+                || f.EndsWith("rehearsalsApi.ts")).Select(File.ReadAllText).ToList();
+        rehearsals.Should().HaveCount(4);
+        rehearsals.Should().NotContain(t => t.Contains("inscri", StringComparison.OrdinalIgnoreCase) || t.Contains("enrollment", StringComparison.OrdinalIgnoreCase)
+            || t.Contains("migra", StringComparison.OrdinalIgnoreCase), "rehearsals speak of presença, never inscrição");
+        string.Concat(rehearsals).Should().Contain("Presenças").And.Contain("As minhas presenças").And.Contain("presença");
+
+        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
+            .Select(File.ReadAllText).ToList();
+        events.Should().NotContain(t => t.Contains("presença", StringComparison.OrdinalIgnoreCase) || t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
+            "events speak of inscrição, never presença");
+
+        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("'/rehearsals': lazy(").And.Contain("RehearsalDetail");
+        foreach (var gone in new[]
+                 {
+                     "RTUB.Web/Pages/Activities/Rehearsals.razor", "RTUB.Shared/Components/Cards/RehearsalCard.razor",
+                     "RTUB.Shared/Components/Modals/ParticipationModal.razor", "RTUB.Shared/Components/UI/InstrumentCounter.razor",
+                     "RTUB.Application/Services/RehearsalFilterService.cs", "RTUB.Application/Services/RehearsalUrlService.cs",
+                     "RTUB.Application/Services/RehearsalAttendanceFilterService.cs", "RTUB.Application/Services/RehearsalStatisticsService.cs",
+                 })
+        {
+            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 014", gone);
+        }
+
+        File.ReadAllText(Path.Combine(src, "RTUB.Web", "Shared", "MainLayout.razor"))
+            .Should().Contain("href=\"/rehearsals\" data-enhance-nav=\"false\"", "the Blazor menu opens the React page with a full load");
     }
 
     [Fact]

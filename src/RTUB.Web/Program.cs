@@ -668,6 +668,9 @@ public class Program
         // --------- Events API for the React /events and the home preview (React tracks 010, 011) ---------
         app.MapEventEndpoints();
 
+        // --------- Rehearsals API for the React /rehearsals (React track 014) ---------
+        app.MapRehearsalEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
         // /login below); every other page stays Blazor. The members' tools of /roles (008), /gallery
@@ -706,7 +709,8 @@ public class Program
         // The event discussion and contact tracking (React since 013) are for signed-in members, as the Blazor
         // pages were: a visitor goes to sign in and comes back. Contacts is Mod and above; the API enforces it
         // and the page tells anyone else. GET/HEAD only.
-        foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts" })
+        // React Rehearsals (track 014): the list and one rehearsal, members only (the Blazor page was [Authorize]).
+        foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
