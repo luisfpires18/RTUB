@@ -25,6 +25,7 @@ export const portal = {
   eventContacts: (id: number) => `/events/${id}/contacts`,
   members: '/members',
   membersHierarchy: '/members/hierarchy',
+  leaderboard: '/leaderboard',
 } as const;
 
 /** Sign in, then come back to the React profile. */

@@ -11,7 +11,8 @@ Admin/Owner tools). It replaces the Blazor `/members` (directory, "Detalhes do M
 | `/members/hierarchy` | React, signed-in members |
 | `/hierarchy` | `302` → `/members/hierarchy` (GET/HEAD only); Blazor page retired |
 | `/members/manage` | `302` → `/members` (GET/HEAD only, 018); `Members.razor` retired |
-| `/leaderboard` (Classificação), `/hall-of-fame`, `/member/map`, `/member/profile` | Blazor, unchanged (not in these tasks) |
+| `/leaderboard` (Classificação) | React since 019: `docs/react-leaderboard.md` |
+| `/hall-of-fame`, `/member/map`, `/member/profile` | Blazor, unchanged (not in these tasks) |
 
 ## Audit (old pages)
 
@@ -120,7 +121,7 @@ username email that fails is logged instead of breaking the page (the account is
 
 ## Follow-ups
 
-- Classification (`/leaderboard`) in React.
+- (019) Classification (`/leaderboard`) is React: `docs/react-leaderboard.md`.
 - Owner can delete their own account from the tools (as before); consider refusing self-delete.
 - `IMemberPositionService` and `IUserRoleQueryService` have no caller left since `Members.razor` went (only their DI
   registrations), nor does the shared `AvatarCard` component; not removed here.

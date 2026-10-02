@@ -43,6 +43,13 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/019-react-leaderboard-classification`** (React track 019, from `dev` @ `3219ec99`, 018 merged; local, not
+pushed; DEV only). **Classificação is React:** `/leaderboard` (members only; visitors 302 to sign in) over
+`/api/leaderboard` (`LeaderboardService`): same XP (configured per rehearsal and event type, computed on the fly), every
+account listed, level-then-XP order, search and fiscal-year filter, details with the all-time XP origin, comments
+(any member writes and likes; author or Admin/Owner deletes; push via the old service) and the "ranking_story" text
+(Admin/Owner). Blazor `Leaderboard.razor` retired. No schema change. Detail: `docs/react-leaderboard.md`.
+
 **Open: `feat/018-react-member-admin`** (React track 018, from `dev` @ `f38ec364`, 017 merged; local, not pushed; DEV
 only; rebuilt on this machine because the first 018 was never pushed). **Member admin is React:** on `/members`
 Admin/Owner add and edit members, instruments, set a Leitão's nickname, expel/reactivate Leitões, "Tornar ativo" and send
@@ -204,6 +211,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 019 (Classificação):
+- `LeaderboardCard` and `LeaderboardCommentItem` (Shared) have no caller since `Leaderboard.razor` went.
+- `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered users order.
+
 Raised by React track 018 (Member admin):
 - `IMemberPositionService`, `IUserRoleQueryService` and the shared `AvatarCard` have no caller since `Members.razor` went.
 - Owner can delete their own account from the tools (as before).
@@ -211,7 +222,7 @@ Raised by React track 018 (Member admin):
 Raised by React track 017 (Members):
 - (018) `/members/manage` retired; its tools are on the React `/members`.
 - `wwwroot/js/familyTree.js` (still loaded by `MainLayout`) and `.family-tree-*` in `css/1-base/mobile.css` are unused.
-- Classification (`/leaderboard`), Hall of Fame and the member map are still Blazor.
+- Hall of Fame and the member map are still Blazor ((019) classification is React).
 
 Raised by React track 013 (Events):
 - Global CSS for the retired `PostCard`, `CommentItem` and the PostComposer mention dropdown
