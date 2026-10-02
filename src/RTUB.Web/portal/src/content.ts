@@ -8,7 +8,6 @@ export const legacy = {
   memberProfile: '/member/profile',
   memberGovernance: '/member/roles',
   memberGallery: '/member/gallery',
-  memberEvents: '/member/events',
   eventContacts: (id: number) => `/events/${id}/contacts`,
   eventDiscussion: (id: number) => `/events/${id}/discussion`,
 } as const;

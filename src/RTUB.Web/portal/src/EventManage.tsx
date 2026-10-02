@@ -26,8 +26,8 @@ import { Icon } from './icons';
 
 // Admin/Owner event management on the React agenda: create, edit, delete (011.5); the image,
 // cancel / reactivate and email / push notices (012A). The server enforces who may do it; these
-// modals only appear for people it would accept. Prizes, videos, repertoire and statistics stay on
-// the members' Blazor /member/events.
+// modals only appear for people it would accept. Prizes (012B), videos (012C), repertoire (012D) and
+// other members' answers (012E) are managed from the event page.
 
 /** The old event cropper's limit on the picked file; the cropped image the server takes is ≤5 MB. */
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
@@ -74,16 +74,19 @@ const fromEdit = (e: EventEdit): Form => ({ ...e, multiDay: e.endDate !== null }
  */
 export function EventFormDialog({
   eventId,
+  prefill,
   types,
   onClose,
   onSaved,
 }: {
   eventId?: number;
+  /** A new event's starting values (Requests' "criar atuação", 012F). */
+  prefill?: Partial<Pick<Form, 'name' | 'location' | 'description' | 'date'>>;
   types: EventTypeOption[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState<Form | 'failed' | undefined>(eventId === undefined ? blank() : undefined);
+  const [form, setForm] = useState<Form | 'failed' | undefined>(eventId === undefined ? { ...blank(), ...prefill } : undefined);
   // Once a new event is created it is edited from then on, so a retry never creates it twice.
   const [savedId, setSavedId] = useState(eventId);
   const [currentImage, setCurrentImage] = useState<string | null>(null);

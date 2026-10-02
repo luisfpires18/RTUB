@@ -38,6 +38,19 @@ export type EventAgenda = {
   types: EventTypeOption[] | null;
 };
 
+/** GET /api/events/stats (members, 012F): "vou" answers per member for events dated from..to. */
+export type EventMemberStats = {
+  name: string;
+  fullName: string | null;
+  avatarUrl: string;
+  categories: string[];
+  groups: ('tuno' | 'caloiro' | 'leitao')[];
+  went: number;
+  going: number;
+};
+
+export type EventStats = { from: string; to: string; pastEvents: number; members: EventMemberStats[] };
+
 /** GET /api/events/{id}/edit (Admin/Owner). `time` is null for whole-day and multi-day events. */
 export type EventEdit = {
   id: number;
@@ -216,6 +229,8 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
 
 export const eventsApi = {
   agenda: () => call<EventAgenda>('GET', '/api/events'),
+  stats: (from?: string, to?: string) =>
+    call<EventStats>('GET', `/api/events/stats${from && to ? `?from=${from}&to=${to}` : ''}`),
   event: (id: number) => call<EventDetail>('GET', `/api/events/${id}`),
   getEnrollment: (id: number) => call<EventEnrollment>('GET', `/api/events/${id}/enrollment`),
   saveEnrollment: (id: number, input: EnrollmentInput) =>

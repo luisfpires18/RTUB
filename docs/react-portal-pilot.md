@@ -85,7 +85,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Quem somos / Sobre | old home: `AboutUsContent` (labels) | who the RTUB is | `/#about`, short, facts only | homepage now |
 | História | old home: `HistoryContent` (`history_*` labels) | founding (1 Dec 1991), mission, identity | founding year in hero and Quem somos | future React page ("Conhece a Tuna", `/about`) |
 | Atuações / agenda | React `/events`, `/events/{id}` (011) | upcoming and past performances | `/#events`: next three events (010) + the React agenda | homepage now + navbar now; done (011, `docs/react-events.md`) |
-| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | archive, "Prémios" and videos on `/events` (011) | navbar now; done (011); management on the Blazor `/member/events` |
+| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | archive, "Prémios" and videos on `/events` (011) | navbar now; done (011); management in React (011.5-012F) |
 | FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
 | Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
 | Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
@@ -115,7 +115,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Abrir a área de membros" (`/member/events` since 011) and "Editar o perfil" (`/member/profile`). |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Agenda de atuações" (`/events`, since 012F; was `/member/events`), "As minhas inscrições", "Editar o perfil" (`/member/profile`) and "Terminar sessão" (`POST /auth/logout`, 012F). |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -127,7 +127,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
 | `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
 | `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
-| `/member/events` | **Blazor member/admin, pending** (moved in 011) | Advanced event management only (image, cancel, notices, prizes, videos, repertoire, statistics, "Minhas Inscrições"); create/edit/delete are React on `/events` (011.5). Requires sign-in. Its answer buttons open the React answer modal. |
+| `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
 | `/events/my-enrollments` | **React** (012E) | The member's own answers ("As minhas inscrições"). |
 | `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
 | `/events/{id}/discussion`, `/contacts` | **Blazor member, pending** | Discussion, contact tracking (linked from the React event page's member panel); back links open the React event page. |
@@ -382,9 +382,9 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 ## Next recommended slice
 
-Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011. Next: the members'
-management tools still on Blazor (`/member/events`, `/member/gallery`, `/member/roles`), or the public
-"Conhece a Tuna" page.
+Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-012F (React-only; discussion and
+contacts stay Blazor bridges). Next: the members' management tools still on Blazor (`/member/gallery`,
+`/member/roles`), or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 

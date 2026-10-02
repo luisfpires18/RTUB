@@ -383,6 +383,65 @@ public sealed class EventAgendaService : IEventAgendaService
     private static TimeSpan? ParseTime(string? text) =>
         TimeSpan.TryParseExact(text, @"hh\:mm", CultureInfo.InvariantCulture, out var t) ? t : null;
 
+    public async Task<EventResult<EventStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user)
+    {
+        if (!EventsAuthorization.IsMember(user))
+        {
+            return EventResult<EventStatsDto>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        // The old modal's rules (EnrollmentStatisticsButton): by the event's first day, "vou" answers only;
+        // past = before today, else still to come; the share is over the range's past, not cancelled events.
+        var seasonStart = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        var start = (from ?? new DateOnly(seasonStart, 9, 1)).ToDateTime(TimeOnly.MinValue);
+        var end = (to ?? new DateOnly(seasonStart + 1, 8, 31)).ToDateTime(TimeOnly.MinValue);
+        if (end < start)
+        {
+            return EventResult<EventStatsDto>.Invalid("to", "A data de fim não pode ser anterior à de início.");
+        }
+
+        var endExclusive = end.AddDays(1);
+        var today = DateTime.Today;
+        await using var db = await _contexts.CreateDbContextAsync();
+        var pastEvents = await db.Events.CountAsync(e => e.Date >= start && e.Date < endExclusive && e.Date < today && !e.IsCancelled);
+        var rows = await db.Enrollments.AsNoTracking()
+            .Where(x => x.WillAttend && x.User != null && x.Event!.Date >= start && x.Event.Date < endExclusive)
+            .Select(x => new
+            {
+                x.UserId,
+                x.Event!.Date,
+                x.User!.Nickname,
+                x.User.FirstName,
+                x.User.LastName,
+                x.User.ImageUrl,
+                x.User.Categories,
+            })
+            .ToListAsync();
+
+        var members = rows.GroupBy(r => r.UserId).Select(g =>
+            {
+                var r = g.First();
+                var categories = r.Categories ?? new List<MemberCategory>();
+                var fullName = $"{r.FirstName} {r.LastName}".Trim();
+                var groups = new List<string>();
+                if (categories.Any(c => c is MemberCategory.Tuno or MemberCategory.Veterano or MemberCategory.Tunossauro)) groups.Add("tuno");
+                if (categories.Contains(MemberCategory.Caloiro)) groups.Add("caloiro");
+                if (categories.Contains(MemberCategory.Leitao)) groups.Add("leitao");
+                return new EventMemberStatsDto(
+                    string.IsNullOrWhiteSpace(r.Nickname) ? (string.IsNullOrEmpty(fullName) ? "Membro" : fullName) : r.Nickname,
+                    string.IsNullOrEmpty(fullName) ? null : fullName,
+                    IsSafeUrl(r.ImageUrl) ? r.ImageUrl! : DefaultAvatar,
+                    categories.Select(StatusHelper.GetCategoryDisplay).ToList(),
+                    groups,
+                    g.Count(x => x.Date < today),
+                    g.Count(x => x.Date >= today));
+            })
+            .OrderByDescending(m => m.Went).ThenByDescending(m => m.Going).ThenBy(m => m.Name, StringComparer.CurrentCulture)
+            .ToList();
+
+        return EventResult<EventStatsDto>.Ok(new EventStatsDto(DateText(start), DateText(end), pastEvents, members));
+    }
+
     public async Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user)
     {
         await using var db = await _contexts.CreateDbContextAsync();

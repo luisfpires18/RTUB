@@ -671,7 +671,7 @@ public class Program
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
         // /login below); every other page stays Blazor. The members' tools of /roles (008), /gallery
-        // (009) and /events (011) moved to /member/roles, /member/gallery and /member/events.
+        // (009) moved to /member/roles and /member/gallery; Events is React-only since 012F.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -693,7 +693,7 @@ public class Program
         // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
         // React Events (track 011): the agenda and one event; a member answers in a modal on the event
-        // page. Event management moved to the members' Blazor /member/events. A member's own answers
+        // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
         // (Minhas Inscrições, 012E) are /events/my-enrollments.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
                      "/events", "/events/{id:int}", "/events/my-enrollments" })
@@ -714,6 +714,12 @@ public class Program
         // "Quem vai / Quem foi" and its management modal since 012E. 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/events/{id:int}/enrollments", ["GET", "HEAD"], (int id) =>
             Results.Redirect($"/events/{id}#who-title"));
+
+        // The members' Blazor /member/events (011-012E) is retired: everything it did is on the React
+        // agenda and event pages (012F). Its query is kept, so Requests' "criar atuação" prefill
+        // (?openModal=true&name=...) opens the React create form. 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/member/events", ["GET", "HEAD"], (HttpContext context) =>
+            Results.Redirect("/events" + context.Request.QueryString));
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return

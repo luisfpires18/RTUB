@@ -10,7 +10,7 @@ namespace RTUB.Application.Helpers;
 /// - Visitors: the public agenda only (no descriptions, counts, repertoire or enrollments).
 /// - Any signed-in member: the member view, who is going, and their own enrollment (expelled
 ///   members arrive anonymous: the cookie validator drops their session).
-/// - Managing events (the Blazor /member/events tools, adding or removing others' enrollments):
+/// - Managing events (the React agenda and event page tools, adding or removing others' enrollments):
 ///   Admin or Owner. Tracking who was contacted (/events/{id}/contacts): Mod and above.
 /// </summary>
 public static class EventsAuthorization

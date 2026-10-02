@@ -771,6 +771,53 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
             .Should().Be(JsonValueKind.Null, "the member sees no answer of theirs any more");
     }
 
+    // ---------- statistics (members, 012F) ----------
+
+    [Fact]
+    public async Task Stats_AreForMembersOnly_AndCountTheOldWay()
+    {
+        var (member, user) = await SignInAsync();
+        var today = DateTime.Today;
+        var went = await AddEventAsync("Estatística passada", today.AddDays(-3000));
+        var cancelled = await AddEventAsync("Estatística cancelada", today.AddDays(-2999));
+        var refused = await AddEventAsync("Estatística recusada", today.AddDays(-2998));
+        var next = await AddEventAsync("Estatística futura", today.AddDays(3000));
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Events.SingleAsync(e => e.Id == cancelled)).Cancel("motivo");
+            await db.SaveChangesAsync();
+        }
+
+        await AddEnrollmentAsync(went, user.Id, willAttend: true);
+        await AddEnrollmentAsync(refused, user.Id, willAttend: false);
+        await AddEnrollmentAsync(next, user.Id, willAttend: true);
+        string Day(int offset) => today.AddDays(offset).ToString("yyyy-MM-dd");
+
+        (await Anonymous().GetAsync("/api/events/stats")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var response = await member.GetAsync($"/api/events/stats?from={Day(-3001)}&to={Day(-2997)}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().NotContain(user.Id).And.NotContainAny(new[] { "userId", "email", "notes" });
+        var past = JsonDocument.Parse(raw).RootElement;
+        past.GetProperty("pastEvents").GetInt32().Should().Be(2, "past, not cancelled events of the range, answered or not");
+        var row = past.GetProperty("members").EnumerateArray().Single();
+        row.GetProperty("went").GetInt32().Should().Be(1, "only \"vou\" answers count");
+        row.GetProperty("going").GetInt32().Should().Be(0);
+
+        var future = await member.GetFromJsonAsync<JsonElement>($"/api/events/stats?from={Day(2999)}&to={Day(3001)}");
+        future.GetProperty("pastEvents").GetInt32().Should().Be(0);
+        var ahead = future.GetProperty("members").EnumerateArray().Single();
+        ahead.GetProperty("went").GetInt32().Should().Be(0);
+        ahead.GetProperty("going").GetInt32().Should().Be(1);
+
+        (await member.GetAsync($"/api/events/stats?from={Day(1)}&to={Day(0)}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var season = await member.GetFromJsonAsync<JsonElement>("/api/events/stats");
+        season.GetProperty("from").GetString().Should().EndWith("-09-01", "the default is the current season");
+        season.GetProperty("to").GetString().Should().EndWith("-08-31");
+    }
+
     private async Task<int> AddSongAsync(string title)
     {
         using var scope = _factory.Services.CreateScope();

@@ -5,21 +5,32 @@
 quick reply or the event page, never on a page of its own. Admin/Owner **create, edit and delete**
 events in React modals on the agenda (011.5), and manage the **image, cancel / reactivate and email /
 push notices** there too (012A, `IEventAdminService`). Everything reads a thin, viewer-aware API
-(`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). The old Blazor `Pages/Activities/Events.razor`
-moved to the members' **`/member/events`** (`Pages/Members/MemberEvents.razor`, `[Authorize]`), kept only
-for the management React does not have yet (see Old Blazor UI). DEV only; no schema change.
+(`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). **Events is React-owned (012F):** the members'
+Blazor `/member/events` (the old `Events.razor`, kept as a bridge in 011-012E) is retired and redirects to
+`/events`. Only the discussion and contact tracking stay Blazor, as per-event bridges linked from the event
+page. DEV only; no schema change.
 
 **Terminology.** Events use *enrollment* (Inscrições): `EventEnrollment*`, `eventsApi.getEnrollment` /
 `saveEnrollment`, `/api/events/{id}/enrollment`. *Attendance* (Presenças) belongs to rehearsals and is not
 used here. Participants: **"Quem vai"** before and during an event, **"Quem foi"** once it is over (the
 counts follow: Vão / Não vão, Foram / Não foram).
 
-**Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal (used
-by the `/member/events` buttons). `/events/{id}/enrollment` - the answer page of the first 011 build, which
+**Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal. `/events/{id}/enrollment` - the answer page of the first 011 build, which
 reached DEV - is a temporary `302` to `/events/{id}?respond=1`; the draft `/events/{id}/attendance` never
 reached `dev` and is not served (404). `/events/{id}/enrollments` - the members' Blazor list of everyone's
 answers with its admin tools - is retired since 012E: a `302` to `/events/{id}#who-title` ("Quem vai / Quem
 foi", with the Admin/Owner manager). `/events/my-enrollments` is the member's own answers (012E).
+`/member/events` is a `302` to `/events` with its query kept (012F), so Requests' "criar atuação"
+(`?openModal=true&name=&location=&date=&description=`, now sent straight to `/events`) still opens the React
+create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
+
+| Route | Owner after 012F |
+| --- | --- |
+| `/events`, `/events/{id}`, `/events/my-enrollments` | React |
+| `/events/{id}/enrollment` | 302 → `/events/{id}?respond=1` |
+| `/events/{id}/enrollments` | 302 → `/events/{id}#who-title` |
+| `/member/events` | 302 → `/events` (query kept) |
+| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod+) | Blazor bridges, linked from the event page |
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -65,7 +76,8 @@ Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
   cancel / reactivate and notices, prizes, videos, repertoire and other members' answers, and the remaining
   `/member/events` tools. Mod and Member get 403 from the API. Contact tracking (`/events/{id}/contacts`): Mod
   and above (was Admin or Mod), linked from the React event page's member panel since 012E. The agenda shows
-  the controls only when the API says `canManage`; the server enforces it on every write.
+  the controls only when the API says `canManage`; the server enforces it on every write. Statistics
+  (`GET /api/events/stats`, 012F): any signed-in member, as before.
 
 ## Create, edit, delete (Admin/Owner, 011.5) - audited against the old page
 
@@ -176,12 +188,42 @@ The picker sends user ids and display fields to Admin/Owner only; no email or ph
 notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above) lost its
 only link with the Blazor participants page and is linked from the event page's member panel instead.
 
+## Retiring `/member/events` (012F) - audit of what it still had
+
+| Feature | Where (before 012F) | React already | Action |
+| --- | --- | --- | --- |
+| Agenda lists, fiscal-year / type / "com vídeos" filters, search, pagination | `/member/events` | yes, `/events` (season, type, "Só com vídeos", search) | deleted |
+| Create / edit / delete (details-only edit, "Adicionar Atuação") | page header, cards, mobile nav | yes (011.5) | deleted |
+| "Criar atuação" from an approved request (`/requests` → `?openModal=true&...`) | create modal, prefilled | no | **moved**: Requests opens `/events` with the same query; the React form reads it (Admin/Owner) |
+| Answer buttons (Vou / Não vou / remover) | cards → `/events/{id}?respond=1` | yes (011) | deleted |
+| Details modal (read-only) | cards | yes, the event page | deleted |
+| Repertoire modal (read-only, `RepertoireModal`) | cards | yes, Repertório section (012D) | deleted, component too |
+| Videos modal (read-only player) | past cards | yes, Vídeos section (012C) | deleted |
+| "Prémios" statistics (prizes per festival) | header button, mobile nav | yes, the agenda's Prémios modal (011) | deleted (`IEventStatisticsService`, `TrophyStatsByEvent`) |
+| "Estatísticas de inscrições" (members) | header button (`EnrollmentStatisticsButton`) | no | **moved**: agenda "Estatísticas" modal (members), `GET /api/events/stats` |
+| Discussion link | cards → `/events/{id}/discussion` | yes, event page member panel | deleted (bridge kept) |
+| Contacts | not on this page | event page (Mod+, 012E) | bridge kept |
+| "Área de membros" (agenda header), "Abrir a área de membros" (`/profile`) | React links to it | - | replaced: agenda → **Estatísticas**; profile → **Agenda de atuações**, plus **Terminar sessão** |
+
+Statistics, as the old modal: any signed-in member; the range defaults to the current season (1 Sep - 31 Aug)
+by the event's first day; only "vou" answers count, split into already done (before today) and still to come;
+the share is over the range's past, not cancelled events; category filter Tunos (incl. Veteranos and
+Tunossauros) / Caloiros / Leitões; search by name. Names, avatar and categories only - no user ids, emails or
+notes. Read-only, no schema change. Not kept: pagination (a grid of ~100 tiles) and the explicit "Carregar"
+button (it reloads when both dates are set).
+
+Removed as dead with it: `MemberEvents.razor` (+ its CSS and bUnit tests), `RepertoireModal`,
+`EnrollmentStatisticsButton` (+ tests), `IEventStatisticsService`, `IEventFilterService`, `IEventUrlService`,
+`IEnrollmentStatisticsService` and their implementations (no other caller). `EventCard` stays (the dead
+`AboutUsContent` still references it).
+
 ## API
 
 | Endpoint | Who | Notes |
 | --- | --- | --- |
 | `GET /api/public/events/upcoming` | anyone | Home preview (010), now from the same service; next 3, no ids. |
 | `GET /api/events` | anyone | `{ isMember, canManage, upcoming, past }`; `no-store`. |
+| `GET /api/events/stats?from=&to=` | member | "Estatísticas de inscrições" (012F): `{ from, to, pastEvents, members: [{ name, fullName, avatarUrl, categories, groups, went, going }] }`; default current season; 400 `errors.to` when `to` < `from`; 401 signed out. |
 | `GET /api/events/{id}` | anyone | One event + videos; `member` section (reason, repertoire, Quem vai) for members; 404 if missing. |
 | `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
 | `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
@@ -230,7 +272,7 @@ image (012A) and videos (012C), through the existing storage services.
   edit / delete buttons on every card and archive row, plus **aviso** (bell, not on cancelled dates) and
   **cancelar / reativar** on upcoming cards, and **Adicionar atuação** in the header; all are modals and
   the list refreshes in place. Header: **Prémios** (modal with the prize
-  history) and "Área de membros" (members). Archive by season with search (name, place; description for
+  history), and for members **As minhas inscrições** and **Estatísticas** (modal, 012F). Archive by season with search (name, place; description for
   members), season, type and "Só com vídeos" filters kept in the URL.
 - **Event page:** back link and **Prémios** (top right, when the event won any - or, for Admin/Owner, on
   any past festival: its prizes, editable by them, then the history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**
@@ -268,10 +310,9 @@ image (012A) and videos (012C), through the existing storage services.
 - Retired in the 011 follow-ups: the React answer page (`EventEnrollment.tsx`, now a modal), the
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
-- Still Blazor, reached from the agenda's "Área de membros": `/member/events` for what React does not
-  do yet - statistics (including the read-only "Prémios por Evento"), read-only videos and repertoire, the
-  details-only edit; `/discussion`; `/contacts`.
-  Its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
+- Retired in 012F: `/member/events` itself (see Retiring `/member/events`). Still Blazor: `/events/{id}/discussion`
+  and `/events/{id}/contacts`, linked from the event page.
+- History of the bridge, 012A-012E: its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
   announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
@@ -283,7 +324,10 @@ image (012A) and videos (012C), through the existing storage services.
 
 ## Follow-ups
 
-- Statistics (012F), then discussion and contacts; then `/member/events` can go.
+- Discussion (`/events/{id}/discussion`) and contact tracking (`/events/{id}/contacts`) are the last Blazor event
+  pages; each is a future React task of its own.
+- The `/member/events` and old redirects are 302 while DEV is hybrid; make them 301 (or drop them) at the PROD
+  cutover.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
   a background job.
 - Deleting an event leaves its video files in R2 (the rows go, as before).

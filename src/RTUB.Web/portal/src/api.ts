@@ -102,6 +102,32 @@ export type SignInOutcome = { kind: 'signedIn'; redirect: string } | { kind: Sig
 const signInErrors: Record<string, SignInFailure> = { Invalid: 'invalid', Locked: 'locked', Expelled: 'expelled' };
 
 /**
+ * Signs out through the existing POST /auth/logout (Program.cs): a plain form post with the antiforgery
+ * token, so the browser follows its redirect to / as the Blazor menu's form did (012F). False when the
+ * token could not be fetched; nothing is sent then.
+ */
+export async function signOut(): Promise<boolean> {
+  try {
+    const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
+    if (!tokenResponse.ok) return false;
+    const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/auth/logout';
+    const field = document.createElement('input');
+    field.type = 'hidden';
+    field.name = fieldName;
+    field.value = token;
+    form.append(field);
+    document.body.append(form);
+    form.submit();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The existing POST /auth/login (Program.cs): same form fields, antiforgery and per-IP limit as
  * the old Blazor form. Accept: application/json makes it answer { redirect } or 401 { error }
  * instead of redirecting. The server alone validates the return URL. Nothing throws.
