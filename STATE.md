@@ -43,6 +43,12 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/017-react-members-hierarchy-classification`** (React track 017, from `dev` @ `c5211135`, 016 merged; local,
+not pushed; DEV only). **Members is React:** `/members` (directory with the old filters, details, active members,
+birthdays) and `/members/hierarchy` over read-only `/api/members`, signed-in members only; `/hierarchy` 302s there. The
+old page's admin tools stay Blazor at `/members/manage` (Admin/Owner only) until a member-admin task; classification
+(`/leaderboard`) deferred to its own task. No schema change. Detail: `docs/react-members.md`.
+
 **Open: `feat/016-react-governance-management`** (React track 016, from `dev` @ `84193767`, 015 merged; local, not
 pushed; DEV only). **Órgãos Sociais is fully React:** on `/roles` members open the RGI and Mod, Admin and Owner (was
 Mod and Admin) add fiscal years and assign / remove positions in modals, over `/api/governance` (rules now server-side,
@@ -191,6 +197,12 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 017 (Members):
+- `/members/manage` (Blazor `Members.razor`) is a temporary admin bridge: create/edit/delete, instruments, nicknames,
+  expel/reactivate, make active, push reminder. Its birthday-email flow has no caller.
+- `wwwroot/js/familyTree.js` (still loaded by `MainLayout`) and `.family-tree-*` in `css/1-base/mobile.css` are unused.
+- Classification (`/leaderboard`), Hall of Fame and the member map are still Blazor.
+
 Raised by React track 013 (Events):
 - Global CSS for the retired `PostCard`, `CommentItem` and the PostComposer mention dropdown
   (`wwwroot/css/3-components/*`) is unused now; `PostMedia` upload code in `PostService` has no caller left.

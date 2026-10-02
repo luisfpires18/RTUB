@@ -1,4 +1,6 @@
-@page "/members"
+@page "/members/manage"
+@* Temporary admin bridge (React track 017): the directory, details, active members, birthdays and hierarchy are the
+   React /members. Admin and Owner keep the tools of this page here until the member-admin task. *@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -38,7 +40,7 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<Members> _logger
 @inject IOptions<Toggles> Toggles
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 
 <div class="page-header-centered">
     <div class="page-header-left"></div>

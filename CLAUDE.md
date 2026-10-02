@@ -59,6 +59,7 @@ Run only what the change can break.
 | React Events (API, visibility, enrollment, data audit) | `docs/react-events.md` |
 | React Rehearsals (API, presenças/attendance, data audit) | `docs/react-rehearsals.md` |
 | React Órgãos Sociais (API, RGI, management rules) | `docs/react-governance.md` |
+| React Members (directory, hierarchy, admin bridge) | `docs/react-members.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

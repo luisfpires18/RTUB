@@ -136,6 +136,9 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
 | `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
 | `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
+| `/members`, `/members/hierarchy` | **React** (017) | Directory (details, active members, birthdays) and the Padrinho → Afilhado tree, signed-in members; visitors get a 302 to sign in. `docs/react-members.md`. |
+| `/hierarchy` | **Redirect** → `/members/hierarchy` (017) | `302`, GET/HEAD only. |
+| `/members/manage` | **Blazor admin bridge** (017) | The old `Members.razor` tools, Admin/Owner only, until the member-admin task. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
 | every other member/admin page | **Blazor member/admin, pending** | `/messages`, `/members`, the admin `/requests` page, etc. Unchanged. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
@@ -382,9 +385,9 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 ## Next recommended slice
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
-contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016. Next: the remaining
-Blazor members' tools (members, inventory, documentation, logistics, treasury, messages, owner tools), or the
-public "Conhece a Tuna" page.
+contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017. Next:
+member admin (`/members/manage`), classification (`/leaderboard`), inventory, documentation, logistics, treasury,
+messages, owner tools, or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 
