@@ -4,7 +4,8 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { DEFAULT_AVATAR, membersApi, shortDate, type ActiveMember, type Birthday, type MemberDetail } from './membersApi';
 
-// The old /members modals (React track 017), read-only. The server decides who sees what (MemberDirectoryService).
+// The old /members modals (React track 017). The server decides who sees what (MemberDirectoryService); Admin/Owner
+// tools (018) come in through `actions` / `rowActions` from Members.tsx.
 
 export function MemberFace({ avatarUrl, size }: { avatarUrl: string | null; size: number }) {
   return (
@@ -32,7 +33,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** "Detalhes do Membro": the same sections and fields the old modal showed any signed-in member. */
-export function MemberDialog({ memberId, onClose }: { memberId: string; onClose: () => void }) {
+export function MemberDialog({ memberId, onClose, actions }: { memberId: string; onClose: () => void; actions?: (m: MemberDetail) => ReactNode }) {
   const [member, setMember] = useState<MemberDetail | 'missing' | null>();
 
   useEffect(() => {
@@ -52,7 +53,10 @@ export function MemberDialog({ memberId, onClose }: { memberId: string; onClose:
           Não foi possível carregar o membro.
         </p>
       ) : (
-        <MemberBody m={member} />
+        <>
+          <MemberBody m={member} />
+          {actions && <div className="member-detail__actions">{actions(member)}</div>}
+        </>
       )}
     </Dialog>
   );
@@ -166,16 +170,17 @@ function useSearch(initial = '') {
   return { text, setText, q };
 }
 
-/** The old "Gestão de Membros Ativos", read-only: who is active or retired, and since when. */
-export function ActiveMembersDialog({ onClose }: { onClose: () => void }) {
+/** The old "Gestão de Membros Ativos": who is active or retired, and since when; Admin/Owner act on a row. */
+export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => void; rowActions?: (m: ActiveMember, reload: () => void) => ReactNode }) {
   const [list, setList] = useState<ActiveMember[] | null>();
   const [status, setStatus] = useState('');
+  const [version, setVersion] = useState(0);
   const search = useSearch();
   const ids = { q: useId(), status: useId() };
 
   useEffect(() => {
     membersApi.active(status, search.q).then((o) => setList(o.kind === 'ok' ? o.data : null));
-  }, [status, search.q]);
+  }, [status, search.q, version]);
 
   return (
     <Dialog title="Membros ativos" size="lg" onClose={onClose}>
@@ -219,6 +224,7 @@ export function ActiveMembersDialog({ onClose }: { onClose: () => void }) {
               <span className={m.retired ? 'member-badge member-badge--retired' : 'member-badge member-badge--active'}>
                 {m.retired ? 'REFORMADO' : 'NO ATIVO'}
               </span>
+              {rowActions && <span className="member-row__actions">{rowActions(m, () => setVersion((v) => v + 1))}</span>}
             </li>
           ))}
         </ul>

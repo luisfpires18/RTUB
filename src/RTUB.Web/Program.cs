@@ -761,6 +761,10 @@ public class Program
         // The Blazor /hierarchy (until 016) is the React /members/hierarchy (017). 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/hierarchy", ["GET", "HEAD"], () => Results.Redirect("/members/hierarchy"));
 
+        // The Blazor /members/manage admin bridge (017) is retired: its tools are on the React /members (018). 302 while
+        // DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/members/manage", ["GET", "HEAD"], () => Results.Redirect("/members"));
+
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member

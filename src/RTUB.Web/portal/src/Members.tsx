@@ -3,7 +3,8 @@ import { Loading } from './App';
 import { portal } from './content';
 import { Icon } from './icons';
 import { ActiveMembersDialog, BirthdaysDialog, MemberDialog, MemberFace } from './MemberDialogs';
-import { membersApi, type Directory, type DirectoryFilters, type MemberCard } from './membersApi';
+import { ConfirmAction, MemberFormDialog, NicknameDialog } from './MemberManage';
+import { memberAdminApi, membersApi, type ActiveMember, type Directory, type DirectoryFilters, type MemberCard, type MemberDetail } from './membersApi';
 import { loginTo } from './musicApi';
 
 const CATEGORIES = [
@@ -20,6 +21,13 @@ const SUB_CATEGORIES = [
 ];
 const PAGE = { members: 30, leitoes: 18 };
 
+/** An Admin/Owner tool open over the page (React track 018). */
+type Tool =
+  | { kind: 'create' }
+  | { kind: 'edit'; id: string }
+  | { kind: 'nickname' | 'expel' | 'reactivate' | 'delete'; member: MemberDetail }
+  | { kind: 'activate' | 'reminder'; member: ActiveMember; reload: () => void };
+
 function filtersFromUrl(): DirectoryFilters {
   const p = new URLSearchParams(location.search);
   return {
@@ -34,8 +42,9 @@ function filtersFromUrl(): DirectoryFilters {
 /**
  * /members - Membros (React track 017; was the Blazor /members). Signed-in members only. Everyone in the tuna with
  * the old filters (search, category, Tuno sub-category, instrument, só ativos), members by nickname and Leitões by
- * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are the old lists, read-only.
- * Admin and Owner reach the tools that stay on the Blazor /members/manage.
+ * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are the old lists.
+ * Admin and Owner also add, edit, expel / reactivate Leitões, set a Leitão's nickname, make members active, send the
+ * push reminder and delete (React track 018; was the Blazor /members/manage). Owner deletes any member, Admin Leitões.
  */
 export default function Members() {
   const [directory, setDirectory] = useState<Directory | 'signin' | null>();
@@ -44,6 +53,9 @@ export default function Members() {
   const [open, setOpen] = useState<string | null>(new URLSearchParams(location.search).get('member'));
   const [dialog, setDialog] = useState<'active' | 'birthdays'>();
   const [shown, setShown] = useState(PAGE);
+  const [tool, setTool] = useState<Tool>();
+  // Bumped after a change, so the open details load again.
+  const [version, setVersion] = useState(0);
   const ids = { q: useId(), category: useId(), sub: useId(), instrument: useId(), active: useId() };
 
   useEffect(() => {
@@ -102,10 +114,10 @@ export default function Members() {
               Aniversários
             </button>
             {data.canManage && (
-              <a className="btn btn--primary btn--sm" href="/members/manage">
-                <Icon name="pencil" />
-                Gerir membros
-              </a>
+              <button type="button" className="btn btn--primary btn--sm" onClick={() => setTool({ kind: 'create' })}>
+                <Icon name="plus" />
+                Adicionar membro
+              </button>
             )}
           </div>
         )}
@@ -192,11 +204,167 @@ export default function Members() {
         </>
       )}
 
-      {open && <MemberDialog memberId={open} onClose={() => openMember(null)} />}
-      {dialog === 'active' && <ActiveMembersDialog onClose={() => setDialog(undefined)} />}
+      {open && (
+        <MemberDialog
+          key={`${open}-${version}`}
+          memberId={open}
+          onClose={() => openMember(null)}
+          actions={data?.canManage ? (m) => <MemberTools m={m} canDelete={m.leitao || data.canDeleteMembers} onPick={setTool} /> : undefined}
+        />
+      )}
+      {dialog === 'active' && (
+        <ActiveMembersDialog
+          onClose={() => setDialog(undefined)}
+          rowActions={
+            data?.canManage
+              ? (m, reload) => (
+                  <>
+                    {m.canMakeActive && (
+                      <button type="button" className="icon-btn" onClick={() => setTool({ kind: 'activate', member: m, reload })}>
+                        <Icon name="check" />
+                        <span className="sr-only">Tornar {m.displayName} ativo</span>
+                      </button>
+                    )}
+                    {m.encourage && (
+                      <button type="button" className="icon-btn" onClick={() => setTool({ kind: 'reminder', member: m, reload })}>
+                        <Icon name="bell" />
+                        <span className="sr-only">Enviar lembrete push a {m.displayName}</span>
+                      </button>
+                    )}
+                  </>
+                )
+              : undefined
+          }
+        />
+      )}
       {dialog === 'birthdays' && <BirthdaysDialog onClose={() => setDialog(undefined)} />}
+
+      {tool && data && (
+        <ToolDialog
+          tool={tool}
+          instruments={data.instruments}
+          onClose={() => setTool(undefined)}
+          onChanged={(deleted) => {
+            setFilters({ ...filters });
+            if (deleted) openMember(null);
+            else setVersion((v) => v + 1);
+          }}
+        />
+      )}
     </section>
   );
+}
+
+function MemberTools({ m, canDelete, onPick }: { m: MemberDetail; canDelete: boolean; onPick: (t: Tool) => void }) {
+  return (
+    <>
+      <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'edit', id: m.id })}>
+        <Icon name="pencil" />
+        Editar
+      </button>
+      {m.leitao && (
+        <>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'nickname', member: m })}>
+            <Icon name="star" />
+            Definir alcunha
+          </button>
+          {m.expelled ? (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'reactivate', member: m })}>
+              <Icon name="restore" />
+              Reativar
+            </button>
+          ) : (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'expel', member: m })}>
+              <Icon name="ban" />
+              Expulsar
+            </button>
+          )}
+        </>
+      )}
+      {canDelete && (
+        <button type="button" className="btn btn--danger btn--sm" onClick={() => onPick({ kind: 'delete', member: m })}>
+          <Icon name="trash" />
+          Eliminar
+        </button>
+      )}
+    </>
+  );
+}
+
+function ToolDialog({
+  tool,
+  instruments,
+  onClose,
+  onChanged,
+}: {
+  tool: Tool;
+  instruments: Directory['instruments'];
+  onClose: () => void;
+  onChanged: (deleted: boolean) => void;
+}) {
+  const changed = () => onChanged(false);
+  switch (tool.kind) {
+    case 'create':
+      return <MemberFormDialog instrumentOptions={instruments} onClose={onClose} onSaved={changed} />;
+    case 'edit':
+      return <MemberFormDialog memberId={tool.id} instrumentOptions={instruments} onClose={onClose} onSaved={changed} />;
+    case 'nickname':
+      return <NicknameDialog member={tool.member} onClose={onClose} onDone={changed} />;
+    case 'expel':
+      return (
+        <ConfirmAction title="Expulsar membro" confirmLabel="Expulsar" danger run={() => memberAdminApi.expel(tool.member.id)} onClose={onClose} onDone={changed}>
+          <p>
+            Expulsar <strong>{tool.member.displayName}</strong>? Deixa de conseguir entrar na área de membros. Pode ser reativado mais tarde.
+          </p>
+        </ConfirmAction>
+      );
+    case 'reactivate':
+      return (
+        <ConfirmAction title="Reativar membro" confirmLabel="Reativar" run={() => memberAdminApi.reactivate(tool.member.id)} onClose={onClose} onDone={changed}>
+          <p>
+            Reativar <strong>{tool.member.displayName}</strong>? Volta a conseguir entrar na área de membros.
+          </p>
+        </ConfirmAction>
+      );
+    case 'delete':
+      return (
+        <ConfirmAction title="Eliminar membro" confirmLabel="Eliminar" danger run={() => memberAdminApi.remove(tool.member.id)} onClose={onClose} onDone={() => onChanged(true)}>
+          <p>
+            Eliminar <strong>{tool.member.displayName}</strong>?
+          </p>
+          <p className="warning">
+            <Icon name="warning" />
+            Apaga a conta e tudo o que lhe está ligado. Não dá para desfazer.
+          </p>
+        </ConfirmAction>
+      );
+    case 'activate':
+      return (
+        <ConfirmAction
+          title="Tornar membro ativo"
+          confirmLabel="Tornar ativo"
+          run={() => memberAdminApi.activate(tool.member.id)}
+          onClose={onClose}
+          onDone={() => {
+            tool.reload();
+            changed();
+          }}
+        >
+          <p>
+            Tornar <strong>{tool.member.displayName}</strong> ativo? O estado de reforma é reposto e deixa de precisar de 3 meses seguidos de atividade
+            para voltar.
+          </p>
+        </ConfirmAction>
+      );
+    case 'reminder':
+      return (
+        <ConfirmAction title="Enviar lembrete push" confirmLabel="Enviar" run={() => memberAdminApi.reminder(tool.member.id)} onClose={onClose} onDone={tool.reload}>
+          <p>
+            Enviar um lembrete push a <strong>{tool.member.displayName}</strong> para participar numa atividade este mês?
+          </p>
+        </ConfirmAction>
+      );
+  }
 }
 
 function Group({ title, people, limit, onMore, onOpen }: { title: string; people: MemberCard[]; limit: number; onMore: () => void; onOpen: (id: string) => void }) {

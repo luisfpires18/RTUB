@@ -106,7 +106,8 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             .Select(i => new MemberOptionDto(i.ToString(), StatusHelper.GetInstrumentDisplay(i)))
             .ToList();
 
-        return EventResult<MemberDirectoryDto>.Ok(new MemberDirectoryDto(members, leitaoCards, options, MembersAuthorization.CanManage(user)));
+        return EventResult<MemberDirectoryDto>.Ok(new MemberDirectoryDto(members, leitaoCards, options, MembersAuthorization.CanManage(user),
+            MembersAuthorization.CanDeleteAnyMember(user)));
     }
 
     public async Task<EventResult<MemberDetailDto>> GetMemberAsync(string id, ClaimsPrincipal user)
@@ -150,7 +151,8 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             member.DateOfBirth?.ToString("dd/MM/yyyy"), member.Age, member.Degree,
             !honorario, instruments, showMentor, mentor,
             Timeline(member, assignments),
-            await StateAsync(member)));
+            await StateAsync(member),
+            member.IsLeitao(), member.IsExpelled));
     }
 
     public async Task<EventResult<IReadOnlyList<ActiveMemberDto>>> GetActiveMembersAsync(string? status, string? search, ClaimsPrincipal user)
@@ -200,7 +202,8 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
                 var who = GovernanceService.ToMember(m.Member.Nickname, m.Member.FirstName, m.Member.LastName, m.Member.ImageUrl);
                 return new ActiveMemberDto(m.Member.Id, who.DisplayName, who.FullName, who.AvatarUrl, PrimaryInstrument(m.Member.Id, instruments),
                     Retired(m), m.StatusData?.LastRehearsalDate, m.StatusData?.LastEventDate,
-                    ShowProgress(m.StatusData) ? m.StatusData!.ProgressDescription : null, Encourage(m.StatusData));
+                    ShowProgress(m.StatusData) ? m.StatusData!.ProgressDescription : null, Encourage(m.StatusData),
+                    Retired(m) || m.StatusData?.ProgressTotalMonths == 3);
             })
             .ToList());
     }
@@ -352,7 +355,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
     }
 
     /// <summary>A retired member two months into the three that bring them back, with nothing this month yet.</summary>
-    private static bool Encourage(MemberStatusResult? s) =>
+    internal static bool Encourage(MemberStatusResult? s) =>
         s is { IsRetired: true, ProgressTotalMonths: 3, ProgressMonths: 2, HasActivityInCurrentMonth: false };
 
     private async Task<MemberStateDto?> StateAsync(ApplicationUser member)
