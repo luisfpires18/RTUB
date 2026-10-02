@@ -18,6 +18,8 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/events': lazy(() => import('./Events')),
   '/events/my-enrollments': lazy(() => import('./MyEnrollments')),
   '/rehearsals': lazy(() => import('./Rehearsals')),
+  '/members': lazy(() => import('./Members')),
+  '/members/hierarchy': lazy(() => import('./MembersHierarchy')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];

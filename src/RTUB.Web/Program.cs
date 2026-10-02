@@ -671,6 +671,9 @@ public class Program
         // --------- Rehearsals API for the React /rehearsals (React track 014) ---------
         app.MapRehearsalEndpoints();
 
+        // --------- Members area for the React /members (React track 017) ---------
+        app.MapMemberEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
         // /login below); every other page stays Blazor. Events is React-only since 012F, Gallery since 015,
@@ -710,7 +713,10 @@ public class Program
         // pages were: a visitor goes to sign in and comes back. Contacts is Mod and above; the API enforces it
         // and the page tells anyone else. GET/HEAD only.
         // React Rehearsals (track 014): the list and one rehearsal, members only (the Blazor page was [Authorize]).
-        foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}" })
+        // React Members (track 017): the directory and the Padrinho → Afilhado tree, members only (both Blazor pages were
+        // [Authorize]).
+        foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
+                     "/members", "/members/hierarchy" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
@@ -751,6 +757,9 @@ public class Program
         // the React /roles (016). ?fy= is kept. 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/member/roles", ["GET", "HEAD"], (HttpContext context) =>
             Results.Redirect("/roles" + context.Request.QueryString));
+
+        // The Blazor /hierarchy (until 016) is the React /members/hierarchy (017). 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/hierarchy", ["GET", "HEAD"], () => Results.Redirect("/members/hierarchy"));
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return

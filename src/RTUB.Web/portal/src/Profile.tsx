@@ -104,6 +104,10 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           <Icon name="calendar" />
           As minhas inscrições
         </a>
+        <a className="btn btn--ghost" href={portal.members}>
+          <Icon name="person" />
+          Membros
+        </a>
         <a className="btn btn--ghost" href={legacy.memberProfile}>
           <Icon name="person" />
           Editar o perfil

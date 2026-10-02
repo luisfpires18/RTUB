@@ -168,6 +168,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMusicService, MusicService>();
         services.AddScoped<IGovernanceService, GovernanceService>();
         services.AddScoped<IGovernanceManagementService, GovernanceManagementService>();
+        services.AddScoped<IMemberDirectoryService, MemberDirectoryService>();
         services.AddScoped<IGalleryTimelineService, GalleryTimelineService>();
         services.AddScoped<IEventAgendaService, EventAgendaService>();
         services.AddScoped<IEventAdminService, EventAdminService>();

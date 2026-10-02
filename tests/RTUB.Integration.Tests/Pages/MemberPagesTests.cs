@@ -45,7 +45,7 @@ public class MemberPagesTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
+        location.Should().ContainEquivalentOf("returnUrl=%2Fmembers", "017: the React /members sends visitors to sign in and back");
     }
 
     #endregion
@@ -53,14 +53,13 @@ public class MemberPagesTests : IntegrationTestBase
     #region Hierarchy Page Tests
 
     [Fact]
-    public async Task HierarchyPage_WithoutAuth_RedirectsToLogin()
+    public async Task HierarchyPage_IsRetired_AndRedirectsToTheReactHierarchy()
     {
-        // Arrange & Act
+        // 017: the Blazor /hierarchy is the React /members/hierarchy.
         var response = await _client.GetAsync("/hierarchy");
 
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.Headers.Location?.ToString().Should().Be("/members/hierarchy");
     }
 
     #endregion
@@ -156,7 +155,8 @@ public class MemberPagesTests : IntegrationTestBase
 
     [Theory]
     [InlineData("/members")]
-    [InlineData("/hierarchy")]
+    [InlineData("/members/hierarchy")]
+    [InlineData("/members/manage")]
     [InlineData("/rehearsals")]
     [InlineData("/member/profile")]
     [InlineData("/events/1/discussion")]
@@ -176,7 +176,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/hierarchy", "/rehearsals", "/member/profile", "/events/1/discussion" };
+        var memberUrls = new[] { "/members", "/members/hierarchy", "/members/manage", "/rehearsals", "/member/profile", "/events/1/discussion" };
 
         // Act & Assert
         foreach (var url in memberUrls)
