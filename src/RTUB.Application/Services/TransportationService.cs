@@ -70,14 +70,4 @@ public class TransportationService : ITransportationService
 
     public Task RemovePassengerAsync(int transportationId, string userId)
         => _repository.RemovePassengerAsync(transportationId, userId);
-
-    public async Task<IEnumerable<ApplicationUser>> GetAllMembersAsync()
-    {
-        using var context = _contextFactory.CreateDbContext();
-        return await context.Users
-            .AsNoTracking()
-            .OrderBy(u => u.FirstName)
-            .ThenBy(u => u.LastName)
-            .ToListAsync();
-    }
 }

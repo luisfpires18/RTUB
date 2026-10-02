@@ -694,12 +694,30 @@ public class Program
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
         // React Events (track 011): the agenda and one event; a member answers in a modal on the event
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
-        // (Minhas Inscrições, 012E) are /events/my-enrollments.
+        // (Minhas Inscrições, 012E) are /events/my-enrollments. The discussion and contact tracking are
+        // React too since 013: no Blazor event page is left.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
                      "/events", "/events/{id:int}", "/events/my-enrollments" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
+        }
+
+        // The event discussion and contact tracking (React since 013) are for signed-in members, as the Blazor
+        // pages were: a visitor goes to sign in and comes back. Contacts is Mod and above; the API enforces it
+        // and the page tells anyone else. GET/HEAD only.
+        foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts" })
+        {
+            app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+            {
+                if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
+                }
+
+                context.Response.Headers.CacheControl = "no-cache";
+                return Results.File(env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!, "text/html");
+            });
         }
 
         app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>

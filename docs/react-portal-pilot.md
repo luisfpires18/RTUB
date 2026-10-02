@@ -130,7 +130,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
 | `/events/my-enrollments` | **React** (012E) | The member's own answers ("As minhas inscrições"). |
 | `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
-| `/events/{id}/discussion`, `/contacts` | **Blazor member, pending** | Discussion, contact tracking (linked from the React event page's member panel); back links open the React event page. |
+| `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
@@ -382,8 +382,8 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 ## Next recommended slice
 
-Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-012F (React-only; discussion and
-contacts stay Blazor bridges). Next: the members' management tools still on Blazor (`/member/gallery`,
+Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
+contacts included). Next: the members' management tools still on Blazor (`/member/gallery`,
 `/member/roles`), or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)

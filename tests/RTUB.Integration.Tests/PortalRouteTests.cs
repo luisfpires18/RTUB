@@ -188,6 +188,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/events/{id:int}")]
     [InlineData("/events/my-enrollments")]
     [InlineData("/member/events")]
+    [InlineData("/events/{eventId:int}/discussion")]
+    [InlineData("/events/{eventId:int}/contacts")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -344,10 +346,63 @@ public class PortalRouteTests : IntegrationTestBase
         profile.Should().Contain("href={portal.events}").And.Contain("href={portal.myEnrollments}").And.Contain("signOut()")
             .And.NotContain("memberEvents");
 
+    }
+
+    /// <summary>
+    /// 013: the discussion and contact tracking are React; no Blazor component routes anything under /events.
+    /// A visitor is sent to sign in (and back), as the Blazor pages did; GET/HEAD only.
+    /// </summary>
+    [Theory]
+    [InlineData("/events/12/discussion")]
+    [InlineData("/events/12/contacts")]
+    public async Task EventDiscussionAndContacts_AreReact_AndSendVisitorsToSignIn(string path)
+    {
+        var client = NoRedirectClient();
+        var response = await client.GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString(path));
+        (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+
+        var blazorEventRoutes = typeof(RTUB.App).Assembly.GetTypes()
+            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
+                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>())
+            .Select(r => r.Template)
+            .Where(t => t.StartsWith("/events", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        blazorEventRoutes.Should().BeEmpty("no Blazor event page is left (013)");
+    }
+
+    [Fact]
+    public void EventPage_LinksTheReactDiscussionAndContacts_AndTheOldBlazorPartsAreGone()
+    {
+        var src = Path.Combine(FindRepoRoot(), "src");
+        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
         var detail = File.ReadAllText(Path.Combine(portal, "EventDetail.tsx"));
-        detail.Should().Contain("legacy.eventDiscussion(").And.Contain("legacy.eventContacts(");
-        File.Exists(Path.Combine(src, "RTUB.Web", "Pages", "Activities", "EventDiscussion.razor")).Should().BeTrue();
-        File.Exists(Path.Combine(src, "RTUB.Web", "Pages", "Activities", "EventContacts.razor")).Should().BeTrue();
+        detail.Should().Contain("portal.eventDiscussion(event.id)").And.Contain("portal.eventContacts(event.id)")
+            .And.Contain("{detail.canTrackContacts && (").And.NotContain("legacy.");
+        File.ReadAllText(Path.Combine(portal, "content.ts")).Should().NotContain("legacy.eventDiscussion").And.Contain("eventContacts: (id: number)");
+        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("(discussion|contacts)");
+
+        var talk = File.ReadAllText(Path.Combine(portal, "EventDiscussion.tsx"));
+        talk.Should().Contain("Escreve uma nota para a atuação…").And.Contain("Ainda não há mensagens nesta atuação.")
+            .And.Contain("Deixa uma nota, combina detalhes ou partilha uma dúvida.").And.Contain("Apagar esta publicação?");
+        var contacts = File.ReadAllText(Path.Combine(portal, "EventContacts.tsx"));
+        foreach (var page in new[] { talk, contacts })
+        {
+            page.Should().NotContainAny(new[] { "attendance", "presença", "Presença", "migra" });
+        }
+
+        foreach (var gone in new[]
+                 {
+                     "RTUB.Web/Pages/Activities/EventDiscussion.razor", "RTUB.Web/Pages/Activities/EventContacts.razor",
+                     "RTUB.Shared/Components/Discussion/PostCard.razor", "RTUB.Shared/Components/Discussion/PostComposer.razor",
+                     "RTUB.Shared/Components/Discussion/CommentItem.razor", "RTUB.Application/Services/EventDiscussionService.cs",
+                     "RTUB.Application/Services/EventAuthorizationService.cs",
+                 })
+        {
+            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 013", gone);
+        }
     }
     [Fact]
     public void EventsLinks_GoToTheReactAgenda()

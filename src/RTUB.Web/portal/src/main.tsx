@@ -29,11 +29,16 @@ const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 const EventDetail = lazy(() => import('./EventDetail'));
 const eventId = Number(/^\/events\/(\d+)$/.exec(path)?.[1]) || undefined;
 
+// /events/{id}/discussion and /events/{id}/contacts (React track 013); Program.cs sends visitors to sign in first.
+const EventDiscussion = lazy(() => import('./EventDiscussion'));
+const EventContacts = lazy(() => import('./EventContacts'));
+const eventPage = /^\/events\/(\d+)\/(discussion|contacts)$/.exec(path);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId ? (
+        {Page || albumId || eventId || eventPage ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -45,6 +50,10 @@ createRoot(document.getElementById('root')!).render(
               <MusicAlbum albumId={Number(albumId)} />
             ) : eventId ? (
               <EventDetail eventId={eventId} />
+            ) : eventPage?.[2] === 'discussion' ? (
+              <EventDiscussion eventId={Number(eventPage[1])} />
+            ) : eventPage ? (
+              <EventContacts eventId={Number(eventPage[1])} />
             ) : (
               <Page />
             )}

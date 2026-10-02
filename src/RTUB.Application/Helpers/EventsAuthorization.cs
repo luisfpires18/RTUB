@@ -21,6 +21,9 @@ public static class EventsAuthorization
 
     public static bool CanTrackContacts(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Mod"));
 
+    /// <summary>The Owner only (not inherited by Admin): deletes anyone's discussion posts and comments (013).</summary>
+    public static bool IsOwner(ClaimsPrincipal user) => IsMember(user) && user.IsInRole("Owner");
+
     public static string? UserId(ClaimsPrincipal user) =>
         IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
 }
