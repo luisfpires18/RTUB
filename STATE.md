@@ -43,6 +43,12 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/016-react-governance-management`** (React track 016, from `dev` @ `84193767`, 015 merged; local, not
+pushed; DEV only). **Órgãos Sociais is fully React:** on `/roles` members open the RGI and Mod, Admin and Owner (was
+Mod and Admin) add fiscal years and assign / remove positions in modals, over `/api/governance` (rules now server-side,
+existing validation and role promotion reused); `/member/roles` 302s to `/roles`. Expelled members no longer offered.
+No schema change. Detail: `docs/react-governance.md`.
+
 **Open: `feat/015-react-gallery-management`** (React track 015, from `dev` @ `84d871de`, 014 merged; local, not
 pushed; DEV only). **Gallery is fully React:** members upload on `/gallery` (image/video, 10/100 MB, title, date,
 members-only, who appears; the people tagged get one push, as before) and the uploader, Admin or Owner (was Admin
@@ -207,10 +213,7 @@ Raised by React track 009 (Gallery):
 - (015) Gallery management is React; Owner now inherits Admin there.
 
 Raised by React track 008 (Órgãos Sociais):
-- Governance management (fiscal years, assignments) and the RGI are still Blazor at `/member/roles`;
-  a React version would let that page go.
-- The Blazor layout's "Órgãos Sociais" link now opens the React `/roles`; members reach
-  `/member/roles` from the notice on that page only.
+- (016) Management and the RGI are React on `/roles`; `/member/roles` redirects. Owner now inherits Admin there.
 
 Raised by React track 007 (Login):
 - `POST /auth/login` reports Locked/Expelled before checking the password, so those states are

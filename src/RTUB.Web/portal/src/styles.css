@@ -2821,8 +2821,25 @@ video.tile__media {
   letter-spacing: 0.04em;
 }
 
-.governance-page__members {
-  margin-top: 32px;
+.governance-page__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.governance-page__rgi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.seat__action {
+  margin-left: auto;
+  flex: none;
 }
 
 .bodies {

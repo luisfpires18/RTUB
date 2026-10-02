@@ -102,10 +102,10 @@ public sealed class GovernanceService : IGovernanceService
         return new PublicGovernanceDto(startYears.Select(Label).ToList(), Label(start), bodies);
     }
 
-    private static string Label(int startYear) => $"{startYear}-{startYear + 1}";
+    internal static string Label(int startYear) => $"{startYear}-{startYear + 1}";
 
     /// <summary>"2024-2025" → 2024. Anything else → null.</summary>
-    private static int? TryParseStartYear(string? fiscalYear)
+    internal static int? TryParseStartYear(string? fiscalYear)
     {
         var parts = fiscalYear?.Split('-');
         return parts is { Length: 2 }

@@ -1047,6 +1047,7 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
     public Mock<IImageStorageService> Storage { get; } = new();
     public Mock<IEventVideoStorageService> VideoStorage { get; } = new();
     public Mock<IGalleryMediaStorageService> GalleryStorage { get; } = new();
+    public Mock<IDocumentStorageService> Documents { get; } = new();
 
     public EventsApiFactory()
     {
@@ -1078,6 +1079,8 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
             services.AddSingleton(VideoStorage.Object);
             services.RemoveAll<IGalleryMediaStorageService>();
             services.AddSingleton(GalleryStorage.Object);
+            services.RemoveAll<IDocumentStorageService>();
+            services.AddSingleton(Documents.Object);
         });
     }
 }

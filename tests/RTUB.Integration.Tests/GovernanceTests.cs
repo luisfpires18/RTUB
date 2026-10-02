@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +15,7 @@ namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// The public Órgãos Sociais (React track 008): GET /api/public/governance over the wire, the React
-/// /roles, and the members' Blazor /member/roles that kept the RGI and the management tools.
+/// /roles, and the retired Blazor /member/roles (016; management is pinned by GovernanceManagementApiTests).
 /// The grouping and mandate rules are pinned by GovernanceServiceTests; here, what anonymous
 /// readers actually receive.
 /// </summary>
@@ -87,19 +86,27 @@ public class GovernanceTests : IntegrationTestBase
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
     }
 
+    /// <summary>016: the RGI and the management are on the React /roles; /member/roles only redirects (keeping ?fy=).</summary>
     [Fact]
-    public async Task MembersGovernance_NeedsSignIn_AndKeepsTheRgiAndManagement()
+    public async Task MembersGovernance_IsRetired_AndRedirectsToTheReactRolesPage()
     {
-        var response = await Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false })
-            .GetAsync("/member/roles");
+        var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
+        var response = await client.GetAsync("/member/roles?fy=2024-2025");
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Contain("/login");
+        response.Headers.Location!.ToString().Should().Be("/roles?fy=2024-2025");
+        (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
-        var page = typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGovernance");
-        page.Should().NotBeNull("the RGI and the Mod/Admin tools stay on the members' Blazor page");
-        page!.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>().Single().Template.Should().Be("/member/roles");
-        page.GetCustomAttributes(typeof(AuthorizeAttribute), false).Should().NotBeEmpty();
+        typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGovernance").Should().BeNull("the Blazor page was retired");
+        typeof(RTUB.App).Assembly.GetTypes()
+            .Where(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>()
+                .Any(r => r.Template.StartsWith("/member/roles", StringComparison.OrdinalIgnoreCase) || r.Template.Equals("/roles", StringComparison.OrdinalIgnoreCase)))
+            .Should().BeEmpty("no Blazor page owns Órgãos Sociais any more");
+
+        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        File.ReadAllText(Path.Combine(src, "Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
+            .And.Contain("<RemoveDialog").And.Contain("<CreateYearDialog");
+        File.ReadAllText(Path.Combine(src, "GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
 
     [Fact]
@@ -108,7 +115,8 @@ public class GovernanceTests : IntegrationTestBase
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         var content = File.ReadAllText(Path.Combine(src, "content.ts"));
 
-        content.Should().Contain("roles: '/roles'").And.Contain("memberGovernance: '/member/roles'");
+        content.Should().Contain("roles: '/roles'").And.NotContain("memberGovernance").And.NotContain("/member/roles",
+            "nothing links to the retired /member/roles (016)");
         var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
         home.Should().NotContain("id=\"governance\"").And.NotContain("Órgãos Sociais").And.NotContain("governingBodies",
             "011: the home has no Órgãos Sociais block at all; the top bar, menu and footer open /roles");

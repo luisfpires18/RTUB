@@ -131,8 +131,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/events/my-enrollments` | **React** (012E) | The member's own answers ("As minhas inscrições"). |
 | `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
 | `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
-| `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
-| `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
+| `/roles` | **React canonical** (008, 016) | Órgãos Sociais; `?fy=` picks a mandate. RGI for members, fiscal years and assignments for Mod/Admin/Owner (016). `docs/react-governance.md`. |
+| `/member/roles` | **Redirect** → `/roles` (016) | `302`, query kept, GET/HEAD only. The Blazor bridge (008-015) is retired. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
 | `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
 | `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
@@ -231,10 +231,9 @@ the cancioneiro are member-only documents in R2 storage and were not accessed.
 
 `/roles` is React (`portal/src/Governance.tsx`) over `GET /api/public/governance`
 (`Endpoints/GovernanceEndpoints.cs` → `IGovernanceService`). The old Blazor `/roles` mixed three
-audiences; only its public view was rebuilt. The page itself moved unchanged in function to the
-members' **`/member/roles`** (`Pages/Members/MemberGovernance.razor`, `[Authorize]`): the RGI viewer
-and the Mod/Admin fiscal-year and position management. Its `?manage=1` (from a long-gone
-`/admin/roles`) still works there.
+audiences; only its public view was rebuilt in 008. The RGI and the management lived on the members'
+Blazor `/member/roles` until **016 moved them to the React `/roles`** (`docs/react-governance.md`);
+`/member/roles` now redirects there.
 
 | Source | Field / data | Public | Private / internal | Old public UI | React | Schema change |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -245,7 +244,7 @@ and the Mod/Admin fiscal-year and position management. Its `?manage=1` (from a l
 | `AspNetUsers` | email, phone, birth date, address, roles, categories, ids | no | yes | no | no | no |
 | `FiscalYears` | years created by Mod/Admin | – | – | selector, all years | not read: the selector lists years with holders | no |
 | `Position` enum | 13 positions in 5 groups | yes | – | fixed layout | `GovernanceService.Structure` | no |
-| RGI (`docs/rtub_rgi.pdf`, R2) | members-only document | no | yes | members | `/member/roles` only | no |
+| RGI (`docs/rtub_rgi.pdf`, R2) | members-only document | no | yes | members | `/roles`, members (016) | no |
 
 - **Real data (read-only, counts):** 36 fiscal years (1991-2027), 16 with holders, 124 assignments,
   58 distinct holders; no orphan, duplicate position, note or expelled holder; nickname always set;
@@ -259,8 +258,7 @@ and the Mod/Admin fiscal-year and position management. Its `?manage=1` (from a l
   so a second Ensaiador was hidden); vacant positions read "Sem registo" instead of "N/D"; empty
   fiscal years are no longer offered.
 - **Hierarquia:** the old `/roles` never showed it; still not shown (future "Conhece a Tuna").
-- **Follow-ups:** management (fiscal years, assignments) and the RGI in React; then `/member/roles`
-  can go.
+- **Follow-ups:** done in 016 (management and RGI in React, `/member/roles` retired).
 
 ## Login (007)
 
@@ -384,8 +382,9 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 ## Next recommended slice
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
-contacts included). Rehearsals 014, Gallery management 015. Next: the members' management tools still on Blazor
-(`/member/roles`), or the public "Conhece a Tuna" page.
+contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016. Next: the remaining
+Blazor members' tools (members, inventory, documentation, logistics, treasury, messages, owner tools), or the
+public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 
