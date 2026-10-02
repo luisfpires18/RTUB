@@ -38,6 +38,58 @@ export type EventAgenda = {
   types: EventTypeOption[] | null;
 };
 
+// ---------- discussion (members) and contacts (Mod and above), React track 013 ----------
+
+export type EventAuthor = { name: string; fullName: string | null; avatarUrl: string; badge: string | null };
+
+export type EventComment = {
+  id: number;
+  body: string;
+  author: EventAuthor;
+  createdAt: string;
+  edited: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+};
+
+export type EventPassenger = { id: number; member: EventAuthor; mine: boolean; canRemove: boolean };
+
+export type EventTransport = { vehicle: string; totalSeats: number; notes: string | null; canManage: boolean; passengers: EventPassenger[] };
+
+export type EventPost = {
+  id: number;
+  title: string;
+  body: string;
+  author: EventAuthor;
+  createdAt: string;
+  lastActivityAt: string;
+  edited: boolean;
+  pinned: boolean;
+  locked: boolean;
+  mine: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canComment: boolean;
+  comments: EventComment[];
+  transport: EventTransport | null;
+};
+
+/** GET /api/events/{id}/discussion: pinned first, then latest activity; every write answers it again. */
+export type EventDiscussion = { canModerate: boolean; posts: EventPost[] };
+
+export type EventContactRow = {
+  userId: string;
+  name: string;
+  fullName: string | null;
+  avatarUrl: string;
+  phone: string | null;
+  willAttend: boolean | null;
+  notes: string | null;
+  contactedAt: string | null;
+};
+
+export type EventContacts = { contacted: EventContactRow[]; notContacted: EventContactRow[] };
+
 /** GET /api/events/stats (members, 012F): "vou" answers per member for events dated from..to. */
 export type EventMemberStats = {
   name: string;
@@ -229,6 +281,34 @@ async function call<T>(method: string, url: string, body?: unknown, retried = fa
 
 export const eventsApi = {
   agenda: () => call<EventAgenda>('GET', '/api/events'),
+  // Discussion (members, 013).
+  discussion: (id: number) => call<EventDiscussion>('GET', `/api/events/${id}/discussion`),
+  addPost: (id: number, title: string, body: string) => call<EventDiscussion>('POST', `/api/events/${id}/discussion/posts`, { title, body }),
+  editPost: (id: number, postId: number, title: string, body: string) =>
+    call<EventDiscussion>('PUT', `/api/events/${id}/discussion/posts/${postId}`, { title, body }),
+  deletePost: (id: number, postId: number) => call<EventDiscussion>('DELETE', `/api/events/${id}/discussion/posts/${postId}`),
+  setPostFlags: (id: number, postId: number, pinned: boolean, locked: boolean) =>
+    call<EventDiscussion>('PUT', `/api/events/${id}/discussion/posts/${postId}/flags`, { pinned, locked }),
+  addComment: (id: number, postId: number, body: string) =>
+    call<EventDiscussion>('POST', `/api/events/${id}/discussion/posts/${postId}/comments`, { body }),
+  editComment: (id: number, commentId: number, body: string) =>
+    call<EventDiscussion>('PUT', `/api/events/${id}/discussion/comments/${commentId}`, { body }),
+  deleteComment: (id: number, commentId: number) => call<EventDiscussion>('DELETE', `/api/events/${id}/discussion/comments/${commentId}`),
+  addTransport: (id: number, vehicle: string, seats: number, notes: string) =>
+    call<EventDiscussion>('POST', `/api/events/${id}/discussion/transport`, { vehicle, seats, notes }),
+  editTransport: (id: number, postId: number, vehicle: string, seats: number, notes: string) =>
+    call<EventDiscussion>('PUT', `/api/events/${id}/discussion/posts/${postId}/transport`, { vehicle, seats, notes }),
+  passengerMembers: (id: number, postId: number, q: string) =>
+    call<MemberOption[]>('GET', `/api/events/${id}/discussion/posts/${postId}/passengers/members?q=${encodeURIComponent(q)}`),
+  addPassenger: (id: number, postId: number, userId: string) =>
+    call<EventDiscussion>('POST', `/api/events/${id}/discussion/posts/${postId}/passengers`, { userId }),
+  removePassenger: (id: number, postId: number, passengerId: number) =>
+    call<EventDiscussion>('DELETE', `/api/events/${id}/discussion/posts/${postId}/passengers/${passengerId}`),
+  // Contact tracking (Mod and above, 013).
+  contacts: (id: number) => call<EventContacts>('GET', `/api/events/${id}/contacts`),
+  saveContact: (id: number, userId: string, willAttend: boolean | null, notes: string) =>
+    call<EventContacts>('PUT', `/api/events/${id}/contacts/${encodeURIComponent(userId)}`, { willAttend, notes }),
+  resetContact: (id: number, userId: string) => call<EventContacts>('DELETE', `/api/events/${id}/contacts/${encodeURIComponent(userId)}`),
   stats: (from?: string, to?: string) =>
     call<EventStats>('GET', `/api/events/stats${from && to ? `?from=${from}&to=${to}` : ''}`),
   event: (id: number) => call<EventDetail>('GET', `/api/events/${id}`),

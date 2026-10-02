@@ -167,6 +167,65 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/enrollments/{enrollmentId:int}", async (int id, int enrollmentId, HttpContext http, IEventParticipantsAdminService participants) =>
             ToResult(await participants.RemoveAsync(id, enrollmentId, http.User)));
 
+        // Discussion (members, 013): posts, comments and lift offers; every write answers the whole conversation.
+        events.MapGet("/{id:int}/discussion", async (int id, HttpContext http, IEventDiscussionBoardService board) =>
+            ToResult(await board.GetAsync(id, http.User)));
+
+        writes.MapPost("/{id:int}/discussion/posts", async (int id, EventPostInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.AddPostAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(32 * 1024));
+
+        writes.MapPut("/{id:int}/discussion/posts/{postId:int}", async (int id, int postId, EventPostInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.EditPostAsync(id, postId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(32 * 1024));
+
+        writes.MapDelete("/{id:int}/discussion/posts/{postId:int}", async (int id, int postId, HttpContext http, IEventDiscussionBoardService board) =>
+            ToResult(await board.DeletePostAsync(id, postId, http.User)));
+
+        writes.MapPut("/{id:int}/discussion/posts/{postId:int}/flags", async (int id, int postId, EventPostFlagsInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.SetFlagsAsync(id, postId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(1024));
+
+        writes.MapPost("/{id:int}/discussion/posts/{postId:int}/comments", async (int id, int postId, EventCommentInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.AddCommentAsync(id, postId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapPut("/{id:int}/discussion/comments/{commentId:int}", async (int id, int commentId, EventCommentInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.EditCommentAsync(id, commentId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
+
+        writes.MapDelete("/{id:int}/discussion/comments/{commentId:int}", async (int id, int commentId, HttpContext http, IEventDiscussionBoardService board) =>
+            ToResult(await board.DeleteCommentAsync(id, commentId, http.User)));
+
+        writes.MapPost("/{id:int}/discussion/transport", async (int id, EventTransportInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.AddTransportAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapPut("/{id:int}/discussion/posts/{postId:int}/transport", async (int id, int postId, EventTransportInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.EditTransportAsync(id, postId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        events.MapGet("/{id:int}/discussion/posts/{postId:int}/passengers/members", async (int id, int postId, string? q, HttpContext http, IEventDiscussionBoardService board) =>
+            ToResult(await board.SearchPassengersAsync(id, postId, q, http.User)));
+
+        writes.MapPost("/{id:int}/discussion/posts/{postId:int}/passengers", async (int id, int postId, EventPassengerInput input, HttpContext http, IEventDiscussionBoardService board) =>
+                ToResult(await board.AddPassengerAsync(id, postId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(1024));
+
+        writes.MapDelete("/{id:int}/discussion/posts/{postId:int}/passengers/{passengerId:int}", async (int id, int postId, int passengerId, HttpContext http, IEventDiscussionBoardService board) =>
+            ToResult(await board.RemovePassengerAsync(id, postId, passengerId, http.User)));
+
+        // Contact tracking (Mod and above, 013): read and write.
+        events.MapGet("/{id:int}/contacts", async (int id, HttpContext http, IEventContactsAdminService contacts) =>
+            ToResult(await contacts.GetAsync(id, http.User)));
+
+        writes.MapPut("/{id:int}/contacts/{userId}", async (int id, string userId, EventContactInput input, HttpContext http, IEventContactsAdminService contacts) =>
+                ToResult(await contacts.SaveAsync(id, userId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapDelete("/{id:int}/contacts/{userId}", async (int id, string userId, HttpContext http, IEventContactsAdminService contacts) =>
+            ToResult(await contacts.ResetAsync(id, userId, http.User)));
+
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));

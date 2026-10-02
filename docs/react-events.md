@@ -7,8 +7,8 @@ events in React modals on the agenda (011.5), and manage the **image, cancel / r
 push notices** there too (012A, `IEventAdminService`). Everything reads a thin, viewer-aware API
 (`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). **Events is React-owned (012F):** the members'
 Blazor `/member/events` (the old `Events.razor`, kept as a bridge in 011-012E) is retired and redirects to
-`/events`. Only the discussion and contact tracking stay Blazor, as per-event bridges linked from the event
-page. DEV only; no schema change.
+`/events`. **Since 013 Events is fully React:** the discussion and contact tracking moved too, and no Blazor
+event page is left. DEV only; no schema change.
 
 **Terminology.** Events use *enrollment* (Inscrições): `EventEnrollment*`, `eventsApi.getEnrollment` /
 `saveEnrollment`, `/api/events/{id}/enrollment`. *Attendance* (Presenças) belongs to rehearsals and is not
@@ -24,13 +24,13 @@ foi", with the Admin/Owner manager). `/events/my-enrollments` is the member's ow
 (`?openModal=true&name=&location=&date=&description=`, now sent straight to `/events`) still opens the React
 create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 
-| Route | Owner after 012F |
+| Route | Owner after 013 |
 | --- | --- |
 | `/events`, `/events/{id}`, `/events/my-enrollments` | React |
 | `/events/{id}/enrollment` | 302 → `/events/{id}?respond=1` |
 | `/events/{id}/enrollments` | 302 → `/events/{id}#who-title` |
 | `/member/events` | 302 → `/events` (query kept) |
-| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod+) | Blazor bridges, linked from the event page |
+| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod and above) | React (013); a visitor gets a 302 to `/login?returnUrl=…` |
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -52,7 +52,7 @@ create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
 | `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day; managed by Admin/Owner on the event page (012D) | members | no |
 | `Discussions` / `Posts` | per event | - | 9 discussions | member count + page | member count + link | members | no |
-| `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | link-free, unchanged | members | no |
+| `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | `/events/{id}/contacts` (013) | Mod and above | no |
 
 **Verdict: no schema change, no migration.** Nothing persisted was added, renamed or removed.
 
@@ -217,6 +217,57 @@ Removed as dead with it: `MemberEvents.razor` (+ its CSS and bUnit tests), `Repe
 `IEnrollmentStatisticsService` and their implementations (no other caller). `EventCard` stays (the dead
 `AboutUsContent` still references it).
 
+## Discussion (members, 013) - audited against the old Blazor page
+
+Tables: `Discussions` (one per event, `EventId`), `Posts` (`Title` required 3-120, `Body` required ≥3 and no
+length limit in the table, `LastActivityAt`, `IsEdited`, `IsPinned`, `IsLocked`, `IsDeleted` soft delete,
+`MentionsJson` ≤2000), `Comments` (flat under a post: `Body` ≥1, `IsEdited`, `IsDeleted`, `MentionsJson`),
+`Transportations` (a lift offer on a post: `VehicleDescription` ≤200, `TotalSeats` 2-20, `Notes` ≤500) with
+`TransportationPassengers`, and `PostMedia` / `CommentImages`. Event-only (other modules have their own comment
+tables). Real data (aggregates): 9 discussions, 11 posts (3 deleted, 1 pinned, 0 locked), 11 comments, 5 lifts
+with 27 passengers, 0 media, 0 comment images; longest post 109 characters. No likes, reactions or replies
+beyond one level of comments exist, so none are invented.
+
+| | Old Blazor `/events/{id}/discussion` | React now |
+| --- | --- | --- |
+| Who | `[Authorize]` page; every rule below only **hidden in the UI** (the services checked nothing) | the same rules **enforced server-side** in `EventDiscussionBoardService`; antiforgery on every write |
+| Read, post, comment, offer a lift | any signed-in member | same |
+| Edit | the author (post, comment, own lift) | same |
+| Delete | the author; **the Owner** anyone's (Admin did not) | same (soft delete, as before) |
+| Pin / lock | Admin (Owner only through Admin) | Admin or Owner |
+| Seat passengers | the driver or Admin; a passenger may leave | the driver or Admin/Owner; a passenger may leave; expelled members not offered |
+| Locked post | no new comments | same (400 with the reason) |
+| Order | pinned first, then latest activity; comments oldest first | same |
+| Title | required (3-120) in a modal | optional: a blank title is taken from the start of the text (≤60 characters) and not shown twice |
+| Limits | none on the text | post ≤5000, comment ≤2000 (longest real post: 109) |
+| Mentions | `@username` resolved and pushed (`MentionService`) | same calls; highlighted in the text; no autocomplete |
+| Notifications | new post → push to members going to an upcoming event; comment → post author and earlier commenters; mentions | unchanged (the same `PostService` / `CommentService`); tests use a push fake |
+| Media | video upload on a post (0 used) | not offered (would write to R2); existing media would not show (there is none) |
+| Search, pagination | search box, 20 per page | none: ≤6 posts per event today (`ponytail` note in the service) |
+| Past / cancelled events | no difference | no difference |
+| Audit | none | none |
+
+UX: one feed, not a table. A composer always on top ("Escreve uma nota para a atuação…", Publicar, Ctrl/⌘+Enter)
+with a **Mensagem / Oferecer boleia** toggle; avatar-led post cards (nickname, category badge, "há 5 min" /
+"ontem, 21:10" / "19 de março, 18:39", "editado"), pinned posts outlined, lifts as a card with a seats pill and
+passenger chips; comments threaded under each post with an inline reply box; actions are quiet text buttons
+and deletes confirm inline. Empty state: "Ainda não há mensagens nesta atuação. Deixa uma nota, combina
+detalhes ou partilha uma dúvida." Every write answers the whole conversation (no optimistic append needed).
+
+## Contacts (Mod and above, 013) - audited against the old Blazor page
+
+`EventContacts`: `EventId`, `UserId` (a member, not an outside contact), `IsContacted`, `WillAttend` (bool?),
+`Notes` ≤500, `ContactedAt`, `ContactedBy`. 0 rows today. The phone shown is the member's `PhoneNumber`. Never public.
+
+| | Old Blazor `/events/{id}/contacts` | React now |
+| --- | --- | --- |
+| Read | **any signed-in member** (every user's phone number) | **Mod and above only** (`CanTrackContacts`, as the event page's link already was) - changed on purpose |
+| Write | Mod and above (UI only) | Mod and above, server-side; antiforgery |
+| Listed | every user | every member who is not expelled - changed on purpose |
+| Record a call | Vai / Não vai / Indeciso + notes; an answer creates the member's enrollment (primary instrument, no notification) or flips an existing one | same calls (`IEventContactService`, `IEnrollmentService`) |
+| Repor | clears the call **and deletes the member's enrollment** | same, and the confirm says so |
+| Order | contacted newest first; the rest by name | same |
+
 ## API
 
 | Endpoint | Who | Notes |
@@ -224,6 +275,13 @@ Removed as dead with it: `MemberEvents.razor` (+ its CSS and bUnit tests), `Repe
 | `GET /api/public/events/upcoming` | anyone | Home preview (010), now from the same service; next 3, no ids. |
 | `GET /api/events` | anyone | `{ isMember, canManage, upcoming, past }`; `no-store`. |
 | `GET /api/events/stats?from=&to=` | member | "Estatísticas de inscrições" (012F): `{ from, to, pastEvents, members: [{ name, fullName, avatarUrl, categories, groups, went, going }] }`; default current season; 400 `errors.to` when `to` < `from`; 401 signed out. |
+| `GET /api/events/{id}/discussion` | member | `{ canModerate, posts: [{ id, title, body, author{name, fullName, avatarUrl, badge}, createdAt, lastActivityAt, edited, pinned, locked, mine, canEdit, canDelete, canComment, comments[], transport{vehicle, totalSeats, notes, canManage, passengers[{id, member, mine, canRemove}]} }] }` (013); no user id, email or phone. |
+| `POST /api/events/{id}/discussion/posts`, `PUT`/`DELETE …/posts/{postId}` | member (edit: author; delete: author or Owner) | `{ title, body }`; every write answers the conversation; 400 field errors. |
+| `PUT /api/events/{id}/discussion/posts/{postId}/flags` | Admin/Owner | `{ pinned, locked }`. |
+| `POST …/posts/{postId}/comments`, `PUT`/`DELETE …/discussion/comments/{commentId}` | member (author; delete also Owner) | `{ body }`; 400 on a locked post. |
+| `POST /api/events/{id}/discussion/transport`, `PUT …/posts/{postId}/transport` | member (edit: the driver) | `{ vehicle, seats, notes }`; seats 2-20 and not below the passengers. |
+| `GET …/posts/{postId}/passengers/members?q=`, `POST …/passengers`, `DELETE …/passengers/{passengerId}` | the driver or Admin/Owner (a passenger may remove themselves) | user ids only to those who may seat people. |
+| `GET /api/events/{id}/contacts`, `PUT`/`DELETE /api/events/{id}/contacts/{userId}` | Mod and above | `{ contacted, notContacted }` rows with phone; `PUT { willAttend, notes }` (≤500) records the call and syncs the enrollment; `DELETE` resets (and removes the enrollment). |
 | `GET /api/events/{id}` | anyone | One event + videos; `member` section (reason, repertoire, Quem vai) for members; 404 if missing. |
 | `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
 | `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
@@ -310,8 +368,11 @@ image (012A) and videos (012C), through the existing storage services.
 - Retired in the 011 follow-ups: the React answer page (`EventEnrollment.tsx`, now a modal), the
   "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
   management (011.5).
-- Retired in 012F: `/member/events` itself (see Retiring `/member/events`). Still Blazor: `/events/{id}/discussion`
-  and `/events/{id}/contacts`, linked from the event page.
+- Retired in 012F: `/member/events` itself (see Retiring `/member/events`).
+- Retired in 013: `Pages/Activities/EventDiscussion.razor` and `EventContacts.razor` (+ CSS), the shared
+  `PostCard`, `PostComposer` and `CommentItem` (only used there; `CommentComposer` stays for `/questions`),
+  `IEventDiscussionService`, `IEventAuthorizationService` and `TransportationService.GetAllMembersAsync`. No Blazor
+  component routes anything under `/events`.
 - History of the bridge, 012A-012E: its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
   were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
   of these has one way to do it: the React agenda. Its edit form still saves details and still
@@ -324,8 +385,8 @@ image (012A) and videos (012C), through the existing storage services.
 
 ## Follow-ups
 
-- Discussion (`/events/{id}/discussion`) and contact tracking (`/events/{id}/contacts`) are the last Blazor event
-  pages; each is a future React task of its own.
+- Discussion: no post media upload, no mention autocomplete, no search/pagination (see the audit); add them if
+  members ask. Global CSS for the retired `PostCard` / `CommentItem` / mention dropdown is now unused.
 - The `/member/events` and old redirects are 302 while DEV is hybrid; make them 301 (or drop them) at the PROD
   cutover.
 - Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want

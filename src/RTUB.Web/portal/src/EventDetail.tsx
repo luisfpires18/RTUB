@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
-import { legacy, portal } from './content';
+import { portal } from './content';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
 import {
   CancelEventDialog,
@@ -307,8 +307,8 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
           </li>
         )}
         <li>
-          <a href={legacy.eventDiscussion(event.id)}>
-            <Icon name="envelope" />
+          <a href={portal.eventDiscussion(event.id)}>
+            <Icon name="chat" />
             Discussão{m.discussionCount > 0 && ` (${m.discussionCount})`}
           </a>
         </li>
@@ -320,8 +320,8 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
         </li>
         {detail.canTrackContacts && (
           <li>
-            {/* Mod and above; it was linked from the Blazor participants page, retired in 012E. */}
-            <a href={legacy.eventContacts(event.id)}>
+            {/* Mod and above (the server refuses anyone else). */}
+            <a href={portal.eventContacts(event.id)}>
               <Icon name="phone" />
               Contactos
             </a>

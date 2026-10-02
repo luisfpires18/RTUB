@@ -163,7 +163,7 @@ public sealed class EventParticipantsAdminService : IEventParticipantsAdminServi
         return await db.Events.Where(e => e.Id == id).Select(e => (bool?)e.IsCancelled).FirstOrDefaultAsync();
     }
 
-    private static string Fold(string? text) =>
+    internal static string Fold(string? text) =>
         new string((text ?? string.Empty).Trim().Normalize(System.Text.NormalizationForm.FormD)
             .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray())
             .ToLowerInvariant();

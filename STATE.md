@@ -43,13 +43,13 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
-**Open: `feat/012f-finish-react-events`** (React track 012F, from `dev` @ `6fff7971`, 012E merged; local, not
-pushed; DEV only). **Events is React-owned.** `/member/events` is retired: a 302 to `/events` (query kept, so
-Requests' "criar atuação" prefill opens the React create form for Admin/Owner). Its last unique feature, members'
-"Estatísticas de inscrições", is an agenda modal (`GET /api/events/stats`, members, read-only). `/profile` links
-the agenda, "As minhas inscrições" and a React **Terminar sessão**. Remaining Blazor event bridges:
-`/events/{id}/discussion`, `/events/{id}/contacts`. Dead code removed with the page (`RepertoireModal`,
-`EnrollmentStatisticsButton`, four unused event services). No schema change. Detail: `docs/react-events.md`.
+**Open: `feat/013-react-event-discussion-contacts`** (React track 013, from `dev` @ `76388369`, 012F merged; local,
+not pushed; DEV only). **Events is fully React:** `/events/{id}/discussion` (members: a post/comment feed with lift
+offers, pin/lock, `@mentions`) and `/events/{id}/contacts` (Mod and above) are React pages over
+`/api/events/{id}/discussion` and `/api/events/{id}/contacts`; visitors get a 302 to sign in. The old rules, which
+Blazor only hid in the UI, are now server-side. Changed on purpose: contacts (every member's phone) readable by Mod
+and above only, not any member; expelled members not listed; post title optional; no post media upload (0 used),
+mention autocomplete, search or pagination. No Blazor event page left; no schema change. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -172,6 +172,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 013 (Events):
+- Global CSS for the retired `PostCard`, `CommentItem` and the PostComposer mention dropdown
+  (`wwwroot/css/3-components/*`) is unused now; `PostMedia` upload code in `PostService` has no caller left.
+
 Raised by React track 012F (Events):
 - `IEnrollmentFilterService` / `EnrollmentFilterService` are registered but unused since the Blazor enrollments
   page went (012E); not removed here.
@@ -182,7 +186,7 @@ Raised by React track 012F (Events):
 Raised by React track 011 (Events):
 - A local run without `Cloudflare:R2:PublicUrl` leaves the R2 origin out of the CSP, so event images and
   videos are blocked locally only (DEV/PROD have the setting).
-- (012F) `/member/events` retired; the item above it is closed. Event discussion and contacts are still Blazor.
+- (012F) `/member/events` retired; (013) discussion and contacts are React: no Blazor event page left.
 
 Raised by React track 009 (Gallery):
 - Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not

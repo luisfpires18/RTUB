@@ -160,9 +160,7 @@ public static class ServiceCollectionExtensions
         // Core domain services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IAlbumService, AlbumService>();
-        services.AddScoped<IEventDiscussionService, EventDiscussionService>();
         services.AddScoped<ITransportationService, TransportationService>();
-        services.AddScoped<IEventAuthorizationService, EventAuthorizationService>();
         services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
         services.AddScoped<IEventContactService, EventContactService>();
         services.AddScoped<IReportService, ReportService>();
@@ -174,6 +172,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventAdminService, EventAdminService>();
         services.AddScoped<IEventRepertoireAdminService, EventRepertoireAdminService>();
         services.AddScoped<IEventParticipantsAdminService, EventParticipantsAdminService>();
+        services.AddScoped<IEventDiscussionBoardService, EventDiscussionBoardService>();
+        services.AddScoped<IEventContactsAdminService, EventContactsAdminService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();

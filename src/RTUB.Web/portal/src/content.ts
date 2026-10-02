@@ -8,8 +8,6 @@ export const legacy = {
   memberProfile: '/member/profile',
   memberGovernance: '/member/roles',
   memberGallery: '/member/gallery',
-  eventContacts: (id: number) => `/events/${id}/contacts`,
-  eventDiscussion: (id: number) => `/events/${id}/discussion`,
 } as const;
 
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
@@ -25,6 +23,8 @@ export const portal = {
   events: '/events',
   event: (id: number) => `/events/${id}`,
   myEnrollments: '/events/my-enrollments',
+  eventDiscussion: (id: number) => `/events/${id}/discussion`,
+  eventContacts: (id: number) => `/events/${id}/contacts`,
 } as const;
 
 /** Sign in, then come back to the React profile. */
