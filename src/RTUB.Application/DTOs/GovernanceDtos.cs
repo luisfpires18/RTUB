@@ -22,3 +22,33 @@ public sealed record GovernancePositionDto(string Title, IReadOnlyList<Governanc
 /// <c>AvatarUrl</c> null when there is no usable photo (the page shows the default avatar).
 /// </summary>
 public sealed record GovernanceMemberDto(string DisplayName, string? FullName, string? AvatarUrl);
+
+// Management of the Órgãos Sociais (React track 016; was the Blazor /member/roles). Mod, Admin and Owner only
+// (GovernanceAuthorization); still no email, phone, birth date, note or audit field.
+
+/// <summary>
+/// Every created fiscal year (newest first, empty ones too), the one shown, the start years that can still be
+/// created (1991 up to the current one), and the bodies with their positions and assignment ids.
+/// </summary>
+public sealed record GovernanceManageDto(
+    IReadOnlyList<string> FiscalYears,
+    string? FiscalYear,
+    IReadOnlyList<int> AvailableStartYears,
+    IReadOnlyList<GovernanceManageBodyDto> Bodies);
+
+public sealed record GovernanceManageBodyDto(string Name, IReadOnlyList<GovernanceManagePositionDto> Positions);
+
+/// <summary><c>Position</c> is the enum name ("Magister"), what an assignment posts back.</summary>
+public sealed record GovernanceManagePositionDto(string Position, string Title, IReadOnlyList<GovernanceHolderDto> Holders);
+
+public sealed record GovernanceHolderDto(int AssignmentId, string DisplayName, string? FullName, string? AvatarUrl);
+
+/// <summary>A member who can be given a position.</summary>
+public sealed record GovernanceCandidateDto(string Id, string DisplayName, string? FullName, string? AvatarUrl);
+
+public sealed record GovernanceFiscalYearInput(int StartYear);
+
+public sealed record GovernanceAssignmentInput(string? FiscalYear, string? Position, string? UserId);
+
+/// <summary>A short-lived pre-signed URL of the RGI PDF; null when the document is not available.</summary>
+public sealed record GovernanceRgiDto(string? Url);

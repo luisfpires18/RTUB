@@ -673,8 +673,8 @@ public class Program
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
-        // /login below); every other page stays Blazor. The members' tools of /roles (008), /gallery
-        // (009) moved to /member/roles and /member/gallery; Events is React-only since 012F, Gallery since 015.
+        // /login below); every other page stays Blazor. Events is React-only since 012F, Gallery since 015,
+        // Órgãos Sociais (with its RGI and management) since 016.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -746,6 +746,11 @@ public class Program
         // The members' Blazor /member/gallery (009-014) is retired: upload, edit, delete and tags are on the React
         // /gallery (015). 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/member/gallery", ["GET", "HEAD"], () => Results.Redirect("/gallery"));
+
+        // The members' Blazor /member/roles (008-015) is retired: the RGI, fiscal years and position assignments are on
+        // the React /roles (016). ?fy= is kept. 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/member/roles", ["GET", "HEAD"], (HttpContext context) =>
+            Results.Redirect("/roles" + context.Request.QueryString));
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return
