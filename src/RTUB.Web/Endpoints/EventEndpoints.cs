@@ -12,7 +12,7 @@ namespace RTUB.Web.Endpoints;
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
 /// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
-/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C), repertoire (012D) and other members' answers (012E); statistics stay on the Blazor /member/events.
+/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C), repertoire (012D) and other members' answers (012E). Members' statistics: GET /stats (012F).
 /// </summary>
 public static class EventEndpoints
 {
@@ -33,6 +33,10 @@ public static class EventEndpoints
 
         events.MapGet("/", async (HttpContext http, IEventAgendaService service) =>
             Results.Ok(await service.GetAgendaAsync(http.User)));
+
+        // Members' enrollment statistics (012F; was the /member/events modal). ?from=&to= as yyyy-MM-dd.
+        events.MapGet("/stats", async (DateOnly? from, DateOnly? to, HttpContext http, IEventAgendaService service) =>
+            ToResult(await service.GetStatsAsync(from, to, http.User)));
 
         events.MapGet("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
             await service.GetEventAsync(id, http.User) is { } detail ? Results.Ok(detail) : NotFound());

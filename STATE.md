@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-01_
+_Last updated: 2026-10-02_
 
 ## Phase
 **Open: `feat/006/react-music-refactor`** (React track, task 006; from `dev` @ `94b77e4a`, committed
@@ -42,6 +42,14 @@ server-side, via `IEnrollmentService`); expelled members not offered, duplicates
 retired (302 to the event page) and `/member/events` lost its participants modal and Minhas Inscrições; it keeps
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
+
+**Open: `feat/012f-finish-react-events`** (React track 012F, from `dev` @ `6fff7971`, 012E merged; local, not
+pushed; DEV only). **Events is React-owned.** `/member/events` is retired: a 302 to `/events` (query kept, so
+Requests' "criar atuação" prefill opens the React create form for Admin/Owner). Its last unique feature, members'
+"Estatísticas de inscrições", is an agenda modal (`GET /api/events/stats`, members, read-only). `/profile` links
+the agenda, "As minhas inscrições" and a React **Terminar sessão**. Remaining Blazor event bridges:
+`/events/{id}/discussion`, `/events/{id}/contacts`. Dead code removed with the page (`RepertoireModal`,
+`EnrollmentStatisticsButton`, four unused event services). No schema change. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
@@ -164,11 +172,17 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 012F (Events):
+- `IEnrollmentFilterService` / `EnrollmentFilterService` are registered but unused since the Blazor enrollments
+  page went (012E); not removed here.
+- Local runs read `ConnectionStrings:SqliteConnection` (not `DefaultConnection`); point it at a scratch copy before
+  any browser check, or the run (and its `MemberStatusUpdateBackgroundService`) writes to `src/RTUB.Web/app.db`.
+- `EventCard` is only referenced by the dead `AboutUsContent` (Components/Portal, dead since 004).
+
 Raised by React track 011 (Events):
 - A local run without `Cloudflare:R2:PublicUrl` leaves the R2 origin out of the CSP, so event images and
   videos are blocked locally only (DEV/PROD have the setting).
-- `/member/events` still lists events and members' enrolment details for members (bridge until management
-  moves to React).
+- (012F) `/member/events` retired; the item above it is closed. Event discussion and contacts are still Blazor.
 
 Raised by React track 009 (Gallery):
 - Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not
@@ -185,7 +199,7 @@ Raised by React track 008 (Órgãos Sociais):
 Raised by React track 007 (Login):
 - `POST /auth/login` reports Locked/Expelled before checking the password, so those states are
   visible to anyone who knows a username (pre-existing; kept to preserve behaviour).
-- Sign-out exists only in the Blazor layout; the React shell has no sign-out yet.
+- Sign-out: React `/profile` has "Terminar sessão" since 012F; the React top bar still has none.
 
 Raised by 006 (shell banners):
 - `VersionTests.VersionFile_IsStrictSemVer_WithNothingElseInIt` fails on Windows checkouts (`core.autocrlf`

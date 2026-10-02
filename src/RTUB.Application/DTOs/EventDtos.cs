@@ -149,6 +149,22 @@ public sealed record EventInstrumentOptionDto(string Value, string Label);
 /// <summary>The answer a member gives. <c>Instrument</c> is an InstrumentType name or null (not playing).</summary>
 public sealed record EventEnrollmentInput(bool WillAttend, string? Instrument, string? Notes);
 
+/// <summary>
+/// "Estatísticas de inscrições" (members, 012F; was the /member/events modal): who said "vou" to events
+/// dated <c>From</c>..<c>To</c>. <c>PastEvents</c> counts that range's past, not cancelled events (the share's base).
+/// </summary>
+public sealed record EventStatsDto(string From, string To, int PastEvents, IReadOnlyList<EventMemberStatsDto> Members);
+
+/// <summary>One member's row. <c>Groups</c>: the category filters it matches (tuno, caloiro, leitao).</summary>
+public sealed record EventMemberStatsDto(
+    string Name,
+    string? FullName,
+    string AvatarUrl,
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<string> Groups,
+    int Went,
+    int Going);
+
 public enum EventResultStatus
 {
     Ok,

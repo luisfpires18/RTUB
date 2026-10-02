@@ -5,8 +5,8 @@ namespace RTUB.Application.Interfaces;
 
 /// <summary>
 /// The React Events area (React track 011). Visibility and every member action are decided here
-/// from the caller, never from anything the browser sends. Event management stays with the Blazor
-/// /member/events and <see cref="IEventService"/>.
+/// from the caller, never from anything the browser sends. Writes go through <see cref="IEventService"/>
+/// and <see cref="IEnrollmentService"/>.
 /// </summary>
 public interface IEventAgendaService
 {
@@ -39,6 +39,12 @@ public interface IEventAgendaService
     /// NERBA orders point at it.
     /// </summary>
     Task<EventResult<bool>> DeleteEventAsync(int id, ClaimsPrincipal user);
+
+    /// <summary>
+    /// Members' enrollment statistics for events dated <paramref name="from"/>..<paramref name="to"/> (default: the
+    /// current season, September to August). Signed-in members only.
+    /// </summary>
+    Task<EventResult<EventStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user);
 
     /// <summary>Audits a video play, as the Blazor page did; false when the video does not exist.</summary>
     Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user);

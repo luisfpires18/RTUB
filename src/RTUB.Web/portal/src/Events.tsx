@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
-import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
+import { EnrollmentDialog, PrizesDialog, StatsDialog } from './EventDialogs';
 import { CancelEventDialog, DeleteEventDialog, EventFormDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
-import { legacy, portal } from './content';
+import { portal } from './content';
 import {
   dateLabel,
   dayOf,
@@ -31,6 +31,29 @@ function filtersToUrl(f: Filters) {
   history.replaceState(null, '', url.pathname + url.search);
 }
 
+/**
+ * Requests' "criar atuação" (Blazor /requests) lands here with ?openModal=true&name=&location=&date=&description=
+ * (the old /member/events contract): read once, then taken out of the URL so the archive filters ignore it.
+ */
+function takeCreatePrefill() {
+  const url = new URL(location.href);
+  if (url.searchParams.get('openModal') !== 'true') return undefined;
+  const p = url.searchParams;
+  const date = p.get('date') ?? '';
+  const prefill = {
+    name: p.get('name') ?? '',
+    location: p.get('location') ?? '',
+    description: p.get('description') ?? '',
+    ...(/^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {}),
+  };
+  for (const key of ['openModal', 'name', 'location', 'date', 'description', 'type', 'requestId']) p.delete(key);
+  history.replaceState(null, '', url.pathname + url.search);
+  return prefill;
+}
+
+// Read once per page load, at module scope: a render React discards (Suspense) must not lose it.
+let pendingPrefill = takeCreatePrefill();
+
 const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** The archive filters, all client-side: the agenda is small and already filtered by the server for the caller. */
@@ -52,12 +75,14 @@ export function filterPast(past: EventSummary[], f: Filters) {
  */
 export default function Events() {
   const [agenda, setAgenda] = useState<EventAgenda | null>();
+  const [prefill, setPrefill] = useState(() => pendingPrefill);
   const [filters, setFilters] = useState<Filters>(filtersFromUrl);
   const [answering, setAnswering] = useState<number>();
   const [editing, setEditing] = useState<number | 'new'>();
   const [deleting, setDeleting] = useState<EventSummary>();
   const [acting, setActing] = useState<{ action: 'notice' | 'cancel' | 'reactivate'; event: EventSummary }>();
   const [prizes, setPrizes] = useState(false);
+  const [stats, setStats] = useState(false);
 
   useEffect(() => {
     document.title = 'Atuações · RTUB';
@@ -71,6 +96,13 @@ export default function Events() {
     });
   };
   useEffect(() => load(), []);
+  // The create form opens once the agenda says the caller may create (Admin/Owner); otherwise it is dropped.
+  useEffect(() => {
+    if (!prefill || !agenda) return;
+    pendingPrefill = undefined;
+    if (agenda.canManage) setEditing('new');
+    else setPrefill(undefined);
+  }, [agenda, prefill]);
   const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
   // Admin/Owner only: the server sends canManage, and refuses the writes for anyone else.
   // Notices and cancel / reactivate only for upcoming dates, as the old page.
@@ -128,10 +160,10 @@ export default function Events() {
               </a>
             )}
             {agenda?.isMember && (
-              <a className="btn btn--ghost btn--sm" href={legacy.memberEvents}>
-                <Icon name="arrow" />
-                Área de membros
-              </a>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setStats(true)}>
+                <Icon name="chart" />
+                Estatísticas
+              </button>
             )}
           </div>
         )}
@@ -211,11 +243,16 @@ export default function Events() {
       {editing !== undefined && agenda?.types && (
         <EventFormDialog
           eventId={editing === 'new' ? undefined : editing}
+          prefill={editing === 'new' ? prefill : undefined}
           types={agenda.types}
-          onClose={() => setEditing(undefined)}
+          onClose={() => {
+            setEditing(undefined);
+            setPrefill(undefined);
+          }}
           onSaved={() => load(true)}
         />
       )}
+      {stats && <StatsDialog onClose={() => setStats(false)} />}
       {acting?.action === 'notice' && <NoticeDialog event={acting.event} onClose={() => setActing(undefined)} />}
       {acting?.action === 'cancel' && (
         <CancelEventDialog event={acting.event} onClose={() => setActing(undefined)} onDone={() => load(true)} />

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import type { CurrentUser } from './api';
+import { useEffect, useState } from 'react';
+import { signOut, type CurrentUser } from './api';
 import { useCurrentUser } from './App';
 import { legacy, loginToProfile, portal } from './content';
 import { Icon, type IconName } from './icons';
@@ -96,9 +96,9 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
         </div>
       </div>
       <div className="account__actions">
-        <a className="btn btn--primary" href={legacy.memberEvents}>
-          <Icon name="arrow" />
-          Abrir a área de membros
+        <a className="btn btn--primary" href={portal.events}>
+          <Icon name="calendar" />
+          Agenda de atuações
         </a>
         <a className="btn btn--ghost" href={portal.myEnrollments}>
           <Icon name="calendar" />
@@ -109,8 +109,29 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           Editar o perfil
         </a>
       </div>
-      <p className="note">Terminar a sessão faz-se no menu da área de membros.</p>
+      <SignOut />
     </div>
+  );
+}
+
+function SignOut() {
+  const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
+  return (
+    <p className="note">
+      <button
+        type="button"
+        className="btn btn--ghost btn--sm"
+        disabled={state === 'busy'}
+        onClick={async () => {
+          setState('busy');
+          if (!(await signOut())) setState('failed');
+        }}
+      >
+        <Icon name="login" />
+        Terminar sessão
+      </button>
+      {state === 'failed' && ' Não foi possível terminar a sessão agora. Tente de novo.'}
+    </p>
   );
 }
 

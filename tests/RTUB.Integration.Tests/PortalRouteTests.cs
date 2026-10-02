@@ -186,6 +186,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/gallery")]
     [InlineData("/events")]
     [InlineData("/events/{id:int}")]
+    [InlineData("/events/my-enrollments")]
+    [InlineData("/member/events")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -201,15 +203,22 @@ public class PortalRouteTests : IntegrationTestBase
 
     // ---------- Blazor member/admin bridges ----------
 
+    /// <summary>
+    /// 012F: the members' Blazor /member/events is retired; Events is React-only. Its URL lands on the agenda
+    /// with its query, so Requests' "criar atuação" prefill (?openModal=true&amp;name=...) still opens the form.
+    /// </summary>
     [Theory]
-    [InlineData("/member/events")]
-    [InlineData("/member/events?openModal=true&name=x")]
-    public async Task BlazorEventManagement_LivesAtMemberEvents_AndRequiresSignIn(string path)
+    [InlineData("/member/events", "/events")]
+    [InlineData("/member/events?openModal=true&name=x", "/events?openModal=true&name=x")]
+    public async Task MemberEvents_IsRetired_AndRedirectsToTheReactAgenda(string path, string target)
     {
-        var response = await NoRedirectClient().GetAsync(path);
+        var client = NoRedirectClient();
+        var response = await client.GetAsync(path);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "event management is for signed-in members only (011)");
-        response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fevents");
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location!.ToString().Should().Be(target);
+        (await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path))).StatusCode.Should().Be(HttpStatusCode.Redirect);
+        (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
 
     /// <summary>
@@ -237,8 +246,6 @@ public class PortalRouteTests : IntegrationTestBase
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var root = FindRepoRoot();
-        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"))
-            .Should().Contain("$\"/events/{eventItem.Id}?respond=1\"", "the bridge's answer buttons open the React answer modal");
         var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
         File.Exists(Path.Combine(portal, "EventEnrollment.tsx")).Should().BeFalse("the standalone answer page was retired");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("EventEnrollment").And.NotContain("/enrollment'");
@@ -295,60 +302,67 @@ public class PortalRouteTests : IntegrationTestBase
             .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
     }
 
+    /// <summary>
+    /// 012F: /member/events and what only it used are gone; its statistics are the agenda's members-only
+    /// "Estatísticas" modal (GET /api/events/stats); nothing links to it any more. Discussion (members) and
+    /// contacts (Mod and above) stay Blazor bridges, linked from the React event page.
+    /// </summary>
     [Fact]
-    public void MemberEvents_KeepsOnlyTheBridgeTools_EverythingElseIsReact()
+    public void MemberEvents_IsGone_WithItsBridgeOnlyParts()
     {
         var root = FindRepoRoot();
-        var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
-
-        // 012A: one way to do each of these, the React agenda.
-        page.Should().NotContainAny(new[]
+        var src = Path.Combine(root, "src");
+        foreach (var gone in new[]
+                 {
+                     "RTUB.Web/Pages/Members/MemberEvents.razor", "RTUB.Web/Pages/Members/MemberEvents.razor.css",
+                     "RTUB.Shared/Components/Modals/RepertoireModal.razor", "RTUB.Shared/Components/UI/EnrollmentStatisticsButton.razor",
+                     "RTUB.Application/Services/EventStatisticsService.cs", "RTUB.Application/Services/EnrollmentStatisticsService.cs",
+                     "RTUB.Application/Services/EventFilterService.cs", "RTUB.Application/Services/EventUrlService.cs",
+                     "RTUB.Web/Pages/Activities/EventEnrollments.razor", "RTUB.Shared/Components/UI/MyEnrollmentsButton.razor",
+                 })
         {
-            "ImageUploadManager", "ImageCropper", "UploadImageAsync", "UpdateEventWithImageAsync",
-            "OnSendEmail=", "OnSendPushNotification=", "OnCancelEvent=", "OnUncancelEvent=",
-            "CancelEventAsync", "UncancelEventAsync", "SendEventNotificationAsync", "SendEventReminderNotificationAsync",
-            "SendEventCancellationNotificationAsync", "SendToSelectedUsersAsync",
-            // 012B: prizes are managed in the React Prémios modal.
-            "OpenTrophyModal", "OpenCreateTrophyModal", "SaveTrophy", "DeleteTrophy", "TrophyService", "OnViewTrophies=", "ShowTrophy=",
-            // 012C: videos are managed on the React event page; the bridge only plays them.
-            "InputFile", "AddVideoAsync", "UpdateVideoTitleAsync", "UpdateVideoOrderAsync", "DeleteVideoAsync", "draggable", "EditVideo",
-            // 012D: the repertoire is managed on the React event page.
-            "OnRepertoireChanged", "HandleRepertoireChanged",
-            // 012E: participants and Minhas Inscrições are React (event page, /events/my-enrollments).
-            "MyEnrollmentsButton", "Minhas Inscrições", "OnViewEnrollments=", "ModalType.EnrollmentList", "AddMemberToEvent",
-            "DeleteEnrollmentAsync", "/enrollments",
-        });
+            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired", gone);
+        }
 
-        // 012D: the shared repertoire modal (used only here) is read-only.
-        var repertoire = File.ReadAllText(Path.Combine(root, "src", "RTUB.Shared", "Components", "Modals", "RepertoireModal.razor"));
-        repertoire.Should().NotContainAny(new[]
-        {
-            "AddSongToRepertoireAsync", "RemoveSongFromRepertoireAsync", "UpdateRepertoireOrderAsync", "RemoveRepertoireDayAsync",
-            "draggable", "IsAdmin", "ISongService",
-        });
+        var sep = Path.DirectorySeparatorChar;
+        var linking = Directory.EnumerateFiles(src, "*.*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".razor") || f.EndsWith(".tsx") || f.EndsWith(".ts"))
+            .Where(f => !f.Contains($"{sep}obj{sep}") && !f.Contains($"{sep}bin{sep}") && !f.Contains("node_modules")
+                && !f.Contains($"wwwroot{sep}portal"))
+            .Where(f => File.ReadAllText(f) is var text && (text.Contains("\"/member/events") || text.Contains("'/member/events")))
+            .Select(Path.GetFileName)
+            .ToList();
+        linking.Should().BeEmpty("no Blazor or React page links to the retired /member/events");
 
-        // What stays: read-only videos and repertoire, statistics (incl. prizes), discussion, the details-only edit.
-        page.Should().Contain("ModalType.Videos").And.Contain("<RepertoireModal").And.Contain("TrophiesStats")
-            .And.Contain("<EnrollmentStatisticsButton").And.Contain("NavigateToDiscussion").And.Contain("ModalType.Edit");
+        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
+        var agenda = File.ReadAllText(Path.Combine(portal, "Events.tsx"));
+        agenda.Should().Contain("<StatsDialog").And.Contain("onClick={() => setStats(true)}").And.NotContain("Área de membros");
+        File.ReadAllText(Path.Combine(portal, "EventDialogs.tsx")).Should().Contain("eventsApi.stats(").And.NotContain("presen");
+        agenda.Should().Contain("takeCreatePrefill").And.Contain("prefill={editing === 'new' ? prefill : undefined}",
+            "Requests' prefill opens the React create form (Admin/Owner)");
+        var profile = File.ReadAllText(Path.Combine(portal, "Profile.tsx"));
+        profile.Should().Contain("href={portal.events}").And.Contain("href={portal.myEnrollments}").And.Contain("signOut()")
+            .And.NotContain("memberEvents");
 
-        // 012E: the Blazor participants page and the Minhas Inscrições component are gone.
-        File.Exists(Path.Combine(root, "src", "RTUB.Web", "Pages", "Activities", "EventEnrollments.razor")).Should().BeFalse();
-        File.Exists(Path.Combine(root, "src", "RTUB.Shared", "Components", "UI", "MyEnrollmentsButton.razor")).Should().BeFalse();
+        var detail = File.ReadAllText(Path.Combine(portal, "EventDetail.tsx"));
+        detail.Should().Contain("legacy.eventDiscussion(").And.Contain("legacy.eventContacts(");
+        File.Exists(Path.Combine(src, "RTUB.Web", "Pages", "Activities", "EventDiscussion.razor")).Should().BeTrue();
+        File.Exists(Path.Combine(src, "RTUB.Web", "Pages", "Activities", "EventContacts.razor")).Should().BeTrue();
     }
-
     [Fact]
-    public void EventsLinks_GoToTheReactAgenda_AndManagementToMemberEvents()
+    public void EventsLinks_GoToTheReactAgenda()
     {
         var root = FindRepoRoot();
         var src = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
 
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("events: '/events'").And.Contain("memberEvents: '/member/events'");
+        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("events: '/events'").And.NotContain("memberEvents");
         File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.events}>",
             "the home agenda's call to action opens the React agenda");
         File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("events: portal.events,",
             "the top bar, the mobile menu and the footer open the agenda page, not the home section");
         File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Management", "Requests.razor"))
-            .Should().Contain("\"/member/events\"", "turning a request into an event opens the management page");
+            .Should().Contain("GetUriWithQueryParameters(\"/events\", queryParams)").And.Contain("forceLoad: true",
+                "turning a request into an event opens the React create form (012F)");
         File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Shared", "MainLayout.razor"))
             .Should().Contain("href=\"/events\" data-enhance-nav=\"false\"", "the Blazor menu opens the React agenda with a full load");
     }
