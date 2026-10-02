@@ -43,6 +43,13 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/014-react-rehearsals`** (React track 014, from `dev` @ `8a36ecde`, 013 merged; local, not pushed; DEV only).
+**Rehearsals are React:** `/rehearsals` (list, quick "Marcar presença", "As minhas presenças", statistics) and the new
+`/rehearsals/{id}` (details, Presenças with confirm/remove/add) over `/api/rehearsals`; visitors get a 302 to sign in.
+Rehearsals use presença/attendance, events inscrição/enrollment. Old UI-only rules are now server-side; management is
+Admin or Owner (was Admin only); Mod none. Changed on purpose: description/notes typed at creation are saved. The
+Blazor page and its rehearsal-only components/services are retired. No schema change. Detail: `docs/react-rehearsals.md`.
+
 **Open: `feat/013-react-event-discussion-contacts`** (React track 013, from `dev` @ `76388369`, 012F merged; local,
 not pushed; DEV only). **Events is fully React:** `/events/{id}/discussion` (members: a post/comment feed with lift
 offers, pin/lock, `@mentions`) and `/events/{id}/contacts` (Mod and above) are React pages over

@@ -243,7 +243,7 @@ function antiforgeryToken(refresh = false): Promise<string> {
   return token;
 }
 
-async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
+export async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (method !== 'GET') headers['X-CSRF-TOKEN'] = await antiforgeryToken();

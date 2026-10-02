@@ -17,6 +17,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/gallery': lazy(() => import('./Gallery')),
   '/events': lazy(() => import('./Events')),
   '/events/my-enrollments': lazy(() => import('./MyEnrollments')),
+  '/rehearsals': lazy(() => import('./Rehearsals')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];
@@ -34,11 +35,15 @@ const EventDiscussion = lazy(() => import('./EventDiscussion'));
 const EventContacts = lazy(() => import('./EventContacts'));
 const eventPage = /^\/events\/(\d+)\/(discussion|contacts)$/.exec(path);
 
+// /rehearsals/{id} (React track 014); Program.cs sends visitors to sign in first.
+const RehearsalDetail = lazy(() => import('./RehearsalDetail'));
+const rehearsalId = Number(/^\/rehearsals\/(\d+)$/.exec(path)?.[1]) || undefined;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId || eventPage ? (
+        {Page || albumId || eventId || eventPage || rehearsalId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -54,6 +59,8 @@ createRoot(document.getElementById('root')!).render(
               <EventDiscussion eventId={Number(eventPage[1])} />
             ) : eventPage ? (
               <EventContacts eventId={Number(eventPage[1])} />
+            ) : rehearsalId ? (
+              <RehearsalDetail rehearsalId={rehearsalId} />
             ) : (
               <Page />
             )}

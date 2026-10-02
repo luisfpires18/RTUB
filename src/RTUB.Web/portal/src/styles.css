@@ -5696,3 +5696,82 @@ video.tile__media {
     font-size: 0.9375rem;
   }
 }
+
+/* ---------- Rehearsals (/rehearsals, /rehearsals/{id}, React track 014) ---------- */
+
+.pill--wait {
+  background: rgba(255, 196, 87, 0.14);
+  color: #ffd98a;
+}
+
+.rehearsal-hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.rehearsal-hero .page__title {
+  margin: 0;
+}
+
+.rehearsal-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  color: var(--ink-soft);
+  list-style: none;
+}
+
+.rehearsal-hero__facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rehearsal-hero__facts .icon {
+  color: var(--purple-ink);
+}
+
+.presence-group + .presence-group {
+  margin-top: 20px;
+}
+
+.presence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.presence-add {
+  margin-top: 20px;
+}
+
+.presence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.presence-row small {
+  display: block;
+  color: var(--muted);
+}
+
+.range-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.presence-rate {
+  margin: 0 0 12px;
+}

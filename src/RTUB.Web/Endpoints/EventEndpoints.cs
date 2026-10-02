@@ -242,7 +242,7 @@ public static class EventEndpoints
     /// The answers depend on the session: never cached, not after sign-out, not for another user.
     /// Failures answer as a JSON problem, never a page or a stack trace.
     /// </summary>
-    private static async ValueTask<object?> NoStore(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    internal static async ValueTask<object?> NoStore(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         context.HttpContext.Response.Headers.CacheControl = "no-store";
         try
@@ -259,7 +259,7 @@ public static class EventEndpoints
     }
 
     /// <summary>Explicit CSRF check for every Events write: the X-CSRF-TOKEN header, bound to the antiforgery cookie.</summary>
-    private static async ValueTask<object?> RequireAntiforgery(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    internal static async ValueTask<object?> RequireAntiforgery(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var antiforgery = context.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
         try

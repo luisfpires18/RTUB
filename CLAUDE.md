@@ -57,6 +57,7 @@ Run only what the change can break.
 | React Music area (API, rules, data audit) | `docs/react-music.md` |
 | React Gallery (API, visibility, data audit) | `docs/react-gallery.md` |
 | React Events (API, visibility, enrollment, data audit) | `docs/react-events.md` |
+| React Rehearsals (API, presenças/attendance, data audit) | `docs/react-rehearsals.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

@@ -174,6 +174,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventParticipantsAdminService, EventParticipantsAdminService>();
         services.AddScoped<IEventDiscussionBoardService, EventDiscussionBoardService>();
         services.AddScoped<IEventContactsAdminService, EventContactsAdminService>();
+        services.AddScoped<IRehearsalAgendaService, RehearsalAgendaService>();
+        services.AddScoped<IRehearsalAdminService, RehearsalAdminService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();
@@ -223,10 +225,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IRehearsalService, RehearsalService>();
         services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
-        services.AddScoped<IRehearsalAttendanceFilterService, RehearsalAttendanceFilterService>();
-        services.AddScoped<IRehearsalFilterService, RehearsalFilterService>();
-        services.AddScoped<IRehearsalStatisticsService, RehearsalStatisticsService>();
-        services.AddScoped<IRehearsalUrlService, RehearsalUrlService>();
 
         return services;
     }
