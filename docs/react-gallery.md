@@ -57,7 +57,7 @@ Verdict: **no schema change, no migration.** The real `app.db` was only read (ag
 | Tags | any user, chosen from a list of everyone | members who are not expelled, by nickname or name (`GET /api/gallery/people`); existing tags kept as they are |
 | Notification | on upload only: one push to the people tagged ("Foste marcado numa nova foto ou vídeo", link `/gallery`); edits send nothing | same; the upload form says who will be notified, the edit form says nothing is sent |
 | Edit | title, date, members-only, tags | same (`PUT /api/gallery/items/{id}`) |
-| Delete | stored file first, then the row (hard; tags cascade); a storage error keeps the row | same (`DELETE /api/gallery/items/{id}`); the storage guard never deletes a file this environment does not own (a DEV copy of production rows deletes only the row) |
+| Delete | stored file first, then the row (hard; tags cascade); a storage error keeps the row | same (`DELETE /api/gallery/items/{id}`): a storage **error** answers 500 and keeps the row and tags (tested); a URL this environment does **not own** is refused by the storage guard with no remote call and the row is removed - the unit-029 contract, so a DEV copy of production rows never touches the production bucket. Production's rows sit under its own origin and always take the real delete path |
 | Rights | UI only: uploader or `Admin` | server-side: uploader, Admin or Owner |
 | Audit | none | none |
 

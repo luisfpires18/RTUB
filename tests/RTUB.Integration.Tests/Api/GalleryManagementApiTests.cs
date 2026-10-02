@@ -152,6 +152,24 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
+    public async Task WhenStorageFailsToDelete_TheItemAndItsTagsStay()
+    {
+        var (uploader, uploaderUser) = await SignInAsync();
+        var (_, tagged) = await SignInAsync();
+        await WithTokenAsync(uploader);
+        var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true, tagged.Id);
+        var url = (await MediaAsync(id))!.MediaUrl;
+        _factory.GalleryStorage.Setup(s => s.DeleteMediaAsync(url)).ThrowsAsync(new IOException("R2 unavailable"));
+
+        var response = await uploader.DeleteAsync($"/api/gallery/items/{id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await MediaAsync(id)).Should().NotBeNull("a failed storage delete must not detach the row from its file");
+        (await TagsAsync(id)).Should().ContainSingle().Which.Should().Be(tagged.Id);
+        (await uploader.GetAsync($"/api/gallery/items/{id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Edit_AddsAndRemovesTags_WithoutNotifying()
     {
         var (uploader, uploaderUser) = await SignInAsync();

@@ -198,7 +198,11 @@ public sealed class GalleryManagementService : IGalleryManagementService
         }
 
         var media = (await _media.GetByIdAsync(id))!;
-        // As before: the stored file first; if storage fails the row stays, so nothing points at a lost file.
+        // As before: the stored file first. A storage error throws, so the row and tags stay (500, retry later).
+        // A URL this environment does not own (a production file referenced by a DEV copy, any other host) is
+        // refused by the storage guard without a remote call and returns normally: the row goes, the foreign
+        // file is never touched (the unit-029 contract, docs/cloudflare-r2-and-database-backups.md). Production's
+        // own rows are under its own public origin, so they always take the real delete path.
         await _storage.DeleteMediaAsync(media.MediaUrl);
         await _media.DeleteAsync(id);
         return EventResult<bool>.Ok(true);
