@@ -191,6 +191,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/events/{eventId:int}/discussion")]
     [InlineData("/events/{eventId:int}/contacts")]
     [InlineData("/rehearsals")]
+    [InlineData("/member/gallery")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()

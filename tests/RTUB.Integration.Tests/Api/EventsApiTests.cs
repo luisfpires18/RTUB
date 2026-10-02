@@ -1046,11 +1046,17 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
     public Mock<IEmailNotificationService> Email { get; } = new();
     public Mock<IImageStorageService> Storage { get; } = new();
     public Mock<IEventVideoStorageService> VideoStorage { get; } = new();
+    public Mock<IGalleryMediaStorageService> GalleryStorage { get; } = new();
 
     public EventsApiFactory()
     {
         Storage.Setup(s => s.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", It.IsAny<string>()))
             .ReturnsAsync("https://pub-test.r2.dev/images/test/events/new.webp");
+        GalleryStorage.Setup(s => s.GetMaxFileSize(RTUB.Core.Enums.MediaType.Image)).Returns(10 * 1024 * 1024);
+        GalleryStorage.Setup(s => s.GetMaxFileSize(RTUB.Core.Enums.MediaType.Video)).Returns(100 * 1024 * 1024);
+        GalleryStorage.Setup(s => s.UploadMediaAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RTUB.Core.Enums.MediaType>(),
+                It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<byte?>(), It.IsAny<byte?>()))
+            .ReturnsAsync(() => $"https://pub-test.r2.dev/images/test/gallery/{Guid.NewGuid():N}.jpg");
         Email.Setup(m => m.SendEventReminderNotificationAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<List<string>>(), It.IsAny<Dictionary<string, (string, string)>>(), It.IsAny<string>(),
                 It.IsAny<DateTime?>(), It.IsAny<IProgress<EmailSendProgress>?>()))
@@ -1070,6 +1076,8 @@ public sealed class EventsApiFactory : TestWebApplicationFactory
             services.AddSingleton(Storage.Object);
             services.RemoveAll<IEventVideoStorageService>();
             services.AddSingleton(VideoStorage.Object);
+            services.RemoveAll<IGalleryMediaStorageService>();
+            services.AddSingleton(GalleryStorage.Object);
         });
     }
 }

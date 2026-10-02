@@ -7,7 +7,6 @@ export const legacy = {
   forgotPassword: '/forgot-password',
   memberProfile: '/member/profile',
   memberGovernance: '/member/roles',
-  memberGallery: '/member/gallery',
 } as const;
 
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */

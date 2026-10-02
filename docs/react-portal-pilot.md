@@ -124,7 +124,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/music`, `/music/albums/{id}` | **React canonical** (006) | Music area: albums, songs, player, lyrics, videos, statistics, management. `docs/react-music.md`. |
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
 | `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
-| `/member/gallery` | **Blazor member/admin, pending** (moved in 009) | The former Blazor `/gallery`: upload, tags, edit, delete. Requires sign-in. |
+| `/member/gallery` | **Redirect** → `/gallery` (015) | `302`, GET/HEAD only. Upload, tags, edit and delete are React on `/gallery`. |
 | `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
 | `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
 | `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
@@ -384,8 +384,8 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 ## Next recommended slice
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
-contacts included). Next: the members' management tools still on Blazor (`/member/gallery`,
-`/member/roles`), or the public "Conhece a Tuna" page.
+contacts included). Rehearsals 014, Gallery management 015. Next: the members' management tools still on Blazor
+(`/member/roles`), or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 

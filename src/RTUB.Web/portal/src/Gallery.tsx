@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type GalleryTimeline } from './api';
 import { Loading } from './App';
-import { legacy } from './content';
+import { EditDialog, UploadDialog } from './GalleryManage';
 import { Icon } from './icons';
 
 const monthName = (month: number) =>
@@ -47,7 +47,7 @@ function setItemInUrl(id?: number) {
 /**
  * /gallery - the RTUB through the years, newest first. Visitors see the public photos; signed-in
  * members also see members-only ones (badged) and who is in each photo. Everything is decided by
- * GET /api/gallery from the session. Uploading and editing stay on the Blazor /member/gallery.
+ * GET /api/gallery from the session. Members upload here, and the uploader, Admin or Owner edit (015).
  */
 export default function Gallery() {
   const [data, setData] = useState<GalleryTimeline>();
@@ -57,6 +57,7 @@ export default function Gallery() {
   const [filters, setFilters] = useState<GalleryFilters>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState<GalleryItem>();
+  const [managing, setManaging] = useState<'upload' | number>();
 
   useEffect(() => {
     document.title = 'Galeria · RTUB';
@@ -113,10 +114,10 @@ export default function Gallery() {
           <p className="page__lead">Atuações, viagens e noites de estrada: a RTUB ao longo dos anos, do mais recente para trás.</p>
         </div>
         {data?.isMember && (
-          <a className="btn btn--ghost btn--sm" href={legacy.memberGallery}>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => setManaging('upload')}>
             <Icon name="upload" />
-            Carregar ou editar
-          </a>
+            Carregar foto ou vídeo
+          </button>
         )}
       </header>
 
@@ -202,8 +203,18 @@ export default function Gallery() {
           siblings={items}
           onMove={show}
           onClose={() => show(undefined)}
+          onEdit={
+            open.canEdit
+              ? () => {
+                  show(undefined);
+                  setManaging(open.id);
+                }
+              : undefined
+          }
         />
       )}
+      {managing === 'upload' && <UploadDialog onClose={() => setManaging(undefined)} onDone={() => load(1, filters)} />}
+      {typeof managing === 'number' && <EditDialog itemId={managing} onClose={() => setManaging(undefined)} onDone={() => load(1, filters)} />}
     </section>
   );
 }
@@ -312,11 +323,14 @@ function Lightbox({
   siblings,
   onMove,
   onClose,
+  onEdit,
 }: {
   item: GalleryItem;
   siblings: GalleryItem[];
   onMove: (item: GalleryItem) => void;
   onClose: () => void;
+  /** The uploader, Admin or Owner (015). */
+  onEdit?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [broken, setBroken] = useState(false);
@@ -388,6 +402,12 @@ function Lightbox({
           )}
         </div>
         <div className="lightbox__actions">
+          {onEdit && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={onEdit}>
+              <Icon name="pencil" />
+              Editar
+            </button>
+          )}
           {item.url && (
             <a className="btn btn--ghost btn--sm" href={item.url} target="_blank" rel="noopener noreferrer">
               <Icon name="external" />

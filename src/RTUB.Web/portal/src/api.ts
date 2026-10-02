@@ -193,6 +193,8 @@ export type GalleryItem = {
   day: number | null;
   membersOnly: boolean;
   people: GalleryPerson[];
+  /** The uploader, Admin or Owner (015): edit and delete; the server enforces it. */
+  canEdit: boolean;
 };
 export type GalleryTimeline = {
   isMember: boolean;
