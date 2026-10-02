@@ -202,7 +202,7 @@ public class GalleryTimelineServiceTests
     {
         // A new property on these records is a new field in the browser: add it here on purpose.
         Names<GalleryTimelineDto>().Should().BeEquivalentTo("IsMember", "Items", "Total", "Page", "PageSize", "Years", "People");
-        Names<GalleryItemDto>().Should().BeEquivalentTo("Id", "Title", "Type", "Url", "Year", "Month", "Day", "MembersOnly", "People");
+        Names<GalleryItemDto>().Should().BeEquivalentTo("Id", "Title", "Type", "Url", "Year", "Month", "Day", "MembersOnly", "People", "CanEdit"); // CanEdit: 015, a flag, no id
         Names<GalleryPersonDto>().Should().BeEquivalentTo("Id", "Name");
     }
 

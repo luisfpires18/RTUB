@@ -85,13 +85,15 @@ public class GalleryTests : IntegrationTestBase
         (await client.GetAsync($"/api/gallery/items/{privateId}")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    /// <summary>015: the API takes writes now, but never from a visitor or without the antiforgery token.</summary>
     [Fact]
-    public async Task Api_IsReadOnly()
+    public async Task Api_Writes_AreRefusedToVisitorsAndWithoutTheToken()
     {
         var client = Factory.CreateClient();
 
-        (await client.PostAsync("/api/gallery", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
-        (await client.DeleteAsync("/api/gallery/items/1")).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await client.PostAsync("/api/gallery", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
+        (await client.DeleteAsync("/api/gallery/items/1")).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
+        (await client.PutAsync("/api/gallery/items/1", null)).StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.UnsupportedMediaType);
     }
 
     [Fact]
@@ -102,19 +104,21 @@ public class GalleryTests : IntegrationTestBase
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js").And.NotContain(PrivateUrl);
     }
 
+    /// <summary>015: management is React (upload, edit, delete, tags on /gallery); /member/gallery only redirects.</summary>
     [Fact]
-    public async Task MembersGallery_NeedsSignIn_AndKeepsUploadAndEditing()
+    public async Task MembersGallery_IsRetired_AndRedirectsToTheReactGallery()
     {
-        var response = await Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false })
-            .GetAsync("/member/gallery");
+        var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
+        var response = await client.GetAsync("/member/gallery");
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Contain("/login");
+        response.Headers.Location!.ToString().Should().Be("/gallery");
+        (await client.PostAsync("/member/gallery", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
-        var page = typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGallery");
-        page.Should().NotBeNull("upload, tags, edit and delete stay on the members' Blazor page");
-        page!.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>().Single().Template.Should().Be("/member/gallery");
-        page.GetCustomAttributes(typeof(AuthorizeAttribute), false).Should().NotBeEmpty();
+        typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
+        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        File.ReadAllText(Path.Combine(src, "Gallery.tsx")).Should().Contain("<UploadDialog").And.Contain("<EditDialog").And.Contain("open.canEdit");
+        File.ReadAllText(Path.Combine(src, "GalleryManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
 
     [Fact]
@@ -123,7 +127,7 @@ public class GalleryTests : IntegrationTestBase
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("gallery: '/gallery'")
-            .And.Contain("memberGallery: '/member/gallery'");
+            .And.NotContain("memberGallery", "nothing links to the retired /member/gallery (015)");
         File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.gallery}>");
         File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("gallery: portal.gallery",
             "the top bar, menu and footer open /gallery, not the home anchor");

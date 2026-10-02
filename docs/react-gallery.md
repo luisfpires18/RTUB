@@ -1,10 +1,14 @@
 # React Gallery (`/gallery`, React track 009)
 
-`/gallery` is a React timeline (`portal/src/Gallery.tsx`) over a read-only, viewer-aware API. The
-old Blazor `Pages/Media/Gallery.razor` mixed viewing and management; only viewing was rebuilt. The
-page moved, unchanged in function, to the members' **`/member/gallery`**
-(`Pages/Members/MemberGallery.razor`, `[Authorize]`): upload to R2, person tags and their push
-notification, edit and delete. DEV only; no schema change.
+`/gallery` is a React timeline (`portal/src/Gallery.tsx`) over a viewer-aware API. **Since 015 it is the
+whole Gallery:** members upload, and the uploader, Admin or Owner edit, tag and delete, in modals on the same
+page (`GalleryManage.tsx` → `Endpoints/GalleryEndpoints.cs` → `IGalleryManagementService`). The members'
+Blazor `/member/gallery` (009-014) is retired: a `302` to `/gallery`. DEV only; **no schema change**.
+
+| Route | Owner after 015 |
+| --- | --- |
+| `/gallery` (`?item=` opens one) | React: timeline for everyone; management for members |
+| `/member/gallery` | `302` → `/gallery` (GET/HEAD only) |
 
 ## Audit
 
@@ -35,21 +39,39 @@ Verdict: **no schema change, no migration.** The real `app.db` was only read (ag
   person filter. Same rule as the Blazor page (any signed-in user); expelled members arrive
   anonymous because the cookie validator drops their session.
 - **Changed on purpose:** tags were visible to everyone in the old lightbox; they are member-only now.
-- **Writes:** none in the API. Upload: any signed-in member; edit/delete: uploader or the `Admin`
-  role (unchanged, on `/member/gallery`). Note: that check is `IsInRole("Admin")` only, so an Owner
-  without the Admin role cannot edit others' media - recorded, not changed.
+- **Writes (015):** upload: any signed-in member; edit/delete: the uploader, Admin or Owner (Owner now
+  inherits Admin; it was `IsInRole("Admin")` only); Mod nothing extra. Enforced in `GalleryManagementService`
+  (`Helpers/GalleryAuthorization.cs`); items carry `canEdit` for the caller. Antiforgery on every write.
 - DTOs (`DTOs/GalleryDtos.cs`) carry title, type, url, date parts, `membersOnly` and tag names; never
   the uploader, audit fields, `TakenAt`, thumbnails or EF entities. Paging: 24 by default, 1-60.
   Order: year, month, day, `TakenAt ?? CreatedAt`, then `Id`, all newest first.
+
+## Management (015) - audited against the old `/member/gallery`
+
+| | Old Blazor `/member/gallery` | React now |
+| --- | --- | --- |
+| Where | its own page (timeline copy + modals) | `/gallery`: **Carregar foto ou vídeo** in the header (members); **Editar** in the lightbox (`canEdit`) → edit modal with **Apagar** |
+| Upload | file `image/*` or `video/*` (by its type), images ≤10 MB, videos ≤100 MB (`GalleryMedia:MaxVideoSize`); title required ≤200; a date; "Visível apenas para membros" (on by default); who appears. No crop, no thumbnail | same rules, checked again on the server (`POST /api/gallery`, multipart); preview, title suggested from the file name, progress bar (XHR upload progress) |
+| Date | 1 January keeps only the year; the 1st of another month the year and month; else the full date | same rule (`GalleryManagementService.ParseDate`), explained under the field; year 1900..next year |
+| Storage | `images/{env}/gallery/{image\|video}/{timestamp}-{title}-{date}.ext`, `PublicRead` | unchanged (`CloudflareGalleryMediaStorageService`) |
+| Tags | any user, chosen from a list of everyone | members who are not expelled, by nickname or name (`GET /api/gallery/people`); existing tags kept as they are |
+| Notification | on upload only: one push to the people tagged ("Foste marcado numa nova foto ou vídeo", link `/gallery`); edits send nothing | same; the upload form says who will be notified, the edit form says nothing is sent |
+| Edit | title, date, members-only, tags | same (`PUT /api/gallery/items/{id}`) |
+| Delete | stored file first, then the row (hard; tags cascade); a storage error keeps the row | same (`DELETE /api/gallery/items/{id}`); the storage guard never deletes a file this environment does not own (a DEV copy of production rows deletes only the row) |
+| Rights | UI only: uploader or `Admin` | server-side: uploader, Admin or Owner |
+| Audit | none | none |
+
+Real data (009 audit): 12 items (11 images, 1 video), 3 members-only, 2 uploaders, 29 tags on 4 items.
 
 ## Cloudflare R2
 
 Files are uploaded with `PublicRead` to the public bucket (`CloudflareGalleryMediaStorageService`),
 so a members-only item is protected by not being listed, not by storage: anyone who already has its
 URL can open it. Unchanged here (it would need private objects plus signed URLs); the API simply
-never sends that URL to a visitor. URLs are absolute public URLs, so no object key or credential
-reaches the browser. The page is read-only: nothing is uploaded, replaced or deleted from React,
-and tests use fake URLs and never call storage. CSP already allows the R2 public origin for
+never sends that URL to a visitor. **Members-only is a listing rule, not storage privacy** (unchanged by
+015). URLs are absolute public URLs, so no object key or credential reaches the browser. Uploads and deletes go
+through the existing storage service; tests replace it with a fake (`EventsApiFactory.GalleryStorage`) and never
+reach R2. CSP already allows the R2 public origin for
 `img-src` and `media-src`.
 
 ## Timeline UI
@@ -61,10 +83,11 @@ items carry a small "Membros" badge. Search by title, year filter, and for membe
 date, tagged members, "Abrir original", previous/next buttons and arrow keys, Esc. `?item=<id>` opens
 one item directly (members-only ones only when signed in). Missing or broken files show a
 placeholder. Visitors simply see the public gallery (no members-only teaser, 010); members get
-"Carregar ou editar" → `/member/gallery`. Search and filters use the shared `.control` field.
+"Carregar foto ou vídeo", and whoever may edit an item gets "Editar" in its lightbox (015). Search and filters use the shared `.control` field.
 
 ## Follow-ups
 
-- Management (upload, tags, push, edit, delete) in React; then `/member/gallery` can go.
-- Private media as private R2 objects with signed URLs, if members-only must survive a leaked link.
+- **Move private gallery media to signed/private delivery** (private R2 objects + signed URLs): today a
+  members-only file is reachable by anyone who already has its URL.
+- Uploads go through the app (one request, up to 100 MB); direct-to-R2 presigned uploads would spare the server.
 - Thumbnails/responsive sizes: today the full file is the tile image (12 items, lazy-loaded).

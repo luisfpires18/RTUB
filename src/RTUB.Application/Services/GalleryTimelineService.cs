@@ -14,7 +14,7 @@ namespace RTUB.Application.Services;
 /// GalleryMediaPersonTags; no schema change. Same rule as the Blazor gallery: IsPrivate items are
 /// for signed-in members only (expelled members arrive anonymous: the cookie validator drops them).
 /// Person tags are member-only here, a tightening: visitors never learn who is in a photo.
-/// Writes stay with the Blazor /member/gallery and <see cref="IGalleryMediaService"/>.
+/// Writes: <see cref="IGalleryManagementService"/> (React track 015).
 /// </summary>
 public sealed class GalleryTimelineService : IGalleryTimelineService
 {
@@ -67,7 +67,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
             .ThenByDescending(m => m.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(m => new MediaRow(m.Id, m.Title, m.MediaType, m.MediaUrl, m.Year, m.Month, m.Day, m.IsPrivate))
+            .Select(m => new MediaRow(m.Id, m.Title, m.MediaType, m.MediaUrl, m.Year, m.Month, m.Day, m.IsPrivate, m.UploaderId))
             .ToListAsync();
 
         var tags = isMember ? await TagsAsync(db, rows.Select(m => m.Id).ToList()) : null;
@@ -75,7 +75,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
         return new GalleryTimelineDto(
             isMember,
-            rows.Select(m => ToItem(m, tags)).ToList(),
+            rows.Select(m => ToItem(m, tags, isMember ? user : null)).ToList(),
             total,
             page,
             pageSize,
@@ -90,7 +90,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
         var row = await Visible(db, isMember)
             .Where(m => m.Id == id)
-            .Select(m => new MediaRow(m.Id, m.Title, m.MediaType, m.MediaUrl, m.Year, m.Month, m.Day, m.IsPrivate))
+            .Select(m => new MediaRow(m.Id, m.Title, m.MediaType, m.MediaUrl, m.Year, m.Month, m.Day, m.IsPrivate, m.UploaderId))
             .FirstOrDefaultAsync();
 
         if (row is null)
@@ -99,7 +99,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         }
 
         var tags = isMember ? await TagsAsync(db, new List<int> { id }) : null;
-        return ToItem(row, tags);
+        return ToItem(row, tags, isMember ? user : null);
     }
 
     private static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
@@ -138,7 +138,8 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
             .ToList();
     }
 
-    private static GalleryItemDto ToItem(MediaRow m, Dictionary<int, List<GalleryPersonDto>>? tags) => new(
+    /// <summary><c>CanEdit</c> only for a signed-in caller who may edit it (the uploader, Admin or Owner; 015).</summary>
+    private static GalleryItemDto ToItem(MediaRow m, Dictionary<int, List<GalleryPersonDto>>? tags, ClaimsPrincipal? user) => new(
         m.Id,
         m.Title,
         m.Type == MediaType.Video ? "video" : "image",
@@ -147,7 +148,8 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         m.Month,
         m.Day,
         m.IsPrivate,
-        tags is not null && tags.TryGetValue(m.Id, out var people) ? people : Array.Empty<GalleryPersonDto>());
+        tags is not null && tags.TryGetValue(m.Id, out var people) ? people : Array.Empty<GalleryPersonDto>(),
+        user is not null && GalleryAuthorization.CanEdit(user, m.UploaderId));
 
     private static string Name(string? nickname, string? firstName, string? lastName) =>
         !string.IsNullOrWhiteSpace(nickname) ? nickname.Trim() : $"{firstName} {lastName}".Trim();
@@ -158,5 +160,5 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         && (UrlHelper.IsLocalUrl(url)
             || (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps));
 
-    private sealed record MediaRow(int Id, string Title, MediaType Type, string Url, int Year, byte? Month, byte? Day, bool IsPrivate);
+    private sealed record MediaRow(int Id, string Title, MediaType Type, string Url, int Year, byte? Month, byte? Day, bool IsPrivate, string UploaderId);
 }

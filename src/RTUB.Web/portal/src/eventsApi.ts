@@ -230,7 +230,7 @@ export type Outcome<T> =
 let token: Promise<string> | null = null;
 
 /** One antiforgery token per page load (it is bound to the session). */
-function antiforgeryToken(refresh = false): Promise<string> {
+export function antiforgeryToken(refresh = false): Promise<string> {
   if (!token || refresh) {
     token = fetch('/api/public/antiforgery-token', { credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))

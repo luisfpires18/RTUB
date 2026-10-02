@@ -43,6 +43,12 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/015-react-gallery-management`** (React track 015, from `dev` @ `84d871de`, 014 merged; local, not
+pushed; DEV only). **Gallery is fully React:** members upload on `/gallery` (image/video, 10/100 MB, title, date,
+members-only, who appears; the people tagged get one push, as before) and the uploader, Admin or Owner (was Admin
+only) edit and delete from the lightbox; `/member/gallery` 302s to `/gallery`. Rules now server-side; storage
+unchanged (members-only is a listing rule: files stay `PublicRead`). No schema change. Detail: `docs/react-gallery.md`.
+
 **Open: `feat/014-react-rehearsals`** (React track 014, from `dev` @ `8a36ecde`, 013 merged; local, not pushed; DEV only).
 **Rehearsals are React:** `/rehearsals` (list, quick "Marcar presença", "As minhas presenças", statistics) and the new
 `/rehearsals/{id}` (details, Presenças with confirm/remove/add) over `/api/rehearsals`; visitors get a 302 to sign in.
@@ -198,8 +204,7 @@ Raised by React track 011 (Events):
 Raised by React track 009 (Gallery):
 - Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not
   "not reachable" by a leaked URL. Private objects + signed URLs would be a storage change.
-- `/member/gallery` edit/delete checks `IsInRole("Admin")` only (an Owner without Admin cannot edit
-  others' media); management still Blazor.
+- (015) Gallery management is React; Owner now inherits Admin there.
 
 Raised by React track 008 (Órgãos Sociais):
 - Governance management (fiscal years, assignments) and the RGI are still Blazor at `/member/roles`;
