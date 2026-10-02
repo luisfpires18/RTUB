@@ -6137,3 +6137,102 @@ video.tile__media {
 .family__person:focus-visible {
   border-color: var(--purple-ink);
 }
+
+/* ---------- member admin (React track 018) ---------- */
+
+.member-detail__actions,
+.member-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.member-detail__actions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.member-row__actions {
+  flex: none;
+  margin-left: auto;
+}
+
+/* With the Admin/Owner actions a row wraps on a phone instead of widening the list. */
+.member-row:has(.member-row__actions) {
+  flex-wrap: wrap;
+}
+
+/* Avatar and name on the first line; the state badge and the actions below. */
+.member-row:has(.member-row__actions) .member-row__who {
+  flex-basis: calc(100% - 60px);
+}
+
+.member-form__dates {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .member-form__dates {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+.member-form__date {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.member-form__date:disabled {
+  opacity: 0.7;
+}
+
+.member-form__pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.member-form__pair .control {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.member-form__picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.member-form__mentors {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.member-instruments .member-row {
+  justify-content: space-between;
+}
+
+.member-row--button {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-row--button:hover,
+.member-row--button:focus-visible {
+  border-color: var(--purple-ink);
+}
+
+.member-row--button .who__avatar {
+  width: 36px;
+  height: 36px;
+}

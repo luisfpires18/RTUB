@@ -138,7 +138,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
 | `/members`, `/members/hierarchy` | **React** (017) | Directory (details, active members, birthdays) and the Padrinho → Afilhado tree, signed-in members; visitors get a 302 to sign in. `docs/react-members.md`. |
 | `/hierarchy` | **Redirect** → `/members/hierarchy` (017) | `302`, GET/HEAD only. |
-| `/members/manage` | **Blazor admin bridge** (017) | The old `Members.razor` tools, Admin/Owner only, until the member-admin task. |
+| `/members/manage` | **Redirect** → `/members` (018) | `302`, GET/HEAD only. The admin tools are on the React `/members` (Admin/Owner); `Members.razor` retired. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
 | every other member/admin page | **Blazor member/admin, pending** | `/messages`, `/members`, the admin `/requests` page, etc. Unchanged. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
@@ -385,9 +385,9 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 ## Next recommended slice
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
-contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017. Next:
-member admin (`/members/manage`), classification (`/leaderboard`), inventory, documentation, logistics, treasury,
-messages, owner tools, or the public "Conhece a Tuna" page.
+contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017,
+member admin 018. Next: classification (`/leaderboard`), inventory, documentation, logistics, treasury, messages, owner
+tools, or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 

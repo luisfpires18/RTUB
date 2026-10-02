@@ -90,7 +90,7 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
     [InlineData("Mod", false)]
     [InlineData("Admin", true)]
     [InlineData("Owner", true)]
-    public async Task OnlyAdminAndOwner_GetTheLinkToTheManagementTools(string role, bool canManage)
+    public async Task OnlyAdminAndOwner_GetTheManagementTools(string role, bool canManage)
     {
         var (client, _) = await SignInAsync(role);
 
@@ -198,7 +198,7 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Routes_AreReact_TheOldOnesRedirect_AndTheToolsAreForAdminAndOwnerOnly()
+    public async Task Routes_AreReact_AndTheOldOnesRedirect()
     {
         var (member, _) = await SignInAsync("Member");
         var (admin, _) = await SignInAsync("Admin");
@@ -214,17 +214,17 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
 
         (await Anonymous().GetAsync("/hierarchy")).Headers.Location!.ToString().Should().Be("/members/hierarchy");
 
-        (await member.GetAsync("/members/manage")).StatusCode.Should().Be(HttpStatusCode.Redirect, "the tools are Admin/Owner only now");
-        var tools = await admin.GetAsync("/members/manage");
-        tools.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await tools.Content.ReadAsStringAsync()).Should().Contain("blazor.web.js", "the admin bridge stays Blazor for now");
+        foreach (var client in new[] { member, admin })
+        {
+            (await client.GetAsync("/members/manage")).Headers.Location!.ToString().Should().Be("/members", "the tools are on the React /members since 018");
+        }
 
         var web = typeof(RTUB.App).Assembly;
         web.GetType("RTUB.Pages.Members.Hierarchy").Should().BeNull("the Blazor hierarchy page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
             .Select(r => r.Template)
-            .Should().NotContain(new[] { "/members", "/hierarchy", "/members/hierarchy" }, "no Blazor page owns the React member routes");
+            .Should().NotContain(new[] { "/members", "/hierarchy", "/members/hierarchy", "/members/manage" }, "no Blazor page owns the React member routes");
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         File.ReadAllText(Path.Combine(src, "Profile.tsx")).Should().Contain("href={portal.members}");
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor"))
             .Should().Contain("href=\"/members/hierarchy\"").And.NotContain("href=\"/hierarchy\"");
-        foreach (var file in new[] { "Members.tsx", "MembersHierarchy.tsx", "MemberDialogs.tsx", "membersApi.ts" })
+        foreach (var file in new[] { "Members.tsx", "MembersHierarchy.tsx", "MemberDialogs.tsx", "MemberManage.tsx", "membersApi.ts" })
         {
             File.ReadAllText(Path.Combine(src, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }

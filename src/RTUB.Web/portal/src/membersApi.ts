@@ -1,6 +1,7 @@
 import { call } from './eventsApi';
 
-// /api/members (Endpoints/MemberEndpoints.cs, React track 017). Signed-in members only; read-only.
+// /api/members (Endpoints/MemberEndpoints.cs, React tracks 017 and 018). Signed-in members only; the writes are
+// Admin/Owner and the server decides every rule (MemberAdminService).
 
 export type Badge = { label: string; kind: string };
 export type MemberCard = {
@@ -17,7 +18,7 @@ export type MemberCard = {
   expelled: boolean;
 };
 export type Option = { value: string; label: string };
-export type Directory = { members: MemberCard[]; leitoes: MemberCard[]; instruments: Option[]; canManage: boolean };
+export type Directory = { members: MemberCard[]; leitoes: MemberCard[]; instruments: Option[]; canManage: boolean; canDeleteMembers: boolean };
 export type DirectoryFilters = { q: string; category: string; subCategory: string; instrument: string; activeOnly: boolean };
 
 export type TimelineItem = { label: string; years: string; kind: string; state: string; accent: string; notes: string | null };
@@ -51,6 +52,8 @@ export type MemberDetail = {
   mentor: string | null;
   timeline: TimelineItem[];
   state: MemberState | null;
+  leitao: boolean;
+  expelled: boolean;
 };
 export type ActiveMember = {
   id: string;
@@ -63,6 +66,7 @@ export type ActiveMember = {
   lastEvent: string | null;
   progress: string | null;
   encourage: boolean;
+  canMakeActive: boolean;
 };
 export type Birthday = {
   id: string;
@@ -82,6 +86,57 @@ const query = (params: Record<string, string | boolean>) => {
   for (const [k, v] of Object.entries(params)) if (v) p.set(k, String(v));
   const s = p.toString();
   return s ? `?${s}` : '';
+};
+
+// ---------- member admin (Admin/Owner, React track 018) ----------
+
+export type MemberInstrument = { id: number; instrument: string; label: string; primary: boolean };
+export type MemberEdit = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  nickname: string | null;
+  phoneNumber: string | null;
+  email: string | null;
+  city: string | null;
+  degree: string | null;
+  dateOfBirth: string | null;
+  category: string;
+  fundador: boolean;
+  honorario: boolean;
+  yearLeitao: number | null;
+  monthLeitao: number | null;
+  yearCaloiro: number | null;
+  monthCaloiro: number | null;
+  yearTuno: number | null;
+  monthTuno: number | null;
+  mentorId: string | null;
+  mentorName: string | null;
+  instruments: MemberInstrument[];
+  lockedDates: { leitao: boolean; caloiro: boolean; tuno: boolean };
+};
+export type MemberInput = Omit<MemberEdit, 'id' | 'mentorName' | 'instruments' | 'lockedDates'> & {
+  noNickname: boolean;
+  instruments: { instrument: string; primary: boolean }[] | null;
+};
+export type Mentor = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null };
+
+const at = (id: string) => `/api/members/${encodeURIComponent(id)}`;
+
+export const memberAdminApi = {
+  edit: (id: string) => call<MemberEdit>('GET', `${at(id)}/edit`),
+  mentors: (q: string, exclude?: string) => call<Mentor[]>('GET', `/api/members/mentors${query({ q, exclude: exclude ?? '' })}`),
+  create: (input: MemberInput) => call<{ id: string }>('POST', '/api/members', input),
+  update: (id: string, input: MemberInput) => call<MemberEdit>('PUT', at(id), input),
+  remove: (id: string) => call<void>('DELETE', at(id)),
+  addInstrument: (id: string, instrument: string) => call<MemberInstrument[]>('POST', `${at(id)}/instruments`, { instrument, primary: false }),
+  removeInstrument: (id: string, instrumentId: number) => call<MemberInstrument[]>('DELETE', `${at(id)}/instruments/${instrumentId}`),
+  primaryInstrument: (id: string, instrumentId: number) => call<MemberInstrument[]>('PUT', `${at(id)}/instruments/${instrumentId}/primary`),
+  nickname: (id: string, nickname: string) => call<void>('PUT', `${at(id)}/nickname`, { nickname }),
+  expel: (id: string) => call<void>('POST', `${at(id)}/expel`),
+  reactivate: (id: string) => call<void>('POST', `${at(id)}/reactivate`),
+  activate: (id: string) => call<void>('POST', `${at(id)}/activate`),
+  reminder: (id: string) => call<void>('POST', `${at(id)}/reminder`),
 };
 
 export const membersApi = {

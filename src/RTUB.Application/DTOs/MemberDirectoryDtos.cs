@@ -9,12 +9,14 @@ namespace RTUB.Application.DTOs;
 /// sub-category (Tuno, Veterano, Tunossauro, Fundador), instrument (enum name) and "Mostrar só ativos".</summary>
 public sealed record MemberDirectoryQuery(string? Search, string? Category, string? SubCategory, string? Instrument, bool ActiveOnly);
 
-/// <summary>Regular members (by nickname) and Leitões (by activity), plus the instrument options.</summary>
+/// <summary>Regular members (by nickname) and Leitões (by activity), plus the instrument options. <c>CanManage</c>:
+/// Admin/Owner tools (018); <c>CanDeleteMembers</c>: Owner, who may also delete regular members.</summary>
 public sealed record MemberDirectoryDto(
     IReadOnlyList<MemberCardDto> Members,
     IReadOnlyList<MemberCardDto> Leitoes,
     IReadOnlyList<MemberOptionDto> Instruments,
-    bool CanManage);
+    bool CanManage,
+    bool CanDeleteMembers);
 
 /// <summary>
 /// One card. <c>Badges</c> are display labels ("TUNO", "LEITÃO"); <c>Position</c> the current fiscal year's;
@@ -59,7 +61,9 @@ public sealed record MemberDetailDto(
     bool ShowMentor,
     string? Mentor,
     IReadOnlyList<MemberTimelineItemDto> Timeline,
-    MemberStateDto? State);
+    MemberStateDto? State,
+    bool Leitao,
+    bool Expelled);
 
 /// <summary>A step of "Percurso na Tuna": <c>Kind</c> membership / subcategory / role; <c>State</c> active / completed / "";
 /// <c>Accent</c> leitao, caloiro, tuno, veterano, tunossauro, fundador, honorario, magister or role.</summary>
@@ -79,8 +83,8 @@ public sealed record MemberStateDto(
 
 public sealed record MemberActivityDto(DateTime Date, string Name, string Type, bool IsRehearsal);
 
-/// <summary>The old "Gestão de Membros Ativos" list (read-only here; making active and push reminders stay on
-/// /members/manage).</summary>
+/// <summary>The old "Gestão de Membros Ativos" list. <c>CanMakeActive</c>: retired or on the three months back, when
+/// Admin/Owner may "Tornar ativo" (018); <c>Encourage</c> also allows the push reminder.</summary>
 public sealed record ActiveMemberDto(
     string Id,
     string DisplayName,
@@ -91,7 +95,8 @@ public sealed record ActiveMemberDto(
     DateTime? LastRehearsal,
     DateTime? LastEvent,
     string? Progress,
-    bool Encourage);
+    bool Encourage,
+    bool CanMakeActive);
 
 /// <summary>The old "Aniversários": the birthdays still to come this year. <c>Birthday</c> is "dd/MM", <c>Date</c> this
 /// year's date (yyyy-MM-dd); no birth year is sent, only the age it turns.</summary>
