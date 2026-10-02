@@ -34,14 +34,14 @@ avatar tiles; no Blazor management links from the event page. `/member/events` s
 management. Answers stay a modal; Prémios stays a modal. No schema change. Terminology: events =
 enrollment / inscrição; rehearsals = attendance / presença. Detail: `docs/react-events.md`.
 
-**Open: `feat/012d-react-event-repertoire`** (React track 012D, from `dev` @ `0f66ca20`, 012C merged; local, not
-pushed; DEV only). Admin/Owner manage the repertoire from **Gerir repertório** on `/events/{id}` (day tabs,
-song search, add, Subir/Descer, remove, clear a day) through `EventRepertoireAdminService` and
-`/api/events/{id}/repertoire` (antiforgery, 401/403 server-side) over the existing `EventRepertoireService`.
-Rules kept: append after the day's last; a song once per event (the database's unique index, now refused up
-front). Song picker follows Music's album visibility. The shared Blazor `RepertoireModal` is now read-only.
-`/member/events` keeps statistics, Minhas Inscrições and participant tools. No schema change, no storage or
-notifications. Detail: `docs/react-events.md`.
+**Open: `feat/012e-react-event-participants`** (React track 012E, from `dev` @ `c264c7c9`, 012D merged; local, not
+pushed; DEV only). Admin/Owner add (as going, primary instrument, no notification) and remove other members'
+answers from **Gerir inscrições** on `/events/{id}` (`/api/events/{id}/enrollments`, antiforgery, 401/403
+server-side, via `IEnrollmentService`); expelled members not offered, duplicates and cancelled events refused.
+"As minhas inscrições" is React at `/events/my-enrollments`. The Blazor `/events/{id}/enrollments` page is
+retired (302 to the event page) and `/member/events` lost its participants modal and Minhas Inscrições; it keeps
+statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
+No schema change. Detail: `docs/react-events.md`.
 
 **Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
 `8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path

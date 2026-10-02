@@ -91,7 +91,8 @@ public class EventCardTests : BunitContext
         // Act
         var cut = Render<EventCard>(parameters => parameters
             .Add(p => p.Event, eventEntity)
-            .Add(p => p.EnrollmentCount, 15));
+            .Add(p => p.EnrollmentCount, 15)
+            .Add(p => p.OnViewEnrollments, () => { }));
 
         // Assert
         cut.Markup.Should().Contain("15", "card should display enrollment count");
@@ -509,6 +510,20 @@ public class EventCardTests : BunitContext
         cut.Markup.Should().Contain("bi-bell-fill", "should show push notification button icon");
         cut.Markup.Should().Contain("btn-admin-notification", "push notification button should have correct style class");
         cut.Markup.Should().Contain("Notificar por push", "push notification button should have correct title");
+    }
+
+    [Fact]
+    public void EventCard_ShowsTheParticipantsButton_OnlyWhenThePageWiresIt()
+    {
+        // /member/events no longer wires it: "Quem vai" and its management are on the React event page (012E).
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        var bare = Render<EventCard>(p => p.Add(x => x.Event, eventEntity).Add(x => x.IsPastEvent, false));
+        var wired = Render<EventCard>(p => p.Add(x => x.Event, eventEntity).Add(x => x.IsPastEvent, false)
+            .Add(x => x.OnViewEnrollments, () => { }));
+
+        bare.Markup.Should().NotContain("title=\"Participantes\"");
+        wired.Markup.Should().Contain("title=\"Participantes\"");
     }
 
     [Theory]

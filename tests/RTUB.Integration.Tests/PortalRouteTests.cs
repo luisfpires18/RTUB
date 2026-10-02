@@ -227,6 +227,12 @@ public class PortalRouteTests : IntegrationTestBase
         old.StatusCode.Should().Be(HttpStatusCode.Redirect);
         old.Headers.Location!.ToString().Should().Be("/events/12?respond=1");
         (await client.PostAsync("/events/12/enrollment", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+
+        // 012E: everyone's answers are the event page's "Quem vai / Quem foi" (and its Admin/Owner manager).
+        var list = await client.GetAsync("/events/12/enrollments");
+        list.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        list.Headers.Location!.ToString().Should().Be("/events/12#who-title");
+        (await client.GetAsync("/events/my-enrollments")).StatusCode.Should().Be(HttpStatusCode.OK, "the React shell; the page asks to sign in");
         (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
@@ -235,8 +241,9 @@ public class PortalRouteTests : IntegrationTestBase
             .Should().Contain("$\"/events/{eventItem.Id}?respond=1\"", "the bridge's answer buttons open the React answer modal");
         var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
         File.Exists(Path.Combine(portal, "EventEnrollment.tsx")).Should().BeFalse("the standalone answer page was retired");
-        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("enrollment");
-        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
+        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("EventEnrollment").And.NotContain("/enrollment'");
+        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal)
+                || f.EndsWith("eventsApi.ts") || f.EndsWith("MyEnrollments.tsx"))
             .Select(File.ReadAllText).ToList();
         events.Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
             "event pages speak of enrollment, never attendance");
@@ -279,12 +286,17 @@ public class PortalRouteTests : IntegrationTestBase
             .And.Contain("eventsApi.deleteVideo(");
         detail.Should().Contain("<VideoManagerDialog").And.Contain("Gerir vídeos");
         detail.Should().Contain("<RepertoireManagerDialog").And.Contain("Gerir repertório");
+        detail.Should().Contain("<ParticipantsManagerDialog").And.Contain("Gerir inscrições").And.Contain("portal.myEnrollments")
+            .And.NotContain("legacy.eventEnrollments");
+        manage.Should().Contain("eventsApi.addEnrollment(").And.Contain("eventsApi.removeMemberEnrollment(").And.Contain("eventsApi.enrollmentMembers(");
+        File.ReadAllText(Path.Combine(src, "main.tsx")).Should().Contain("'/events/my-enrollments'");
+        File.ReadAllText(Path.Combine(src, "MyEnrollments.tsx")).Should().Contain("<EnrollmentDialog").And.NotContain("presen");
         manage.Should().Contain("eventsApi.addToRepertoire(").And.Contain("eventsApi.removeFromRepertoire(")
             .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
     }
 
     [Fact]
-    public void MemberEvents_KeepsOnlyTheBridgeTools_ImageCancelNoticesPrizesVideosAndRepertoireAreReact()
+    public void MemberEvents_KeepsOnlyTheBridgeTools_EverythingElseIsReact()
     {
         var root = FindRepoRoot();
         var page = File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Members", "MemberEvents.razor"));
@@ -302,6 +314,9 @@ public class PortalRouteTests : IntegrationTestBase
             "InputFile", "AddVideoAsync", "UpdateVideoTitleAsync", "UpdateVideoOrderAsync", "DeleteVideoAsync", "draggable", "EditVideo",
             // 012D: the repertoire is managed on the React event page.
             "OnRepertoireChanged", "HandleRepertoireChanged",
+            // 012E: participants and Minhas Inscrições are React (event page, /events/my-enrollments).
+            "MyEnrollmentsButton", "Minhas Inscrições", "OnViewEnrollments=", "ModalType.EnrollmentList", "AddMemberToEvent",
+            "DeleteEnrollmentAsync", "/enrollments",
         });
 
         // 012D: the shared repertoire modal (used only here) is read-only.
@@ -312,9 +327,13 @@ public class PortalRouteTests : IntegrationTestBase
             "draggable", "IsAdmin", "ISongService",
         });
 
-        // What stays: read-only videos and repertoire, statistics (incl. prizes), Minhas Inscrições, enrollment lists.
-        page.Should().Contain("ModalType.Videos").And.Contain("<RepertoireModal")
-            .And.Contain("TrophiesStats").And.Contain("<MyEnrollmentsButton").And.Contain("OpenEnrollmentListModal");
+        // What stays: read-only videos and repertoire, statistics (incl. prizes), discussion, the details-only edit.
+        page.Should().Contain("ModalType.Videos").And.Contain("<RepertoireModal").And.Contain("TrophiesStats")
+            .And.Contain("<EnrollmentStatisticsButton").And.Contain("NavigateToDiscussion").And.Contain("ModalType.Edit");
+
+        // 012E: the Blazor participants page and the Minhas Inscrições component are gone.
+        File.Exists(Path.Combine(root, "src", "RTUB.Web", "Pages", "Activities", "EventEnrollments.razor")).Should().BeFalse();
+        File.Exists(Path.Combine(root, "src", "RTUB.Shared", "Components", "UI", "MyEnrollmentsButton.razor")).Should().BeFalse();
     }
 
     [Fact]

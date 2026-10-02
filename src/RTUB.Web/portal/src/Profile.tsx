@@ -100,6 +100,10 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           <Icon name="arrow" />
           Abrir a área de membros
         </a>
+        <a className="btn btn--ghost" href={portal.myEnrollments}>
+          <Icon name="calendar" />
+          As minhas inscrições
+        </a>
         <a className="btn btn--ghost" href={legacy.memberProfile}>
           <Icon name="person" />
           Editar o perfil

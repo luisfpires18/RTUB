@@ -128,7 +128,9 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
 | `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
 | `/member/events` | **Blazor member/admin, pending** (moved in 011) | Advanced event management only (image, cancel, notices, prizes, videos, repertoire, statistics, "Minhas Inscrições"); create/edit/delete are React on `/events` (011.5). Requires sign-in. Its answer buttons open the React answer modal. |
-| `/events/{id}/enrollments`, `/discussion`, `/contacts` | **Blazor member, pending** | Admin enrollment tools, discussion, contact tracking; back links open the React event page. Quem vai itself is on the React event page. |
+| `/events/my-enrollments` | **React** (012E) | The member's own answers ("As minhas inscrições"). |
+| `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
+| `/events/{id}/discussion`, `/contacts` | **Blazor member, pending** | Discussion, contact tracking (linked from the React event page's member panel); back links open the React event page. |
 | `/roles` | **React canonical** (008) | Órgãos Sociais; `?fy=` picks a mandate. See Órgãos Sociais (008). |
 | `/member/roles` | **Blazor member/admin, pending** (moved in 008) | The former Blazor `/roles`: RGI and Mod/Admin management. Requires sign-in. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |

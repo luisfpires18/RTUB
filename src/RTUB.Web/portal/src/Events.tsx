@@ -122,6 +122,12 @@ export default function Events() {
               </button>
             )}
             {agenda?.isMember && (
+              <a className="btn btn--ghost btn--sm" href={portal.myEnrollments}>
+                <Icon name="calendar" />
+                As minhas inscrições
+              </a>
+            )}
+            {agenda?.isMember && (
               <a className="btn btn--ghost btn--sm" href={legacy.memberEvents}>
                 <Icon name="arrow" />
                 Área de membros

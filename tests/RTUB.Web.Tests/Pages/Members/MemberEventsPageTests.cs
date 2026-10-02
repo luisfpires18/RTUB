@@ -310,7 +310,7 @@ public class MemberEventsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Assert - Enrollment buttons are in child components, so we check for enrollment-related content
-        // The EnrollmentStatisticsButton and MyEnrollmentsButton components should be rendered
+        // The EnrollmentStatisticsButton component should be rendered (Minhas Inscrições is React since 012E)
         cut.Markup.Should().NotContain("A carregar", "page should load successfully for authenticated users");
     }
 

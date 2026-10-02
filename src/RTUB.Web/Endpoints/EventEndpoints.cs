@@ -12,7 +12,7 @@ namespace RTUB.Web.Endpoints;
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
 /// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
-/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C) and repertoire (012D); statistics stay on the Blazor /member/events.
+/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C), repertoire (012D) and other members' answers (012E); statistics stay on the Blazor /member/events.
 /// </summary>
 public static class EventEndpoints
 {
@@ -147,6 +147,21 @@ public static class EventEndpoints
 
         writes.MapDelete("/{id:int}/repertoire/days/{date}", async (int id, string date, HttpContext http, IEventRepertoireAdminService repertoire) =>
             ToResult(await repertoire.RemoveDayAsync(id, date, http.User)));
+
+        // Other members' answers (Admin/Owner, 012E): the old /events/{id}/enrollments add / remove.
+        // A member's own answer stays PUT/DELETE /{id}/enrollment below.
+        events.MapGet("/{id:int}/enrollments", async (int id, HttpContext http, IEventParticipantsAdminService participants) =>
+            ToResult(await participants.GetAsync(id, http.User)));
+
+        events.MapGet("/{id:int}/enrollments/members", async (int id, string? q, HttpContext http, IEventParticipantsAdminService participants) =>
+            ToResult(await participants.SearchMembersAsync(id, q, http.User)));
+
+        writes.MapPost("/{id:int}/enrollments", async (int id, EventEnrollmentAddInput input, HttpContext http, IEventParticipantsAdminService participants) =>
+                ToResult(await participants.AddAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapDelete("/{id:int}/enrollments/{enrollmentId:int}", async (int id, int enrollmentId, HttpContext http, IEventParticipantsAdminService participants) =>
+            ToResult(await participants.RemoveAsync(id, enrollmentId, http.User)));
 
         writes.MapPut("/{id:int}/enrollment", async (int id, EventEnrollmentInput input, HttpContext http, IEventAgendaService service) =>
                 ToResult(await service.SaveEnrollmentAsync(id, input, http.User)))

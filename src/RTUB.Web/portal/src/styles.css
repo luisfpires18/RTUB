@@ -4637,6 +4637,66 @@ video.tile__media {
   margin-bottom: 8px;
 }
 
+/* Admin/Owner participants manager (012E) reuses the prize rows. */
+.participants-manager__group {
+  display: grid;
+  gap: 8px;
+}
+
+.participants-manager__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participants-manager__meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* As minhas inscrições (012E). */
+.my-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.my-row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.my-row__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.my-row__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.my-enrollments__rate {
+  margin: 0 0 12px;
+}
+
 /* Admin/Owner repertoire management (012D) reuses the prize rows and the segmented control. */
 .segmented--wrap {
   flex-wrap: wrap;

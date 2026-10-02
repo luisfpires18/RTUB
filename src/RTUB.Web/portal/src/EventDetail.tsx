@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { legacy, portal } from './content';
 import { EnrollmentDialog, PrizesDialog } from './EventDialogs';
-import { CancelEventDialog, NoticeDialog, ReactivateEventDialog, RepertoireManagerDialog, VideoManagerDialog } from './EventManage';
+import {
+  CancelEventDialog,
+  NoticeDialog,
+  ParticipantsManagerDialog,
+  ReactivateEventDialog,
+  RepertoireManagerDialog,
+  VideoManagerDialog,
+} from './EventManage';
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
@@ -32,6 +39,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [managing, setManaging] = useState<'notice' | 'cancel' | 'reactivate'>();
   const [managingVideos, setManagingVideos] = useState(false);
   const [managingRepertoire, setManagingRepertoire] = useState(false);
+  const [managingParticipants, setManagingParticipants] = useState(false);
   const respond = useRef(wantsToRespond());
 
   const load = (quiet = false) => {
@@ -109,6 +117,8 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
           // Admin/Owner (012D): the repertoire of any event, as the old modal allowed.
           onManageRepertoire={detail.canManage ? () => setManagingRepertoire(true) : undefined}
+          // Admin/Owner (012E): add a member who has not answered, remove any answer.
+          onManageParticipants={detail.canManage ? () => setManagingParticipants(true) : undefined}
         />
       )}
       {answering && <EnrollmentDialog eventId={eventId} onClose={() => setAnswering(false)} onSaved={() => load(true)} />}
@@ -127,6 +137,9 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       {manage && managing === 'reactivate' && (
         <ReactivateEventDialog event={manage} onClose={() => setManaging(undefined)} onDone={() => load(true)} />
       )}
+      {managingParticipants && loaded && (
+        <ParticipantsManagerDialog event={loaded.event} onClose={() => setManagingParticipants(false)} onChanged={() => load(true)} />
+      )}
       {managingRepertoire && loaded && (
         <RepertoireManagerDialog event={loaded.event} onClose={() => setManagingRepertoire(false)} onChanged={() => load(true)} />
       )}
@@ -142,11 +155,13 @@ function Body({
   onAnswer,
   onManageVideos,
   onManageRepertoire,
+  onManageParticipants,
 }: {
   detail: Detail;
   onAnswer: () => void;
   onManageVideos?: () => void;
   onManageRepertoire?: () => void;
+  onManageParticipants?: () => void;
 }) {
   const { event, member } = detail;
   const time = timeLabel(event.time);
@@ -229,7 +244,7 @@ function Body({
             </section>
           )}
 
-          {member && !event.cancelled && <WhoIsGoing participants={member.participants} past={event.past} />}
+          {member && !event.cancelled && <WhoIsGoing participants={member.participants} past={event.past} onManage={onManageParticipants} />}
 
           {(detail.videos.length > 0 || onManageVideos) && <Videos videos={detail.videos} onManage={onManageVideos} />}
 
@@ -297,6 +312,21 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
             Discussão{m.discussionCount > 0 && ` (${m.discussionCount})`}
           </a>
         </li>
+        <li>
+          <a href={portal.myEnrollments}>
+            <Icon name="calendar" />
+            As minhas inscrições
+          </a>
+        </li>
+        {detail.canTrackContacts && (
+          <li>
+            {/* Mod and above; it was linked from the Blazor participants page, retired in 012E. */}
+            <a href={legacy.eventContacts(event.id)}>
+              <Icon name="phone" />
+              Contactos
+            </a>
+          </li>
+        )}
       </ul>
     </aside>
   );
@@ -309,18 +339,28 @@ export const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
 function WhoIsGoing({
   participants,
   past,
+  onManage,
 }: {
   participants: { going: EventParticipant[]; leitoes: EventParticipant[]; notGoing: EventParticipant[] };
   past: boolean;
+  onManage?: () => void;
 }) {
   const { going, leitoes, notGoing } = participants;
   const total = going.length + leitoes.length;
 
   return (
     <section className="event-section" aria-labelledby="who-title">
-      <h2 id="who-title" className="event-section__title">
-        {whoLabel(past)} <span className="event-section__count">{total}</span>
-      </h2>
+      <div className="event-section__head">
+        <h2 id="who-title" className="event-section__title">
+          {whoLabel(past)} <span className="event-section__count">{total}</span>
+        </h2>
+        {onManage && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={onManage}>
+            <Icon name="person" />
+            Gerir inscrições
+          </button>
+        )}
+      </div>
       {total === 0 && notGoing.length === 0 ? (
         <p className="note">Ainda ninguém respondeu.</p>
       ) : (

@@ -693,9 +693,10 @@ public class Program
         // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
         // React Events (track 011): the agenda and one event; a member answers in a modal on the event
-        // page. Event management moved to the members' Blazor /member/events.
+        // page. Event management moved to the members' Blazor /member/events. A member's own answers
+        // (Minhas Inscrições, 012E) are /events/my-enrollments.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
-                     "/events", "/events/{id:int}" })
+                     "/events", "/events/{id:int}", "/events/my-enrollments" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
@@ -708,6 +709,11 @@ public class Program
         // (?respond=1). 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/events/{id:int}/enrollment", ["GET", "HEAD"], (int id) =>
             Results.Redirect($"/events/{id}?respond=1"));
+
+        // The Blazor list of everyone's answers (with Admin/Owner add / remove) is the React event page's
+        // "Quem vai / Quem foi" and its management modal since 012E. 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/events/{id:int}/enrollments", ["GET", "HEAD"], (int id) =>
+            Results.Redirect($"/events/{id}#who-title"));
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return

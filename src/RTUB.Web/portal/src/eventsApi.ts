@@ -92,6 +92,17 @@ export type RepertoireManage = { days: { date: string; items: { id: number; titl
 /** A song Admin/Owner may add: only what Music shows them, not already in the event. */
 export type RepertoireSong = { id: number; title: string; album: string | null };
 
+/** Every answer for the Admin/Owner manager (012E), grouped as "Quem vai"; `id` is the answer's row. */
+export type EnrollmentList = {
+  canAdd: boolean;
+  going: { id: number; participant: EventParticipant }[];
+  leitoes: { id: number; participant: EventParticipant }[];
+  notGoing: { id: number; participant: EventParticipant }[];
+};
+
+/** A member the manager may add (not answered yet, not expelled). */
+export type MemberOption = { id: string; name: string; fullName: string | null; avatarUrl: string };
+
 /** The old page's limit, also enforced by the server. */
 export const MAX_EVENT_VIDEO_BYTES = 100 * 1024 * 1024;
 
@@ -102,6 +113,8 @@ export type EventDetail = {
   canManage: boolean;
   /** Admin/Owner on a past festival: prizes can be added here (012B). */
   canManagePrizes: boolean;
+  /** Mod and above: the link to the Blazor contacts page (012E). */
+  canTrackContacts: boolean;
   event: EventSummary;
   videos: EventVideo[];
   member: {
@@ -254,6 +267,13 @@ export const eventsApi = {
   clearRepertoireDay: (id: number, date: string) => call<RepertoireManage>('DELETE', `/api/events/${id}/repertoire/days/${date}`),
   reorderRepertoire: (id: number, date: string, itemIds: number[]) =>
     call<RepertoireManage>('POST', `/api/events/${id}/repertoire/reorder`, { date, itemIds }),
+  // Admin/Owner, 012E: other members' answers. Every write answers the whole list.
+  enrollments: (id: number) => call<EnrollmentList>('GET', `/api/events/${id}/enrollments`),
+  enrollmentMembers: (id: number, q: string) =>
+    call<MemberOption[]>('GET', `/api/events/${id}/enrollments/members?q=${encodeURIComponent(q)}`),
+  addEnrollment: (id: number, userId: string) => call<EnrollmentList>('POST', `/api/events/${id}/enrollments`, { userId }),
+  removeMemberEnrollment: (id: number, enrollmentId: number) =>
+    call<EnrollmentList>('DELETE', `/api/events/${id}/enrollments/${enrollmentId}`),
 };
 
 // ---------- dates (local text in, Portuguese text out) ----------
