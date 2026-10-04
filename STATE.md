@@ -43,6 +43,13 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/020-react-inventory`** (React track 020, from `dev` @ `0b2d3bcd`, 019 merged; local, not pushed; DEV
+only). **Instrumentos is React:** `/inventory` (members only; visitors 302 to sign in) over `/api/inventory`
+(`InstrumentInventoryService` over the old `InstrumentService`): list by name, old counters, search and type/condition
+filters, details for any member; Mod, Admin and Owner create, edit (type fixed, as before), set image + cropped
+thumbnail, and delete (old hard delete). Blazor `Inventory.razor` retired. `/shop` (Loja + reservations) stays Blazor as
+its own module. No schema change. Detail: `docs/react-inventory.md`.
+
 **Open: `feat/019-react-leaderboard-classification`** (React track 019, from `dev` @ `3219ec99`, 018 merged; local, not
 pushed; DEV only). **Classificação is React:** `/leaderboard` (members only; visitors 302 to sign in) over
 `/api/leaderboard` (`LeaderboardService`): same XP (configured per rehearsal and event type, computed on the fly), every
@@ -211,6 +218,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 020 (Instrumentos):
+- `/shop` (Loja RTUB: products, reservations) is still Blazor; next module candidate.
+- Deleting an instrument leaves its thumbnail in R2; `InstrumentCircle` (Shared) has no caller.
+
 Raised by React track 019 (Classificação):
 - `LeaderboardCard` and `LeaderboardCommentItem` (Shared) have no caller since `Leaderboard.razor` went.
 - `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered users order.

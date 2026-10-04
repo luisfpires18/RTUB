@@ -102,7 +102,7 @@ public class MemberPagesTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
+        location.Should().Contain("returnUrl=%2Finventory", "the React /inventory sends visitors to sign in and back (020)");
     }
 
     #endregion
