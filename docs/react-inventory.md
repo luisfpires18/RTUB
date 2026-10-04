@@ -7,7 +7,7 @@ the Blazor `Pages/Inventory/Inventory.razor`. DEV only; **no schema change**, no
 | Route | Owner after 020 |
 | --- | --- |
 | `/inventory` | React, signed-in members (visitors: 302 to `/login?returnUrl=%2Finventory`) |
-| `/shop` ("Loja RTUB") | **Blazor, unchanged**: a separate module (see Scope) |
+| `/shop` ("Loja RTUB") | a separate module, React since 021: `docs/react-shop.md` |
 
 Links: the Blazor `MainLayout` "Inventário" menu (Instrumentos → `/inventory`, Loja → `/shop`) and the React
 `/profile` actions.
@@ -71,6 +71,6 @@ Tests use the recording storage fake only; nothing reaches R2. Images stay in th
 
 ## Follow-ups
 
-- `/shop` (Loja + reservations) in React, as its own task.
+- (021) `/shop` (Loja + reservations) is React: `docs/react-shop.md`.
 - Deleting an instrument leaves its thumbnail in R2 (pre-existing).
 - `InstrumentCircle` (Shared) and its CSS have no caller since the page went.

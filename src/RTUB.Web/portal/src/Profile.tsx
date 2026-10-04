@@ -116,6 +116,10 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           <Icon name="music" />
           Instrumentos
         </a>
+        <a className="btn btn--ghost" href={portal.shop}>
+          <Icon name="star" />
+          Loja
+        </a>
         <a className="btn btn--ghost" href={legacy.memberProfile}>
           <Icon name="person" />
           Editar o perfil

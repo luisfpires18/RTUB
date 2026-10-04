@@ -27,6 +27,7 @@ export const portal = {
   membersHierarchy: '/members/hierarchy',
   leaderboard: '/leaderboard',
   inventory: '/inventory',
+  shop: '/shop',
 } as const;
 
 /** Sign in, then come back to the React profile. */

@@ -37,7 +37,7 @@ public class InventoryApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Visitors_GetNothing_TheRouteIsReact_AndTheShopStaysBlazor()
+    public async Task Visitors_GetNothing_AndTheRouteIsReact()
     {
         var id = await AddAsync("Visita", InstrumentType.Guitarra);
         var anonymous = Anonymous();
@@ -53,7 +53,6 @@ public class InventoryApiTests : IClassFixture<EventsApiFactory>
 
         var (member, _) = await SignInAsync("Member");
         (await member.GetStringAsync("/inventory")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
-        (await member.GetStringAsync("/shop")).Should().Contain("blazor.web.js", "the shop (Loja) is its own module and stays Blazor for now");
 
         var web = typeof(RTUB.App).Assembly;
         web.GetType("RTUB.Pages.Inventory.Inventory").Should().BeNull("the Blazor instruments page was retired");

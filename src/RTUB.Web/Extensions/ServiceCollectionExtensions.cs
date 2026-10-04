@@ -172,6 +172,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberAdminService, MemberAdminService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IInstrumentInventoryService, InstrumentInventoryService>();
+        services.AddScoped<IProductShopService, ProductShopService>();
         services.AddScoped<IGalleryTimelineService, GalleryTimelineService>();
         services.AddScoped<IEventAgendaService, EventAgendaService>();
         services.AddScoped<IEventAdminService, EventAdminService>();

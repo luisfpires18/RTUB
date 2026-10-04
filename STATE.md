@@ -43,6 +43,13 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/021-react-shop`** (React track 021, from `dev` @ `34b57e08`, 020 merged; local, not pushed; DEV only).
+**Loja is React:** `/shop` (members only; visitors 302 to sign in) over `/api/shop` (`ProductShopService` over the old
+product and reservation services; not the MyTuno `ShopService`): products by type then name, current fiscal year by
+default, search and type filter; members reserve members-only products in stock (one each, optional size and display
+name, stock unchanged) and cancel their own; Mod adds products, Admin and Owner edit, delete, change images and see /
+delete every reservation. Blazor `Shop.razor` retired. No schema change. Detail: `docs/react-shop.md`.
+
 **Open: `feat/020-react-inventory`** (React track 020, from `dev` @ `0b2d3bcd`, 019 merged; local, not pushed; DEV
 only). **Instrumentos is React:** `/inventory` (members only; visitors 302 to sign in) over `/api/inventory`
 (`InstrumentInventoryService` over the old `InstrumentService`): list by name, old counters, search and type/condition
@@ -218,8 +225,11 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 021 (Loja):
+- `ReservationCard` (Shared) has no caller; "Público (não membros)" never reached visitors (shop is members-only).
+
 Raised by React track 020 (Instrumentos):
-- `/shop` (Loja RTUB: products, reservations) is still Blazor; next module candidate.
+- (021) `/shop` is React.
 - Deleting an instrument leaves its thumbnail in R2; `InstrumentCircle` (Shared) has no caller.
 
 Raised by React track 019 (Classificação):
