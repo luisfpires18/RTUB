@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-02_
+_Last updated: 2026-10-04_
 
 ## Phase
 **Open: `feat/006/react-music-refactor`** (React track, task 006; from `dev` @ `94b77e4a`, committed
@@ -42,6 +42,14 @@ server-side, via `IEnrollmentService`); expelled members not offered, duplicates
 retired (302 to the event page) and `/member/events` lost its participants modal and Minhas Inscrições; it keeps
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
+
+**Open: `feat/022-react-documentation`** (React track 022, from `dev` @ `3d3b558c`, 021 merged; local, not pushed; DEV
+only). **Documentação is React:** `/documentation` (members; visitors 302 to sign in; Leitões refused unless Owner) over
+`/api/documentation` (`DocumentationService` over the old `IDocumentStorageService`; documents live only in R2, no table):
+folders of one fiscal year (current by default) in storage order, Logistics boards as folders, the old Atas CV / Atas AG
+visibility, pre-signed attachment downloads, search; any member uploads into a folder they see (same name refused unless
+Owner, who replaces); Owner creates/deletes folders and deletes documents. Rules now server-side; keys never leave the
+server. Blazor `Documentation.razor` retired. No schema change. Detail: `docs/react-documentation.md`.
 
 **Open: `feat/021-react-shop`** (React track 021, from `dev` @ `34b57e08`, 020 merged; local, not pushed; DEV only).
 **Loja is React:** `/shop` (members only; visitors 302 to sign in) over `/api/shop` (`ProductShopService` over the old
@@ -225,6 +233,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 022 (Documentação):
+- `FolderCard`/`DocumentCard` (Shared, + bUnit tests) and `css/3-components/folder-card.css`/`document-card.css` have no page caller.
+- React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without management rights.
+
 Raised by React track 021 (Loja):
 - `ReservationCard` (Shared) has no caller; "Público (não membros)" never reached visitors (shop is members-only).
 

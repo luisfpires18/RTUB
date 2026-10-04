@@ -6631,3 +6631,120 @@ video.tile__media {
 .shop-reservation {
   justify-content: space-between;
 }
+
+/* Documentação (React track 022): one collapsible card per folder, a row per document. */
+.doc-folders,
+.doc-files {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-folder {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.doc-folder__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.doc-folder__toggle {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 12px 14px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.doc-folder__toggle strong {
+  overflow-wrap: break-word;
+}
+
+.doc-folder__toggle small {
+  flex: none;
+  color: var(--muted);
+}
+
+.doc-folder__chevron {
+  flex: none;
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.doc-folder__chevron--open {
+  transform: rotate(180deg);
+}
+
+.doc-folder__tools {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.doc-folder__empty {
+  margin: 0;
+  padding: 0 16px 16px;
+}
+
+.doc-files {
+  margin: 0;
+  padding: 0 12px 12px;
+  gap: 6px;
+}
+
+.doc-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+.doc-file > .icon {
+  flex: none;
+  color: var(--purple-ink);
+}
+
+.doc-file__body {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-file__name {
+  overflow-wrap: anywhere;
+}
+
+.doc-file__body small {
+  color: var(--muted);
+}
+
+.doc-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-pick__name {
+  min-width: 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
