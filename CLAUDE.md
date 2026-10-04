@@ -63,6 +63,7 @@ Run only what the change can break.
 | React Classificação (`/leaderboard`: scoring, comments) | `docs/react-leaderboard.md` |
 | React Inventário: Instrumentos (`/inventory`) | `docs/react-inventory.md` |
 | React Loja (`/shop`: products, reservations) | `docs/react-shop.md` |
+| React Documentação (`/documentation`: folders, files, storage) | `docs/react-documentation.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

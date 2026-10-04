@@ -120,6 +120,10 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           <Icon name="star" />
           Loja
         </a>
+        <a className="btn btn--ghost" href={portal.documentation}>
+          <Icon name="folder" />
+          Documentação
+        </a>
         <a className="btn btn--ghost" href={legacy.memberProfile}>
           <Icon name="person" />
           Editar o perfil
