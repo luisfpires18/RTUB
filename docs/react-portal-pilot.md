@@ -140,6 +140,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/hierarchy` | **Redirect** → `/members/hierarchy` (017) | `302`, GET/HEAD only. |
 | `/members/manage` | **Redirect** → `/members` (018) | `302`, GET/HEAD only. The admin tools are on the React `/members` (Admin/Owner); `Members.razor` retired. |
 | `/leaderboard` | **React** (019) | Tabela de Classificação: XP table, details, comments; signed-in members, visitors get a 302 to sign in. `docs/react-leaderboard.md`. |
+| `/inventory` | **React** (020) | Instrumentos: list, details, Mod/Admin/Owner management with image; signed-in members, visitors get a 302 to sign in. `docs/react-inventory.md`. |
+| `/shop` | **Blazor member page, pending** | Loja RTUB (products, reservations): its own module, not moved in 020. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
 | every other member/admin page | **Blazor member/admin, pending** | `/messages`, `/members`, the admin `/requests` page, etc. Unchanged. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
@@ -387,8 +389,8 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
 contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017,
-member admin 018, classification 019. Next: inventory, documentation, logistics, treasury, messages, owner tools, or the
-public "Conhece a Tuna" page.
+member admin 018, classification 019, instruments inventory 020. Next: the shop (`/shop`), documentation, logistics,
+treasury, messages, owner tools, or the public "Conhece a Tuna" page.
 
 ## Next steps (outside this pilot)
 

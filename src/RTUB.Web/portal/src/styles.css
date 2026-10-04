@@ -6402,3 +6402,152 @@ video.tile__media {
 .member-activities .member-badge {
   margin-left: auto;
 }
+
+
+/* ---------- instruments inventory (React track 020) ---------- */
+
+.inventory-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.inventory-stats div {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  text-align: center;
+}
+
+.inventory-stats dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.inventory-stats dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.inventory-card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.inventory-card__open {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 16px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.inventory-card:hover,
+.inventory-card:focus-within {
+  border-color: var(--purple-ink);
+}
+
+.inventory-card__name {
+  overflow-wrap: anywhere;
+}
+
+.inventory-card__open small {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.inventory-card__tools {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.inventory-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.inventory-thumb--empty {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.inventory-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.inventory-notes {
+  color: var(--ink-soft);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.inventory-image-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.inventory-condition {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.inventory-condition--excellent {
+  border-color: #6fcf97;
+  color: #6fcf97;
+}
+
+.inventory-condition--good {
+  border-color: #7cc4ff;
+  color: #7cc4ff;
+}
+
+.inventory-condition--worn {
+  border-color: #f2a65a;
+  color: #f2a65a;
+}
+
+.inventory-condition--needsmaintenance {
+  border-color: #f5c46b;
+  color: #f5c46b;
+}
+
+.inventory-condition--lost {
+  border-color: #ff8f86;
+  color: #ff8f86;
+}

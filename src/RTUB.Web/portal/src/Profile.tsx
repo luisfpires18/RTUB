@@ -112,6 +112,10 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
           <Icon name="trophy" />
           Classificação
         </a>
+        <a className="btn btn--ghost" href={portal.inventory}>
+          <Icon name="music" />
+          Instrumentos
+        </a>
         <a className="btn btn--ghost" href={legacy.memberProfile}>
           <Icon name="person" />
           Editar o perfil

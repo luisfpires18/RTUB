@@ -61,6 +61,7 @@ Run only what the change can break.
 | React Órgãos Sociais (API, RGI, management rules) | `docs/react-governance.md` |
 | React Members (directory, hierarchy, member admin) | `docs/react-members.md` |
 | React Classificação (`/leaderboard`: scoring, comments) | `docs/react-leaderboard.md` |
+| React Inventário: Instrumentos (`/inventory`; `/shop` still Blazor) | `docs/react-inventory.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
