@@ -6551,3 +6551,83 @@ video.tile__media {
   border-color: #ff8f86;
   color: #ff8f86;
 }
+
+
+/* ---------- shop (React track 021) ---------- */
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.shop-card__image {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.shop-card__body {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+}
+
+.shop-card__body strong {
+  overflow-wrap: anywhere;
+}
+
+.shop-card__body .member-badges {
+  justify-content: flex-start;
+}
+
+.shop-card__price {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.shop-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-detail__image {
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.shop-thumb {
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.shop-description {
+  color: var(--ink-soft);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.shop-reservation {
+  justify-content: space-between;
+}

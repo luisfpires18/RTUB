@@ -675,6 +675,7 @@ public class Program
         app.MapMemberEndpoints();
         app.MapLeaderboardEndpoints();
         app.MapInventoryEndpoints();
+        app.MapShopEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
@@ -717,9 +718,10 @@ public class Program
         // React Rehearsals (track 014): the list and one rehearsal, members only (the Blazor page was [Authorize]).
         // React Members (track 017): the directory and the Padrinho → Afilhado tree, members only (both Blazor pages were
         // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
-        // React Instrumentos (track 020): /inventory, members only (the Blazor page was [Authorize]).
+        // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop; members only (both Blazor pages were
+        // [Authorize]).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
-                     "/members", "/members/hierarchy", "/leaderboard", "/inventory" })
+                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
