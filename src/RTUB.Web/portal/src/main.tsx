@@ -24,6 +24,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/inventory': lazy(() => import('./Inventory')),
   '/shop': lazy(() => import('./Shop')),
   '/documentation': lazy(() => import('./Documentation')),
+  '/logistics': lazy(() => import('./Logistics')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];
@@ -45,11 +46,15 @@ const eventPage = /^\/events\/(\d+)\/(discussion|contacts)$/.exec(path);
 const RehearsalDetail = lazy(() => import('./RehearsalDetail'));
 const rehearsalId = Number(/^\/rehearsals\/(\d+)$/.exec(path)?.[1]) || undefined;
 
+// /logistics/{id} (React track 023); Program.cs sends visitors to sign in first.
+const LogisticsBoard = lazy(() => import('./LogisticsBoard'));
+const boardId = Number(/^\/logistics\/(\d+)$/.exec(path)?.[1]) || undefined;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId || eventPage || rehearsalId ? (
+        {Page || albumId || eventId || eventPage || rehearsalId || boardId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -67,6 +72,8 @@ createRoot(document.getElementById('root')!).render(
               <EventContacts eventId={Number(eventPage[1])} />
             ) : rehearsalId ? (
               <RehearsalDetail rehearsalId={rehearsalId} />
+            ) : boardId ? (
+              <LogisticsBoard boardId={boardId} />
             ) : (
               <Page />
             )}

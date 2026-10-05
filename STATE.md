@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-04_
+_Last updated: 2026-10-05_
 
 ## Phase
 **Open: `feat/006/react-music-refactor`** (React track, task 006; from `dev` @ `94b77e4a`, committed
@@ -42,6 +42,14 @@ server-side, via `IEnrollmentService`); expelled members not offered, duplicates
 retired (302 to the event page) and `/member/events` lost its participants modal and Minhas Inscrições; it keeps
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
+
+**Open: `feat/023-react-logistics-kanban`** (React track 023, from `dev` @ `e6a0a837`, 022 merged; local, not pushed;
+DEV only). **Logística is React:** `/logistics` (boards) and `/logistics/{id}` (Kanban) over `/api/logistics`
+(`LogisticsKanbanService`, same tables): boards CRUD + finish/reopen, lists (now reorderable), cards with status,
+labels, dates, checklist, links, members, drag and drop or "Mover…" (moves renumber positions), label/status/search
+filters, board files (old per-board folder), reminders (any member; stored, still never sent). Members read; Mod, Admin
+and Owner (Owner now inherits Admin) manage; Leitões refused on both pages. Blazor pages and `kanban.js` retired. No
+schema change. Detail: `docs/react-logistics.md`.
 
 **Open: `feat/022-react-documentation`** (React track 022, from `dev` @ `3d3b558c`, 021 merged; local, not pushed; DEV
 only). **Documentação is React:** `/documentation` (members; visitors 302 to sign in; Leitões refused unless Owner) over
@@ -233,6 +241,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 023 (Logística):
+- `LogisticsCardReminders` are stored but no job sends them (pre-existing); build delivery or drop the feature.
+- `ILogistics{Board,List,Card}Service` (+ tests), `BoardCard` (Shared) and `css/3-components/kanban.css` have no page caller.
+
 Raised by React track 022 (Documentação):
 - `FolderCard`/`DocumentCard` (Shared, + bUnit tests) and `css/3-components/folder-card.css`/`document-card.css` have no page caller.
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without management rights.
@@ -343,8 +355,7 @@ Raised by 030:
 - `refresh-dev-database.yml` uses concurrency group `refresh-dev-database`, Deploy • DEV uses
   `deploy-dev`: a push to `dev` during a refresh can deploy mid-refresh. Also still pins
   `checkout@v4`/`setup-dotnet@v4`. Left byte-identical by instruction.
-- `LogisticsBoard.razor` has no Leitão redirect (`Logistics.razor` has); a Leitão member can open a board
-  by URL (read-only since 030).
+- (023) Logistics is React; the API refuses Leitões on every board (the old board page did not).
 - `development` environment has no deployment branch policy.
 - `README.md` outside its Deployment section is stale: `isEmptyDb` seeding (now `SeedData:SeedFullDataset`),
   IDrive keys, and "Production Configuration" (the connection string is an App Service setting).

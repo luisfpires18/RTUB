@@ -181,7 +181,6 @@ public class VersionedAssetTests : BunitContext
     [InlineData("/js/familyTree.js")]
     [InlineData("/js/roleBadge.js")]
     [InlineData("/js/scrollToTop.js")]
-    [InlineData("/js/kanban.js")]
     [InlineData("/lib/bootstrap/bootstrap.bundle.min.js")]
     public void MainLayout_CriticalJsFiles_AreVersioned(string jsPath)
     {
