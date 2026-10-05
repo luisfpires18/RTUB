@@ -6,144 +6,16 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-05_
 
 ## Phase
-**Open: `feat/006/react-music-refactor`** (React track, task 006; from `dev` @ `94b77e4a`, committed
-locally, not pushed; DEV only). Music is React: `/music`, `/music/albums/{id}` (old `/music/songs/{id}`
-redirects), thin `/api/music` endpoints over a new `MusicService` with `MusicAuthorization`; server-side
-play cooldown; Blazor Music UI and its circuit-only services retired. No schema change. Audit, rules,
-API and follow-ups: `docs/react-music.md`. Next: review, PR → `dev`, then a DEV check with real audio
-(local runs have no R2 credentials).
+**Next: 025 Newsletter** (React track; not started). Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
-**Open: `fix/006-ci-red-after-music`** (from `dev` @ `2a2d8e89`). CI went red on 2026-10-01: 8 member/retirement
-status tests built "current month" activity as `now.AddDays(-n)`, which is last month on the 1st. Fixtures
-now use a moment earlier in the current month. One was a real bug: `RetirementStatusService` counted
-consecutive months from the current month even before it had activity, so on month starts a retired member
-with 3 full months never returned to active; it now counts from the last completed month, as
-`MemberStatusService` already did. No schema change.
+**React track 001-024: merged to `dev`** (last: 024 @ `ae71a487`; audited 2026-10-05, no blocker). React owns
+`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/roles`, `/gallery`, `/events…`, `/rehearsals…`, `/members`,
+`/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics…` and `/treasury…`; the old
+Blazor URLs 302 to them (`Program.cs`). No schema change in 006-024. Per-module rules, APIs and data audits:
+`docs/react-*.md` (table in `CLAUDE.md`).
 
-**Open: `fix/010-public-shell-polish-real-previews`** (React track 010, from `dev` @ `c007e207`; local, not pushed; DEV only).
-Home agenda shows the next 3 events (`GET /api/public/events/upcoming`, read-only, not the Events rebuild);
-home gallery shows the latest public photos (`GET /api/gallery?public=true`). Copy fixes (Música, Junta-te,
-Órgãos Sociais, Pedidos, no gallery members teaser); one shared `.control` for search/selects and `.back-link`.
-Also removes the old home `.tile` CSS that leaked into the 009 gallery tiles. No schema change.
-
-**Open: `fix/0115-react-events-polish-admin-actions`** (React track 011.5, from `dev` @ `72200cd3`; 011 itself
-is merged; local, not pushed; DEV only). Admin/Owner create, edit and delete events in React modals on
-`/events` (`POST`/`PUT`/`DELETE /api/events`, antiforgery, 403 for Mod/Member); delete keeps the old hard
-delete + cascades and now refuses events with NERBA orders (409). "Quem vai" / "Quem foi" (past) with
-avatar tiles; no Blazor management links from the event page. `/member/events` stays only for advanced
-management. Answers stay a modal; Prémios stays a modal. No schema change. Terminology: events =
-enrollment / inscrição; rehearsals = attendance / presença. Detail: `docs/react-events.md`.
-
-**Open: `feat/012e-react-event-participants`** (React track 012E, from `dev` @ `c264c7c9`, 012D merged; local, not
-pushed; DEV only). Admin/Owner add (as going, primary instrument, no notification) and remove other members'
-answers from **Gerir inscrições** on `/events/{id}` (`/api/events/{id}/enrollments`, antiforgery, 401/403
-server-side, via `IEnrollmentService`); expelled members not offered, duplicates and cancelled events refused.
-"As minhas inscrições" is React at `/events/my-enrollments`. The Blazor `/events/{id}/enrollments` page is
-retired (302 to the event page) and `/member/events` lost its participants modal and Minhas Inscrições; it keeps
-statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
-No schema change. Detail: `docs/react-events.md`.
-
-**Open: `feat/024-react-treasury`** (React track 024, from `dev` @ `87cbdbd2`, 023 merged; local, not pushed; DEV only).
-**Tesouraria is React:** `/treasury` (reports), `/treasury/reports/{id}` (totals, bank / cash, activities, transactions,
-receipts, lock, history, PDF), `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` over `/api/treasury`
-(`TreasuryService`, `TreasuryRecordsService`, same tables, writes through the old services). Old `/finance…`, `/calotes`,
-`/mbway…`, `/nerba…` 302 to them. Privacy fixed: calotes, MBWay and Nerba were open to visitors, the report page to any
-account; now members only, Caloiros and Leitões see only their own calotes. Rights as before (treasury-team Mod / Admin /
-Owner manage reports, Owner + treasury team publish, Admin / Owner history, Mod / Admin / Owner calotes, MBWay add and
-Nerba, Owner MBWay edit / delete; Owner inherits Admin). Deleting an activity or draft report with transactions no longer
-fails on the foreign key: one DB transaction for the rows, receipts removed best-effort after the commit. No schema change, nothing sent. Detail: `docs/react-treasury.md`.
-
-**Open: `feat/023-react-logistics-kanban`** (React track 023, from `dev` @ `e6a0a837`, 022 merged; local, not pushed;
-DEV only). **Logística is React:** `/logistics` (boards) and `/logistics/{id}` (Kanban) over `/api/logistics`
-(`LogisticsKanbanService`, same tables): boards CRUD + finish/reopen, lists (now reorderable), cards with status,
-labels, dates, checklist, links, members, drag and drop or "Mover…" (moves renumber positions), label/status/search
-filters, board files (old per-board folder), reminders (any member; stored, still never sent). Members read; Mod, Admin
-and Owner (Owner now inherits Admin) manage; Leitões refused on both pages. Blazor pages and `kanban.js` retired. No
-schema change. Detail: `docs/react-logistics.md`.
-
-**Open: `feat/022-react-documentation`** (React track 022, from `dev` @ `3d3b558c`, 021 merged; local, not pushed; DEV
-only). **Documentação is React:** `/documentation` (members; visitors 302 to sign in; Leitões refused unless Owner) over
-`/api/documentation` (`DocumentationService` over the old `IDocumentStorageService`; documents live only in R2, no table):
-folders of one fiscal year (current by default) in storage order, Logistics boards as folders, the old Atas CV / Atas AG
-visibility, pre-signed attachment downloads, search; any member uploads into a folder they see (same name refused unless
-Owner, who replaces); Owner creates/deletes folders and deletes documents. Rules now server-side; keys never leave the
-server. Blazor `Documentation.razor` retired. No schema change. Detail: `docs/react-documentation.md`.
-
-**Open: `feat/021-react-shop`** (React track 021, from `dev` @ `34b57e08`, 020 merged; local, not pushed; DEV only).
-**Loja is React:** `/shop` (members only; visitors 302 to sign in) over `/api/shop` (`ProductShopService` over the old
-product and reservation services; not the MyTuno `ShopService`): products by type then name, current fiscal year by
-default, search and type filter; members reserve members-only products in stock (one each, optional size and display
-name, stock unchanged) and cancel their own; Mod adds products, Admin and Owner edit, delete, change images and see /
-delete every reservation. Blazor `Shop.razor` retired. No schema change. Detail: `docs/react-shop.md`.
-
-**Open: `feat/020-react-inventory`** (React track 020, from `dev` @ `0b2d3bcd`, 019 merged; local, not pushed; DEV
-only). **Instrumentos is React:** `/inventory` (members only; visitors 302 to sign in) over `/api/inventory`
-(`InstrumentInventoryService` over the old `InstrumentService`): list by name, old counters, search and type/condition
-filters, details for any member; Mod, Admin and Owner create, edit (type fixed, as before), set image + cropped
-thumbnail, and delete (old hard delete). Blazor `Inventory.razor` retired. `/shop` (Loja + reservations) stays Blazor as
-its own module. No schema change. Detail: `docs/react-inventory.md`.
-
-**Open: `feat/019-react-leaderboard-classification`** (React track 019, from `dev` @ `3219ec99`, 018 merged; local, not
-pushed; DEV only). **Classificação is React:** `/leaderboard` (members only; visitors 302 to sign in) over
-`/api/leaderboard` (`LeaderboardService`): same XP (configured per rehearsal and event type, computed on the fly), every
-account listed, level-then-XP order, search and fiscal-year filter, details with the all-time XP origin, comments
-(any member writes and likes; author or Admin/Owner deletes; push via the old service) and the "ranking_story" text
-(Admin/Owner). Blazor `Leaderboard.razor` retired. No schema change. Detail: `docs/react-leaderboard.md`.
-
-**Open: `feat/018-react-member-admin`** (React track 018, from `dev` @ `f38ec364`, 017 merged; local, not pushed; DEV
-only; rebuilt on this machine because the first 018 was never pushed). **Member admin is React:** on `/members`
-Admin/Owner add and edit members, instruments, set a Leitão's nickname, expel/reactivate Leitões, "Tornar ativo" and send
-the push reminder; Owner deletes any member, Admin Leitões only (old hard delete). Thin writes on `/api/members`
-(antiforgery, 401/403 server-side) over `MemberAdminService`; `/members/manage` 302s to `/members`, `Members.razor`
-retired. Email/push only through fakes in tests. No schema change. Detail: `docs/react-members.md`.
-
-**Open: `feat/017-react-members-hierarchy-classification`** (React track 017, from `dev` @ `c5211135`, 016 merged; local,
-not pushed; DEV only). **Members is React:** `/members` (directory with the old filters, details, active members,
-birthdays) and `/members/hierarchy` over read-only `/api/members`, signed-in members only; `/hierarchy` 302s there. The
-old page's admin tools stay Blazor at `/members/manage` (Admin/Owner only) until a member-admin task; classification
-(`/leaderboard`) deferred to its own task. No schema change. Detail: `docs/react-members.md`.
-
-**Open: `feat/016-react-governance-management`** (React track 016, from `dev` @ `84193767`, 015 merged; local, not
-pushed; DEV only). **Órgãos Sociais is fully React:** on `/roles` members open the RGI and Mod, Admin and Owner (was
-Mod and Admin) add fiscal years and assign / remove positions in modals, over `/api/governance` (rules now server-side,
-existing validation and role promotion reused); `/member/roles` 302s to `/roles`. Expelled members no longer offered.
-No schema change. Detail: `docs/react-governance.md`.
-
-**Open: `feat/015-react-gallery-management`** (React track 015, from `dev` @ `84d871de`, 014 merged; local, not
-pushed; DEV only). **Gallery is fully React:** members upload on `/gallery` (image/video, 10/100 MB, title, date,
-members-only, who appears; the people tagged get one push, as before) and the uploader, Admin or Owner (was Admin
-only) edit and delete from the lightbox; `/member/gallery` 302s to `/gallery`. Rules now server-side; storage
-unchanged (members-only is a listing rule: files stay `PublicRead`). No schema change. Detail: `docs/react-gallery.md`.
-
-**Open: `feat/014-react-rehearsals`** (React track 014, from `dev` @ `8a36ecde`, 013 merged; local, not pushed; DEV only).
-**Rehearsals are React:** `/rehearsals` (list, quick "Marcar presença", "As minhas presenças", statistics) and the new
-`/rehearsals/{id}` (details, Presenças with confirm/remove/add) over `/api/rehearsals`; visitors get a 302 to sign in.
-Rehearsals use presença/attendance, events inscrição/enrollment. Old UI-only rules are now server-side; management is
-Admin or Owner (was Admin only); Mod none. Changed on purpose: description/notes typed at creation are saved. The
-Blazor page and its rehearsal-only components/services are retired. No schema change. Detail: `docs/react-rehearsals.md`.
-
-**Open: `feat/013-react-event-discussion-contacts`** (React track 013, from `dev` @ `76388369`, 012F merged; local,
-not pushed; DEV only). **Events is fully React:** `/events/{id}/discussion` (members: a post/comment feed with lift
-offers, pin/lock, `@mentions`) and `/events/{id}/contacts` (Mod and above) are React pages over
-`/api/events/{id}/discussion` and `/api/events/{id}/contacts`; visitors get a 302 to sign in. The old rules, which
-Blazor only hid in the UI, are now server-side. Changed on purpose: contacts (every member's phone) readable by Mod
-and above only, not any member; expelled members not listed; post title optional; no post media upload (0 used),
-mention autocomplete, search or pagination. No Blazor event page left; no schema change. Detail: `docs/react-events.md`.
-
-**Unit 030 - production release pipeline.** Repository work (S1-S6) is **merged to `dev`** (PR #203,
-`8bc9b61d`). **No Azure resource, GitHub setting or production app was changed.** The production path
-goes live only through the owner actions below, then a `dev → master` merge.
-
-**Open: `fix/030/ios-pwa-media-association`** (from `dev` @ `8bc9b61d`, uncommitted). iPhone PWA: the
-lock-screen card shows RTUB's song, but tapping it can open another installed web app (LoreX). Most
-likely iOS/WebKit Home Screen routing behaviour: RTUB-side identity and navigation causes were checked
-and excluded. RTUB's manifest `id` `/` resolves to its own origin root, which LoreX (another origin,
-`id` `/app`) cannot share; one manifest, one service-worker registration, one Apple title. `id` kept:
-under the manifest spec a different id describes a distinct app, not a replacement for existing
-installs. Fixed here: the album player's lock-screen session is released on ✕ and on leaving the page,
-and bound again to each new `<audio>` (it used to stay on the removed one). Tests: identity contract in
-`PwaManifestTests` (+2), lifecycle in `SongsPageTests` (+2). Next: owner DEV check on an iPhone, then
-PR → `dev`, before step 14.
+**Also merged:** `fix/006-ci-red-after-music`, `fix/030/ios-pwa-media-association` (iPhone DEV check still open),
+unit 030 (production release pipeline, PR #203). `master` is at `2.0.4`; `dev`'s `VERSION` is `2.0.5`.
 
 ## Where things are
 | Topic | Doc |
@@ -190,7 +62,8 @@ PR → `dev`, before step 14.
   expect a commit that is not deployed.
 
 ## Owner actions - in this order
-As of 2026-09-22 nothing below had been done; step 1's merge has since landed (PR #203). Items 1-11 do
+Written 2026-09-22, before the first release; `master` has since shipped up to `2.0.4`, so the release steps
+(14-16) have run at least once. Check the rest against Azure/GitHub before relying on this list. Items 1-11 do
 not touch the running production app; 12 restarts it.
 
 1. Review, commit, PR `chore/030/production-release-pipeline` → `dev`, merge. **Deploy • DEV** runs the
@@ -251,6 +124,21 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Accepted after the 018-024 audit (2026-10-05):
+- Treasury: deleting a draft report that a `NerbaOrders.ReportId` row still references (ON DELETE RESTRICT) rolls back
+  correctly but answers 500; it should answer 409 with a message.
+- Members: every signed-in member, Leitões included, sees other members' email and phone in "Detalhes" (as the old
+  page did; `docs/react-members.md`). Decide whether Leitões keep that.
+- Dead code with no caller (one cleanup task, not piecemeal): Shared `ReportCard`, `TransactionCard`, `MbwayTransferCard`,
+  `NerbaOrderCard`, `ReservationCard`, `FolderCard`, `DocumentCard`, `BoardCard`, `LeaderboardCard`, `LeaderboardCommentItem`,
+  `InstrumentCircle`, `AvatarCard`, `EventCard`; services `ITransactionFilterService`, `IDebtService`,
+  `ILogistics{Board,List,Card}Service`, `IMemberPositionService`, `IUserRoleQueryService`, `IEnrollmentFilterService`;
+  CSS `kanban.css`, `folder-card.css`, `document-card.css`, `avatar-card.css`, `instrument-circle.css`,
+  `inventory-grid.css`, `music.css`, `song-card.css`, `audio-player.css`; JS `familyTree.js`, `home.js`, `scrollSpy.js`.
+- Real R2 still unchecked (local runs have placeholder storage): Music audio, Gallery upload, Inventory/Shop images,
+  Documentation upload/download, Logistics board files, Treasury receipts and PDF. Check on DEV.
+- Games / Bets / MyTuno (`/games…`, `/bets`, `/my-tuno…`) are still Blazor; their removal is future work, not migration.
+
 Raised by React track 024 (Tesouraria):
 - Receipts are public-read R2 objects (anyone with the URL opens them); private objects + pre-signed links need a storage change.
 - `ReportPdfService` caches by `Report.UpdatedAt` (transaction edits do not touch it): PDF up to 1 h stale.
@@ -270,7 +158,6 @@ Raised by React track 021 (Loja):
 - `ReservationCard` (Shared) has no caller; "Público (não membros)" never reached visitors (shop is members-only).
 
 Raised by React track 020 (Instrumentos):
-- (021) `/shop` is React.
 - Deleting an instrument leaves its thumbnail in R2; `InstrumentCircle` (Shared) has no caller.
 
 Raised by React track 019 (Classificação):
@@ -316,8 +203,7 @@ Raised by React track 007 (Login):
 - Sign-out: React `/profile` has "Terminar sessão" since 012F; the React top bar still has none.
 
 Raised by 006 (shell banners):
-- `VersionTests.VersionFile_IsStrictSemVer_WithNothingElseInIt` fails on Windows checkouts (`core.autocrlf`
-  gives `VERSION` a CRLF); green on CI. A `.gitattributes` `VERSION text eol=lf` rule would fix it.
+- (post-024, resolved) `VERSION` CRLF on Windows checkouts: `.gitattributes` pins `VERSION text eol=lf`.
 - Portal `index.html` loads `/js/sw-register.js` unversioned (stale-while-revalidate), so one visit after a
   deploy can still run the old script.
 
@@ -328,9 +214,8 @@ Raised by React track 006 (Music):
 - Play cooldown is per app instance (in-memory); a scaled-out App Service would need a shared cache.
 
 Raised by React track 005 (content audit):
-- **Security:** `/calotes`, `/mbway` and `/nerba/{id}` have no `[Authorize]` (no folder-level rule
-  either), so anonymous visitors can open these finance pages. Not changed in 005; review what they
-  render for an anonymous user and gate them.
+- (024, resolved) `/calotes`, `/mbway`, `/nerba` were open to visitors; they now 302 to the members-only React
+  `/treasury…` pages and the API refuses visitors (401) and non-treasury members (403).
 - The old home's text was admin-editable (Labels, `/labels`); the React copy is static. Decide a
   read-only public labels API vs static copy before the PROD cutover.
 - Public slideshow (`/images` admin) has no React counterpart; revisit with the Gallery module.
@@ -353,8 +238,7 @@ Raised by React track 001-003 (portal pilot):
 - Real `app.db`: 8 non-dated IDs in `__EFMigrationsHistory` (seen read-only in task 003; unexplained).
 - The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
 - Windows-only local test noise: an ignored `src/RTUB.Web/publish/` output, when present, fails 5 guard
-  tests that sweep `src/` on disk; `VersionTests` fails on the CRLF working copy of `VERSION`
-  (`core.autocrlf=true`). CI is unaffected.
+  tests that sweep `src/` on disk. CI is unaffected.
 - `MessagesHubTests.SendTypingStarted_WhenUserNotParticipant_DoesNotNotify` fails when its class runs
   from a fresh checkout and passes alone (order-dependent; reproduced at `95441bd6`).
 - A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/events`,

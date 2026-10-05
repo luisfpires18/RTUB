@@ -393,7 +393,7 @@ Public label **Novidades**; code, routes and internal names **News**. Future can
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
 contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017,
 member admin 018, classification 019, instruments inventory 020, shop 021, documentation 022, logistics 023, treasury 024. Next:
-messages, owner tools, or the public "Conhece a Tuna" page.
+025 Newsletter; the roadmap and task contract are in `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
 ## Next steps (outside this pilot)
 

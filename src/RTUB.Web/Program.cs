@@ -681,9 +681,9 @@ public class Program
         app.MapTreasuryEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
-        // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
-        // /login below); every other page stays Blazor. Events is React-only since 012F, Gallery since 015,
-        // Órgãos Sociais (with its RGI and management) since 016.
+        // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
+        // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
+        // their React page further down. Current list: docs/RTUB_REACT_MIGRATION_GUIDE.md.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions

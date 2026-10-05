@@ -66,3 +66,6 @@
 # (Vite keeps index.html line endings). Binary files (fonts) stay auto-detected.
 src/RTUB.Web/portal/** text=auto eol=lf
 src/RTUB.Web/wwwroot/portal/** text=auto eol=lf
+
+# VERSION is read byte-for-byte (strict SemVer, no CR): keep LF on every checkout.
+VERSION text eol=lf
