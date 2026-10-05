@@ -171,11 +171,10 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned), jsdelivr -> pixi.min.js.
+        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned).
         // No 'unsafe-eval': unit 022 removed every JSRuntime eval dispatch, and no component
         // uses an InteractiveWebAssembly/Auto render mode, so no wasm source is needed either.
-        Directive("script-src", "'self'",
-            "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://cdn.jsdelivr.net");
+        Directive("script-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
 
         // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
         Directive("script-src-attr", "'none'");
@@ -196,7 +195,6 @@ public sealed class ContentSecurityPolicyBuilder
         Directive("img-src", "'self'", "data:", "https://*.basemaps.cartocdn.com", r2PublicOrigin, r2ReferenceOrigin);
 
         // Public origin for <video>; the S3 endpoint for the pre-signed album audio URLs.
-        // Game music and effects are same-origin under /sound.
         Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin, r2ReferenceOrigin);
 
         // bootstrap-icons ships its woff2 next to its stylesheet; no web font service is used.

@@ -5,13 +5,11 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
-using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
 using RTUB.Security;
@@ -29,7 +27,6 @@ public class Program
 
         builder.Configuration
                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-               .AddJsonFile("scaling.config.json", optional: true, reloadOnChange: true)
                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
                .AddEnvironmentVariables();
 
@@ -60,74 +57,6 @@ public class Program
         // Per-client throttle on POST /auth/login only. Named policy, no global limiter.
         services.AddLoginRateLimiting(builder.Configuration);
         services.AddPublicRequestRateLimiting(builder.Configuration);
-
-        var myTunoScaling = builder.Configuration
-            .GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName)
-            .Get<RTUB.Application.Configuration.MyTunoScalingConfiguration>();
-
-        if (myTunoScaling != null)
-        {
-            MyTunoScaling.Configure(
-                myTunoScaling.BaseStats.Level,
-                myTunoScaling.BaseStats.XP,
-                myTunoScaling.BaseStats.HP,
-                myTunoScaling.BaseStats.Power,
-                myTunoScaling.BaseStats.Speed,
-                myTunoScaling.BaseStats.Defense,
-                myTunoScaling.BaseStats.CriticalChance,
-                myTunoScaling.LevelScaling.MaxLevel,
-                myTunoScaling.LevelScaling.BonusPerLevel,
-                myTunoScaling.LevelScaling.PostPiggiesStartLevel,
-                myTunoScaling.LevelScaling.PostPiggiesBonusPerLevel,
-                myTunoScaling.LevelScaling.XpPerLevelBase,
-                myTunoScaling.LevelScaling.XpGrowthExponent,
-                myTunoScaling.Upgrades.HP.FlatBonus,
-                myTunoScaling.Upgrades.Power.FlatBonus,
-                myTunoScaling.Upgrades.Speed.FlatBonus,
-                myTunoScaling.Upgrades.CriticalChance.FlatBonus,
-                myTunoScaling.Upgrades.Defense.FlatBonus,
-                myTunoScaling.Combat.DefenseK,
-                myTunoScaling.Combat.MinDamage,
-                myTunoScaling.Combat.CriticalChanceCap,
-                myTunoScaling.Combat.CritMultiplier,
-                myTunoScaling.Combat.ShotBuffMultiplier,
-                baseMaxEnergy: 10,
-                energyAmountPerUpgrade: myTunoScaling.Improvements.EnergyAmount.FlatBonus,
-                baseRegenInterval: myTunoScaling.Gathering.RegenIntervalSeconds,
-                regenReductionPerUpgrade: myTunoScaling.Improvements.EnergyRegen.FlatBonus,
-                baseCastTime: myTunoScaling.Gathering.CastTimeSeconds,
-                castTimeReductionPerUpgrade: myTunoScaling.Improvements.CastSpeed.FlatBonus,
-                minCastTime: myTunoScaling.Improvements.MinCastTime,
-                finoHealPercent: myTunoScaling.Consumables.FinoHealPercent,
-                finoCooldownSeconds: myTunoScaling.Consumables.FinoCooldownSeconds,
-                canecaHealPercent: myTunoScaling.Consumables.CanecaHealPercent,
-                canecaCooldownSeconds: myTunoScaling.Consumables.CanecaCooldownSeconds,
-                shotBuffRuns: myTunoScaling.Consumables.ShotBuffRuns,
-                shotBuffMultiplierConsumable: myTunoScaling.Consumables.ShotBuffMultiplier,
-                cigarroBuffRuns: myTunoScaling.Consumables.CigarroBuffRuns,
-                cigarroDodgeChance: myTunoScaling.Consumables.CigarroDodgeChance,
-                canhaoBuffMinutes: myTunoScaling.Consumables.CanhaoBuffMinutes,
-                penaltyBuffMinutes: myTunoScaling.Consumables.PenaltyBuffMinutes,
-                penaltyLifestealPercent: myTunoScaling.Consumables.PenaltyLifestealPercent,
-                rareSetCritPerPiece: myTunoScaling.StageMode.RareSet.CritBonusPerPiece,
-                rareSetSpeedPerPiece: myTunoScaling.StageMode.RareSet.SpeedReductionPerPiece,
-                rareSetBonusMinPieces: myTunoScaling.StageMode.RareSet.SetBonusMinPieces,
-                rareSetBonusCrit: myTunoScaling.StageMode.RareSet.SetBonusCrit,
-                rareSetBonusSpeedReduction: myTunoScaling.StageMode.RareSet.SetBonusSpeedReduction,
-                doubleGatheringChancePerUpgrade: myTunoScaling.Improvements.DoubleGathering.FlatBonus,
-                maxDoubleGatheringChance: myTunoScaling.Improvements.MaxDoubleGatheringChance,
-                cigarroDodgePerUpgrade: 0.04,
-                maxCigarroDodge: 0.25,
-                shotBuffPerUpgrade: 0.05,
-                maxShotBuffMultiplier: 1.30,
-                canhaoMinutesPerUpgrade: 1,
-                maxCanhaoMinutes: 5,
-                penaltyMinutesPerUpgrade: 1,
-                maxPenaltyMinutes: 5,
-                penaltyLifestealPerUpgrade: 0.003333,
-                maxPenaltyLifesteal: 0.015,
-                upgradeGrowthRate: myTunoScaling.Upgrades.UpgradeGrowthRate);
-        }
 
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
@@ -183,9 +112,7 @@ public class Program
         services.AddDiscussionServices();
         services.AddQuestionServices();
         services.AddRankingServices();
-        services.AddGameServices();
         services.AddFinanceServices();
-        services.AddBettingServices();
         services.AddEmailServices();
         services.AddStorageServices(builder.Configuration, builder.Environment);
         services.AddDatabaseBackupServices(builder.Configuration);
@@ -228,8 +155,6 @@ public class Program
                     bool hadMemberStatusMigration = pendingMigrations.Any(m =>
                         m.Contains("AddMemberStatusTable") ||
                         m.Contains("AddTotalActivitiesCountToMemberStatus"));
-                    bool hadCompressUpgradeLevels = pendingMigrations.Any(m =>
-                        m.Contains("CompressUpgradeLevels"));
 
                     if (pendingMigrations.Any())
                     {
@@ -252,10 +177,6 @@ public class Program
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
 
-                    // Seed item type configs (weapons, drinks, equipment)
-                    var itemTypeConfigInitializer = sp.GetRequiredService<ItemTypeConfigInitializer>();
-                    await itemTypeConfigInitializer.InitializeAsync();
-
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
@@ -276,53 +197,6 @@ public class Program
                         {
                             // Log error but don't fail startup - scheduled update will populate later
                             logger.LogError(ex, "Failed to populate MemberStatus table on startup. Data will be populated during next scheduled update.");
-                        }
-                    }
-
-                    // Recalculate weapon and equipment stats after upgrade level compression
-                    if (hadCompressUpgradeLevels)
-                    {
-                        try
-                        {
-                            logger.LogInformation("CompressUpgradeLevels migration detected. Recalculating weapon and equipment stats...");
-                            var inventoryService = sp.GetRequiredService<IInventoryService>();
-                            var scalingConfig = sp.GetRequiredService<IOptions<MyTunoScalingConfiguration>>().Value;
-
-                            // Recalculate all forged weapon stats with new per-level bonuses
-                            var weapons = await db.ForgedWeapons.Where(w => w.Level > 0).ToListAsync();
-                            var hpPerLvl = scalingConfig.StageMode.EquipmentHpPerLevel;
-                            var powPerLvl = scalingConfig.StageMode.EquipmentPowerPerLevel;
-                            var defPerLvl = scalingConfig.StageMode.EquipmentDefensePerLevel;
-                            var forging = scalingConfig.StageMode.Forging;
-
-                            foreach (var weapon in weapons)
-                            {
-                                var baseStats = scalingConfig.StageMode.EquipmentStats.Instrument;
-                                var drinkResource = scalingConfig.Gathering.Resources
-                                    .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
-                                var drinkEnergyCost = drinkResource?.EnergyCost ?? 1;
-                                var drinkTierMult = 1.0 + (drinkEnergyCost - 1) * forging.DrinkStatBonusPerTier;
-                                var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
-                                var scaleMult = drinkTierMult * handedMult;
-
-                                weapon.BonusHP = (int)Math.Round((baseStats.HP + weapon.Level * hpPerLvl) * scaleMult);
-                                weapon.BonusPower = (int)Math.Round((baseStats.Power + weapon.Level * powPerLvl) * scaleMult);
-                                weapon.BonusDefense = (int)Math.Round((baseStats.Defense + weapon.Level * defPerLvl) * scaleMult);
-                            }
-                            await db.SaveChangesAsync();
-                            logger.LogInformation("Recalculated stats for {Count} weapons", weapons.Count);
-
-                            // Recalculate equipment bonuses for all characters
-                            var userIds = await db.Characters.Select(c => c.UserId).ToListAsync();
-                            foreach (var userId in userIds)
-                            {
-                                await inventoryService.RecalculateEquipmentBonusesForUserAsync(userId);
-                            }
-                            logger.LogInformation("Recalculated equipment bonuses for {Count} characters", userIds.Count);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "Failed to recalculate weapon/equipment stats after migration. Stats may be stale until next equipment change.");
                         }
                     }
                 }

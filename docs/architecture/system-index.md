@@ -97,15 +97,10 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 `src/RTUB.Application/Services/` — `IHostedService`/`BackgroundService` implementations:
 `ActivityReminderBackgroundService`, `BackgroundGeocodingWorker`, `BirthdayEmailSchedulerService`, `CalotesNotificationBackgroundService`, `DatabaseBackupBackgroundService`, `MemberStatusUpdateBackgroundService`, `PendingRequestReminderService`, `QuestionNotificationBackgroundService`, `RehearsalApprovalReminderBackgroundService`, `WeeklyNotificationBackgroundService`.
 
-## MyTuno / PixiJS
+## Games / Bets / MyTuno (removed)
 
-| Path | Responsibility |
-| --- | --- |
-| `src/RTUB.Web/pixi/` | TypeScript game source (arena, stage battle, survive mode, scenes) built with Vite. |
-| `src/RTUB.Web/Pages/MyTuno/`, `src/RTUB.Web/Pages/Games/` | Game-facing Blazor pages. |
-| `src/RTUB.Application/Services/InventoryService.*.cs` | Inventory/forge/equipment logic (partial class, 5 files). |
-| `src/RTUB.Web/scaling.config.json` | Enemy/stage scaling configuration. |
-| `docs/my_tuno/` | Game domain docs: equipment, weapons, scaling, survive mode, upgrade costs. |
+Removed from the app by task 026. Only their EF entities, configurations and DbSets remain, until the contract
+task drops the tables: `docs/games-bets-mytuno-removal.md`.
 
 ## Tests
 

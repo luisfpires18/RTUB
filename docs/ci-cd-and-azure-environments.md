@@ -90,10 +90,9 @@ those (the bash script self-tests) run, leaving 60.
 
 ## Build and packaging
 
-**Node is required for publish.** `RTUB.csproj`'s `BuildPixiTS` target runs `npm ci
---ignore-scripts` + `npm run build:pixi` before publish. CI uses **Node 22** (Node 20 left
-maintenance in April 2026; 22 satisfies `vite ^6`, `cross-env ^10`, `typescript ^5.7` as pinned).
-`dotnet build` and `dotnet test` do not need Node.
+**Publish needs no Node** (since 026, which removed the PixiJS bundles and their `BuildPixiTS`
+target). The React portal build, `wwwroot/portal`, is committed and published as-is; rebuild it by
+hand with Node 22 (`docs/react-portal-pilot.md`). `dotnet build` and `dotnet test` do not need Node.
 
 **linux-x64, framework-dependent**, in `.github/actions/package-release` only:
 
@@ -108,7 +107,9 @@ dotnet publish src/RTUB.Web/RTUB.csproj -c Release -r linux-x64 --self-contained
 | `libQuestPdfSkia.so`, `libe_sqlite3.so` | under `runtimes/linux-x64/native/` | **publish root** |
 
 The RID is scoped to that one command - no `RuntimeIdentifier` anywhere in the build - so Windows
-development and the test projects are untouched. The zip is ~230 MB (mostly `wwwroot/sprites`).
+development and the test projects are untouched. The zip was ~230 MB, mostly `wwwroot/sprites`
+(~180 MB) and `wwwroot/sound` (~17 MB), both removed in 026; the table predates that (a local
+`-r linux-x64` publish after 026: 68 MB / 760 files, with no Node on `PATH`).
 
 **Native libraries are startup-fatal.** `QuestPDF.Settings.License` is set at the top of
 `Program.cs`, before any service exists; a missing `libQuestPdfSkia.so` aborts the container with

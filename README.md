@@ -22,7 +22,7 @@ A modern **Blazor Web Application** for managing and promoting the Real Tuna Uni
 
 RTUB (Real Tuna Universitária de Bragança) is a comprehensive web platform built with **Blazor Interactive Server** that serves as the digital hub for the university's traditional tuna music group. A "tuna" is a traditional Portuguese university music ensemble with deep cultural roots.
 
-This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, meetings, finances, internal communication, media, and an RPG-style gamification system — all through a modern, responsive, installable PWA interface.
+This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, meetings, finances, internal communication, and media — all through a modern, responsive, installable PWA interface.
 
 ## Architecture
 
@@ -43,7 +43,7 @@ RTUB/
 - **RTUB.Core**: Contains domain models, entities, enums, and core business rules
 - **RTUB.Application**: Implements application services, repositories, DTOs, interfaces, and business logic orchestration
 - **RTUB.Shared**: Houses 90+ reusable Razor components (cards, badges, modals, forms, tables, uploads)
-- **RTUB.Web**: **Blazor Web App** with Interactive Server components, pages, SignalR hubs, API controllers, and PixiJS game engine
+- **RTUB.Web**: **Blazor Web App** with Interactive Server components, pages, SignalR hubs, and API controllers
 
 ## Technologies
 
@@ -56,8 +56,8 @@ RTUB/
 
 ### Language Composition
 - **C#** - Backend development, Blazor components, and business logic
-- **TypeScript** - PixiJS game engine (battle scenes, survive mode, arena)
-- **JavaScript** - Client-side features, mini-games, audio playback, maps
+- **TypeScript** - React public shell (`src/RTUB.Web/portal/`)
+- **JavaScript** - Client-side features, audio playback, maps
 - **HTML/CSS** - Razor markup and ITCSS-organized styling
 
 ### Key Technologies & Libraries
@@ -66,11 +66,10 @@ RTUB/
 - **Blazor Interactive Server** - Real-time UI updates via SignalR
 - **Razor Components** - Component-based UI architecture (90+ shared components)
 - **Bootstrap 5** - Responsive CSS framework
-- **PixiJS 8** - 2D WebGL game engine for battle animations
 - **Leaflet** - Interactive member map with geocoding
 - **Cropper.js** - Image cropping and upload
-- **Vite** - TypeScript build tooling for PixiJS bundles
-- **Web Audio API** - Audio playback for music and game sounds
+- **Vite** - build tooling for the React shell
+- **Web Audio API** - Audio playback for music
 - **Media Session API** - Lockscreen music controls
 
 #### Backend & Services
@@ -170,7 +169,7 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - Retirement tracking with automatic status updates (background service)
 - Expulsion system with forced logout
 - Member statistics and filtering
-- XP and level system tied to gamification
+- XP and level system (leaderboard)
 
 ### Meeting & Governance
 
@@ -207,7 +206,7 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - Slideshow management for public display on homepage
 - Event video uploads and playback
 - Document storage and management (meeting documents, reports)
-- Cloud storage via Cloudflare R2 with CDN proxy
+- Cloud storage via Cloudflare R2
 - Download support for photos and documents
 
 ### Financial Management
@@ -227,72 +226,6 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
   - Organized by event and order date
 - Financial reports with PDF export
 - Receipt uploads to cloud storage
-
-### MyTuno — RPG & Gamification System
-
-A full RPG-style character system integrated into the platform:
-
-#### Character System
-- Each member has a character with stats: HP, Power, Speed, Defense, Critical Chance
-- XP-based leveling system with configurable scaling
-- Multi-character support
-- Daily reward claims
-- Fidelis currency (earned through gameplay and betting)
-
-#### Game Modes
-- **Stage Mode** — PvE campaign with 20,000 floors across 20 biomes (Forest, Swamp, Mountain, Desert, Tundra, Volcano, Ocean, Jungle, Cavern, Ruins, Skylands, Underworld, Crystal, Shadow, Storm, Celestial, Inferno, Void, Nexus, Abyss), checkpoints every 10 stages, boss fights
-- **Arena Mode** — PvP battles between player characters, rating system, unlocked after completing Stage mode
-- **Boss Mode** — Endless boss progression, costs Fitab currency to enter, daily boss with persistent HP, tracks total runs and stages cleared
-- **Survive Mode** — Endless survival gameplay
-
-#### Battle Engine
-- Deterministic combat engine with seeded RNG for fair, reproducible battles
-- PixiJS 2D WebGL rendering with sprite animations, projectile system, particle effects, and VFX
-- Audio system with sound effects (Web Audio API)
-- Real-time combat action service for interactive battles
-- Weapon-specific attack animations and visual effects
-
-#### Inventory System
-- **Consumables**: Fino (25% HP heal), Caneca (50% HP heal), Shot (+5% all stats buff), Cigarro (+10% dodge shield), Canhao (AOE damage), Penalty (0.5% lifesteal)
-- **Equipment**: 6 armor slots (Head, Shoulders, Chest, Gloves, Legs, Boots) with normal and rare set variants
-- **Weapons**: 11 types across one-handed (Sword, Axe, Mace, Shield, Dagger) and two-handed (Staff, Bow, Greatsword, Spear, Greataxe, Hammer)
-- **Instrument Parts**: 13 types (one per musical instrument) — dropped from stage enemies
-- **Drinks**: 10 tiers (Cerveja through Aguardente) — used for forging
-- **Currencies**: Leitao (Boss Mode), Fitab (Boss Mode entry)
-
-#### Forge System
-- Combine instrument parts + drinks to create weapons via forge combos
-- Weapon leveling and upgrading
-- Player-named weapons with stat bonuses
-- Configurable forge combo recipes
-
-#### Upgrades & Improvements
-- Character stat upgrades (cast speed, energy capacity, energy regeneration, double gathering chance)
-- Consumable upgrades (improve effectiveness)
-- Upgrade shop interface
-
-#### Configuration
-- Full game balance configurable via `scaling.config.json` — base stats, level scaling, combat mechanics, consumable values, equipment effects, gathering system
-
-### Mini-Games
-
-4 browser-based mini-games with leaderboards:
-- **Avoid Questions** — Dodge-style game
-- **BMR (Bebe Mais Rui)** — Themed mini-game
-- **Passaro Maluco** — Bird-style game
-- **Tomato Thrower** — Throwing game
-
-Each game tracks high scores with the GameScore system, ranks players on leaderboards, and awards Fidelis currency.
-
-### Betting System
-
-- Create bets with multiple options and configurable odds
-- Bet categories: Match and Decision
-- Wager Fidelis currency on outcomes
-- Result settlement with automatic Fidelis payouts based on odds
-- Bet commenting for discussion
-- Bet cancellation support
-- Image/thumbnail support for bets
 
 ### Internal Messaging
 
@@ -394,7 +327,7 @@ Multi-channel notification system:
 
 - **Owner**: Full system access, audit logging, user role management, database viewer
 - **Admin**: Full entity management, configuration, operational control
-- **Member**: Access to member features, event participation, rehearsals, discussions, messaging, games
+- **Member**: Access to member features, event participation, rehearsals, discussions, messaging
 - **Visitor**: Public access to general information, events, and media gallery
 
 For detailed information about roles, categories, and positions, see [Authentication & Business Rules](docs/auth-and-rules.md).
@@ -435,7 +368,6 @@ RTUB/
 │   │       ├── Common/          # Empty state, error display, pagination
 │   │       ├── Discussion/      # Post and comment components
 │   │       ├── Forms/           # Form inputs, selects, date pickers
-│   │       ├── Game/            # Fantasy tiles, game UI elements
 │   │       ├── Modals/          # Modal dialogs and confirm dialogs
 │   │       ├── Profile/         # Profile fields, headers, timelines
 │   │       ├── Ranking/         # Leaderboard and rank display
@@ -446,25 +378,17 @@ RTUB/
 │   └── RTUB.Web/
 │       ├── Pages/               # 65+ Blazor pages across 12 sections
 │       │   ├── Activities/      # Events, rehearsals, meetings, leaderboard, naipes
-│       │   ├── Games/           # Mini-games (Avoid Questions, BMR, etc.)
-│       │   ├── MyTuno/          # RPG system (Stage, Arena, Boss, Survive, Shop)
 │       │   ├── Management/      # Finance, questions, logistics, roles, reports
 │       │   ├── Members/         # Member list, profiles, map, hierarchy
 │       │   ├── Media/           # Gallery, albums, songs, slideshows, documents
 │       │   ├── Messages/        # Internal messaging inbox
 │       │   └── Operations/      # Audit logs, database viewer, notifications
 │       ├── Hubs/                # SignalR hub (MessagesHub)
-│       ├── Controllers/         # API controllers (CDN proxy, downloads, push)
+│       ├── Controllers/         # API controllers (downloads, push)
 │       ├── Extensions/          # Service registration extensions
-│       ├── pixi/                # TypeScript source for PixiJS game engine
-│       │   ├── scenes/          # Battle, arena, survive scenes
-│       │   ├── managers/        # Audio, input, particles, projectiles, UI
-│       │   └── weapons/         # Weapon system and definitions
 │       ├── wwwroot/             # Static files
 │       │   ├── css/             # ITCSS-organized stylesheets
-│       │   ├── js/              # 31 JavaScript files (games, audio, maps, UI)
-│       │   ├── sprites/         # Game sprite sheets
-│       │   ├── sound/           # Audio files
+│       │   ├── js/              # JavaScript files (audio, maps, UI)
 │       │   └── icons/           # PWA app icons
 │       ├── App.razor            # Root component
 │       └── Program.cs           # Application entry point
@@ -484,7 +408,7 @@ RTUB/
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
-- [Node.js](https://nodejs.org/) (for PixiJS TypeScript build, optional)
+- [Node.js](https://nodejs.org/) (only to rebuild the React shell, optional)
 - Visual Studio 2022 / Visual Studio Code / Rider
 - Git
 
@@ -686,16 +610,6 @@ dotnet watch run
 
 This enables hot reload for Blazor components and C# code during development.
 
-### Building PixiJS Game Engine
-
-```bash
-cd src/RTUB.Web/pixi
-npm install
-npm run build
-```
-
-This compiles TypeScript battle scenes into IIFE bundles using Vite.
-
 ### Development Features
 
 - **Detailed Errors**: Enabled in development mode
@@ -815,9 +729,6 @@ Comprehensive documentation is available in the `/docs` folder and root director
 - **[Frontend Performance Optimizations](FRONTEND-PERFORMANCE-OPTIMIZATIONS.md)** - Performance improvements
 - **[.NET 10 Upgrade Changelog](BLAZOR-NET10-CHANGELOG.md)** - Complete .NET 10 upgrade details
 - **[Static Assets Decision](STATIC-ASSETS-DECISION.md)** - Asset management strategy
-
-### Game System Documentation
-- **[MyTuno Equipment](docs/my_tuno/)** - Equipment, weapons, scaling, and survive mode docs
 
 ### Architecture & Decisions
 - **[Architectural Decision Records (ADRs)](docs/decisions/)** - Technical decisions and rationale

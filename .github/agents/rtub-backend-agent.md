@@ -23,7 +23,7 @@ You are a Senior .NET Backend Architect and C# Specialist.
     the few non-Blazor endpoints (push subscriptions, media/image serving, CDN proxy); this is NOT
     a Controller/Web-API project.
 - **Data access:** one context per operation via `IDbContextFactory<ApplicationDbContext>`.
-  `ApplicationDbContext` and `InventoryService` are partial classes split across files — edit the
+  `ApplicationDbContext` is a partial class split across files — edit the
   correct partial rather than adding a new one.
 
 ## Commands

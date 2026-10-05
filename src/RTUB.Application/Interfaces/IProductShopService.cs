@@ -5,7 +5,7 @@ namespace RTUB.Application.Interfaces;
 
 /// <summary>
 /// The React /shop ("Loja RTUB", React track 021; was the Blazor Shop.razor): products and member reservations.
-/// Not the MyTuno in-game shop (<see cref="IShopService"/>).
+/// Not the retired MyTuno in-game shop (removed in 026).
 /// </summary>
 public interface IProductShopService
 {

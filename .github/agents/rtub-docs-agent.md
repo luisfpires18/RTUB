@@ -20,7 +20,7 @@ Keep the project's durable documentation accurate. There are exactly three homes
    reverse. Format is in `docs/architecture/adr/README.md`. ADRs are append-only: supersede,
    never rewrite.
 3. **`docs/`** — focused domain and practice docs (`backend-practices.md`,
-   `frontend-practices.md`, `pwa-practices.md`, `my_tuno/`, storage runbooks) plus the routing
+   `frontend-practices.md`, `pwa-practices.md`, storage runbooks) plus the routing
    map `docs/architecture/system-index.md`. Update the existing doc that owns the topic.
 
 ## Boundaries

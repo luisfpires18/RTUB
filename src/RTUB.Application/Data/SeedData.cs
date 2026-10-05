@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Data;
@@ -20,12 +19,8 @@ public static partial class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData");
         var environment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-
-        // Seed default games (runs even for existing databases)
-        await gameService.SeedDefaultGamesAsync();
 
         // Opt-in, Development-only: reset passwords, emails and clear push subscriptions.
         // Disabled by default — a normal startup never touches existing credentials.
@@ -82,9 +77,6 @@ public static partial class SeedData
         await SeedRehearsalsAsync(dbContext, userManager);
 
         await SeedMusicAsync(dbContext);
-
-        // My Tuno - sSeed all biome stage enemies for the first time
-        await SeedAllBiomeEnemiesAsync(dbContext);
     }
 
     /// <summary>

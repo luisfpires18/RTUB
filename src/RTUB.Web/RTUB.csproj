@@ -27,15 +27,9 @@
   </ItemGroup>
 
   <!-- React portal pilot: portal/ is source only. Its build output, wwwroot/portal, is committed
-       and published as-is; it is not rebuilt here because its file names are content-hashed and
-       publish globs wwwroot before this target runs. See docs/react-portal-pilot.md. -->
+       and published as-is; it is not rebuilt on publish because its file names are content-hashed
+       and publish globs wwwroot before any BeforePublish target runs. See docs/react-portal-pilot.md. -->
   <ItemGroup>
     <Content Remove="portal\**" />
   </ItemGroup>
-
-  <!-- Build PixiJS TypeScript bundles before publish -->
-  <Target Name="BuildPixiTS" BeforeTargets="BeforePublish" Condition="Exists('package.json')">
-    <Exec Command="npm ci --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <Exec Command="npm run build:pixi" WorkingDirectory="$(MSBuildProjectDirectory)" />
-  </Target>
 </Project>

@@ -186,7 +186,7 @@ be accepted by the owner, or replaced, before that release.**
 | `src/RTUB.Web/wwwroot/portal/` | **Committed** build output, published as-is. |
 | `src/RTUB.Web/package.json` | `build:portal`, `check:portal`; React 19, `@fontsource-variable/fraunces` as devDependencies (bundled at build time). |
 
-Stack choices, all deliberately minimal: React 19 + Vite 6 (already used for PixiJS) with esbuild's
+Stack choices, all deliberately minimal: React 19 + Vite 6 with esbuild's
 JSX runtime (no `@vitejs/plugin-react`), no router (the server maps two paths; `main.tsx` picks the
 page once), no state or CSS library, bootstrap-icons path data inlined as SVG. React is split into
 `vendor-react-*.js` so it caches across portal releases.

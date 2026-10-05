@@ -4,7 +4,7 @@ import { resolve } from 'path';
 /**
  * React public shell (React track, tasks 001-004). See docs/react-portal-pilot.md.
  *
- *   npm run build:portal   -> wwwroot/portal/ (committed, like the PixiJS bundles, and rebuilt on publish)
+ *   npm run build:portal   -> wwwroot/portal/ (committed and published as-is; see RTUB.csproj)
  *   npm run check:portal   -> TypeScript check
  *
  * Served by the ASP.NET Core host: /portal/assets/* as static files; the React routes (/, /privacy,

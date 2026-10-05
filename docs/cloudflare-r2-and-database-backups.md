@@ -36,8 +36,10 @@ R2 quirks the codebase already accounts for:
 
 - **Public**: objects written `PublicRead`; URL = `{Cloudflare:R2:PublicUrl}/{objectKey}`.
 - **Private-ish** (documents, receipts): pre-signed URLs, `Storage:UrlExpirationMinutes` (default 60).
-- CORS is **not** configured in code. PixiJS CORS is sidestepped by `CdnProxyController`
-  (`/api/cdn/image`, 1 h memory cache + 24 h browser cache), used from `Pages/MyTuno/Stage.razor`.
+- CORS is **not** configured in code. (The PixiJS image proxy, `CdnProxyController` /
+  `/api/cdn/image`, went with MyTuno in 026.)
+- Left in the bucket by 026, read by nothing: `images/{env}/bets/`, `images/{env}/bet-comments/`,
+  `item-configs/{env}/images/` (`docs/games-bets-mytuno-removal.md`).
 
 ### Object key namespace (single bucket, shared by all environments)
 
@@ -62,7 +64,7 @@ Env-var form uses `__` as separator. Only `Bucket` is committed; the rest are se
 | `Cloudflare:R2:AccountId` | secret | S3 client ServiceURL |
 | `Cloudflare:R2:AccessKeyId` | secret | S3 client |
 | `Cloudflare:R2:SecretAccessKey` | secret | S3 client |
-| `Cloudflare:R2:PublicUrl` | secret | 9 services + `CdnProxyController` + `Stage.razor` |
+| `Cloudflare:R2:PublicUrl` | secret | 8 services |
 | `Storage:UrlExpirationMinutes` | default 60 | Document/Receipt presign |
 | `ConnectionStrings:SqliteConnection` | env only; falls back to `Data Source=app.db` | DbContextFactory |
 

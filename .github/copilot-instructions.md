@@ -67,44 +67,7 @@ Follow this directive order:
 ## JS Interop
 
 - Wrap calls in `try-catch` with `ILogger.LogWarning` — never let JS errors crash the circuit
-- Namespace JS functions under objects (e.g., `stageBattleGame.start(...)`, `rtubAudioPlayer.playAudio(...)`)
-- Game rendering uses **PixiJS 8** — TypeScript source in `src/RTUB.Web/pixi/`, built with Vite into IIFE bundles at `wwwroot/js/pixi-build/`
-- Audio uses **Web Audio API** oscillators for SFX and `AudioBufferSource` for background music (arena/stage); survive mode uses HTML `Audio()` element pools
-- Interactive combat: JS calls `[JSInvokable]` methods on Blazor (`OnPlayerAutoAttack`, `OnEnemyAttack`, `OnBattleFinished`) — auto-attack only, no spells
-
-## PixiJS TypeScript Build
-
-Source: `src/RTUB.Web/pixi/` — Output: `wwwroot/js/pixi-build/` (gitignored, rebuild before publish)
-
-```
-pixi/
-  tsconfig.json          # strict, ES2022, ESNext modules
-  vite.config.ts         # IIFE lib mode, pixi.js external
-  global.d.ts            # DotNet, PIXI, Window augmentations
-  arena.ts               # entry → pixiBattle.js (arena battles)
-  stageBattle.ts          # entry → pixiStageBattle.js (stage + boss)
-  surviveMode.ts          # entry → pixiSurviveMode.js (survive)
-  types/                 # shared interfaces (battle-data, events, survive-data, etc.)
-  shared/                # shared modules (utils, audio, vfx, tween, text-pool)
-  scenes/                # ArenaBattleScene.ts, StageBattleScene.ts, SurviveScene.ts
-```
-
-| Action | Command |
-|---|---|
-| Build all | `npm run build:pixi` (from `src/RTUB.Web/`) |
-| Build one | `npm run build:pixi:arena`, `build:pixi:stage`, `build:pixi:survive` |
-
-When editing PixiJS code, modify the TypeScript source in `pixi/`, never edit `wwwroot/js/pixi-build/*.js` directly.
-
-## Game System (My Tuno)
-
-Four modes with different DB write strategies:
-- **Stage** — 0 writes per battle, all batched at run end via `ApplyRunRewardsAsync`
-- **Boss** — 1 write per battle (progress + character HP), rewards at run end
-- **Battle (Arena)** — 2-3 writes after each fight via `FinalizeAndApplyRewardsAsync`
-- **Survive** — 1 write per level (`CompleteLevelAsync`), rewards at run end
-
-Combat flow: `DeterministicCombatEngine` pre-computes outcomes (seeded RNG). `CombatActionService` processes interactive actions (auto-attacks only — spells/special attacks have been removed). `CombatSession` tracks in-memory state. Game balance constants live in `MyTunoScaling` (static, configured from `scaling.config.json`).
+- Namespace JS functions under objects (e.g., `rtubAudioPlayer.playAudio(...)`)
 
 ## Testing
 
@@ -115,6 +78,5 @@ xUnit + Moq + FluentAssertions. Naming: `MethodName_Scenario_ExpectedResult`. Te
 ## Key Files
 
 - DI registration: `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`
-- Game balance: `src/RTUB.Web/scaling.config.json` → `MyTunoScaling.Configure()`
 - DB context: `src/RTUB.Application/Data/ApplicationDbContext.cs` (~55 DbSets)
 - Practice docs: `docs/backend-practices.md`, `docs/frontend-practices.md`
