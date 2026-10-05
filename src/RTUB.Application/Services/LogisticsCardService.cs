@@ -375,7 +375,7 @@ public class LogisticsCardService : ILogisticsCardService
     /// Sanitizes a path component to prevent directory traversal attacks
     /// Uses regex-based approach for robust security
     /// </summary>
-    private static string SanitizePathComponent(string input)
+    internal static string SanitizePathComponent(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
             return string.Empty;
