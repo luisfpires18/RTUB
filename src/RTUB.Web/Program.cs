@@ -678,6 +678,7 @@ public class Program
         app.MapShopEndpoints();
         app.MapDocumentationEndpoints();
         app.MapLogisticsEndpoints();
+        app.MapTreasuryEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly these paths (plus /music, /roles, /gallery, /events and
@@ -722,9 +723,11 @@ public class Program
         // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
         // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop; React Documentação (track 022):
         // /documentation; React Logística (track 023): /logistics and /logistics/{id}; members only (the Blazor pages were
-        // [Authorize]; Leitões are refused by the API).
+        // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
+        // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
-                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}" })
+                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
+                     "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
@@ -772,6 +775,24 @@ public class Program
         // The Blazor /members/manage admin bridge (017) is retired: its tools are on the React /members (018). 302 while
         // DEV is hybrid; GET/HEAD only.
         app.MapMethods("/members/manage", ["GET", "HEAD"], () => Results.Redirect("/members"));
+
+        // The Blazor Tesouraria pages (until 023) are the React /treasury pages (024). /calotes keeps its ?fy=; the old
+        // MBWay and Nerba URLs carried a report id only for their back button. 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/finance", ["GET", "HEAD"], () => Results.Redirect("/treasury"));
+        app.MapMethods("/finance/report/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/reports/{id}"));
+        app.MapMethods("/calotes", ["GET", "HEAD"], (HttpContext context) =>
+            Results.Redirect("/treasury/calotes" + (context.Request.Query["fy"].ToString() is { Length: > 0 } fy ? "?fy=" + Uri.EscapeDataString(fy) : "")));
+        foreach (var route in new[] { "/mbway", "/mbway/{id:int}" })
+        {
+            app.MapMethods(route, ["GET", "HEAD"], () => Results.Redirect("/treasury/mbway"));
+        }
+
+        foreach (var route in new[] { "/nerba", "/nerba/{id:int}" })
+        {
+            app.MapMethods(route, ["GET", "HEAD"], () => Results.Redirect("/treasury/nerba"));
+        }
+
+        app.MapMethods("/nerba/event/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/nerba/{id}"));
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return

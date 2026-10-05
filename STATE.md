@@ -43,6 +43,16 @@ retired (302 to the event page) and `/member/events` lost its participants modal
 statistics, read-only videos/repertoire and the details-only edit. Contacts is linked from the event page (Mod+).
 No schema change. Detail: `docs/react-events.md`.
 
+**Open: `feat/024-react-treasury`** (React track 024, from `dev` @ `87cbdbd2`, 023 merged; local, not pushed; DEV only).
+**Tesouraria is React:** `/treasury` (reports), `/treasury/reports/{id}` (totals, bank / cash, activities, transactions,
+receipts, lock, history, PDF), `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` over `/api/treasury`
+(`TreasuryService`, `TreasuryRecordsService`, same tables, writes through the old services). Old `/finance…`, `/calotes`,
+`/mbway…`, `/nerba…` 302 to them. Privacy fixed: calotes, MBWay and Nerba were open to visitors, the report page to any
+account; now members only, Caloiros and Leitões see only their own calotes. Rights as before (treasury-team Mod / Admin /
+Owner manage reports, Owner + treasury team publish, Admin / Owner history, Mod / Admin / Owner calotes, MBWay add and
+Nerba, Owner MBWay edit / delete; Owner inherits Admin). Deleting an activity with transactions no longer fails on the
+foreign key. No schema change, nothing sent. Detail: `docs/react-treasury.md`.
+
 **Open: `feat/023-react-logistics-kanban`** (React track 023, from `dev` @ `e6a0a837`, 022 merged; local, not pushed;
 DEV only). **Logística is React:** `/logistics` (boards) and `/logistics/{id}` (Kanban) over `/api/logistics`
 (`LogisticsKanbanService`, same tables): boards CRUD + finish/reopen, lists (now reorderable), cards with status,
@@ -241,6 +251,13 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 024 (Tesouraria):
+- Receipts are public-read R2 objects (anyone with the URL opens them); private objects + pre-signed links need a storage change.
+- `ReportPdfService` caches by `Report.UpdatedAt` (transaction edits do not touch it): PDF up to 1 h stale.
+- `ReportCard`, `TransactionCard`, `MbwayTransferCard`, `NerbaOrderCard` (Shared), `ITransactionFilterService`, `IDebtService` have no page caller.
+- 14 local `Transactions` rows have no activity and appear nowhere.
+- Local run: ports 58869/58870 now fall in a Windows excluded port range; use another port.
+
 Raised by React track 023 (Logística):
 - `LogisticsCardReminders` are stored but no job sends them (pre-existing); build delivery or drop the feature.
 - `ILogistics{Board,List,Card}Service` (+ tests), `BoardCard` (Shared) and `css/3-components/kanban.css` have no page caller.

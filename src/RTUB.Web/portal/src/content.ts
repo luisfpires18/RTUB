@@ -30,6 +30,12 @@ export const portal = {
   shop: '/shop',
   documentation: '/documentation',
   logistics: '/logistics',
+  treasury: '/treasury',
+  treasuryReport: (id: number) => `/treasury/reports/${id}`,
+  treasuryCalotes: '/treasury/calotes',
+  treasuryMbway: '/treasury/mbway',
+  treasuryNerba: '/treasury/nerba',
+  treasuryNerbaEvent: (id: number) => `/treasury/nerba/${id}`,
 } as const;
 
 /** Sign in, then come back to the React profile. */

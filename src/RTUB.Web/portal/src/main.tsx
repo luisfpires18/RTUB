@@ -25,6 +25,10 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/shop': lazy(() => import('./Shop')),
   '/documentation': lazy(() => import('./Documentation')),
   '/logistics': lazy(() => import('./Logistics')),
+  '/treasury': lazy(() => import('./Treasury')),
+  '/treasury/calotes': lazy(() => import('./TreasuryCalotes')),
+  '/treasury/mbway': lazy(() => import('./TreasuryMbway')),
+  '/treasury/nerba': lazy(() => import('./TreasuryNerba')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];
@@ -50,11 +54,17 @@ const rehearsalId = Number(/^\/rehearsals\/(\d+)$/.exec(path)?.[1]) || undefined
 const LogisticsBoard = lazy(() => import('./LogisticsBoard'));
 const boardId = Number(/^\/logistics\/(\d+)$/.exec(path)?.[1]) || undefined;
 
+// /treasury/reports/{id} and /treasury/nerba/{eventId} (React track 024); Program.cs sends visitors to sign in first.
+const TreasuryReport = lazy(() => import('./TreasuryReport'));
+const TreasuryNerbaEvent = lazy(() => import('./TreasuryNerbaEvent'));
+const treasuryReportId = Number(/^\/treasury\/reports\/(\d+)$/.exec(path)?.[1]) || undefined;
+const nerbaEventId = Number(/^\/treasury\/nerba\/(\d+)$/.exec(path)?.[1]) || undefined;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId || eventPage || rehearsalId || boardId ? (
+        {Page || albumId || eventId || eventPage || rehearsalId || boardId || treasuryReportId || nerbaEventId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -74,6 +84,10 @@ createRoot(document.getElementById('root')!).render(
               <RehearsalDetail rehearsalId={rehearsalId} />
             ) : boardId ? (
               <LogisticsBoard boardId={boardId} />
+            ) : treasuryReportId ? (
+              <TreasuryReport reportId={treasuryReportId} />
+            ) : nerbaEventId ? (
+              <TreasuryNerbaEvent eventId={nerbaEventId} />
             ) : (
               <Page />
             )}

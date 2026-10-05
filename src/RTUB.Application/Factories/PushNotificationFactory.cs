@@ -1079,7 +1079,7 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var calotesUrl = $"{baseUrl.TrimEnd('/')}/calotes";
+        var calotesUrl = $"{baseUrl.TrimEnd('/')}/treasury/calotes";
 
         return new SendPushNotificationDto
         {

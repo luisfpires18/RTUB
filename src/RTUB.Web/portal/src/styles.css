@@ -7555,3 +7555,478 @@ video.tile__media {
   display: grid;
   gap: 6px;
 }
+
+/* ---------- Tesouraria (React track 024) ---------- */
+
+.tr-page {
+  --tr-in: #7ddc9f;
+  --tr-out: #ff9f97;
+}
+
+.tr-in {
+  color: var(--tr-in);
+}
+
+.tr-out {
+  color: var(--tr-out);
+}
+
+.tr-muted {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.tr-pre {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.tr-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.tr-subtitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.tr-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tr-more {
+  justify-self: center;
+}
+
+.tr-tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.tr-tabs__tab {
+  flex: none;
+  padding: 10px 14px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tr-tabs__tab:hover {
+  color: var(--ink);
+}
+
+.tr-tabs__tab[aria-current='page'] {
+  border-bottom-color: var(--purple-ink);
+  color: var(--ink);
+}
+
+/* Money tiles: totals of a report, calotes, MBWay recipients, a Nerba order. */
+.tr-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.tr-tiles--one {
+  grid-template-columns: minmax(0, 320px);
+}
+
+.tr-tile {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.tr-tile dt {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.tr-tile dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.tr-tile__edit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.tr-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.tr-stats dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.tr-stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Report cards on /treasury. */
+.tr-reports,
+.tr-debtors,
+.tr-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-report,
+.tr-card,
+.tr-debtor {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.tr-report:hover,
+.tr-report:focus-within {
+  border-color: var(--purple-ink);
+}
+
+.tr-report__open {
+  display: grid;
+  gap: 8px;
+  padding: 18px 16px 60px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tr-report__open strong {
+  padding-right: 8px;
+  color: var(--ink);
+  font-size: 1.0625rem;
+  overflow-wrap: break-word;
+}
+
+.tr-report__tools {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+/* Activities of a report: one collapsible panel each. */
+.tr-activities {
+  display: grid;
+  gap: 10px;
+}
+
+.tr-activity {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.tr-activity__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tr-activity__head::-webkit-details-marker {
+  display: none;
+}
+
+.tr-activity__name {
+  display: inline-flex;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.tr-activity__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tr-activity[open] .lx-completed__chevron {
+  transform: rotate(180deg);
+}
+
+.tr-activity__body {
+  display: grid;
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.tr-activity__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Transactions, debts and history rows. */
+.tr-transactions,
+.tr-history {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-transaction,
+.tr-history__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.tr-transaction__main {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tr-transaction__main strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tr-transaction__amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tr-transaction__tools {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.tr-history__who {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.tr-receipt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.tr-receipt a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--purple-ink);
+}
+
+/* Calotes. */
+.tr-debtor {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 14px;
+  text-align: center;
+}
+
+.tr-debtor img {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--royal);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.tr-debtor strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.tr-debts {
+  display: grid;
+  gap: 20px;
+}
+
+.tr-debts section {
+  display: grid;
+  gap: 10px;
+}
+
+.tr-debts__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tr-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 12px;
+}
+
+.tr-inline-form .form__field {
+  flex: 1 1 180px;
+}
+
+.tr-inline-form .form__hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* MBWay cards. */
+.tr-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.tr-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.tr-card__head strong {
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-card__tools {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.tr-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.tr-facts dt {
+  color: var(--muted);
+}
+
+.tr-facts dd {
+  margin: 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Nerba items table: scrolls inside itself on a phone, never the page. */
+.tr-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.tr-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.tr-table th,
+.tr-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tr-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tr-table th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.8125rem/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.tr-table .tr-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tr-row-tools {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.tr-row-tools .icon-btn + .icon-btn {
+  margin-left: 4px;
+}
+
+.tr-tile:has(.tr-tile__edit) dt {
+  padding-right: 36px;
+}
