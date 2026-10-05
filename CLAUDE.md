@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
@@ -66,6 +66,7 @@ Run only what the change can break.
 | React Documentação (`/documentation`: folders, files, storage) | `docs/react-documentation.md` |
 | React Logística (`/logistics`: boards, Kanban, reminders) | `docs/react-logistics.md` |
 | React Tesouraria (`/treasury`: reports, calotes, MBWay, Nerba) | `docs/react-treasury.md` |
+| React Novidades (`/news`: public posts wall, drafts, publish) | `docs/react-news.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |

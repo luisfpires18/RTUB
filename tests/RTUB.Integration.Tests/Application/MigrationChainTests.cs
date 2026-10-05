@@ -79,8 +79,8 @@ public class MigrationChainTests : IDisposable
     {
         using var context = CreateContext();
 
-        // React work adds DTOs and APIs, not schema: the EF model must still match the latest
-        // migration snapshot exactly (React track 003 reused Request with no migration).
+        // React work adds DTOs and APIs, rarely schema (003 reused Request; 025 added NewsPosts with its
+        // migration): the EF model must still match the latest migration snapshot exactly.
         context.Database.HasPendingModelChanges().Should().BeFalse(
             "a model change without its migration would silently diverge from every deployed database");
     }
@@ -113,6 +113,41 @@ public class MigrationChainTests : IDisposable
             "YearLeitao", "YearCaloiro", "YearTuno",
             "MonthLeitao", "MonthCaloiro", "MonthTuno"
         });
+    }
+
+    /// <summary>
+    /// React track 025 (Novidades): the only schema change is the new NewsPosts table. A deleted account leaves its
+    /// posts with no author (ON DELETE SET NULL) and the feed is read by PublishedAt.
+    /// </summary>
+    [Fact]
+    public async Task MigratedDatabase_HasNewsPosts_WithAuthorSetNullAndPublishedAtIndex()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        (await ColumnNamesAsync(context, "NewsPosts")).Should().BeEquivalentTo(
+            "Id", "Title", "Body", "PublishedAt", "AuthorId", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
+        (await ScalarsAsync(context, "SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('NewsPosts');"))
+            .Should().Equal("AspNetUsers:AuthorId:SET NULL");
+        (await ScalarsAsync(context, "SELECT name FROM pragma_index_list('NewsPosts');"))
+            .Should().Contain("IX_NewsPosts_PublishedAt");
+    }
+
+    private static async Task<List<string>> ScalarsAsync(ApplicationDbContext context, string sql)
+    {
+        var values = new List<string>();
+
+        await using var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = sql;
+
+        await context.Database.OpenConnectionAsync();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            values.Add(reader.GetString(0));
+        }
+
+        return values;
     }
 
     private static async Task<List<string>> ColumnNamesAsync(ApplicationDbContext context, string table)

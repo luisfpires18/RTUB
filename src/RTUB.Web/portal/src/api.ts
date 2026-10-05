@@ -247,3 +247,19 @@ export type UpcomingEvent = {
 export function getUpcomingEvents(): Promise<UpcomingEvent[]> {
   return fetch('/api/public/events/upcoming', { headers: { Accept: 'application/json' } }).then(json<UpcomingEvent[]>);
 }
+
+// ---------- Novidades (React track 025) ----------
+
+/** One post of GET /api/news. `publishedAt` is UTC ISO, null for a draft; `authorName` only reaches Admin/Owner. */
+export type NewsPost = { id: number; title: string | null; body: string; publishedAt: string | null; authorName: string | null };
+export type NewsFeed = { drafts: NewsPost[]; posts: NewsPost[]; hasMore: boolean; canManage: boolean };
+
+/** The latest published posts, for the home preview (drafts are ignored there). */
+export function getLatestNews(count: number): Promise<NewsPost[]> {
+  return fetch(`/api/news?pageSize=${count}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+    .then(json<NewsFeed>)
+    .then((feed) => feed.posts);
+}
+
+/** "5 de outubro de 2026" for a post's UTC publication time, in the reader's time zone. */
+export const newsDate = (iso: string) => new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long' }).format(new Date(iso));

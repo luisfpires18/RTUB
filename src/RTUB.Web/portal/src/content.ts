@@ -18,6 +18,7 @@ export const portal = {
   login: '/login',
   roles: '/roles',
   gallery: '/gallery',
+  news: '/news',
   events: '/events',
   event: (id: number) => `/events/${id}`,
   myEnrollments: '/events/my-enrollments',

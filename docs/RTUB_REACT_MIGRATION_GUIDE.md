@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-05 (after the 018-024 audit)_
+_Last updated: 2026-10-05 (025 Novidades)_
 
-## Done: 001-024 (all merged to `dev`)
+## Done: 001-024 (merged to `dev`) and 025 (in review)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -24,17 +24,17 @@ _Last updated: 2026-10-05 (after the 018-024 audit)_
 | 022 | Documentação | `/documentation` | `react-documentation.md` |
 | 023 | Logística | `/logistics`, `/logistics/{id}` | `react-logistics.md` |
 | 024 | Tesouraria | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{id}]` | `react-treasury.md` |
+| 025 | Novidades (new feature: public posts wall; branch open) | `/news` | `react-news.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`)
 302 to their React page.
 
-## Next: 025 Newsletter
+## 025 Novidades (in review)
 
-A new feature, not a Blazor migration: nothing exists to replace. Planning notes (public label "Novidades", code name
-News, `/news` + `/news/{slug}`, OpenGraph, open decisions) are in `docs/react-portal-pilot.md` → *News / "Novidades"*.
-It is the first React task that may need a new table: per the schema rule, stop and report the proposed model before
-adding a migration.
+The task was first named "Newsletter"; it is the Novidades public news feed. Built as `/news` with an approved schema
+(`NewsPosts`, migration `AddNewsPosts`); see `docs/react-news.md`. Its follow-ups (images, comments, reactions,
+per-post pages with share previews) are separate tasks. Next React task: pick from *Still Blazor* or *Cleanup* below.
 
 ## Still Blazor (not yet scheduled)
 
@@ -65,7 +65,7 @@ Every React-track task prompt states, and every task report answers:
 
 1. **Start:** `git checkout dev && git pull origin dev`; confirm the previous task is merged (`git merge-base
    --is-ancestor <sha> dev`); stop if not.
-2. **Branch:** `feat/<NNN>-<slug>` from `dev` (React sequence; next is `025`). Commit message `<NNN>: <what>`.
+2. **Branch:** `feat/<NNN>-<slug>` from `dev` (React sequence; next is `026`). Commit message `<NNN>: <what>`.
 3. **Scope:** the module and routes it owns; what is explicitly out of scope.
 4. **Never without an explicit request:** push, merge, PR, touch `master`, deploy PROD, change PROD DB / storage /
    Azure, send real email or push. No migration unless the task says so (stop and report first).
