@@ -118,7 +118,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
-        services.AddScoped<IBetCommentRepository, BetCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
@@ -129,25 +128,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentRepository, NaipeContentRepository>();
         services.AddScoped<INaipeCommentRepository, NaipeCommentRepository>();
         services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
-        services.AddScoped<IGameScoreRepository, GameScoreRepository>();
-        services.AddScoped<IGameRepository, GameRepository>();
-        services.AddScoped<IBetRepository, BetRepository>();
-        services.AddScoped<IBetOptionRepository, BetOptionRepository>();
-        services.AddScoped<IUserBetRepository, UserBetRepository>();
-        services.AddScoped<ICharacterRepository, CharacterRepository>();
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
-
-        // Stage Mode repositories
-        services.AddScoped<IStageProgressRepository, StageProgressRepository>();
-        services.AddScoped<IStageEnemyRepository, StageEnemyRepository>();
-
-        // Boss Mode repositories
-        services.AddScoped<IBossModeProgressRepository, BossModeProgressRepository>();
-
-        // Survive Mode repositories
-        services.AddScoped<ISurviveModeProgressRepository, SurviveModeProgressRepository>();
-        services.AddScoped<IItemTypeConfigRepository, ItemTypeConfigRepository>();
-        services.AddScoped<IForgeComboConfigRepository, ForgeComboConfigRepository>();
 
         return services;
     }
@@ -211,21 +191,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
         services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
         services.AddScoped<INaipeConfigService, NaipeConfigService>();
-        services.AddScoped<IItemTypeConfigService, ItemTypeConfigService>();
-        services.AddSingleton<ItemTypeConfigInitializer>();
-        services.AddScoped<ICharacterService, CharacterService>();
-        services.AddScoped<IUpgradeService, UpgradeService>();
-        services.AddScoped<IImprovementService, ImprovementService>();
-        services.AddScoped<IConsumableUpgradeService, ConsumableUpgradeService>();
-        services.AddSingleton<ICombatEngine, DeterministicCombatEngine>();
-        services.AddScoped<ICombatActionService, CombatActionService>();
-        services.AddScoped<IBattleService, BattleService>();
-        services.AddScoped<IStageService, StageService>();
-        services.AddScoped<IStageBiomeService, StageBiomeService>();
-        services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
-        services.AddScoped<IBossModeService, BossModeService>();
-        services.AddScoped<ISurviveModeService, SurviveModeService>();
-        services.AddScoped<IShopService, ShopService>();
 
         return services;
     }
@@ -277,7 +242,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductReservationService, ProductReservationService>();
         services.AddScoped<ITrophyService, TrophyService>();
-        services.AddScoped<IInventoryService, InventoryService>();
 
         return services;
     }
@@ -291,7 +255,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
-        services.AddScoped<IBetCommentService, BetCommentService>();
 
         return services;
     }
@@ -346,19 +309,6 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers game services
-    /// </summary>
-    public static IServiceCollection AddGameServices(this IServiceCollection services)
-    {
-        services.AddScoped<IGameScoreService, GameScoreService>();
-        services.AddScoped<IGameService, GameService>();
-        services.AddScoped<IGameFilterService, GameFilterService>();
-        services.AddScoped<ITimeFormatter, TimeFormatter>();
-
-        return services;
-    }
-
-    /// <summary>
     /// Registers finance and transaction services
     /// </summary>
     public static IServiceCollection AddFinanceServices(this IServiceCollection services)
@@ -369,16 +319,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFiscalYearHelper, FiscalYearHelperService>();
         services.AddScoped<IRequestToEventService, RequestToEventService>();
         services.AddScoped<IRequestValidationService, RequestValidationService>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers betting services (Fidelis wagering system)
-    /// </summary>
-    public static IServiceCollection AddBettingServices(this IServiceCollection services)
-    {
-        services.AddScoped<IBetService, BetService>();
 
         return services;
     }
@@ -470,7 +410,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
         services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
         services.AddScoped<INaipeMediaStorageService, CloudflareNaipeMediaStorageService>();
-        services.AddScoped<IItemTypeMediaStorageService, CloudflareItemTypeMediaStorageService>();
 
         return services;
     }
@@ -684,7 +623,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings / scaling.config.json
+    /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
@@ -714,14 +653,6 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
-        services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.FidelisRewardsConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
             configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
 
@@ -989,8 +920,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpClient("Nominatim")
             .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(10); });
-        services.AddHttpClient("CdnProxy")
-            .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(15); });
 
         services.AddSingleton<IGeocodingQueue, InMemoryGeocodingQueue>();
         services.AddScoped<NominatimGeocodingService>();

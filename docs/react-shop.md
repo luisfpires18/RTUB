@@ -2,7 +2,7 @@
 
 `/shop` ("Loja RTUB") is React (`portal/src/Shop.tsx`) over `/api/shop` (`Endpoints/ShopEndpoints.cs` →
 `IProductShopService`, over the existing `IProductService` and `IProductReservationService`), replacing the Blazor
-`Pages/Inventory/Shop.razor`. Not the MyTuno in-game shop (`IShopService`, untouched). DEV only; **no schema change**.
+`Pages/Inventory/Shop.razor`. Not the MyTuno in-game shop (`IShopService`, removed with MyTuno in 026). DEV only; **no schema change**.
 
 | Route | Owner after 021 |
 | --- | --- |

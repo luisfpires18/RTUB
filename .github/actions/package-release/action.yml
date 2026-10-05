@@ -32,13 +32,6 @@ runs:
       with:
         dotnet-version: '10.0.x'
 
-    # Required, not optional: RTUB.csproj's BuildPixiTS target runs `npm ci --ignore-scripts`
-    # + `npm run build:pixi` on BeforePublish. Node 22 is the repo's toolchain version.
-    - name: Setup Node (PixiJS bundle build runs during publish)
-      uses: actions/setup-node@v7
-      with:
-        node-version: '22'
-
     # VERSION is the release version; Directory.Build.props stamps it into every assembly.
     # DEV builds add a prerelease suffix so they can never be mistaken for a release.
     - name: Resolve version

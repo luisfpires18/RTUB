@@ -44,8 +44,8 @@ Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick t
 
 ## Future work, outside the migration
 
-- **Games / Bets / MyTuno** (`/games…`, `/bets`, `/my-tuno…`, `/owner/stage-enemies`, `/owner/weapon-drink-config`, the
-  PixiJS bundle, `InventoryService` partials): a **removal** task, not a migration. Decide data retention first.
+- **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
+  `AspNetUsers.FidelisBalance` stay until a later contract task drops them: `docs/games-bets-mytuno-removal.md`.
 - **Messaging** (`/messages`, `MessagesHub`): to be replaced by a new WhatsApp-like system. That is new product design
   (conversations, groups, media, push), not a port of the Blazor inbox; it needs its own design task before code.
 

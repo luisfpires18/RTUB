@@ -800,50 +800,6 @@ public class PushNotificationFactoryTests
     }
 
     [Fact]
-    public void CreateBetResolvedNotification_Winner_ReturnsWinningMessage()
-    {
-        // Arrange
-        var bet = new Bet
-        {
-            Id = 42,
-            Title = "Aposta do Derby",
-            DateTime = DateTime.UtcNow.AddDays(-1)
-        };
-        var baseUrl = "https://rtub.example.com";
-
-        // Act
-        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: true, baseUrl);
-
-        // Assert
-        Assert.Equal("Aposta ganha", notification.Title);
-        Assert.Contains("Ganhaste a aposta", notification.Body);
-        Assert.Equal("https://rtub.example.com/bets", notification.Url);
-        Assert.Equal("bet-resolved-42", notification.Tag);
-    }
-
-    [Fact]
-    public void CreateBetResolvedNotification_Loser_ReturnsLosingMessage()
-    {
-        // Arrange
-        var bet = new Bet
-        {
-            Id = 77,
-            Title = "Aposta do Jogo",
-            DateTime = DateTime.UtcNow.AddDays(-1)
-        };
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: false, baseUrl);
-
-        // Assert
-        Assert.Equal("Aposta perdida", notification.Title);
-        Assert.Contains("não foi vencedora", notification.Body);
-        Assert.Equal("https://rtub.example.com/bets", notification.Url);
-        Assert.Equal("bet-resolved-77", notification.Tag);
-    }
-
-    [Fact]
     public void CreateMeetingRequestRejectedNotification_Expired_ReturnsExpirationMessage()
     {
         // Arrange

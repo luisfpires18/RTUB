@@ -6,19 +6,20 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-05_
 
 ## Phase
-**Open: `feat/025-newsletter`** (React track 025, from `dev` @ `1f098fe3`; local, not pushed; DEV only). **Novidades is
-React:** `/news`, a public wall of text posts ("RTUB" as the poster), newest first; Admin/Owner write drafts, publish,
-unpublish (re-publish goes back to the top), edit and delete; Mod and members read only; "Novidades" in the top bar,
-menu and footer; the home's bottom "Em breve" strip became an "Últimas novidades" preview (latest 3, after Atuações,
-hidden when empty). `/api/news` (`NewsService`), antiforgery on writes. **One approved migration, `AddNewsPosts`**
-(new `NewsPosts` table only; author FK SET NULL). Publishing sends nothing (no email, no push). Detail: `docs/react-news.md`.
-Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
+**Open: `feat/026-remove-games-bets-mytuno`** (from `dev` @ `03f18c1d`; local, not pushed; DEV only). **Games / Bets /
+MyTuno removed from the app (Option A):** `/games…`, `/bets`, `/my-tuno…`, `/owner/stage-enemies`,
+`/owner/weapon-drink-config` and `/api/cdn/image` are plain 404s (no replacement, no redirect); pages, "Jogos" nav, game
+services, PixiJS source and publish step (publishing needs no Node now), sprites/sound, game JS/CSS, `appsettings`
+`Games`, `scaling.config.json` and bet push are gone. **No migration, schema unchanged** (`has-pending-model-changes`:
+none): the 15 game tables and `AspNetUsers.FidelisBalance` stay for N-1 rollback until a later contract task drops them.
+Backup ZIP (outside the repo): `F:\Workspace\Backups\RTUB\026-games-bets-mytuno\RTUB-026-games-bets-mytuno-03f18c1d.zip`.
+Detail: `docs/games-bets-mytuno-removal.md`. Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
-**React track 001-024: merged to `dev`** (last: 024 @ `ae71a487`; audited 2026-10-05, no blocker). React owns
+**React track 001-025: merged to `dev`** (last: 025 @ `03f18c1d`). React owns
 `/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/roles`, `/gallery`, `/events…`, `/rehearsals…`, `/members`,
-`/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics…` and `/treasury…`; the old
-Blazor URLs 302 to them (`Program.cs`). No schema change in 006-024. Per-module rules, APIs and data audits:
-`docs/react-*.md` (table in `CLAUDE.md`).
+`/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics…`, `/treasury…` and `/news`;
+the old Blazor URLs 302 to them (`Program.cs`). No schema change in 006-024; 025 added `NewsPosts` (`AddNewsPosts`).
+Per-module rules, APIs and data audits: `docs/react-*.md` (table in `CLAUDE.md`).
 
 **Also merged:** `fix/006-ci-red-after-music`, `fix/030/ios-pwa-media-association` (iPhone DEV check still open),
 unit 030 (production release pipeline, PR #203). `master` is at `2.0.4`; `dev`'s `VERSION` is `2.0.5`.
@@ -130,6 +131,18 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 026 (Games / Bets / MyTuno removal):
+- Contract task, only after the release carrying 026 is live in production: drop the 15 game tables and
+  `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept entities/configs/DbSets; take a
+  production DB backup first; that release may be MAJOR. Exact list: `docs/games-bets-mytuno-removal.md`.
+- R2 objects left in place, public-read and unused: `images/{env}/bets/`, `images/{env}/bet-comments/`,
+  `item-configs/{env}/images/`.
+- Now unused (their only users were game pages), left for the dead-code cleanup: `window.isMobileDevice`
+  (`pwa-helper.js`); 77 classes in `css/9-overrides/inline-style-utilities.css`, `u-cursor-default`,
+  `u-cursor-not-allowed`, `u-fill-pct--smooth` (`dynamic-style-classes.css`) and `.hp-bar-fill` (`rank-card.css`).
+- Any `Games__*` / `MyTunoScaling__*` app settings on `rtub` / `rtub-dev` are now dead (not checked; none in the repo).
+- `deploy-prod.yml` comment "npm and NuGet code runs here": npm no longer runs in the build (workflow left untouched).
+
 Raised by React track 025 (Novidades):
 - No images, comments, reactions, pinned posts or per-post page with share previews yet (`docs/react-news.md`).
 - `AddNewsPosts` is the React track's first schema change; the next PROD release runs it (additive, N-1 safe).
@@ -144,10 +157,9 @@ Accepted after the 018-024 audit (2026-10-05):
   `InstrumentCircle`, `AvatarCard`, `EventCard`; services `ITransactionFilterService`, `IDebtService`,
   `ILogistics{Board,List,Card}Service`, `IMemberPositionService`, `IUserRoleQueryService`, `IEnrollmentFilterService`;
   CSS `kanban.css`, `folder-card.css`, `document-card.css`, `avatar-card.css`, `instrument-circle.css`,
-  `inventory-grid.css`, `music.css`, `song-card.css`, `audio-player.css`; JS `familyTree.js`, `home.js`, `scrollSpy.js`.
+  `music.css`, `song-card.css`, `audio-player.css`; JS `familyTree.js`, `home.js`, `scrollSpy.js`.
 - Real R2 still unchecked (local runs have placeholder storage): Music audio, Gallery upload, Inventory/Shop images,
   Documentation upload/download, Logistics board files, Treasury receipts and PDF. Check on DEV.
-- Games / Bets / MyTuno (`/games…`, `/bets`, `/my-tuno…`) are still Blazor; their removal is future work, not migration.
 
 Raised by React track 024 (Tesouraria):
 - Receipts are public-read R2 objects (anyone with the URL opens them); private objects + pre-signed links need a storage change.
@@ -284,8 +296,7 @@ Carried (one line each; detail in git history):
   unbounded broadcast; `PushNotificationsManager` parked on `window`.
 - Dead/orphaned front-end bits: `rtub.carousel.js`, `.meeting-today-badge`, rare-tab animation;
   `Profile.razor` overflow intent unimplemented; `.no-scroll` loses scroll position.
-- Payload: `wwwroot/sprites` is ~180 MB of the ~230 MB zip; moving sprites to R2 would shrink every
-  deploy.
+- (026, resolved) Payload: `wwwroot/sprites` (~180 MB of the ~230 MB zip) and `wwwroot/sound` went with MyTuno.
 - `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert.
 - Owner Storage Maintenance page (029 contract) not built.
 - After a DEV refresh, keep `DevelopmentDataReset__Enabled` off on `rtub-dev`.

@@ -107,8 +107,8 @@ public class ContentSecurityPolicyTests
     /// <summary>
     /// Every external origin is justified by something the browser actually loads, and must not
     /// leak into a directive that does not need it. cdnjs serves both cropper.min.js and
-    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; jsdelivr serves only pixi.min.js;
-    /// the Carto tiles are images only.
+    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; the Carto tiles are images only.
+    /// jsdelivr served only pixi.min.js and went with MyTuno (026): no directive allows it.
     /// </summary>
     [Fact]
     public void ExternalOrigins_AppearOnlyInTheDirectivesThatNeedThem()
@@ -116,7 +116,7 @@ public class ContentSecurityPolicyTests
         var directives = Directives(Policy());
 
         directives["script-src"].Should().BeEquivalentTo(
-            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://cdn.jsdelivr.net");
+            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
 
         directives["style-src"].Should().BeEquivalentTo(
             "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
@@ -126,8 +126,7 @@ public class ContentSecurityPolicyTests
 
         // The tile CDN and the script CDNs are images / scripts respectively, never both.
         directives["script-src"].Should().NotContain("https://*.basemaps.cartocdn.com");
-        directives["img-src"].Should().NotContain("https://cdn.jsdelivr.net");
-        directives["style-src"].Should().NotContain("https://cdn.jsdelivr.net");
+        directives.Values.SelectMany(v => v).Should().NotContain("https://cdn.jsdelivr.net");
         directives["connect-src"].Should().NotContain("https://cdnjs.cloudflare.com");
     }
 
