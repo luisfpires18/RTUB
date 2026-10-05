@@ -102,7 +102,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Web/pixi/` | TypeScript game source (arena, stage battle, survive mode, scenes) built with Vite. |
-| `src/RTUB.Web/Pages/MyTuno/`, `src/RTUB.Web/Pages/Games/`, `src/RTUB.Web/Pages/Inventory/` | Game-facing Blazor pages. |
+| `src/RTUB.Web/Pages/MyTuno/`, `src/RTUB.Web/Pages/Games/` | Game-facing Blazor pages. |
 | `src/RTUB.Application/Services/InventoryService.*.cs` | Inventory/forge/equipment logic (partial class, 5 files). |
 | `src/RTUB.Web/scaling.config.json` | Enemy/stage scaling configuration. |
 | `docs/my_tuno/` | Game domain docs: equipment, weapons, scaling, survive mode, upgrade costs. |

@@ -1,0 +1,80 @@
+# RTUB React track - roadmap and task contract
+
+Where the React track stands, what comes next, and the shape every next task takes. Module rules (replacement,
+testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
+`docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
+
+_Last updated: 2026-10-05 (after the 018-024 audit)_
+
+## Done: 001-024 (all merged to `dev`)
+
+| Tasks | Module | React routes | Doc |
+| --- | --- | --- | --- |
+| 001-005, 010 | Public shell: home, privacy, profile entry, request | `/`, `/privacy`, `/profile`, `/request` | `react-portal-pilot.md` |
+| 006 | Música | `/music`, `/music/albums/{id}` | `react-music.md` |
+| 007 | Login | `/login` | `react-portal-pilot.md` |
+| 008, 016 | Órgãos Sociais (+ RGI, management) | `/roles` | `react-governance.md` |
+| 009, 015 | Galeria (+ upload, edit, delete) | `/gallery` | `react-gallery.md` |
+| 011-013 | Atuações (agenda, event, enrollments, discussion, contacts) | `/events…` | `react-events.md` |
+| 014 | Ensaios | `/rehearsals`, `/rehearsals/{id}` | `react-rehearsals.md` |
+| 017, 018 | Membros (directory, hierarchy, member admin) | `/members`, `/members/hierarchy` | `react-members.md` |
+| 019 | Classificação | `/leaderboard` | `react-leaderboard.md` |
+| 020 | Instrumentos | `/inventory` | `react-inventory.md` |
+| 021 | Loja | `/shop` | `react-shop.md` |
+| 022 | Documentação | `/documentation` | `react-documentation.md` |
+| 023 | Logística | `/logistics`, `/logistics/{id}` | `react-logistics.md` |
+| 024 | Tesouraria | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{id}]` | `react-treasury.md` |
+
+Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
+`/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`)
+302 to their React page.
+
+## Next: 025 Newsletter
+
+A new feature, not a Blazor migration: nothing exists to replace. Planning notes (public label "Novidades", code name
+News, `/news` + `/news/{slug}`, OpenGraph, open decisions) are in `docs/react-portal-pilot.md` → *News / "Novidades"*.
+It is the first React task that may need a new table: per the schema rule, stop and report the proposed model before
+adding a migration.
+
+## Still Blazor (not yet scheduled)
+
+`/member/profile` (profile editor), `/member/map`, `/hall-of-fame`, `/meetings`, `/naipes`, `/naipes/config`,
+`/notifications`, `/requests`, `/questions`, `/labels`, `/users`, `/emails`, `/images`, `/share`, `/owner/*`, and the
+Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick these up one module per task.
+
+## Future work, outside the migration
+
+- **Games / Bets / MyTuno** (`/games…`, `/bets`, `/my-tuno…`, `/owner/stage-enemies`, `/owner/weapon-drink-config`, the
+  PixiJS bundle, `InventoryService` partials): a **removal** task, not a migration. Decide data retention first.
+- **Messaging** (`/messages`, `MessagesHub`): to be replaced by a new WhatsApp-like system. That is new product design
+  (conversations, groups, media, push), not a port of the Blazor inbox; it needs its own design task before code.
+
+## Cleanup and polish (after or between features)
+
+Recorded in `STATE.md` → *Deferred*; the main ones:
+- Dead code with no caller since 013-024 (Shared cards, unused services, CSS, JS): one cleanup task.
+- Treasury report delete blocked by a Nerba order: 500 → 409.
+- Leitões seeing members' email/phone in member details: decide.
+- Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
+- Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
+- React top bar has no sign-out; old Blazor prompts (push, Play Store) have no React home.
+
+## The "next prompt" contract
+
+Every React-track task prompt states, and every task report answers:
+
+1. **Start:** `git checkout dev && git pull origin dev`; confirm the previous task is merged (`git merge-base
+   --is-ancestor <sha> dev`); stop if not.
+2. **Branch:** `feat/<NNN>-<slug>` from `dev` (React sequence; next is `025`). Commit message `<NNN>: <what>`.
+3. **Scope:** the module and routes it owns; what is explicitly out of scope.
+4. **Never without an explicit request:** push, merge, PR, touch `master`, deploy PROD, change PROD DB / storage /
+   Azure, send real email or push. No migration unless the task says so (stop and report first).
+5. **Rules:** the module rules in `react-portal-pilot.md` (replacement, testing, schema, wording); rights enforced
+   server-side; writes need antiforgery; DTOs carry no private fields; Owner inherits Admin unless stated.
+6. **Validation:** `dotnet build`, the affected test projects (full `dotnet test` before merge), `npm run
+   check:portal` + `npm run build:portal` (commit the bundle), browser check on a scratch DB copy at 375px with
+   visitor / member / Leitão-Caloiro / Mod / Admin-Owner, `git diff --check`, secret scan.
+7. **Docs:** a `docs/react-<module>.md` (audit, rules, API, follow-ups), a `STATE.md` line, the `CLAUDE.md` doc table,
+   and this file's table.
+8. **Report:** branch + base commit, files changed, rules before/after, tests and browser results, follow-ups, git
+   status, commit hash, recommendation.

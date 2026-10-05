@@ -37,9 +37,9 @@ The "Inventário" menu has two pages:
 
 - **Moved**: all of `/inventory` (list, counters, filters, details, create, edit, image, delete). The Blazor page is
   retired; no duplicate UI is left.
-- **Not moved**: `/shop`. It is a shop with its own reservation workflow (products, stock, sizes, per-member
-  reservations, Admin reservation lists), not the instruments inventory; it needs its own task. It stays Blazor,
-  reachable from the same menu.
+- **Not moved here**: `/shop`. It is a shop with its own reservation workflow (products, stock, sizes, per-member
+  reservations, Admin reservation lists), not the instruments inventory, so it got its own task: React-owned since
+  021 (`docs/react-shop.md`).
 
 ## Rules now (`InventoryAuthorization`, server-side)
 
