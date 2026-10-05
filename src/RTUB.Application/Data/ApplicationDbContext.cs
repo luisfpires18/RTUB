@@ -119,6 +119,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GalleryMedia> GalleryMedia { get; set; }
     public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
 
+    // News feed DbSet (React track 025)
+    public DbSet<NewsPost> NewsPosts { get; set; }
+
     // Questions DbSets
     public DbSet<Question> Questions { get; set; }
     public DbSet<QuestionReply> QuestionReplies { get; set; }

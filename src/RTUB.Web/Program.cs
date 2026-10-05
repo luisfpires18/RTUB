@@ -680,6 +680,9 @@ public class Program
         app.MapLogisticsEndpoints();
         app.MapTreasuryEndpoints();
 
+        // --------- Public "Novidades" feed for the React /news (React track 025) ---------
+        app.MapNewsEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
@@ -707,9 +710,9 @@ public class Program
         // React Events (track 011): the agenda and one event; a member answers in a modal on the event
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
         // (Minhas Inscrições, 012E) are /events/my-enrollments. The discussion and contact tracking are
-        // React too since 013: no Blazor event page is left.
+        // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
-                     "/events", "/events/{id:int}", "/events/my-enrollments" })
+                     "/events", "/events/{id:int}", "/events/my-enrollments", "/news" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

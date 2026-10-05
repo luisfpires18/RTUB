@@ -1,5 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { getGalleryPreview, getUpcomingEvents, type GalleryItem, type UpcomingEvent } from './api';
+import {
+  getGalleryPreview,
+  getLatestNews,
+  getUpcomingEvents,
+  newsDate,
+  type GalleryItem,
+  type NewsPost,
+  type UpcomingEvent,
+} from './api';
 import { AccountLink, ExternalLink, Loading } from './App';
 import { albums, contactEmail, playStoreUrl, portal, social } from './content';
 import { Icon } from './icons';
@@ -10,12 +18,12 @@ export function Home() {
       <Hero />
       <About />
       <Events />
+      <LatestNews />
       <Music />
       <Gallery />
       <JoinUs />
       <Doors />
       <InstallApp />
-      <NewsTeaser />
     </>
   );
 }
@@ -218,6 +226,45 @@ function Events() {
           </div>
         </aside>
         <MoreLink href={portal.events}>Ver a agenda completa</MoreLink>
+      </div>
+    </section>
+  );
+}
+
+// ---------- latest news ----------
+
+/**
+ * The three newest published posts of /news (React track 025), right after the agenda. Renders nothing while loading,
+ * when there are no posts or when the call fails: the feed is one tap away in the top bar.
+ */
+function LatestNews() {
+  const [posts, setPosts] = useState<NewsPost[]>([]);
+
+  useEffect(() => {
+    getLatestNews(3).then(setPosts, () => setPosts([]));
+  }, []);
+
+  if (posts.length === 0) return null;
+  return (
+    <section id="news" className="section" aria-labelledby="news-title">
+      <div className="wrap">
+        <SectionHead id="news-title" eyebrow="Novidades" title="Últimas novidades">
+          O que a tuna tem andado a fazer, contado pela própria RTUB.
+        </SectionHead>
+        <ul className="news-latest">
+          {posts.map((p) => (
+            <li key={p.id}>
+              <a className="news-latest__card" href={`${portal.news}#post-${p.id}`}>
+                <time className="news-latest__date" dateTime={p.publishedAt ?? undefined}>
+                  {p.publishedAt && newsDate(p.publishedAt)}
+                </time>
+                {p.title && <h3 className="news-latest__title">{p.title}</h3>}
+                <p className="news-latest__text">{p.body}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <MoreLink href={portal.news}>Ver todas</MoreLink>
       </div>
     </section>
   );
@@ -505,25 +552,6 @@ function InstallApp() {
             <p>No Chrome ou no Edge, o ícone de instalar surge na barra de endereço quando o navegador o permite.</p>
           </li>
         </ol>
-      </div>
-    </section>
-  );
-}
-
-// ---------- news (placeholder only) ----------
-
-/**
- * "Novidades" is not built yet: no route, API or storage. This strip only says it is coming and
- * stays deliberately small; the plan (future /news) is in docs/react-portal-pilot.md.
- */
-function NewsTeaser() {
-  return (
-    <section className="news-teaser" aria-labelledby="news-title">
-      <div className="wrap news-teaser__inner">
-        <h2 id="news-title" className="news-teaser__title">
-          Novidades <span className="tag">Em breve</span>
-        </h2>
-        <p>Anúncios, crónicas de atuações e fotografias, publicados pela própria RTUB.</p>
       </div>
     </section>
   );

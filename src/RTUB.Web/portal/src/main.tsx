@@ -17,6 +17,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/gallery': lazy(() => import('./Gallery')),
   '/events': lazy(() => import('./Events')),
   '/events/my-enrollments': lazy(() => import('./MyEnrollments')),
+  '/news': lazy(() => import('./News')),
   '/rehearsals': lazy(() => import('./Rehearsals')),
   '/members': lazy(() => import('./Members')),
   '/members/hierarchy': lazy(() => import('./MembersHierarchy')),

@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-05_
 
 ## Phase
-**Next: 025 Newsletter** (React track; not started). Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
+**Open: `feat/025-newsletter`** (React track 025, from `dev` @ `1f098fe3`; local, not pushed; DEV only). **Novidades is
+React:** `/news`, a public wall of text posts ("RTUB" as the poster), newest first; Admin/Owner write drafts, publish,
+unpublish (re-publish goes back to the top), edit and delete; Mod and members read only; "Novidades" in the top bar,
+menu and footer; the home's bottom "Em breve" strip became an "Últimas novidades" preview (latest 3, after Atuações,
+hidden when empty). `/api/news` (`NewsService`), antiforgery on writes. **One approved migration, `AddNewsPosts`**
+(new `NewsPosts` table only; author FK SET NULL). Publishing sends nothing (no email, no push). Detail: `docs/react-news.md`.
+Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
 **React track 001-024: merged to `dev`** (last: 024 @ `ae71a487`; audited 2026-10-05, no blocker). React owns
 `/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/roles`, `/gallery`, `/events…`, `/rehearsals…`, `/members`,
@@ -124,6 +130,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by React track 025 (Novidades):
+- No images, comments, reactions, pinned posts or per-post page with share previews yet (`docs/react-news.md`).
+- `AddNewsPosts` is the React track's first schema change; the next PROD release runs it (additive, N-1 safe).
+
 Accepted after the 018-024 audit (2026-10-05):
 - Treasury: deleting a draft report that a `NerbaOrders.ReportId` row still references (ON DELETE RESTRICT) rolls back
   correctly but answers 500; it should answer 409 with a message.

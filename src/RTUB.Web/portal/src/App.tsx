@@ -5,13 +5,14 @@ import { Icon, type IconName } from './icons';
 
 export const sections = [
   { id: 'events', label: 'Atuações' },
+  { id: 'news', label: 'Novidades' },
   { id: 'music', label: 'Música' },
   { id: 'gallery', label: 'Galeria' },
   { id: 'governance', label: 'Órgãos Sociais' },
   { id: 'request', label: 'Pedidos' },
 ];
 
-// The top bar and the menu stay short: four public sections plus the "Pedir atuação" call to action.
+// The top bar and the menu stay short: five public sections plus the "Pedir atuação" call to action.
 const navSections = sections.filter((s) => s.id !== 'request');
 
 // The footer also lists the home's other anchors (FITAB, joining), which stay out of the top bar.
@@ -26,6 +27,7 @@ const footerSections = [
 // anchors, always /#id so the same link scrolls on the home page and navigates from elsewhere.
 const sectionPages: Record<string, string> = {
   events: portal.events,
+  news: portal.news,
   music: portal.music,
   governance: portal.roles,
   gallery: portal.gallery,
@@ -185,8 +187,8 @@ function Footer() {
         <div className="footer__about">
           <Brand />
           <p>
-            Portal público da RTUB: atuações, música, órgãos sociais, galeria e pedidos de atuação. Música, capa e
-            tradição académica em Bragança desde 1991.
+            Portal público da RTUB: atuações, novidades, música, órgãos sociais, galeria e pedidos de atuação.
+            Música, capa e tradição académica em Bragança desde 1991.
           </p>
         </div>
         <nav className="footer__col" aria-label="Portal">

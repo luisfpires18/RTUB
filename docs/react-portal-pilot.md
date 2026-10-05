@@ -49,15 +49,16 @@ DTOs and branches are English: "Novidades" on screen, `/news` in the URL; "Pedid
 ## Home page and navigation
 
 Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (a pointer to the full
-agenda, with the FITAB highlight) → Música → Galeria → Junta-te a nós → Pedidos +
-member area → install the app → a small "Novidades · Em breve" line.
+agenda, with the FITAB highlight) → "Últimas novidades" (the 3 newest posts of `/news`, hidden when there are
+none; 025) → Música → Galeria → Junta-te a nós → Pedidos + member area → install the app. Nothing about news
+closes the page.
 
-- **Top bar:** Atuações, Música, Galeria, Órgãos Sociais; the **"Pedir atuação"** call to action
-  (the hero's primary button also goes straight to `/request`); the quiet members link ("Membros" /
-  "A minha conta"). FITAB, Junta-te, the app install and Novidades are never in the top bar.
-- **Footer:** every home anchor (Quem somos, the four sections, Pedidos, FITAB, Junta-te a nós), then
+- **Top bar:** Atuações, Novidades (025), Música, Galeria, Órgãos Sociais; the **"Pedir atuação"** call to
+  action (the hero's primary button also goes straight to `/request`); the quiet members link ("Membros" /
+  "A minha conta"). FITAB, Junta-te and the app install are never in the top bar.
+- **Footer:** every home anchor (Quem somos, the five sections, Pedidos, FITAB, Junta-te a nós), then
   Fazer um pedido, Instalar a app, Área de membros, Política de Privacidade, the contact email, the
-  social links and the build version. Novidades gets a footer link only once `/news` exists.
+  social links and the build version.
 - **FITAB:** a compact highlight inside Atuações (`/#fitab`), plus a footer link. Only what is
   certain: organised by the RTUB, yearly, tunas from home and abroad, dates announced on the RTUB's
   social networks. No editions, dates, line-ups or schedules.
@@ -101,7 +102,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | temporary Blazor bridge |
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
-| Novidades / News | none | future public posts | "Em breve" line | homepage now (teaser only); future React page (`/news`) |
+| Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
 | Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: decide a read-only public labels API vs static copy before the PROD cutover |
 | Partilhar | `/share` (manifest `share_target`) | receives shares from the OS | not linked | exclude/defer: technical PWA endpoint |
 | Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
@@ -123,6 +124,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/portal/request` | **Redirect** → `/request` | Same. |
 | `/music`, `/music/albums/{id}` | **React canonical** (006) | Music area: albums, songs, player, lyrics, videos, statistics, management. `docs/react-music.md`. |
 | `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
+| `/news` | **React canonical** (025) | Novidades: public wall of text posts, newest first; Admin/Owner write, publish and delete. `docs/react-news.md`. |
 | `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
 | `/member/gallery` | **Redirect** → `/gallery` (015) | `302`, GET/HEAD only. Upload, tags, edit and delete are React on `/gallery`. |
 | `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
@@ -373,27 +375,19 @@ browser: Chrome menu → Instalar app / Adicionar ao ecrã principal, when offer
 install icon in Chrome/Edge, when offered. No promise about notifications. Manifest, service worker
 and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`).
 
-## News / "Novidades" (planning only - nothing built)
+## News / "Novidades" (025)
 
-Public label **Novidades**; code, routes and internal names **News**. Future canonical routes:
-`/news` (list) and `/news/{slug}` (one post, with its own shareable URL).
-
-- **What:** public posts created by Admins - announcements, event recaps, photos, and relevant
-  topics/news about the tuna.
-- **Sharing:** each post has a stable link that previews well on Facebook and WhatsApp, which needs
-  server-rendered OpenGraph/SEO metadata per post (the React shell alone cannot provide it).
-- **To decide before building:** moderation and edit history; visibility (public vs members-only);
-  images and attachments in R2; notifications (push/email) on publish; the admin publishing flow
-  (draft, preview, publish, unpublish).
-- **Today:** only the "Novidades · Em breve" line on the home page. No route, table, migration, API,
-  admin screen or OpenGraph code, and no top-bar or footer link until `/news` has real content.
+Built in React track 025: `/news`, a public wall of text posts by Admin/Owner, with a latest-3 preview on the
+home page. Rules, API, schema and follow-ups (images, comments, per-post pages with share previews):
+`docs/react-news.md`.
 
 ## Next recommended slice
 
 Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
 contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017,
 member admin 018, classification 019, instruments inventory 020, shop 021, documentation 022, logistics 023, treasury 024. Next:
-025 Newsletter; the roadmap and task contract are in `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
+025 Novidades (`/news`, in review: `docs/react-news.md`); the roadmap and task contract are in
+`docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
 ## Next steps (outside this pilot)
 
