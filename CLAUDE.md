@@ -65,6 +65,7 @@ Run only what the change can break.
 | React Loja (`/shop`: products, reservations) | `docs/react-shop.md` |
 | React Documentação (`/documentation`: folders, files, storage) | `docs/react-documentation.md` |
 | React Logística (`/logistics`: boards, Kanban, reminders) | `docs/react-logistics.md` |
+| React Tesouraria (`/treasury`: reports, calotes, MBWay, Nerba) | `docs/react-treasury.md` |
 | MyTuno game domain & balancing | `docs/my_tuno/` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |

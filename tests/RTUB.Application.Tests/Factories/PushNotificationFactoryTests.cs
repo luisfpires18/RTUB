@@ -886,4 +886,13 @@ public class PushNotificationFactoryTests
         Assert.Equal("https://rtub.example.com/meetings", notification.Url);
         Assert.Equal("meeting-request-rejected-21", notification.Tag);
     }
+
+    [Fact]
+    public void CreateCalotesReminderNotification_OpensTheReactCalotesPage()
+    {
+        var notification = _factory.CreateCalotesReminderNotification(12.5m, "/");
+
+        Assert.Equal("/treasury/calotes", notification.Url);
+        Assert.Equal("calotes-reminder", notification.Tag);
+    }
 }
