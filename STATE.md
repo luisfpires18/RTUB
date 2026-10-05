@@ -50,8 +50,8 @@ receipts, lock, history, PDF), `/treasury/calotes`, `/treasury/mbway`, `/treasur
 `/mbway…`, `/nerba…` 302 to them. Privacy fixed: calotes, MBWay and Nerba were open to visitors, the report page to any
 account; now members only, Caloiros and Leitões see only their own calotes. Rights as before (treasury-team Mod / Admin /
 Owner manage reports, Owner + treasury team publish, Admin / Owner history, Mod / Admin / Owner calotes, MBWay add and
-Nerba, Owner MBWay edit / delete; Owner inherits Admin). Deleting an activity with transactions no longer fails on the
-foreign key. No schema change, nothing sent. Detail: `docs/react-treasury.md`.
+Nerba, Owner MBWay edit / delete; Owner inherits Admin). Deleting an activity or draft report with transactions no longer
+fails on the foreign key: one DB transaction for the rows, receipts removed best-effort after the commit. No schema change, nothing sent. Detail: `docs/react-treasury.md`.
 
 **Open: `feat/023-react-logistics-kanban`** (React track 023, from `dev` @ `e6a0a837`, 022 merged; local, not pushed;
 DEV only). **Logística is React:** `/logistics` (boards) and `/logistics/{id}` (Kanban) over `/api/logistics`

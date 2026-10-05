@@ -426,6 +426,74 @@ public class TreasuryApiTests : IClassFixture<TreasuryApiFactory>
     }
 
     [Fact]
+    public async Task DeletingAReport_IsOneDatabaseTransaction_RolledBackWhole_WhenAnyRowFails()
+    {
+        var (reportId, activityId, transactionId) = await SeedReportAsync(receipt: true);
+        var receipt = (await TransactionAsync(transactionId))!.ReceiptUrl!;
+        int second;
+        await using (var db = await Db())
+        {
+            var t = Transaction.Create(new DateTime(2026, 1, 11), "Bebidas", "Comida", 5m, "Expense", activityId);
+            db.Transactions.Add(t);
+            // NerbaOrders.ReportId is ON DELETE RESTRICT: the report row cannot go, after its transactions were already removed.
+            db.NerbaOrders.Add(new NerbaOrder { EventId = (await AddNerbaAsync()).EventId, ReportId = reportId, Item = "Trava", Stock = 1, PricePerUnit = 1m });
+            await db.SaveChangesAsync();
+            second = t.Id;
+        }
+
+        var (owner, _) = await SignInAsync(null, "Owner");
+        await WithTokenAsync(owner);
+        (await owner.DeleteAsync($"/api/treasury/reports/{reportId}")).IsSuccessStatusCode.Should().BeFalse();
+
+        (await ReportAsync(reportId)).Should().NotBeNull("the failed delete rolled back");
+        (await TransactionAsync(transactionId)).Should().NotBeNull("no financial row is deleted unless all are");
+        (await TransactionAsync(second)).Should().NotBeNull();
+        _factory.Receipts.Objects.Should().ContainKey(receipt, "receipts go only after the rows are committed");
+        await using (var db = await Db())
+        {
+            (await db.AuditLogs.AnyAsync(l => l.EntityType == "Transaction" && l.Action == "Deleted" && (l.EntityId == transactionId || l.EntityId == second)))
+                .Should().BeFalse("the audit log rolls back with the rows");
+        }
+    }
+
+    [Fact]
+    public async Task DeletingAnActivity_RemovesItsTransactionsTogether_WithAuditLog_AndReceiptsBestEffort()
+    {
+        var (_, activityId, transactionId) = await SeedReportAsync(receipt: true);
+        int second;
+        await using (var db = await Db())
+        {
+            var t = Transaction.Create(new DateTime(2026, 1, 11), "Bebidas", "Comida", 5m, "Expense", activityId,
+                _factory.Receipts.Put($"receipts/test/b_{Guid.NewGuid():N}.png"));
+            db.Transactions.Add(t);
+            await db.SaveChangesAsync();
+            second = t.Id;
+        }
+
+        var (admin, _) = await SignInAsync(null, "Admin");
+        await WithTokenAsync(admin);
+        _factory.Receipts.FailDeletes = true;
+        try
+        {
+            (await admin.DeleteAsync($"/api/treasury/activities/{activityId}")).StatusCode.Should().Be(HttpStatusCode.OK,
+                "a storage failure after the commit does not fail the delete");
+        }
+        finally
+        {
+            _factory.Receipts.FailDeletes = false;
+        }
+
+        (await TransactionAsync(transactionId)).Should().BeNull();
+        (await TransactionAsync(second)).Should().BeNull();
+        await using (var db = await Db())
+        {
+            (await db.Activities.AnyAsync(a => a.Id == activityId)).Should().BeFalse();
+            (await db.AuditLogs.Where(l => l.EntityType == "Transaction" && l.Action == "Deleted" && (l.EntityId == transactionId || l.EntityId == second)).CountAsync())
+                .Should().Be(2, "each deleted transaction is in the audit log, as before");
+        }
+    }
+
+    [Fact]
     public async Task Calotes_AreManagedByModAdminOwner_WithCommitments_AndNothingIsSent()
     {
         var fy = await AddFiscalYearAsync();
@@ -809,6 +877,9 @@ public sealed class FakeReceiptStorage : IReceiptStorageService
 
     public ConcurrentDictionary<string, long> Objects { get; } = new();
 
+    /// <summary>Makes every delete throw, as an unreachable bucket would.</summary>
+    public bool FailDeletes { get; set; }
+
     public string Put(string key)
     {
         Objects[Base + key] = 1;
@@ -826,6 +897,11 @@ public sealed class FakeReceiptStorage : IReceiptStorageService
 
     public Task DeleteReceiptAsync(string receiptUrl)
     {
+        if (FailDeletes)
+        {
+            throw new IOException("storage unavailable (test)");
+        }
+
         Objects.TryRemove(receiptUrl, out _);
         return Task.CompletedTask;
     }

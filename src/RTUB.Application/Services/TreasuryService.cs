@@ -18,9 +18,10 @@ namespace RTUB.Application.Services;
 ///   new transaction, but its transactions can still be edited or deleted (as before);
 /// - amounts are euros &gt; 0 with at most two decimals; receipts are an image or a PDF ≤ 10 MB (the old page checked the
 ///   size only in the browser);
-/// - deleting an activity or a draft report deletes its transactions first, each through the old service (receipt and
-///   audit log included): <c>Transactions.ActivityId</c> has no ON DELETE action, so the old delete failed with a foreign-key
-///   error whenever an activity had transactions.
+/// - deleting an activity or a draft report deletes it with its transactions in one database transaction (rows and their
+///   audit log commit together or not at all): <c>Transactions.ActivityId</c> has no ON DELETE action, so the old delete
+///   failed with a foreign-key error whenever an activity had transactions. Their receipts are removed from storage after
+///   the commit, best-effort.
 /// No notifications, no schema change.
 /// </summary>
 public sealed class TreasuryService : ITreasuryService
@@ -35,16 +36,18 @@ public sealed class TreasuryService : ITreasuryService
     private readonly IActivityService _activities;
     private readonly ITransactionService _transactions;
     private readonly IFinanceManagementService _finance;
+    private readonly IReceiptStorageService _receipts;
     private readonly ReportPdfService _pdf;
 
     public TreasuryService(IDbContextFactory<ApplicationDbContext> contexts, IReportService reports, IActivityService activities,
-        ITransactionService transactions, IFinanceManagementService finance, ReportPdfService pdf)
+        ITransactionService transactions, IFinanceManagementService finance, IReceiptStorageService receipts, ReportPdfService pdf)
     {
         _contexts = contexts;
         _reports = reports;
         _activities = activities;
         _transactions = transactions;
         _finance = finance;
+        _receipts = receipts;
         _pdf = pdf;
     }
 
@@ -139,8 +142,8 @@ public sealed class TreasuryService : ITreasuryService
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
 
-        await DeleteTransactionsAsync(report.Activities.SelectMany(a => a.Transactions));
-        await _reports.DeleteReportAsync(id); // its activities cascade
+        await DeleteWithTransactionsAsync(db => db.Transactions.Where(t => t.Activity!.ReportId == id), async db =>
+            (await db.Activities.Where(a => a.ReportId == id).ToListAsync()).Cast<object>().Concat(await db.Reports.Where(r => r.Id == id).ToListAsync()));
         return EventResult<bool>.Ok(true);
     }
 
@@ -239,10 +242,9 @@ public sealed class TreasuryService : ITreasuryService
         }, evenIfPublished: true);
 
     public async Task<EventResult<TreasuryReportDto>> DeleteActivityAsync(int id, ClaimsPrincipal user) =>
-        await ChangeAsync(user, db => ReportOfActivityAsync(db, id), async db =>
+        await ChangeAsync(user, db => ReportOfActivityAsync(db, id), async _ =>
         {
-            await DeleteTransactionsAsync(await db.Transactions.AsNoTracking().Where(t => t.ActivityId == id).ToListAsync());
-            await _activities.DeleteActivityAsync(id);
+            await DeleteWithTransactionsAsync(d => d.Transactions.Where(t => t.ActivityId == id), async d => await d.Activities.Where(a => a.Id == id).ToListAsync());
             return null;
         });
 
@@ -473,12 +475,37 @@ public sealed class TreasuryService : ITreasuryService
 
     private static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    // ponytail: one transaction at a time (receipt + audit log each), not atomic; a failure midway leaves the rest to delete again.
-    private async Task DeleteTransactionsAsync(IEnumerable<Transaction> transactions)
+    /// <summary>
+    /// Deletes <paramref name="owners"/> (an activity, or a report with its activities) and <paramref name="transactions"/> in
+    /// one database transaction: every row is tracked, so EF deletes transactions, then activities, then the report, and
+    /// both SaveChanges of the context (the rows, then their audit log) commit together or roll back together.
+    /// Receipts go only after the commit, best-effort: a storage failure never leaves financial rows half deleted.
+    /// </summary>
+    private async Task DeleteWithTransactionsAsync(Func<ApplicationDbContext, IQueryable<Transaction>> transactions,
+        Func<ApplicationDbContext, Task<IEnumerable<object>>> owners)
     {
-        foreach (var id in transactions.Select(t => t.Id).ToList())
+        List<string> receipts;
+        await using (var db = await _contexts.CreateDbContextAsync())
         {
-            await _transactions.DeleteTransactionAsync(id); // its receipt too (refused, and logged, if this environment does not own it)
+            await using var scope = await db.Database.BeginTransactionAsync();
+            var rows = await transactions(db).ToListAsync();
+            receipts = rows.Where(t => !string.IsNullOrEmpty(t.ReceiptUrl)).Select(t => t.ReceiptUrl!).ToList();
+            db.Transactions.RemoveRange(rows);
+            db.RemoveRange(await owners(db));
+            await db.SaveChangesAsync();
+            await scope.CommitAsync();
+        }
+
+        foreach (var url in receipts)
+        {
+            try
+            {
+                await _receipts.DeleteReceiptAsync(url); // refuses (and logs) anything this environment does not own
+            }
+            catch
+            {
+                // Best-effort: the rows are already gone; a leftover object is only storage.
+            }
         }
     }
 

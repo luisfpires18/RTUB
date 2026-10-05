@@ -132,8 +132,10 @@ Report, calote, MBWay and Nerba writes answer with the refreshed page data.
   them there).
 - Owner manages calotes, MBWay adds and Nerba without the Admin role; Owner sees the history.
 - **Bug fixed**: `Transactions.ActivityId` has no ON DELETE action, so deleting an activity (or a draft report) with
-  transactions failed. The transactions are now deleted first through the old service, which also deletes their
-  receipts (no orphaned public receipts) and writes the audit log. No schema change.
+  transactions failed. It stays one "Eliminar" action: the activity (or the report and its activities) and its
+  transactions are deleted in **one database transaction** (rows and their audit log commit or roll back together; a
+  failure leaves every financial row in place). Their receipts are deleted from storage after the commit,
+  best-effort (a storage error never fails the delete). No schema change.
 - Amounts must have at most two decimals; receipts are type-checked on the server.
 - MBWay: the "Membro da Tuna" toggle and free-text recipient are gone (the old service refused any transfer without a
   member, so free text never saved).
@@ -156,4 +158,3 @@ URL; no endpoint sends e-mail or push (tests assert it with recording mocks and 
 - `ReportCard`, `TransactionCard`, `MbwayTransferCard`, `NerbaOrderCard` (Shared, + `ReportCardTests`) and
   `ITransactionFilterService` / `IDebtService` have no page caller.
 - `Transactions` rows with no activity (14 locally) appear nowhere; decide whether to clean them up.
-- A schema change (ON DELETE CASCADE on `Transactions.ActivityId`) would make activity / report deletes atomic.
