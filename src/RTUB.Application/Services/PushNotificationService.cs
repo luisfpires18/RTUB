@@ -14,7 +14,6 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for managing Web Push notifications
 /// Handles subscription management and sending push notifications using VAPID
-/// Also delivers notifications to user inboxes as system messages
 /// </summary>
 public class PushNotificationService : IPushNotificationService
 {
@@ -22,9 +21,6 @@ public class PushNotificationService : IPushNotificationService
     private static readonly TimeSpan InitialRetryDelay = TimeSpan.FromMilliseconds(200);
 
     private readonly IPushSubscriptionRepository _subscriptionRepository;
-    private readonly IConversationRepository _conversationRepository;
-    private readonly IMessageRepository _messageRepository;
-    private readonly IConversationUserSettingsRepository _settingsRepository;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly WebPushOptions _options;
     private readonly ILogger<PushNotificationService> _logger;
@@ -32,17 +28,11 @@ public class PushNotificationService : IPushNotificationService
 
     public PushNotificationService(
         IPushSubscriptionRepository subscriptionRepository,
-        IConversationRepository conversationRepository,
-        IMessageRepository messageRepository,
-        IConversationUserSettingsRepository settingsRepository,
         IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
     {
         _subscriptionRepository = subscriptionRepository;
-        _conversationRepository = conversationRepository;
-        _messageRepository = messageRepository;
-        _settingsRepository = settingsRepository;
         _userProfileRepository = userProfileRepository;
         _options = options.Value;
         _logger = logger;
@@ -126,9 +116,6 @@ public class PushNotificationService : IPushNotificationService
 
     public async Task SendToUserAsync(string userId, SendPushNotificationDto notification)
     {
-        // Always deliver to user's inbox as a system message, even if push is not configured
-        await SendInboxMessageAsync(userId, notification);
-
         if (!_options.IsConfigured())
         {
             return;
@@ -140,24 +127,6 @@ public class PushNotificationService : IPushNotificationService
         {
             await SendNotificationAsync(subscription, notification);
         }
-    }
-
-    public async Task SendPushOnlyAsync(string userId, SendPushNotificationDto notification)
-    {
-        if (!_options.IsConfigured())
-        {
-            return;
-        }
-
-        var subscriptions = await _subscriptionRepository.GetByUserIdAsync(userId);
-
-        foreach (var subscription in subscriptions)
-        {
-            await SendNotificationAsync(subscription, notification);
-        }
-
-        // Note: No inbox message is created - this is intentional for direct message notifications
-        // since the actual message is already in the conversation
     }
 
     public async Task BroadcastAsync(SendPushNotificationDto notification)
@@ -171,13 +140,6 @@ public class PushNotificationService : IPushNotificationService
 
         var tasks = subscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
         await Task.WhenAll(tasks);
-
-        // Also deliver to each recipient's inbox as a system message
-        var userIds = subscriptions.Select(s => s.UserId).Distinct();
-        foreach (var userId in userIds)
-        {
-            await SendInboxMessageAsync(userId, notification);
-        }
     }
 
     public async Task<(int Sent, int Failed)> SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification)
@@ -215,12 +177,6 @@ public class PushNotificationService : IPushNotificationService
             var success = await SendNotificationWithResultAsync(subscription, notification, userName);
             if (success) sent++;
             else failed++;
-        }
-
-        // Also deliver to each recipient's inbox as a system message (fallback)
-        foreach (var userId in userIdSet)
-        {
-            await SendInboxMessageAsync(userId, notification);
         }
 
         _logger.LogInformation("Push notification '{Title}' (tag: {Tag}) delivery complete: {Sent} sent, {Failed} failed out of {Total} subscriptions",
@@ -296,8 +252,7 @@ public class PushNotificationService : IPushNotificationService
             body = notification.Body,
             icon = notification.Icon ?? "/icons/rtub-logo-192.png",
             url = notification.Url ?? "/",
-            tag = notification.Tag,
-            unreadCount = notification.UnreadCount
+            tag = notification.Tag
         });
 
         // Set TTL (Time-To-Live) and Urgency headers
@@ -401,70 +356,5 @@ public class PushNotificationService : IPushNotificationService
             .TrimEnd('=');
 
         return result;
-    }
-
-    /// <summary>
-    /// Sends a system message to a user's inbox
-    /// Creates or gets the system conversation and adds the message
-    /// </summary>
-    private async Task SendInboxMessageAsync(string userId, SendPushNotificationDto notification)
-    {
-        try
-        {
-            // Build message body from notification title and body
-            var messageBody = string.IsNullOrWhiteSpace(notification.Title)
-                ? notification.Body
-                : $"{notification.Title}\n\n{notification.Body}";
-
-            // Get or create system conversation for this user
-            var conversation = await _conversationRepository.GetSystemConversationForUserAsync(userId);
-
-            if (conversation == null)
-            {
-                conversation = new Conversation
-                {
-                    Participants = userId,
-                    LastMessageAt = DateTime.UtcNow,
-                    IsSystemConversation = true,
-                    Title = "Sistema RTUB",
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _conversationRepository.AddAsync(conversation);
-            }
-
-            // Auto-pin system conversation for the user (both new and existing)
-            // This ensures existing conversations are also pinned for users who had them before this feature
-            var settings = await _settingsRepository.GetOrCreateAsync(userId, conversation.Id);
-            if (!settings.IsPinned)
-            {
-                settings.IsPinned = true;
-                settings.UpdatedAt = DateTime.UtcNow;
-                await _settingsRepository.UpdateAsync(settings);
-            }
-
-            // Create system message
-            var message = new Message
-            {
-                ConversationId = conversation.Id,
-                SenderId = null,
-                Body = messageBody,
-                IsSystem = true,
-                Link = notification.Url,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _messageRepository.AddAsync(message);
-
-            // Update conversation directly — it's already tracked from the query/add above.
-            // No need to reload; GetSystemConversationForUserAsync returns a tracked entity,
-            // and newly-created conversations are tracked after AddAsync.
-            conversation.LastMessageAt = message.CreatedAt;
-            conversation.LastMessageId = message.Id;
-            await _conversationRepository.UpdateAsync(conversation);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending inbox message");
-        }
     }
 }

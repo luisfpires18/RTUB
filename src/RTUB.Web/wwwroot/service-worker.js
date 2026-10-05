@@ -236,8 +236,7 @@ self.addEventListener('push', (event) => {
         icon: '/icons/rtub-logo-192.png',
         badge: '/icons/rtub-badge-96.png',
         url: '/',
-        tag: null,
-        unreadCount: null
+        tag: null
     };
 
     if (event.data) {
@@ -249,8 +248,7 @@ self.addEventListener('push', (event) => {
                 icon: data.icon || notificationData.icon,
                 badge: data.badge || notificationData.badge,
                 url: data.url || notificationData.url,
-                tag: data.tag || null,
-                unreadCount: data.unreadCount != null ? data.unreadCount : null
+                tag: data.tag || null
             };
         } catch (e) {
             console.error('[Service Worker] Error parsing push data:', e);
@@ -296,40 +294,14 @@ self.addEventListener('push', (event) => {
         notificationOptions.vibrate = [200, 100, 200];
     }
 
-    // Show notification FIRST (critical for iOS — SW gets killed quickly)
-    // Then notify open clients as a secondary action
+    // Show the notification inside waitUntil (critical for iOS — SW gets killed quickly).
+    // No app-icon badge and no message to open clients: both fed the unread-messages count,
+    // retired with Messages in 027.
     const showAndNotify = self.registration.showNotification(
         notificationData.title,
         notificationOptions
     ).then(() => {
         console.log('[Service Worker] Notification displayed:', uniqueTag);
-        return clients.matchAll({ type: 'window', includeUncontrolled: true });
-    }).then((clientList) => {
-        clientList.forEach((client) => {
-            client.postMessage({
-                type: 'rtub:push-received',
-                title: notificationData.title,
-                tag: baseTag
-            });
-        });
-        // Thread clientList into the next step to decide whether to update the badge.
-        return clientList;
-    }).then((clientList) => {
-        // Only update the app badge from the service worker when the app is NOT open.
-        // When the app is open, it will update the badge itself via RefreshUnreadMessages
-        // (triggered by the rtub:push-received postMessage above), which uses the real DB count.
-        // Using notifications.length here would set the badge to the OS notification tray count,
-        // which diverges from the actual unread message count when notifications pile up.
-        if ('setAppBadge' in self.navigator && clientList.length === 0) {
-            // App is closed — use unreadCount from payload if available (accurate),
-            // otherwise fall back to notification tray count (best available proxy).
-            if (notificationData.unreadCount != null) {
-                return self.navigator.setAppBadge(notificationData.unreadCount).catch(() => {});
-            }
-            return self.registration.getNotifications().then((notifications) => {
-                return self.navigator.setAppBadge(notifications.length).catch(() => {});
-            }).catch(() => {});
-        }
     }).catch((error) => {
         console.error('[Service Worker] Error showing notification:', error);
         // Last resort: try a minimal notification
@@ -349,10 +321,8 @@ self.addEventListener('notificationclick', (event) => {
     
     event.notification.close();
 
-    // Clear the app badge when the user taps a notification.
-    // The Blazor app will re-set it to the accurate DB unread count once it opens.
-    // Do NOT use notifications.length here — that counts OS notification tray items,
-    // which diverges from the actual unread message count.
+    // Clear the app badge when the user taps a notification. Nothing sets it since 027
+    // (it showed unread messages); this clears a badge left by an older worker.
     if ('clearAppBadge' in self.navigator) {
         self.navigator.clearAppBadge().catch(() => {});
     }
@@ -367,8 +337,6 @@ self.addEventListener('notificationclick', (event) => {
     if (!urlToOpen || urlToOpen === '/') {
         if (notificationTag.startsWith('question')) {
             urlToOpen = '/questions';
-        } else if (notificationTag.startsWith('message')) {
-            urlToOpen = '/messages';
         }
     }
     console.log('[Service Worker] Raw URL from notification:', urlToOpen, 'Tag:', notificationTag);

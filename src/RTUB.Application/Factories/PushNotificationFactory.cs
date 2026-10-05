@@ -1077,48 +1077,6 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
-    /// Creates a push notification for a direct message (1-on-1 conversation).
-    /// </summary>
-    public SendPushNotificationDto CreateDirectMessageNotification(string senderName, string conversationId, string baseUrl)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(senderName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Nova mensagem de {senderName}",
-            Body = "Tens uma nova mensagem direta",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = messageUrl,
-            Tag = $"message-{conversationId}"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification for a group message.
-    /// </summary>
-    public SendPushNotificationDto CreateGroupMessageNotification(string groupName, string conversationId, string baseUrl)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(groupName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Nova mensagem no grupo {groupName}",
-            Body = "Há uma nova mensagem no teu grupo",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = messageUrl,
-            Tag = $"message-{conversationId}"
-        };
-    }
-
-    /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// </summary>
     public SendPushNotificationDto CreateGalleryTagNotification(string baseUrl)

@@ -119,18 +119,6 @@
       ]
     },
     {
-      "name": "Mensagens",
-      "short_name": "Mensagens",
-      "description": "Ver mensagens",
-      "url": "/messages",
-      "icons": [
-        {
-          "src": "/icons/rtub-logo-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
       "name": "Galeria",
       "short_name": "Galeria",
       "description": "Ver galeria de fotos",

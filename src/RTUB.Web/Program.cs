@@ -120,7 +120,6 @@ public class Program
         services.AddMemberServices();
         services.AddRoleServices();
         services.AddPushNotificationServices();
-        services.AddMessagingServices();
 
         // --------- Social ---------
         services.AddScoped<IMentionService, MentionService>();
@@ -176,10 +175,6 @@ public class Program
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
-
-                    // Sync default group conversations after seeding
-                    var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
-                    await groupSyncService.SyncDefaultGroupsAsync();
 
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
@@ -685,9 +680,6 @@ public class Program
             context.Response.Headers.CacheControl = "no-cache";
             return Results.File(env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!, "text/html");
         });
-
-        // Map SignalR hubs
-        app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
 
         // Map API controllers
         app.MapControllers();

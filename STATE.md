@@ -6,14 +6,19 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-05_
 
 ## Phase
-**Open: `feat/026-remove-games-bets-mytuno`** (from `dev` @ `03f18c1d`; local, not pushed; DEV only). **Games / Bets /
-MyTuno removed from the app (Option A):** `/games…`, `/bets`, `/my-tuno…`, `/owner/stage-enemies`,
-`/owner/weapon-drink-config` and `/api/cdn/image` are plain 404s (no replacement, no redirect); pages, "Jogos" nav, game
-services, PixiJS source and publish step (publishing needs no Node now), sprites/sound, game JS/CSS, `appsettings`
-`Games`, `scaling.config.json` and bet push are gone. **No migration, schema unchanged** (`has-pending-model-changes`:
-none): the 15 game tables and `AspNetUsers.FidelisBalance` stay for N-1 rollback until a later contract task drops them.
-Backup ZIP (outside the repo): `F:\Workspace\Backups\RTUB\026-games-bets-mytuno\RTUB-026-games-bets-mytuno-03f18c1d.zip`.
-Detail: `docs/games-bets-mytuno-removal.md`. Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
+**Open: `feat/027-remove-messages-conversas`** (from `dev` @ `e5a30a9a`; local, not pushed; DEV only). **Messages /
+Conversas removed from the app (Phase A):** `/messages`, `/messages/{id}` and `/hubs/messages` are plain 404s (no
+replacement); the inbox, `MessagesHub`, the user-menu "Mensagens" item and unread badges, "Sync Chat" on `/users`, the PWA
+"Mensagens" shortcut, the service worker's `/messages` fallback and app-icon badge, message JS/CSS and every messaging
+service are gone. **Push still sends but no longer writes an in-app copy** (the "Sistema RTUB" inbox, ~99% of the
+`Messages` rows): members without push now see those notifications nowhere in the app. **No migration, schema unchanged**
+(`has-pending-model-changes`: none): `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings` keep their
+data, unread and unwritten, until the contract task. No R2 objects involved. Backup ZIP (outside the repo, code only, no
+message data): `F:\Workspace\Backups\RTUB\027-messages\RTUB-027-messages-e5a30a9a.zip`. Detail: `docs/messages-removal.md`.
+
+**026 merged to `dev`** (@ `e5a30a9a`): Games / Bets / MyTuno removed from the app the same way (Option A); their 15
+tables and `AspNetUsers.FidelisBalance` stay. Backup: `F:\Workspace\Backups\RTUB\026-games-bets-mytuno\RTUB-026-games-bets-mytuno-03f18c1d.zip`. Detail: `docs/games-bets-mytuno-removal.md`.
+Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
 
 **React track 001-025: merged to `dev`** (last: 025 @ `03f18c1d`). React owns
 `/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/roles`, `/gallery`, `/events…`, `/rehearsals…`, `/members`,
@@ -131,10 +136,21 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 027 (Messages / Conversas removal, Phase A):
+- Contract task (bundled with 026's, below): drop `Conversations`, `Messages`, `MessageReactions`,
+  `ConversationUserSettings` (migration `DropMessagesConversations`) and delete the kept entities/configs/DbSets. Private
+  member chats: take the production DB backup first and keep it privately, no longer than needed.
+  `docs/messages-removal.md`.
+- Now unused, left in place: `window.appBadge` (`pwa-helper.js`); the `/hubs/` never-cache prefix in `service-worker.js`
+  (harmless, pinned by `ServiceWorkerReliabilityTests`).
+- The Play Store (TWA) app may carry the old "Mensagens" shortcut until it is rebuilt from the manifest; it opens a 404.
+- DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them) until the contract task.
+
 Raised by 026 (Games / Bets / MyTuno removal):
-- Contract task, only after the release carrying 026 is live in production: drop the 15 game tables and
-  `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept entities/configs/DbSets; take a
-  production DB backup first; that release may be MAJOR. Exact list: `docs/games-bets-mytuno-removal.md`.
+- Contract task (one release with 027's, above), only after the release carrying 026 is live in production: drop
+  the 15 game tables and `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept
+  entities/configs/DbSets; take a production DB backup first; that release may be MAJOR. Exact list:
+  `docs/games-bets-mytuno-removal.md`.
 - R2 objects left in place, public-read and unused: `images/{env}/bets/`, `images/{env}/bet-comments/`,
   `item-configs/{env}/images/`.
 - Now unused (their only users were game pages), left for the dead-code cleanup: `window.isMobileDevice`
@@ -261,8 +277,7 @@ Raised by React track 001-003 (portal pilot):
 - The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
 - Windows-only local test noise: an ignored `src/RTUB.Web/publish/` output, when present, fails 5 guard
   tests that sweep `src/` on disk. CI is unaffected.
-- `MessagesHubTests.SendTypingStarted_WhenUserNotParticipant_DoesNotNotify` fails when its class runs
-  from a fresh checkout and passes alone (order-dependent; reproduced at `95441bd6`).
+- (027, resolved) `MessagesHubTests` order-dependent failure: the class went with Messages.
 - A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/events`,
   `/music`, `/gallery`, `/roles`; `/` is React since 004); the integration tests' placeholder values
   avoid it.

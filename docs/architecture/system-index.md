@@ -9,7 +9,7 @@ Routing map only — paths plus one-line responsibilities. No architecture prose
 | `src/RTUB.Core/` | Domain entities, enums, constants, attributes, pure helpers. No external dependencies. |
 | `src/RTUB.Application/` | Business logic: services, repositories, EF Core data layer, DTOs, factories, interfaces. |
 | `src/RTUB.Shared/` | Reusable Razor components, base classes, shared static assets. |
-| `src/RTUB.Web/` | Blazor Interactive Server host: pages, layout, SignalR hub, a few support controllers, DI wiring. |
+| `src/RTUB.Web/` | Blazor Interactive Server host: pages, layout, a few support controllers, DI wiring. |
 | `tools/` | Standalone console utilities run by hand or by a manual workflow. Not part of the deployed app. |
 
 ## Data / SQLite
@@ -32,8 +32,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
 | `src/RTUB.Web/Pages/` | Routable Blazor pages, grouped by area. |
 | `src/RTUB.Web/Components/`, `src/RTUB.Web/Shared/` | Host-local components and layout. |
-| `src/RTUB.Web/Hubs/MessagesHub.cs` | SignalR messaging hub. |
-| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, CDN proxy, React session state. |
+| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, React session state. |
 | `src/RTUB.Web/Interop/` | JS interop wrappers. |
 
 ## PWA / service worker
@@ -66,7 +65,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Application/Configuration/WebPushOptions.cs` | VAPID / feature-flag options. |
-| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle, inbox fallback. |
+| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle (no inbox copy since 027). |
 | `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
 | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
 | `src/RTUB.Web/Controllers/PushController.cs` | `/api/push/*` subscription and send endpoints. |

@@ -4,7 +4,7 @@ namespace RTUB.Web.Services;
 /// Singleton service that broadcasts system announcements to all active Blazor circuits.
 ///
 /// Because this is a singleton shared across every connected user's circuit, it uses the
-/// same GetInvocationList() + Task.WhenAll() pattern as MessagesNotificationService to
+/// GetInvocationList() + Task.WhenAll() pattern to
 /// ensure every subscriber is awaited — the default multicast delegate only returns the
 /// last subscriber's Task.
 /// </summary>
