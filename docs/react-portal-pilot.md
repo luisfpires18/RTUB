@@ -35,9 +35,9 @@ context (docs, tests). Never in UI, routes, feature names, page titles or user-f
 The portal is **public**: an overview of RTUB, public performances, music, the current Órgãos
 Sociais, the gallery, performance requests and, later, a public Feed. The **member area is only for
 RTUB members**: there are no public accounts - the tuna creates each member's login. Portal copy and
-layout follow that: public actions ("Pedir atuação") lead; the members link is quiet ("Membros" /
-"A minha conta") and always opens `/profile`, which says the area is reserved before offering
-the login. Never present login or registration as a public feature.
+layout follow that: public actions ("Pedir atuação") lead; the visitors' way in is a quiet "Login" link to
+`/login` (030; before it read "Membros" / "A minha conta" and opened `/profile`). Signed-in members get the
+member shell instead (see *Member shell*). Never present login or registration as a public feature.
 
 ## Naming
 
@@ -53,9 +53,12 @@ agenda, with the FITAB highlight) → "Últimas novidades" (the 3 newest posts o
 none; 025) → Música → Galeria → Junta-te a nós → Pedidos + member area → install the app. Nothing about news
 closes the page.
 
-- **Top bar:** Atuações, Novidades (025), Música, Galeria, Órgãos Sociais; the **"Pedir atuação"** call to
-  action (the hero's primary button also goes straight to `/request`); the quiet members link ("Membros" /
-  "A minha conta"). FITAB, Junta-te and the app install are never in the top bar.
+- **Top bar (visitors):** Atuações, Novidades (025), Música, Galeria, Órgãos Sociais; the **"Pedir atuação"**
+  call to action (the hero's primary button also goes straight to `/request`); the quiet **"Login"** link (030).
+  The phone menu has the same sections, "Pedir uma atuação" and "Login". FITAB, Junta-te and the app install
+  are never in the top bar.
+- **Top bar (signed-in members, 030):** no public sections and no "Pedir atuação"; who is signed in (avatar,
+  name, first category) linking to `/profile`, and the member menu (*Member shell*).
 - **Footer:** every home anchor (Quem somos, the five sections, Pedidos, FITAB, Junta-te a nós), then
   Fazer um pedido, Instalar a app, Área de membros, Política de Privacidade, the contact email, the
   social links and the build version.
@@ -98,7 +101,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: dropped; the `/images` admin was removed in 029A (no replacement); tables go in 029B |
 | Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
 | Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
-| Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet header link, home card, footer | navbar now (quiet link); login done (007) |
+| Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet "Login" header link (030), home card, footer; members: the member shell (030) | navbar now (quiet link); login done (007) |
 | Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | temporary Blazor bridge |
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
@@ -116,7 +119,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → who you are, "Agenda de atuações" (`/events`, since 012F; was `/member/events`), "As minhas inscrições", "Editar o perfil" (`/member/profile`) and "Terminar sessão" (`POST /auth/logout`, 012F). |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → a small account page (030): who you are, "Editar o perfil" (`/member/profile`), "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is no longer the members' menu: the member shell is. |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -169,8 +172,8 @@ enhanced navigation does not try to patch a React page. No app-facing link point
 **`/` side effects (task 004).** The Blazor home also showed the push-notification opt-in prompt,
 the custom login popup and the Play Store prompt, and gave signed-in members their bottom nav. None of
 that renders on the React `/`; the installed app (`start_url` `/?utm_source=pwa`) and push
-notifications without a URL now open the React home. Members reach their area through
-"A minha conta" → `/profile`, or any Blazor page's own navigation.
+notifications without a URL now open the React home. Members reach their area through the member shell
+(030), or any Blazor page's own navigation.
 
 ## Before any production release
 
@@ -298,14 +301,37 @@ everyone. Pinned by `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTe
   a POST from the Blazor layout with its own token; the portal only points to it.
 - **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
   `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
-  `fullName`, `avatarUrl` and category labels (`StatusHelper.GetCategoryDisplay`). No email, phone,
-  birth date, roles, IDs or other users. Expelled or deleted members arrive anonymous: the cookie
-  validator rejects their session on every request. Pinned by `AccountEndpointTests`.
-- React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header and menu
-  show "Entrar" or "A minha conta", and `/profile` has loading, error (retry), signed-out and
-  signed-in states. Unknown or failed session state falls back to "Entrar".
-- Authorization is unchanged: nothing in React grants or hides access; every member page still
-  enforces its own rules in Blazor.
+  `fullName`, `avatarUrl`, category labels (`StatusHelper.GetCategoryDisplay`) and, since 030, `menu`: four
+  booleans saying which member-menu groups to show (`MemberMenuAccess`). No email, phone, birth date, role
+  list, IDs or other users. Expelled or deleted members arrive anonymous: the cookie validator rejects their
+  session on every request. Pinned by `AccountEndpointTests`.
+- React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header shows "Login" or the
+  member shell, and `/profile` has loading, error (retry), signed-out and signed-in states. Unknown or failed
+  session state falls back to the visitors' header ("Login").
+- Authorization is unchanged: nothing in React grants access, and a hidden menu link is a convenience only;
+  every page and API still enforces its own rules.
+
+## Member shell (task 030)
+
+Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not with `/profile`:
+
+- **Wide screens (≥ 1000px):** a rail under the header, left side; the page moves over for it. Expanded it shows
+  icons and labels (groups can be folded); collapsed it shows icons only, with the labels kept for screen readers
+  and as tooltips. The collapsed choice is kept per browser (`localStorage` `rtub-member-rail`).
+- **Phones and the installed app:** the menu button opens the same menu in a right-hand drawer (native modal
+  `<dialog>`: Esc, focus containment, backdrop tap), 48px rows, safe-area insets; it closes after every choice.
+- **Groups:** Membro (Perfil, Atuações, As minhas inscrições, Ensaios, Música, Galeria, Novidades) · Tuna
+  (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Recursos (Instrumentos, Loja,
+  Documentação) · Gestão (Reuniões, Questões, Logística, Tesouraria, Pedidos, Emails, Notificações) · Owner
+  (Utilizadores, Auditoria, Base de dados). Blazor pages open as full page loads.
+- **Who sees what** (`MemberMenuAccess`, the Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
+  Owner, Mod or anyone not a Leitão; Logística, Tesouraria → Admin, Owner, Mod or Tuno; Pedidos, Emails,
+  Notificações → Admin; the Owner group → Owner. The rest → every member.
+- **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Mensagens (027), Imagens and Conteúdo /
+  Labels (029A). `MemberShellTests` pins the list, the gating and that every link opens a live route.
+- **No jump on load:** `localStorage` `rtub-member-shell` remembers that the last load was signed in, so a
+  member's page opens in the shell while `/api/account/me` answers; the answer always wins, and signing out
+  clears it. A visitor never waits.
 
 ## Request (task 003: React replacement; legacy Blazor page retired)
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { signOut, type CurrentUser } from './api';
+import { useEffect } from 'react';
+import { type CurrentUser } from './api';
 import { useCurrentUser } from './App';
 import { legacy, loginToProfile, portal } from './content';
 import { Icon, type IconName } from './icons';
+import { SignOutButton } from './MemberShell';
 
 const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
@@ -10,6 +11,9 @@ const DEFAULT_AVATAR = '/images/default-avatar.webp';
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the
  * tuna creates its members' logins, so this page states that first and keeps the public portal
  * one tap away. Signing in is the React /login.
+ *
+ * Signed in, it is a small account page (who you are, edit the profile, sign out). Since task 030 it is
+ * no longer the members' menu: that is the member shell's rail / drawer (MemberShell.tsx).
  */
 export default function Profile() {
   const { user, failed, retry } = useCurrentUser();
@@ -45,7 +49,7 @@ export default function Profile() {
             <SignedOut />
           )}
         </div>
-        <PublicShortcuts />
+        {!signedIn && <PublicShortcuts />}
       </div>
     </section>
   );
@@ -96,70 +100,18 @@ function SignedIn({ user }: { user: Extract<CurrentUser, { authenticated: true }
         </div>
       </div>
       <div className="account__actions">
-        <a className="btn btn--primary" href={portal.events}>
-          <Icon name="calendar" />
-          Agenda de atuações
+        <a className="btn btn--primary" href={legacy.memberProfile}>
+          <Icon name="pencil" />
+          Editar o perfil
         </a>
         <a className="btn btn--ghost" href={portal.myEnrollments}>
           <Icon name="calendar" />
           As minhas inscrições
         </a>
-        <a className="btn btn--ghost" href={portal.members}>
-          <Icon name="person" />
-          Membros
-        </a>
-        <a className="btn btn--ghost" href={portal.leaderboard}>
-          <Icon name="trophy" />
-          Classificação
-        </a>
-        <a className="btn btn--ghost" href={portal.inventory}>
-          <Icon name="music" />
-          Instrumentos
-        </a>
-        <a className="btn btn--ghost" href={portal.shop}>
-          <Icon name="star" />
-          Loja
-        </a>
-        <a className="btn btn--ghost" href={portal.documentation}>
-          <Icon name="folder" />
-          Documentação
-        </a>
-        <a className="btn btn--ghost" href={portal.logistics}>
-          <Icon name="pin" />
-          Logística
-        </a>
-        <a className="btn btn--ghost" href={portal.treasury}>
-          <Icon name="bank" />
-          Tesouraria
-        </a>
-        <a className="btn btn--ghost" href={legacy.memberProfile}>
-          <Icon name="person" />
-          Editar o perfil
-        </a>
       </div>
-      <SignOut />
+      <p className="note">Ensaios, atuações, membros e o resto da área de membros estão no menu de membro.</p>
+      <SignOutButton className="account__signout" />
     </div>
-  );
-}
-
-function SignOut() {
-  const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
-  return (
-    <p className="note">
-      <button
-        type="button"
-        className="btn btn--ghost btn--sm"
-        disabled={state === 'busy'}
-        onClick={async () => {
-          setState('busy');
-          if (!(await signOut())) setState('failed');
-        }}
-      >
-        <Icon name="login" />
-        Terminar sessão
-      </button>
-      {state === 'failed' && ' Não foi possível terminar a sessão agora. Tente de novo.'}
-    </p>
   );
 }
 
@@ -172,7 +124,7 @@ function SignedOut() {
           <p>
             Esta área serve apenas os membros da RTUB. O acesso é criado pela própria tuna; não há registo público.
           </p>
-          <p className="account__muted">Se és membro, entra para consultar ensaios, atuações e mensagens.</p>
+          <p className="account__muted">Se és membro, entra para consultar ensaios, atuações e o resto da área de membros.</p>
         </div>
       </div>
       <div className="account__actions">

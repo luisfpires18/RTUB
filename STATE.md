@@ -6,10 +6,16 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/029a-remove-images-labels-ui`** (from `dev` @ `77487805`; DEV only). **UNVERIFIED cloud patch:** written in
-a cloud session with no `dotnet`, so it was never built or tested here; **GitHub Actions (CI • Build & Test) must pass
-before merge.** Portal `check:portal` + `build:portal` did run (bundle rebuilt). **Images and Labels admin removed (UI
-only):** `/images` (slideshows) and `/labels` (site texts) are plain 404s (no replacement; `/images` needs an explicit
+**Open: `feat/030-react-member-shell-navigation`** (from `dev` @ `8aa97451`; DEV only). **UNVERIFIED cloud patch** (no
+`dotnet` here): `check:portal` + `build:portal` ran and a scratch browser check (mock API, 4 roles, 320-1280px) passed;
+**GitHub Actions must pass before merge.** **Members' navigation is now the React member shell** (`MemberShell.tsx`):
+a collapsible rail on wide screens, a right-hand drawer on phones / the installed app. Visitors' header: public
+sections, "Pedir atuação", "Login" (never "Membros" / "A minha conta"). Members' header: no "Pedir atuação", their
+identity + the menu. `/profile` is a small account page, no longer the member hub. `/api/account/me` gains `menu`
+(four booleans, `MemberMenuAccess`, the Blazor navbar's rules; hides links only). Removed modules stay out of the menu.
+No schema change. Detail: `docs/react-portal-pilot.md` → *Member shell*.
+
+**029A merged to `dev`** (@ `8aa97451`, CI green). **Images and Labels admin removed (UI only):** `/images` (slideshows) and `/labels` (site texts) are plain 404s (no replacement; `/images` needs an explicit
 404 endpoint in `Program.cs`, else `ImagesController`'s catch-all answers 400; `/images/<file>` still served); the
 Operações "Imagens" and "Conteúdo" items, `LabelCard`, `SlideshowCard` and their CSS are gone. **Leaderboard story is now
 temporary code-backed text** (`LeaderboardService.Story`, the seeded label's text; owner decides the final text later):
@@ -148,6 +154,13 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 030 (member shell):
+- `/member/map` and `/naipes/config` are not in the member menu (reached from their Blazor pages only); decide.
+- The Blazor pages keep their own navbar (`MainLayout`), so a member moving between React and Blazor pages sees two
+  different menus until those pages are React.
+- No JS test runner in the repo: the shell's browser behaviour (drawer, rail, overflow) was checked by hand with a
+  scratch Playwright script; `MemberShellTests` pins the source contract only.
+
 Raised by 029A (Images / Labels admin removal, UI only):
 - 029B: drop `Labels`/`Slideshows` (migration) and the services, repositories, seed and tests left for it (see Phase).
   Any production edits to the `ranking_story` label are no longer shown; copy them out first if wanted.
@@ -256,7 +269,7 @@ Raised by React track 008 (Órgãos Sociais):
 Raised by React track 007 (Login):
 - `POST /auth/login` reports Locked/Expelled before checking the password, so those states are
   visible to anyone who knows a username (pre-existing; kept to preserve behaviour).
-- Sign-out: React `/profile` has "Terminar sessão" since 012F; the React top bar still has none.
+- (030, resolved) Sign-out: in the member shell (rail / drawer) and on `/profile`.
 
 Raised by 006 (shell banners):
 - (post-024, resolved) `VERSION` CRLF on Windows checkouts: `.gitattributes` pins `VERSION text eol=lf`.

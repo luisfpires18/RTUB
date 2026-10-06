@@ -206,12 +206,12 @@ public class InventoryApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public void ReactFiles_SayNothingAboutMigration_AndTheProfileLinksTheInventory()
+    public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheInventory()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "Inventory.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("inventory: '/inventory'");
-        File.ReadAllText(Path.Combine(src, "Profile.tsx")).Should().Contain("href={portal.inventory}");
+        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.inventory,", "the member menu links it (030)");
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor")).Should().Contain("href=\"/inventory\"").And.Contain("href=\"/shop\"");
     }
 

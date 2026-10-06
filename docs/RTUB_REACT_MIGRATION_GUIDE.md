@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-05 (025 Novidades)_
+_Last updated: 2026-10-06 (030 member shell)_
 
-## Done: 001-024 (merged to `dev`) and 025 (in review)
+## Done: 001-025 (merged to `dev`); 030 member shell (open)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -24,13 +24,14 @@ _Last updated: 2026-10-05 (025 Novidades)_
 | 022 | Documentação | `/documentation` | `react-documentation.md` |
 | 023 | Logística | `/logistics`, `/logistics/{id}` | `react-logistics.md` |
 | 024 | Tesouraria | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{id}]` | `react-treasury.md` |
-| 025 | Novidades (new feature: public posts wall; branch open) | `/news` | `react-news.md` |
+| 025 | Novidades (new feature: public posts wall) | `/news` | `react-news.md` |
+| 030 | Member shell: visitor header with Login; members' rail / drawer menu (not a new route) | every React page | `react-portal-pilot.md` → *Member shell* |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`)
 302 to their React page.
 
-## 025 Novidades (in review)
+## 025 Novidades (merged)
 
 The task was first named "Newsletter"; it is the Novidades public news feed. Built as `/news` with an approved schema
 (`NewsPosts`, migration `AddNewsPosts`); see `docs/react-news.md`. Its follow-ups (images, comments, reactions,
@@ -41,6 +42,12 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 `/member/profile` (profile editor), `/member/map`, `/hall-of-fame`, `/meetings`, `/naipes`, `/naipes/config`,
 `/notifications`, `/requests`, `/questions`, `/users`, `/emails`, `/share`, `/owner/*`, and the
 Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick these up one module per task.
+
+**Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
+drawer on phones and in the installed app), which links the React pages and the live Blazor ones above. `/profile` is a
+small account page, no longer the members' menu. The removed modules (games, bets, MyTuno, messages, images, labels)
+are not in it and are not to be brought back. `/member/map` and `/naipes/config` are reached from their Blazor pages
+only.
 
 ## Future work, outside the migration
 
@@ -61,7 +68,7 @@ Recorded in `STATE.md` → *Deferred*; the main ones:
 - Leitões seeing members' email/phone in member details: decide.
 - Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
 - Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
-- React top bar has no sign-out; old Blazor prompts (push, Play Store) have no React home.
+- (030, resolved) Sign-out is in the member shell. Old Blazor prompts (push, Play Store) still have no React home.
 
 ## The "next prompt" contract
 

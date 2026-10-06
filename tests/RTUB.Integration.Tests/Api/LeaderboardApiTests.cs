@@ -292,12 +292,12 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public void ReactFiles_SayNothingAboutMigration_AndTheProfileLinksTheClassification()
+    public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheClassification()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "Leaderboard.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("leaderboard: '/leaderboard'");
-        File.ReadAllText(Path.Combine(src, "Profile.tsx")).Should().Contain("href={portal.leaderboard}");
+        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.leaderboard,", "the member menu links it (030)");
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor")).Should().Contain("href=\"/leaderboard\"");
     }
 

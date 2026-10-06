@@ -236,12 +236,12 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public void ReactFiles_SayNothingAboutMigration_AndTheProfileLinksTheShop()
+    public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheShop()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "Shop.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("shop: '/shop'");
-        File.ReadAllText(Path.Combine(src, "Profile.tsx")).Should().Contain("href={portal.shop}");
+        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor")).Should().Contain("href=\"/shop\"");
     }
 

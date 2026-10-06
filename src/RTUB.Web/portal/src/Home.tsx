@@ -501,7 +501,7 @@ function Doors() {
           <p className="eyebrow">Área de membros</p>
           <h2 className="door__title">Só para a tuna</h2>
           <p className="door__lead">
-            Ensaios, atuações e mensagens dos membros da RTUB. O acesso é criado pela própria tuna; não há registo
+            Ensaios, atuações e o dia a dia dos membros da RTUB. O acesso é criado pela própria tuna; não há registo
             público.
           </p>
           <AccountLink className="member-link" signedOutLabel="Entrar como membro" />
