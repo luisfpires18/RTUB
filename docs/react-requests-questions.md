@@ -90,7 +90,7 @@ field); requests carry the requester's own contact details, as the old page did.
 - Members (not only Admin) still read requesters' email and phone, as before; decide whether to narrow it.
 - `IQuestionService` now has methods with no caller (`GetAllOrgaoSocialMembersAsync`, `HasOrgaoSocialPosition`,
   `GetMembersWithPositionAsync`, `CanAnswerAsync`), and `IRequestService.GetPendingRequestsAsync` too; kept, with tests.
-- Global CSS left by the Blazor cards: most of `3-components/request-card.css` and `question-card.css`, and
-  `4-pages/questions.css` (`request-grid`, `filter-search-container` and `filter-dropdown-container` are still used by
-  Meetings / Naipes).
+- Global CSS left by the Blazor cards: `3-components/request-card.css`, `question-card.css` and `4-pages/questions.css`
+  (`request-grid`, `filter-search-container` and `filter-dropdown-container` were also used by Meetings / Naipes; no
+  markup user left since 034).
 - A question notification opens `/questions`, not the question itself.

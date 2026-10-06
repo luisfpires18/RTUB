@@ -232,6 +232,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMeetingAtaConfirmationService, MeetingAtaConfirmationService>();
         services.AddScoped<IAtaPdfService, AtaPdfService>();
 
+        // The React /meetings (task 034): every rule of the old page, over the services above.
+        services.AddScoped<IMeetingBoardService, MeetingBoardService>();
+
         return services;
     }
 
