@@ -352,6 +352,27 @@ public class QuestionRepositoryTests : IClassFixture<DatabaseFixture>, IDisposab
         result.Should().BeNull();
     }
 
+    // ── AddAsync ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AddAsync_WithExistingUsersAsNavigations_SavesTheQuestionWithoutAddingUsers()
+    {
+        // QuestionService.CreateAsync sets Author and AssignedMember (loaded elsewhere) for the audit log's names.
+        var author = _context.Users.Single(u => u.Id == AuthorId);
+        var member = _context.Users.Single(u => u.Id == MemberId);
+        _context.ChangeTracker.Clear();
+        var usersBefore = _context.Users.Count();
+        var q = CreateQuestion("With navigations");
+        q.Author = author;
+        q.AssignedMember = member;
+
+        await _repository.AddAsync(q);
+
+        q.Id.Should().BeGreaterThan(0);
+        (await _repository.GetByIdAsync(q.Id))!.Title.Should().Be("With navigations");
+        _context.Users.Count().Should().Be(usersBefore, "the users already exist");
+    }
+
     // ── GetUnansweredQuestionsForNotificationAsync ────────────────────────────
 
     [Fact]

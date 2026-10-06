@@ -6,9 +6,17 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/030-react-member-shell-navigation`** (from `dev` @ `8aa97451`; DEV only). **UNVERIFIED cloud patch** (no
-`dotnet` here): `check:portal` + `build:portal` ran and a scratch browser check (mock API, 4 roles, 320-1280px) passed;
-**GitHub Actions must pass before merge.** **Members' navigation is now the React member shell** (`MemberShell.tsx`):
+**Open: `feat/031-react-requests-questions`** (from `dev` @ `fad2afa2`; DEV only). **UNVERIFIED cloud patch** (no
+`dotnet` here): the C# services, endpoints and tests were written but never built or run here; `check:portal` +
+`build:portal` and a scratch browser check (mock API, Owner / Tuno / Leitão, 375 + 1280px) passed. **GitHub Actions
+must pass before merge.** **`/requests` (Gestão de Pedidos) and `/questions` (Perguntas aos Órgãos Sociais) are now
+React** over `/api/requests` and `/api/questions`; the Blazor pages, `RequestCard`, `QuestionCard`, `CommentComposer`,
+`NewQuestionModel` and their bUnit tests are gone. Same rules, now server-side; changed on purpose: Owner inherits
+Admin on requests, "em análise" requests are listed, answered requests cannot be answered again, a question only goes
+to a current holder of the chosen position, closed questions take no replies, text capped at 5000. 16 Blazor routes
+left (18 before). No schema change. Detail: `docs/react-requests-questions.md`.
+
+**030 merged to `dev`** (@ `fad2afa2`). **Members' navigation is now the React member shell** (`MemberShell.tsx`):
 a collapsible rail on wide screens, a right-hand drawer on phones / the installed app. Visitors' header: public
 sections, "Pedir atuação", "Login" (never "Membros" / "A minha conta"). Members' header: no "Pedir atuação", their
 identity + the menu. `/profile` is a small account page, no longer the member hub. `/api/account/me` gains `menu`
@@ -154,6 +162,13 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 031 (Pedidos and Perguntas):
+- Members (not only Admin) read requesters' email and phone, as before; decide whether to narrow it.
+- Unused now, left in place: `IQuestionService.GetAllOrgaoSocialMembersAsync` / `HasOrgaoSocialPosition` /
+  `GetMembersWithPositionAsync` / `CanAnswerAsync`, `IRequestService.GetPendingRequestsAsync`; most of
+  `css/3-components/request-card.css`, `question-card.css` and `css/4-pages/questions.css` (a few selectors are still
+  used by Meetings / Naipes).
+
 Raised by 030 (member shell):
 - `/member/map` and `/naipes/config` are not in the member menu (reached from their Blazor pages only); decide.
 - The Blazor pages keep their own navbar (`MainLayout`), so a member moving between React and Blazor pages sees two

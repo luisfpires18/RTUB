@@ -8450,3 +8450,251 @@ video.tile__media {
 .news-more {
   justify-self: center;
 }
+
+/* ---------- Pedidos (/requests) and Perguntas (/questions), task 031 ---------- */
+
+/* The questions toolbar has a button instead of a third select. */
+@media (min-width: 760px) {
+  .qs-tools {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+}
+
+.rq-group {
+  display: grid;
+  gap: 16px;
+}
+
+.rq-group__title {
+  font-size: clamp(1.375rem, 1vw + 1rem, 1.75rem);
+}
+
+.rq-grid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 720px) {
+  .rq-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .rq-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.rq-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.rq-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rq-card__title {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.rq-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.rq-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rq-facts dt {
+  flex: none;
+  color: var(--purple-ink);
+}
+
+.rq-facts dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.rq-break {
+  overflow-wrap: anywhere;
+}
+
+.rq-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.rq-card__actions .icon-btn--danger {
+  margin-left: auto;
+}
+
+.rq-detail,
+.qs-detail {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.rq-detail__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 1.125rem;
+}
+
+.rq-message {
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.qs-card__people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.qs-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qs-person > span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.qs-person strong,
+.qs-person small {
+  overflow-wrap: anywhere;
+}
+
+.qs-card .qs-card__people {
+  justify-content: flex-start;
+}
+
+.qs-card__to {
+  color: var(--muted);
+}
+
+/* Four lines on the card; the dialog shows the whole question. */
+.qs-card__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow-wrap: anywhere;
+}
+
+.qs-detail__title {
+  font-size: 1.375rem;
+  overflow-wrap: anywhere;
+}
+
+.qs-replies {
+  display: grid;
+  gap: 10px;
+}
+
+.qs-reply {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.qs-reply--recipient {
+  border-color: rgba(185, 160, 238, 0.4);
+}
+
+.qs-reply .member-badge {
+  justify-self: start;
+}
+
+.qs-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.qs-pick {
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  margin-top: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.qs-pick__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.qs-pick__option:hover,
+.qs-pick__option:focus-visible {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.qs-pick__option > span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.qs-recipient {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}

@@ -38,6 +38,8 @@ export const portal = {
   treasuryMbway: '/treasury/mbway',
   treasuryNerba: '/treasury/nerba',
   treasuryNerbaEvent: (id: number) => `/treasury/nerba/${id}`,
+  requests: '/requests',
+  questions: '/questions',
 } as const;
 
 /** Sign in, then come back to the React profile. */

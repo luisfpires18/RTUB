@@ -151,7 +151,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões refused), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
 | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` | **React** (024) | Tesouraria: annual reports (totals, activities, transactions, receipts, PDF, history), calotes, MBWay, Nerba orders; signed-in members (Caloiros and Leitões: own calotes only), visitors get a 302 to sign in; old `/finance`, `/calotes`, `/mbway`, `/nerba` URLs 302 here. `docs/react-treasury.md`. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
-| every other member/admin page | **Blazor member/admin, pending** | the admin `/requests` page, `/meetings`, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
+| `/requests`, `/questions` | **React** (031) | Gestão de Pedidos (members but Leitões read; Admin/Owner answer) and Perguntas aos Órgãos Sociais (members); visitors get a 302 to sign in. `docs/react-requests-questions.md`. |
+| every other member/admin page | **Blazor member/admin, pending** | `/meetings`, `/naipes`, `/hall-of-fame`, the owner tools, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
@@ -388,8 +389,8 @@ are; the React DTO maps onto them. Pinned by `MigrationChainTests` (no pending m
 3 requests fit every limit, and all dated migrations in the repo are applied except the two known
 never-run ones (STATE.md).
 
-Still Blazor, unchanged: the admin `/requests` management page and turning a request into an
-event.
+The admin side (list, approve, reject, delete, and turning an approved request into an event) is the React
+`/requests` since task 031: `docs/react-requests-questions.md`.
 
 ## Install guidance (task 002)
 

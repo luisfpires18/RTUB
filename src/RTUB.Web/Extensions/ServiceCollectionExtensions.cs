@@ -167,6 +167,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();
+        services.AddScoped<IRequestAdminService, RequestAdminService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();
         services.AddScoped<ISlideshowService, SlideshowService>();
         services.AddScoped<ILabelService, LabelService>();
@@ -290,6 +291,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestionRepository, QuestionRepository>();
         services.AddScoped<IQuestionReplyRepository, QuestionReplyRepository>();
         services.AddScoped<IQuestionService, QuestionService>();
+        services.AddScoped<IQuestionBoardService, QuestionBoardService>();
         services.AddScoped<IMeetingAtaRepository, MeetingAtaRepository>();
 
         return services;

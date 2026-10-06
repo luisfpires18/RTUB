@@ -460,9 +460,9 @@ public class PortalRouteTests : IntegrationTestBase
             "the home agenda's call to action opens the React agenda");
         File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("events: portal.events,",
             "the top bar, the mobile menu and the footer open the agenda page, not the home section");
-        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Pages", "Management", "Requests.razor"))
-            .Should().Contain("GetUriWithQueryParameters(\"/events\", queryParams)").And.Contain("forceLoad: true",
-                "turning a request into an event opens the React create form (012F)");
+        File.ReadAllText(Path.Combine(src, "Requests.tsx")).Should().Contain("href={approved.createEventUrl}",
+            "turning a request into an event opens the React create form (012F; the requests page is React since 031, "
+            + "RequestsApiTests pins the /events?openModal=true link)");
         File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Shared", "MainLayout.razor"))
             .Should().Contain("href=\"/events\" data-enhance-nav=\"false\"", "the Blazor menu opens the React agenda with a full load");
     }
