@@ -46,8 +46,9 @@ Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick t
 
 - **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
   `AspNetUsers.FidelisBalance` stay until a later contract task drops them: `docs/games-bets-mytuno-removal.md`.
-- **Messaging** (`/messages`, `MessagesHub`): to be replaced by a new WhatsApp-like system. That is new product design
-  (conversations, groups, media, push), not a port of the Blazor inbox; it needs its own design task before code.
+- **Messages / Conversas**: removed from the app by task 027 (no replacement; `/messages` and `/hubs/messages` 404;
+  push no longer leaves an inbox copy). The four tables stay until the contract task drops them:
+  `docs/messages-removal.md`. Any future chat is new product design, not a port of the old inbox.
 
 ## Cleanup and polish (after or between features)
 

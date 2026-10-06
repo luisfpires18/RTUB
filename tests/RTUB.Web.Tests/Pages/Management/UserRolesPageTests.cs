@@ -30,8 +30,7 @@ public class UserRolesPageTests : PageTestBase
             roleStore.Object, null!, null!, null!, null!);
         Services.AddSingleton(_mockRoleManager.Object);
 
-        // Setup services required by SyncChatGroupsButton and SyncMemberStatusButton
-        var mockGroupSyncService = SetupService<IGroupConversationSyncService>();
+        // Setup services required by SyncMemberStatusButton
         var mockMemberStatusService = SetupService<IMemberStatusService>();
 
         // Setup default service responses

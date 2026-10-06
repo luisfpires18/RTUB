@@ -388,21 +388,6 @@
     border: 2px solid var(--bs-primary);
 }
 
-.navbar-message-badge {
-    position: absolute;
-    top: 0.15rem;
-    right: 0.15rem;
-    font-size: 0.6rem;
-    min-width: 1.1rem;
-    height: 1.1rem;
-    padding: 0 0.3rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 2px var(--rtub-navbar-bg, #0f0f10);
-    z-index: 1;
-}
-
 .navbar-category-badge {
     padding: 0.25rem 0.5rem;
     font-size: 0.7rem;

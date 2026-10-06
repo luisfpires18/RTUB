@@ -503,7 +503,7 @@
             }
 
             message = failed > 0
-                ? $"Notificação enviada para {selectedUsers.Count} utilizadores ({sent} push enviados, {failed} falhados). Mensagens de inbox foram entregues como backup."
+                ? $"Notificação enviada para {selectedUsers.Count} utilizadores ({sent} push enviados, {failed} falhados)."
                 : $"Notificação enviada com sucesso para {selectedUsers.Count} utilizadores! ({sent} push enviados)";
             isError = sent == 0 && failed > 0;
 

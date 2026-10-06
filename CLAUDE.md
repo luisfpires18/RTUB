@@ -69,6 +69,7 @@ Run only what the change can break.
 | React Novidades (`/news`: public posts wall, drafts, publish) | `docs/react-news.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
+| Messages / Conversas removal (retained schema, contract task) | `docs/messages-removal.md` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
 | Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |

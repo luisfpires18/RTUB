@@ -74,7 +74,7 @@ RTUB/
 
 #### Backend & Services
 - **ASP.NET Core Identity** - Authentication and authorization
-- **SignalR** - Real-time messaging and chat
+- **SignalR** - Blazor Interactive Server connection
 - **QuestPDF** - PDF generation for meeting minutes and reports
 - **Response Compression** (Brotli/Gzip) - Performance optimization
 - **Memory Cache** - In-memory caching for high-traffic data
@@ -227,19 +227,6 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - Financial reports with PDF export
 - Receipt uploads to cloud storage
 
-### Internal Messaging
-
-- Real-time chat powered by SignalR WebSocket hub
-- 1-on-1 and group conversations
-- Typing indicators (started/stopped)
-- Unread message tracking and badge counter
-- Message editing and soft deletion
-- Announcement-only channels (restrict who can post)
-- Conversation archiving
-- Group conversation sync
-- Message composer with @mention support
-- Auto-scroll to latest messages
-
 ### Questions (Q&A for Orgaos Sociais)
 
 - Members submit questions directed to governance bodies (Direcao, Mesa da Assembleia, Conselho Fiscal, Conselho de Veteranos)
@@ -327,7 +314,7 @@ Multi-channel notification system:
 
 - **Owner**: Full system access, audit logging, user role management, database viewer
 - **Admin**: Full entity management, configuration, operational control
-- **Member**: Access to member features, event participation, rehearsals, discussions, messaging
+- **Member**: Access to member features, event participation, rehearsals, discussions
 - **Visitor**: Public access to general information, events, and media gallery
 
 For detailed information about roles, categories, and positions, see [Authentication & Business Rules](docs/auth-and-rules.md).
@@ -381,9 +368,7 @@ RTUB/
 │       │   ├── Management/      # Finance, questions, logistics, roles, reports
 │       │   ├── Members/         # Member list, profiles, map, hierarchy
 │       │   ├── Media/           # Gallery, albums, songs, slideshows, documents
-│       │   ├── Messages/        # Internal messaging inbox
 │       │   └── Operations/      # Audit logs, database viewer, notifications
-│       ├── Hubs/                # SignalR hub (MessagesHub)
 │       ├── Controllers/         # API controllers (downloads, push)
 │       ├── Extensions/          # Service registration extensions
 │       ├── wwwroot/             # Static files

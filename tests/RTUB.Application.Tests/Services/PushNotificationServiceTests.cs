@@ -13,9 +13,6 @@ namespace RTUB.Application.Tests.Services;
 public class PushNotificationServiceTests
 {
     private readonly Mock<IPushSubscriptionRepository> _mockRepository;
-    private readonly Mock<IConversationRepository> _mockConversationRepository;
-    private readonly Mock<IMessageRepository> _mockMessageRepository;
-    private readonly Mock<IConversationUserSettingsRepository> _mockSettingsRepository;
     private readonly Mock<IUserProfileRepository> _mockUserProfileRepository;
     private readonly Mock<ILogger<PushNotificationService>> _mockLogger;
     private readonly WebPushOptions _options;
@@ -24,9 +21,6 @@ public class PushNotificationServiceTests
     public PushNotificationServiceTests()
     {
         _mockRepository = new Mock<IPushSubscriptionRepository>();
-        _mockConversationRepository = new Mock<IConversationRepository>();
-        _mockMessageRepository = new Mock<IMessageRepository>();
-        _mockSettingsRepository = new Mock<IConversationUserSettingsRepository>();
         _mockUserProfileRepository = new Mock<IUserProfileRepository>();
         _mockLogger = new Mock<ILogger<PushNotificationService>>();
 
@@ -44,9 +38,6 @@ public class PushNotificationServiceTests
         var optionsWrapper = Options.Create(_options);
         _service = new PushNotificationService(
             _mockRepository.Object,
-            _mockConversationRepository.Object,
-            _mockMessageRepository.Object,
-            _mockSettingsRepository.Object,
             _mockUserProfileRepository.Object,
             optionsWrapper,
             _mockLogger.Object);
@@ -69,9 +60,6 @@ public class PushNotificationServiceTests
         var emptyOptions = Options.Create(new WebPushOptions());
         var service = new PushNotificationService(
             _mockRepository.Object,
-            _mockConversationRepository.Object,
-            _mockMessageRepository.Object,
-            _mockSettingsRepository.Object,
             _mockUserProfileRepository.Object,
             emptyOptions,
             _mockLogger.Object);
@@ -346,420 +334,34 @@ public class PushNotificationServiceTests
         _mockRepository.Verify(r => r.GetAllActiveAsync(), Times.Never);
     }
 
+    // 027 retired Messages: a push no longer writes an inbox copy ("Sistema RTUB" conversation).
+    // The constructor no longer takes any messaging repository, so a push cannot reach those tables.
+
     [Fact]
-    public async Task SendToUserAsync_SendsInboxMessage_WhenConfigured()
+    public async Task SendToUserAsync_WhenConfigured_LooksUpThatUsersSubscriptionsOnly()
     {
-        // Arrange
-        var userId = "test-user-id";
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test Title",
-            Body = "Test Body",
-            Url = "/test-url"
-        };
+        _mockRepository.Setup(r => r.GetByUserIdAsync("user-1")).ReturnsAsync(new List<PushSubscription>());
 
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+        await _service.SendToUserAsync("user-1", new SendPushNotificationDto { Title = "T", Body = "B" });
 
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync((Conversation?)null);
-
-        var createdConversation = new Conversation { Id = 1 };
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = createdConversation.Id);
-
-        var settings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = createdConversation.Id,
-            IsPinned = false
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
-            .ReturnsAsync(settings);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert - verify inbox message was created
-        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(
-            c => c.Participants == userId &&
-                 c.IsSystemConversation == true &&
-                 c.Title == "Sistema RTUB"
-        )), Times.Once);
-
-        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
-            m => m.Body.Contains("Test Title") &&
-                 m.Body.Contains("Test Body") &&
-                 m.IsSystem == true &&
-                 m.Link == "/test-url"
-        )), Times.Once);
+        _mockRepository.Verify(r => r.GetByUserIdAsync("user-1"), Times.Once);
+        _mockRepository.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task SendToUserAsync_UsesExistingConversation_WhenExists()
+    public async Task SendToUserAsync_WhenPushIsNotConfigured_DoesNothing()
     {
-        // Arrange
-        var userId = "test-user-id";
-        var existingConversation = new Conversation
-        {
-            Id = 123,
-            Participants = userId,
-            IsSystemConversation = true,
-            Title = "Sistema RTUB"
-        };
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test Title",
-            Body = "Test Body"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
-
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync(existingConversation);
-
-        var existingSettings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = 123,
-            IsPinned = true // Already pinned
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, 123))
-            .ReturnsAsync(existingSettings);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert - verify existing conversation was used, not created
-        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Never);
-        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
-            m => m.ConversationId == 123
-        )), Times.Once);
-        // Settings should not be updated since already pinned
-        _mockSettingsRepository.Verify(r => r.UpdateAsync(It.IsAny<ConversationUserSettings>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task BroadcastAsync_SendsInboxMessageToAllUsers_WhenConfigured()
-    {
-        // Arrange
-        var subscriptions = new List<PushSubscription>
-        {
-            new PushSubscription { UserId = "user1", Endpoint = "endpoint1", P256dh = "key1", Auth = "auth1" },
-            new PushSubscription { UserId = "user2", Endpoint = "endpoint2", P256dh = "key2", Auth = "auth2" },
-            new PushSubscription { UserId = "user1", Endpoint = "endpoint3", P256dh = "key3", Auth = "auth3" } // Same user, different device
-        };
-
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Broadcast Title",
-            Body = "Broadcast Body",
-            Url = "/broadcast-url"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetAllActiveAsync())
-            .ReturnsAsync(subscriptions);
-
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(It.IsAny<string>()))
-            .ReturnsAsync((Conversation?)null);
-
-        var callCount = 0;
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = ++callCount);
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(It.IsAny<string>(), It.IsAny<int>()))
-            .ReturnsAsync((string userId, int convId) => new ConversationUserSettings
-            {
-                UserId = userId,
-                ConversationId = convId,
-                IsPinned = false
-            });
-
-        // Act
-        await _service.BroadcastAsync(notification);
-
-        // Assert - verify inbox messages were sent to unique users only (2 users, not 3 subscriptions)
-        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Exactly(2));
-        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Exactly(2));
-    }
-
-    [Fact]
-    public async Task SendToUserAsync_SendsInboxMessage_EvenWhenPushNotConfigured()
-    {
-        // Arrange
-        var emptyOptions = Options.Create(new WebPushOptions());
+        // Before 027 this still wrote the inbox copy; now there is nothing left to do.
         var service = new PushNotificationService(
             _mockRepository.Object,
-            _mockConversationRepository.Object,
-            _mockMessageRepository.Object,
-            _mockSettingsRepository.Object,
             _mockUserProfileRepository.Object,
-            emptyOptions,
+            Options.Create(new WebPushOptions()),
             _mockLogger.Object);
 
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test Title",
-            Body = "Test Body"
-        };
+        await service.SendToUserAsync("user-1", new SendPushNotificationDto { Title = "T", Body = "B" });
 
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync("test-user"))
-            .ReturnsAsync((Conversation?)null);
-
-        var createdConversation = new Conversation { Id = 1 };
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = createdConversation.Id);
-
-        var settings = new ConversationUserSettings
-        {
-            UserId = "test-user",
-            ConversationId = createdConversation.Id,
-            IsPinned = false
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync("test-user", createdConversation.Id))
-            .ReturnsAsync(settings);
-
-        // Act
-        await service.SendToUserAsync("test-user", notification);
-
-        // Assert - inbox message IS created even when WebPush is not configured
-        // This ensures users always receive important notifications in their inbox
-        _mockConversationRepository.Verify(r => r.GetSystemConversationForUserAsync("test-user"), Times.Once);
-        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Once);
-        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task SendToUserAsync_InboxMessageCombinesTitleAndBody()
-    {
-        // Arrange
-        var userId = "test-user-id";
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Important Notice",
-            Body = "This is the message content"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
-
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync((Conversation?)null);
-
-        var createdConversation = new Conversation { Id = 1 };
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = createdConversation.Id);
-
-        var settings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = createdConversation.Id,
-            IsPinned = false
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
-            .ReturnsAsync(settings);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert
-        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
-            m => m.Body == "Important Notice\n\nThis is the message content"
-        )), Times.Once);
-    }
-
-    [Fact]
-    public async Task SendToUserAsync_InboxMessageUsesBodyOnly_WhenTitleEmpty()
-    {
-        // Arrange
-        var userId = "test-user-id";
-        var notification = new SendPushNotificationDto
-        {
-            Title = "",
-            Body = "Just the body content"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
-
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync((Conversation?)null);
-
-        var createdConversation = new Conversation { Id = 1 };
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = createdConversation.Id);
-
-        var settings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = createdConversation.Id,
-            IsPinned = false
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
-            .ReturnsAsync(settings);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert
-        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
-            m => m.Body == "Just the body content"
-        )), Times.Once);
-    }
-
-    [Fact]
-    public async Task SendToUserAsync_AutoPinsSystemConversation_WhenCreated()
-    {
-        // Arrange
-        var userId = "test-user-id";
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test Notification",
-            Body = "Test Body"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
-
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync((Conversation?)null);
-
-        var createdConversation = new Conversation
-        {
-            Id = 1,
-            Participants = userId,
-            IsSystemConversation = true,
-            Title = "Sistema RTUB"
-        };
-
-        _mockConversationRepository
-            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
-            .Callback<Conversation>(c => c.Id = createdConversation.Id);
-
-        var settings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = createdConversation.Id,
-            IsPinned = false
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
-            .ReturnsAsync(settings);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert - verify system conversation was created
-        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(
-            c => c.Participants == userId &&
-                 c.IsSystemConversation == true &&
-                 c.Title == "Sistema RTUB"
-        )), Times.Once);
-
-        // Verify settings were created/fetched
-        _mockSettingsRepository.Verify(r => r.GetOrCreateAsync(userId, createdConversation.Id), Times.Once);
-
-        // Verify pinning was set
-        _mockSettingsRepository.Verify(r => r.UpdateAsync(It.Is<ConversationUserSettings>(
-            s => s.UserId == userId &&
-                 s.ConversationId == createdConversation.Id &&
-                 s.IsPinned == true
-        )), Times.Once);
-    }
-
-    [Fact]
-    public async Task SendToUserAsync_UpdatesConversationDirectly_WithoutReload()
-    {
-        // Arrange
-        var userId = "test-user-id";
-        var existingConversation = new Conversation
-        {
-            Id = 123,
-            Participants = userId,
-            IsSystemConversation = true,
-            Title = "Sistema RTUB"
-        };
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test Title",
-            Body = "Test Body"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
-
-        // GetSystemConversationForUserAsync returns tracked entity
-        _mockConversationRepository
-            .Setup(r => r.GetSystemConversationForUserAsync(userId))
-            .ReturnsAsync(existingConversation);
-
-        var existingSettings = new ConversationUserSettings
-        {
-            UserId = userId,
-            ConversationId = 123,
-            IsPinned = true
-        };
-
-        _mockSettingsRepository
-            .Setup(r => r.GetOrCreateAsync(userId, 123))
-            .ReturnsAsync(existingSettings);
-
-        var createdMessage = new Message
-        {
-            Id = 456,
-            ConversationId = 123,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _mockMessageRepository
-            .Setup(r => r.AddAsync(It.IsAny<Message>()))
-            .Callback<Message>(m => { m.Id = createdMessage.Id; m.CreatedAt = createdMessage.CreatedAt; })
-            .ReturnsAsync(createdMessage);
-
-        // Act
-        await _service.SendToUserAsync(userId, notification);
-
-        // Assert - verify conversation is NOT reloaded (no GetByIdAsync call)
-        // The conversation from GetSystemConversationForUserAsync is already tracked
-        _mockConversationRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
-
-        // Verify the same conversation instance was updated directly with the message details
-        _mockConversationRepository.Verify(r => r.UpdateAsync(It.Is<Conversation>(
-            c => c.Id == 123 &&
-                 c.LastMessageId == createdMessage.Id
-        )), Times.Once);
+        _mockRepository.VerifyNoOtherCalls();
+        _mockUserProfileRepository.VerifyNoOtherCalls();
     }
 
     private void VerifyLog(LogLevel level, string expectedMessage)
@@ -839,9 +441,6 @@ public class PushNotificationServiceTests
         // Act
         var service = new PushNotificationService(
             _mockRepository.Object,
-            _mockConversationRepository.Object,
-            _mockMessageRepository.Object,
-            _mockSettingsRepository.Object,
             _mockUserProfileRepository.Object,
             options,
             logger.Object);

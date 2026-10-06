@@ -119,9 +119,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
-        services.AddScoped<IConversationRepository, ConversationRepository>();
-        services.AddScoped<IMessageRepository, MessageRepository>();
-        services.AddScoped<IConversationUserSettingsRepository, ConversationUserSettingsRepository>();
         services.AddScoped<ISongVideoRepository, SongVideoRepository>();
         services.AddScoped<IEventVideoRepository, EventVideoRepository>();
         services.AddScoped<IGalleryMediaRepository, GalleryMediaRepository>();
@@ -502,20 +499,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers internal messaging services
-    /// </summary>
-    public static IServiceCollection AddMessagingServices(this IServiceCollection services)
-    {
-        services.AddScoped<IMessagingService, MessagingService>();
-        services.AddScoped<IGroupConversationSyncService, GroupConversationSyncService>();
-        services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
-        services.AddScoped<IMessagingDisplayService, MessagingDisplayService>();
-        services.AddScoped<IMessagingSortService, MessagingSortService>();
 
         return services;
     }
@@ -952,7 +935,6 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWebUiServices(this IServiceCollection services)
     {
         services.AddScoped<ProfilePictureUpdateService>();
-        services.AddSingleton<MessagesNotificationService>();
         services.AddSingleton<AdminRefreshService>();
         services.AddSingleton<AnnouncementService>();
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();

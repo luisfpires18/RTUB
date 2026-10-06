@@ -377,26 +377,6 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname, string baseUrl);
 
     /// <summary>
-    /// Creates a push notification for a direct message (1-on-1 conversation).
-    /// Sent to the message recipient only, not stored in inbox.
-    /// </summary>
-    /// <param name="senderName">The name of the message sender</param>
-    /// <param name="conversationId">The ID of the conversation</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateDirectMessageNotification(string senderName, string conversationId, string baseUrl);
-
-    /// <summary>
-    /// Creates a push notification for a group message.
-    /// Sent to all group members, not stored in inbox.
-    /// </summary>
-    /// <param name="groupName">The name of the group</param>
-    /// <param name="conversationId">The ID of the conversation/group</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateGroupMessageNotification(string groupName, string conversationId, string baseUrl);
-
-    /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// Sent to the tagged user.
     /// </summary>

@@ -23,7 +23,6 @@
     <div class="page-header-right d-none d-xl-flex gap-2">
         @if (isCurrentUserOwner)
         {
-            <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
             <SyncMemberStatusButton OnSyncCompleted="HandleSyncCompleted" />
         }
     </div>
@@ -33,7 +32,6 @@
 @if (isCurrentUserOwner)
 {
     <div class="u-visually-collapsed">
-        <SyncChatGroupsButton @ref="syncChatRef" OnSyncCompleted="HandleSyncCompleted" />
         <SyncMemberStatusButton @ref="syncStatusRef" OnSyncCompleted="HandleSyncCompleted" />
     </div>
 }
@@ -283,7 +281,6 @@ else
     private string message = "";
     private bool isError = false;
     private bool isCurrentUserOwner = false;
-    private SyncChatGroupsButton? syncChatRef;
     private SyncMemberStatusButton? syncStatusRef;
     private IReadOnlyList<MobileBottomNav.MobileNavItem> mobileNavItems = Array.Empty<MobileBottomNav.MobileNavItem>();
     
@@ -321,7 +318,6 @@ else
         var items = new List<MobileBottomNav.MobileNavItem>();
         if (isCurrentUserOwner)
         {
-            items.Add(new("action-sync-chat", "Sync Chat", "bi-chat-dots"));
             items.Add(new("action-sync-status", "Sync Status", "bi-arrow-repeat"));
         }
         mobileNavItems = items;
@@ -331,7 +327,6 @@ else
     {
         switch (key)
         {
-            case "action-sync-chat": if (syncChatRef != null) await syncChatRef.TriggerAsync(); break;
             case "action-sync-status": if (syncStatusRef != null) await syncStatusRef.TriggerAsync(); break;
         }
     }

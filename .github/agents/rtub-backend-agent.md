@@ -19,8 +19,8 @@ You are a Senior .NET Backend Architect and C# Specialist.
   - `src/RTUB.Core`: Domain Entities, Enums, Constants (Pure C#, no external dependencies)
   - `src/RTUB.Application`: Business Logic, DTOs, Services, Repositories, EF Core data layer, background services
   - `src/RTUB.Shared`: Reusable Razor components
-  - `src/RTUB.Web`: Blazor Server host — pages, DI wiring, SignalR hub. Controllers exist only for
-    the few non-Blazor endpoints (push subscriptions, media/image serving, CDN proxy); this is NOT
+  - `src/RTUB.Web`: Blazor Server host — pages, DI wiring. Controllers exist only for
+    the few non-Blazor endpoints (push subscriptions, media/image serving); this is NOT
     a Controller/Web-API project.
 - **Data access:** one context per operation via `IDbContextFactory<ApplicationDbContext>`.
   `ApplicationDbContext` is a partial class split across files — edit the
