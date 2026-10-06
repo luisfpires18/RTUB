@@ -213,6 +213,10 @@ public class QuestionRepository : IQuestionRepository
     public async Task<Question> AddAsync(Question question)
     {
         using var context = CreateContext();
+        // Author and AssignedMember may be set (existing users, for the audit log's names): track them as existing,
+        // or Add would insert them again (UNIQUE constraint on AspNetUsers).
+        if (question.Author != null) context.Entry(question.Author).State = EntityState.Unchanged;
+        if (question.AssignedMember != null) context.Entry(question.AssignedMember).State = EntityState.Unchanged;
         context.Questions.Add(question);
         await context.SaveChangesAsync();
         return question;
