@@ -153,8 +153,9 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
 | `/members/map` | **React** (032) | Mapa de membros: members by city (geocoding cache), without a city, cities waiting; signed-in members (Leitões included), visitors get a 302 to sign in. `/member/map` 302s here. `docs/react-member-area.md`. |
 | `/hall-of-fame` | **React** (032) | The twelve records (ties, positive durations, past / not-cancelled activity); signed-in members, visitors get a 302 to sign in. `docs/react-member-area.md`. |
+| `/naipes`, `/naipes/config` | **React** (033) | Naipes: each instrument's videos and images, search, comments, plays; any member adds and edits their own, Admin / Owner manage all and the instrument settings (`/naipes/config`, a clear refusal for others). Signed-in members, visitors get a 302 to sign in. `docs/react-naipes.md`. |
 | `/requests`, `/questions` | **React** (031) | Gestão de Pedidos (members but Leitões read; Admin/Owner answer) and Perguntas aos Órgãos Sociais (members); visitors get a 302 to sign in. `docs/react-requests-questions.md`. |
-| every other member/admin page | **Blazor member/admin, pending** | `/meetings`, `/naipes`, the owner tools, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
+| every other member/admin page | **Blazor member/admin, pending** | `/meetings`, `/emails`, `/notifications`, the owner tools, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |

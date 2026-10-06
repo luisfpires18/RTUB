@@ -26,7 +26,7 @@ namespace RTUB.Application.Services;
 ///   is deleted, the new one goes to the member's profile folder);
 /// - email notifications on / off; the password (at least 8 characters, confirmed), which clears
 ///   RequirePasswordChange.
-/// Push notifications are not here (task 033). No schema change.
+/// Push notifications are not here (the Push v2 task). No schema change.
 /// </summary>
 public sealed class MyProfileService : IMyProfileService
 {

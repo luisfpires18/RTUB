@@ -113,7 +113,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
 
         // The logout form only renders for an authenticated user, so its presence proves
         // the rejected request did not sign the session out.
-        var page = await client.GetStringAsync("/naipes");
+        var page = await client.GetStringAsync("/share");
         page.Should().Contain("/auth/logout", "a rejected logout must leave the session signed in");
     }
 
@@ -124,7 +124,7 @@ public class AuthAntiforgeryTests : IntegrationTestBase
         await LoginThroughRenderedFormAsync(client, "csrf-logout-ok");
 
         // The logout form lives in MainLayout, so any authenticated page renders its token.
-        var token = await ReadTokenAsync(client, "/naipes");
+        var token = await ReadTokenAsync(client, "/share");
 
         var response = await client.PostAsync("/auth/logout", new FormUrlEncodedContent(
             new Dictionary<string, string> { [AntiforgeryFormToken.FieldName] = token }));

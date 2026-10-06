@@ -75,7 +75,7 @@ public class MemberShellTests
     [InlineData("portal.requests")]
     [InlineData("portal.questions")]
     [InlineData("portal.hallOfFame")]
-    [InlineData("blazor.naipes")]
+    [InlineData("portal.naipes")]
     [InlineData("blazor.meetings")]
     [InlineData("blazor.emails")]
     [InlineData("blazor.notifications")]
@@ -150,6 +150,7 @@ public class MemberShellTests
     [InlineData("portal.leaderboard", null)]
     [InlineData("portal.membersMap", null)]
     [InlineData("portal.hallOfFame", null)]
+    [InlineData("portal.naipes", null)]
     [InlineData("portal.profile", null)]
     public void Menu_GatesEachRestrictedLinkOnTheServersMenuFlag(string href, string? flag)
     {

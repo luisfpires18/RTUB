@@ -114,13 +114,13 @@ Blazor: `Profile.razor`, `MemberMap.razor`, `HallOfFame.razor` (+ CSS); `Profile
 `UnifiedTimeline`, `MonthYearPicker`, `ImageCropper`, `PushNotificationToggle` (+ CSS); `wwwroot/js/memberMap.js`,
 `wwwroot/js/imageCropper.js`, `css/4-pages/member-map.css`, `css/3-components/month-year-picker.css`; the unpkg Leaflet
 and cdnjs Cropper.js tags (and the cdnjs preconnect) in `MainLayout`. Tests: their bUnit tests and the placeholder
-`Integration.Tests/Pages/ProfilePageTests.cs`. Kept: `ProfileField` (used by Naipes), `GeocodingCache`, the geocoding
+`Integration.Tests/Pages/ProfilePageTests.cs`. Kept: `ProfileField` (used by Naipes; retired with it in 033), `GeocodingCache`, the geocoding
 queue and worker, `push-notifications.js`, `PushNotificationPrompt`, every push endpoint and sender.
 
 ## Push notifications
 
 Not part of 032. The only push toggle was on the retired Blazor profile, so **members cannot opt in or out of push in
-the app until task 033** (Push v2: React UI, cleanup). Nothing else changed: the subscriptions, `/api/push/*`, the
+the app until the Push v2 task** (React UI, cleanup; 033 became Naipes). Nothing else changed: the subscriptions, `/api/push/*`, the
 server-side senders, the service worker and `PushNotificationPrompt` (Blazor pages) are untouched. The React profile
 shows the email preference only.
 
@@ -147,4 +147,4 @@ in `ContentSecurityPolicyTests`.
 - `script-src` / `style-src` still allow cdnjs and unpkg, now unused; drop them in a CSP follow-up.
 - `wwwroot/js/profilePictureRefresh.js` and `ProfilePictureUpdateService` lost their only trigger (the Blazor profile);
   `wwwroot/lib/cropperjs` has no caller.
-- Push v2 (task 033): React opt-in / opt-out, then the push cleanup.
+- Push v2 (a later task; 033 became Naipes): React opt-in / opt-out, then the push cleanup.

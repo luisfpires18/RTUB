@@ -6,19 +6,27 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/032-react-member-profile-map-hall`** (from `dev` @ `cf70eee3`; DEV only). **UNVERIFIED cloud patch** (no
-`dotnet` here): the C# services, endpoints and tests were written but never built or run here; `check:portal` +
-`build:portal` and a scratch browser check (mock API with the real CSP header; Owner / Tuno / Leitão / visitor; 320,
-375 and 1280px) passed. **GitHub Actions must pass before merge.** **`/profile` is now the member's own profile editor**
-(Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Segurança over `/api/me/*`); `/member/profile` 302s to it.
-**`/members/map`** (was `/member/map`, which 302s) and **`/hall-of-fame`** are React (`/api/members/map`,
-`/api/hall-of-fame`); Leaflet is now an npm dependency loaded only by the map page (its own `vendor-leaflet` chunk).
-The three Blazor pages, `ProfileHeader`, `ProfileSection`, `RankCard`, `UnifiedTimeline`, `MonthYearPicker`,
-`ImageCropper`, `PushNotificationToggle`, `memberMap.js`, `imageCropper.js` and the Leaflet / Cropper.js tags in
-`MainLayout` are gone. Changed on purpose: the session survives a password change; nickname / locked-date / email-in-use
-rules refuse with a message; padrinho = Tuno or above. **Push: no opt-in / opt-out UI until task 033** (the only toggle
-was on the retired Blazor profile; push sending, subscriptions and endpoints untouched). 13 Blazor routes left. No
-schema change. Detail: `docs/react-member-area.md`.
+**Open: `feat/032-react-member-profile-map-hall`** (from `dev` @ `cf70eee3`; DEV only), holding **032 and 033**:
+032 (`3c90682`) is pushed to origin; **033 is committed on top and not pushed**. **UNVERIFIED cloud patch** (no `dotnet`
+here): the C# services, endpoints and tests of both were written but never built or run here; `check:portal` +
+`build:portal` and scratch browser checks (mock API with the real CSP header; Owner / Tuno / Leitão / visitor; 320, 375
+and 1280px) passed. **GitHub Actions must pass before merge.**
+
+**033 Naipes:** `/naipes` and `/naipes/config` are React (`/api/naipes*`, `NaipeBoardService` over the old
+`NaipeService`: R2, audit log, push on a new item unchanged); signed-in members only, settings Admin / Owner (others get
+a clear refusal). Changed on purpose: Owner inherits Admin; uploads are an allowlist checked by bytes and stored with the
+server's type (SVG / HTML / renamed files refused; MKV / AVI dropped, GIF accepted); lengths, sizes and order enforced
+server-side; a hidden instrument stays hidden by URL; picked instrument and search in the URL. Retired: both Blazor
+pages, `NaipeCard`, `NaipeCommentItem`, `DetailsModal`, `InfoSection`, `ProfileField`, `naipe-card.css`,
+`details-modal.css`, `naipes-config.css` and their bUnit tests. **11 Blazor routes left** (13 before). No schema change.
+Detail: `docs/react-naipes.md`.
+
+**032:** **`/profile` is now the member's own profile editor** (Pessoal, Tuna, Instrumentos, Foto, Notificações por
+email, Segurança over `/api/me/*`); `/member/profile` 302s to it. **`/members/map`** (was `/member/map`, which 302s) and
+**`/hall-of-fame`** are React (`/api/members/map`, `/api/hall-of-fame`); Leaflet is an npm dependency loaded only by the
+map page. Changed on purpose: the session survives a password change; nickname / locked-date / email-in-use rules
+refuse with a message; padrinho = Tuno or above. **Push: no opt-in / opt-out UI until the Push v2 task** (a later
+task; push sending, subscriptions and endpoints untouched). No schema change. Detail: `docs/react-member-area.md`.
 
 **031 merged to `dev`** (@ `cf70eee3`, CI green after two fixes: `QuestionRepository.AddAsync` re-inserted the users,
 and a route test still read the deleted `Requests.razor`). `/requests` and `/questions` are React:
@@ -170,9 +178,15 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 033 (Naipes):
+- "Remover imagem" on `/naipes/config` leaves the R2 object behind (as before).
+- No caller left, still registered: `INaipeAuthorizationService` / `NaipeAuthorizationService`, `INaipeConfigService` /
+  `NaipeConfigService`. `.modal-info-section--danger` (`dynamic-style-classes.css`) had no user even before.
+- Naipes media are public-read R2 objects (as the Gallery's): members-only means "not listed", not "not reachable".
+
 Raised by 032 (profile, members map, Hall of Fame):
 - The map lists expelled accounts (and the Hall of Fame counts every account), as before: decide whether to leave them out.
-- Push opt-in / opt-out has no UI until task 033 (Push v2); `push-notifications.js`, `PushNotificationPrompt` and
+- Push opt-in / opt-out has no UI until the Push v2 task (not 033); `push-notifications.js`, `PushNotificationPrompt` and
   `/api/push/*` stay for it.
 - CSP `script-src` / `style-src` still allow cdnjs and unpkg, now unused (Cropper.js and Leaflet left `MainLayout`).
 - No caller left: `wwwroot/js/profilePictureRefresh.js` + `ProfilePictureUpdateService` (still wired in `MainLayout`),
@@ -188,7 +202,7 @@ Raised by 031 (Pedidos and Perguntas):
   used by Meetings / Naipes).
 
 Raised by 030 (member shell):
-- `/naipes/config` is not in the member menu (reached from its Blazor page only); decide. (`/members/map` is, since 032.)
+- `/naipes/config` is not in the member menu (reached from `/naipes` → "Configurar" since 033); decide. (`/members/map` is, since 032.)
 - The Blazor pages keep their own navbar (`MainLayout`), so a member moving between React and Blazor pages sees two
   different menus until those pages are React.
 - No JS test runner in the repo: the shell's browser behaviour (drawer, rail, overflow) was checked by hand with a

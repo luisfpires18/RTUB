@@ -28,6 +28,8 @@ export const portal = {
   membersHierarchy: '/members/hierarchy',
   membersMap: '/members/map',
   hallOfFame: '/hall-of-fame',
+  naipes: '/naipes',
+  naipesConfig: '/naipes/config',
   leaderboard: '/leaderboard',
   inventory: '/inventory',
   shop: '/shop',

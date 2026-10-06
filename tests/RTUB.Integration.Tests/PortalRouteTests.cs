@@ -198,6 +198,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/member/map")]
     [InlineData("/member/profile")]
     [InlineData("/hall-of-fame")]
+    [InlineData("/naipes")]
+    [InlineData("/naipes/config")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
