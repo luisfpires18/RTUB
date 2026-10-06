@@ -192,6 +192,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
         services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
         services.AddScoped<INaipeConfigService, NaipeConfigService>();
+        services.AddScoped<INaipeBoardService, NaipeBoardService>();
 
         return services;
     }

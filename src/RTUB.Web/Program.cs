@@ -559,6 +559,9 @@ public class Program
         // --------- Profile, members map and Hall of Fame for the React /profile, /members/map and /hall-of-fame (task 032) ---------
         app.MapMemberAreaEndpoints();
 
+        // --------- Naipes for the React /naipes and /naipes/config (task 033) ---------
+        app.MapNaipeEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
@@ -606,10 +609,11 @@ public class Program
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
         // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
         // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
+        // Task 033: /naipes and /naipes/config, members only (the API keeps the settings to Admin / Owner).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/requests", "/questions", "/members/map", "/hall-of-fame" })
+                     "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {

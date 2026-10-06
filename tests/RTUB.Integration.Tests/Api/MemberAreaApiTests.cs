@@ -761,7 +761,7 @@ public class MemberAreaRetirementTests
             File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }
 
-        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().NotContain("push", "push notifications come back in task 033, not as a broken toggle");
+        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().NotContain("push", "push notifications come back with the Push v2 task, not as a broken toggle");
     }
 
     private static string RepoRoot()
@@ -779,7 +779,7 @@ public class MemberAreaRetirementTests
 /// <summary>The small HTTP helpers the member-area API tests share.</summary>
 internal static class AreaHttp
 {
-    internal static HttpClient Anonymous(EventsApiFactory factory, string ip)
+    internal static HttpClient Anonymous(TestWebApplicationFactory factory, string ip)
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
         client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, ip);

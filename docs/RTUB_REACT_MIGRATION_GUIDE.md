@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-06 (032 profile, members map and Hall of Fame)_
+_Last updated: 2026-10-06 (033 Naipes)_
 
-## Done: 001-025, 030 and 031 (merged to `dev`); 032 profile, members map and Hall of Fame (open)
+## Done: 001-025, 030 and 031 (merged to `dev`); 032 profile, members map and Hall of Fame, 033 Naipes (open, one branch)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -28,6 +28,7 @@ _Last updated: 2026-10-06 (032 profile, members map and Hall of Fame)_
 | 030 | Member shell: visitor header with Login; members' rail / drawer menu (not a new route) | every React page | `react-portal-pilot.md` → *Member shell* |
 | 031 | Pedidos (admin side of `/request`) and Perguntas aos Órgãos Sociais | `/requests`, `/questions` | `react-requests-questions.md` |
 | 032 | Profile editor (into `/profile`), Mapa de membros, Hall of Fame | `/profile`, `/members/map`, `/hall-of-fame` | `react-member-area.md` |
+| 033 | Naipes (instrument videos / images, comments) and their settings | `/naipes`, `/naipes/config` | `react-naipes.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -42,14 +43,16 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 
 ## Still Blazor (not yet scheduled)
 
-`/meetings`, `/naipes`, `/naipes/config`, `/notifications`, `/users`, `/emails`, `/share`, `/owner/*`, and the Identity
-pages (`/forgot-password`, `/reset-password`, `/confirm-email`): 13 Blazor routes with `/Error` (16 before 032). Pick
-these up one module per task. Next planned: **033 Push v2** (React push opt-in / opt-out; push cleanup).
+`/meetings`, `/notifications`, `/users`, `/emails`, `/share`, `/owner/db`, `/owner/tracing`, and the Identity pages
+(`/forgot-password`, `/reset-password`, `/confirm-email`): 11 Blazor routes with `/Error` (13 before 033, 16 before 032).
+Pick these up one module per task. Still planned: **Push v2** (React push opt-in / opt-out; push cleanup), a later task
+(033 became Naipes).
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links the React pages and the live Blazor ones above. `/profile` is
 the member's own profile editor (032), not the members' menu. The removed modules (games, bets, MyTuno, messages,
-images, labels) are not in it and are not to be brought back. `/naipes/config` is reached from its Blazor page only.
+images, labels) are not in it and are not to be brought back. `/naipes/config` is reached from `/naipes` ("Configurar",
+Admin / Owner), not from the menu.
 
 ## Future work, outside the migration
 
@@ -71,7 +74,7 @@ Recorded in `STATE.md` → *Deferred*; the main ones:
 - Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
 - Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
 - (030, resolved) Sign-out is in the member shell. Old Blazor prompts (push, Play Store) still have no React home.
-- (032) Push opt-in / opt-out has no UI until 033 (the only toggle was on the retired Blazor profile).
+- (032) Push opt-in / opt-out has no UI until the Push v2 task (the only toggle was on the retired Blazor profile).
 
 ## The "next prompt" contract
 

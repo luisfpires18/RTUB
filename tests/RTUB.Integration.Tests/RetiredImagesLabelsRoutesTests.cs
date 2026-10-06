@@ -50,7 +50,7 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
             (await admin.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was retired in 029A", url);
         }
 
-        var page = await admin.GetAsync("/naipes");
+        var page = await admin.GetAsync("/share");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
         var html = await page.Content.ReadAsStringAsync();
         html.Should().Contain("href=\"/emails\"", "the Admin menu is rendered, so the absences below mean something");
