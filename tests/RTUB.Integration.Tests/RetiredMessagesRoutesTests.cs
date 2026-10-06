@@ -54,7 +54,7 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
         (await member.GetAsync("/messages/1")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.PostAsync(Negotiate, content: null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        var page = await member.GetAsync("/hall-of-fame");
+        var page = await member.GetAsync("/naipes");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
         var html = await page.Content.ReadAsStringAsync();
         html.Should().Contain("href=\"/leaderboard\"", "the signed-in nav is rendered, so the absences below mean something");
@@ -107,7 +107,7 @@ public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory
 
         using (_factory.Sql.Recording())
         {
-            (await member.GetAsync("/hall-of-fame")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await member.GetAsync("/naipes")).StatusCode.Should().Be(HttpStatusCode.OK);
 
             using var scope = _factory.Services.CreateScope();
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();

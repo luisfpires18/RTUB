@@ -327,21 +327,23 @@ public class ContentSecurityPolicyTests
     // ---------- static repository policy ----------
 
     /// <summary>
-    /// The one script-src blocker unit 023 missed: memberMap.js built its Leaflet popup markup as
-    /// a string, and that string carried an inline onerror attribute. Markup-only scans cannot see
-    /// it. It now opts into the same delegated listener every avatar in .razor markup uses.
+    /// The one script-src blocker unit 023 missed was the Blazor memberMap.js, which built its Leaflet popup markup as a
+    /// string carrying an inline onerror attribute. The React map (task 032) replaced it: popups are DOM nodes, names
+    /// go in as text, and the avatar fallback is a listener, so no member data or handler is ever written as markup.
     /// </summary>
     [Fact]
-    public void MemberMap_BuildsPopupAvatarsWithoutAnInlineHandler()
+    public void MembersMap_BuildsPopupsAsDomNodesWithoutInlineHandlers()
     {
-        var content = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "memberMap.js");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
+            .Should().BeFalse("the Blazor map script was retired in 032");
+
+        var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
 
         JsMarkupEventHandler.IsMatch(content).Should().BeFalse(
             "the popup avatar must not carry an inline error handler under a strict script-src");
-        content.Should().NotContain("this.src=",
-            "the old handler body must be gone, not merely reformatted");
-        content.Should().Contain("data-avatar-fallback",
-            "the popup avatar must opt into the delegated fallback listener instead");
+        content.Should().Contain("textContent = member.displayName", "names go into the popup as text, not markup")
+            .And.Contain("addEventListener('error'", "the avatar fallback is a listener")
+            .And.NotContain("innerHTML");
     }
 
     /// <summary>

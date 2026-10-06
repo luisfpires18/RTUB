@@ -76,7 +76,7 @@ public class NavigationWorkflowTests : IntegrationTestBase
         // Arrange & Act - User tries to access member pages
         var membersResponse = await _client.GetAsync("/members");
         var rehearsalsResponse = await _client.GetAsync("/rehearsals");
-        var profileResponse = await _client.GetAsync("/member/profile");
+        var profileResponse = await _client.GetAsync("/members/map");
 
         // Assert - Should redirect to login
         membersResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);

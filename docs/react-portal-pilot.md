@@ -119,7 +119,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → a small account page (030): who you are, "Editar o perfil" (`/member/profile`), "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is no longer the members' menu: the member shell is. |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Segurança; was the Blazor `/member/profile`), with "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -140,7 +140,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/member/roles` | **Redirect** → `/roles` (016) | `302`, query kept, GET/HEAD only. The Blazor bridge (008-015) is retired. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
 | `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
-| `/member/profile` | **Blazor member/admin, pending** (moved in 004) | The Blazor member profile editor, formerly `/profile`. Requires sign-in. |
+| `/member/profile` | **Redirect** → `/profile` (032) | `302`, GET/HEAD only, for everyone. The Blazor profile editor (moved here in 004) is retired. |
 | `/members`, `/members/hierarchy` | **React** (017) | Directory (details, active members, birthdays) and the Padrinho → Afilhado tree, signed-in members; visitors get a 302 to sign in. `docs/react-members.md`. |
 | `/hierarchy` | **Redirect** → `/members/hierarchy` (017) | `302`, GET/HEAD only. |
 | `/members/manage` | **Redirect** → `/members` (018) | `302`, GET/HEAD only. The admin tools are on the React `/members` (Admin/Owner); `Members.razor` retired. |
@@ -151,8 +151,10 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões refused), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
 | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` | **React** (024) | Tesouraria: annual reports (totals, activities, transactions, receipts, PDF, history), calotes, MBWay, Nerba orders; signed-in members (Caloiros and Leitões: own calotes only), visitors get a 302 to sign in; old `/finance`, `/calotes`, `/mbway`, `/nerba` URLs 302 here. `docs/react-treasury.md`. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
+| `/members/map` | **React** (032) | Mapa de membros: members by city (geocoding cache), without a city, cities waiting; signed-in members (Leitões included), visitors get a 302 to sign in. `/member/map` 302s here. `docs/react-member-area.md`. |
+| `/hall-of-fame` | **React** (032) | The twelve records (ties, positive durations, past / not-cancelled activity); signed-in members, visitors get a 302 to sign in. `docs/react-member-area.md`. |
 | `/requests`, `/questions` | **React** (031) | Gestão de Pedidos (members but Leitões read; Admin/Owner answer) and Perguntas aos Órgãos Sociais (members); visitors get a 302 to sign in. `docs/react-requests-questions.md`. |
-| every other member/admin page | **Blazor member/admin, pending** | `/meetings`, `/naipes`, `/hall-of-fame`, the owner tools, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
+| every other member/admin page | **Blazor member/admin, pending** | `/meetings`, `/naipes`, the owner tools, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |

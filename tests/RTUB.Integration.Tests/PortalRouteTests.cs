@@ -194,6 +194,10 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/rehearsals")]
     [InlineData("/member/gallery")]
     [InlineData("/news")]
+    [InlineData("/members/map")]
+    [InlineData("/member/map")]
+    [InlineData("/member/profile")]
+    [InlineData("/hall-of-fame")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()
@@ -467,13 +471,16 @@ public class PortalRouteTests : IntegrationTestBase
             .Should().Contain("href=\"/events\" data-enhance-nav=\"false\"", "the Blazor menu opens the React agenda with a full load");
     }
 
-    [Fact]
-    public async Task BlazorMemberProfile_LivesAtMemberProfile_AndStillRequiresSignIn()
+    /// <summary>032: the Blazor profile and map are retired; their old URLs land on the React pages, for everyone.</summary>
+    [Theory]
+    [InlineData("/member/profile", "/profile")]
+    [InlineData("/member/map", "/members/map")]
+    public async Task RetiredMemberProfileAndMap_RedirectToTheReactPages(string path, string target)
     {
-        var response = await NoRedirectClient().GetAsync("/member/profile");
+        var response = await NoRedirectClient().GetAsync(path);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Contain("/login").And.Contain("ReturnUrl=%2Fmember%2Fprofile");
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
+        response.Headers.Location!.ToString().Should().Be(target);
     }
 
     // ---------- retired Blazor Music (React track 006) ----------

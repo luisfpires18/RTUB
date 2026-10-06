@@ -342,11 +342,12 @@ export function MemberFormDialog({
   );
 }
 
-function MonthYear({
+export function MonthYear({
   label,
   year,
   month,
   locked,
+  lockedHint = LOCKED_HINT,
   error,
   onChange,
 }: {
@@ -354,6 +355,7 @@ function MonthYear({
   year: number | null;
   month: number | null;
   locked: boolean;
+  lockedHint?: string;
   error?: string;
   onChange: (year: number | null, month: number | null) => void;
 }) {
@@ -396,7 +398,7 @@ function MonthYear({
           </select>
         </span>
       </span>
-      {locked && <p className="form__hint">{LOCKED_HINT}</p>}
+      {locked && <p className="form__hint">{lockedHint}</p>}
       {error && <p className="form__error">{error}</p>}
     </fieldset>
   );
@@ -492,18 +494,24 @@ function Instruments({
   );
 }
 
-function MentorPicker({
+/** A stable function, so the search effect below does not re-run on every render. */
+const adminMentorSearch = (q: string, exclude?: string) => memberAdminApi.mentors(q, exclude);
+
+export function MentorPicker({
   excludeId,
   mentorId,
   mentorName,
   error,
   onChange,
+  search = adminMentorSearch,
 }: {
   excludeId?: string;
   mentorId: string | null;
   mentorName: string | null;
   error?: string;
   onChange: (id: string | null, name: string | null) => void;
+  /** Admin/Owner by default; the member's own profile passes its own search (task 032). */
+  search?: (q: string, exclude?: string) => Promise<Outcome<Mentor[]>>;
 }) {
   const id = useId();
   const [query, setQuery] = useState('');
@@ -512,10 +520,10 @@ function MentorPicker({
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
     const timer = setTimeout(() => {
-      memberAdminApi.mentors(query.trim(), excludeId).then((o) => setFound(o.kind === 'ok' ? o.data : []));
+      search(query.trim(), excludeId).then((o) => setFound(o.kind === 'ok' ? o.data : []));
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, excludeId]);
+  }, [query, excludeId, search]);
 
   return (
     <div className={error ? 'form__field form__field--error' : 'form__field'}>

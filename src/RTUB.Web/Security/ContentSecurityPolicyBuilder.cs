@@ -171,7 +171,8 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned).
+        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned) until task 032: nothing loads from either now (the
+        // React Cropper is canvas-only and Leaflet is bundled with the React map). Dropping them is a follow-up.
         // No 'unsafe-eval': unit 022 removed every JSRuntime eval dispatch, and no component
         // uses an InteractiveWebAssembly/Auto render mode, so no wasm source is needed either.
         Directive("script-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
@@ -179,7 +180,7 @@ public sealed class ContentSecurityPolicyBuilder
         // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
         Directive("script-src-attr", "'none'");
 
-        // cdnjs -> cropper.min.css, unpkg -> leaflet.css (SRI pinned).
+        // cdnjs -> cropper.min.css, unpkg -> leaflet.css (SRI pinned) until task 032; unused since, as above.
         Directive("style-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
 
         // Inline style attributes: removed by unit 024. Dynamic values go through the CSSOM,
@@ -188,7 +189,7 @@ public sealed class ContentSecurityPolicyBuilder
 
         // data: - the cropper and the gallery upload preview render the picked file as a
         //         data: URL before it is uploaded.
-        // carto - the Leaflet dark-matter tiles in memberMap.js.
+        // carto - the Leaflet dark-matter tiles of the React members map (MembersMap.tsx, task 032).
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
         // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
         // a wildcard, and absent unless explicitly configured (i.e. never in production).

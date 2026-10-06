@@ -6,20 +6,28 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/031-react-requests-questions`** (from `dev` @ `fad2afa2`; DEV only). **UNVERIFIED cloud patch** (no
+**Open: `feat/032-react-member-profile-map-hall`** (from `dev` @ `cf70eee3`; DEV only). **UNVERIFIED cloud patch** (no
 `dotnet` here): the C# services, endpoints and tests were written but never built or run here; `check:portal` +
-`build:portal` and a scratch browser check (mock API, Owner / Tuno / Leitão, 375 + 1280px) passed. **GitHub Actions
-must pass before merge.** **`/requests` (Gestão de Pedidos) and `/questions` (Perguntas aos Órgãos Sociais) are now
-React** over `/api/requests` and `/api/questions`; the Blazor pages, `RequestCard`, `QuestionCard`, `CommentComposer`,
-`NewQuestionModel` and their bUnit tests are gone. Same rules, now server-side; changed on purpose: Owner inherits
-Admin on requests, "em análise" requests are listed, answered requests cannot be answered again, a question only goes
-to a current holder of the chosen position, closed questions take no replies, text capped at 5000. 16 Blazor routes
-left (18 before). No schema change. Detail: `docs/react-requests-questions.md`.
+`build:portal` and a scratch browser check (mock API with the real CSP header; Owner / Tuno / Leitão / visitor; 320,
+375 and 1280px) passed. **GitHub Actions must pass before merge.** **`/profile` is now the member's own profile editor**
+(Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Segurança over `/api/me/*`); `/member/profile` 302s to it.
+**`/members/map`** (was `/member/map`, which 302s) and **`/hall-of-fame`** are React (`/api/members/map`,
+`/api/hall-of-fame`); Leaflet is now an npm dependency loaded only by the map page (its own `vendor-leaflet` chunk).
+The three Blazor pages, `ProfileHeader`, `ProfileSection`, `RankCard`, `UnifiedTimeline`, `MonthYearPicker`,
+`ImageCropper`, `PushNotificationToggle`, `memberMap.js`, `imageCropper.js` and the Leaflet / Cropper.js tags in
+`MainLayout` are gone. Changed on purpose: the session survives a password change; nickname / locked-date / email-in-use
+rules refuse with a message; padrinho = Tuno or above. **Push: no opt-in / opt-out UI until task 033** (the only toggle
+was on the retired Blazor profile; push sending, subscriptions and endpoints untouched). 13 Blazor routes left. No
+schema change. Detail: `docs/react-member-area.md`.
+
+**031 merged to `dev`** (@ `cf70eee3`, CI green after two fixes: `QuestionRepository.AddAsync` re-inserted the users,
+and a route test still read the deleted `Requests.razor`). `/requests` and `/questions` are React:
+`docs/react-requests-questions.md`.
 
 **030 merged to `dev`** (@ `fad2afa2`). **Members' navigation is now the React member shell** (`MemberShell.tsx`):
 a collapsible rail on wide screens, a right-hand drawer on phones / the installed app. Visitors' header: public
 sections, "Pedir atuação", "Login" (never "Membros" / "A minha conta"). Members' header: no "Pedir atuação", their
-identity + the menu. `/profile` is a small account page, no longer the member hub. `/api/account/me` gains `menu`
+identity + the menu. `/profile` stopped being the member hub (and is the profile editor since 032). `/api/account/me` gains `menu`
 (four booleans, `MemberMenuAccess`, the Blazor navbar's rules; hides links only). Removed modules stay out of the menu.
 No schema change. Detail: `docs/react-portal-pilot.md` → *Member shell*.
 
@@ -162,6 +170,16 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 032 (profile, members map, Hall of Fame):
+- The map lists expelled accounts (and the Hall of Fame counts every account), as before: decide whether to leave them out.
+- Push opt-in / opt-out has no UI until task 033 (Push v2); `push-notifications.js`, `PushNotificationPrompt` and
+  `/api/push/*` stay for it.
+- CSP `script-src` / `style-src` still allow cdnjs and unpkg, now unused (Cropper.js and Leaflet left `MainLayout`).
+- No caller left: `wwwroot/js/profilePictureRefresh.js` + `ProfilePictureUpdateService` (still wired in `MainLayout`),
+  `wwwroot/lib/cropperjs`; profile / rank / timeline selectors in the Blazor CSS.
+- `CachedGeocodingService` creates a DbContext per lookup without disposing it.
+- `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds (kept as is).
+
 Raised by 031 (Pedidos and Perguntas):
 - Members (not only Admin) read requesters' email and phone, as before; decide whether to narrow it.
 - Unused now, left in place: `IQuestionService.GetAllOrgaoSocialMembersAsync` / `HasOrgaoSocialPosition` /
@@ -170,7 +188,7 @@ Raised by 031 (Pedidos and Perguntas):
   used by Meetings / Naipes).
 
 Raised by 030 (member shell):
-- `/member/map` and `/naipes/config` are not in the member menu (reached from their Blazor pages only); decide.
+- `/naipes/config` is not in the member menu (reached from its Blazor page only); decide. (`/members/map` is, since 032.)
 - The Blazor pages keep their own navbar (`MainLayout`), so a member moving between React and Blazor pages sees two
   different menus until those pages are React.
 - No JS test runner in the repo: the shell's browser behaviour (drawer, rail, overflow) was checked by hand with a

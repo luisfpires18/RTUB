@@ -176,7 +176,6 @@ public class VersionedAssetTests : BunitContext
     /// </summary>
     [Theory]
     [InlineData("/js/fileDownload.js")]
-    [InlineData("/js/imageCropper.js")]
     [InlineData("/js/profilePictureRefresh.js")]
     [InlineData("/js/familyTree.js")]
     [InlineData("/js/roleBadge.js")]

@@ -22,8 +22,13 @@ export default defineConfig({
       output: {
         // Third-party React in its own chunk: cached across portal releases, and the one file the
         // CSP guard tests treat as vendored (like wwwroot/lib). Portal code stays in index-*.js.
+        // Leaflet (the members map, task 032) is vendored the same way, and loads only with that page.
         manualChunks: (id) =>
-          /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id) ? 'vendor-react' : undefined,
+          /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)
+            ? 'vendor-react'
+            : /[\\/]node_modules[\\/]leaflet[\\/]/.test(id)
+              ? 'vendor-leaflet'
+              : undefined,
       },
     },
   },
