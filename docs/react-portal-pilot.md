@@ -95,7 +95,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
 | Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
-| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | dropped: the `/images` admin was removed in 029A (no replacement); tables go in 029B |
+| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: dropped; the `/images` admin was removed in 029A (no replacement); tables go in 029B |
 | Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
 | Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
 | Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet header link, home card, footer | navbar now (quiet link); login done (007) |
@@ -103,7 +103,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
 | Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
-| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | decided: static copy. The `/labels` admin was removed in 029A; tables go in 029B |
+| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: static copy kept; the `/labels` admin was removed in 029A; tables go in 029B |
 | Partilhar | `/share` (manifest `share_target`) | receives shares from the OS | not linked | exclude/defer: technical PWA endpoint |
 | Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
 
