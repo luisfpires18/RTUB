@@ -1,35 +1,14 @@
 /*
- * Meetings page styles.
+ * Former Meetings page styles (the Blazor page was retired in 034; /meetings is React).
  *
  * Extracted from the component's inline <style> block (unit 024) so a strict
  * style-src needs no 'unsafe-inline'. Imported last in site.css to keep the
  * same cascade position the inline block had.
+ *
+ * Kept because .member-avatar-small here (32px, imported after member-list.css's 50px)
+ * still sizes the avatars in the /users role and details dialogs. The other selectors
+ * have no markup user left.
  */
-
-.meeting-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-@media (max-width: 768px) {
-    .meeting-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-    .meeting-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 1025px) {
-    .meeting-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
 
 .enrollment-card-grid {
     display: grid;

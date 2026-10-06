@@ -6,27 +6,25 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/032-react-member-profile-map-hall`** (from `dev` @ `cf70eee3`; DEV only), holding **032 and 033**:
-032 (`3c90682`) is pushed to origin; **033 is committed on top and not pushed**. **UNVERIFIED cloud patch** (no `dotnet`
-here): the C# services, endpoints and tests of both were written but never built or run here; `check:portal` +
-`build:portal` and scratch browser checks (mock API with the real CSP header; Owner / Tuno / Leitão / visitor; 320, 375
-and 1280px) passed. **GitHub Actions must pass before merge.**
+**Open: `claude/gracious-volta-i8q4v5` (task 034 Reuniões)**, created from `dev` @ `38eff81`, which already has 032 and
+033 (merged through PRs #216 / #217, CI green). **UNVERIFIED cloud patch:** no `dotnet` here (the Microsoft SDK download
+hosts are blocked by the environment's network policy), so the C# and the test changes were written but never built or
+run. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before merge.**
 
-**033 Naipes:** `/naipes` and `/naipes/config` are React (`/api/naipes*`, `NaipeBoardService` over the old
-`NaipeService`: R2, audit log, push on a new item unchanged); signed-in members only, settings Admin / Owner (others get
-a clear refusal). Changed on purpose: Owner inherits Admin; uploads are an allowlist checked by bytes and stored with the
-server's type (SVG / HTML / renamed files refused; MKV / AVI dropped, GIF accepted); lengths, sizes and order enforced
-server-side; a hidden instrument stays hidden by URL; picked instrument and search in the URL. Retired: both Blazor
-pages, `NaipeCard`, `NaipeCommentItem`, `DetailsModal`, `InfoSection`, `ProfileField`, `naipe-card.css`,
-`details-modal.css`, `naipes-config.css` and their bUnit tests. **11 Blazor routes left** (13 before). No schema change.
-Detail: `docs/react-naipes.md`.
+**034 Reuniões:** `/meetings` is React (`/api/meetings*`, `MeetingBoardService` + `MeetingAccess` over the old meeting,
+request, participation and ata services: push, email and the ata PDF into Documentação unchanged); signed-in members, a
+Leitão gets "Acesso restrito". Who sees and does what is the old page's effective matrix, now enforced by the API (the
+old services checked nothing). **The only permission change is A1:** a draft ata is only for whoever may write it (any
+reader of the meeting could open it before). Also changed on purpose: validation and lengths enforced server-side (the
+old forms never ran theirs), editing a cancelled meeting keeps it cancelled, a non-CV meeting keeps no Tuno
+representative, duplicate email addresses are sent once, the email preview is sandboxed, search runs in memory.
+Retired: `Meetings.razor`, `MeetingCard`, `MeetingRequestCard`, `MeetingParticipationModal`, `meeting-card.css` and their
+bUnit tests; the Blazor "Gestão → Reuniões" link is a full navigation. **10 Blazor routes left** (11 before). No schema
+change. Detail: `docs/react-meetings.md`.
 
-**032:** **`/profile` is now the member's own profile editor** (Pessoal, Tuna, Instrumentos, Foto, Notificações por
-email, Segurança over `/api/me/*`); `/member/profile` 302s to it. **`/members/map`** (was `/member/map`, which 302s) and
-**`/hall-of-fame`** are React (`/api/members/map`, `/api/hall-of-fame`); Leaflet is an npm dependency loaded only by the
-map page. Changed on purpose: the session survives a password change; nickname / locked-date / email-in-use rules
-refuse with a message; padrinho = Tuno or above. **Push: no opt-in / opt-out UI until the Push v2 task** (a later
-task; push sending, subscriptions and endpoints untouched). No schema change. Detail: `docs/react-member-area.md`.
+**033 merged to `dev`** (PR #217, @ `38eff81`): `/naipes` and `/naipes/config` are React: `docs/react-naipes.md`.
+**032 merged to `dev`** (PR #216): `/profile` is the member's own profile editor; `/members/map` and `/hall-of-fame` are
+React; no push opt-in / opt-out UI until the Push v2 task: `docs/react-member-area.md`.
 
 **031 merged to `dev`** (@ `cf70eee3`, CI green after two fixes: `QuestionRepository.AddAsync` re-inserted the users,
 and a route test still read the deleted `Requests.razor`). `/requests` and `/questions` are React:
@@ -178,6 +176,25 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 034 (Reuniões; detail in `docs/react-meetings.md` → *Deferred*):
+- Kept as before, decide: the fiscal-year filter ends at midnight on 31 August (a meeting later that day shows only under
+  "Todos os anos"); Owner does not see CV / Direção meetings or requests unless its own rule allows (A3); the requests
+  section is the Veterano / Magister rule for every type, so some approvers and Direção proposers cannot see their
+  requests (A4); the Direção branch of `CanCreateMeetingType` stays unreachable (A6).
+- `Meeting.DelegatedAtaWriterMemberId` is never set; ata attachments and ata delete have no UI (as before).
+- A published Direção ata PDF goes to Documentação `Atas {FY}`, which `DocumentationAuthorization.CanSeeFolder` leaves
+  open to every non-Leitão (only `Atas CV` / `Atas AG` are restricted), as before 034: decide whether to restrict it.
+- Notification links (meeting custom push, request reminder; also Events' notices and the old meeting services) are
+  built from the request's Host header while `AllowedHosts` is `*`: a manager forging Host could point members' push
+  links elsewhere. Same as before 034; fix app-wide (real `AllowedHosts`, or one configured base URL).
+- Shared `.modal__head` / `.modal__title` (portal `styles.css`) now let a long dialog title wrap instead of squeezing the
+  close button (found on `/meetings`; every React dialog benefits).
+- `css/4-pages/meetings.css` stays: its `.member-avatar-small` (32px, imported last) still sizes the avatars in the
+  `/users` dialogs; its other selectors (and all of `request-card.css`, `question-card.css`, `4-pages/questions.css`,
+  `.request-admin-overlay`, the grid classes in `enrollment-card.css`, `.modal-info-section*` / `.modal-section-*` in
+  `profile-components.css`) have no markup user left.
+- No caller left: Shared `EnrollmentCard` and `StatusBadge` (+ bUnit tests); `DateBadge` only through the dead `EventCard`.
+
 Raised by 033 (Naipes):
 - "Remover imagem" on `/naipes/config` leaves the R2 object behind (as before).
 - No caller left, still registered: `INaipeAuthorizationService` / `NaipeAuthorizationService`, `INaipeConfigService` /
@@ -198,8 +215,8 @@ Raised by 031 (Pedidos and Perguntas):
 - Members (not only Admin) read requesters' email and phone, as before; decide whether to narrow it.
 - Unused now, left in place: `IQuestionService.GetAllOrgaoSocialMembersAsync` / `HasOrgaoSocialPosition` /
   `GetMembersWithPositionAsync` / `CanAnswerAsync`, `IRequestService.GetPendingRequestsAsync`; most of
-  `css/3-components/request-card.css`, `question-card.css` and `css/4-pages/questions.css` (a few selectors are still
-  used by Meetings / Naipes).
+  `css/3-components/request-card.css`, `question-card.css` and `css/4-pages/questions.css` (the few selectors Meetings /
+  Naipes used have no user since 034).
 
 Raised by 030 (member shell):
 - `/naipes/config` is not in the member menu (reached from `/naipes` → "Configurar" since 033); decide. (`/members/map` is, since 032.)
@@ -386,7 +403,7 @@ Carried (one line each; detail in git history):
 - `xUnit1051` suppressed; MTP telemetry (`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` to opt out).
 - Push: `WebPushClient` newed up (untestable sends); two service-worker registration paths;
   unbounded broadcast; `PushNotificationsManager` parked on `window`.
-- Dead/orphaned front-end bits: `rtub.carousel.js`, `.meeting-today-badge`, rare-tab animation;
+- Dead/orphaned front-end bits: `rtub.carousel.js`, rare-tab animation;
   `Profile.razor` overflow intent unimplemented; `.no-scroll` loses scroll position.
 - (026, resolved) Payload: `wwwroot/sprites` (~180 MB of the ~230 MB zip) and `wwwroot/sound` went with MyTuno.
 - `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert.

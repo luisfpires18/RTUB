@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-06 (033 Naipes)_
+_Last updated: 2026-10-06 (034 Reuniões)_
 
-## Done: 001-025, 030 and 031 (merged to `dev`); 032 profile, members map and Hall of Fame, 033 Naipes (open, one branch)
+## Done: 001-025 and 030-033 (merged to `dev`); 034 Reuniões (open, not merged)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -29,6 +29,7 @@ _Last updated: 2026-10-06 (033 Naipes)_
 | 031 | Pedidos (admin side of `/request`) and Perguntas aos Órgãos Sociais | `/requests`, `/questions` | `react-requests-questions.md` |
 | 032 | Profile editor (into `/profile`), Mapa de membros, Hall of Fame | `/profile`, `/members/map`, `/hall-of-fame` | `react-member-area.md` |
 | 033 | Naipes (instrument videos / images, comments) and their settings | `/naipes`, `/naipes/config` | `react-naipes.md` |
+| 034 | Reuniões (meetings, participation, atas, meeting requests) | `/meetings` | `react-meetings.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -43,8 +44,9 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 
 ## Still Blazor (not yet scheduled)
 
-`/meetings`, `/notifications`, `/users`, `/emails`, `/share`, `/owner/db`, `/owner/tracing`, and the Identity pages
-(`/forgot-password`, `/reset-password`, `/confirm-email`): 11 Blazor routes with `/Error` (13 before 033, 16 before 032).
+`/notifications`, `/users`, `/emails`, `/share`, `/owner/db`, `/owner/tracing`, and the Identity pages
+(`/forgot-password`, `/reset-password`, `/confirm-email`): 10 Blazor routes with `/Error` (11 before 034, 13 before 033,
+16 before 032).
 Pick these up one module per task. Still planned: **Push v2** (React push opt-in / opt-out; push cleanup), a later task
 (033 became Naipes).
 
@@ -75,6 +77,8 @@ Recorded in `STATE.md` → *Deferred*; the main ones:
 - Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
 - (030, resolved) Sign-out is in the member shell. Old Blazor prompts (push, Play Store) still have no React home.
 - (032) Push opt-in / opt-out has no UI until the Push v2 task (the only toggle was on the retired Blazor profile).
+- (034) Reuniões kept the old visibility rules (Owner limits, the requests gate, the fiscal-year cut at midnight on
+  31 August): decide (`docs/react-meetings.md` → *Deferred*).
 
 ## The "next prompt" contract
 
