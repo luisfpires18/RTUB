@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { DEFAULT_AVATAR, membersApi, shortDate, type ActiveMember, type Birthday, type MemberDetail } from './membersApi';
+import { DEFAULT_AVATAR, membersApi, shortDate, type ActiveMember, type Birthday, type MemberDetail, type MemberState, type TimelineItem } from './membersApi';
 
 // The old /members modals (React track 017). The server decides who sees what (MemberDirectoryService); Admin/Owner
 // tools (018) come in through `actions` / `rowActions` from Members.tsx.
@@ -23,7 +23,7 @@ export function MemberFace({ avatarUrl, size }: { avatarUrl: string | null; size
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="member-field">
       <dt>{label}</dt>
@@ -99,64 +99,72 @@ function MemberBody({ m }: { m: MemberDetail }) {
         <dl className="member-fields">
           {m.showInstruments && <Field label="Instrumentos">{m.instruments.length > 0 ? m.instruments.join(', ') : null}</Field>}
           {m.showMentor && <Field label="Padrinho">{m.mentor}</Field>}
-          <Field label="Percurso na tuna">
-            {m.timeline.length > 0 ? (
-              <ol className="member-timeline">
-                {m.timeline.map((t, i) => (
-                  <li key={i} className={`member-timeline__item member-timeline__item--${t.accent}${t.state ? ` is-${t.state}` : ''}`}>
-                    <span className="member-timeline__label">{t.label}</span>
-                    <span className="member-timeline__years">{t.years}</span>
-                    {t.notes && <span className="note">{t.notes}</span>}
-                  </li>
-                ))}
-              </ol>
-            ) : null}
-          </Field>
+          <Field label="Percurso na tuna">{m.timeline.length > 0 ? <Timeline items={m.timeline} /> : null}</Field>
         </dl>
       </section>
 
-      {m.state && (
-        <section className="member-section" aria-label="Estado na tuna">
-          <h3 className="member-section__title">Estado na tuna</h3>
-          <dl className="member-fields">
-            {m.state.retired !== null && (
-              <Field label="Estado atual">
-                <span className={m.state.retired ? 'member-badge member-badge--retired' : 'member-badge member-badge--active'}>
-                  {m.state.retired ? 'REFORMADO' : 'NO ATIVO'}
-                </span>
-                {m.state.progress && <span className="member-progress">{m.state.progress}</span>}
-                {m.state.progress && m.state.progressMonths !== null && m.state.progressTotalMonths ? (
-                  <progress className="member-progress__bar" max={m.state.progressTotalMonths} value={m.state.progressMonths} />
-                ) : null}
-              </Field>
-            )}
-            {m.state.encourage && <p className="notice member-encourage">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
-            <Field label="Último ensaio">{shortDate(m.state.lastRehearsal)}</Field>
-            <Field label="Última atuação">{shortDate(m.state.lastEvent)}</Field>
-          </dl>
-          <details className="who__more">
-            <summary>Ver atuações e ensaios detalhados</summary>
-            {m.state.activities.length === 0 ? (
-              <p className="note">Nenhuma atividade registada</p>
-            ) : (
-              <ul className="member-activities">
-                {m.state.activities.map((a, i) => (
-                  <li key={i}>
-                    <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
-                    <span>
-                      <strong>{a.name}</strong>
-                      <small>
-                        {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
-                      </small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </details>
-        </section>
-      )}
+      {m.state && <StateSection state={m.state} />}
     </div>
+  );
+}
+
+/** "Percurso na tuna": membership steps and positions, oldest first (built by the server). */
+export function Timeline({ items }: { items: TimelineItem[] }) {
+  return (
+    <ol className="member-timeline">
+      {items.map((t, i) => (
+        <li key={i} className={`member-timeline__item member-timeline__item--${t.accent}${t.state ? ` is-${t.state}` : ''}`}>
+          <span className="member-timeline__label">{t.label}</span>
+          <span className="member-timeline__years">{t.years}</span>
+          {t.notes && <span className="note">{t.notes}</span>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** "Estado na tuna": active or retired, the way back, and the last rehearsal and event. */
+export function StateSection({ state }: { state: MemberState }) {
+  return (
+    <section className="member-section" aria-label="Estado na tuna">
+      <h3 className="member-section__title">Estado na tuna</h3>
+      <dl className="member-fields">
+        {state.retired !== null && (
+          <Field label="Estado atual">
+            <span className={state.retired ? 'member-badge member-badge--retired' : 'member-badge member-badge--active'}>
+              {state.retired ? 'REFORMADO' : 'NO ATIVO'}
+            </span>
+            {state.progress && <span className="member-progress">{state.progress}</span>}
+            {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
+              <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} />
+            ) : null}
+          </Field>
+        )}
+        {state.encourage && <p className="notice member-encourage">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
+        <Field label="Último ensaio">{shortDate(state.lastRehearsal)}</Field>
+        <Field label="Última atuação">{shortDate(state.lastEvent)}</Field>
+      </dl>
+      <details className="who__more">
+        <summary>Ver atuações e ensaios detalhados</summary>
+        {state.activities.length === 0 ? (
+          <p className="note">Nenhuma atividade registada</p>
+        ) : (
+          <ul className="member-activities">
+            {state.activities.map((a, i) => (
+              <li key={i}>
+                <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
+                <span>
+                  <strong>{a.name}</strong>
+                  <small>
+                    {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+    </section>
   );
 }
 

@@ -110,14 +110,14 @@ public class MemberPagesTests : IntegrationTestBase
     #region Profile Page Tests
 
     [Fact]
-    public async Task ProfilePage_WithoutAuth_RedirectsToLogin()
+    public async Task OldProfileUrl_RedirectsToTheReactProfile()
     {
-        // Arrange & Act
+        // The Blazor /member/profile was retired in 032: the React /profile edits the profile (and shows a visitor
+        // how to sign in).
         var response = await _client.GetAsync("/member/profile");
 
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.Headers.Location?.ToString().Should().Be("/profile");
     }
 
     #endregion
@@ -157,7 +157,8 @@ public class MemberPagesTests : IntegrationTestBase
     [InlineData("/members")]
     [InlineData("/members/hierarchy")]
     [InlineData("/rehearsals")]
-    [InlineData("/member/profile")]
+    [InlineData("/members/map")]
+    [InlineData("/hall-of-fame")]
     [InlineData("/events/1/discussion")]
     public async Task MemberPages_RequireAuthentication(string url)
     {
@@ -175,7 +176,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/members/hierarchy", "/rehearsals", "/member/profile", "/events/1/discussion" };
+        var memberUrls = new[] { "/members", "/members/hierarchy", "/rehearsals", "/members/map", "/hall-of-fame", "/events/1/discussion" };
 
         // Act & Assert
         foreach (var url in memberUrls)

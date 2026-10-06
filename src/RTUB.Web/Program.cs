@@ -556,6 +556,9 @@ public class Program
         app.MapRequestAdminEndpoints();
         app.MapQuestionEndpoints();
 
+        // --------- Profile, members map and Hall of Fame for the React /profile, /members/map and /hall-of-fame (task 032) ---------
+        app.MapMemberAreaEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
@@ -602,10 +605,11 @@ public class Program
         // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
         // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
+        // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/requests", "/questions" })
+                     "/requests", "/questions", "/members/map", "/hall-of-fame" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
@@ -649,6 +653,11 @@ public class Program
 
         // The Blazor /hierarchy (until 016) is the React /members/hierarchy (017). 302 while DEV is hybrid; GET/HEAD only.
         app.MapMethods("/hierarchy", ["GET", "HEAD"], () => Results.Redirect("/members/hierarchy"));
+
+        // The Blazor /member/profile and /member/map (until 031) are the React /profile and /members/map (032): /profile
+        // edits the member's own profile, and shows a visitor how to sign in. 302 while DEV is hybrid; GET/HEAD only.
+        app.MapMethods("/member/profile", ["GET", "HEAD"], () => Results.Redirect("/profile"));
+        app.MapMethods("/member/map", ["GET", "HEAD"], () => Results.Redirect("/members/map"));
 
         // The Blazor /members/manage admin bridge (017) is retired: its tools are on the React /members (018). 302 while
         // DEV is hybrid; GET/HEAD only.

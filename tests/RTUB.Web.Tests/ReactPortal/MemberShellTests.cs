@@ -64,6 +64,7 @@ public class MemberShellTests
     [InlineData("portal.news")]
     [InlineData("portal.members")]
     [InlineData("portal.membersHierarchy")]
+    [InlineData("portal.membersMap")]
     [InlineData("portal.roles")]
     [InlineData("portal.leaderboard")]
     [InlineData("portal.inventory")]
@@ -73,7 +74,7 @@ public class MemberShellTests
     [InlineData("portal.treasury")]
     [InlineData("portal.requests")]
     [InlineData("portal.questions")]
-    [InlineData("blazor.hallOfFame")]
+    [InlineData("portal.hallOfFame")]
     [InlineData("blazor.naipes")]
     [InlineData("blazor.meetings")]
     [InlineData("blazor.emails")]
@@ -147,6 +148,9 @@ public class MemberShellTests
     [InlineData("portal.events", null)]
     [InlineData("portal.members", null)]
     [InlineData("portal.leaderboard", null)]
+    [InlineData("portal.membersMap", null)]
+    [InlineData("portal.hallOfFame", null)]
+    [InlineData("portal.profile", null)]
     public void Menu_GatesEachRestrictedLinkOnTheServersMenuFlag(string href, string? flag)
     {
         var line = MenuLinks().Single(l => l.Href == href).Line;

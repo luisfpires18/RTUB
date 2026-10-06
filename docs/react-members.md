@@ -12,7 +12,7 @@ Admin/Owner tools). It replaces the Blazor `/members` (directory, "Detalhes do M
 | `/hierarchy` | `302` → `/members/hierarchy` (GET/HEAD only); Blazor page retired |
 | `/members/manage` | `302` → `/members` (GET/HEAD only, 018); `Members.razor` retired |
 | `/leaderboard` (Classificação) | React since 019: `docs/react-leaderboard.md` |
-| `/hall-of-fame`, `/member/map`, `/member/profile` | Blazor, unchanged (not in these tasks) |
+| `/hall-of-fame`, `/members/map` (was `/member/map`), `/profile` (was `/member/profile`) | React since 032: `docs/react-member-area.md` |
 
 ## Audit (old pages)
 

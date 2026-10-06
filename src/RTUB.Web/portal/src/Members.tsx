@@ -105,6 +105,10 @@ export default function Members() {
               <Icon name="person" />
               Hierarquia
             </a>
+            <a className="btn btn--ghost btn--sm" href={portal.membersMap}>
+              <Icon name="geo" />
+              Mapa
+            </a>
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('active')}>
               <Icon name="check" />
               Ativos

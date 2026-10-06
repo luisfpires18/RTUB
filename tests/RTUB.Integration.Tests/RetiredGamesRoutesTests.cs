@@ -56,7 +56,7 @@ public class RetiredGamesRoutesTests : IntegrationTestBase
             (await owner.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was retired in 026", url);
         }
 
-        var page = await owner.GetAsync("/hall-of-fame");
+        var page = await owner.GetAsync("/naipes");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
         var html = await page.Content.ReadAsStringAsync();
         html.Should().Contain("href=\"/leaderboard\"", "the signed-in nav is rendered, so the absences below mean something");

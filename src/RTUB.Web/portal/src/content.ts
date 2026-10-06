@@ -5,7 +5,6 @@
 /** Blazor routes the portal links out to: temporary bridges until each module has a React version. */
 export const legacy = {
   forgotPassword: '/forgot-password',
-  memberProfile: '/member/profile',
 } as const;
 
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
@@ -27,6 +26,8 @@ export const portal = {
   rehearsals: '/rehearsals',
   members: '/members',
   membersHierarchy: '/members/hierarchy',
+  membersMap: '/members/map',
+  hallOfFame: '/hall-of-fame',
   leaderboard: '/leaderboard',
   inventory: '/inventory',
   shop: '/shop',

@@ -147,6 +147,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGovernanceManagementService, GovernanceManagementService>();
         services.AddScoped<IMemberDirectoryService, MemberDirectoryService>();
         services.AddScoped<IMemberAdminService, MemberAdminService>();
+        services.AddScoped<IMyProfileService, MyProfileService>();
+        services.AddScoped<IMemberMapService, MemberMapService>();
+        services.AddScoped<IHallOfFameService, HallOfFameService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IInstrumentInventoryService, InstrumentInventoryService>();
         services.AddScoped<IProductShopService, ProductShopService>();

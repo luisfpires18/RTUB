@@ -130,12 +130,20 @@ export default function Leaderboard() {
 
   return (
     <section className="page wrap events-page leaderboard-page" aria-labelledby="leaderboard-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="leaderboard-title" className="page__title">
-          Tabela de Classificação
-        </h1>
-        <p className="page__lead">Cada ensaio e cada atuação contam XP; o XP sobe o nível.</p>
+      <header className="page__head events-page__head">
+        <div>
+          <p className="eyebrow">Área de membros</p>
+          <h1 id="leaderboard-title" className="page__title">
+            Tabela de Classificação
+          </h1>
+          <p className="page__lead">Cada ensaio e cada atuação contam XP; o XP sobe o nível.</p>
+        </div>
+        <div className="events-page__actions">
+          <a className="btn btn--ghost btn--sm" href={portal.hallOfFame}>
+            <Icon name="star" />
+            Hall of Fame
+          </a>
+        </div>
       </header>
 
       {table === 'signin' ? (

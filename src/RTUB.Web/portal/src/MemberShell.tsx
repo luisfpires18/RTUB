@@ -17,7 +17,6 @@ type MenuGroup = { key: string; label: string; links: MenuLink[] };
 
 // Blazor pages that are still live; plain full navigations, like every link between the two front ends.
 const blazor = {
-  hallOfFame: '/hall-of-fame',
   naipes: '/naipes',
   meetings: '/meetings',
   emails: '/emails',
@@ -47,9 +46,10 @@ export const memberMenu: MenuGroup[] = [
     links: [
       { href: portal.members, label: 'Membros', icon: 'people' },
       { href: portal.membersHierarchy, label: 'Hierarquia', icon: 'diagram' },
+      { href: portal.membersMap, label: 'Mapa de membros', icon: 'geo' },
       { href: portal.roles, label: 'Órgãos Sociais', icon: 'bank' },
       { href: portal.leaderboard, label: 'Classificação', icon: 'trophy' },
-      { href: blazor.hallOfFame, label: 'Hall of Fame', icon: 'star' },
+      { href: portal.hallOfFame, label: 'Hall of Fame', icon: 'star' },
       { href: blazor.naipes, label: 'Naipes', icon: 'naipes' },
     ],
   },
