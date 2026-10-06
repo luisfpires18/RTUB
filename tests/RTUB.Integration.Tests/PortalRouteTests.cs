@@ -346,9 +346,12 @@ public class PortalRouteTests : IntegrationTestBase
         File.ReadAllText(Path.Combine(portal, "EventDialogs.tsx")).Should().Contain("eventsApi.stats(").And.NotContain("presen");
         agenda.Should().Contain("takeCreatePrefill").And.Contain("prefill={editing === 'new' ? prefill : undefined}",
             "Requests' prefill opens the React create form (Admin/Owner)");
-        var profile = File.ReadAllText(Path.Combine(portal, "Profile.tsx"));
-        profile.Should().Contain("href={portal.events}").And.Contain("href={portal.myEnrollments}").And.Contain("signOut()")
+        // 030: the member menu (MemberShell.tsx) is the members' way around; /profile keeps the enrollments and sign-out.
+        var shell = File.ReadAllText(Path.Combine(portal, "MemberShell.tsx"));
+        shell.Should().Contain("href: portal.events,").And.Contain("href: portal.myEnrollments,").And.Contain("signOut()")
             .And.NotContain("memberEvents");
+        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().Contain("href={portal.myEnrollments}")
+            .And.Contain("<SignOutButton").And.NotContain("memberEvents");
 
     }
 

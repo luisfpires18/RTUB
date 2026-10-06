@@ -1,5 +1,11 @@
 // Typed contracts with the ASP.NET Core host. See docs/react-portal-pilot.md.
 
+/**
+ * Which member-menu groups the caller sees (MemberMenuAccess, task 030): the Blazor navbar's rules, decided by the
+ * server. It only hides links; every page and API still enforces its own rule.
+ */
+export type MemberMenu = { management: boolean; logisticsAndTreasury: boolean; admin: boolean; owner: boolean };
+
 /** GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. */
 export type CurrentUser =
   | { authenticated: false }
@@ -9,6 +15,7 @@ export type CurrentUser =
       fullName: string | null;
       avatarUrl: string;
       categories: string[];
+      menu: MemberMenu;
     };
 
 let session: Promise<CurrentUser> | null = null;
@@ -18,12 +25,39 @@ export function getCurrentUser(refresh = false): Promise<CurrentUser> {
   if (!session || refresh) {
     session = fetch('/api/account/me', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then((r) => (r.ok ? (r.json() as Promise<CurrentUser>) : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((user) => {
+        rememberMemberShell(user.authenticated);
+        return user;
+      })
       .catch((e) => {
         session = null; // let the next caller try again
         throw e;
       });
   }
   return session;
+}
+
+const SHELL_HINT = 'rtub-member-shell';
+
+/**
+ * Whether the last page load was signed in. Only a layout hint, so a member's page opens with the member shell
+ * instead of jumping into it once /api/account/me answers; the answer always wins. Never trusted for anything else.
+ */
+export function wasSignedIn(): boolean {
+  try {
+    return localStorage.getItem(SHELL_HINT) === '1';
+  } catch {
+    return false; // storage blocked: start as a visitor
+  }
+}
+
+function rememberMemberShell(signedIn: boolean) {
+  try {
+    if (signedIn) localStorage.setItem(SHELL_HINT, '1');
+    else localStorage.removeItem(SHELL_HINT);
+  } catch {
+    // Storage blocked: the shell simply waits for the session on each load.
+  }
 }
 
 let version: Promise<string> | null = null;
@@ -111,6 +145,7 @@ export async function signOut(): Promise<boolean> {
     const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
     if (!tokenResponse.ok) return false;
     const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+    rememberMemberShell(false);
     const form = document.createElement('form');
     form.method = 'post';
     form.action = '/auth/logout';

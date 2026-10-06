@@ -1,7 +1,8 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { getCurrentUser, getVersion, type CurrentUser } from './api';
+import { getCurrentUser, getVersion, wasSignedIn, type CurrentUser } from './api';
 import { contactEmail, portal, social } from './content';
 import { Icon, type IconName } from './icons';
+import { MemberDrawer, MemberIdentity, MemberRail, type Member } from './MemberShell';
 
 export const sections = [
   { id: 'events', label: 'Atuações' },
@@ -12,7 +13,8 @@ export const sections = [
   { id: 'request', label: 'Pedidos' },
 ];
 
-// The top bar and the menu stay short: five public sections plus the "Pedir atuação" call to action.
+// The visitors' top bar and menu stay short: five public sections plus the "Pedir atuação" call to action.
+// Signed-in members get the member shell instead (MemberShell.tsx): their menu, not the public one.
 const navSections = sections.filter((s) => s.id !== 'request');
 
 // The footer also lists the home's other anchors (FITAB, joining), which stay out of the top bar.
@@ -36,17 +38,66 @@ const sectionHref = (id: string) => sectionPages[id] ?? `/#${id}`;
 
 export function Layout({ children }: { children: ReactNode }) {
   useEffect(revealApp, []);
+  const session = useSession();
+  const [collapsed, toggleRail] = useRailCollapsed();
+  const shell = session.kind !== 'visitor';
+  const member = session.kind === 'member' ? session.user : undefined;
 
   return (
-    <>
+    <div className={shell ? `shell shell--member${collapsed ? ' shell--collapsed' : ''}` : 'shell'}>
       <a className="skip" href="#conteudo">Saltar para o conteúdo</a>
-      <Header />
-      <main id="conteudo" tabIndex={-1}>
-        {children}
-      </main>
-      <Footer />
-    </>
+      <Header shell={shell} member={member} />
+      {shell && <MemberRail member={member} collapsed={collapsed} onToggle={toggleRail} />}
+      <div className="shell__body">
+        <main id="conteudo" tabIndex={-1}>
+          {children}
+        </main>
+        <Footer />
+      </div>
+    </div>
   );
+}
+
+/**
+ * Visitor, member, or a member's page still waiting for /api/account/me. "pending" only when the last load was
+ * signed in (wasSignedIn), so a member's page opens in the member shell instead of jumping into it; a visitor never
+ * waits. A failed session check falls back to the visitor header (with Login).
+ */
+type Session = { kind: 'visitor' } | { kind: 'pending' } | { kind: 'member'; user: Member };
+
+function useSession(): Session {
+  const { user, failed } = useCurrentUser();
+  const [hint] = useState(wasSignedIn);
+
+  if (user?.authenticated) return { kind: 'member', user };
+  if (user || failed || !hint) return { kind: 'visitor' };
+  return { kind: 'pending' };
+}
+
+const RAIL_KEY = 'rtub-member-rail';
+
+/** The rail's collapsed state, kept per browser; storage blocked → expanded on every load. */
+function useRailCollapsed(): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(RAIL_KEY) === 'collapsed';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggle = () =>
+    setCollapsed((c) => {
+      try {
+        if (c) localStorage.removeItem(RAIL_KEY);
+        else localStorage.setItem(RAIL_KEY, 'collapsed');
+      } catch {
+        // Storage blocked: the choice lasts for this page only.
+      }
+      return !c;
+    });
+
+  return [collapsed, toggle];
 }
 
 // ---------- launch splash ----------
@@ -96,29 +147,54 @@ function Brand() {
   );
 }
 
-function Header() {
+/**
+ * Visitors: the public sections, "Pedir atuação" and Login. Members: no public call to action - who is signed in, and
+ * the member menu (the rail on wide screens, the drawer behind the menu button on phones).
+ */
+function Header({ shell, member }: { shell: boolean; member?: Member }) {
   return (
     <header className="header">
       <div className="header__inner wrap">
         <Brand />
-        <nav className="header__nav" aria-label="Principal">
-          <ul>
-            {navSections.map((s) => (
-              <li key={s.id}>
-                <a href={sectionHref(s.id)}>{s.label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {!shell && (
+          <nav className="header__nav" aria-label="Principal">
+            <ul>
+              {navSections.map((s) => (
+                <li key={s.id}>
+                  <a href={sectionHref(s.id)}>{s.label}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         <div className="header__actions">
-          <a className="btn btn--primary btn--sm header__cta" href={portal.request}>
-            Pedir atuação
-          </a>
-          <AccountLink className="member-link" />
-          <MobileMenu />
+          {shell ? (
+            <>
+              <MemberIdentity member={member} />
+              <MemberDrawer member={member} />
+            </>
+          ) : (
+            <>
+              <a className="btn btn--primary btn--sm header__cta" href={portal.request}>
+                Pedir atuação
+              </a>
+              <LoginLink className="member-link" />
+              <MobileMenu />
+            </>
+          )}
         </div>
       </div>
     </header>
+  );
+}
+
+/** The visitors' way in: the React /login. RTUB has no public accounts; the login page says so. */
+function LoginLink({ className }: { className: string }) {
+  return (
+    <a className={className} href={portal.login}>
+      <Icon name="login" />
+      <span className="member-link__label">Login</span>
+    </a>
   );
 }
 
@@ -173,7 +249,7 @@ function MobileMenu() {
             <Icon name="send" />
             Pedir uma atuação
           </a>
-          <AccountLink className="member-link member-link--menu" signedOutLabel="Área reservada a membros" />
+          <LoginLink className="member-link member-link--menu" />
         </div>
       </dialog>
     </>
@@ -290,11 +366,11 @@ export function useCurrentUser() {
 }
 
 /**
- * The quiet way into the members-only area. Always /profile, which explains the area is
- * reserved to RTUB members before offering the login - the portal has no public accounts. Reads
- * "Membros" for visitors (and while the session is unknown), "A minha conta" once signed in.
+ * The home page's quiet way into the members-only area (the header uses Login and the member shell instead). Always
+ * /profile, which explains the area is reserved to RTUB members before offering the login - the portal has no public
+ * accounts. Reads `signedOutLabel` for visitors (and while the session is unknown), "A minha conta" once signed in.
  */
-export function AccountLink({ className, signedOutLabel = 'Membros' }: { className: string; signedOutLabel?: string }) {
+export function AccountLink({ className, signedOutLabel }: { className: string; signedOutLabel: string }) {
   const { user } = useCurrentUser();
   const signedIn = user?.authenticated === true;
 

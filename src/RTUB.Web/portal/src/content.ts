@@ -24,6 +24,7 @@ export const portal = {
   myEnrollments: '/events/my-enrollments',
   eventDiscussion: (id: number) => `/events/${id}/discussion`,
   eventContacts: (id: number) => `/events/${id}/contacts`,
+  rehearsals: '/rehearsals',
   members: '/members',
   membersHierarchy: '/members/hierarchy',
   leaderboard: '/leaderboard',

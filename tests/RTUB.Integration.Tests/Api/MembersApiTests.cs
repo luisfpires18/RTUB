@@ -232,7 +232,7 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
-        File.ReadAllText(Path.Combine(src, "Profile.tsx")).Should().Contain("href={portal.members}");
+        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor"))
             .Should().Contain("href=\"/members/hierarchy\"").And.NotContain("href=\"/hierarchy\"");
         foreach (var file in new[] { "Members.tsx", "MembersHierarchy.tsx", "MemberDialogs.tsx", "MemberManage.tsx", "membersApi.ts" })

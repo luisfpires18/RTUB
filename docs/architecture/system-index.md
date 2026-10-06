@@ -48,10 +48,12 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RTUB.Web/portal/` | React 19 + Vite source of the public shell (`/`, `/privacy`, `/profile`, `/request`, `/music`). Not published. |
+| `src/RTUB.Web/portal/` | React 19 + Vite source of every React page (route list: `Program.cs`, `portal/src/main.tsx`). Not published. |
+| `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header and member menu (rail ≥ 1000px, drawer below; task 030). |
+| `src/RTUB.Application/Helpers/MemberMenuAccess.cs` | Which member-menu groups a member sees (the Blazor navbar's rules), sent as `menu` by `/api/account/me`. Hides links only. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |
-| `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React. |
+| `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React (+ `menu` flags since 030). |
 | `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
 | `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |
 | `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
