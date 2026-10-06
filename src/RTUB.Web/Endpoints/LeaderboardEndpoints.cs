@@ -35,10 +35,6 @@ public static class LeaderboardEndpoints
 
         writes.MapDelete("/comments/{commentId:int}", async (int commentId, HttpContext http, ILeaderboardService service) =>
             ToResult(await service.DeleteCommentAsync(commentId, http.User), _ => Results.NoContent()));
-
-        writes.MapPut("/story", async (LeaderboardStoryInput input, HttpContext http, ILeaderboardService service) =>
-                ToResult(await service.UpdateStoryAsync(input, http.User)))
-            .WithMetadata(new RequestSizeLimitAttribute(32 * 1024));
     }
 
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch

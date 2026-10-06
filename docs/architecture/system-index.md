@@ -101,6 +101,13 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 Removed from the app by task 026. Only their EF entities, configurations and DbSets remain, until the contract
 task drops the tables: `docs/games-bets-mytuno-removal.md`.
 
+## Images (slideshows) and Labels admin (removed)
+
+The Blazor `/images` and `/labels` admin pages were removed by task 029A (both plain 404s; `/images/<file>` is still
+served by `ImagesController`). The Leaderboard story is fixed in code (`LeaderboardService.Story`). Still in place until
+029B: the `Label`/`Slideshow` entities, configurations, DbSets, tables and seed data, `ILabelService`/`LabelService`
+(last caller: the dead `Components/Portal/*`), `ISlideshowService`/`SlideshowService` (no caller) and their repositories.
+
 ## Tests
 
 | Path | Responsibility |

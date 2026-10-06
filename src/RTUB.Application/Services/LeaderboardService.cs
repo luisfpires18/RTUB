@@ -21,18 +21,27 @@ namespace RTUB.Application.Services;
 /// - the details: the row's level and progress, the XP origin and the activities of all time;
 /// - comments: <see cref="ILeaderboardCommentService"/> (newest first, 1-1000 characters, likes, soft delete by the
 ///   author or Admin/Owner; the member commented on and the liked author get a push, as before);
-/// - the "ranking_story" text: Admin and Owner. No schema change.
+/// - the story above the levels: a fixed text in code (<see cref="Story"/>) since 029A removed the Labels admin. It was
+///   the "ranking_story" label, edited by Admin and Owner; nobody edits it now. Temporary: the owner decides the final
+///   text and how (if at all) it is edited. No schema change.
 /// </summary>
 public sealed class LeaderboardService : ILeaderboardService
 {
-    public const string StoryReference = "ranking_story";
     public const int MaxCommentLength = 1000;
+
+    /// <summary>
+    /// The story above the levels. Temporary code-backed text (029A): it is the seeded "ranking_story" label's text, so
+    /// the page reads as before; the owner replaces it later.
+    /// </summary>
+    public static readonly LeaderboardStoryDto Story = new(
+        "Como Funciona o Sistema de Ranking",
+        "O sistema de ranking da RTUB é baseado em XP (Pontos de Experiência) que ganhas ao participar nas atividades da tuna.\n\n🎵 Ensaios: Ganha XP por cada ensaio confirmado a que compareças\n🎭 Atuações: Ganha XP por cada atuação em que participas (o XP varia consoante o tipo de evento)\n🏆 Níveis: À medida que acumulas XP, vais subindo de nível e desbloqueando novos títulos\n\nParticipa ativamente nas atividades da tuna para subires na tabela de classificação e alcançares o nível máximo!",
+        true);
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
     private readonly IRankingService _ranking;
     private readonly IMemberStatisticsService _statistics;
     private readonly IFiscalYearService _fiscalYears;
-    private readonly ILabelService _labels;
     private readonly ILeaderboardCommentService _comments;
     private readonly ILeaderboardCommentRepository _commentRepository;
     private readonly IOptions<RankingConfiguration> _config;
@@ -42,7 +51,6 @@ public sealed class LeaderboardService : ILeaderboardService
         IRankingService ranking,
         IMemberStatisticsService statistics,
         IFiscalYearService fiscalYears,
-        ILabelService labels,
         ILeaderboardCommentService comments,
         ILeaderboardCommentRepository commentRepository,
         IOptions<RankingConfiguration> config)
@@ -51,7 +59,6 @@ public sealed class LeaderboardService : ILeaderboardService
         _ranking = ranking;
         _statistics = statistics;
         _fiscalYears = fiscalYears;
-        _labels = labels;
         _comments = comments;
         _commentRepository = commentRepository;
         _config = config;
@@ -79,15 +86,13 @@ public sealed class LeaderboardService : ILeaderboardService
                 || (e.LastName?.ToLower().Contains(q) ?? false) || e.Entry.RankName.ToLower().Contains(q)).ToList();
 
         var current = FiscalYearHelper.GetCurrentFiscalYearString();
-        var story = await _labels.GetLabelByReferenceAsync(StoryReference);
         return EventResult<LeaderboardDto>.Ok(new LeaderboardDto(
             years.Select(y => new MemberOptionDto(y, y == current ? $"{y} (ATUAL)" : y)).ToList(),
             selected,
             table.Count,
             shown.Select(e => e.Entry).ToList(),
             Levels(),
-            story is null ? null : new LeaderboardStoryDto(story.Title, story.Content, story.IsActive),
-            LeaderboardAuthorization.CanManage(user)));
+            Story));
     }
 
     public async Task<EventResult<LeaderboardMemberDto>> GetMemberAsync(string id, string? fiscalYear, ClaimsPrincipal user)
@@ -203,51 +208,6 @@ public sealed class LeaderboardService : ILeaderboardService
 
         await _comments.DeleteCommentAsync(commentId, me, isAdmin);
         return EventResult<bool>.Ok(true);
-    }
-
-    public async Task<EventResult<LeaderboardStoryDto>> UpdateStoryAsync(LeaderboardStoryInput input, ClaimsPrincipal user)
-    {
-        if (!LeaderboardAuthorization.IsMember(user))
-        {
-            return EventResult<LeaderboardStoryDto>.Fail(EventResultStatus.SignInRequired);
-        }
-
-        if (!LeaderboardAuthorization.CanManage(user))
-        {
-            return EventResult<LeaderboardStoryDto>.Fail(EventResultStatus.Forbidden);
-        }
-
-        var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(input.Title))
-        {
-            errors["title"] = new[] { "O título da etiqueta é obrigatório" };
-        }
-        else if (input.Title.Length > 200)
-        {
-            errors["title"] = new[] { "O título não pode exceder 200 caracteres" };
-        }
-
-        if (string.IsNullOrWhiteSpace(input.Content))
-        {
-            errors["content"] = new[] { "O conteúdo da etiqueta é obrigatório" };
-        }
-        else if (input.Content.Length > 5000)
-        {
-            errors["content"] = new[] { "O conteúdo não pode exceder 5000 caracteres" };
-        }
-
-        if (errors.Count > 0)
-        {
-            return new EventResult<LeaderboardStoryDto>(EventResultStatus.Invalid, Errors: errors);
-        }
-
-        if (await _labels.GetLabelByReferenceAsync(StoryReference) is not { } story)
-        {
-            return EventResult<LeaderboardStoryDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        await _labels.UpdateLabelContentAsync(story.Id, input.Title!, input.Content!, input.IsActive);
-        return EventResult<LeaderboardStoryDto>.Ok(new LeaderboardStoryDto(input.Title!, input.Content!, input.IsActive));
     }
 
     // ---------- helpers ----------

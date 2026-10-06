@@ -666,6 +666,11 @@ public class Program
 
         app.MapMethods("/nerba/event/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/nerba/{id}"));
 
+        // The Blazor /images admin (homepage slideshows) was retired in 029A with no replacement. Without this the bare
+        // URL would fall to ImagesController's catch-all "images/{**imagePath}" (empty path → 400); a literal route is
+        // more specific, so /images is a plain 404 like /labels, and /images/<file> is still served by the controller.
+        app.MapMethods("/images", ["GET", "HEAD"], () => Results.NotFound());
+
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member

@@ -180,12 +180,6 @@
     margin-bottom: 1rem;
 }
 
-.slideshow-preview {
-    max-width: 300px;
-    border-radius: 0.375rem;
-    border: 2px solid var(--bs-primary);
-}
-
 /* Identity pages */
 .identity-container {
     max-width: 500px;

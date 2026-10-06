@@ -9,7 +9,7 @@ namespace RTUB.Application.Helpers;
 /// - Visitors: nothing (401); the page sends them to sign in.
 /// - Any signed-in member (Mod included): the table, a member's details, the comments; comment, like, and delete their
 ///   own comments.
-/// - Admin or Owner: also delete any comment and edit the "ranking_story" text (the old edit button was Admin only).
+/// - Admin or Owner: also delete any comment. (Editing the story text went with the Labels admin in 029A.)
 /// </summary>
 public static class LeaderboardAuthorization
 {

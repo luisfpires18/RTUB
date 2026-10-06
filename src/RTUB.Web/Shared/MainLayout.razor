@@ -139,8 +139,6 @@
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
                                 <li><NavLink class="dropdown-item" href="/emails"><i class="bi bi-envelope"></i> Email</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/notifications"><i class="bi bi-bell"></i> Notificações</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
 
                                 <AuthorizeView Roles="Owner">
                                     <Authorized Context="ownerAuth">
@@ -540,8 +538,7 @@
 
 
     /// <summary>
-    /// Determines if the "Images" menu item should be shown.
-    /// Shown to: Admin and Owner.
+    /// Admin-only items (Gestão "Pedidos" and the "Operações" menu). Admin role only.
     /// </summary>
     private async Task<bool> ShowBeVisibleToAdminOnly()
     {
@@ -554,8 +551,7 @@
     }
 
     /// <summary>
-    /// Determines if the "Images" menu item should be shown.
-    /// Shown to: Admin and Owner.
+    /// Gestão "Logística" and "Tesouraria". Shown to: Admin, Mod and Tunos.
     /// </summary>
     private async Task<bool> ShowBeVisibleToModAdminAndTunoOnly()
     {

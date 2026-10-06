@@ -95,7 +95,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
 | Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
 | Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
-| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: needs a read-only public slides API; revisit with Gallery |
+| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: dropped; the `/images` admin was removed in 029A (no replacement); tables go in 029B |
 | Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
 | Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
 | Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet header link, home card, footer | navbar now (quiet link); login done (007) |
@@ -103,7 +103,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
 | Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
-| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: decide a read-only public labels API vs static copy before the PROD cutover |
+| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: static copy kept; the `/labels` admin was removed in 029A; tables go in 029B |
 | Partilhar | `/share` (manifest `share_target`) | receives shares from the OS | not linked | exclude/defer: technical PWA endpoint |
 | Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
 
@@ -148,7 +148,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões refused), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
 | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` | **React** (024) | Tesouraria: annual reports (totals, activities, transactions, receipts, PDF, history), calotes, MBWay, Nerba orders; signed-in members (Caloiros and Leitões: own calotes only), visitors get a 302 to sign in; old `/finance`, `/calotes`, `/mbway`, `/nerba` URLs 302 here. `docs/react-treasury.md`. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
-| every other member/admin page | **Blazor member/admin, pending** | the admin `/requests` page, `/meetings`, etc. Unchanged. (`/messages` was removed in 027.) |
+| every other member/admin page | **Blazor member/admin, pending** | the admin `/requests` page, `/meetings`, etc. Unchanged. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |

@@ -92,12 +92,12 @@ public class NavigationWorkflowTests : IntegrationTestBase
     public async Task UnauthorizedUserJourney_AttemptsToAccessAdminArea()
     {
         // Arrange & Act - User tries to access admin pages
-        var slideshowResponse = await _client.GetAsync("/images");
+        var emailsResponse = await _client.GetAsync("/emails");
 
         // Assert - Should redirect to login
-        slideshowResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        emailsResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-        slideshowResponse.Headers.Location?.ToString().Should().Contain("/login");
+        emailsResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion

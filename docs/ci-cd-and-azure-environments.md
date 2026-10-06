@@ -225,7 +225,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `WebPush__Vapid*`, `EmailSettings__*` | optional | set | absence disables the feature, not startup |
 
 **R2 is required, not optional.** Storage-backed Blazor pages (`/events`, `/music`, `/gallery`,
-`/roles`) resolve e.g. `ISlideshowService` → `CloudflareImageStorageService` → `IAmazonS3`; without
+`/roles`) resolve e.g. `IImageStorageService` → `CloudflareImageStorageService` → `IAmazonS3`; without
 credentials the app starts and `/health` answers 200, but those pages return 500. (`/` is the React
 shell since React track 004 and no longer depends on R2.) `IAmazonS3` reaches 13 domain services through 11 storage
 services. Making it optional was rejected: it would turn real storage failures into silence.
