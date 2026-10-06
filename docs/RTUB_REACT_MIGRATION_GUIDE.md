@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-06 (030 member shell)_
+_Last updated: 2026-10-06 (031 Pedidos and Perguntas)_
 
-## Done: 001-025 (merged to `dev`); 030 member shell (open)
+## Done: 001-025 and 030 (merged to `dev`); 031 Pedidos and Perguntas (open)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -26,6 +26,7 @@ _Last updated: 2026-10-06 (030 member shell)_
 | 024 | Tesouraria | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{id}]` | `react-treasury.md` |
 | 025 | Novidades (new feature: public posts wall) | `/news` | `react-news.md` |
 | 030 | Member shell: visitor header with Login; members' rail / drawer menu (not a new route) | every React page | `react-portal-pilot.md` → *Member shell* |
+| 031 | Pedidos (admin side of `/request`) and Perguntas aos Órgãos Sociais | `/requests`, `/questions` | `react-requests-questions.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`)
@@ -40,8 +41,8 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 ## Still Blazor (not yet scheduled)
 
 `/member/profile` (profile editor), `/member/map`, `/hall-of-fame`, `/meetings`, `/naipes`, `/naipes/config`,
-`/notifications`, `/requests`, `/questions`, `/users`, `/emails`, `/share`, `/owner/*`, and the
-Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick these up one module per task.
+`/notifications`, `/users`, `/emails`, `/share`, `/owner/*`, and the Identity pages (`/forgot-password`,
+`/reset-password`, `/confirm-email`): 16 Blazor routes with `/Error` (18 before 031). Pick these up one module per task.
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links the React pages and the live Blazor ones above. `/profile` is a

@@ -50,6 +50,8 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/portal/` | React 19 + Vite source of every React page (route list: `Program.cs`, `portal/src/main.tsx`). Not published. |
 | `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header and member menu (rail ≥ 1000px, drawer below; task 030). |
+| `src/RTUB.Web/Endpoints/RequestAdminEndpoints.cs`, `src/RTUB.Application/Services/RequestAdminService.cs` | React Pedidos API (031): the requests list for members but Leitões, approve / reject / delete for Admin and Owner (`RequestsAuthorization`). `docs/react-requests-questions.md`. |
+| `src/RTUB.Web/Endpoints/QuestionEndpoints.cs`, `src/RTUB.Application/Services/QuestionBoardService.cs` | React Perguntas API (031): ask a holder of an Órgãos Sociais position, replies in turns, close / delete / remind by the author (`QuestionsAuthorization`); push stays in `QuestionService`. `docs/react-requests-questions.md`. |
 | `src/RTUB.Application/Helpers/MemberMenuAccess.cs` | Which member-menu groups a member sees (the Blazor navbar's rules), sent as `menu` by `/api/account/me`. Hides links only. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
 | `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |

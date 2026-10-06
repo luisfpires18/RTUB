@@ -552,6 +552,10 @@ public class Program
         // --------- Public "Novidades" feed for the React /news (React track 025) ---------
         app.MapNewsEndpoints();
 
+        // --------- Requests admin and Perguntas for the React /requests and /questions (task 031) ---------
+        app.MapRequestAdminEndpoints();
+        app.MapQuestionEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
@@ -597,9 +601,11 @@ public class Program
         // /documentation; React Logística (track 023): /logistics and /logistics/{id}; members only (the Blazor pages were
         // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
+        // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
-                     "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}" })
+                     "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
+                     "/requests", "/questions" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
