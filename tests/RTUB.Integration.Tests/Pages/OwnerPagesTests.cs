@@ -77,40 +77,11 @@ public class OwnerPagesTests : IntegrationTestBase
 
     #endregion
 
-    #region Labels Management Page Tests
-
-    [Fact]
-    public async Task LabelsPage_WithoutAuth_RedirectsToLogin()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/labels");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    [Fact]
-    public async Task LabelsPage_RedirectsWithReturnUrl()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/labels");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        var location = response.Headers.Location?.ToString();
-        location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
-    }
-
-    #endregion
-
     #region Authorization Tests
 
     [Theory]
     [InlineData("/users")]
     [InlineData("/owner/tracing")]
-    [InlineData("/labels")]
     public async Task OwnerPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -127,7 +98,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task OwnerPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var ownerUrls = new[] { "/users", "/owner/tracing", "/labels" };
+        var ownerUrls = new[] { "/users", "/owner/tracing" };
 
         // Act & Assert
         foreach (var url in ownerUrls)
@@ -144,15 +115,12 @@ public class OwnerPagesTests : IntegrationTestBase
         // Arrange & Act - Navigate between owner pages
         var userRolesResponse = await _client.GetAsync("/users");
         var tracingResponse = await _client.GetAsync("/owner/tracing");
-        var labelsResponse = await _client.GetAsync("/labels");
 
         // Assert - All should redirect (requires owner role)
         userRolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         tracingResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        labelsResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         userRolesResponse.Headers.Location?.ToString().Should().Contain("/login");
         tracingResponse.Headers.Location?.ToString().Should().Contain("/login");
-        labelsResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion

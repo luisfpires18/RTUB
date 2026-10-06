@@ -18,7 +18,4 @@ public interface ILeaderboardService
     Task<EventResult<bool>> ToggleLikeAsync(int commentId, ClaimsPrincipal user);
 
     Task<EventResult<bool>> DeleteCommentAsync(int commentId, ClaimsPrincipal user);
-
-    /// <summary>The "ranking_story" text above the levels: Admin and Owner.</summary>
-    Task<EventResult<LeaderboardStoryDto>> UpdateStoryAsync(LeaderboardStoryInput input, ClaimsPrincipal user);
 }

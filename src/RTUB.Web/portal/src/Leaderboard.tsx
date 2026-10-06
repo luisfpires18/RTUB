@@ -25,7 +25,7 @@ type Entry = {
 };
 type Level = { level: number; name: string; xpThreshold: number };
 type Story = { title: string; content: string; isActive: boolean };
-type Table = { fiscalYears: Option[]; fiscalYear: string; total: number; entries: Entry[]; levels: Level[]; story: Story | null; canEditStory: boolean };
+type Table = { fiscalYears: Option[]; fiscalYear: string; total: number; entries: Entry[]; levels: Level[]; story: Story | null };
 type Progress = { level: number; rankName: string; xp: number; xpToNextLevel: number; progressPercentage: number; isMaxLevel: boolean; nextRankName: string | null };
 type Breakdown = {
   totalXp: number;
@@ -63,7 +63,6 @@ const api = {
   comment: (id: string, text: string) => call<Comment[]>('POST', `${member(id)}/comments`, { text }),
   like: (commentId: number) => call<{ liked: boolean }>('POST', `/api/leaderboard/comments/${commentId}/like`),
   remove: (commentId: number) => call<void>('DELETE', `/api/leaderboard/comments/${commentId}`),
-  story: (story: Story) => call<Story>('PUT', '/api/leaderboard/story', story),
 };
 
 const MAX_COMMENT = 1000;
@@ -104,7 +103,6 @@ export default function Leaderboard() {
   const [q, setQ] = useState('');
   const [shown, setShown] = useState(PAGE);
   const [open, setOpen] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
   const ids = { q: useId(), year: useId() };
 
   useEffect(() => {
@@ -165,12 +163,6 @@ export default function Leaderboard() {
               <div className="leaderboard-story">
                 <p className="leaderboard-story__title">
                   <strong>{data.story.title}</strong>
-                  {data.canEditStory && (
-                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing(true)}>
-                      <Icon name="pencil" />
-                      Editar
-                    </button>
-                  )}
                 </p>
                 <p className="leaderboard-story__text">{data.story.content}</p>
               </div>
@@ -243,13 +235,6 @@ export default function Leaderboard() {
           )}
 
           {open && <MemberDialog id={open} fiscalYear={fiscalYear} onClose={() => setOpen(null)} />}
-          {editing && data.story && (
-            <StoryDialog
-              story={data.story}
-              onClose={() => setEditing(false)}
-              onSaved={(story) => setTable({ ...data, story })}
-            />
-          )}
         </>
       )}
     </section>
@@ -529,68 +514,6 @@ function DeleteComment({ comment, onClose, onDone }: { comment: Comment; onClose
           {error}
         </p>
       )}
-    </Dialog>
-  );
-}
-
-/** The explanation above the levels ("ranking_story"): Admin and Owner. Inactive hides it from the page. */
-function StoryDialog({ story, onClose, onSaved }: { story: Story; onClose: () => void; onSaved: (s: Story) => void }) {
-  const id = useId();
-  const [form, setForm] = useState(story);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [banner, setBanner] = useState<string>();
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const o = await api.story(form);
-    setBusy(false);
-    if (o.kind === 'ok') {
-      onSaved(o.data);
-      onClose();
-    } else if (o.kind === 'invalid') setErrors(o.errors);
-    else setBanner(problem(o, 'guardar o texto'));
-  };
-
-  return (
-    <Dialog
-      title="Editar a explicação da classificação"
-      size="lg"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            Guardar
-          </button>
-        </>
-      }
-    >
-      <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
-        <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-t`}>Título</label>
-          <input id={`${id}-t`} type="text" maxLength={200} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          {errors.title && <p className="form__error">{errors.title}</p>}
-        </div>
-        <div className={errors.content ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-c`}>Texto</label>
-          <textarea id={`${id}-c`} rows={10} maxLength={5000} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-          <p className="form__hint">As mudanças de linha ficam como estão.</p>
-          {errors.content && <p className="form__error">{errors.content}</p>}
-        </div>
-        <label className="form__check" htmlFor={`${id}-a`}>
-          <input id={`${id}-a`} type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
-          Mostrar na página
-        </label>
-      </form>
     </Dialog>
   );
 }

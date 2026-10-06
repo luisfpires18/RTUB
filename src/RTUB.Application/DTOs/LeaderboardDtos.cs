@@ -6,7 +6,7 @@ namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// The table for one fiscal year ("" = every year), positions assigned before the search, as the old page did.
-/// <c>Story</c> is the "ranking_story" label shown above the levels when active; <c>CanEditStory</c> Admin/Owner.
+/// <c>Story</c> is the text shown above the levels when active: fixed in code since 029A (no Labels, no editing).
 /// </summary>
 public sealed record LeaderboardDto(
     IReadOnlyList<MemberOptionDto> FiscalYears,
@@ -14,8 +14,7 @@ public sealed record LeaderboardDto(
     int Total,
     IReadOnlyList<LeaderboardEntryDto> Entries,
     IReadOnlyList<LeaderboardLevelDto> Levels,
-    LeaderboardStoryDto? Story,
-    bool CanEditStory);
+    LeaderboardStoryDto? Story);
 
 public sealed record LeaderboardEntryDto(
     int Position,
@@ -32,8 +31,6 @@ public sealed record LeaderboardEntryDto(
 public sealed record LeaderboardLevelDto(int Level, string Name, int XpThreshold);
 
 public sealed record LeaderboardStoryDto(string Title, string Content, bool IsActive);
-
-public sealed record LeaderboardStoryInput(string? Title, string? Content, bool IsActive);
 
 /// <summary>
 /// "Detalhes da Classificação": the level and progress for the selected fiscal year (as the row), the XP origin and the

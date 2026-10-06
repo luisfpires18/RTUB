@@ -20,7 +20,7 @@ namespace RTUB.Integration.Tests.Api;
 /// <summary>
 /// The classification on /api/leaderboard (React track 019, was the Blazor /leaderboard) through the real host: real
 /// login, antiforgery, SQLite and the services the old page used (RankingService, MemberStatisticsService,
-/// LeaderboardCommentService, LabelService). XP comes from appsettings' "Ranking": 15 per attended past rehearsal,
+/// LeaderboardCommentService; the story above the levels is fixed in code since 029A). XP comes from appsettings' "Ranking": 15 per attended past rehearsal,
 /// Festival 100, Atuacao 50, and the level thresholds 0 / 200 / 400... Push is the recording fake of
 /// <see cref="EventsApiFactory"/>: nothing is ever sent. Every test scopes its own members, since the class shares one
 /// database.
@@ -48,7 +48,6 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         (await anonymous.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = "olá" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsync("/api/leaderboard/comments/1/like", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.DeleteAsync("/api/leaderboard/comments/1")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await anonymous.PutAsJsonAsync("/api/leaderboard/story", new { title = "t", content = "c", isActive = true })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         var page = await anonymous.GetAsync("/leaderboard");
         page.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -255,35 +254,41 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         (await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = "sem token" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await member.PostAsync("/api/leaderboard/comments/1/like", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await member.DeleteAsync("/api/leaderboard/comments/1")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await member.PutAsJsonAsync("/api/leaderboard/story", new { title = "t", content = "c", isActive = true })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         (await Json(member, $"/api/leaderboard/members/{target.Id}/comments")).GetArrayLength().Should().Be(0);
     }
 
     [Fact]
-    public async Task Story_IsEditedByAdminAndOwnerOnly_WithTheLabelRules()
+    public async Task Story_IsTheFixedText_ForEveryRole_EvenWhenTheOldLabelSaysOtherwise_AndNobodyEditsIt()
     {
+        // 029A: the story no longer comes from the "ranking_story" label. A label row with other text must not leak in.
         await EnsureStoryAsync();
-        var input = new { title = "Como sobes de nível", content = "Linha 1\nLinha 2", isActive = true };
-        foreach (var role in new[] { "Member", "Mod" })
+        var fixedStory = RTUB.Application.Services.LeaderboardService.Story;
+        foreach (var role in new[] { "Member", "Mod", "Admin", "Owner" })
         {
             var (client, _) = await SignInAsync(role);
             await WithTokenAsync(client);
-            (await client.PutAsJsonAsync("/api/leaderboard/story", input)).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
-            (await Json(client, "/api/leaderboard?q=zzz-none")).GetProperty("canEditStory").GetBoolean().Should().BeFalse();
+            var body = await Json(client, "/api/leaderboard?q=zzz-none");
+            var story = body.GetProperty("story");
+            (story.GetProperty("title").GetString(), story.GetProperty("content").GetString(), story.GetProperty("isActive").GetBoolean())
+                .Should().Be((fixedStory.Title, fixedStory.Content, true), role);
+            body.TryGetProperty("canEditStory", out _).Should().BeFalse("story editing went with the Labels admin ({0})", role);
+            (await client.PutAsJsonAsync("/api/leaderboard/story", new { title = "t", content = "c", isActive = true })).StatusCode
+                .Should().Be(HttpStatusCode.NotFound, "the story edit endpoint was removed ({0})", role);
         }
 
-        foreach (var role in new[] { "Admin", "Owner" })
-        {
-            var (client, _) = await SignInAsync(role);
-            await WithTokenAsync(client);
-            (await Json(client, "/api/leaderboard?q=zzz-none")).GetProperty("canEditStory").GetBoolean().Should().BeTrue(role);
-            (await Errors(await client.PutAsJsonAsync("/api/leaderboard/story", new { title = "", content = new string('x', 5001), isActive = true })))
-                .Keys.Should().BeEquivalentTo("title", "content");
-            (await client.PutAsJsonAsync("/api/leaderboard/story", input with { title = $"{input.title} {role}" })).StatusCode.Should().Be(HttpStatusCode.OK);
-            var story = (await Json(client, "/api/leaderboard?q=zzz-none")).GetProperty("story");
-            (story.GetProperty("title").GetString(), story.GetProperty("content").GetString()).Should().Be(($"{input.title} {role}", input.content));
-        }
+        (await Anonymous().PutAsJsonAsync("/api/leaderboard/story", new { title = "t", content = "c", isActive = true })).StatusCode
+            .Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public void LeaderboardService_NoLongerDependsOnTheLabelService()
+    {
+        typeof(RTUB.Application.Services.LeaderboardService).GetConstructors()
+            .SelectMany(c => c.GetParameters())
+            .Select(p => p.ParameterType)
+            .Should().NotContain(typeof(RTUB.Application.Interfaces.ILabelService));
+        typeof(RTUB.Application.Interfaces.ILeaderboardService).GetMethod("UpdateStoryAsync").Should().BeNull();
     }
 
     [Fact]
@@ -400,11 +405,18 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        if (!await db.Labels.AnyAsync(l => l.Reference == "ranking_story"))
+        // A "ranking_story" row whose text differs from the fixed story, so a read through Labels would show.
+        var label = await db.Labels.FirstOrDefaultAsync(l => l.Reference == "ranking_story");
+        if (label is null)
         {
             db.Labels.Add(Label.Create("ranking_story", "Ranking", "Texto"));
-            await db.SaveChangesAsync();
         }
+        else
+        {
+            label.UpdateContent("Ranking", "Texto", true);
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static int _ip;

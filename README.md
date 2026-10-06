@@ -203,7 +203,6 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - Photo and media gallery with album organization
 - Person tagging on gallery media (tag members in photos)
 - Image upload with cropping (Cropper.js integration)
-- Slideshow management for public display on homepage
 - Event video uploads and playback
 - Document storage and management (meeting documents, reports)
 - Cloud storage via Cloudflare R2
@@ -367,7 +366,7 @@ RTUB/
 │       │   ├── Activities/      # Events, rehearsals, meetings, leaderboard, naipes
 │       │   ├── Management/      # Finance, questions, logistics, roles, reports
 │       │   ├── Members/         # Member list, profiles, map, hierarchy
-│       │   ├── Media/           # Gallery, albums, songs, slideshows, documents
+│       │   ├── Media/           # Gallery, albums, songs, documents
 │       │   └── Operations/      # Audit logs, database viewer, notifications
 │       ├── Controllers/         # API controllers (downloads, push)
 │       ├── Extensions/          # Service registration extensions

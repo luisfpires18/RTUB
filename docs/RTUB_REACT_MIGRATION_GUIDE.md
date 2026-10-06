@@ -39,7 +39,7 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 ## Still Blazor (not yet scheduled)
 
 `/member/profile` (profile editor), `/member/map`, `/hall-of-fame`, `/meetings`, `/naipes`, `/naipes/config`,
-`/notifications`, `/requests`, `/questions`, `/labels`, `/users`, `/emails`, `/images`, `/share`, `/owner/*`, and the
+`/notifications`, `/requests`, `/questions`, `/users`, `/emails`, `/share`, `/owner/*`, and the
 Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick these up one module per task.
 
 ## Future work, outside the migration
@@ -49,6 +49,9 @@ Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`). Pick t
 - **Messages / Conversas**: removed from the app by task 027 (no replacement; `/messages` and `/hubs/messages` 404;
   push no longer leaves an inbox copy). The four tables stay until the contract task drops them:
   `docs/messages-removal.md`. Any future chat is new product design, not a port of the old inbox.
+- **Images (slideshows) and Labels admin**: `/images` and `/labels` removed by task 029A (no replacement; both 404). The
+  Leaderboard story is temporary text in code until the owner decides. 029B drops the `Labels` and `Slideshows` tables
+  (with a migration) and the services left behind.
 
 ## Cleanup and polish (after or between features)
 

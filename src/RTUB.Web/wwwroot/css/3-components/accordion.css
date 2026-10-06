@@ -51,12 +51,6 @@
     object-fit: cover;
 }
 
-.slideshow-preview {
-    max-width: 200px;
-    max-height: 150px;
-    object-fit: cover;
-}
-
 .btn-primary-purple {
     background-color: var(--bs-primary);
     border-color: var(--bs-primary);

@@ -42,23 +42,27 @@ place, comment, like), all to the same URL.
 
 ## Rules now (`LeaderboardAuthorization`, server-side)
 
-| Who | Table, details, comments, comment, like, delete own | Delete any comment, edit the explanation |
+| Who | Table, details, comments, comment, like, delete own | Delete any comment |
 | --- | --- | --- |
 | Visitor | `401` (page: 302 to sign in) | `401` |
 | Member, Mod | yes | `403` |
-| Admin, Owner | yes | yes (Owner inherits Admin; the old edit button was Admin only) |
+| Admin, Owner | yes | yes (Owner inherits Admin) |
+
+**Story text (029A, temporary).** The explanation above the levels no longer comes from the `ranking_story` label: the
+Labels admin (`/labels`) was removed, so the text is fixed in code (`LeaderboardService.Story`, the seeded label's text)
+and nobody edits it; `PUT /api/leaderboard/story`, `canEditStory` and the React "Editar" dialog are gone. The owner
+decides the final text and whether it becomes editable again. The `Labels` table is untouched until 029B.
 
 ## API (GET `no-store`; writes need `X-CSRF-TOKEN`)
 
 | Endpoint | Does |
 | --- | --- |
-| `GET /api/leaderboard?fiscalYear=&q=` | `{ fiscalYears, fiscalYear, total, entries, levels, story, canEditStory }`; unknown year → 400 |
+| `GET /api/leaderboard?fiscalYear=&q=` | `{ fiscalYears, fiscalYear, total, entries, levels, story }` (`story` fixed in code since 029A); unknown year → 400 |
 | `GET /api/leaderboard/members/{id}?fiscalYear=` | the details; 404 when unknown |
 | `GET /api/leaderboard/members/{id}/comments` | the comments, newest first (author name and avatar, no ids) |
 | `POST /api/leaderboard/members/{id}/comments` | `{ text }` → the new list; 400 empty / over 1000 |
 | `POST /api/leaderboard/comments/{id}/like` | toggles → `{ liked }`; 404 when deleted |
 | `DELETE /api/leaderboard/comments/{id}` | 204; 403 unless author or Admin/Owner |
-| `PUT /api/leaderboard/story` | `{ title, content, isActive }`, Admin/Owner |
 
 ## Changed on purpose
 

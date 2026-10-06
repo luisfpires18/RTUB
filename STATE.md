@@ -3,10 +3,22 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-05_
+_Last updated: 2026-10-06_
 
 ## Phase
-**Open: `feat/027-remove-messages-conversas`** (from `dev` @ `e5a30a9a`; local, not pushed; DEV only). **Messages /
+**Open: `feat/029a-remove-images-labels-ui`** (from `dev` @ `77487805`; DEV only). **UNVERIFIED cloud patch:** written in
+a cloud session with no `dotnet`, so it was never built or tested here; **GitHub Actions (CI • Build & Test) must pass
+before merge.** Portal `check:portal` + `build:portal` did run (bundle rebuilt). **Images and Labels admin removed (UI
+only):** `/images` (slideshows) and `/labels` (site texts) are plain 404s (no replacement; `/images` needs an explicit
+404 endpoint in `Program.cs`, else `ImagesController`'s catch-all answers 400; `/images/<file>` still served); the
+Operações "Imagens" and "Conteúdo" items, `LabelCard`, `SlideshowCard` and their CSS are gone. **Leaderboard story is now
+temporary code-backed text** (`LeaderboardService.Story`, the seeded label's text; owner decides the final text later):
+no `ILabelService` dependency, `PUT /api/leaderboard/story`, `canEditStory` and the React "Editar" dialog removed, so
+nobody edits it. **No migration, schema unchanged.** **029B remains** (needs `dotnet`): drop the `Labels` and `Slideshows`
+tables with a migration, and delete their entities/configs/DbSets/seed, `ILabelService`/`LabelService` (last caller: the
+dead `Components/Portal/*`), `ISlideshowService`/`SlideshowService`, their repositories and tests.
+
+**027 merged to `dev`** (@ `77487805`). **Messages /
 Conversas removed from the app (Phase A):** `/messages`, `/messages/{id}` and `/hubs/messages` are plain 404s (no
 replacement); the inbox, `MessagesHub`, the user-menu "Mensagens" item and unread badges, "Sync Chat" on `/users`, the PWA
 "Mensagens" shortcut, the service worker's `/messages` fallback and app-icon badge, message JS/CSS and every messaging
@@ -136,6 +148,12 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 029A (Images / Labels admin removal, UI only):
+- 029B: drop `Labels`/`Slideshows` (migration) and the services, repositories, seed and tests left for it (see Phase).
+  Any production edits to the `ranking_story` label are no longer shown; copy them out first if wanted.
+- `ImageUploadManager` (Shared, + bUnit tests) has no caller since `Slideshows.razor` went.
+- Slideshow images in R2 (upload category `slideshows`) are left in place, unused.
+
 Raised by 027 (Messages / Conversas removal, Phase A):
 - Contract task (bundled with 026's, below): drop `Conversations`, `Messages`, `MessageReactions`,
   `ConversationUserSettings` (migration `DropMessagesConversations`) and delete the kept entities/configs/DbSets. Private
@@ -254,9 +272,8 @@ Raised by React track 006 (Music):
 Raised by React track 005 (content audit):
 - (024, resolved) `/calotes`, `/mbway`, `/nerba` were open to visitors; they now 302 to the members-only React
   `/treasury…` pages and the API refuses visitors (401) and non-treasury members (403).
-- The old home's text was admin-editable (Labels, `/labels`); the React copy is static. Decide a
-  read-only public labels API vs static copy before the PROD cutover.
-- Public slideshow (`/images` admin) has no React counterpart; revisit with the Gallery module.
+- (029A, resolved) The old home's text (Labels, `/labels`) stays static in React; the `/labels` admin is gone.
+- (029A, resolved) The public slideshow is dropped; the `/images` admin is gone.
 
 Raised by React track 004 (React `/`):
 - The Blazor home was the only place rendering `PushNotificationPrompt`, `LoginPopup` and
