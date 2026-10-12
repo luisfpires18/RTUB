@@ -3,7 +3,7 @@
   "version": 1,
   "policies": {
     "mapsRequireExternalKey": false,
-    "maps": "No API key or secret: Leaflet with CARTO basemap tiles in the browser, Nominatim (OpenStreetMap) geocoding on the server.",
+    "maps": "No API key or secret: Leaflet with OpenStreetMap standard tiles (tile.openstreetmap.org) in the browser, Nominatim (OpenStreetMap) geocoding on the server.",
     "messagingTablesPreserved": true,
     "messagingTables": [
       "Conversations",
@@ -181,17 +181,16 @@
       "group": "core",
       "secret": false,
       "local": "n/a",
-      "dev": "required",
+      "dev": "optional",
       "prod": "required",
       "source": [
         "Azure App Settings"
       ],
-      "devProd": "match",
+      "devProd": "any",
       "expected": {
-        "dev": "1",
         "prod": "1"
       },
-      "notes": "The deployed zip is mounted read-only (docs/ci-cd-and-azure-environments.md -> Run from package)."
+      "notes": "PROD: required, 1 (the deployed zip is mounted read-only; docs/ci-cd-and-azure-environments.md -> Run from package). DEV: optional - intentionally absent on rtub-dev since task 040's audit correction; the audit does not warn either way."
     },
     {
       "name": "ConnectionStrings__SqliteConnection",
@@ -709,7 +708,7 @@
         "dev": "true",
         "prod": "true"
       },
-      "notes": "Members map. No API key: Leaflet + CARTO tiles, Nominatim (OpenStreetMap) geocoding."
+      "notes": "Members map. No API key: Leaflet + OpenStreetMap standard tiles (tile.openstreetmap.org, since 040), Nominatim (OpenStreetMap) geocoding."
     },
     {
       "name": "Geocoding__DisabledInTests",

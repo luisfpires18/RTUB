@@ -106,6 +106,10 @@ There is no id in any `/api/me` route: the member is the session's. Writes need 
   encode WebP (the React cropper's fallback).
 - **The map loads Leaflet only on `/members/map`** (npm `leaflet`, its own `vendor-leaflet` chunk), not on every Blazor
   page; popups are DOM nodes with names as text, so no member data is ever written as markup.
+- **Basemap (task 040):** OpenStreetMap standard tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, attribution
+  "© OpenStreetMap contributors"), no API key; darkened by a CSS filter on the tile pane only. CARTO's dark tiles
+  (`basemaps.cartocdn.com`) started showing "API KEY REQUIRED" and were dropped. The URL is one constant in
+  `MembersMap.tsx`; its host is the only tile host in the CSP `img-src`.
 - `/member/profile` redirects for everyone, including visitors (before: 302 to sign in).
 
 ## Retired

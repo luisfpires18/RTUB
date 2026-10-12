@@ -22,7 +22,7 @@ Why it is built this way: `docs/architecture/adr/0001-production-release-and-rol
 | Artifact | one zip per push, workflow artifact of that run (1 day) | one zip per release, archived privately and immutably as `releases/<version>/` |
 | `/api/version` | `<VERSION>-dev.<run>` + commit | `<VERSION>` + commit |
 | Rollback | push again | **Rollback • PROD** redeploys any archived version |
-| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` | adopted after the first OIDC release (`STATE.md`) |
+| Run from package | not used: `WEBSITE_RUN_FROM_PACKAGE` intentionally absent (040) | `WEBSITE_RUN_FROM_PACKAGE=1` |
 | Database | `Data Source=/home/site/data/<file>.db` - **read the live setting; never hardcode it** (`rtub-dev-v3.db` as of 2026-09-22) | `Data Source=/home/site/data/app.db` |
 | Daily backup | off (`DatabaseBackup__Enabled=false`) | on, to the private `rtub-db` R2 bucket at 03:30 UTC |
 | Pre-migration snapshot | yes | yes |
@@ -131,7 +131,8 @@ with `zipfile`, whose rewrite is correct on write.
 
 `WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
 Microsoft's current documentation excludes only Python and Java; an older "Windows only" quote this
-document used to carry is obsolete. `rtub-dev` runs this way.
+document used to carry is obsolete. `rtub` runs this way; `rtub-dev` used to and no longer does (setting
+intentionally absent, 040).
 
 With it, a zip deploy stores the zip as-is in `/home/data/SitePackages/` and restarts the app, which
 mounts the zip read-only as `/home/site/wwwroot`: only complete deployments ever run, and there is no
@@ -216,7 +217,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `ASPNETCORE_URLS`, `WEBSITES_PORT` | set | set | must agree |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | `true` | real client address and scheme behind the Azure front end |
 | `ConnectionStrings__SqliteConnection` | set | set | under `/home/site/data` |
-| `WEBSITE_RUN_FROM_PACKAGE` | `1` | `1` after cutover | see above |
+| `WEBSITE_RUN_FROM_PACKAGE` | intentionally absent (040) | `1` | DEV does not run from package on its current plan; do not re-add unless DEV's deployment strategy changes |
 | `AdminUser__Password` | set | not needed while users exist | startup-fatal on an empty database |
 | `SeedData__SeedFullDataset`, `SeedData__MemberPassword` | set | absent | |
 | `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |
@@ -224,7 +225,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
 | `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | set (own key pair) | set (own key pair) | required for push since 038 (`/profile` shows "not configured" without them); absence disables push, not startup. Never rotate a live pair casually: existing subscriptions stop working |
 | `EmailSettings__*` | set for real mail | set | required for real outgoing email; absence disables email, not startup |
-| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | `true` / `false` | `true` / `false` | maps need **no API key** (Leaflet + CARTO tiles, Nominatim geocoding) |
+| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | `true` / `false` | `true` / `false` | maps need **no API key** (Leaflet + OpenStreetMap tiles, Nominatim geocoding) |
 | `IDrive__*` | absent | **absent** (dead since the move to R2; owner action to delete on `rtub`) | |
 
 **R2 is required, not optional.** Storage-backed API routes (events, music, gallery, governance, naipes,

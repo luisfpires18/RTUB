@@ -18,7 +18,7 @@ treasury, logistics, inventory, shop, documentation and the Owner's operations t
   pushes from `/notifications`.
 - **Cloudflare R2** for every stored file (images, audio, video, documents, receipts) and for the daily production
   database backup. (IDrive is historical only: nothing reads `IDrive:*`.)
-- **Maps**: Leaflet with CARTO tiles, geocoding by Nominatim (OpenStreetMap). No API key.
+- **Maps**: Leaflet with OpenStreetMap standard tiles, geocoding by Nominatim (OpenStreetMap). No API key.
 - **Email**: SMTP. **PDF**: QuestPDF.
 - **Tests**: xUnit v3 (Microsoft Testing Platform) + Moq + FluentAssertions, four test projects.
 

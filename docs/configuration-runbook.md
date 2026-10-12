@@ -8,8 +8,8 @@ ever printing or committing a value**. Task 039.
   rule (`match` / `differ` / `any`), committed or code default, placeholder and notes.
 - **Scripts:** `scripts/config/audit-local-user-secrets.ps1`, `scripts/config/audit-azure-app-settings.ps1`,
   `scripts/config/generate-vapid-keys.ps1` (Windows PowerShell 5.1 or PowerShell 7).
-- **Outputs:** `.local/config-audit/` — git-ignored (`.local/` in `.gitignore`). The scripts refuse to write anywhere
-  else inside the repository. Reports hold presence, length and a SHA-256 fingerprint prefix, never a value;
+- **Outputs:** `.local/config-audit/` — **generated, git-ignored (`.local/` in `.gitignore`), never committed, safe to
+  delete**; rerun the audit scripts to regenerate it. The scripts refuse to write anywhere else inside the repository. Reports hold presence, length and a SHA-256 fingerprint prefix, never a value;
   templates hold placeholders only. Keep them local anyway (a fingerprint of a weak password can be brute-forced).
 
 ## Where settings live
@@ -32,7 +32,8 @@ Full list and notes: the manifest. The ones that matter:
 
 | Group | Local | DEV (`rtub-dev`, `Staging`) | PROD (`rtub`, `Production`) |
 | --- | --- | --- | --- |
-| Core: `ASPNETCORE_ENVIRONMENT`, `ASPNETCORE_URLS` / `WEBSITES_PORT`, `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, `WEBSITE_RUN_FROM_PACKAGE=1` | launchSettings.json | required | required |
+| Core: `ASPNETCORE_ENVIRONMENT`, `ASPNETCORE_URLS` / `WEBSITES_PORT`, `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` | launchSettings.json | required | required |
+| `WEBSITE_RUN_FROM_PACKAGE` | — | **intentionally absent** (optional) | **required, `1`** |
 | `ConnectionStrings__SqliteConnection` | optional (falls back to `src/RTUB.Web/app.db`: use a scratch copy) | required, under `/home/site/data/` | required, `Data Source=/home/site/data/app.db` |
 | `AdminUser__Password` | required on an empty database | required | only while the database has no users |
 | `SeedData__SeedFullDataset` / `SeedData__MemberPassword` | optional | `true` / required | unset or `false` / **absent** |
@@ -50,9 +51,14 @@ Why:
   treasury resolve `IAmazonS3`; without R2 the app starts and `/health` is 200, but those routes answer 500. A
   non-production environment with R2 credentials and the production bucket name refuses to start.
 - **Email** is needed only for real outgoing mail; without it sends are skipped, startup is unaffected.
-- **Maps need no API key.** The members map uses Leaflet with CARTO basemap tiles in the browser; addresses are
+- **Maps need no API key.** The members map uses Leaflet with OpenStreetMap standard tiles
+  (`tile.openstreetmap.org`, since 040; CARTO's tiles began requiring a key) in the browser; addresses are
   geocoded server-side by Nominatim (OpenStreetMap), cached in the database. `Geocoding__DisabledInTests=true` only
   for test hosts.
+- **`WEBSITE_RUN_FROM_PACKAGE`: PROD keeps `=1`; DEV intentionally does not have it** (its F1 / free-tier setup does
+  not run from package). Do not re-add it to `rtub-dev` unless DEV's deployment strategy changes. Since 040 the
+  manifest marks it optional on DEV, so the audit no longer warns; a DEV warning for it in an older report is
+  informational noise.
 - **DatabaseBackup is PROD-only.** DEV must never write to `rtub-db` (and must never hold production R2 or backup
   credentials). The PROD backup also needs Always On.
 - **DEV may carry reference R2 settings** after a database refresh (`docs/cloudflare-r2-and-database-backups.md`):
@@ -117,7 +123,7 @@ Parameters: `-ResourceGroup rtub_group`, `-DevApp rtub-dev`, `-ProdApp rtub`, `-
   apps hold the same value (compared on full hashes in memory), plus warnings:
   - missing required settings, with summary lines for incomplete `WebPush__Vapid*`, `Cloudflare__R2__*`,
     `EmailSettings__*` and core settings;
-  - `ASPNETCORE_ENVIRONMENT` not `Staging` / `Production`; `WEBSITE_RUN_FROM_PACKAGE` not `1`;
+  - `ASPNETCORE_ENVIRONMENT` not `Staging` / `Production`; PROD `WEBSITE_RUN_FROM_PACKAGE` not `1` (DEV: not checked);
     `ASPNETCORE_FORWARDEDHEADERS_ENABLED` not `true`;
   - PROD `DatabaseBackup__Enabled` not `true`, DEV `DatabaseBackup__Enabled` `true`;
   - `ConnectionStrings__SqliteConnection` outside `/home/site/data/`;
@@ -151,7 +157,6 @@ the template writes it:
 $settings = @(
     'ASPNETCORE_ENVIRONMENT=Staging'
     'ASPNETCORE_FORWARDEDHEADERS_ENABLED=true'
-    'WEBSITE_RUN_FROM_PACKAGE=1'
     'ConnectionStrings__SqliteConnection=Data Source=/home/site/data/<dev-file>.db'
     'Cloudflare__R2__AccountId=<DEV_R2_ACCOUNT_ID>'
     'Cloudflare__R2__AccessKeyId=<DEV_R2_ACCESS_KEY_ID>'
