@@ -61,11 +61,11 @@ This document outlines Progressive Web App (PWA) development best practices for 
 ### HTML Linking
 
 ✅ **Always:**
-- Link manifest in `App.razor` (static HTML)
+- Link manifest in the React shell `src/RTUB.Web/portal/index.html` (static HTML; `App.razor` until 037)
 - Use correct MIME type: `application/manifest+json`
 - Ensure manifest is accessible at root level
 
-```razor
+```html
 <link rel="manifest" href="/manifest.webmanifest" />
 ```
 

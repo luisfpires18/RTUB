@@ -116,21 +116,15 @@ public class SecurityHeaderTests : IntegrationTestBase
     }
 
     /// <summary>
-    /// The WebSocket source has to match the host the browser actually connected to, or the
-    /// Blazor circuit is refused by the very policy meant to protect it.
+    /// Task 037: no Blazor circuit, so a page may connect to its own origin only; no ws:/wss: source is offered.
     /// </summary>
     [Fact]
-    public async Task Page_AllowsTheBlazorCircuitOnTheRequestHost()
+    public async Task Page_ConnectSrcIsSelfOnly()
     {
-        var client = Factory.CreateClient();
+        var response = await Factory.CreateClient().GetAsync("/");
 
-        var response = await client.GetAsync("/");
-        var requestUri = response.RequestMessage!.RequestUri!;
-        var expected = requestUri.Scheme == "https"
-            ? $"wss://{requestUri.Authority}"
-            : $"ws://{requestUri.Authority}";
-
-        Single(response, Csp).Should().Contain($"connect-src 'self' {expected}");
+        var policy = Single(response, Csp);
+        policy.Should().EndWith("connect-src 'self'").And.NotContain("ws:").And.NotContain("wss:");
     }
 
     /// <summary>
@@ -141,7 +135,7 @@ public class SecurityHeaderTests : IntegrationTestBase
     [Theory]
     [InlineData("/service-worker.js")]
     [InlineData("/manifest.webmanifest")]
-    [InlineData("/js/avatarFallback.js")]
+    [InlineData("/js/sw-register.js")]
     public async Task NonDocumentResponse_CarriesNoContentSecurityPolicy(string path)
     {
         var client = Factory.CreateClient();

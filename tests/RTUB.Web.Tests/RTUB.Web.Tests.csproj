@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.Core" />
-    <PackageReference Include="bunit" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="MockQueryable.Moq" />

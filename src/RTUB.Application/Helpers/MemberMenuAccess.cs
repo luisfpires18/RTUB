@@ -6,7 +6,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// Which groups of the React member menu (task 030) the signed-in caller sees. The same rules as the Blazor navbar
-/// (<c>Shared/MainLayout.razor</c>) and the pages behind each link. It only decides which links are shown: every page and
+/// (<c>Shared/MainLayout.razor</c>, retired in 037) and the pages behind each link. It only decides which links are shown: every page and
 /// API still enforces its own rule, so a hidden link is a convenience, never the protection.
 ///
 /// - <see cref="Management"/> (Reuniões, Documentação, Questões): the navbar's "Gestão": Admin, Owner or Mod, or any

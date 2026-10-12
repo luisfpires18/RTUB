@@ -71,7 +71,7 @@ public sealed record OwnerTruncateInput(string? User, string? Confirmation);
 
 public sealed record OwnerLoginRecord(string UserId, string UserName, string Nickname, string FullName, string AvatarUrl, DateTime LastLoginAt);
 
-/// <summary>The system announcement shown to every connected Blazor page (≤500).</summary>
+/// <summary>The system announcement, shown by every open React page that polls /api/announcement (≤500; task 037).</summary>
 public sealed record OwnerAnnouncementInput(string? Message);
 
 // ---------- /owner/db ----------

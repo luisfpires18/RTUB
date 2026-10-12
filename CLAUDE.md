@@ -8,9 +8,9 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`, `/forgot-password`, `/reset-password`, `/confirm-email`; no Blazor page left, `/Error` is a server static page, `/share` removed; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers; Blazor host retired in 037) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`, `/forgot-password`, `/reset-password`, `/confirm-email`; `/Error` is a server static page, `/share` removed; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
 
-Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
+Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Web` (host, endpoints, controllers, React portal). `RTUB.Shared` was removed in 037.
 
 ## Context discipline
 - Architecture / cross-layer tracing (callers, blast radius, layering): `graphify explain "<sym>"` and `graphify affected "<sym>"` first, while `graphify-out/` is current. Not `graphify query` — it is lexical and noisy.
@@ -51,7 +51,7 @@ Run only what the change can break.
 | --- | --- |
 | General repo conventions | `.github/copilot-instructions.md` |
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
-| Blazor / Razor / CSS standards | `docs/frontend-practices.md` |
+| Blazor / Razor / CSS standards (historical since 037; React rules are in `react-portal-pilot.md`) | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
 | React public shell (route ownership, module rules) | `docs/react-portal-pilot.md` |
 | React Music area (API, rules, data audit) | `docs/react-music.md` |

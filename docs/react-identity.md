@@ -10,9 +10,8 @@ Task 036 handled the last five routes the app still served as Blazor pages:
 | `/Error` | Blazor (`Error.razor`, English text) | **Server-owned static page** (`wwwroot/error.html`), on purpose |
 | `/share` | Blazor (Web Share Target page) | **Removed**, plain 404; the manifest has no `share_target` |
 
-**No Blazor page is left** (`@page` count: 0). The Blazor host is still mapped: `App.razor`, `MainLayout`,
-`MapRazorComponents`, `/_blazor` and the shared components. Retiring it is a separate task (see *Deferred*). There was
-no schema change and no migration. Identity options, password rules and token providers are unchanged.
+**No Blazor page is left** (`@page` count: 0). The Blazor host itself (`App.razor`, `MainLayout`,
+`MapRazorComponents`, `/_blazor`, `RTUB.Shared`) was retired by task 037. There was no schema change and no migration. Identity options, password rules and token providers are unchanged.
 
 Code:
 - `src/RTUB.Application/Services/AccountRecoveryService.cs`
@@ -122,10 +121,8 @@ every answer is `no-store`. `GET /api/account/me` is unchanged and lives in `Acc
 
 ## Deferred (recorded, not fixed)
 
-- **The Blazor host has no page left.** Removing it means `App.razor`, `MainLayout`, `MapRazorComponents`,
-  `AddInteractiveServerComponents`, `/_blazor`, `blazor.web.js` (also precached by the service worker), `RTUB.Shared`
-  and the Blazor CSS and JS. That is one cleanup task with its own tests. The system announcement (`AnnouncementBanner`
-  in `MainLayout`) now reaches nobody (see `react-owner-operations.md`).
+- (resolved in 037) The Blazor host is retired (`BlazorHostRetirementTests`); the system announcement is a React
+  listener (`react-portal-pilot.md` → *System announcement*). `/Error` stays the static page, `/share` stays 404.
 - No rate limit on forgot-password and reset-password (as before): anyone can trigger reset emails to an address, one
   per request. Consider the per-IP login limiter.
 - `/confirm-email` has no link generator in the app. Decide: keep it for old links, or drop it in the host cleanup.

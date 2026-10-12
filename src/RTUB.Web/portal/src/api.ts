@@ -72,6 +72,15 @@ export function getVersion(): Promise<string> {
   return version;
 }
 
+/** GET /api/announcement (task 037): the Owner's system announcement while it is fresh, or null (204). */
+export type Announcement = { id: number; message: string };
+
+export function getAnnouncement(): Promise<Announcement | null> {
+  return fetch('/api/announcement', { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((r) =>
+    r.status === 204 ? null : r.ok ? (r.json() as Promise<Announcement>) : Promise.reject(new Error(`HTTP ${r.status}`)),
+  );
+}
+
 /** The React request form's fields (names match POST /api/public/requests). Dates are yyyy-MM-dd. */
 export type RequestForm = {
   name: string;

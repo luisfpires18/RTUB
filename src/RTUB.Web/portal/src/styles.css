@@ -2695,6 +2695,13 @@ main:focus {
   padding-block: 40px;
 }
 
+/* The Owner's system announcement (App.tsx): plain text, its line breaks kept, a long word never widens the dialog. */
+.announcement {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- shared controls: search fields, filter selects, back links ---------- */
 
 /* One look for every search box and filter dropdown: a field-shaped wrapper (<label> or <span>)

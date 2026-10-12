@@ -389,7 +389,7 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
             response.Headers.Location!.ToString().Should().Be("/members");
         }
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Members.Members").Should().BeNull("the Blazor /members/manage page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())

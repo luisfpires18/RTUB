@@ -54,7 +54,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         var (member, _) = await SignInAsync("Member");
         (await member.GetStringAsync("/shop")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Inventory.Shop").Should().BeNull("the Blazor shop page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
@@ -242,7 +242,6 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         File.ReadAllText(Path.Combine(src, "Shop.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("shop: '/shop'");
         File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
-        File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor")).Should().Contain("href=\"/shop\"");
     }
 
     // ---------- helpers ----------

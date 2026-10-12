@@ -8,8 +8,7 @@ Routing map only — paths plus one-line responsibilities. No architecture prose
 | --- | --- |
 | `src/RTUB.Core/` | Domain entities, enums, constants, attributes, pure helpers. No external dependencies. |
 | `src/RTUB.Application/` | Business logic: services, repositories, EF Core data layer, DTOs, factories, interfaces. |
-| `src/RTUB.Shared/` | Reusable Razor components, base classes, shared static assets. |
-| `src/RTUB.Web/` | Blazor Interactive Server host: pages, layout, a few support controllers, DI wiring. |
+| `src/RTUB.Web/` | ASP.NET Core host: minimal-API endpoints, a few controllers, DI wiring, the React portal (`portal/`) and its static files. No Blazor since 037 (`RTUB.Shared` removed with it). |
 | `tools/` | Standalone console utilities run by hand or by a manual workflow. Not part of the deployed app. |
 
 ## Data / SQLite
@@ -30,10 +29,10 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/Program.cs` | Host bootstrap; DI delegated to extensions. |
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
-| `src/RTUB.Web/Pages/` | Routable Blazor pages, grouped by area. |
-| `src/RTUB.Web/Components/`, `src/RTUB.Web/Shared/` | Host-local components and layout. |
-| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, React session state. |
-| `src/RTUB.Web/Interop/` | JS interop wrappers. |
+| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
+| `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
+| `src/RTUB.Web/Controllers/` | Push subscriptions, image/media serving, React session state. |
+| `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell (037). |
 
 ## PWA / service worker
 
@@ -78,9 +77,9 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
 | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
 | `src/RTUB.Web/Controllers/PushController.cs` | `/api/push/*` subscription and send endpoints. |
-| `src/RTUB.Web/wwwroot/js/push-notifications.js` | Browser-side subscription manager. |
+| `src/RTUB.Web/wwwroot/js/push-notifications.js`, `pwa-helper.js` | Browser-side subscription manager, kept for Push v2; no page loads them since 037 (they were loaded by the Blazor layout). |
 | `src/RTUB.Web/wwwroot/service-worker.js` | `push` / `notificationclick` / `pushsubscriptionchange` handlers. |
-| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor`, `PushNotificationToggle.razor` | Opt-in UI. |
+| (none) | Opt-in UI: none until Push v2 (the Blazor prompt went with `RTUB.Shared` in 037). |
 | `.claude/skills/rtub-push/SKILL.md` | RTUB-specific push behavior and constraints. |
 
 VAPID keys are configuration/secrets — never committed.
@@ -115,7 +114,7 @@ task drops the tables: `docs/games-bets-mytuno-removal.md`.
 The Blazor `/images` and `/labels` admin pages were removed by task 029A (both plain 404s; `/images/<file>` is still
 served by `ImagesController`). The Leaderboard story is fixed in code (`LeaderboardService.Story`). Still in place until
 029B: the `Label`/`Slideshow` entities, configurations, DbSets, tables and seed data, `ILabelService`/`LabelService`
-(last caller: the dead `Components/Portal/*`), `ISlideshowService`/`SlideshowService` (no caller) and their repositories.
+(no caller since 037 removed the dead `Components/Portal/*`), `ISlideshowService`/`SlideshowService` (no caller) and their repositories.
 
 ## Tests
 
@@ -124,8 +123,7 @@ served by `ImagesController`). The Leaderboard story is fixed in code (`Leaderbo
 | `tests/RTUB.Core.Tests/` | Domain/entity/helper tests. |
 | `tests/RTUB.Application.Tests/` | Service and repository tests against a real EF Core context. |
 | `tests/RTUB.Application.Tests/Fixtures/DatabaseFixture.cs` | Shared in-memory database fixture. |
-| `tests/RTUB.Shared.Tests/` | bUnit component tests. |
-| `tests/RTUB.Web.Tests/` | Host-level and page tests. |
+| `tests/RTUB.Web.Tests/` | Host-level, source-contract and service tests (no bUnit since 037). |
 | `tests/RTUB.Integration.Tests/` | Cross-cutting integration tests. |
 
 ## CI / deployment

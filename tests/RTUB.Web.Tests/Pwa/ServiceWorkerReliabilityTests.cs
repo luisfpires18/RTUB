@@ -56,13 +56,13 @@ public class ServiceWorkerReliabilityTests
     }
 
     /// <summary>
-    /// push-notifications.js waits on navigator.serviceWorker.ready, which never resolves if
-    /// nothing ever registers. MainLayout must keep loading the owner on every page.
+    /// navigator.serviceWorker.ready never resolves if nothing ever registers. Since 037 the React shell is the only
+    /// page shell left, so it must keep loading the owner on every page.
     /// </summary>
     [Fact]
-    public void MainLayout_LoadsTheRegistrationOwner()
+    public void PortalShell_LoadsTheRegistrationOwner()
     {
-        ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor")
+        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
             .Should().Contain("/js/sw-register.js");
     }
 
@@ -71,7 +71,6 @@ public class ServiceWorkerReliabilityTests
     [Theory]
     [InlineData("/api/")]
     [InlineData("/auth/")]
-    [InlineData("/_blazor")]
     [InlineData("/hubs/")]
     [InlineData("/health")]
     public void ServiceWorker_DeclaresPathAsNeverCached(string prefix)
@@ -79,6 +78,16 @@ public class ServiceWorkerReliabilityTests
         NeverCacheList().Should().Contain($"'{prefix}'",
             "{0} is authenticated, real-time or a liveness probe; a cached copy is either " +
             "private data on disk or a stale answer", prefix);
+    }
+
+    /// <summary>
+    /// Task 037 retired the Blazor host: /_framework/blazor.web.js is no longer served, so a precache entry for it
+    /// would fail cache.addAll and leave the offline page uncached; /_blazor no longer exists to exclude.
+    /// </summary>
+    [Fact]
+    public void ServiceWorker_KnowsNoBlazorAssetOrPath()
+    {
+        ServiceWorker.Should().NotContain("_framework").And.NotContain("_blazor").And.NotContain("blazor.web.js");
     }
 
     /// <summary>
@@ -204,25 +213,6 @@ public class ServiceWorkerReliabilityTests
     {
         SwRegister().Should().Contain("registrationStarted",
             "registerServiceWorker must be single-shot so its listeners are attached once");
-    }
-
-    // ---------- A: MobileBottomNav ----------
-
-    /// <summary>
-    /// MobileBottomNav is pinned with position: fixed; bottom: 0 and pads itself out of the
-    /// iOS home-indicator area. Losing either half puts the nav under the system gesture bar.
-    /// </summary>
-    [Fact]
-    public void MobileBottomNav_KeepsFixedBottomAndSafeAreaContract()
-    {
-        var css = ReadRepoFile("src", "RTUB.Shared", "Components", "UI", "MobileBottomNav.razor.css");
-
-        css.Should().MatchRegex(@"position:\s*fixed");
-        css.Should().MatchRegex(@"bottom:\s*0");
-        css.Should().MatchRegex(@"left:\s*0");
-        css.Should().MatchRegex(@"right:\s*0");
-        css.Should().MatchRegex(@"padding-bottom:\s*env\(safe-area-inset-bottom",
-            "the nav must clear the iOS home indicator");
     }
 
     /// <summary>

@@ -115,7 +115,7 @@ public class GalleryTests : IntegrationTestBase
         response.Headers.Location!.ToString().Should().Be("/gallery");
         (await client.PostAsync("/member/gallery", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
-        typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
+        typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "Gallery.tsx")).Should().Contain("<UploadDialog").And.Contain("<EditDialog").And.Contain("open.canEdit");
         File.ReadAllText(Path.Combine(src, "GalleryManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
