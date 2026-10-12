@@ -1,10 +1,8 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
-using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -63,7 +61,7 @@ public class PostService : IPostService
         return await _postRepository.GetCountByDiscussionIdAsync(discussionId, searchTerm);
     }
 
-    public async Task<Post> CreateAsync(int discussionId, string authorId, string title, string body, string? mentionsJson = null, IReadOnlyList<IBrowserFile>? imageFiles = null, IReadOnlyList<IBrowserFile>? videoFiles = null)
+    public async Task<Post> CreateAsync(int discussionId, string authorId, string title, string body, string? mentionsJson = null)
     {
         var post = Post.Create(discussionId, authorId, title, body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -73,19 +71,7 @@ public class PostService : IPostService
 
         var createdPost = await _postRepository.AddAsync(post);
 
-        // Upload and save media if provided
         var discussion = await _discussionRepository.GetByIdWithEventAsync(discussionId);
-        var eventId = discussion?.EventId ?? 0;
-
-        if (imageFiles != null && imageFiles.Count > 0)
-        {
-            await UploadPostMediaAsync(createdPost.Id, imageFiles, "Image", eventId);
-        }
-
-        if (videoFiles != null && videoFiles.Count > 0)
-        {
-            await UploadPostMediaAsync(createdPost.Id, videoFiles, "Video", eventId);
-        }
 
         // Send push notifications
         try
@@ -142,40 +128,6 @@ public class PostService : IPostService
         }
 
         return createdPost;
-    }
-
-    private async Task UploadPostMediaAsync(int postId, IReadOnlyList<IBrowserFile> files, string mediaType, int eventId)
-    {
-        int sortOrder = 0;
-        foreach (var file in files)
-        {
-            // Copy to MemoryStream to make it seekable (required for S3 checksum calculation)
-            using var browserStream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB max
-            using var memoryStream = new MemoryStream();
-            await browserStream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
-            var mimeType = MimeTypeHelper.GetMediaMimeType(file.Name, file.ContentType, mediaType == "Video");
-
-            string url;
-            if (mediaType == "Image")
-            {
-                url = await _eventMediaStorageService.UploadImageAsync(
-                    memoryStream, file.Name, mimeType, eventId, "post");
-            }
-            else
-            {
-                url = await _eventMediaStorageService.UploadVideoAsync(
-                    memoryStream, file.Name, mimeType, eventId);
-            }
-
-            var media = mediaType == "Image"
-                ? PostMedia.CreateImage(postId, url, mimeType, file.Size, sortOrder++)
-                : PostMedia.CreateVideo(postId, url, mimeType, file.Size, sortOrder++);
-
-            await _postMediaRepository.AddAsync(media);
-        }
     }
 
     public async Task UpdateAsync(int id, string title, string body, string? mentionsJson = null)

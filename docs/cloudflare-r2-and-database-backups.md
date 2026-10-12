@@ -21,7 +21,7 @@ Credentials         = BasicAWSCredentials(AccessKeyId, SecretAccessKey)
 R2 quirks the codebase already accounts for:
 
 - `UseChunkEncoding = false` on every `PutObjectRequest` — required for R2.
-- `DisablePayloadSigning = true` where the stream is non-seekable (Blazor uploads).
+- `DisablePayloadSigning = true` where the stream is non-seekable.
 - No multipart/`TransferUtility` usage anywhere; all uploads are single `PutObject`.
 
 ### Class layout
@@ -68,8 +68,9 @@ Env-var form uses `__` as separator. Only `Bucket` is committed; the rest are se
 | `Storage:UrlExpirationMinutes` | default 60 | Document/Receipt presign |
 | `ConnectionStrings:SqliteConnection` | env only; falls back to `Data Source=app.db` | DbContextFactory |
 
-> `README.md`'s configuration section still documents `IDrive__*`. That is stale — storage
-> moved to R2 in commit `517d6599`. Fix when next touching the README.
+> IDrive is **historical only**: storage moved to Cloudflare R2 in commit `517d6599`, no code reads
+> `IDrive:*`, and any `IDrive__*` App Service setting is dead (`scripts/config/audit-azure-app-settings.ps1`
+> warns about it). Every setting, per environment: `docs/configuration-runbook.md`.
 
 ## Account-migration constraint
 
@@ -96,7 +97,7 @@ No Workers, Pages, `wrangler.toml`, or DNS config exists in this repo — anythi
 - `SqliteConnectionInterceptor` sets `journal_mode=WAL`, `busy_timeout=30000`,
   `synchronous=NORMAL`, `temp_store=MEMORY`, `mmap_size=256MB`, `cache_size=-64000`.
 - `Program.cs` sets `DefaultTimeout=30` and deliberately **does not** use `Cache=Shared`
-  (shared-cache table locks deadlock with WAL under Blazor Server).
+  (shared-cache table locks deadlock with WAL under concurrent requests).
 - `IDbContextFactory<ApplicationDbContext>` throughout; migrations + seed run at startup
   unless `EnvironmentName == "Test"`.
 

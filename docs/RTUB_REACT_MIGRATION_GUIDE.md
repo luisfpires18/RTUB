@@ -65,8 +65,8 @@ Admin / Owner), not from the menu.
 - **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
   `AspNetUsers.FidelisBalance` stay until a later contract task drops them: `docs/games-bets-mytuno-removal.md`.
 - **Messages / Conversas**: removed from the app by task 027 (no replacement; `/messages` and `/hubs/messages` 404;
-  push no longer leaves an inbox copy). The four tables stay until the contract task drops them:
-  `docs/messages-removal.md`. Any future chat is new product design, not a port of the old inbox.
+  push no longer leaves an inbox copy). The four tables are **preserved, never dropped**: Messaging v2 (planned) will
+  audit and evolve them (`docs/messages-removal.md`).
 - **Images (slideshows) and Labels admin**: `/images` and `/labels` removed by task 029A (no replacement; both 404). The
   Leaderboard story is temporary text in code until the owner decides. 029B drops the `Labels` and `Slideshows` tables
   (with a migration) and the services left behind.

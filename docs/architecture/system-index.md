@@ -31,7 +31,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
 | `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
 | `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
-| `src/RTUB.Web/Controllers/` | Push subscriptions, image/media serving, React session state. |
+| `src/RTUB.Web/Controllers/` | Image/media serving, React session state (`AccountController`). Push subscriptions are `Endpoints/PushEndpoints.cs` since 038. |
 | `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell (037). |
 
 ## PWA / service worker
@@ -109,6 +109,12 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 Removed from the app by task 026. Only their EF entities, configurations and DbSets remain, until the contract
 task drops the tables: `docs/games-bets-mytuno-removal.md`.
 
+## Messages / Conversas (UI removed, schema preserved)
+
+The old inbox was removed by task 027 (`/messages`, `/hubs/messages` are 404). The `Conversations`, `Messages`,
+`MessageReactions` and `ConversationUserSettings` tables, entities, configurations and DbSets are **preserved for
+Messaging v2**, which will audit and evolve them; never drop them: `docs/messages-removal.md`.
+
 ## Images (slideshows) and Labels admin (removed)
 
 The Blazor `/images` and `/labels` admin pages were removed by task 029A (both plain 404s; `/images/<file>` is still
@@ -140,6 +146,7 @@ served by `ImagesController`). The Leaderboard story is fixed in code (`Leaderbo
 | `.github/actions/deploy-and-verify/` | `azure/webapps-deploy` + smoke that waits for the expected version and commit. |
 | `docs/release-and-rollback.md` | **Runbook**: branch model, versions, releasing, archive, rollback, hotfix, database rules and restore. |
 | `docs/ci-cd-and-azure-environments.md` | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC identities, setting names, smoke. |
+| `docs/configuration-runbook.md`, `scripts/config/` | Every setting per environment (`required-settings.json`), redacted audits of local user-secrets and the Azure App Settings, placeholder-only `set` templates, VAPID key generation (039). Outputs go to the git-ignored `.local/config-audit/`. |
 | `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook (inert), central build settings + version stamping, central package versions. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
 | `scripts/release.sh` | version / bump-check / package / zip guards / `release.json` / schema gate. `--self-test`. |

@@ -58,7 +58,8 @@ without a click, so the old `rtub-push-*` localStorage keys and the 30-minute he
   `SendToUserAsync`, `BroadcastAsync` and `SendToSelectedUsersAsync` no longer write the old "Sistema RTUB"
   inbox message, and `SendPushOnlyAsync` is gone. With push unconfigured a send does nothing; a member without
   push sees the notification nowhere in the app. Do not reintroduce a write into the message tables: they are
-  kept only until the contract task drops them, and `MessagesRollbackSafetyTests` fails if anything touches them.
+  preserved (never dropped) for Messaging v2, which will audit and evolve them; until then nothing reads or writes
+  them, and `MessagesRollbackSafetyTests` fails if anything touches them.
 - `404 NotFound` / `410 Gone` from the push service ⇒ subscription is deleted immediately
   (`SendNotificationWithResultAsync`). This is why the client re-syncs on every health check: the server
   may have dropped a record the browser still holds.

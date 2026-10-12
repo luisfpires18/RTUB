@@ -144,6 +144,6 @@ in `ContentSecurityPolicyTests`.
 
 - The map counts expelled accounts (and the Hall of Fame every account), as before: decide whether to leave them out.
 - `script-src` / `style-src` still allow cdnjs and unpkg, now unused; drop them in a CSP follow-up.
-- `wwwroot/js/profilePictureRefresh.js` and `ProfilePictureUpdateService` lost their only trigger (the Blazor profile);
-  `wwwroot/lib/cropperjs` has no caller.
+- (resolved in 037) `wwwroot/js/profilePictureRefresh.js`, `ProfilePictureUpdateService` and `wwwroot/lib/cropperjs` were
+  deleted with the Blazor host.
 - (resolved in 038) Push v2: React opt-in / opt-out and the push cleanup (`docs/react-push-v2.md`).

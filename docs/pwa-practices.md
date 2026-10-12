@@ -144,7 +144,7 @@ self.addEventListener('install', (event) => {
 - Allow user scaling (accessibility)
 - Set maximum scale appropriately
 
-```razor
+```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 ```
 
@@ -155,7 +155,7 @@ self.addEventListener('install', (event) => {
 - Set proper sizes attribute
 - Use PNG format
 
-```razor
+```html
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" type="image/png" />
 ```
 
@@ -167,7 +167,7 @@ self.addEventListener('install', (event) => {
 - Include `theme-color` meta tag
 - Add `format-detection` to prevent phone number auto-linking
 
-```razor
+```html
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#3F2A86" />
@@ -242,7 +242,7 @@ self.addEventListener('fetch', (event) => {
 - Use `preconnect` for external domains
 - Lazy load non-critical components
 
-```razor
+```html
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
 <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
 ```

@@ -1,255 +1,33 @@
-# Frontend Best Practices
+# Frontend Practices
 
-This document outlines frontend development best practices for the RTUB project, focusing on Blazor/Razor components, CSS, and PWA development.
+The frontend is **React 19 + Vite + TypeScript** (`src/RTUB.Web/portal/`). React owns every page; the only other HTML
+page is the static server page `/Error` (`wwwroot/error.html`). **There is no Blazor**: the host was retired in task
+037 (no `.razor` components, `App.razor`, `MainLayout`, `/_blazor`, `blazor.web.js`, `RTUB.Shared` or bUnit). The
+Blazor / Razor guidance this file used to hold is in git history only; do not follow or reintroduce it.
 
-The React public shell (`src/RTUB.Web/portal/`, routes `/`, `/privacy`, `/profile`, `/request`) has its own constraints: see `docs/react-portal-pilot.md`.
+Authoritative rules live elsewhere — this file only routes and lists the cross-cutting basics:
 
-## Table of Contents
-- [Component Design](#component-design)
-- [Layout & Styling](#layout--styling)
-- [State Management](#state-management)
-- [Performance](#performance)
-- [Accessibility](#accessibility)
-- [PWA Considerations](#pwa-considerations)
+| Topic | Doc |
+| --- | --- |
+| Route ownership, shell, member menu, build and commit rules, replacement and wording rules | `docs/react-portal-pilot.md` |
+| A module's API, permissions and data audit | `docs/react-*.md` (table in `CLAUDE.md`) |
+| Service worker, manifest, offline, install | `docs/pwa-practices.md` |
+| Push opt-in / opt-out (`/profile`) and the service-worker push handlers | `docs/react-push-v2.md` |
 
-## Component Design
+## Basics
 
-### Reusable Components
-
-✅ **Always:**
-- Check `src/RTUB.Shared/Components` for existing components before creating new ones
-- Create components in `RTUB.Shared` if used in multiple places
-- Use component parameters for customization
-- Follow single responsibility principle
-
-```razor
-@* ✅ Good: Reusable component *@
-<MemberCard AvatarUrl="@member.ProfilePictureSrc"
-            Nickname="@member.Nickname"
-            FullName="@($"{member.FirstName} {member.LastName}")" />
-```
-
-❌ **Never:**
-- Copy-paste component code
-- Create components with inline styles
-- Put business logic in components (use services)
-
-### Component Structure
-
-```razor
-@page "/example"
-@rendermode InteractiveServer
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
-@inject IMyService MyService
-
-<PageTitle>Example Page</PageTitle>
-
-<div class="container">
-    @* Content *@
-</div>
-
-@code {
-    private List<Item> items = new();
-    
-    protected override async Task OnInitializedAsync()
-    {
-        items = await MyService.GetItemsAsync();
-    }
-}
-```
-
-### Modal Components
-
-✅ **Always:**
-- Use `Modal` component from `RTUB.Shared`
-- Use `ConfirmDialog` for confirmations
-- Handle loading states
-- Close modals properly
-
-```razor
-<Modal Show="@showModal"
-       ShowChanged="@((bool show) => showModal = show)"
-       Title="Example Modal"
-       Size="Modal.ModalSize.Large">
-    <BodyContent>
-        @* Modal content *@
-    </BodyContent>
-    <FooterContent>
-        <button class="btn btn-primary" @onclick="Save">Save</button>
-        <button class="btn btn-secondary" @onclick="Close">Cancel</button>
-    </FooterContent>
-</Modal>
-```
-
-## Layout & Styling
-
-### CSS Organization
-
-✅ **Always:**
-- Use scoped CSS files (`Component.razor.css`)
-- Use CSS variables for theming
-- Follow mobile-first responsive design
-- Use Bootstrap utility classes when appropriate
-
-```css
-/* Component.razor.css */
-.my-component {
-    padding: 1rem;
-    background-color: var(--rtub-primary);
-}
-
-@media (max-width: 768px) {
-    .my-component {
-        padding: 0.5rem;
-    }
-}
-```
-
-❌ **Never:**
-- Use inline styles (`style="..."`)
-- Create global CSS without scoping
-- Hardcode colors (use CSS variables)
-
-### Responsive Design
-
-✅ **Always:**
-- Test on mobile viewports (320px, 375px, 768px)
-- Use Bootstrap grid system
-- Hide/show elements with `d-none d-md-block`
-- Ensure touch targets are at least 44x44px
-
-```razor
-<div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
-    <div class="w-100">
-        <h1>Title</h1>
-    </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-primary">Action</button>
-    </div>
-</div>
-```
-
-## State Management
-
-### Component State
-
-✅ **Always:**
-- Use private fields for component state
-- Use `StateHasChanged()` when needed
-- Avoid unnecessary re-renders
-- Use `@key` for list items
-
-```razor
-@foreach (var item in items)
-{
-    <ItemCard @key="item.Id" Item="@item" />
-}
-```
-
-### Loading States
-
-✅ **Always:**
-- Show loading indicators during async operations
-- Disable buttons during operations
-- Use `LoadableContent` component when available
-
-```razor
-@if (isLoading)
-{
-    <div class="text-center p-4">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
-}
-else
-{
-    @* Content *@
-}
-```
-
-## Performance
-
-### Optimization
-
-✅ **Always:**
-- Use `@rendermode InteractiveServer` for server-side rendering
-- Minimize component re-renders
-- Use `ShouldRender()` override when appropriate
-- Lazy load heavy components
-
-### Asset Loading
-
-✅ **Always:**
-- Use `VersionedAsset` component for static assets
-- Preload critical resources
-- Use CDN for external libraries when appropriate
-
-```razor
-<VersionedAsset Path="/css/site.css" Type="VersionedAsset.AssetType.Css" />
-```
-
-## Accessibility
-
-### ARIA Attributes
-
-✅ **Always:**
-- Add `aria-label` to icon buttons
-- Use semantic HTML elements
-- Include `alt` text for images
-- Use `role` attributes when needed
-
-```razor
-<button class="btn btn-primary" aria-label="Save changes">
-    <i class="bi bi-save"></i>
-</button>
-```
-
-### Keyboard Navigation
-
-✅ **Always:**
-- Ensure all interactive elements are keyboard accessible
-- Use proper focus management
-- Provide skip links for navigation
-
-## PWA Considerations
-
-### Mobile Optimization
-
-✅ **Always:**
-- Use viewport meta tag
-- Test on actual mobile devices
-- Optimize images for mobile
-- Use touch-friendly UI elements
-
-```razor
-@* In App.razor *@
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-```
-
-### Offline Support
-
-✅ **Always:**
-- Handle offline scenarios gracefully
-- Show appropriate error messages
-- Cache critical assets in service worker
-
-## Code Quality
-
-### Code Review Checklist
-
-- [ ] Uses reusable components from RTUB.Shared
-- [ ] Follows responsive design principles
-- [ ] Has proper loading states
-- [ ] Includes accessibility attributes
-- [ ] Uses scoped CSS
-- [ ] Handles errors appropriately
-- [ ] Follows naming conventions
-- [ ] Mobile-friendly
-
-## References
-
-- [Blazor Documentation](https://docs.microsoft.com/en-us/aspnet/core/blazor/)
-- [Bootstrap Documentation](https://getbootstrap.com/docs/5.3/)
-- [Web Accessibility Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- **Server is the authority.** Every permission is checked by the `/api/*` endpoint; the UI only hides links and
+  buttons the API already refuses.
+- **Reuse before writing.** Look in `portal/src` (`Dialog.tsx`, `icons.tsx`, the `*Ui.tsx` helpers, `styles.css`
+  classes and CSS variables) before adding a component or style.
+- **Portuguese (pt-PT)** for every user-facing string.
+- **Mobile first in practice:** check every change at phone width (≈375 px) and in the installed app; no horizontal
+  overflow, tap targets large enough, dialogs scroll inside themselves.
+- **Accessibility:** labelled controls (`aria-label` when there is no visible text), `alt` on images, keyboard
+  reachable dialogs with a visible focus.
+- **No inline styles** where a class will do; one stylesheet (`portal/src/styles.css`).
+- **Writes** go through the module's API client, which sends the antiforgery header (`X-CSRF-TOKEN`).
+- **Build:** from `src/RTUB.Web`, `npm run check:portal` then `npm run build:portal`; commit the rebuilt
+  `wwwroot/portal` with the source change (file names are content-hashed; publish does not rebuild it).
+- **Tests:** there is no JS test runner; React behaviour is pinned by source-contract tests in
+  `tests/RTUB.Web.Tests/ReactPortal/` and by the API tests in `tests/RTUB.Integration.Tests/Api/`.

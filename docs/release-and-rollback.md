@@ -134,7 +134,7 @@ publish`.
 worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
 path-traversal entry names.
 
-**"Tested" means:** the five test suites run on the exact commit; the one zip built from it is
+**"Tested" means:** every test suite runs on the exact commit; the one zip built from it is
 guarded, archived and never rebuilt; the smoke test runs against those exact bytes in production.
 The suites do not execute the linux-x64 publish output itself - the smoke test is what checks the
 bytes.

@@ -33,8 +33,8 @@ a production database backup first (it holds every Fidelis balance, bet and char
 it is a database restore, not an app rollback; the release that carries it may be MAJOR
 (`docs/release-and-rollback.md`).
 
-Migration name: **`DropGamesBetsMyTuno`**, in the same release as `DropMessagesConversations`
-(`docs/messages-removal.md`): one contract release, one production backup. It drops, and nothing else:
+Migration name: **`DropGamesBetsMyTuno`**. It drops, and nothing else - **never the messaging tables**, which are
+preserved for Messaging v2 (`docs/messages-removal.md`):
 
 | Table | Foreign keys | Indexes |
 | --- | --- | --- |

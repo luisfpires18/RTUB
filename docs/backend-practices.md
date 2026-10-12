@@ -18,7 +18,7 @@ This document outlines backend development best practices for the RTUB project, 
 ```
 RTUB.Core/          # Domain entities, enums, interfaces (no dependencies)
 RTUB.Application/   # Business logic, services, DTOs, repositories
-RTUB.Web/           # Controllers, API endpoints, Blazor pages
+RTUB.Web/           # Host, minimal-API endpoints, a few controllers, React portal (no Blazor since 037)
 ```
 
 **Principles:**

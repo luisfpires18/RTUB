@@ -51,7 +51,7 @@ Run only what the change can break.
 | --- | --- |
 | General repo conventions | `.github/copilot-instructions.md` |
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
-| Blazor / Razor / CSS standards (historical since 037; React rules are in `react-portal-pilot.md`) | `docs/frontend-practices.md` |
+| Frontend basics (React-only; no Blazor since 037) | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
 | React public shell (route ownership, module rules) | `docs/react-portal-pilot.md` |
 | React Music area (API, rules, data audit) | `docs/react-music.md` |
@@ -76,9 +76,10 @@ Run only what the change can break.
 | React Push v2 (`/profile` push opt-in / opt-out, `/api/push`, service-worker push handlers) | `docs/react-push-v2.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
-| Messages / Conversas removal (retained schema, contract task) | `docs/messages-removal.md` |
+| Messages / Conversas removal (schema preserved for Messaging v2 — never drop) | `docs/messages-removal.md` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
+| Settings per environment, user-secrets / App Settings audit, VAPID keys | `docs/configuration-runbook.md` |
 | Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |

@@ -384,3 +384,6 @@ FodyWeavers.xsd
 # Graphify generated knowledge graph (~84 MB: 38 MB graph.json + AST cache).
 # Rebuilt locally with `graphify extract . --code-only`; never committed.
 graphify-out/
+
+# Local-only outputs (task 039 config audit: redacted reports and placeholder templates). Never commit.
+.local/
