@@ -6,11 +6,11 @@ using Xunit;
 namespace RTUB.Integration.Tests.Pages;
 
 /// <summary>
-/// Integration tests for Owner pages (requires Owner role)
+/// The Owner tools (React since task 035): a visitor is sent to sign in and comes back to the page. Who else gets in is
+/// covered by <c>OwnerOperationsApiTests</c>.
 /// </summary>
 public class OwnerPagesTests : IntegrationTestBase
 {
-
     private readonly HttpClient _client;
 
     public OwnerPagesTests(TestWebApplicationFactory factory) : base(factory)
@@ -21,107 +21,28 @@ public class OwnerPagesTests : IntegrationTestBase
         });
     }
 
-    #region User Roles Page Tests
-
-    [Fact]
-    public async Task UserRolesPage_WithoutAuth_RedirectsToLogin()
+    [Theory]
+    [InlineData("/users")]
+    [InlineData("/owner/tracing")]
+    [InlineData("/owner/db")]
+    [InlineData("/emails")]
+    [InlineData("/notifications")]
+    public async Task OwnerPages_SendVisitorsToSignIn_AndBack(string url)
     {
-        // Arrange & Act
-        var response = await _client.GetAsync("/users");
+        var response = await _client.GetAsync(url);
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect, $"{url} should redirect unauthenticated users");
+        response.Headers.Location?.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString(url));
     }
-
-    [Fact]
-    public async Task UserRolesPage_RedirectsWithReturnUrl()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/users");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        var location = response.Headers.Location?.ToString();
-        location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
-    }
-
-    #endregion
-
-    #region Audit Log/Tracing Page Tests
-
-    [Fact]
-    public async Task TracingPage_WithoutAuth_RedirectsToLogin()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/owner/tracing");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    [Fact]
-    public async Task TracingPage_RedirectsWithReturnUrl()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/owner/tracing");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        var location = response.Headers.Location?.ToString();
-        location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
-    }
-
-    #endregion
-
-    #region Authorization Tests
 
     [Theory]
     [InlineData("/users")]
     [InlineData("/owner/tracing")]
-    public async Task OwnerPages_RequireAuthentication(string url)
+    [InlineData("/owner/db")]
+    [InlineData("/emails")]
+    [InlineData("/notifications")]
+    public async Task OwnerPages_AreGetOrHeadOnly(string url)
     {
-        // Arrange & Act
-        var response = await _client.GetAsync(url);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect,
-            $"{url} should redirect unauthenticated users");
-        response.Headers.Location?.ToString().Should().Contain("/login",
-            $"{url} should redirect to login page");
+        (await _client.PostAsync(url, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
-
-    [Fact]
-    public async Task OwnerPages_AllRequireAuthenticationInSequence()
-    {
-        // Arrange
-        var ownerUrls = new[] { "/users", "/owner/tracing" };
-
-        // Act & Assert
-        foreach (var url in ownerUrls)
-        {
-            var response = await _client.GetAsync(url);
-            response.StatusCode.Should().Be(HttpStatusCode.Redirect,
-                $"{url} should require authentication");
-        }
-    }
-
-    [Fact]
-    public async Task OwnerNavigation_BetweenOwnerPages_Works()
-    {
-        // Arrange & Act - Navigate between owner pages
-        var userRolesResponse = await _client.GetAsync("/users");
-        var tracingResponse = await _client.GetAsync("/owner/tracing");
-
-        // Assert - All should redirect (requires owner role)
-        userRolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        tracingResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        userRolesResponse.Headers.Location?.ToString().Should().Contain("/login");
-        tracingResponse.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    #endregion
 }

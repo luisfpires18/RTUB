@@ -334,19 +334,15 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await CardAsync(cardId))!.Description.Should().Be("Outro\n\n<!-- FILES: [] -->");
     }
 
-    /// <summary>Mod parity is Logistics-only (unit 030): /emails stays Admin-only. Kept from the retired page tests.</summary>
+    /// <summary>Mod parity is Logistics-only (unit 030): /emails is refused to Mod (and, since task 035, to Admin: Owner only).</summary>
     [Fact]
-    public async Task Mod_IsStillRefusedAnAdminOnlyPage()
+    public async Task Mod_IsStillRefusedTheEmailsPage()
     {
         var (admin, _) = await SignInAsync("Admin");
         var (mod, _) = await SignInAsync("Mod");
-        (await admin.GetAsync("/emails")).StatusCode.Should().Be(HttpStatusCode.OK);
-        var refused = await mod.GetAsync("/emails");
-        refused.StatusCode.Should().BeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Forbidden);
-        if (refused.StatusCode == HttpStatusCode.Redirect)
-        {
-            refused.Headers.Location!.ToString().Should().Contain("/login");
-        }
+        (await admin.GetAsync("/emails")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.GetAsync("/emails")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.GetAsync("/api/owner/emails")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ---------- helpers ----------

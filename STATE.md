@@ -3,15 +3,23 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-12_
 
 ## Phase
-**Open: `claude/gracious-volta-i8q4v5` (task 034 Reuniões)**, created from `dev` @ `38eff81`, which already has 032 and
-033 (merged through PRs #216 / #217, CI green). **UNVERIFIED cloud patch:** no `dotnet` here (the Microsoft SDK download
-hosts are blocked by the environment's network policy), so the C# and the test changes were written but never built or
-run. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before merge.**
+**Open: `feat/035-owner-operations-react` (task 035 Owner tools)**, created from `dev` @ `ad1a3ba6`, which has 034
+(PR #218). Built and tested locally with `dotnet` (see the 035 report). **Not pushed, and must not be pushed unless
+explicitly requested. GitHub Actions must pass before merge.**
 
-**034 Reuniões:** `/meetings` is React (`/api/meetings*`, `MeetingBoardService` + `MeetingAccess` over the old meeting,
+**035 Owner tools:** `/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React, over the
+Owner-only `/api/owner/*` (`OwnerEndpoints` gate + `OwnerOperationsService` over the old email / push / audit / DB
+services). **All five are Owner only: Admin lost `/emails` and `/notifications` (product decision).** Visitors 302 / 401,
+every other member 403 (refusal page). New safeguards: the server checks `DELETE ALL`, the SELECT / DML rules, and a
+confirmation flag for DB changes; the React page asks to confirm sends, role changes and DB changes. Retired: the five
+Blazor pages, `EmailRecipientsPreview`, `UserCard`, `TracingCard`, `LoginStatisticsButton`, `SyncMemberStatusButton`,
+`user-card.css`, `tracing-card.css` and their tests. **5 Blazor routes left** (`/share`, the three Identity pages,
+`/Error`; 10 before). No schema change. Detail: `docs/react-owner-operations.md`.
+
+**034 merged to `dev`** (PR #218, @ `ad1a3ba6`; written as an unverified cloud patch). **034 Reuniões:** `/meetings` is React (`/api/meetings*`, `MeetingBoardService` + `MeetingAccess` over the old meeting,
 request, participation and ata services: push, email and the ata PDF into Documentação unchanged); signed-in members, a
 Leitão gets "Acesso restrito". Who sees and does what is the old page's effective matrix, now enforced by the API (the
 old services checked nothing). **The only permission change is A1:** a draft ata is only for whoever may write it (any
@@ -176,6 +184,14 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 035 (Owner tools; detail in `docs/react-owner-operations.md` → *Deferred*):
+- The system announcement (`/owner/tracing`) only reaches open Blazor pages (identity pages, `/share`, `/Error`): the
+  React shell has no listener. Decide: add one, or retire the feature.
+- No guard against the Owner demoting themselves / the last Owner (as before). `/owner/db` shows `AspNetUsers` secrets
+  columns to the Owner (as before). Announcement emails send synchronously (no live progress).
+- No caller left: `LockStatusBadge`, `LoginStatusBadge`, `RoleBadge` (+ tests, `roleBadge.js`), `MemberCardLite`,
+  `.subscriber-list--h*` (dynamic-style-classes.css), `.member-avatar-small` (meetings.css).
+
 Raised by 034 (Reuniões; detail in `docs/react-meetings.md` → *Deferred*):
 - Kept as before, decide: the fiscal-year filter ends at midnight on 31 August (a meeting later that day shows only under
   "Todos os anos"); Owner does not see CV / Direção meetings or requests unless its own rule allows (A3); the requests

@@ -13,9 +13,9 @@ namespace RTUB.Application.Helpers;
 ///   member who is not a Leitão.
 /// - <see cref="LogisticsAndTreasury"/> (Logística, Tesouraria): the navbar's rule, Admin, Mod or Tuno, with Owner
 ///   inheriting Admin as everywhere else on the React track.
-/// - <see cref="Admin"/> (Pedidos, Emails, Notificações): the Admin role; <c>/emails</c> and <c>/notifications</c> are
-///   <c>[Authorize(Roles = "Admin")]</c>, so Owner does not inherit it here.
-/// - <see cref="Owner"/> (Utilizadores, Auditoria, Base de dados): the Owner role, as the three pages require.
+/// - <see cref="Admin"/> (Pedidos): the Admin role.
+/// - <see cref="Owner"/> (Utilizadores, Auditoria, Base de dados, Emails, Notificações): the Owner role, as the five
+///   pages require (task 035: Emails and Notificações were Admin pages and are Owner only now).
 /// </summary>
 public sealed record MemberMenuAccess(bool Management, bool LogisticsAndTreasury, bool Admin, bool Owner)
 {

@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
 
@@ -71,6 +71,7 @@ Run only what the change can break.
 | React profile editor, members map, Hall of Fame (`/profile`, `/members/map`, `/hall-of-fame`) | `docs/react-member-area.md` |
 | React Naipes (`/naipes`, `/naipes/config`: instrument media, comments, settings) | `docs/react-naipes.md` |
 | React Reuniões (`/meetings`: meetings, atas, requests, permission matrix) | `docs/react-meetings.md` |
+| React Owner tools (`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`: Owner only) | `docs/react-owner-operations.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
 | Messages / Conversas removal (retained schema, contract task) | `docs/messages-removal.md` |

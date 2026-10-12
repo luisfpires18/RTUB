@@ -77,11 +77,11 @@ public class MemberShellTests
     [InlineData("portal.hallOfFame")]
     [InlineData("portal.naipes")]
     [InlineData("portal.meetings")]
-    [InlineData("blazor.emails")]
-    [InlineData("blazor.notifications")]
-    [InlineData("blazor.users")]
-    [InlineData("blazor.tracing")]
-    [InlineData("blazor.database")]
+    [InlineData("portal.users")]
+    [InlineData("portal.ownerTracing")]
+    [InlineData("portal.ownerDb")]
+    [InlineData("portal.emails")]
+    [InlineData("portal.notifications")]
     public void Menu_ListsEachActiveRoute(string href)
     {
         MenuLinks().Select(l => l.Href).Should().Contain(href);
@@ -110,36 +110,25 @@ public class MemberShellTests
     {
         var content = Read("content.ts");
         var main = Read("main.tsx");
-        var blazor = Regex.Match(Read("MemberShell.tsx"), @"const blazor = \{(.*?)\} as const;", RegexOptions.Singleline).Groups[1].Value;
-        var pages = Directory.GetFiles(Path.Combine(Root, "src", "RTUB.Web", "Pages"), "*.razor", SearchOption.AllDirectories)
-            .Select(File.ReadAllText)
-            .SelectMany(text => Regex.Matches(text, @"@page ""([^""]+)""").Select(m => m.Groups[1].Value))
-            .ToHashSet(StringComparer.Ordinal);
 
+        Read("MemberShell.tsx").Should().NotContain("const blazor", "since task 035 every menu link is a React page");
         foreach (var (href, _) in MenuLinks())
         {
+            href.Should().StartWith("portal.");
             var key = href.Split('.')[1];
-            if (href.StartsWith("portal.", StringComparison.Ordinal))
-            {
-                var path = Regex.Match(content, $@"\n  {key}: '([^']+)',").Groups[1].Value;
-                path.Should().NotBeEmpty("{0} is in content.ts", href);
-                main.Should().Contain($"'{path}': lazy(", "{0} ({1}) is a React page the server maps", href, path);
-            }
-            else
-            {
-                var path = Regex.Match(blazor, $@"\n  {key}: '([^']+)',").Groups[1].Value;
-                pages.Should().Contain(path, "{0} ({1}) is a live Blazor page", href, path);
-            }
+            var path = Regex.Match(content, $@"\n  {key}: '([^']+)',").Groups[1].Value;
+            path.Should().NotBeEmpty("{0} is in content.ts", href);
+            main.Should().Contain($"'{path}': lazy(", "{0} ({1}) is a React page the server maps", href, path);
         }
     }
 
     [Theory]
-    [InlineData("blazor.users", "owner")]
-    [InlineData("blazor.tracing", "owner")]
-    [InlineData("blazor.database", "owner")]
+    [InlineData("portal.users", "owner")]
+    [InlineData("portal.ownerTracing", "owner")]
+    [InlineData("portal.ownerDb", "owner")]
+    [InlineData("portal.emails", "owner")]
+    [InlineData("portal.notifications", "owner")]
     [InlineData("portal.requests", "admin")]
-    [InlineData("blazor.emails", "admin")]
-    [InlineData("blazor.notifications", "admin")]
     [InlineData("portal.logistics", "logisticsAndTreasury")]
     [InlineData("portal.treasury", "logisticsAndTreasury")]
     [InlineData("portal.documentation", "management")]

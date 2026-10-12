@@ -127,32 +127,24 @@
                     </Authorized>
                 </AuthorizeView>
 
-                @if (_showBeVisibleToAdminOnly)
-                {
-                <AuthorizeView Roles="Admin">
-                    <Authorized Context="adminOwnerAuth">
+                @* The Owner tools are React pages (task 035), Owner only: full navigations. *@
+                <AuthorizeView Roles="Owner">
+                    <Authorized Context="ownerAuth">
                         <li class="nav-item dropdown">
                             <button class="nav-link dropdown-toggle" type="button" id="ownerDropdown"
                                     data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                                 <i class="bi bi-tools"></i> Operações
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
-                                <li><NavLink class="dropdown-item" href="/emails"><i class="bi bi-envelope"></i> Email</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/notifications"><i class="bi bi-bell"></i> Notificações</NavLink></li>
-
-                                <AuthorizeView Roles="Owner">
-                                    <Authorized Context="ownerAuth">
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people"></i> Funções</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database"></i> Database</NavLink></li>
-                                    </Authorized>
-                                </AuthorizeView>
+                                <li><a class="dropdown-item" href="/users" data-enhance-nav="false"><i class="bi bi-people"></i> Utilizadores</a></li>
+                                <li><a class="dropdown-item" href="/owner/tracing" data-enhance-nav="false"><i class="bi bi-shield-check"></i> Auditoria</a></li>
+                                <li><a class="dropdown-item" href="/owner/db" data-enhance-nav="false"><i class="bi bi-database"></i> Base de dados</a></li>
+                                <li><a class="dropdown-item" href="/emails" data-enhance-nav="false"><i class="bi bi-envelope"></i> Emails</a></li>
+                                <li><a class="dropdown-item" href="/notifications" data-enhance-nav="false"><i class="bi bi-bell"></i> Notificações</a></li>
                             </ul>
                         </li>
                     </Authorized>
                 </AuthorizeView>
-                }
             </ul>
 
             <AuthorizeView>
