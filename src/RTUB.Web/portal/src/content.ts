@@ -2,11 +2,6 @@
 // of facts (dates, names, album titles, positions), never of sentences - PortalCopyOriginalityTests
 // enforces that. Nothing here is read from the database; see docs/react-portal-pilot.md.
 
-/** Blazor routes the portal links out to: temporary bridges until each module has a React version. */
-export const legacy = {
-  forgotPassword: '/forgot-password',
-} as const;
-
 /** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
 export const portal = {
   home: '/',
@@ -49,6 +44,9 @@ export const portal = {
   ownerDb: '/owner/db',
   emails: '/emails',
   notifications: '/notifications',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
+  confirmEmail: '/confirm-email',
 } as const;
 
 /** Sign in, then come back to the React profile. */

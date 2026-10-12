@@ -54,10 +54,11 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
         (await member.GetAsync("/messages/1")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.PostAsync(Negotiate, content: null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        var page = await member.GetAsync("/share");
+        // No Blazor page is left to render the old navbar (task 036); the signed-in React shell and its menu carry none of it.
+        var page = await member.GetAsync("/events");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
-        var html = await page.Content.ReadAsStringAsync();
-        html.Should().Contain("href=\"/leaderboard\"", "the signed-in nav is rendered, so the absences below mean something");
+        var html = await page.Content.ReadAsStringAsync() + await member.GetStringAsync("/api/account/me");
+        html.Should().Contain("id=\"root\"");
         html.Should().NotContain("href=\"/messages\"").And.NotContain("navbar-message-badge")
             .And.NotContain("unreadMessages.js").And.NotContain("messageComposer.js").And.NotContain("messageScroller.js")
             .And.NotContain(">Mensagens<");
@@ -107,7 +108,7 @@ public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory
 
         using (_factory.Sql.Recording())
         {
-            (await member.GetAsync("/share")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await member.GetAsync("/api/account/me")).StatusCode.Should().Be(HttpStatusCode.OK);
 
             using var scope = _factory.Services.CreateScope();
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();

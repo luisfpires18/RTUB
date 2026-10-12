@@ -221,7 +221,7 @@ public class ReactLoginTests : IntegrationTestBase
             .And.Contain("O portal é aberto a todos");
         Regex.IsMatch(source, @"/(register|signup|sign-up|registo)\b|Criar conta|Registar|Inscrever", RegexOptions.IgnoreCase)
             .Should().BeFalse("membership is created by the tuna, never by a public sign-up");
-        source.Should().Contain("href={legacy.forgotPassword}");
+        source.Should().Contain("href={portal.forgotPassword}");
         content.Should().Contain("forgotPassword: '/forgot-password'");
         source.Should().Contain("signIn(").And.NotContain("fetch(", "signing in goes through api.ts and POST /auth/login");
     }
@@ -241,15 +241,16 @@ public class ReactLoginTests : IntegrationTestBase
     [InlineData("/forgot-password")]
     [InlineData("/reset-password")]
     [InlineData("/confirm-email")]
-    public async Task PasswordRecoveryAndConfirmation_StayReachableBlazorPages(string path)
+    public async Task PasswordRecoveryAndConfirmation_AreReactPages_NeverStored_NeverReferred(string path)
     {
-        var response = await CreateClient().GetAsync(path);
+        var response = await CreateClient().GetAsync(path + "?code=abc&email=a%40b.pt&userId=x");
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            (await response.Content.ReadAsStringAsync()).Should().Contain("blazor.web.js", "{0} is still a Blazor page", path);
-        }
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.CacheControl!.NoStore.Should().BeTrue("{0} links carry an Identity token", path);
+        response.Headers.GetValues("Referrer-Policy").Should().Equal("no-referrer");
+        var html = await response.Content.ReadAsStringAsync();
+        html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js", "{0} is React since task 036", path);
+        html.Should().NotContain("abc", "the server never echoes the token");
     }
 
     // ---------- helpers ----------

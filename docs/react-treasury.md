@@ -66,7 +66,7 @@ Every rule above lived only in the circuit (UI hiding); no service checked the c
 
 Everything moved: reports (list, create, publish, delete drafts, PDF), one report (totals, bank / cash, activities,
 transactions, receipts, lock / unlock, history), calotes, MBWay and Nerba (events and items). **No bridge**: no
-Blazor Tesouraria page is left. `/share` is not finance and stays as it is.
+Blazor Tesouraria page is left. `/share` is not finance and stayed as it was (it was removed later, in 036).
 
 ## Privacy and rules now (`TreasuryAuthorization`, server-side on every endpoint)
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { signIn, type SignInFailure } from './api';
-import { legacy, portal } from './content';
+import { portal } from './content';
 import { Icon } from './icons';
 
 type Banner = SignInFailure;
@@ -153,7 +153,7 @@ export default function Login() {
             </button>
 
             <p className="note">
-              <a href={legacy.forgotPassword}>Esqueceste a palavra-passe?</a>
+              <a href={portal.forgotPassword}>Esqueceste a palavra-passe?</a>
             </p>
           </form>
         </div>

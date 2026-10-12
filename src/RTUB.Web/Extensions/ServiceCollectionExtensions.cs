@@ -238,6 +238,9 @@ public static class ServiceCollectionExtensions
         // The React Owner tools (task 035): what /emails, /notifications, /users, /owner/tracing and /owner/db did.
         services.AddScoped<IOwnerOperationsService, OwnerOperationsService>();
 
+        // The React /forgot-password, /reset-password and /confirm-email (task 036).
+        services.AddScoped<AccountRecoveryService>();
+
         return services;
     }
 

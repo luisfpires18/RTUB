@@ -11329,3 +11329,35 @@ label.owner-person {
 .owner-user .member-badges {
   justify-content: flex-start;
 }
+
+/* ---------- Password recovery and email confirmation (task 036) ---------- */
+
+.account-card {
+  max-width: 32rem;
+}
+
+.account-done {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.account-done > .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: #8fe0b0;
+}
+
+.account-done--error > .icon {
+  color: #ffb3ad;
+}
+
+.account-done p {
+  margin: 0;
+}
+
+.account-done:focus {
+  outline: none;
+}

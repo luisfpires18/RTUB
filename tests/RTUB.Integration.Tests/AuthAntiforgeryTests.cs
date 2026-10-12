@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -111,10 +110,9 @@ public class AuthAntiforgeryTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        // The logout form only renders for an authenticated user, so its presence proves
-        // the rejected request did not sign the session out.
-        var page = await client.GetStringAsync("/share");
-        page.Should().Contain("/auth/logout", "a rejected logout must leave the session signed in");
+        // The session the React shell reads: still signed in after the rejected request.
+        var me = await client.GetStringAsync("/api/account/me");
+        me.Should().Contain("\"authenticated\":true", "a rejected logout must leave the session signed in");
     }
 
     [Fact]
@@ -123,8 +121,8 @@ public class AuthAntiforgeryTests : IntegrationTestBase
         var client = CreateBrowserClient();
         await LoginThroughRenderedFormAsync(client, "csrf-logout-ok");
 
-        // The logout form lives in MainLayout, so any authenticated page renders its token.
-        var token = await ReadTokenAsync(client, "/share");
+        // The token the React member shell's "Terminar sessão" fetches (api.ts signOut).
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         var response = await client.PostAsync("/auth/logout", new FormUrlEncodedContent(
             new Dictionary<string, string> { [AntiforgeryFormToken.FieldName] = token }));
@@ -184,16 +182,6 @@ public class AuthAntiforgeryTests : IntegrationTestBase
             }));
     }
 
-    private static async Task<string> ReadTokenAsync(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var token = AntiforgeryFormToken.Find(await response.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty($"{path} must render a framework antiforgery token");
-        return token!;
-    }
-
     /// <summary>
     /// A logout POST body with no antiforgery token. The body is deliberately non-empty: an empty
     /// one is rejected with 400 because the request has no body at all, which would make an
@@ -210,10 +198,10 @@ public class AuthAntiforgeryTests : IntegrationTestBase
 }
 
 /// <summary>
-/// Antiforgery tokens the way a browser gets them: from the endpoint the React pages call, or
-/// out of a rendered Blazor form's hidden field.
+/// Antiforgery tokens the way a browser gets them: from the endpoint the React pages call (no Blazor
+/// form is left to render one since task 036).
 /// </summary>
-internal static partial class AntiforgeryFormToken
+internal static class AntiforgeryFormToken
 {
     /// <summary>Default <c>AntiforgeryOptions.FormFieldName</c>; the app does not override it.</summary>
     internal const string FieldName = "__RequestVerificationToken";
@@ -233,15 +221,4 @@ internal static partial class AntiforgeryFormToken
     }
 
     private sealed record TokenBody(string FieldName, string Token);
-
-    internal static string? Find(string html)
-    {
-        var match = TokenInput().Match(html);
-        return match.Success ? match.Groups["value"].Value : null;
-    }
-
-    [GeneratedRegex(
-        "<input[^>]*\\bname=\"" + FieldName + "\"[^>]*\\bvalue=\"(?<value>[^\"]+)\"",
-        RegexOptions.IgnoreCase)]
-    private static partial Regex TokenInput();
 }

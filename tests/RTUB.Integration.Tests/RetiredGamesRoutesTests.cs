@@ -56,10 +56,12 @@ public class RetiredGamesRoutesTests : IntegrationTestBase
             (await owner.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was retired in 026", url);
         }
 
-        var page = await owner.GetAsync("/share");
+        // No Blazor page is left to render the old navbar (task 036); the signed-in React shell and the menu it is given
+        // (MemberShellTests covers the menu's links) carry none of it.
+        var page = await owner.GetAsync("/events");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
-        var html = await page.Content.ReadAsStringAsync();
-        html.Should().Contain("href=\"/leaderboard\"", "the signed-in nav is rendered, so the absences below mean something");
+        var html = await page.Content.ReadAsStringAsync() + await owner.GetStringAsync("/api/account/me");
+        html.Should().Contain("id=\"root\"");
         html.Should().NotContain("href=\"/games\"").And.NotContain("href=\"/bets\"").And.NotContain("href=\"/my-tuno\"")
             .And.NotContain("gamesDropdown").And.NotContain("pixi").And.NotContain("cdn.jsdelivr.net")
             .And.NotContain("bmrGame.js").And.NotContain("avoidQuestions.js").And.NotContain("tomatoThrower.js")

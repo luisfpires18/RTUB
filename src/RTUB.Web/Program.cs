@@ -256,7 +256,7 @@ public class Program
 
             // Only features verified unused across wwwroot/js, Pages and Shared. `fullscreen`
             // (PDF viewer iframes use allow="fullscreen") and `clipboard-write`
-            // (Share.razor, clipboardCopy.js) are in use and are deliberately left alone, as is
+            // (clipboardCopy.js) are in use and are deliberately left alone, as is
             // the long tail of exotic features, where a blanket deny buys nothing measurable.
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
 
@@ -511,7 +511,7 @@ public class Program
 
         // LOGOUT (HTTP POST)
         // The unused IFormCollection parameter is what enables antiforgery validation — see the
-        // note on /auth/login. The token is rendered by <AntiforgeryToken /> in MainLayout.razor.
+        // note on /auth/login. The React member shell posts it (api.ts signOut, token from /api/public/antiforgery-token).
         app.MapPost("/auth/logout", async (IFormCollection form,
                                            SignInManager<ApplicationUser> signInManager) =>
         {
@@ -567,6 +567,9 @@ public class Program
 
         // --------- Owner tools for the React /emails, /notifications, /users, /owner/tracing and /owner/db (task 035) ---------
         app.MapOwnerEndpoints();
+
+        // --------- Password recovery and email confirmation for the React identity pages (task 036) ---------
+        app.MapAccountRecoveryEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
@@ -653,6 +656,34 @@ public class Program
                     : Results.Content(File.ReadAllText(shell), "text/html", System.Text.Encoding.UTF8, StatusCodes.Status403Forbidden);
             });
         }
+
+        // Task 036: /forgot-password, /reset-password and /confirm-email are React, public as the Blazor pages were. The
+        // links carry Identity tokens in the query, so the shell is never stored (no-store) and the page never sends its
+        // address on (no-referrer); the page clears the query from the address bar once read.
+        foreach (var route in new[] { "/forgot-password", "/reset-password", "/confirm-email" })
+        {
+            app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+            {
+                context.Response.Headers.CacheControl = "no-store";
+                context.Response.Headers["Referrer-Policy"] = "no-referrer";
+                return Results.File(env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!, "text/html");
+            });
+        }
+
+        // Task 036: /Error stays server-owned on purpose (not React, not Blazor). UseExceptionHandler re-executes the
+        // failed request here with its own method (GET, POST, PUT, ...), and an error page must not depend on the portal
+        // bundle, a session or the database. A fixed static page (wwwroot/error.html: no script, no request details,
+        // no stack trace); the handler's status (500) is kept. docs/react-identity.md.
+        app.Map("/Error", async (HttpContext context, IWebHostEnvironment env) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            var page = await File.ReadAllTextAsync(env.WebRootFileProvider.GetFileInfo("error.html").PhysicalPath!);
+            return Results.Content(page, "text/html", System.Text.Encoding.UTF8);
+        });
+
+        // Task 036: the Blazor /share (the PWA's share target) is removed with no replacement; the manifest no longer
+        // offers it. An explicit 404, so it can never fall to another route.
+        app.MapMethods("/share", ["GET", "HEAD", "POST"], () => Results.NotFound());
 
         app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
             Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));

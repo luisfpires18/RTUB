@@ -6,11 +6,11 @@ using Xunit;
 namespace RTUB.Integration.Tests.Pages;
 
 /// <summary>
-/// Integration tests for Identity pages (Login, ForgotPassword, etc.)
+/// The public identity pages (React since task 036): /login, /forgot-password, /reset-password and /confirm-email are
+/// open to visitors. The flows behind them are covered by AccountRecoveryApiTests.
 /// </summary>
 public class IdentityPagesTests : IntegrationTestBase
 {
-
     private readonly HttpClient _client;
 
     public IdentityPagesTests(TestWebApplicationFactory factory) : base(factory)
@@ -21,112 +21,26 @@ public class IdentityPagesTests : IntegrationTestBase
         });
     }
 
-    #region Login Page Tests
-
-    [Fact]
-    public async Task LoginPage_ReturnsSuccessStatusCode()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/login");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task LoginPage_HasCorrectContentType()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/login");
-
-        // Assert
-        response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
-    }
-
-    #endregion
-
-    #region Forgot Password Page Tests
-
-    [Fact]
-    public async Task ForgotPasswordPage_ReturnsSuccessStatusCode()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/forgot-password");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task ForgotPasswordPage_ContainsExpectedContent()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/forgot-password");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("palavra-passe", "page should contain password reset text");
-    }
-
-    #endregion
-
-    #region Reset Password Page Tests
-
-    [Fact]
-    public async Task ResetPasswordPage_ReturnsSuccessOrRedirect()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/reset-password");
-
-        // Assert - May redirect if no token provided
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
-    }
-
-    #endregion
-
-    #region Confirm Email Page Tests
-
-    [Fact]
-    public async Task ConfirmEmailPage_ReturnsSuccessOrRedirect()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/confirm-email");
-
-        // Assert - May redirect if no token provided
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
-    }
-
-    #endregion
-
-    #region Navigation Tests
-
-    [Fact]
-    public async Task IdentityPages_LoginToForgotPassword_Works()
-    {
-        // Arrange - Load login page first
-        var loginResponse = await _client.GetAsync("/login");
-
-        // Act - Navigate to forgot password
-        var forgotPasswordResponse = await _client.GetAsync("/forgot-password");
-
-        // Assert
-        loginResponse.IsSuccessStatusCode.Should().BeTrue();
-        forgotPasswordResponse.IsSuccessStatusCode.Should().BeTrue();
-    }
-
     [Theory]
     [InlineData("/login")]
     [InlineData("/forgot-password")]
-    public async Task IdentityPages_ArePubliclyAccessible(string url)
+    [InlineData("/reset-password")]
+    [InlineData("/confirm-email")]
+    public async Task IdentityPages_ArePubliclyAccessibleReactPages(string url)
     {
-        // Arrange & Act
         var response = await _client.GetAsync(url);
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK,
-            $"{url} should be accessible without authentication");
+        response.StatusCode.Should().Be(HttpStatusCode.OK, $"{url} should be accessible without authentication");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
+        (await response.Content.ReadAsStringAsync()).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
     }
 
-    #endregion
+    [Theory]
+    [InlineData("/forgot-password")]
+    [InlineData("/reset-password")]
+    [InlineData("/confirm-email")]
+    public async Task IdentityPages_AreGetOrHeadOnly(string url)
+    {
+        (await _client.PostAsync(url, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
 }
