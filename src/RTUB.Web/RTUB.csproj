@@ -23,7 +23,6 @@
   <ItemGroup>
     <ProjectReference Include="..\RTUB.Core\RTUB.Core.csproj" />
     <ProjectReference Include="..\RTUB.Application\RTUB.Application.csproj" />
-    <ProjectReference Include="..\RTUB.Shared\RTUB.Shared.csproj" />
   </ItemGroup>
 
   <!-- React portal pilot: portal/ is source only. Its build output, wwwroot/portal, is committed

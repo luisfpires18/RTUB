@@ -18,7 +18,7 @@ namespace RTUB.Web.Tests.Security;
 ///              assigned to innerHTML.
 ///   ALLOWED  - CSSOM writes: <c>el.style.prop = ...</c> and
 ///              <c>el.style.setProperty("--x", ...)</c>. CSP does not govern the CSSOM, so
-///              those are deliberately NOT banned here - js/dynamicStyle.js depends on it.
+///              those are deliberately NOT banned here.
 ///
 /// The repository-wide scans are aggregated Facts, not Theories: they sweep every file and
 /// report all violations in one failure rather than adding hundreds of per-file cases.
@@ -77,7 +77,7 @@ public class InlineStylePolicyTests
         var violations = ScanAllMarkup(StyleElement);
 
         violations.Should().BeEmpty(
-            "inline <style> blocks must move into the wwwroot/css structure or a .razor.css file; " +
+            "inline <style> blocks must move into a stylesheet (wwwroot/css or the portal's styles.css); " +
             $"a strict CSP style-src blocks them.{Environment.NewLine}{Describe(violations)}");
     }
 
@@ -151,52 +151,6 @@ public class InlineStylePolicyTests
         staticAssets.Success.Should().BeTrue("service-worker.js should declare a STATIC_ASSETS precache list");
         staticAssets.Groups[1].Value.Should().Contain("/css/offline.css",
             "the offline page's stylesheet must be precached so it is available with no network");
-    }
-
-    /// <summary>
-    /// Runtime-valued styles travel as validated data-* attributes and are applied through the
-    /// CSSOM, which CSP does not govern. The bridge must stay narrow: it accepts a percentage
-    /// and a six-digit hex colour, not arbitrary CSS - otherwise it would hand back exactly the
-    /// capability a strict style-src removes.
-    /// </summary>
-    [Fact]
-    public void DynamicStyleBridge_OnlyAcceptsValidatedValues()
-    {
-        var content = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "dynamicStyle.js");
-
-        content.Should().Contain("setProperty",
-            "the bridge must apply values through the CSSOM, which is not CSP-governed");
-        content.Should().NotContain("cssText",
-            "the bridge must set named custom properties, never a whole declaration block");
-        content.Should().MatchRegex(@"\^\\d\{1,3\}\(\\\.\\d\+\)\?\$",
-            "data-fill-pct must be validated as a plain percentage");
-        content.Should().MatchRegex(@"\^#\[0-9a-fA-F\]\{6\}\$",
-            "data-swatch must be validated as a six-digit hex colour");
-
-        ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor")
-            .Should().Contain("/js/dynamicStyle.js", "MainLayout must load the bridge on every page");
-    }
-
-    /// <summary>
-    /// Values that used to sit in an inline style attribute and are now carried by a class.
-    /// The component tests assert the class is emitted; this pins the value behind it, so the
-    /// migration cannot silently change what those elements look like.
-    /// </summary>
-    [Fact]
-    public void MigratedValues_ArePreservedInTheStylesheetThatReplacedThem()
-    {
-        var dynamicClasses = ReadRepoFile("src", "RTUB.Web", "wwwroot", "css", "9-overrides", "dynamic-style-classes.css");
-
-        dynamicClasses.Should().Contain("background-color: #007bff",
-            "the Member role badge's blue moved from RoleBadge's inline style into .role-badge--member");
-        dynamicClasses.Should().Contain("max-height: 400px",
-            "EmailRecipientsPreview's MaxHeight=\"400px\" moved into .subscriber-list--h400");
-        dynamicClasses.Should().Contain("max-height: 300px", "...and MaxHeight=\"300px\"");
-        dynamicClasses.Should().Contain("max-height: 200px", "...and the MaxHeight default");
-
-        ReadRepoFile("src", "RTUB.Web", "wwwroot", "css", "site.css")
-            .Should().Contain("9-overrides/dynamic-style-classes.css",
-                "site.css must import the classes that replaced dynamic inline styles");
     }
 
     // ---------- helpers ----------

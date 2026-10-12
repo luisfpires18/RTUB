@@ -219,7 +219,7 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
             (await client.GetAsync("/members/manage")).Headers.Location!.ToString().Should().Be("/members", "the tools are on the React /members since 018");
         }
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Members.Hierarchy").Should().BeNull("the Blazor hierarchy page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
@@ -233,8 +233,6 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
         File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
-        File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor"))
-            .Should().Contain("href=\"/members/hierarchy\"").And.NotContain("href=\"/hierarchy\"");
         foreach (var file in new[] { "Members.tsx", "MembersHierarchy.tsx", "MemberDialogs.tsx", "MemberManage.tsx", "membersApi.ts" })
         {
             File.ReadAllText(Path.Combine(src, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);

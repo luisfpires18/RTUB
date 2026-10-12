@@ -57,7 +57,7 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         var html = await member.GetStringAsync("/leaderboard");
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Activities.Leaderboard").Should().BeNull("the Blazor classification page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
@@ -298,7 +298,6 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         File.ReadAllText(Path.Combine(src, "Leaderboard.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("leaderboard: '/leaderboard'");
         File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.leaderboard,", "the member menu links it (030)");
-        File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "Shared", "MainLayout.razor")).Should().Contain("href=\"/leaderboard\"");
     }
 
     // ---------- helpers ----------

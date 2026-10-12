@@ -1,7 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -30,18 +28,6 @@ public class Program
                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
                .AddEnvironmentVariables();
 
-        // Configure logging to suppress benign circuit/navigation errors
-        builder.Logging.AddFilter((category, level) =>
-        {
-            // Suppress TaskCanceledException errors from CircuitHost (benign navigation cancellations)
-            if (category == "Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost" &&
-                level == LogLevel.Error)
-            {
-                return false; // Don't log circuit TaskCanceledException errors
-            }
-            return true; // Log everything else
-        });
-
         // Initialize QuestPDF license early to avoid native library loading issues
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -49,7 +35,7 @@ public class Program
 
         // Add HttpContextAccessor for user tracking
         services.AddHttpContextAccessor();
-        services.AddScoped<AuditContext>(); // For audit logging in Blazor InteractiveServer components
+        services.AddScoped<AuditContext>(); // Names the signed-in user on audit rows (e.g. /auth/login)
 
         // Register all IOptions<T> configuration bindings
         services.AddConfigurationOptions(builder.Configuration);
@@ -80,7 +66,7 @@ public class Program
 
             // Configure SQLite busy timeout: wait up to 30 seconds if database is locked.
             // Do NOT use Cache=Shared — shared-cache introduces table-level locks that conflict
-            // with WAL mode and cause cross-connection deadlocks in Blazor Server.
+            // with WAL mode and cause cross-connection deadlocks.
             connectionStringBuilder.DefaultTimeout = 30;
             finalConnectionString = connectionStringBuilder.ToString();
         }
@@ -130,9 +116,8 @@ public class Program
         // --------- Background workers (schedulers, queues) ---------
         services.AddBackgroundServices();
 
-        // --------- UI State, Interop, Blazor + Web infrastructure ---------
-        services.AddWebUiServices();
-        services.AddBlazorAndWebServices(builder.Environment);
+        // --------- Web infrastructure ---------
+        services.AddWebServices(builder.Environment);
 
         var app = builder.Build();
 
@@ -210,8 +195,7 @@ public class Program
         }
 
         // --------- Security headers ---------
-        // One central place. Runs before static files, the Blazor 404 short-circuit and the
-        // endpoints, so every response carries these. It also runs again when
+        // One central place. Runs before static files and the endpoints, so every response carries these. It also runs again when
         // UseExceptionHandler (registered above) re-executes the pipeline, which is why the
         // headers are assigned by indexer rather than appended - reassignment is idempotent.
         //
@@ -251,7 +235,7 @@ public class Program
             // RTUB never embeds itself: no window.top/window.parent logic, the PWA is
             // display:standalone and the Android TWA uses a Custom Tab, not a frame. The app's
             // own <iframe>s embed R2-hosted PDFs, whose headers are R2's, not these. So DENY is
-            // safe and strictly better than SAMEORIGIN for a Blazor Server circuit.
+            // safe and strictly better than SAMEORIGIN.
             headers["X-Frame-Options"] = "DENY";
 
             // Only features verified unused across wwwroot/js, Pages and Shared. `fullscreen`
@@ -271,7 +255,7 @@ public class Program
                     // Assigned, never appended: UseExceptionHandler re-executes the pipeline and
                     // registers this callback a second time on the same response.
                     ctx.Response.Headers["Content-Security-Policy"] =
-                        policy.Build(ctx.Request.Scheme, ctx.Request.Host.Value);
+                        policy.Build();
                 }
 
                 return Task.CompletedTask;
@@ -350,23 +334,6 @@ public class Program
                 });
             });
 
-        // Handle Blazor 404s gracefully - placed after UseRouting
-        app.Use(async (context, next) =>
-        {
-            var path = context.Request.Path.Value;
-
-            // Handle initializers requests
-            if (path?.EndsWith("/_blazor/initializers") == true)
-            {
-                context.Response.StatusCode = 200;
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("[]");
-                return;
-            }
-
-            await next();
-        });
-
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseAntiforgery();
@@ -382,6 +349,15 @@ public class Program
         {
             context.Response.Headers.CacheControl = "no-store";
             return Results.Json(RTUB.Web.Services.BuildInfo.Current);
+        }).AllowAnonymous();
+
+        // --------- System announcement (task 037) ---------
+        // The Owner's latest announcement while it is fresh (AnnouncementService), for every open React page, signed in or
+        // not, as the Blazor banner was. 204 when there is none. Polled, so never stored by anything.
+        app.MapGet("/api/announcement", (HttpContext context, RTUB.Web.Services.AnnouncementService announcements) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            return announcements.Current is { } current ? Results.Json(current) : Results.NoContent();
         }).AllowAnonymous();
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
@@ -519,9 +495,6 @@ public class Program
             return Results.Redirect("/");
         });
 
-        app.MapRazorComponents<RTUB.App>()
-           .AddInteractiveServerRenderMode();
-
         // --------- Public request API for the React portal (React track 003) ---------
         app.MapPublicRequestEndpoints();
 
@@ -573,8 +546,8 @@ public class Program
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
-        // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
-        // their React page further down. Current list: docs/RTUB_REACT_MIGRATION_GUIDE.md.
+        // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML
+        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/RTUB_REACT_MIGRATION_GUIDE.md.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions

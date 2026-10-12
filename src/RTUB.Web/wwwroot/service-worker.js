@@ -12,7 +12,9 @@
 // '/'. Existing clients therefore hold private HTML on disk. The activate handler
 // deletes every `rtub-` cache outside the current set, so bumping the version is what
 // actually purges those entries from installed clients.
-const CACHE_VERSION = 'rtub-v2.7.0';
+// v2.8.0 (task 037): the Blazor host is gone, so its framework script left the precache list;
+// the bump drops the copy older workers stored.
+const CACHE_VERSION = 'rtub-v2.8.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -21,12 +23,11 @@ const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
 // Matched as prefixes against url.pathname, case-insensitively.
 //   /api/      - JSON endpoints, many authenticated and user-specific
 //   /auth/     - sign-in / sign-out / challenge round trips
-//   /_blazor   - Blazor Server negotiate + long-poll fallback
 //   /hubs/     - SignalR hubs
 //   /health    - liveness probe, must always hit the origin
 // Before v2.7.0 these fell through to the document branch (`!pathname.includes('.')`
 // matches '/api/push/status', '/health', '/hubs/notifications', ...) and were cached.
-const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/_blazor', '/hubs/', '/health'];
+const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/hubs/', '/health'];
 
 function isNeverCached(pathname) {
     const path = pathname.toLowerCase();
@@ -48,8 +49,7 @@ const STATIC_ASSETS = [
     '/icons/rtub-logo-512.png',
     '/icons/rtub-badge-96.png',
     '/images/default-avatar.webp',
-    '/manifest.webmanifest',
-    '/_framework/blazor.web.js'
+    '/manifest.webmanifest'
 ];
 
 // Install event - cache critical static assets
@@ -122,7 +122,7 @@ self.addEventListener('fetch', (event) => {
 
     // Network-only, never cached in either direction:
     //  - non-GET requests (mutations; the Cache API cannot store them anyway)
-    //  - our own /api, /auth, /_blazor, /hubs and /health paths
+    //  - our own /api, /auth, /hubs and /health paths
     // The prefix test is scoped to same-origin so a third-party URL that happens to
     // carry an '/api/...' path is judged on its own merits further down.
     if (request.method !== 'GET' || (isSameOrigin && isNeverCached(url.pathname))) {

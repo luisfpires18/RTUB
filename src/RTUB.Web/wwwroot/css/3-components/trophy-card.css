@@ -1,7 +1,0 @@
-/* Trophy card hover effect */
-
-/* Trophy card hover effect */
-.trophy-card:hover {
-  border-color: var(--bs-primary) !important;
-  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3) !important;
-}

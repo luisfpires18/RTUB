@@ -128,7 +128,8 @@ the API is what enforces access.
 - **Tests:** the bUnit and page tests (`EmailsTests`, `NotificationsPageTests`, `UserRolesPageTests`,
   `AuditLogPageTests`, `EmailRecipientsPreviewTests`). The SQL rules tests remain as
   `RTUB.Web.Tests/Services/SqlValidationServiceTests.cs`.
-- **Kept**, because something else still uses them: `AnnouncementService` and `AnnouncementBanner`,
+- **Kept**, because something else still uses them: `AnnouncementService` and `AnnouncementBanner` (037 retired the
+  banner and made the service the store behind `GET /api/announcement`),
   `SqlValidationService`, `DatabaseViewerService`, `AuditLogService` and the push and email services.
 
 ## Tests
@@ -152,9 +153,9 @@ the API is what enforces access.
 
 ## Deferred (recorded, not fixed)
 
-- **The system announcement only reaches open Blazor pages.** `AnnouncementBanner` lives in `MainLayout`, so today
-  that means the identity pages, `/share` and `/Error`. The React shell has no listener, so in practice almost nobody
-  sees it. Decide: give the React shell a listener (SignalR or polling), or retire the feature.
+- (resolved in 037) **The system announcement** reached only open Blazor pages (`AnnouncementBanner` in `MainLayout`),
+  so nobody after 036. Since 037 the React shell polls `GET /api/announcement` and shows it (up to 30 s late, for 5
+  minutes after the send): `react-portal-pilot.md` → *System announcement*. The Owner page and its API are unchanged.
 - Role changes have no guard against the Owner demoting themselves or removing the last Owner (as before).
 - `/owner/db` shows every column, including `PasswordHash` and the security stamps in `AspNetUsers` (as before; Owner
   only).

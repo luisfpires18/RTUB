@@ -213,7 +213,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/share")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
-        var owners = typeof(RTUB.App).Assembly.GetTypes()
+        var owners = typeof(RTUB.Program).Assembly.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
                 .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
                 .Select(r => (Type: t, r.Template)))
@@ -388,7 +388,7 @@ public class PortalRouteTests : IntegrationTestBase
         response.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString(path));
         (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
-        var blazorEventRoutes = typeof(RTUB.App).Assembly.GetTypes()
+        var blazorEventRoutes = typeof(RTUB.Program).Assembly.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
                 .Cast<Microsoft.AspNetCore.Components.RouteAttribute>())
             .Select(r => r.Template)
@@ -430,9 +430,6 @@ public class PortalRouteTests : IntegrationTestBase
         {
             File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 014", gone);
         }
-
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "Shared", "MainLayout.razor"))
-            .Should().Contain("href=\"/rehearsals\" data-enhance-nav=\"false\"", "the Blazor menu opens the React page with a full load");
     }
 
     [Fact]
@@ -480,8 +477,6 @@ public class PortalRouteTests : IntegrationTestBase
         File.ReadAllText(Path.Combine(src, "Requests.tsx")).Should().Contain("href={approved.createEventUrl}",
             "turning a request into an event opens the React create form (012F; the requests page is React since 031, "
             + "RequestsApiTests pins the /events?openModal=true link)");
-        File.ReadAllText(Path.Combine(root, "src", "RTUB.Web", "Shared", "MainLayout.razor"))
-            .Should().Contain("href=\"/events\" data-enhance-nav=\"false\"", "the Blazor menu opens the React agenda with a full load");
     }
 
     /// <summary>032: the Blazor profile and map are retired; their old URLs land on the React pages, for everyone.</summary>

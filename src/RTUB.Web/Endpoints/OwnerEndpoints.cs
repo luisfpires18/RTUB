@@ -81,8 +81,9 @@ public static class OwnerEndpoints
                 ToResult(await service.TruncateAuditLogsAsync(input), _ => Results.NoContent()))
             .WithMetadata(new RequestSizeLimitAttribute(1024));
 
-        // The system announcement reaches the open Blazor pages (AnnouncementBanner), as before; nothing is stored.
-        writes.MapPost("/tracing/announcement", async (OwnerAnnouncementInput input, AnnouncementService announcements) =>
+        // The system announcement: kept in memory (never stored) and shown by the React shell, which polls
+        // GET /api/announcement (task 037; the Blazor banner it used to reach is gone).
+        writes.MapPost("/tracing/announcement", (OwnerAnnouncementInput input, AnnouncementService announcements) =>
             {
                 var message = input.Message?.Trim();
                 if (string.IsNullOrEmpty(message) || message.Length > AnnouncementMax)
@@ -93,7 +94,7 @@ public static class OwnerEndpoints
                     }, title: "Há campos por corrigir.");
                 }
 
-                await announcements.BroadcastAsync(message);
+                announcements.Broadcast(message);
                 return Results.NoContent();
             })
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));

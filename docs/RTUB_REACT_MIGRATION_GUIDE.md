@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-12 (036 Identity pages, /share removed)_
+_Last updated: 2026-10-12 (037 Blazor host retired)_
 
-## Done: 001-025 and 030-035 (merged to `dev`); 036 Identity + /share (open, not merged)
+## Done: 001-025 and 030-036 (merged to `dev`); 037 Blazor host retirement (open, not merged)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -32,6 +32,7 @@ _Last updated: 2026-10-12 (036 Identity pages, /share removed)_
 | 034 | Reuniões (meetings, participation, atas, meeting requests) | `/meetings` | `react-meetings.md` |
 | 035 | Owner tools (Owner only; Admin lost Emails / Notificações): announcement emails, custom push, users and roles, audit log, database | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | `react-owner-operations.md` |
 | 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
+| 037 | Blazor host retired (`App.razor`, `MainLayout`, `/_blazor`, `blazor.web.js`, `RTUB.Shared`, Blazor CSS / JS); system announcement now a React listener (`GET /api/announcement`) | none new | `react-portal-pilot.md` → *System announcement* |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -44,13 +45,13 @@ The task was first named "Newsletter"; it is the Novidades public news feed. Bui
 (`NewsPosts`, migration `AddNewsPosts`); see `docs/react-news.md`. Its follow-ups (images, comments, reactions,
 per-post pages with share previews) are separate tasks. Next React task: pick from *Still Blazor* or *Cleanup* below.
 
-## Still Blazor (not yet scheduled)
+## Still Blazor
 
-None: since 036 no Blazor page is left (5 before 036, 10 before 035, 11 before 034, 13 before 033, 16 before 032).
-`/Error` is a server-owned static page on purpose, and `/share` was removed. Next: retire the Blazor host itself
-(`App.razor`, `MainLayout`, `/_blazor`, `RTUB.Shared`), one cleanup task.
-Pick these up one module per task. Still planned: **Push v2** (React push opt-in / opt-out; push cleanup), a later task
-(033 became Naipes).
+Nothing. 036 left no Blazor page (5 before 036, 10 before 035, 11 before 034, 13 before 033, 16 before 032) and 037
+retired the host: no Razor component is compiled, `/_blazor` and `blazor.web.js` are 404, `RTUB.Shared` (and its bUnit
+tests) is gone, and the service worker precaches no Blazor asset. Every page is the React shell; `/Error` is a
+server-owned static page on purpose; `/share` stays removed. Still planned: **Push v2** (React push opt-in / opt-out;
+push cleanup), a later task (033 became Naipes).
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links only React pages since 035. `/profile` is
@@ -77,10 +78,11 @@ Recorded in `STATE.md` → *Deferred*; the main ones:
 - Leitões seeing members' email/phone in member details: decide.
 - Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
 - Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
-- (030, resolved) Sign-out is in the member shell. Old Blazor prompts (push, Play Store) still have no React home.
+- (030, resolved) Sign-out is in the member shell. The old Blazor prompts (push, Play Store, login popup) went with
+  `RTUB.Shared` in 037; push opt-in comes back with Push v2, the others only if wanted.
 - (032) Push opt-in / opt-out has no UI until the Push v2 task (the only toggle was on the retired Blazor profile).
-- (035) The system announcement only reaches open Blazor pages; no-caller badges / cards left by 035
-  (`docs/react-owner-operations.md` → *Deferred*).
+- (035, resolved in 037) The system announcement is a React listener (`react-portal-pilot.md` → *System announcement*);
+  the no-caller badges / cards left by 035 went with `RTUB.Shared`.
 - (034) Reuniões kept the old visibility rules (Owner limits, the requests gate, the fiscal-year cut at midnight on
   31 August): decide (`docs/react-meetings.md` → *Deferred*).
 

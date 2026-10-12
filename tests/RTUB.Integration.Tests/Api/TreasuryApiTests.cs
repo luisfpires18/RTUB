@@ -88,7 +88,7 @@ public class TreasuryApiTests : IClassFixture<TreasuryApiFactory>
             (await member.GetStringAsync(page)).Should().Contain("id=\"root\"", page).And.NotContain("blazor.web.js", page);
         }
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         foreach (var retired in new[] { "Finance", "Report", "MbwayTransfers", "Nerba", "NerbaOrderDetail", "Calotes" })
         {
             web.GetTypes().Where(t => t.Name == retired && t.IsAssignableTo(typeof(ComponentBase))).Should().BeEmpty($"the Blazor {retired} page was retired");

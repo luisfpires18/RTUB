@@ -73,7 +73,7 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
         var (member, _) = await SignInAsync();
         (await member.GetStringAsync("/documentation")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Media.Documentation").Should().BeNull("the Blazor documentation page was retired");
         web.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())

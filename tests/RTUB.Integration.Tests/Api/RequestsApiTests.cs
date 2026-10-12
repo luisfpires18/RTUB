@@ -53,7 +53,7 @@ public class RequestsApiTests : IClassFixture<EventsApiFactory>
             (await member.GetStringAsync(path)).Should().Contain("id=\"root\"", path).And.NotContain("blazor.web.js");
         }
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Management.Requests").Should().BeNull("the Blazor requests page was retired in 031");
         web.GetType("RTUB.Pages.Management.Questions").Should().BeNull("the Blazor questions page was retired in 031");
         web.GetTypes()

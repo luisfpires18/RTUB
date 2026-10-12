@@ -7,8 +7,9 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// <summary>
 /// The React portal's public copy is written for the portal. The current site is a source of facts
 /// (dates, names, album titles, positions), never of sentences: no run of six words in the portal's
-/// copy may appear in what the Blazor site renders - its Razor pages and components, the seeded
-/// labels behind the homepage, and its static HTML. Proper names are removed first, since repeating
+/// copy may appear in what the old site carried that is still in the repository - the seeded labels
+/// behind the homepage and the static HTML (its Razor pages and components went with the Blazor host
+/// in task 037; until then they were part of the corpus). Proper names are removed first, since repeating
 /// "Real Tuna Universitária de Bragança" is identity, not copying.
 ///
 /// The Privacy Policy is the deliberate exception (legal text, carried verbatim from the retired
@@ -42,7 +43,7 @@ public class PortalCopyOriginalityTests
             site.UnionWith(Shingles(File.ReadAllText(file)));
         }
 
-        site.Should().HaveCountGreaterThan(10_000, "the current-site corpus must actually be read");
+        site.Should().HaveCountGreaterThan(5_000, "the current-site corpus must actually be read (the seed data alone is ~10k runs)");
 
         var copied = PortalFiles()
             .SelectMany(file => CopyOf(File.ReadAllText(file))
@@ -111,8 +112,6 @@ public class PortalCopyOriginalityTests
 
         return new[]
             {
-                Directory.EnumerateFiles(Path.Combine(src, "RTUB.Web"), "*.razor", SearchOption.AllDirectories),
-                Directory.EnumerateFiles(Path.Combine(src, "RTUB.Shared"), "*.razor", SearchOption.AllDirectories),
                 Directory.EnumerateFiles(Path.Combine(src, "RTUB.Application", "Data"), "SeedData*.cs"),
                 Directory.EnumerateFiles(Path.Combine(src, "RTUB.Web", "wwwroot"), "*.html"),
             }

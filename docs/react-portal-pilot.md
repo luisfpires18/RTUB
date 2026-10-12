@@ -1,15 +1,15 @@
 # React public portal (React track, tasks 001–006)
 
-A React public shell served by the existing ASP.NET Core host, next to the Blazor app, which keeps
-every page React does not own yet. Since task 004 it is the **DEV public baseline**: React owns `/`.
+A React shell served by the existing ASP.NET Core host. It started next to the Blazor app (which kept every page
+React did not own yet); since 036 React owns every page, and **task 037 retired the Blazor host** (no `App.razor`,
+`MainLayout`, `/_blazor`, `blazor.web.js` or `RTUB.Shared`). The only other HTML page is the static `/Error`.
 Decision record:
 `docs/architecture/adr/0002-react-public-portal-pilot.md`.
 
 The React track numbers its own tasks from **001** (`feat/001/react-portal-pilot`), separately
 from the repository's global unit sequence.
 
-DEV runs hybrid; the `master`/PROD cutover happens later, once `dev` no longer depends on Blazor UI
-pages. Task 004 is a DEV change only.
+`dev` no longer depends on Blazor at all (037); the `master`/PROD cutover is the next `dev → master` release.
 
 ## Rules for every React module
 
@@ -160,6 +160,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/forgot-password`, `/reset-password`, `/confirm-email` | **React** (036) | Password recovery and email confirmation, public, over `POST /api/account/*`; the pages are no-store and no-referrer and clear the token from the URL. `docs/react-identity.md`. |
 | `/Error` | **Server** (036, on purpose) | The exception handler's page: fixed static HTML (`wwwroot/error.html`) for any method, no script, no details. |
 | `/share` | **Removed** (036) | 404; the manifest has no `share_target`. (`/messages` was removed in 027; `/images` and `/labels` in 029A, all plain 404s.) No Blazor page is left. |
+| `GET /api/announcement` | **API** (037) | The Owner's system announcement while fresh, or 204; polled by the shell. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
@@ -172,16 +173,15 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | any other `/portal/*` | nobody | 404. |
 
 The shell `index.html` is served `Cache-Control: no-cache` so a deploy is picked up at once. It
-carries the enforced CSP like every HTML document. Links cross the React/Blazor boundary as plain
-full-page loads; Blazor links into React routes carry `data-enhance-nav="false"` so Blazor's
-enhanced navigation does not try to patch a React page. No app-facing link points to `/portal`
-(guarded by `ReactSourcesAndBuild_LinkOnlyToCleanRoutes`).
+carries the enforced CSP like every HTML document (`connect-src 'self'` only since 037: no WebSocket for a Blazor
+circuit). Links between pages are plain full-page loads. No app-facing link points to `/portal` (guarded by
+`ReactSourcesAndBuild_LinkOnlyToCleanRoutes`). Unknown URLs are a plain 404 (`BlazorHostRetirementTests`).
 
 **`/` side effects (task 004).** The Blazor home also showed the push-notification opt-in prompt,
 the custom login popup and the Play Store prompt, and gave signed-in members their bottom nav. None of
 that renders on the React `/`; the installed app (`start_url` `/?utm_source=pwa`) and push
 notifications without a URL now open the React home. Members reach their area through the member shell
-(030), or any Blazor page's own navigation.
+(030). The Blazor prompts went with `RTUB.Shared` in 037; push opt-in comes back with Push v2.
 
 ## Before any production release
 
@@ -222,8 +222,9 @@ below. Sources are pinned to LF so the build is byte-identical on Windows and Li
 - **Cache busting, no update prompt (006).** The old "Nova versão disponível" prompt made users
   reload when a new service worker was waiting. It is gone: a new worker downloads in the background
   and takes over once every RTUB window is closed (no `skipWaiting`, no forced reload). Freshness
-  comes from URLs, not from the worker: Vite names every script, stylesheet and font by content hash,
-  Blazor assets carry `?v=` (`VersionedAsset`), so a deploy is picked up on the next navigation.
+  comes from URLs, not from the worker: Vite names every script, stylesheet and font by content hash, so a deploy
+  is picked up on the next navigation. (The Blazor assets' `?v=` / `VersionedAsset` went with the host in 037; the
+  worker's `CACHE_VERSION` moved to `v2.8.0` then, which also drops the old precached `blazor.web.js`.)
   Ceiling: the image cache is cache-first by URL, so an image replaced *at the same URL* stays stale
   until the worker's `CACHE_VERSION` changes and it activates; publish changed images under a new
   URL.
@@ -236,8 +237,8 @@ below. Sources are pinned to LF so the build is byte-identical on Windows and Li
 The current site and app are the reference for structure, tone, page inventory and facts. **Their
 sentences are never copied into the portal**: portal copy is original Portuguese.
 `PortalCopyOriginalityTests` fails if any six-word run of portal copy (text nodes and multi-word
-strings; proper names removed) appears in the Blazor pages, components, seeded labels or static
-HTML. The Privacy Policy is the one exception: it is legal text, carried verbatim from the retired
+strings; proper names removed) appears in the seeded labels or static HTML (the Blazor pages and
+components were in the corpus until 037 removed them). The Privacy Policy is the one exception: it is legal text, carried verbatim from the retired
 `Privacy.razor`; since task 004 `portal/src/Privacy.tsx` is the only copy and the legal source.
 
 **Institution naming.** Present-day copy (current identity, location, CTAs) says **UPB** /
@@ -306,7 +307,8 @@ everyone. Pinned by `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTe
 
 - **Signing in is the React `/login` (007)**, over the antiforgery-protected, rate-limited
   `POST /auth/login`; the portal sends visitors to `/login?returnUrl=/profile`. Sign-out is still
-  a POST from the Blazor layout with its own token; the portal only points to it.
+  in the member shell (030, `api.ts` `signOut`: `POST /auth/logout` with the token from
+  `/api/public/antiforgery-token`).
 - **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
   `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
   `fullName`, `avatarUrl`, category labels (`StatusHelper.GetCategoryDisplay`) and, since 030, `menu`: four
@@ -331,8 +333,8 @@ Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not wit
 - **Groups:** Membro (Perfil, Atuações, As minhas inscrições, Ensaios, Música, Galeria, Novidades) · Tuna
   (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Recursos (Instrumentos, Loja,
   Documentação) · Gestão (Reuniões, Questões, Logística, Tesouraria, Pedidos, Emails, Notificações) · Owner
-  (Utilizadores, Auditoria, Base de dados). Blazor pages open as full page loads.
-- **Who sees what** (`MemberMenuAccess`, the Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
+  (Utilizadores, Auditoria, Base de dados).
+- **Who sees what** (`MemberMenuAccess`, the retired Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
   Owner, Mod or anyone not a Leitão; Logística, Tesouraria → Admin, Owner, Mod or Tuno; Pedidos, Emails,
   Notificações → Admin; the Owner group → Owner. The rest → every member.
 - **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Mensagens (027), Imagens and Conteúdo /
@@ -414,6 +416,21 @@ and TWA config are untouched; an installed app opens the manifest's `start_url` 
 Built in React track 025: `/news`, a public wall of text posts by Admin/Owner, with a latest-3 preview on the
 home page. Rules, API, schema and follow-ups (images, comments, per-post pages with share previews):
 `docs/react-news.md`.
+
+## System announcement (037)
+
+The Owner's "Anúncio de sistema" (`/owner/tracing`, `POST /api/owner/tracing/announcement`, ≤500 characters) used to
+reach open Blazor pages through `AnnouncementBanner` in `MainLayout` (a server push to live circuits, with a sound);
+since 036 it reached nobody. With the host retired it is a React listener: `AnnouncementService` keeps only the latest
+announcement, in memory, for **5 minutes**; `GET /api/announcement` (anonymous, `no-store`) answers `{id, message}` or
+204; the shell (`SystemAnnouncement` in `App.tsx`) asks on load, every 30 s while the page is visible and on coming
+back, and shows a dialog ("Aviso do sistema", "OK, entendido"). The dismissed id is kept in `localStorage`
+(`rtub-announcement-seen`), so a browser sees each announcement once.
+
+Different from before, on purpose: delivery takes up to 30 s instead of being instant; a page opened within the
+5 minutes still sees it (the circuit push reached only pages already open); no sound (autoplay rules); one app
+instance holds it (a scaled-out App Service would need a shared store). Visitors and members alike see it, as before.
+Pinned by `AnnouncementServiceTests`, `OwnerOperationsApiTests` and `BlazorHostRetirementTests`.
 
 ## Next recommended slice
 

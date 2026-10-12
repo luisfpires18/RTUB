@@ -56,7 +56,7 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await member.GetStringAsync("/logistics")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
         (await member.GetStringAsync($"/logistics/{boardId}")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
 
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Management.Logistics").Should().BeNull("the Blazor boards page was retired");
         web.GetType("RTUB.Pages.Management.LogisticsBoard").Should().BeNull("the Blazor board page was retired");
         web.GetTypes()

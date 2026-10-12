@@ -2,8 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -945,43 +943,11 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers UI state services, interop services, and Blazor-specific singletons
+    /// Configures the system announcement, authorization, antiforgery, response compression and caching
     /// </summary>
-    public static IServiceCollection AddWebUiServices(this IServiceCollection services)
+    public static IServiceCollection AddWebServices(this IServiceCollection services, IHostEnvironment environment)
     {
-        services.AddScoped<ProfilePictureUpdateService>();
-        services.AddSingleton<AdminRefreshService>();
         services.AddSingleton<AnnouncementService>();
-        services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
-        services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Configures Blazor Interactive Server, SignalR hub options, authorization, antiforgery,
-    /// response compression and caching
-    /// </summary>
-    public static IServiceCollection AddBlazorAndWebServices(this IServiceCollection services, IHostEnvironment environment)
-    {
-        services.AddRazorComponents()
-            .AddInteractiveServerComponents(options =>
-            {
-                options.DetailedErrors = environment.IsDevelopment();
-                options.MaxBufferedUnacknowledgedRenderBatches = 20;
-                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
-            });
-
-        services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
-        {
-            options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
-            options.EnableDetailedErrors = environment.IsDevelopment();
-            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
-        });
-
-        services.AddCascadingAuthenticationState();
-        services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));

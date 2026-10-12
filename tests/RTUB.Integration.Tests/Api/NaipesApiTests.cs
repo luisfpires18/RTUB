@@ -496,12 +496,7 @@ public class NaipesRetirementTests
             File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 033", gone);
         }
 
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "wwwroot", "css", "site.css")).Should()
-            .NotContain("naipe-card.css").And.NotContain("naipes-config.css").And.NotContain("details-modal.css");
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "Shared", "MainLayout.razor")).Should()
-            .Contain("href=\"/naipes\" data-enhance-nav=\"false\"", "a full navigation leaves Blazor for the React page");
-
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Activities.Naipes").Should().BeNull();
         web.GetType("RTUB.Pages.Activities.NaipesConfig").Should().BeNull();
     }

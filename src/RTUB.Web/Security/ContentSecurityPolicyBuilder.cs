@@ -9,9 +9,8 @@ namespace RTUB.Security;
 /// whitelisted "just in case", and no directive gets an origin it does not use. See STATE.md
 /// for the per-directive evidence.
 ///
-/// Two parts of the policy cannot be constants:
-///
-/// <para><b>Cloudflare R2</b> has two distinct origins, both runtime configuration:</para>
+/// One part of the policy cannot be a constant: <b>Cloudflare R2</b> has two distinct origins, both runtime
+/// configuration:
 /// <list type="bullet">
 /// <item><description><c>Cloudflare:R2:PublicUrl</c> - the public bucket (images and video are
 /// stored as absolute URLs under it), parsed as an absolute http/https URI so only its
@@ -25,17 +24,15 @@ namespace RTUB.Security;
 /// replaced with a wildcard, so bad configuration can only make R2 content unavailable, never
 /// weaken the policy or inject header text.</para>
 ///
-/// <para><b>The WebSocket source</b> is per-request. Blazor Server's circuit runs over
-/// <c>/_blazor</c>, and CSP3's <c>'self'</c> is not reliably taken to cover <c>ws:</c>/<c>wss:</c>
-/// in every browser, so the exact scheme+host of the current request is emitted instead of the
-/// broad <c>ws:</c>/<c>wss:</c> schemes.</para>
+/// <para><c>connect-src</c> is <c>'self'</c> only. Until task 037 it also named the request's own ws:/wss: origin for
+/// the Blazor Server circuit (<c>/_blazor</c>); the Blazor host is gone and nothing opens a WebSocket.</para>
 /// </summary>
 public sealed class ContentSecurityPolicyBuilder
 {
     private const string R2EndpointSuffix = ".r2.cloudflarestorage.com";
 
-    /// <summary>Everything before <c>connect-src</c>, built once.</summary>
-    private readonly string _staticDirectives;
+    /// <summary>The whole policy, built once: nothing in it depends on the request.</summary>
+    private readonly string _policy;
 
     public ContentSecurityPolicyBuilder(IConfiguration configuration)
         : this(configuration["Cloudflare:R2:PublicUrl"],
@@ -65,21 +62,11 @@ public sealed class ContentSecurityPolicyBuilder
             referenceOrigin = null;
         }
 
-        _staticDirectives = BuildStaticDirectives(publicOrigin, endpointOrigin, referenceOrigin);
+        _policy = BuildStaticDirectives(publicOrigin, endpointOrigin, referenceOrigin) + "connect-src 'self'";
     }
 
-    /// <summary>
-    /// Produces the full header value for one request. <paramref name="requestHost"/> is the
-    /// Host header, which a client controls, so it is only used when it looks like a host.
-    /// </summary>
-    public string Build(string? requestScheme, string? requestHost)
-    {
-        var socketSource = WebSocketSource(requestScheme, requestHost);
-
-        return socketSource is null
-            ? _staticDirectives + "connect-src 'self'"
-            : _staticDirectives + "connect-src 'self' " + socketSource;
-    }
+    /// <summary>The header value.</summary>
+    public string Build() => _policy;
 
     /// <summary>
     /// <c>scheme://host[:port]</c> for an absolute http/https URI, or null for anything else.
@@ -115,25 +102,6 @@ public sealed class ContentSecurityPolicyBuilder
         var id = accountId.Trim();
 
         return IsDnsLabel(id) ? $"https://{id}{R2EndpointSuffix}" : null;
-    }
-
-    /// <summary>
-    /// <c>ws://host[:port]</c> or <c>wss://host[:port]</c> matching the current request, or null
-    /// when the scheme is not http/https or the host is not a plain host[:port].
-    /// </summary>
-    internal static string? WebSocketSource(string? requestScheme, string? requestHost)
-    {
-        if (string.IsNullOrEmpty(requestHost) || !IsHostWithOptionalPort(requestHost))
-        {
-            return null;
-        }
-
-        return requestScheme switch
-        {
-            "https" => $"wss://{requestHost}",
-            "http" => $"ws://{requestHost}",
-            _ => null
-        };
     }
 
     private static string BuildStaticDirectives(string? r2PublicOrigin, string? r2EndpointOrigin, string? r2ReferenceOrigin)
@@ -224,73 +192,6 @@ public sealed class ContentSecurityPolicyBuilder
         foreach (var c in value)
         {
             if (!char.IsAsciiLetterOrDigit(c) && c != '-')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// A host optionally followed by a port: DNS name, IPv4, or bracketed IPv6. Deliberately
-    /// narrow - the value goes straight into a header, and Kestrel's own Host validation is not
-    /// something this needs to rely on.
-    /// </summary>
-    private static bool IsHostWithOptionalPort(string value)
-    {
-        var host = value;
-        var colon = value.LastIndexOf(':');
-
-        // A bare IPv6 host ends in ']', so a colon after it is the port separator.
-        if (colon > 0 && value.IndexOf(']', colon) < 0)
-        {
-            var port = value.AsSpan(colon + 1);
-
-            if (port.Length is 0 or > 5)
-            {
-                return false;
-            }
-
-            foreach (var c in port)
-            {
-                if (!char.IsAsciiDigit(c))
-                {
-                    return false;
-                }
-            }
-
-            host = value[..colon];
-        }
-
-        if (host.Length == 0)
-        {
-            return false;
-        }
-
-        if (host[0] == '[')
-        {
-            if (host.Length < 3 || host[^1] != ']')
-            {
-                return false;
-            }
-
-            for (var i = 1; i < host.Length - 1; i++)
-            {
-                var c = host[i];
-
-                if (!char.IsAsciiHexDigit(c) && c != ':' && c != '.')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        foreach (var c in host)
-        {
-            if (!char.IsAsciiLetterOrDigit(c) && c != '.' && c != '-')
             {
                 return false;
             }

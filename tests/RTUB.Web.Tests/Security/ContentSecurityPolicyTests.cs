@@ -24,15 +24,10 @@ public class ContentSecurityPolicyTests
     private const string ProdPublicUrl = "https://pub-prod.r2.dev";
 
     private static string ReferencePolicy(string? referencePublicUrl) =>
-        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, referencePublicUrl)
-            .Build("https", "rtub.example");
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, referencePublicUrl).Build();
 
-    private static string Policy(
-        string? publicUrl = PublicUrl,
-        string? accountId = AccountId,
-        string scheme = "https",
-        string host = "rtub.example") =>
-        new ContentSecurityPolicyBuilder(publicUrl, accountId).Build(scheme, host);
+    private static string Policy(string? publicUrl = PublicUrl, string? accountId = AccountId) =>
+        new ContentSecurityPolicyBuilder(publicUrl, accountId).Build();
 
     /// <summary>Splits a policy into directive name -> source list.</summary>
     private static Dictionary<string, string[]> Directives(string policy) =>
@@ -198,7 +193,7 @@ public class ContentSecurityPolicyTests
     [Fact]
     public void NoReferencePublicUrl_LeavesThePolicyByteIdentical()
     {
-        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build("https", "rtub.example")
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build()
             .Should().Be(Policy());
     }
 
@@ -288,40 +283,19 @@ public class ContentSecurityPolicyTests
         directives["media-src"].Should().NotContain(s => s.Contains("cloudflarestorage"));
     }
 
-    // ---------- Blazor's circuit ----------
+    // ---------- connect-src ----------
 
     /// <summary>
-    /// Blazor Server's circuit runs over a WebSocket, and <c>'self'</c> is not reliably read as
-    /// covering ws:/wss: in every browser, so the exact origin of the current request is emitted.
+    /// Task 037 retired the Blazor host: nothing opens a WebSocket, so connect-src is 'self' alone (it used to add the
+    /// request's own ws:/wss: origin for the /_blazor circuit). The policy no longer depends on the request at all.
     /// </summary>
-    [Theory]
-    [InlineData("https", "rtub.example", "wss://rtub.example")]
-    [InlineData("https", "rtub.example:8443", "wss://rtub.example:8443")]
-    [InlineData("http", "localhost:5000", "ws://localhost:5000")]
-    [InlineData("http", "[::1]:5000", "ws://[::1]:5000")]
-    public void WebSocketSource_MatchesTheRequestSchemeAndHost(string scheme, string host, string expected)
+    [Fact]
+    public void ConnectSrc_IsSelfOnly_WithNoWebSocketSource()
     {
-        Directives(Policy(scheme: scheme, host: host))["connect-src"]
-            .Should().Equal("'self'", expected);
-    }
+        var policy = Policy();
 
-    /// <summary>
-    /// The Host header is client-controlled. A value that is not a plain host[:port] is dropped
-    /// rather than concatenated into the header - the circuit failing is recoverable, a policy
-    /// with attacker-chosen text in it is not.
-    /// </summary>
-    [Theory]
-    [InlineData("https", "evil.example; script-src 'unsafe-inline'")]
-    [InlineData("https", "rtub.example/path")]
-    [InlineData("https", "rtub.example:notaport")]
-    [InlineData("ftp", "rtub.example")]
-    [InlineData("https", "")]
-    public void MalformedRequestHost_ContributesNoWebSocketSource(string scheme, string host)
-    {
-        var policy = Policy(scheme: scheme, host: host);
-
-        policy.Should().NotContain("unsafe-inline");
         Directives(policy)["connect-src"].Should().Equal("'self'");
+        policy.Should().NotContain("ws:").And.NotContain("wss:");
     }
 
     // ---------- static repository policy ----------
@@ -379,14 +353,14 @@ public class ContentSecurityPolicyTests
     }
 
     /// <summary>
-    /// Unit 021 found the Google Fonts preconnect in App.razor had no matching stylesheet and no
-    /// @font-face anywhere. Removing it is what lets font-src stay 'self'; if the hint comes back
+    /// Unit 021 found a Google Fonts preconnect in the (since retired, 037) Blazor App.razor with no matching
+    /// stylesheet and no @font-face anywhere. Removing it is what lets font-src stay 'self'; if the hint comes back
     /// without a font source, it is either dead weight or a directive the policy is missing.
     /// </summary>
     [Fact]
     public void NoWebFontServiceIsReferenced()
     {
-        ReadRepoFile("src", "RTUB.Web", "App.razor")
+        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
             .Should().NotContain("fonts.googleapis.com",
                 "the preconnect had no matching stylesheet; font-src is 'self'");
 

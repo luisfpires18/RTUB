@@ -1145,15 +1145,9 @@ public class MeetingsRetirementTests
             File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 034", gone);
         }
 
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "wwwroot", "css", "site.css")).Should().NotContain("meeting-card.css");
+        // 037 retired the Blazor host, its stylesheets and its navbar with it (BlazorHostRetirementTests).
 
-        // 4-pages/meetings.css stays: its .member-avatar-small still sizes the avatars of the /users dialogs. The page's own
-        // grid went with the page.
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "wwwroot", "css", "4-pages", "meetings.css")).Should().NotContain(".meeting-grid");
-        File.ReadAllText(Path.Combine(src, "RTUB.Web", "Shared", "MainLayout.razor")).Should()
-            .Contain("href=\"/meetings\" data-enhance-nav=\"false\"", "a full navigation leaves Blazor for the React page");
-
-        typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Activities.Meetings").Should().BeNull();
+        typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Activities.Meetings").Should().BeNull();
     }
 
     [Fact]

@@ -371,6 +371,14 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/owner/tracing/announcement", new { message = new string('m', 501) }))).Keys.Should().Equal("message");
         (await owner.PostAsJsonAsync("/api/owner/tracing/announcement", new { message = "O servidor vai reiniciar." })).StatusCode
             .Should().Be(HttpStatusCode.NoContent);
+
+        // 037: the React shell polls it; anyone with a page open sees it, signed in or not (the Blazor banner's audience).
+        var shown = await _factory.CreateClient().GetAsync("/api/announcement");
+        shown.StatusCode.Should().Be(HttpStatusCode.OK);
+        shown.Headers.CacheControl!.NoStore.Should().BeTrue();
+        var body = JsonDocument.Parse(await shown.Content.ReadAsStringAsync()).RootElement;
+        body.GetProperty("message").GetString().Should().Be("O servidor vai reiniciar.");
+        body.GetProperty("id").GetInt64().Should().BePositive();
     }
 
     // ---------- /owner/db ----------

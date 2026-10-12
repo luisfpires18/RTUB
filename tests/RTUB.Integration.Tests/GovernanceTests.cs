@@ -97,8 +97,8 @@ public class GovernanceTests : IntegrationTestBase
         response.Headers.Location!.ToString().Should().Be("/roles?fy=2024-2025");
         (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
 
-        typeof(RTUB.App).Assembly.GetType("RTUB.Pages.Members.MemberGovernance").Should().BeNull("the Blazor page was retired");
-        typeof(RTUB.App).Assembly.GetTypes()
+        typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGovernance").Should().BeNull("the Blazor page was retired");
+        typeof(RTUB.Program).Assembly.GetTypes()
             .Where(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>()
                 .Any(r => r.Template.StartsWith("/member/roles", StringComparison.OrdinalIgnoreCase) || r.Template.Equals("/roles", StringComparison.OrdinalIgnoreCase)))
             .Should().BeEmpty("no Blazor page owns Órgãos Sociais any more");

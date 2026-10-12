@@ -734,11 +734,7 @@ public class MemberAreaRetirementTests
             File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 032", gone);
         }
 
-        var layout = File.ReadAllText(Path.Combine(src, "RTUB.Web", "Shared", "MainLayout.razor"));
-        layout.Should().NotContain("leaflet").And.NotContain("cropper").And.NotContain("memberMap.js").And.NotContain("/member/profile");
-        layout.Should().Contain("href=\"/hall-of-fame\" data-enhance-nav=\"false\"").And.Contain("href=\"/profile\" data-enhance-nav=\"false\"");
-
-        var web = typeof(RTUB.App).Assembly;
+        var web = typeof(RTUB.Program).Assembly;
         web.GetType("RTUB.Pages.Members.Profile").Should().BeNull();
         web.GetType("RTUB.Pages.Members.MemberMap").Should().BeNull();
         web.GetType("RTUB.Pages.Activities.HallOfFame").Should().BeNull();

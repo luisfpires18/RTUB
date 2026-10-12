@@ -62,7 +62,7 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
     [Fact]
     public void NoBlazorPage_RoutesToTheRetiredUrls()
     {
-        typeof(RTUB.App).Assembly.GetTypes()
+        typeof(RTUB.Program).Assembly.GetTypes()
             .SelectMany(t => t.GetCustomAttributes(typeof(RouteAttribute), false).Cast<RouteAttribute>())
             .Select(r => r.Template)
             .Should().NotContain(RetiredUrls);

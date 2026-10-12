@@ -54,8 +54,8 @@ public class InlineScriptPolicyTests
         var violations = ScanAllMarkup(InlineEventHandler);
 
         violations.Should().BeEmpty(
-            "inline HTML event handler attributes such as onclick=/onerror= must become a Blazor " +
-            "@on... binding or an addEventListener in external JS; a strict CSP script-src blocks " +
+            "inline HTML event handler attributes such as onclick=/onerror= must become a React " +
+            "handler or an addEventListener in external JS; a strict CSP script-src blocks " +
             $"them exactly as it blocks inline <script>.{Environment.NewLine}{Describe(violations)}");
     }
 
@@ -107,92 +107,19 @@ public class InlineScriptPolicyTests
     }
 
     /// <summary>
-    /// The Blazor startup call was moved out of MainLayout's inline script. The externalized file
-    /// must still run after blazor.web.js, which holds only while blazor.web.js keeps
-    /// autostart="false" and both remain classic scripts.
+    /// sw-register.js owns page-load registration (unit 023 dropped App.razor's inline duplicate; 026 dropped
+    /// push-notifications.js's). Since 037 retired the Blazor host, the React shell is what loads it on every page.
+    /// ServiceWorkerReliabilityTests enforces the single registration call.
     /// </summary>
     [Fact]
-    public void MainLayout_KeepsManualBlazorStartOrdering()
+    public void PortalShell_LoadsTheServiceWorkerRegistrationOwner()
     {
-        var content = ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor");
-
-        var frameworkIndex = content.IndexOf("blazor.web.js", StringComparison.Ordinal);
-        var startupIndex = content.IndexOf("/js/blazorStartup.js", StringComparison.Ordinal);
-
-        frameworkIndex.Should().BeGreaterThan(-1, "MainLayout must still load blazor.web.js");
-        startupIndex.Should().BeGreaterThan(-1, "MainLayout must load the externalized startup script");
-        startupIndex.Should().BeGreaterThan(frameworkIndex,
-            "blazorStartup.js must be referenced after blazor.web.js so the Blazor global exists");
-    }
-
-    [Fact]
-    public void MainLayout_KeepsBlazorAutostartDisabled()
-    {
-        var content = ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor");
-
-        content.Should().Contain("autostart=\"false\"",
-            "manual Blazor.start() in blazorStartup.js requires blazor.web.js to keep autostart=\"false\"");
-    }
-
-    [Fact]
-    public void BlazorStartup_IsTheOnlyCallerOfBlazorStart()
-    {
-        var jsRoot = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js");
-
-        var callers = Directory.EnumerateFiles(jsRoot, "*.js", SearchOption.AllDirectories)
-            .Where(f => File.ReadAllText(f).Contains("Blazor.start(", StringComparison.Ordinal))
-            .Select(Path.GetFileName)
-            .ToList();
-
-        callers.Should().BeEquivalentTo(new[] { "blazorStartup.js" },
-            "calling Blazor.start() more than once throws; exactly one file may call it");
-    }
-
-    /// <summary>
-    /// The delegated avatar fallback listener replaced per-element inline onerror handlers.
-    /// It has to be attached from &lt;head&gt;, before any avatar image can fail to load.
-    /// </summary>
-    [Fact]
-    public void AvatarFallbackScript_IsLoadedBeforeMarkupIsParsed()
-    {
-        var app = ReadRepoFile("src", "RTUB.Web", "App.razor");
-
-        var headEnd = app.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        var scriptIndex = app.IndexOf("/js/avatarFallback.js", StringComparison.Ordinal);
-
-        scriptIndex.Should().BeGreaterThan(-1, "App.razor must reference the avatar fallback script");
-        scriptIndex.Should().BeLessThan(headEnd,
-            "the fallback listener must be attached from <head>, before any avatar <img> is parsed");
-
-        EnumerateApplicationMarkup()
-            .Count(f => File.ReadAllText(f).Contains("data-avatar-fallback", StringComparison.Ordinal))
-            .Should().BeGreaterThan(0,
-                "avatar images should opt into the delegated fallback via data-avatar-fallback");
-    }
-
-    /// <summary>
-    /// App.razor used to duplicate the service worker registration in an inline head script, with
-    /// the same script URL and scope as sw-register.js. Unit 023 dropped the duplicate; page-load
-    /// registration is now sw-register.js alone.
-    ///
-    /// push-notifications.js used to call register() again on demand when the user opted into
-    /// push; unit 026 removed that second path, so sw-register.js is now the only registration
-    /// owner in the repository. ServiceWorkerReliabilityTests enforces that count.
-    /// </summary>
-    [Fact]
-    public void AppRazor_DoesNotDuplicateServiceWorkerRegistration()
-    {
-        ReadRepoFile("src", "RTUB.Web", "App.razor")
-            .Should().NotContain("serviceWorker.register",
-                "App.razor must not re-register the service worker; sw-register.js owns page-load registration");
+        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
+            .Should().Contain("/js/sw-register.js", "the React shell must keep loading sw-register.js on every page")
+            .And.NotContain("serviceWorker.register", "the shell must not register the worker a second time");
 
         ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "sw-register.js")
-            .Should().Contain("serviceWorker.register(",
-                "sw-register.js must still perform the page-load registration App.razor no longer duplicates");
-
-        ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor")
-            .Should().Contain("/js/sw-register.js",
-                "MainLayout must keep loading sw-register.js on every page");
+            .Should().Contain("serviceWorker.register(", "sw-register.js performs the page-load registration");
     }
 
     // ---------- helpers ----------
@@ -204,7 +131,7 @@ public class InlineScriptPolicyTests
     /// first one, so a single failure reports the whole picture.
     ///
     /// Matching runs against the whole file, not line by line, because an opening tag may span
-    /// several lines (MainLayout's leaflet tag does). The line number is derived from the match
+    /// several lines. The line number is derived from the match
     /// offset afterwards purely for reporting.
     /// </summary>
     private static List<Violation> ScanAllMarkup(Regex pattern)

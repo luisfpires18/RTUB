@@ -79,22 +79,6 @@ public class OwnerOperationsSourceTests
     }
 
     [Fact]
-    public void TheBlazorNavbar_ShowsTheOwnerTools_ToTheOwnerOnly_AsFullNavigations()
-    {
-        var layout = Read(Web, "Shared", "MainLayout.razor");
-        var dropdown = Regex.Match(layout, @"<AuthorizeView Roles=""Owner"">\s*<Authorized Context=""ownerAuth"">.*?</AuthorizeView>", RegexOptions.Singleline).Value;
-
-        dropdown.Should().NotBeEmpty();
-        foreach (var route in Routes)
-        {
-            dropdown.Should().Contain($"href=\"{route}\" data-enhance-nav=\"false\"");
-            layout.Should().NotContain($"<NavLink class=\"dropdown-item\" href=\"{route}\"");
-        }
-
-        layout.Should().NotContain("<AuthorizeView Roles=\"Admin\">", "Emails and Notificações are no longer Admin pages");
-    }
-
-    [Fact]
     public void TheOwnerPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
         foreach (var file in Directory.GetFiles(Portal, "Owner*.tsx").Append(Path.Combine(Portal, "ownerApi.ts")))

@@ -6,19 +6,35 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `feat/036-identity-share-cleanup` (task 036)**, created from `dev` @ `05f1f55e`, which has 035. Built and
-tested locally with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must
-pass before merge.**
+**Open: `feat/037-retire-blazor-host` (task 037)**, created from `dev` @ `3f7cc98d`, which has 036. Built and tested
+locally with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before
+merge.**
 
-**036 Identity + /share:** `/forgot-password`, `/reset-password` and `/confirm-email` are React (public), over
+**037 Blazor host retired:** 0 Blazor pages (036) and now no host: `App.razor`, `_Imports.razor`, `MainLayout`,
+`Components/*` (incl. `AnnouncementBanner`, `ReconnectModal`, `VersionedAsset`, the dead `Portal/*`),
+`MapRazorComponents` / `AddRazorComponents` / `AddInteractiveServerComponents`, the circuit log filter, the SignalR
+`HubOptions`, `AuthenticationStateProvider`, the `/_blazor/initializers` shim, `Interop/*`, `AdminRefreshService`,
+`ProfilePictureUpdateService`, every Blazor stylesheet (`wwwroot/css` except `error.css` / `offline.css`), every Blazor
+script (`wwwroot/js` except `sw-register.js`, `offline.js` and, for Push v2, `push-notifications.js` / `pwa-helper.js`)
+and `wwwroot/lib` (Bootstrap, Bootstrap Icons, Cropper.js) are gone. **`/_blazor` and `blazor.web.js` are 404.**
+**`RTUB.Shared` and `RTUB.Shared.Tests` are removed** (only `RTUB.Web` referenced it; out of the solution; `bunit` and
+the two `Microsoft.AspNetCore.Components.*` package versions dropped). CSP `connect-src` is `'self'` only (the per-request
+ws:/wss: source was for the circuit). Service worker `v2.8.0`: no Blazor precache entry, no `/_blazor` exclusion;
+offline, install and push unchanged; manifest still has no `share_target`. **System announcement restored as a React
+listener** (option B): `AnnouncementService` keeps the latest one in memory for 5 minutes, `GET /api/announcement`
+(anonymous, no-store), the shell polls every 30 s while visible and shows a dialog once per browser; the Owner page and
+`POST /api/owner/tracing/announcement` unchanged. Intentional changes: up to 30 s late instead of instant, a page opened
+within 5 minutes still sees it, no sound, no Bootstrap / Blazor CSS anywhere. No schema change, no migration. Detail:
+`docs/react-portal-pilot.md` → *System announcement*; tests `BlazorHostRetirementTests`, `AnnouncementServiceTests`.
+
+**036 merged to `dev`** (@ `3f7cc98d`). **036 Identity + /share:** `/forgot-password`, `/reset-password` and `/confirm-email` are React (public), over
 `POST /api/account/{forgot-password,reset-password,confirm-email}` (`AccountRecoveryService`: same Identity calls,
 token handling and messages; antiforgery; no-store). The pages are `no-store` and `no-referrer`, and the token is cleared
 from the URL, never stored, never logged and never echoed. `/Error` is a **server-owned static page on purpose**
 (`wwwroot/error.html`, any method, no script, no details). `/share` and the manifest `share_target` are **removed**
 (404). Intentional changes: a failed reset email answers the same neutral sentence (it used to surface the error page),
-and an invalid or expired reset token is now said in Portuguese. **0 Blazor pages left** (5 before); the Blazor host
-itself (`App.razor`, `MainLayout`, `/_blazor`, `RTUB.Shared`) is now dead weight and needs a separate retirement task.
-No schema change. Detail: `docs/react-identity.md`.
+and an invalid or expired reset token is now said in Portuguese. **0 Blazor pages left** (5 before); the host itself was
+retired by 037. No schema change. Detail: `docs/react-identity.md`.
 
 **035 merged to `dev`** (@ `05f1f55e`). **035 Owner tools:** `/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React, over the
 Owner-only `/api/owner/*` (`OwnerEndpoints` gate + `OwnerOperationsService` over the old email / push / audit / DB
@@ -194,15 +210,30 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+037 deleted every `RTUB.Shared` component, the Blazor CSS and JS and `wwwroot/lib`: older entries below that name one of
+them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `home.js`, `scrollSpy.js`,
+`profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
+resolved by that deletion.
+
+Raised by 037 (Blazor host retirement):
+- `.github/copilot-instructions.md`, `.github/agents/*.md` and `docs/frontend-practices.md` still describe the Blazor /
+  `RTUB.Shared` stack: rewrite them for the React + endpoints stack in a docs task.
+- Unused now, left in place: the `Microsoft.AspNetCore.SignalR.Client` package in `RTUB.csproj` (no `HubConnection`
+  anywhere); Blazor-era signatures in `RTUB.Application` (`IBrowserFile` in `IPostService` / `ICommentService`,
+  `AuthenticationState` in the no-caller `INaipeAuthorizationService`); `ILabelService` lost its last (dead) caller.
+- `push-notifications.js` and `pwa-helper.js` are loaded by no page (the Blazor layout loaded them): kept for Push v2.
+- The system announcement lives in one app instance's memory (fine for one App Service instance; a shared store if it
+  scales out) and plays no sound.
+- `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` now guards only `error.css` / `offline.css`; the React
+  `styles.css` is not in its sweep.
+- Many code comments still say "was the Blazor …": history, left as is.
+
 Raised by 036 (Identity + /share; detail in `docs/react-identity.md` → *Deferred*):
-- No Blazor page is left: retire the Blazor host (`App.razor`, `MainLayout`, `MapRazorComponents`, `/_blazor`,
-  `blazor.web.js`, which the service worker also precaches, `RTUB.Shared`, the Blazor CSS / JS) in one task. Until then
-  the system announcement reaches nobody.
+- (resolved in 037) The Blazor host is retired and the system announcement is a React listener.
 - forgot-password and reset-password have no rate limit (as before). `/confirm-email` has no link generator in the app.
 
 Raised by 035 (Owner tools; detail in `docs/react-owner-operations.md` → *Deferred*):
-- The system announcement (`/owner/tracing`) only reaches open Blazor pages (identity pages, `/share`, `/Error`): the
-  React shell has no listener. Decide: add one, or retire the feature.
+- (resolved in 037) The system announcement (`/owner/tracing`) is shown by the React shell (`GET /api/announcement`).
 - No guard against the Owner demoting themselves / the last Owner (as before). `/owner/db` shows `AspNetUsers` secrets
   columns to the Owner (as before). Announcement emails send synchronously (no live progress).
 - No caller left: `LockStatusBadge`, `LoginStatusBadge`, `RoleBadge` (+ tests, `roleBadge.js`), `MemberCardLite`,
