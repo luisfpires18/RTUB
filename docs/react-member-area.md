@@ -119,10 +119,9 @@ queue and worker, `push-notifications.js`, `PushNotificationPrompt`, every push 
 
 ## Push notifications
 
-Not part of 032. The only push toggle was on the retired Blazor profile, so **members cannot opt in or out of push in
-the app until the Push v2 task** (React UI, cleanup; 033 became Naipes). Nothing else changed: the subscriptions, `/api/push/*`, the
-server-side senders, the service worker and `PushNotificationPrompt` (Blazor pages) are untouched. The React profile
-shows the email preference only.
+Not part of 032 (the only push toggle was on the retired Blazor profile). Since **task 038** the React `/profile` has
+its own section, "Notificações push", after "Notificações por email": per-device opt-in / opt-out, every repair state,
+no prompt on load. Detail: `docs/react-push-v2.md`.
 
 ## Data audit
 
@@ -147,4 +146,4 @@ in `ContentSecurityPolicyTests`.
 - `script-src` / `style-src` still allow cdnjs and unpkg, now unused; drop them in a CSP follow-up.
 - `wwwroot/js/profilePictureRefresh.js` and `ProfilePictureUpdateService` lost their only trigger (the Blazor profile);
   `wwwroot/lib/cropperjs` has no caller.
-- Push v2 (a later task; 033 became Naipes): React opt-in / opt-out, then the push cleanup.
+- (resolved in 038) Push v2: React opt-in / opt-out and the push cleanup (`docs/react-push-v2.md`).

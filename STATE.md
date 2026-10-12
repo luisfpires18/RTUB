@@ -6,16 +6,33 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `feat/037-retire-blazor-host` (task 037)**, created from `dev` @ `3f7cc98d`, which has 036. Built and tested
-locally with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before
-merge.**
+**Open: `feat/038-react-push-v2` (task 038)**, created from `dev` @ `5e147945`, which has 037. Built and tested locally
+with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before merge.**
 
-**037 Blazor host retired:** 0 Blazor pages (036) and now no host: `App.razor`, `_Imports.razor`, `MainLayout`,
+**038 Push v2:** `/profile` owns push: section "Notificações push" (after the email one), per device, capability
+detection only, no prompt on load, permission and subscription only from a click; states unsupported (with the
+iPhone / iPad Home Screen hint outside an installed app), disabled, not configured, worker not ready, blocked, off, on,
+unknown to the server ("Corrigir subscrição"), stale key / expired ("Ativar novamente"), error; "Desativar em todos os
+dispositivos". `PushController` is replaced by `PushEndpoints` (`/api/push/{status,check,subscribe,unsubscribe}`):
+signed-in only, no-store, `X-CSRF-TOKEN` on every POST, **own subscriptions only** (the old unsubscribe deleted any
+endpoint), endpoint / key validation (`PushSubscriptionRules`: https on a browser push service, no IP; P-256 key, 16-byte
+auth), `replaces` for a same-device endpoint swap. The dead `/api/push/broadcast` and `/api/push/send-to-selected`
+(still open to Admin) are gone; custom push stays on the Owner's `/notifications`. Service worker: push handler without
+the iOS user-agent check and the vibrate pattern, same-origin `notificationTarget()`, no app-badge clearing, rotation
+re-sends with `replaces` + token instead of calling unsubscribe (which opted the member out); `sw-register.js` stays
+the only registration. Removed: `push-notifications.js`, `pwa-helper.js`, the `rtub-push-*` localStorage flags.
+Backend storage kept: `PushSubscriptions`, `PushNotificationsOptedOut` (now: set when the last device is turned off),
+every sender. No schema change. **Real devices:** Edge desktop checked end to end locally (subscribe, an Owner push
+delivered and shown, unsubscribe, reload); **Android installed app, iPhone / iPad Home Screen app and DEV not checked:
+required before a production release.** Detail: `docs/react-push-v2.md`.
+
+**037 merged to `dev`** (@ `5e147945`). **037 Blazor host retired:** 0 Blazor pages (036) and now no host: `App.razor`, `_Imports.razor`, `MainLayout`,
 `Components/*` (incl. `AnnouncementBanner`, `ReconnectModal`, `VersionedAsset`, the dead `Portal/*`),
 `MapRazorComponents` / `AddRazorComponents` / `AddInteractiveServerComponents`, the circuit log filter, the SignalR
 `HubOptions`, `AuthenticationStateProvider`, the `/_blazor/initializers` shim, `Interop/*`, `AdminRefreshService`,
 `ProfilePictureUpdateService`, every Blazor stylesheet (`wwwroot/css` except `error.css` / `offline.css`), every Blazor
-script (`wwwroot/js` except `sw-register.js`, `offline.js` and, for Push v2, `push-notifications.js` / `pwa-helper.js`)
+script (`wwwroot/js` except `sw-register.js`, `offline.js` and, for Push v2, `push-notifications.js` / `pwa-helper.js`,
+removed by 038)
 and `wwwroot/lib` (Bootstrap, Bootstrap Icons, Cropper.js) are gone. **`/_blazor` and `blazor.web.js` are 404.**
 **`RTUB.Shared` and `RTUB.Shared.Tests` are removed** (only `RTUB.Web` referenced it; out of the solution; `bunit` and
 the two `Microsoft.AspNetCore.Components.*` package versions dropped). CSP `connect-src` is `'self'` only (the per-request
@@ -58,7 +75,7 @@ change. Detail: `docs/react-meetings.md`.
 
 **033 merged to `dev`** (PR #217, @ `38eff81`): `/naipes` and `/naipes/config` are React: `docs/react-naipes.md`.
 **032 merged to `dev`** (PR #216): `/profile` is the member's own profile editor; `/members/map` and `/hall-of-fame` are
-React; no push opt-in / opt-out UI until the Push v2 task: `docs/react-member-area.md`.
+React; push opt-in / opt-out is back in `/profile` since 038: `docs/react-member-area.md`.
 
 **031 merged to `dev`** (@ `cf70eee3`, CI green after two fixes: `QuestionRepository.AddAsync` re-inserted the users,
 and a route test still read the deleted `Requests.razor`). `/requests` and `/questions` are React:
@@ -215,13 +232,20 @@ them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `ho
 `profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
 resolved by that deletion.
 
+Raised by 038 (Push v2; detail in `docs/react-push-v2.md` → *Follow-ups*):
+- **Before a production release:** check push on an Android installed app, an iPhone / iPad Home Screen app and DEV
+  (real VAPID keys): turn on, receive one notification, turn off, reload. Only Edge desktop was checked (locally).
+- A browser on a push service outside `PushSubscriptionRules.PushServiceHosts` is refused: add its host if one appears.
+- `PushNotificationService` still news up `WebPushClient` (no send tests); no `CancellationToken` in the push API.
+- Existing rows keep their old validation-free data; a bad one only fails to send (404/410 deletes it as before).
+
 Raised by 037 (Blazor host retirement):
 - `.github/copilot-instructions.md`, `.github/agents/*.md` and `docs/frontend-practices.md` still describe the Blazor /
   `RTUB.Shared` stack: rewrite them for the React + endpoints stack in a docs task.
 - Unused now, left in place: the `Microsoft.AspNetCore.SignalR.Client` package in `RTUB.csproj` (no `HubConnection`
   anywhere); Blazor-era signatures in `RTUB.Application` (`IBrowserFile` in `IPostService` / `ICommentService`,
   `AuthenticationState` in the no-caller `INaipeAuthorizationService`); `ILabelService` lost its last (dead) caller.
-- `push-notifications.js` and `pwa-helper.js` are loaded by no page (the Blazor layout loaded them): kept for Push v2.
+- (resolved in 038) `push-notifications.js` and `pwa-helper.js` were removed with the React push client.
 - The system announcement lives in one app instance's memory (fine for one App Service instance; a shared store if it
   scales out) and plays no sound.
 - `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` now guards only `error.css` / `offline.css`; the React
@@ -266,8 +290,7 @@ Raised by 033 (Naipes):
 
 Raised by 032 (profile, members map, Hall of Fame):
 - The map lists expelled accounts (and the Hall of Fame counts every account), as before: decide whether to leave them out.
-- Push opt-in / opt-out has no UI until the Push v2 task (not 033); `push-notifications.js`, `PushNotificationPrompt` and
-  `/api/push/*` stay for it.
+- (resolved in 038) Push opt-in / opt-out is the `/profile` section "Notificações push".
 - CSP `script-src` / `style-src` still allow cdnjs and unpkg, now unused (Cropper.js and Leaflet left `MainLayout`).
 - No caller left: `wwwroot/js/profilePictureRefresh.js` + `ProfilePictureUpdateService` (still wired in `MainLayout`),
   `wwwroot/lib/cropperjs`; profile / rank / timeline selectors in the Blazor CSS.

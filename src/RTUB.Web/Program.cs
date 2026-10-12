@@ -544,6 +544,9 @@ public class Program
         // --------- Password recovery and email confirmation for the React identity pages (task 036) ---------
         app.MapAccountRecoveryEndpoints();
 
+        // --------- The member's own push subscriptions for the React /profile (task 038) ---------
+        app.MapPushEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML

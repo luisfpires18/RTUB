@@ -181,7 +181,8 @@ circuit). Links between pages are plain full-page loads. No app-facing link poin
 the custom login popup and the Play Store prompt, and gave signed-in members their bottom nav. None of
 that renders on the React `/`; the installed app (`start_url` `/?utm_source=pwa`) and push
 notifications without a URL now open the React home. Members reach their area through the member shell
-(030). The Blazor prompts went with `RTUB.Shared` in 037; push opt-in comes back with Push v2.
+(030). The Blazor prompts went with `RTUB.Shared` in 037; push opt-in is the `/profile` section "Notificações push"
+since 038 (`docs/react-push-v2.md`), never prompted on load.
 
 ## Before any production release
 

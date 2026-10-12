@@ -757,7 +757,8 @@ public class MemberAreaRetirementTests
             File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }
 
-        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().NotContain("push", "push notifications come back with the Push v2 task, not as a broken toggle");
+        // Push came back with task 038 as its own section (PushV2SourceTests), not as the old toggle.
+        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().Contain("<PushSection />").And.NotContain("PushNotificationToggle");
     }
 
     private static string RepoRoot()
