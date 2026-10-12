@@ -109,6 +109,9 @@ public class ConfigurationAuditTests
         Expected(s["ASPNETCORE_ENVIRONMENT"], "dev").Should().Be("Staging");
         Expected(s["ASPNETCORE_ENVIRONMENT"], "prod").Should().Be("Production");
         Expected(s["WEBSITE_RUN_FROM_PACKAGE"], "prod").Should().Be("1");
+        Status(s["WEBSITE_RUN_FROM_PACKAGE"], "prod").Should().Be("required");
+        Status(s["WEBSITE_RUN_FROM_PACKAGE"], "dev").Should().Be("optional", "DEV intentionally has no run-from-package (040)");
+        Expected(s["WEBSITE_RUN_FROM_PACKAGE"], "dev").Should().BeNull();
         s.Keys.Should().NotContain(k => k.StartsWith("IDrive", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -129,7 +132,7 @@ public class ConfigurationAuditTests
     }
 
     [Fact]
-    public void LocalAuditOutput_IsGitIgnored()
+    public void LocalAuditOutput_IsGitIgnored_AndNothingUnderItIsTracked()
     {
         File.ReadAllLines(Path.Combine(Root, ".gitignore")).Select(l => l.Trim()).Should().Contain(".local/");
 
@@ -137,7 +140,23 @@ public class ConfigurationAuditTests
         if (git.Started)
         {
             git.ExitCode.Should().Be(0, "git must ignore .local/config-audit/");
+            var tracked = Run("git", ["ls-files", "--", ".local"]);
+            tracked.Output.Trim().Should().BeEmpty("generated audit outputs are never committed");
         }
+    }
+
+    [Fact]
+    public void Runbook_DocumentsGeneratedOutputs_AndTheRunFromPackagePolicy()
+    {
+        var runbook = Regex.Replace(File.ReadAllText(Path.Combine(Root, "docs", "configuration-runbook.md")), @"\s+", " ");
+
+        runbook.Should().Contain("`.local/config-audit/` — **generated, git-ignored").And.Contain("never committed, safe to delete")
+            .And.Contain("rerun the audit scripts to regenerate it");
+        runbook.Should().Contain("PROD keeps `=1`; DEV intentionally does not have it")
+            .And.Contain("Do not re-add it to `rtub-dev`").And.Contain("informational noise");
+        runbook.Should().Contain("'WEBSITE_RUN_FROM_PACKAGE=1'", "the PROD baseline keeps run-from-package");
+        runbook.Should().Contain("Maps need no API key").And.Contain("OpenStreetMap");
+        runbook.Should().NotContain("CARTO basemap tiles");
     }
 
     // ---------- the scripts (PowerShell, synthetic data only) ----------
@@ -159,7 +178,6 @@ public class ConfigurationAuditTests
             File.WriteAllText(dev, JsonSerializer.Serialize(new[]
             {
                 Setting("ASPNETCORE_ENVIRONMENT", "Staging"),
-                Setting("WEBSITE_RUN_FROM_PACKAGE", "1"),
                 Setting("ConnectionStrings__SqliteConnection", "Data Source=/home/site/data/dev.db"),
                 Setting("AdminUser__Password", DevSentinel),
                 Setting("Cloudflare__R2__SecretAccessKey", SharedSentinel),
@@ -192,6 +210,7 @@ public class ConfigurationAuditTests
 
             var devReport = File.ReadAllText(Path.Combine(outDir, "dev-app-settings.audit.md"));
             var prodReport = File.ReadAllText(Path.Combine(outDir, "prod-app-settings.audit.md"));
+            devReport.Should().NotContain("WEBSITE_RUN_FROM_PACKAGE: ", "DEV intentionally runs without it (040)");
             devReport.Should().Contain("WebPush VAPID settings incomplete").And.Contain("Cloudflare__R2__SecretAccessKey: shares its value with PROD (must differ)")
                 .And.Contain("DatabaseBackup__Enabled: not the expected value 'false'").And.Contain("IDrive__SecretKey: deprecated");
             prodReport.Should().Contain("WEBSITE_RUN_FROM_PACKAGE: not the expected value '1'")

@@ -6,8 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `feat/039-post-blazor-config-audit` (task 039)**, created from `dev` @ `1885d507`, which has 038. **Not pushed
-unless explicitly requested; GitHub Actions must pass before merge.**
+**Open: `fix/040-members-map-tiles` (task 040)**, from `dev` @ `0200f1b1` (has 039). Not pushed unless requested; CI must
+pass before merge. **040:** members map basemap CARTO `dark_all` (now "API KEY REQUIRED") → OpenStreetMap standard
+tiles (no key; CSS-darkened tile pane); CSP `img-src` `*.basemaps.cartocdn.com` → `tile.openstreetmap.org`. Config
+audit: DEV `WEBSITE_RUN_FROM_PACKAGE` optional (intentionally absent on rtub-dev), PROD still required `1`; runbook
+notes `.local/config-audit/` is generated / never committed. No schema or data change. Detail: `docs/react-member-area.md`.
+
+**039 merged to `dev`** (@ `0200f1b1`).
 
 **039 Post-Blazor cleanup + configuration audit:** docs and agent instructions rewritten for the React-only stack
 (`README.md`, `.github/copilot-instructions.md`, `.github/agents/*`, `docs/frontend-practices.md`; Blazor / `RTUB.Shared`

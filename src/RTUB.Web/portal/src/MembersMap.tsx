@@ -12,9 +12,11 @@ import { loginTo } from './musicApi';
 // Leaflet ships in this page's own chunk (vendor-leaflet), so no other page loads it.
 const PORTUGAL: L.LatLngTuple = [39.5, -8.0];
 const POPUP_LIMIT = 10;
-const TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// OpenStreetMap's standard tiles: no API key (task 040; CARTO's dark tiles began answering "API KEY REQUIRED").
+// The tile server needs a Referer: the site's strict-origin-when-cross-origin sends the origin. Darkened by CSS
+// (.map-canvas .leaflet-tile-pane), so the markers and popups keep their colours. One host, also in the CSP img-src.
+const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /**
  * /members/map (task 032; was the Blazor /member/map). Members by the city on their profile, one marker per city that
@@ -150,7 +152,7 @@ function LeafletMap({ cities, focus }: { cities: MapCity[]; focus?: MapCity }) {
   useEffect(() => {
     if (!box.current) return;
     const map = L.map(box.current, { preferCanvas: true }).setView(PORTUGAL, 7);
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+    L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(map);
     for (const city of cities) {
       const marker = L.marker([city.latitude, city.longitude], {
         icon: L.divIcon({ className: 'map-marker', html: markerHtml(city.members.length), iconSize: [30, 42], iconAnchor: [15, 42], popupAnchor: [0, -42] }),

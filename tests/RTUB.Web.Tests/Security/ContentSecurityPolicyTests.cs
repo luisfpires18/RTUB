@@ -102,7 +102,7 @@ public class ContentSecurityPolicyTests
     /// <summary>
     /// Every external origin is justified by something the browser actually loads, and must not
     /// leak into a directive that does not need it. cdnjs serves both cropper.min.js and
-    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; the Carto tiles are images only.
+    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; the OpenStreetMap tiles are images only.
     /// jsdelivr served only pixi.min.js and went with MyTuno (026): no directive allows it.
     /// </summary>
     [Fact]
@@ -116,11 +116,11 @@ public class ContentSecurityPolicyTests
         directives["style-src"].Should().BeEquivalentTo(
             "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
 
-        directives["img-src"].Should().Contain("https://*.basemaps.cartocdn.com")
+        directives["img-src"].Should().Contain("https://tile.openstreetmap.org")
             .And.Contain("data:");
 
         // The tile CDN and the script CDNs are images / scripts respectively, never both.
-        directives["script-src"].Should().NotContain("https://*.basemaps.cartocdn.com");
+        directives["script-src"].Should().NotContain("https://tile.openstreetmap.org");
         directives.Values.SelectMany(v => v).Should().NotContain("https://cdn.jsdelivr.net");
         directives["connect-src"].Should().NotContain("https://cdnjs.cloudflare.com");
     }
@@ -213,7 +213,7 @@ public class ContentSecurityPolicyTests
     {
         var directives = Directives(ReferencePolicy(configured));
 
-        directives["img-src"].Should().Equal("'self'", "data:", "https://*.basemaps.cartocdn.com", PublicUrl);
+        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org", PublicUrl);
         directives["media-src"].Should().Equal("'self'", PublicUrl, EndpointOrigin);
         directives.Should().NotContainKey("script-src 'unsafe-inline'");
         directives["script-src"].Should().NotContain("'unsafe-inline'");
@@ -255,7 +255,7 @@ public class ContentSecurityPolicyTests
         policy.Should().NotContain("file:");
 
         var directives = Directives(policy);
-        directives["img-src"].Should().Equal("'self'", "data:", "https://*.basemaps.cartocdn.com");
+        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org");
         directives["media-src"].Should().Equal("'self'");
     }
 
@@ -318,6 +318,29 @@ public class ContentSecurityPolicyTests
         content.Should().Contain("textContent = member.displayName", "names go into the popup as text, not markup")
             .And.Contain("addEventListener('error'", "the avatar fallback is a listener")
             .And.NotContain("innerHTML");
+    }
+
+    /// <summary>
+    /// Task 040: CARTO's basemap started answering "API KEY REQUIRED". The map uses OpenStreetMap's standard tiles (no
+    /// key), the CSP allows exactly that tile host, and nothing in the portal, the CSP or the built bundle still asks
+    /// CARTO for tiles.
+    /// </summary>
+    [Fact]
+    public void MembersMap_UsesNoKeyOpenStreetMapTiles_AllowedByTheCsp_AndNoCartoTiles()
+    {
+        var map = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
+        map.Should().Contain("const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';")
+            .And.Contain("OpenStreetMap</a> contributors")
+            .And.NotContainAny("cartocdn", "carto.com", "apikey", "api_key", "access_token", "?key=");
+
+        Directives(Policy())["img-src"].Should().Contain("https://tile.openstreetmap.org")
+            .And.NotContain(s => s.Contains("cartocdn"));
+
+        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"))
+            .Concat(Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
+            .Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
+        sources.Where(f => File.ReadAllText(f).Contains("basemaps.cartocdn.com"))
+            .Should().BeEmpty("no CARTO tile dependency is left");
     }
 
     /// <summary>

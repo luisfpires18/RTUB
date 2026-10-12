@@ -157,11 +157,12 @@ public sealed class ContentSecurityPolicyBuilder
 
         // data: - the cropper and the gallery upload preview render the picked file as a
         //         data: URL before it is uploaded.
-        // carto - the Leaflet dark-matter tiles of the React members map (MembersMap.tsx, task 032).
+        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap since 040, CARTO
+        //             before, which started to require an API key).
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
         // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
         // a wildcard, and absent unless explicitly configured (i.e. never in production).
-        Directive("img-src", "'self'", "data:", "https://*.basemaps.cartocdn.com", r2PublicOrigin, r2ReferenceOrigin);
+        Directive("img-src", "'self'", "data:", "https://tile.openstreetmap.org", r2PublicOrigin, r2ReferenceOrigin);
 
         // Public origin for <video>; the S3 endpoint for the pre-signed album audio URLs.
         Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin, r2ReferenceOrigin);
