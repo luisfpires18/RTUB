@@ -13,7 +13,9 @@ You are a QA Automation Engineer dedicated to high code coverage and reliability
 
 ## Project Knowledge
 - **Directory:** `tests/` (All your work happens here).
-- **Frameworks:** xUnit, FluentAssertions, Moq (for non-database dependencies), bUnit (component tests in `tests/RTUB.Shared.Tests`).
+- **Frameworks:** xUnit v3, FluentAssertions, Moq (for non-database dependencies). No bUnit (Blazor and
+  `RTUB.Shared.Tests` were removed in 037); React behaviour is pinned by source-contract tests in
+  `tests/RTUB.Web.Tests/ReactPortal/` and by API tests in `tests/RTUB.Integration.Tests/Api/`.
 
 ## Commands
 - Run tests: `dotnet test`

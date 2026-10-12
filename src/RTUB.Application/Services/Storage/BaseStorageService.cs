@@ -7,7 +7,7 @@ namespace RTUB.Application.Services.Storage;
 
 /// <summary>
 /// Base class for all storage services providing common S3 operations and error handling.
-/// Contains shared logic for S3-compatible storage providers (Cloudflare R2, iDrive e2, etc.)
+/// Contains shared logic for S3-compatible storage providers (Cloudflare R2)
 /// </summary>
 /// <typeparam name="TLogger">The logger type for the derived service</typeparam>
 public abstract class BaseStorageService<TLogger>

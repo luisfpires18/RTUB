@@ -63,7 +63,7 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
                 ContentType = contentType,
                 CannedACL = S3CannedACL.PublicRead,
                 UseChunkEncoding = false,
-                DisablePayloadSigning = true // Required for non-seekable streams from Blazor file uploads
+                DisablePayloadSigning = true // Required for non-seekable upload streams
             };
 
             putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";

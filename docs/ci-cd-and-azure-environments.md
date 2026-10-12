@@ -42,7 +42,7 @@ The Actions sidebar is meant to be read without opening anything:
 
 | Workflow | File | Trigger | Does |
 | --- | --- | --- | --- |
-| **CI • Build & Test** | `ci.yml` | PRs into `dev`/`master`; called by both deploy workflows | restore, Release build, all five test suites, coverage + TRX artifacts. PRs into `master` also run *VERSION is bumped*. Deploys nothing. |
+| **CI • Build & Test** | `ci.yml` | PRs into `dev`/`master`; called by both deploy workflows | restore, Release build, all four test suites (five before 037 removed `RTUB.Shared.Tests`), coverage + TRX artifacts. PRs into `master` also run *VERSION is bumped*. Deploys nothing. |
 | **Deploy • DEV** | `deploy-dev.yml` | push to `dev` | CI → package one zip → deploy to `rtub-dev` → smoke. |
 | **Deploy • PROD** | `deploy-prod.yml` | push to `master` | VERSION check → CI → package one zip → archive → read back → schema gate → deploy to `rtub` → smoke → tag. |
 | **Rollback • PROD** | `rollback-prod.yml` | manual only | redeploy an archived version to `rtub` → smoke. Never builds. |
@@ -80,9 +80,9 @@ dotnet test --no-build --configuration Release \
   --coverage --coverage-output-format cobertura
 ```
 
-This discovers and runs all five suites: `global.json` carries
+This discovers and runs all four suites: `global.json` carries
 `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, which makes `dotnet test` drive MTP rather
-than VSTest (unit 011). Report filenames are left unset on purpose: all five projects write into one
+than VSTest (unit 011). Report filenames are left unset on purpose: all test projects write into one
 results directory and MTP assigns unique names.
 
 Baseline (unit 030): **4855 total, 0 failed**. On Windows 66 are skipped; on the Linux runner six of
@@ -222,17 +222,18 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |
 | `Cloudflare__R2__AccountId`, `…AccessKeyId`, `…SecretAccessKey`, `…Bucket`, `…PublicUrl` | DEV bucket, bucket-scoped token | production | **required**: the home page resolves storage services |
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
-| `WebPush__Vapid*`, `EmailSettings__*` | optional | set | absence disables the feature, not startup |
+| `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | set (own key pair) | set (own key pair) | required for push since 038 (`/profile` shows "not configured" without them); absence disables push, not startup. Never rotate a live pair casually: existing subscriptions stop working |
+| `EmailSettings__*` | set for real mail | set | required for real outgoing email; absence disables email, not startup |
+| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | `true` / `false` | `true` / `false` | maps need **no API key** (Leaflet + CARTO tiles, Nominatim geocoding) |
+| `IDrive__*` | absent | **absent** (dead since the move to R2; owner action to delete on `rtub`) | |
 
-**R2 is required, not optional.** Storage-backed Blazor pages (`/events`, `/music`, `/gallery`,
-`/roles`) resolve e.g. `IImageStorageService` → `CloudflareImageStorageService` → `IAmazonS3`; without
-credentials the app starts and `/health` answers 200, but those pages return 500. (`/` is the React
-shell since React track 004 and no longer depends on R2.) `IAmazonS3` reaches 13 domain services through 11 storage
+**R2 is required, not optional.** Storage-backed API routes (events, music, gallery, governance, naipes,
+documentation, treasury, …) resolve e.g. `IImageStorageService` → `CloudflareImageStorageService` → `IAmazonS3`;
+without credentials the app starts and `/health` answers 200, but those routes return 500. `IAmazonS3` reaches 13 domain services through 11 storage
 services. Making it optional was rejected: it would turn real storage failures into silence.
 
-`RemoteNavigationManager already initialized` in a log is fallout from an earlier unhandled
-exception (`UseExceptionHandler` re-rendering `/Error` on the same `HttpContext`), not a bug of its
-own.
+Every setting with its environment, secrecy and source, plus scripts that audit local user-secrets and both App
+Services without printing a value: **`docs/configuration-runbook.md`**.
 
 ## Deployment smoke test
 

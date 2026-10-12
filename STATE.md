@@ -6,10 +6,24 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `feat/038-react-push-v2` (task 038)**, created from `dev` @ `5e147945`, which has 037. Built and tested locally
-with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must pass before merge.**
+**Open: `feat/039-post-blazor-config-audit` (task 039)**, created from `dev` @ `1885d507`, which has 038. **Not pushed
+unless explicitly requested; GitHub Actions must pass before merge.**
 
-**038 Push v2:** `/profile` owns push: section "Notificações push" (after the email one), per device, capability
+**039 Post-Blazor cleanup + configuration audit:** docs and agent instructions rewritten for the React-only stack
+(`README.md`, `.github/copilot-instructions.md`, `.github/agents/*`, `docs/frontend-practices.md`; Blazor / `RTUB.Shared`
+/ IDrive leftovers fixed elsewhere). **Messaging tables are preserved for Messaging v2: the planned
+`DropMessagesConversations` contract task is cancelled** (`docs/messages-removal.md`); the Games / Bets / MyTuno
+contract task stays, without them. Dead code removed (build-proven, no caller): the `Microsoft.AspNetCore.SignalR.Client`
+package; the `IBrowserFile` upload parameters and helpers of `IPostService` / `ICommentService` (`RTUB.Application` has
+no Blazor type left); `INaipeAuthorizationService` (`AuthenticationState`), `INaipeConfigService`,
+`ITransactionFilterService`, `IDebtService`, `IMemberPositionService`, `IEnrollmentFilterService`,
+`IUserRoleQueryService` (+ tests, two DTOs, DI lines); dead `IDrive:*` test settings. **Configuration audit:**
+`scripts/config/required-settings.json` (every setting per environment), `audit-local-user-secrets.ps1`,
+`audit-azure-app-settings.ps1` (read-only, redacted: length + SHA-256 prefix only; DEV/PROD match / differ checks),
+`generate-vapid-keys.ps1`; outputs in the git-ignored `.local/config-audit/`, templates placeholder-only. Runbook:
+`docs/configuration-runbook.md`; tests `ConfigurationAuditTests`. No behaviour change, no schema change, no migration.
+
+**038 merged to `dev`** (@ `1885d507`). **038 Push v2:** `/profile` owns push: section "Notificações push" (after the email one), per device, capability
 detection only, no prompt on load, permission and subscription only from a click; states unsupported (with the
 iPhone / iPad Home Screen hint outside an installed app), disabled, not configured, worker not ready, blocked, off, on,
 unknown to the server ("Corrigir subscrição"), stale key / expired ("Ativar novamente"), error; "Desativar em todos os
@@ -232,6 +246,20 @@ them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `ho
 `profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
 resolved by that deletion.
 
+Raised by 039 (post-Blazor cleanup + configuration audit):
+- Live Azure audit not run in 039 (the `az` MFA session had expired): run `scripts/config/audit-azure-app-settings.ps1`
+  after `az login` and act on its warnings (VAPID on DEV/PROD, `IDrive__*` on `rtub`, DEV/PROD shared values).
+- Local user-secrets still hold six dead `IDrive:*` keys (the local audit flags them); remove by hand.
+- Committed but unread settings: `Gallery:MaxVideoSizeMB` (the code reads `GalleryMedia:MaxVideoSize`, bytes),
+  `ImageCaching:*`, `UseSqlServer`, `LoginPopup:*` (`LoginPopupOptions` bound, nothing shows it). Left as is.
+- Still no caller, kept: `ILogistics{Board,List,Card}Service` (`LogisticsKanbanService` uses a static of
+  `LogisticsCardService`), `ILabelService` / `ISlideshowService` (029B), `MimeTypeHelper.GetMediaMimeType` (tests only
+  since the post-media upload went), the unused `IQuestionService` / `IRequestService` methods listed under 031.
+- `wwwroot/images/icons/*`, `wwwroot/images/hierarchy/*`, `apple-touch-icon-180x180.png` have no in-repo reference;
+  kept (served by convention, by `ImagesController` or to old emails / installed apps).
+- Branch name `feat/039-post-blazor-config-audit` reuses number 039 (an old `chore/039/ui-management-dense-screens`
+  branch exists), as the task asked.
+
 Raised by 038 (Push v2; detail in `docs/react-push-v2.md` → *Follow-ups*):
 - **Before a production release:** check push on an Android installed app, an iPhone / iPad Home Screen app and DEV
   (real VAPID keys): turn on, receive one notification, turn off, reload. Only Edge desktop was checked (locally).
@@ -240,11 +268,9 @@ Raised by 038 (Push v2; detail in `docs/react-push-v2.md` → *Follow-ups*):
 - Existing rows keep their old validation-free data; a bad one only fails to send (404/410 deletes it as before).
 
 Raised by 037 (Blazor host retirement):
-- `.github/copilot-instructions.md`, `.github/agents/*.md` and `docs/frontend-practices.md` still describe the Blazor /
-  `RTUB.Shared` stack: rewrite them for the React + endpoints stack in a docs task.
-- Unused now, left in place: the `Microsoft.AspNetCore.SignalR.Client` package in `RTUB.csproj` (no `HubConnection`
-  anywhere); Blazor-era signatures in `RTUB.Application` (`IBrowserFile` in `IPostService` / `ICommentService`,
-  `AuthenticationState` in the no-caller `INaipeAuthorizationService`); `ILabelService` lost its last (dead) caller.
+- (039, resolved) Copilot / agent instructions and `docs/frontend-practices.md` describe the React stack; the
+  SignalR client package and the Blazor-era `RTUB.Application` signatures are gone. `ILabelService` (no caller) waits
+  for 029B.
 - (resolved in 038) `push-notifications.js` and `pwa-helper.js` were removed with the React push client.
 - The system announcement lives in one app instance's memory (fine for one App Service instance; a shared store if it
   scales out) and plays no sound.
@@ -318,17 +344,16 @@ Raised by 029A (Images / Labels admin removal, UI only):
 - Slideshow images in R2 (upload category `slideshows`) are left in place, unused.
 
 Raised by 027 (Messages / Conversas removal, Phase A):
-- Contract task (bundled with 026's, below): drop `Conversations`, `Messages`, `MessageReactions`,
-  `ConversationUserSettings` (migration `DropMessagesConversations`) and delete the kept entities/configs/DbSets. Private
-  member chats: take the production DB backup first and keep it privately, no longer than needed.
-  `docs/messages-removal.md`.
+- (039) **No contract task for messaging:** `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`
+  and their entities/configs/DbSets are preserved, never dropped; Messaging v2 will audit and evolve them
+  (`docs/messages-removal.md`).
 - Now unused, left in place: `window.appBadge` (`pwa-helper.js`); the `/hubs/` never-cache prefix in `service-worker.js`
   (harmless, pinned by `ServiceWorkerReliabilityTests`).
 - The Play Store (TWA) app may carry the old "Mensagens" shortcut until it is rebuilt from the manifest; it opens a 404.
-- DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them) until the contract task.
+- DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them); Messaging v2 decides.
 
 Raised by 026 (Games / Bets / MyTuno removal):
-- Contract task (one release with 027's, above), only after the release carrying 026 is live in production: drop
+- Contract task (never the messaging tables, since 039), only after the release carrying 026 is live in production: drop
   the 15 game tables and `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept
   entities/configs/DbSets; take a production DB backup first; that release may be MAJOR. Exact list:
   `docs/games-bets-mytuno-removal.md`.
@@ -475,8 +500,7 @@ Raised by 030:
   `checkout@v4`/`setup-dotnet@v4`. Left byte-identical by instruction.
 - (023) Logistics is React; the API refuses Leitões on every board (the old board page did not).
 - `development` environment has no deployment branch policy.
-- `README.md` outside its Deployment section is stale: `isEmptyDb` seeding (now `SeedData:SeedFullDataset`),
-  IDrive keys, and "Production Configuration" (the connection string is an App Service setting).
+- (039, resolved) `README.md` rewritten: `isEmptyDb`, the stale IDrive keys and "Production Configuration" removed.
 Carried (one line each; detail in git history):
 - Security: `UseHttpsRedirection` skipped outside Development (now redundant, forwarded headers are
   on); login `OnRejected` is global; 429 on a form POST is a bare text page; `UpdateSecurityStampAsync`

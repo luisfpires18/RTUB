@@ -1,0 +1,1350 @@
+{
+  "$comment": "RTUB configuration manifest (task 039). Names only, never values. Status per environment: required | optional | absent (must not be set) | n/a. devProd: match (DEV and PROD should hold the same value) | differ (must not share a value) | any. Placeholders are composed as <LOCAL_|DEV_|PROD_ + placeholder>. Read by scripts/config/audit-*.ps1; documented in docs/configuration-runbook.md.",
+  "version": 1,
+  "policies": {
+    "mapsRequireExternalKey": false,
+    "maps": "No API key or secret: Leaflet with CARTO basemap tiles in the browser, Nominatim (OpenStreetMap) geocoding on the server.",
+    "messagingTablesPreserved": true,
+    "messagingTables": [
+      "Conversations",
+      "Messages",
+      "MessageReactions",
+      "ConversationUserSettings"
+    ],
+    "messaging": "The messaging tables are preserved for Messaging v2, which will audit and evolve them. No setting may drop or disable them.",
+    "databaseBackupProdOnly": true,
+    "storageProvider": "Cloudflare R2 (IDrive is historical; IDrive__* settings are dead)."
+  },
+  "deprecatedPatterns": [
+    {
+      "pattern": "^IDrive__",
+      "reason": "IDrive is historical: storage is Cloudflare R2 and no code reads IDrive:*. Delete the setting."
+    },
+    {
+      "pattern": "^Games__",
+      "reason": "Games were removed in task 026; dead setting."
+    },
+    {
+      "pattern": "^MyTunoScaling__",
+      "reason": "MyTuno was removed in task 026; dead setting."
+    },
+    {
+      "pattern": "(?i)(drop.*(messag|conversation))|((messag|conversation).*drop)",
+      "reason": "The messaging tables are preserved for Messaging v2; no setting may drop them."
+    }
+  ],
+  "githubEnvironments": [
+    {
+      "name": "AZURE_CLIENT_ID",
+      "kind": "variable",
+      "environments": [
+        "development",
+        "production"
+      ],
+      "secret": false,
+      "notes": "Managed identity client id (OIDC)."
+    },
+    {
+      "name": "AZURE_TENANT_ID",
+      "kind": "variable",
+      "environments": [
+        "development",
+        "production"
+      ],
+      "secret": false,
+      "notes": "Tenant id (OIDC)."
+    },
+    {
+      "name": "AZURE_SUBSCRIPTION_ID",
+      "kind": "variable",
+      "environments": [
+        "development",
+        "production"
+      ],
+      "secret": false,
+      "notes": "Subscription id (OIDC)."
+    },
+    {
+      "name": "RELEASE_STORAGE_ACCOUNT",
+      "kind": "variable",
+      "environments": [
+        "production"
+      ],
+      "secret": false,
+      "notes": "Release archive storage account."
+    },
+    {
+      "name": "R2_DB_ENDPOINT",
+      "kind": "secret",
+      "environments": [
+        "development"
+      ],
+      "secret": true,
+      "notes": "DEV refresh: R2 endpoint of the backup bucket."
+    },
+    {
+      "name": "R2_DB_READONLY_ACCESS_KEY_ID",
+      "kind": "secret",
+      "environments": [
+        "development"
+      ],
+      "secret": true,
+      "notes": "DEV refresh: read-only token for rtub-db."
+    },
+    {
+      "name": "R2_DB_READONLY_SECRET_ACCESS_KEY",
+      "kind": "secret",
+      "environments": [
+        "development"
+      ],
+      "secret": true,
+      "notes": "DEV refresh: read-only token for rtub-db."
+    },
+    {
+      "name": "DEV_DATABASE_PASSWORD",
+      "kind": "secret",
+      "environments": [
+        "development"
+      ],
+      "secret": true,
+      "notes": "DEV refresh: the password the sanitizer gives every DEV user."
+    }
+  ],
+  "settings": [
+    {
+      "name": "ASPNETCORE_ENVIRONMENT",
+      "group": "core",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "launchSettings.json (local)",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "ASPNETCORE_ENVIRONMENT",
+      "expected": {
+        "local": "Development",
+        "dev": "Staging",
+        "prod": "Production"
+      },
+      "notes": "DEV is Staging (behaves like production; there is no appsettings.Staging.json). PROD is Production."
+    },
+    {
+      "name": "ASPNETCORE_URLS",
+      "group": "core",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "placeholder": "ASPNETCORE_URLS",
+      "notes": "Must agree with WEBSITES_PORT. Locally, launchSettings.json applicationUrl is used."
+    },
+    {
+      "name": "WEBSITES_PORT",
+      "group": "core",
+      "secret": false,
+      "local": "n/a",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "placeholder": "WEBSITES_PORT",
+      "notes": "Port App Service forwards to; must agree with ASPNETCORE_URLS."
+    },
+    {
+      "name": "ASPNETCORE_FORWARDEDHEADERS_ENABLED",
+      "group": "core",
+      "secret": false,
+      "local": "n/a",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "expected": {
+        "dev": "true",
+        "prod": "true"
+      },
+      "notes": "Real client address and scheme behind the Azure front end (rate limits partition on it)."
+    },
+    {
+      "name": "WEBSITE_RUN_FROM_PACKAGE",
+      "group": "core",
+      "secret": false,
+      "local": "n/a",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "expected": {
+        "dev": "1",
+        "prod": "1"
+      },
+      "notes": "The deployed zip is mounted read-only (docs/ci-cd-and-azure-environments.md -> Run from package)."
+    },
+    {
+      "name": "ConnectionStrings__SqliteConnection",
+      "group": "core",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SQLITE_CONNECTION_STRING",
+      "valueCheck": {
+        "dev": "startsWith:Data Source=/home/site/data/",
+        "prod": "startsWith:Data Source=/home/site/data/"
+      },
+      "example": {
+        "local": "Data Source=<path-to-a-scratch-copy>.db",
+        "dev": "Data Source=/home/site/data/<dev-file>.db",
+        "prod": "Data Source=/home/site/data/app.db"
+      },
+      "notes": "Local falls back to Data Source=app.db (src/RTUB.Web/app.db): point it at a scratch copy. On Azure it must stay under /home/site/data (the persistent share). Read the live DEV value; never hardcode the DEV file name."
+    },
+    {
+      "name": "AdminUser__Password",
+      "group": "admin",
+      "secret": true,
+      "local": "required",
+      "dev": "required",
+      "prod": "optional",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "ADMIN_PASSWORD",
+      "notes": "Required the first time the app starts on an empty database (Owner account; no default). PROD needs it only while it has no users."
+    },
+    {
+      "name": "AdminUser__Username",
+      "group": "admin",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "ADMIN_USERNAME",
+      "notes": "Owner account created on an empty database."
+    },
+    {
+      "name": "AdminUser__Email",
+      "group": "admin",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "ADMIN_EMAIL",
+      "notes": "Owner account created on an empty database."
+    },
+    {
+      "name": "SeedData__SeedFullDataset",
+      "group": "admin",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "optional",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "expected": {
+        "dev": "true",
+        "prod": "false"
+      },
+      "notes": "Only true/false are accepted (anything else stops startup). true = Owner + the full development member dataset. PROD: unset or false."
+    },
+    {
+      "name": "SeedData__MemberPassword",
+      "group": "admin",
+      "secret": true,
+      "local": "optional",
+      "dev": "required",
+      "prod": "absent",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SEED_MEMBER_PASSWORD",
+      "notes": "Required when SeedFullDataset is true. Never set on PROD."
+    },
+    {
+      "name": "DevelopmentDataReset__Enabled",
+      "group": "admin",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "expected": {
+        "dev": "false"
+      },
+      "notes": "Destructive reset (Development or Staging only). Keep it off on rtub-dev after a refresh; never set it on PROD."
+    },
+    {
+      "name": "DevelopmentDataReset__Password",
+      "group": "admin",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "DEV_RESET_PASSWORD",
+      "notes": "Required only while DevelopmentDataReset__Enabled is true. Never in a tracked file."
+    },
+    {
+      "name": "Cloudflare__R2__AccountId",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_ACCOUNT_ID",
+      "notes": "Required on DEV/PROD: storage-backed routes answer 500 without it. Locally optional (the same routes answer 500)."
+    },
+    {
+      "name": "Cloudflare__R2__AccessKeyId",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "R2_ACCESS_KEY_ID",
+      "notes": "Required on DEV/PROD: storage-backed routes answer 500 without it. Locally optional (the same routes answer 500). DEV uses its own bucket-scoped token, never PROD's."
+    },
+    {
+      "name": "Cloudflare__R2__SecretAccessKey",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "R2_SECRET_ACCESS_KEY",
+      "notes": "Required on DEV/PROD: storage-backed routes answer 500 without it. Locally optional (the same routes answer 500). DEV uses its own bucket-scoped token, never PROD's."
+    },
+    {
+      "name": "Cloudflare__R2__Bucket",
+      "group": "r2",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "committed appsettings",
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "R2_BUCKET",
+      "committedDefault": "rtub",
+      "notes": "The committed default is the production bucket \"rtub\"; a non-production environment with R2 credentials and this bucket refuses to start (GuardAgainstProductionBucket)."
+    },
+    {
+      "name": "Cloudflare__R2__ProductionBucket",
+      "group": "r2",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "match",
+      "committedDefault": "rtub",
+      "notes": "Name of the production bucket for the startup guard. Keep the committed value."
+    },
+    {
+      "name": "Cloudflare__R2__PublicUrl",
+      "group": "r2",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "R2_PUBLIC_URL",
+      "example": {
+        "dev": "https://pub-<dev-hash>.r2.dev",
+        "prod": "https://pub-<prod-hash>.r2.dev"
+      },
+      "notes": "Public origin of the bucket (also added to the CSP). Without it locally, media are blocked by the CSP."
+    },
+    {
+      "name": "Cloudflare__R2__ReferencePublicUrl",
+      "group": "r2",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_REFERENCE_PUBLIC_URL",
+      "notes": "DEV only, after a database refresh: production's public URL, so production media resolve read-only. Never on PROD."
+    },
+    {
+      "name": "Cloudflare__R2__Reference__AccountId",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_REFERENCE_ACCOUNT_ID",
+      "notes": "DEV only: read-only view of the production bucket (all four or none; use a read-only token). Never on PROD."
+    },
+    {
+      "name": "Cloudflare__R2__Reference__AccessKeyId",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_REFERENCE_ACCESS_KEY_ID",
+      "notes": "DEV only: read-only view of the production bucket (all four or none; use a read-only token). Never on PROD."
+    },
+    {
+      "name": "Cloudflare__R2__Reference__SecretAccessKey",
+      "group": "r2",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_REFERENCE_SECRET_ACCESS_KEY",
+      "notes": "DEV only: read-only view of the production bucket (all four or none; use a read-only token). Never on PROD."
+    },
+    {
+      "name": "Cloudflare__R2__Reference__Bucket",
+      "group": "r2",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "absent",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "R2_REFERENCE_BUCKET",
+      "notes": "DEV only: read-only view of the production bucket (all four or none; use a read-only token). Never on PROD."
+    },
+    {
+      "name": "EmailSettings__SmtpServer",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SMTP_SERVER",
+      "example": {
+        "prod": "smtp.gmail.com"
+      },
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__SmtpPort",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SMTP_PORT",
+      "example": {
+        "prod": "587"
+      },
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__EnableSsl",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SMTP_ENABLE_SSL",
+      "example": {
+        "prod": "true"
+      },
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__SmtpUsername",
+      "group": "email",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SMTP_USERNAME",
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__SmtpPassword",
+      "group": "email",
+      "secret": true,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SMTP_PASSWORD",
+      "notes": "Required for real outgoing email; absence disables email, not startup. Gmail: an App Password."
+    },
+    {
+      "name": "EmailSettings__SenderEmail",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SENDER_EMAIL",
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__SenderName",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "SENDER_NAME",
+      "example": {
+        "prod": "RTUB"
+      },
+      "notes": "Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "EmailSettings__RecipientEmail",
+      "group": "email",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "RECIPIENT_EMAIL",
+      "notes": "Recipient of request notifications (production points it at the no-reply sender). Required for real outgoing email; absence disables email, not startup."
+    },
+    {
+      "name": "WebPush__Enabled",
+      "group": "webpush",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "true",
+      "expected": {
+        "dev": "true",
+        "prod": "true"
+      },
+      "notes": "Feature flag for non-Owner members (Owners bypass it)."
+    },
+    {
+      "name": "WebPush__VapidSubject",
+      "group": "webpush",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "VAPID_SUBJECT",
+      "example": {
+        "dev": "mailto:<contact-address>",
+        "prod": "mailto:<contact-address>"
+      },
+      "notes": "Required for push since 038 (/profile shows \"not configured\" without the three VAPID values). Use one stable key pair per environment: rotating a live pair invalidates every existing subscription."
+    },
+    {
+      "name": "WebPush__VapidPublicKey",
+      "group": "webpush",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "VAPID_PUBLIC_KEY",
+      "notes": "Required for push since 038 (/profile shows \"not configured\" without the three VAPID values). Use one stable key pair per environment: rotating a live pair invalidates every existing subscription. Generate with scripts/config/generate-vapid-keys.ps1."
+    },
+    {
+      "name": "WebPush__VapidPrivateKey",
+      "group": "webpush",
+      "secret": true,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "user-secrets",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "placeholder": "VAPID_PRIVATE_KEY",
+      "notes": "Required for push since 038 (/profile shows \"not configured\" without the three VAPID values). Use one stable key pair per environment: rotating a live pair invalidates every existing subscription. Never sent to a client."
+    },
+    {
+      "name": "Toggles__MapEnabled",
+      "group": "maps",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "true",
+      "expected": {
+        "dev": "true",
+        "prod": "true"
+      },
+      "notes": "Members map. No API key: Leaflet + CARTO tiles, Nominatim (OpenStreetMap) geocoding."
+    },
+    {
+      "name": "Geocoding__DisabledInTests",
+      "group": "maps",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "codeDefault": "false",
+      "expected": {
+        "dev": "false",
+        "prod": "false"
+      },
+      "notes": "true stops Nominatim calls (test hosts). Must be false or unset on DEV/PROD."
+    },
+    {
+      "name": "DatabaseBackup__Enabled",
+      "group": "backup",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "committedDefault": "false",
+      "productionDefault": "true",
+      "expected": {
+        "dev": "false",
+        "prod": "true"
+      },
+      "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On). Must be false on DEV."
+    },
+    {
+      "name": "DatabaseBackup__Bucket",
+      "group": "backup",
+      "secret": false,
+      "local": "optional",
+      "dev": "absent",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "DB_BACKUP_BUCKET",
+      "example": {
+        "prod": "rtub-db"
+      },
+      "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On)."
+    },
+    {
+      "name": "DatabaseBackup__ScheduledTime",
+      "group": "backup",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "03:30",
+      "notes": "UTC, HH:mm."
+    },
+    {
+      "name": "DatabaseBackup__AccountId",
+      "group": "backup",
+      "secret": true,
+      "local": "optional",
+      "dev": "absent",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "DB_BACKUP_ACCOUNT_ID",
+      "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On). Falls back to Cloudflare__R2__AccountId; prefer a token scoped to the backup bucket. Never on DEV."
+    },
+    {
+      "name": "DatabaseBackup__AccessKeyId",
+      "group": "backup",
+      "secret": true,
+      "local": "optional",
+      "dev": "absent",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "DB_BACKUP_ACCESS_KEY_ID",
+      "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On). Falls back to Cloudflare__R2__AccessKeyId; prefer a token scoped to the backup bucket. Never on DEV."
+    },
+    {
+      "name": "DatabaseBackup__SecretAccessKey",
+      "group": "backup",
+      "secret": true,
+      "local": "optional",
+      "dev": "absent",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "placeholder": "DB_BACKUP_SECRET_ACCESS_KEY",
+      "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On). Falls back to Cloudflare__R2__SecretAccessKey; prefer a token scoped to the backup bucket. Never on DEV."
+    },
+    {
+      "name": "LoginRateLimit__PermitLimit",
+      "group": "ratelimit",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "10",
+      "notes": "Committed default; override only on purpose."
+    },
+    {
+      "name": "LoginRateLimit__WindowMinutes",
+      "group": "ratelimit",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "5",
+      "notes": "Committed default; override only on purpose."
+    },
+    {
+      "name": "PublicRequestRateLimit__PermitLimit",
+      "group": "ratelimit",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "5",
+      "notes": "Committed default; override only on purpose."
+    },
+    {
+      "name": "PublicRequestRateLimit__WindowMinutes",
+      "group": "ratelimit",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "match",
+      "committedDefault": "60",
+      "notes": "Committed default; override only on purpose."
+    },
+    {
+      "name": "BirthdayEmailScheduler__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "BirthdayEmailScheduler__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "11:00",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "PendingRequestReminder__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "PendingRequestReminder__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "10:00",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "RehearsalApprovalReminder__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "RehearsalApprovalReminder__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "16:00",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "WeeklyNotifications__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "WeeklyNotifications__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "12:00",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "CalotesNotifications__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "CalotesNotifications__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "10:30",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "ActivityReminders__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "ActivityReminders__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "11:30",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "MemberStatusUpdate__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default)."
+    },
+    {
+      "name": "MemberStatusUpdate__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "00:00",
+      "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "MemberStatusUpdate__PushNotificationsEnabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "false",
+      "notes": "Committed default."
+    },
+    {
+      "name": "QuestionNotifications__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Committed default."
+    },
+    {
+      "name": "QuestionNotifications__CheckTimes__0",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "09:00",
+      "notes": "Committed default (array index)."
+    },
+    {
+      "name": "QuestionNotifications__CheckTimes__1",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "14:00",
+      "notes": "Committed default (array index)."
+    },
+    {
+      "name": "QuestionNotifications__CheckTimes__2",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "20:00",
+      "notes": "Committed default (array index)."
+    },
+    {
+      "name": "QuestionNotifications__CheckTimes__3",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "00:00",
+      "notes": "Committed default (array index)."
+    },
+    {
+      "name": "GalleryMedia__MaxVideoSize",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "codeDefault": "104857600",
+      "notes": "Bytes; the key the gallery code actually reads (default 100 MB)."
+    },
+    {
+      "name": "Gallery__MaxVideoSizeMB",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "100",
+      "unused": true,
+      "notes": "UNUSED: committed, but no code reads it (the code reads GalleryMedia__MaxVideoSize, in bytes)."
+    },
+    {
+      "name": "ImageCaching__CacheDurationInSeconds",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "86400",
+      "unused": true,
+      "notes": "UNUSED: committed, but no code reads it."
+    },
+    {
+      "name": "Storage__UrlExpirationMinutes",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "codeDefault": "60",
+      "notes": "Pre-signed URL lifetime (documents, receipts)."
+    },
+    {
+      "name": "UseSqlServer",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "false",
+      "unused": true,
+      "notes": "UNUSED: committed, but no code reads it; SQLite only."
+    },
+    {
+      "name": "LoginPopup__Enabled",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "false",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    },
+    {
+      "name": "LoginPopup__ReadOnce",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "false",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    },
+    {
+      "name": "LoginPopup__Version",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "v1",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    },
+    {
+      "name": "LoginPopup__Title",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "Title",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    },
+    {
+      "name": "LoginPopup__Description",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "Description",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    },
+    {
+      "name": "LoginPopup__ButtonText",
+      "group": "other",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings"
+      ],
+      "devProd": "any",
+      "committedDefault": "Entendi",
+      "unused": true,
+      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
+    }
+  ]
+}

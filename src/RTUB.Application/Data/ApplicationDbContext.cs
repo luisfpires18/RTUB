@@ -186,7 +186,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
         var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        // Fallback to AuditContext for operations outside HTTP context (e.g., Blazor InteractiveServer)  
+        // Fallback to AuditContext for operations outside HTTP context (e.g., background services)
         // or when user is not yet authenticated (e.g., during login before SignInAsync is called)
         if (string.IsNullOrEmpty(username))
         {

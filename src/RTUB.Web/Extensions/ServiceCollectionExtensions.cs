@@ -136,7 +136,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IAlbumService, AlbumService>();
         services.AddScoped<ITransportationService, TransportationService>();
-        services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
         services.AddScoped<IEventContactService, EventContactService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
@@ -188,8 +187,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
         services.AddScoped<INaipeService, NaipeService>();
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
-        services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
-        services.AddScoped<INaipeConfigService, NaipeConfigService>();
         services.AddScoped<INaipeBoardService, NaipeBoardService>();
 
         return services;
@@ -276,7 +273,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberFilterService, MemberFilterService>();
         services.AddScoped<IActiveMemberFilterService, ActiveMemberFilterService>();
         services.AddScoped<IMemberMentorService, MemberMentorService>();
-        services.AddScoped<IMemberPositionService, MemberPositionService>();
         services.AddScoped<IMemberAnniversaryService, MemberAnniversaryService>();
         services.AddScoped<IMemberHierarchyService, MemberHierarchyService>();
 
@@ -323,8 +319,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddFinanceServices(this IServiceCollection services)
     {
-        services.AddScoped<ITransactionFilterService, TransactionFilterService>();
-        services.AddScoped<IDebtService, DebtService>();
         services.AddScoped<IFinanceManagementService, FinanceManagementService>();
         services.AddScoped<IFiscalYearHelper, FiscalYearHelperService>();
         services.AddScoped<IRequestToEventService, RequestToEventService>();
@@ -498,7 +492,6 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMemberQueryServices(this IServiceCollection services)
     {
         services.AddScoped<IMemberStatisticsService, MemberStatisticsService>();
-        services.AddScoped<IUserRoleQueryService, UserRoleQueryService>();
         services.AddScoped<IMemberStatusService, MemberStatusService>();
 
         return services;
