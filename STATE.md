@@ -6,11 +6,21 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `feat/035-owner-operations-react` (task 035 Owner tools)**, created from `dev` @ `ad1a3ba6`, which has 034
-(PR #218). Built and tested locally with `dotnet` (see the 035 report). **Not pushed, and must not be pushed unless
-explicitly requested. GitHub Actions must pass before merge.**
+**Open: `feat/036-identity-share-cleanup` (task 036)**, created from `dev` @ `05f1f55e`, which has 035. Built and
+tested locally with `dotnet`. **Not pushed, and must not be pushed unless explicitly requested. GitHub Actions must
+pass before merge.**
 
-**035 Owner tools:** `/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React, over the
+**036 Identity + /share:** `/forgot-password`, `/reset-password` and `/confirm-email` are React (public), over
+`POST /api/account/{forgot-password,reset-password,confirm-email}` (`AccountRecoveryService`: same Identity calls,
+token handling and messages; antiforgery; no-store). The pages are `no-store` and `no-referrer`, and the token is cleared
+from the URL, never stored, never logged and never echoed. `/Error` is a **server-owned static page on purpose**
+(`wwwroot/error.html`, any method, no script, no details). `/share` and the manifest `share_target` are **removed**
+(404). Intentional changes: a failed reset email answers the same neutral sentence (it used to surface the error page),
+and an invalid or expired reset token is now said in Portuguese. **0 Blazor pages left** (5 before); the Blazor host
+itself (`App.razor`, `MainLayout`, `/_blazor`, `RTUB.Shared`) is now dead weight and needs a separate retirement task.
+No schema change. Detail: `docs/react-identity.md`.
+
+**035 merged to `dev`** (@ `05f1f55e`). **035 Owner tools:** `/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React, over the
 Owner-only `/api/owner/*` (`OwnerEndpoints` gate + `OwnerOperationsService` over the old email / push / audit / DB
 services). **All five are Owner only: Admin lost `/emails` and `/notifications` (product decision).** Visitors 302 / 401,
 every other member 403 (refusal page). New safeguards: the server checks `DELETE ALL`, the SELECT / DML rules, and a
@@ -184,6 +194,12 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 036 (Identity + /share; detail in `docs/react-identity.md` → *Deferred*):
+- No Blazor page is left: retire the Blazor host (`App.razor`, `MainLayout`, `MapRazorComponents`, `/_blazor`,
+  `blazor.web.js`, which the service worker also precaches, `RTUB.Shared`, the Blazor CSS / JS) in one task. Until then
+  the system announcement reaches nobody.
+- forgot-password and reset-password have no rate limit (as before). `/confirm-email` has no link generator in the app.
+
 Raised by 035 (Owner tools; detail in `docs/react-owner-operations.md` → *Deferred*):
 - The system announcement (`/owner/tracing`) only reaches open Blazor pages (identity pages, `/share`, `/Error`): the
   React shell has no listener. Decide: add one, or retire the feature.

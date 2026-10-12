@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-12 (035 Owner tools)_
+_Last updated: 2026-10-12 (036 Identity pages, /share removed)_
 
-## Done: 001-025 and 030-034 (merged to `dev`); 035 Owner tools (open, not merged)
+## Done: 001-025 and 030-035 (merged to `dev`); 036 Identity + /share (open, not merged)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -31,6 +31,7 @@ _Last updated: 2026-10-12 (035 Owner tools)_
 | 033 | Naipes (instrument videos / images, comments) and their settings | `/naipes`, `/naipes/config` | `react-naipes.md` |
 | 034 | Reuniões (meetings, participation, atas, meeting requests) | `/meetings` | `react-meetings.md` |
 | 035 | Owner tools (Owner only; Admin lost Emails / Notificações): announcement emails, custom push, users and roles, audit log, database | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | `react-owner-operations.md` |
+| 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -45,8 +46,9 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 
 ## Still Blazor (not yet scheduled)
 
-`/share` and the Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`): 5 Blazor routes with `/Error`
-(10 before 035, 11 before 034, 13 before 033, 16 before 032).
+None: since 036 no Blazor page is left (5 before 036, 10 before 035, 11 before 034, 13 before 033, 16 before 032).
+`/Error` is a server-owned static page on purpose, and `/share` was removed. Next: retire the Blazor host itself
+(`App.razor`, `MainLayout`, `/_blazor`, `RTUB.Shared`), one cleanup task.
 Pick these up one module per task. Still planned: **Push v2** (React push opt-in / opt-out; push cleanup), a later task
 (033 became Naipes).
 

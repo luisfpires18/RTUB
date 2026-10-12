@@ -42,6 +42,9 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/owner/db': lazy(() => import('./OwnerDatabase')),
   '/emails': lazy(() => import('./OwnerEmails')),
   '/notifications': lazy(() => import('./OwnerNotifications')),
+  '/forgot-password': lazy(() => import('./ForgotPassword')),
+  '/reset-password': lazy(() => import('./ResetPassword')),
+  '/confirm-email': lazy(() => import('./ConfirmEmail')),
 };
 const path = location.pathname.replace(/\/+$/, '');
 const Page = pages[path];

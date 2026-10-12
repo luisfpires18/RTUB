@@ -40,7 +40,7 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void NoBlazorPage_DeclaresAnOwnerRoute()
     {
-        var routes = Directory.GetFiles(Path.Combine(Web, "Pages"), "*.razor", SearchOption.AllDirectories)
+        var routes = Directory.GetFiles(Web, "*.razor", SearchOption.AllDirectories)
             .SelectMany(f => Regex.Matches(File.ReadAllText(f), @"@page ""([^""]+)""").Select(m => m.Groups[1].Value));
 
         routes.Should().NotIntersectWith(Routes);

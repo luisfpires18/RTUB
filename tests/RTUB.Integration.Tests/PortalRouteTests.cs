@@ -206,6 +206,11 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/owner/db")]
     [InlineData("/emails")]
     [InlineData("/notifications")]
+    [InlineData("/forgot-password")]
+    [InlineData("/reset-password")]
+    [InlineData("/confirm-email")]
+    [InlineData("/Error")]
+    [InlineData("/share")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.App).Assembly.GetTypes()

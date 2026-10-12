@@ -51,10 +51,11 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
             (await admin.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was retired in 029A", url);
         }
 
-        var page = await admin.GetAsync("/share");
+        // No Blazor page is left to render the old navbar (task 036); the signed-in React shell and its menu carry none of it.
+        var page = await admin.GetAsync("/events");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
-        var html = await page.Content.ReadAsStringAsync();
-        html.Should().Contain("href=\"/emails\"", "the Owner menu is rendered, so the absences below mean something");
+        var html = await page.Content.ReadAsStringAsync() + await admin.GetStringAsync("/api/account/me");
+        html.Should().Contain("id=\"root\"");
         html.Should().NotContain("href=\"/images\"").And.NotContain("href=\"/labels\"");
     }
 

@@ -102,12 +102,12 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
 | Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
 | Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet "Login" header link (030), home card, footer; members: the member shell (030) | navbar now (quiet link); login done (007) |
-| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | temporary Blazor bridge |
+| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | exclude/defer from navigation: React pages since 036, reached from `/login` and emails (`docs/react-identity.md`) |
 | Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
 | Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
 | Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: static copy kept; the `/labels` admin was removed in 029A; tables go in 029B |
-| Partilhar | `/share` (manifest `share_target`) | receives shares from the OS | not linked | exclude/defer: technical PWA endpoint |
+| Partilhar | `/share` (manifest `share_target`) | received shares from the OS | not linked | exclude/defer: removed in 036 (404, no `share_target`) |
 | Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
 
 ## Route ownership
@@ -157,7 +157,9 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/requests`, `/questions` | **React** (031) | Gestão de Pedidos (members but Leitões read; Admin/Owner answer) and Perguntas aos Órgãos Sociais (members); visitors get a 302 to sign in. `docs/react-requests-questions.md`. |
 | `/meetings` | **React** (034) | Reuniões: meetings (AG / AGE, CV, Direção) by visibility, Vou / Não vou, participants, atas (edit, publish, PDF, confirmation) and meeting requests; who sees and does what is the old page's matrix, enforced by the API (one change: a draft ata only for its writers). Signed-in members (a Leitão gets "Acesso restrito"), visitors get a 302 to sign in. The Blazor page is retired. `docs/react-meetings.md`. |
 | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | **React** (035) | Owner tools, **Owner only** (Admin lost `/emails` and `/notifications`): announcement emails, custom push, users and roles, audit log, database viewer, over `/api/owner/*`. Visitors get a 302 to sign in; any other member the shell with 403 and a refusal. The Blazor pages are retired. `docs/react-owner-operations.md`. |
-| every other page | **Blazor, pending** | `/share` and the Identity pages (`/forgot-password`, `/reset-password`, `/confirm-email`), `/Error`. (`/messages` was removed in 027; `/images` and `/labels` in 029A, both plain 404s.) |
+| `/forgot-password`, `/reset-password`, `/confirm-email` | **React** (036) | Password recovery and email confirmation, public, over `POST /api/account/*`; the pages are no-store and no-referrer and clear the token from the URL. `docs/react-identity.md`. |
+| `/Error` | **Server** (036, on purpose) | The exception handler's page: fixed static HTML (`wwwroot/error.html`) for any method, no script, no details. |
+| `/share` | **Removed** (036) | 404; the manifest has no `share_target`. (`/messages` was removed in 027; `/images` and `/labels` in 029A, all plain 404s.) No Blazor page is left. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
 | `POST /api/public/requests` | **API** (003) | The only public request submission path. |
@@ -290,8 +292,8 @@ auth backend is unchanged: no Identity, hashing, schema or data change, no publi
 | `GET /login` | Program.cs → React shell | Signed out: the form. Signed in: `302 /events`, `returnUrl` ignored on purpose (`/login` is also the cookie's `AccessDeniedPath`; honouring it would loop a member on a page their role cannot open). | React (changed) |
 | `POST /auth/login` | Program.cs | Username, or email when it contains `@`; unconfirmed email → Invalid; lockout and expelled checked before the password; wrong password → `AccessFailedAsync` (5 → 5 min lockout); remember-me; `LastLoginDate`. Antiforgery form token, per-IP limit (10/window, 429). | Keep. Adds `Accept: application/json` answers: `200 { redirect }` or `401 { error: Invalid/Locked/Expelled }`; plain form posts still redirect to `/login?error=…`. Default landing `/` → `/events`. |
 | local-only `returnUrl` | `UrlHelper.IsLocalUrl` | `/x` yes; `//x`, `/\x`, absolute or scheme URLs → `/events`. Read case-insensitively (`ReturnUrl` from the cookie handler, `returnUrl` from links). | Keep (server-side only) |
-| `POST /auth/logout` | Program.cs + Blazor layout form | Antiforgery form, signs out, `302 /`. | Keep |
-| `/forgot-password`, `/reset-password`, `/confirm-email` | Blazor `Pages/Identity` | Recovery and confirmation; link back to `/login`. | Keep as Blazor bridges; React login links to `/forgot-password` |
+| `POST /auth/logout` | Program.cs + the React member shell (`api.ts` `signOut`) | Antiforgery form, signs out, `302 /`. | Keep |
+| `/forgot-password`, `/reset-password`, `/confirm-email` | React (036) + `POST /api/account/*` | Recovery and confirmation; link back to `/login`. | React; same Identity calls and messages (`docs/react-identity.md`) |
 | Expelled member with a live cookie | cookie validator | Session rejected on every request, so `/login` shows the form again. | Keep |
 
 The page reads `?error=` for the plain-form fallback, shows field errors, a busy button and one
