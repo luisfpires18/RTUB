@@ -18,10 +18,16 @@ public interface IPushNotificationService
     Task<bool> SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null);
 
     /// <summary>
-    /// Unsubscribes from push notifications by endpoint
+    /// Removes the user's own subscription with <paramref name="endpoint"/>, or every one of theirs when it is null.
+    /// Another member's subscription is never touched. Returns how many the user has left.
     /// </summary>
-    /// <param name="endpoint">The subscription endpoint</param>
-    Task UnsubscribeAsync(string endpoint);
+    Task<int> RemoveForUserAsync(string userId, string? endpoint);
+
+    /// <summary>How many push subscriptions (devices / browsers) the user has.</summary>
+    Task<int> CountForUserAsync(string userId);
+
+    /// <summary>Whether <paramref name="endpoint"/> is stored as one of the user's own subscriptions.</summary>
+    Task<bool> IsRegisteredAsync(string userId, string endpoint);
 
     /// <summary>
     /// Sends a push notification to a specific user

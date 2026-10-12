@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-12 (037 Blazor host retired)_
+_Last updated: 2026-10-12 (038 Push v2)_
 
-## Done: 001-025 and 030-036 (merged to `dev`); 037 Blazor host retirement (open, not merged)
+## Done: 001-025 and 030-037 (merged to `dev`); 038 Push v2 (open, not merged)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -33,6 +33,7 @@ _Last updated: 2026-10-12 (037 Blazor host retired)_
 | 035 | Owner tools (Owner only; Admin lost Emails / Notificações): announcement emails, custom push, users and roles, audit log, database | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | `react-owner-operations.md` |
 | 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
 | 037 | Blazor host retired (`App.razor`, `MainLayout`, `/_blazor`, `blazor.web.js`, `RTUB.Shared`, Blazor CSS / JS); system announcement now a React listener (`GET /api/announcement`) | none new | `react-portal-pilot.md` → *System announcement* |
+| 038 | Push v2: "Notificações push" in `/profile` (opt-in / opt-out per device, repair states), `/api/push` rebuilt (own subscriptions only, validated, antiforgery), old push client removed, worker push handlers cleaned | `/profile` (section) | `react-push-v2.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -50,8 +51,8 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 Nothing. 036 left no Blazor page (5 before 036, 10 before 035, 11 before 034, 13 before 033, 16 before 032) and 037
 retired the host: no Razor component is compiled, `/_blazor` and `blazor.web.js` are 404, `RTUB.Shared` (and its bUnit
 tests) is gone, and the service worker precaches no Blazor asset. Every page is the React shell; `/Error` is a
-server-owned static page on purpose; `/share` stays removed. Still planned: **Push v2** (React push opt-in / opt-out;
-push cleanup), a later task (033 became Naipes).
+server-owned static page on purpose; `/share` stays removed. Push v2 (React opt-in / opt-out in `/profile`, the old
+push client removed) is task 038.
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links only React pages since 035. `/profile` is
@@ -79,8 +80,9 @@ Recorded in `STATE.md` → *Deferred*; the main ones:
 - Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
 - Receipts and gallery files are public-read in R2 (private objects + pre-signed URLs is a storage change).
 - (030, resolved) Sign-out is in the member shell. The old Blazor prompts (push, Play Store, login popup) went with
-  `RTUB.Shared` in 037; push opt-in comes back with Push v2, the others only if wanted.
-- (032) Push opt-in / opt-out has no UI until the Push v2 task (the only toggle was on the retired Blazor profile).
+  `RTUB.Shared` in 037; push opt-in is back in `/profile` (038), the others only if wanted.
+- (032, resolved in 038) Push opt-in / opt-out is the `/profile` section "Notificações push" (`react-push-v2.md`).
+  Still to check on real devices (Android installed app, iPhone / iPad Home Screen app, DEV) before a production release.
 - (035, resolved in 037) The system announcement is a React listener (`react-portal-pilot.md` → *System announcement*);
   the no-caller badges / cards left by 035 went with `RTUB.Shared`.
 - (034) Reuniões kept the old visibility rules (Owner limits, the requests gate, the fiscal-year cut at midnight on

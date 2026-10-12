@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -169,25 +170,47 @@ public class PushNotificationServiceTests
             () => _service.SubscribeAsync(userId, subscriptionDto));
     }
 
+    // 038: removal is scoped to the member's own subscriptions (the old UnsubscribeAsync deleted any endpoint).
+
     [Fact]
-    public async Task UnsubscribeAsync_DeletesSubscription()
+    public async Task RemoveForUserAsync_DeletesOnlyTheMembersOwnEndpoint_AndCountsWhatIsLeft()
     {
-        // Arrange
-        var endpoint = "https://push.example.com/test";
+        _mockRepository.Setup(r => r.GetByUserIdAsync("user-1")).ReturnsAsync(new[]
+        {
+            new PushSubscription { UserId = "user-1", Endpoint = "https://fcm.googleapis.com/fcm/send/a" },
+            new PushSubscription { UserId = "user-1", Endpoint = "https://fcm.googleapis.com/fcm/send/b" },
+        });
 
-        // Act
-        await _service.UnsubscribeAsync(endpoint);
+        (await _service.RemoveForUserAsync("user-1", "https://fcm.googleapis.com/fcm/send/a")).Should().Be(1);
+        (await _service.RemoveForUserAsync("user-1", "https://fcm.googleapis.com/fcm/send/someone-elses")).Should().Be(2);
 
-        // Assert
-        _mockRepository.Verify(r => r.DeleteByEndpointAsync(endpoint), Times.Once);
+        _mockRepository.Verify(r => r.DeleteByEndpointAsync("https://fcm.googleapis.com/fcm/send/a"), Times.Once);
+        _mockRepository.Verify(r => r.DeleteByEndpointAsync("https://fcm.googleapis.com/fcm/send/someone-elses"), Times.Never);
     }
 
     [Fact]
-    public async Task UnsubscribeAsync_ThrowsArgumentException_WhenEndpointIsEmpty()
+    public async Task RemoveForUserAsync_WithoutAnEndpoint_DeletesEveryOneOfTheMembers()
     {
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(
-            () => _service.UnsubscribeAsync(""));
+        _mockRepository.Setup(r => r.GetByUserIdAsync("user-1")).ReturnsAsync(new[]
+        {
+            new PushSubscription { UserId = "user-1", Endpoint = "https://fcm.googleapis.com/fcm/send/a" },
+            new PushSubscription { UserId = "user-1", Endpoint = "https://updates.push.services.mozilla.com/wpush/v2/b" },
+        });
+
+        (await _service.RemoveForUserAsync("user-1", null)).Should().Be(0);
+
+        _mockRepository.Verify(r => r.DeleteByEndpointAsync(It.IsAny<string>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task IsRegisteredAsync_IsTrueOnlyForTheMembersOwnEndpoint()
+    {
+        _mockRepository.Setup(r => r.GetByEndpointAsync("https://fcm.googleapis.com/fcm/send/a"))
+            .ReturnsAsync(new PushSubscription { UserId = "user-1", Endpoint = "https://fcm.googleapis.com/fcm/send/a" });
+
+        (await _service.IsRegisteredAsync("user-1", "https://fcm.googleapis.com/fcm/send/a")).Should().BeTrue();
+        (await _service.IsRegisteredAsync("user-2", "https://fcm.googleapis.com/fcm/send/a")).Should().BeFalse();
+        (await _service.IsRegisteredAsync("user-1", "https://fcm.googleapis.com/fcm/send/unknown")).Should().BeFalse();
     }
 
     [Fact]

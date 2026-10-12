@@ -9223,6 +9223,22 @@ video.tile__media {
   accent-color: var(--purple);
 }
 
+/* Notificações push (task 038): this device's state, then its buttons (they wrap on a phone). */
+.push-state {
+  display: grid;
+  gap: 6px;
+}
+
+.push-state p {
+  margin: 0;
+}
+
+.push-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 /* ---------- Naipes (/naipes) and their settings (/naipes/config), task 033 ---------- */
 
 .naipe-picker {

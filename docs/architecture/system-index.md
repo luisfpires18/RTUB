@@ -76,10 +76,10 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle (no inbox copy since 027). |
 | `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
 | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
-| `src/RTUB.Web/Controllers/PushController.cs` | `/api/push/*` subscription and send endpoints. |
-| `src/RTUB.Web/wwwroot/js/push-notifications.js`, `pwa-helper.js` | Browser-side subscription manager, kept for Push v2; no page loads them since 037 (they were loaded by the Blazor layout). |
+| `src/RTUB.Web/Endpoints/PushEndpoints.cs`, `src/RTUB.Application/Helpers/PushSubscriptionRules.cs` | `/api/push/{status,check,subscribe,unsubscribe}`: the member's own subscriptions, validated (task 038; replaced `PushController`). Sending to members: domain services, background jobs and the Owner's `/api/owner/notifications`. |
+| `src/RTUB.Web/portal/src/push.ts`, `Profile.tsx` (`PushSection`) | React opt-in / opt-out in `/profile` ("Notificações push"): capability detection, permission only from a click, server ↔ browser reconciliation. `docs/react-push-v2.md`. |
 | `src/RTUB.Web/wwwroot/service-worker.js` | `push` / `notificationclick` / `pushsubscriptionchange` handlers. |
-| (none) | Opt-in UI: none until Push v2 (the Blazor prompt went with `RTUB.Shared` in 037). |
+| `src/RTUB.Web/wwwroot/js/sw-register.js` | The only service-worker registration. |
 | `.claude/skills/rtub-push/SKILL.md` | RTUB-specific push behavior and constraints. |
 
 VAPID keys are configuration/secrets — never committed.

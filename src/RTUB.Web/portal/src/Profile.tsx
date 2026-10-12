@@ -10,13 +10,15 @@ import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
 import { DEFAULT_AVATAR, shortDate, type MemberInstrument } from './membersApi';
 import { SignOutButton } from './MemberShell';
+import { readPush, turnOff, turnOn, type PushResult, type PushState } from './push';
 
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'
  * logins, so a visitor is told that first and keeps the public portal one tap away. Signing in is the React /login.
  *
  * Signed in, it is the member's own profile (task 032; was the Blazor /member/profile): who they are, their rank, and
- * the sections they edit - Pessoal, Tuna, Instrumentos, Foto, Notificações por email and Segurança. The server decides
+ * the sections they edit - Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Notificações push (038) and
+ * Segurança. The server decides
  * every rule (MyProfileService); a disabled field here is only a convenience. The members' menu is the member shell.
  */
 export default function Profile() {
@@ -162,6 +164,7 @@ function MyProfilePage({ user }: { user: Member }) {
       <InstrumentsSection profile={profile} onChange={(instruments) => setProfile({ ...profile, instruments })} />
       <PhotoSection profile={profile} onChange={(avatarUrl) => setProfile({ ...profile, member: { ...m, avatarUrl } })} />
       <SubscriptionSection profile={profile} onChange={(subscribed) => setProfile({ ...profile, subscribed })} />
+      <PushSection />
       <SecuritySection ref={security} onChanged={() => setProfile({ ...profile, requirePasswordChange: false })} />
     </div>
   );
@@ -753,6 +756,141 @@ function SubscriptionSection({ profile, onChange }: { profile: MyProfile; onChan
       {message && (
         <p className={message.ok ? 'profile-saved' : 'form__error'} role="status">
           {message.text}
+        </p>
+      )}
+    </Section>
+  );
+}
+
+// ---------- Notificações push ----------
+
+/**
+ * This browser's push notifications (task 038, push.ts). Read on load without asking anything; permission and the
+ * subscription only from a button. Each device is turned on separately; the count of the member's other devices
+ * comes from the server.
+ */
+function PushSection() {
+  const [state, setState] = useState<PushState>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const load = () => {
+    setState(undefined);
+    setError(undefined);
+    readPush().then(setState);
+  };
+  useEffect(load, []);
+
+  const run = async (action: () => Promise<PushResult>) => {
+    setBusy(true);
+    setError(undefined);
+    const result = await action();
+    setBusy(false);
+    setState(result.state);
+    setError(result.error);
+  };
+
+  const key = state && 'status' in state ? state.status.vapidPublicKey : null;
+  const on = () => key && run(() => turnOn(key));
+  const others = state && 'others' in state ? state.others : 0;
+
+  const button = (label: string, icon: IconName, onClick: () => unknown, primary = false) => (
+    <button type="button" className={`btn ${primary ? 'btn--primary' : 'btn--ghost'} btn--sm`} onClick={onClick} disabled={busy}>
+      <Icon name={icon} />
+      {label}
+    </button>
+  );
+  const offEverywhere = others > 0 && button('Desativar em todos os dispositivos', 'ban', () => run(() => turnOff(true)));
+
+  let body: ReactNode;
+  let actions: ReactNode = null;
+  if (!state) body = <Loading label="A verificar as notificações…" />;
+  else if (state.kind === 'unsupported')
+    body = state.installed ? (
+      <p>Este navegador não permite notificações push.</p>
+    ) : (
+      <p>
+        Este navegador não permite notificações push aqui. No iPhone e no iPad, adiciona a RTUB ao ecrã principal
+        (Partilhar → Adicionar ao ecrã principal) e ativa-as a partir da app.
+      </p>
+    );
+  else if (state.kind === 'disabled') body = <p>As notificações push ainda não estão disponíveis.</p>;
+  else if (state.kind === 'not-configured') body = <p>As notificações push não estão configuradas neste servidor.</p>;
+  else if (state.kind === 'error' || state.kind === 'no-worker') {
+    body = (
+      <p>
+        {state.kind === 'error'
+          ? 'Não foi possível ver o estado das notificações.'
+          : 'A app ainda não ficou pronta neste navegador, por isso as notificações não funcionam aqui.'}
+      </p>
+    );
+    actions = button('Tentar outra vez', 'restore', load);
+  } else if (state.kind === 'denied') {
+    body = (
+      <p>
+        As notificações da RTUB estão bloqueadas neste navegador. Para as receberes, permite-as nas definições do site
+        (o cadeado junto ao endereço, ou as definições da app) e volta aqui.
+      </p>
+    );
+    actions = (
+      <>
+        {button('Verificar outra vez', 'restore', load)}
+        {state.registered && button('Remover este dispositivo', 'ban', () => run(() => turnOff(false)))}
+      </>
+    );
+  } else if (state.kind === 'off') {
+    body = <p>Desligadas neste dispositivo.</p>;
+    actions = (
+      <>
+        {button('Ativar neste dispositivo', 'bell', on, true)}
+        {offEverywhere}
+      </>
+    );
+  } else if (state.kind === 'on') {
+    body = (
+      <p>
+        <strong>Ligadas neste dispositivo.</strong> Os avisos da tuna chegam aqui mesmo com a RTUB fechada.
+      </p>
+    );
+    actions = (
+      <>
+        {button('Desativar neste dispositivo', 'ban', () => run(() => turnOff(false)))}
+        {offEverywhere}
+      </>
+    );
+  } else {
+    body = (
+      <p>
+        {state.kind === 'stale'
+          ? 'A subscrição deste dispositivo já não é válida (expirou, ou a chave do servidor mudou), por isso não recebes nada aqui.'
+          : 'Este navegador tem uma subscrição que a RTUB não conhece, por isso não recebes nada aqui.'}
+      </p>
+    );
+    actions = (
+      <>
+        {button(state.kind === 'stale' ? 'Ativar novamente' : 'Corrigir subscrição', 'restore', on, true)}
+        {button('Desativar neste dispositivo', 'ban', () => run(() => turnOff(false)))}
+      </>
+    );
+  }
+
+  return (
+    <Section id="push" title="Notificações push" icon="bell">
+      <p className="note">
+        Avisos no telemóvel ou no computador, mesmo com a RTUB fechada. Ativam-se em cada dispositivo, à parte dos emails.
+      </p>
+      <div className="push-state" role="status" aria-live="polite">
+        {body}
+        {others > 0 && (
+          <p className="note">
+            {others === 1 ? 'Ligadas também noutro dispositivo.' : `Ligadas também noutros ${others} dispositivos.`}
+          </p>
+        )}
+      </div>
+      {actions && <div className="push-actions">{actions}</div>}
+      {error && (
+        <p className="form__error" role="alert">
+          {error}
         </p>
       )}
     </Section>

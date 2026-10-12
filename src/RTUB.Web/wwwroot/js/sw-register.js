@@ -35,22 +35,13 @@
         });
     }
 
-    // Handle messages from the service worker (e.g., navigation from push notifications)
+    // A tapped push notification, when the open window cannot be navigated by the worker itself (some installed
+    // apps): go to the notification's page. Same-origin only; the worker already checked, this is the second lock.
     navigator.serviceWorker.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'rtub:navigate') {
-            console.log('[SW Register] Received navigate message:', event.data.url);
-            // Navigate to the URL using window.location
-            // This works for both regular and PWA mode
-            window.location.href = event.data.url;
-        }
-
-        // Handle subscription-lost events from service worker
-        // This fires when Chrome rotates the push endpoint and re-subscription fails
-        if (event.data && event.data.type === 'rtub:subscription-lost') {
-            console.warn('[SW Register] Push subscription was lost');
-            // Mark subscription as lost so the UI can prompt re-subscription
-            if (window.pwaHelper && typeof window.pwaHelper.markSubscriptionLost === 'function') {
-                window.pwaHelper.markSubscriptionLost();
+        if (event.data && event.data.type === 'rtub:navigate' && typeof event.data.url === 'string') {
+            var target = new URL(event.data.url, window.location.origin);
+            if (target.origin === window.location.origin) {
+                window.location.href = target.href;
             }
         }
     });

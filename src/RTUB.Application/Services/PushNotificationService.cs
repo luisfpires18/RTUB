@@ -104,15 +104,24 @@ public class PushNotificationService : IPushNotificationService
         }
     }
 
-    public async Task UnsubscribeAsync(string endpoint)
+    public async Task<int> RemoveForUserAsync(string userId, string? endpoint)
     {
-        if (string.IsNullOrWhiteSpace(endpoint))
+        var mine = (await _subscriptionRepository.GetByUserIdAsync(userId)).ToList();
+        var removed = endpoint is null ? mine : mine.Where(s => s.Endpoint == endpoint).ToList();
+
+        foreach (var subscription in removed)
         {
-            throw new ArgumentException("Endpoint cannot be empty", nameof(endpoint));
+            await _subscriptionRepository.DeleteByEndpointAsync(subscription.Endpoint);
         }
 
-        await _subscriptionRepository.DeleteByEndpointAsync(endpoint);
+        return mine.Count - removed.Count;
     }
+
+    public async Task<int> CountForUserAsync(string userId) =>
+        (await _subscriptionRepository.GetByUserIdAsync(userId)).Count();
+
+    public async Task<bool> IsRegisteredAsync(string userId, string endpoint) =>
+        await _subscriptionRepository.GetByEndpointAsync(endpoint) is { } subscription && subscription.UserId == userId;
 
     public async Task SendToUserAsync(string userId, SendPushNotificationDto notification)
     {

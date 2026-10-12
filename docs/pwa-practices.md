@@ -98,6 +98,20 @@ function registerServiceWorker() {
 registerServiceWorker();
 ```
 
+In RTUB this is `wwwroot/js/sw-register.js`, the **only** registration (`ServiceWorkerReliabilityTests` counts it).
+Everything else adopts it through `navigator.serviceWorker.ready` / `getRegistration()`, as the React push client does.
+
+### Web Push (task 038)
+
+✅ **Always:**
+- Detect capabilities (`serviceWorker`, `PushManager`, `Notification`), never the user agent
+- Ask for notification permission only from a click, first thing in the handler
+- Send `subscription.toJSON()` to `/api/push/subscribe` with the antiforgery token; never keep push state in `localStorage`
+- Show the notification inside `event.waitUntil` and do nothing else in the `push` handler
+- Open only same-origin URLs from `notificationclick`
+
+Detail: `docs/react-push-v2.md`.
+
 ### Caching Strategy
 
 ✅ **Always:**
@@ -277,7 +291,8 @@ Home Screen routing behaviour.
 - [ ] Icons display properly
 - [ ] Shortcuts work
 - [ ] Share target works (if implemented)
-- [ ] Push notifications work (implemented — see `.claude/skills/rtub-push/SKILL.md`)
+- [ ] Push notifications work: `/profile` → "Notificações push" turns this device on, a test push arrives, turning it
+  off sticks after a reload (`docs/react-push-v2.md`; check Android installed app and iPhone / iPad Home Screen app too)
 - [ ] App works in standalone mode
 
 ## Code Quality

@@ -73,6 +73,7 @@ Run only what the change can break.
 | React Reuniões (`/meetings`: meetings, atas, requests, permission matrix) | `docs/react-meetings.md` |
 | React Owner tools (`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`: Owner only) | `docs/react-owner-operations.md` |
 | React password recovery / email confirmation, `/Error`, `/share` removal | `docs/react-identity.md` |
+| React Push v2 (`/profile` push opt-in / opt-out, `/api/push`, service-worker push handlers) | `docs/react-push-v2.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
 | Messages / Conversas removal (retained schema, contract task) | `docs/messages-removal.md` |

@@ -41,18 +41,20 @@ public class ServiceWorkerReliabilityTests
             string.Join(", ", callers.Select(c => $"{c.Source} x{c.Count}")));
     }
 
+    /// <summary>
+    /// 038: the React push client (portal/src/push.ts) replaced push-notifications.js. It adopts sw-register.js's
+    /// registration through navigator.serviceWorker.ready (which also guarantees an active worker before
+    /// pushManager.subscribe()) and never registers one itself.
+    /// </summary>
     [Fact]
-    public void PushNotificationsManager_AdoptsTheExistingRegistrationInsteadOfRegistering()
+    public void ReactPushClient_AdoptsTheExistingRegistrationInsteadOfRegistering()
     {
-        var push = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "push-notifications.js");
+        var push = ReadRepoFile("src", "RTUB.Web", "portal", "src", "push.ts");
 
-        push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready",
-            "PushNotificationsManager must wait for the registration sw-register.js owns; " +
-            "navigator.serviceWorker.ready also guarantees an active worker, which iOS Safari " +
-            "requires before pushManager.subscribe()");
-
-        push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(",
-            "PushNotificationsManager must not register a second time");
+        push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready");
+        push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "push-notifications.js")).Should().BeFalse();
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "pwa-helper.js")).Should().BeFalse();
     }
 
     /// <summary>
