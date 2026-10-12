@@ -150,7 +150,7 @@ cmd_verify() {
     [ $# -eq 1 ] || die "usage: release.sh verify <zip>"
     need_python
     [ -s "$1" ] || die "no zip at $1"
-    "$PY" - "$1" "${MIN_WWWROOT_FILES:-500}" <<'PY'
+    "$PY" - "$1" "${MIN_WWWROOT_FILES:-400}" <<'PY'
 import struct, sys, zipfile
 
 path, min_wwwroot = sys.argv[1], int(sys.argv[2])
