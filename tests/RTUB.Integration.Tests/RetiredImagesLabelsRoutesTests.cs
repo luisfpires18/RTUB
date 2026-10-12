@@ -43,7 +43,8 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
     [Fact]
     public async Task RetiredUrls_AreNotFound_ForAnAdmin_AndTheAdminMenuNoLongerOffersThem()
     {
-        var (admin, _) = await CookieTestSession.SignInAsync(Factory, "retired-images-admin", "10.95.0.1", "Admin");
+        // Owner: the Blazor "Operações" menu is the Owner's since task 035.
+        var (admin, _) = await CookieTestSession.SignInAsync(Factory, "retired-images-admin", "10.95.0.1", "Owner");
 
         foreach (var url in RetiredUrls)
         {
@@ -53,7 +54,7 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
         var page = await admin.GetAsync("/share");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
         var html = await page.Content.ReadAsStringAsync();
-        html.Should().Contain("href=\"/emails\"", "the Admin menu is rendered, so the absences below mean something");
+        html.Should().Contain("href=\"/emails\"", "the Owner menu is rendered, so the absences below mean something");
         html.Should().NotContain("href=\"/images\"").And.NotContain("href=\"/labels\"");
     }
 

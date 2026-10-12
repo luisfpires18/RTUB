@@ -565,6 +565,9 @@ public class Program
         // --------- Meetings for the React /meetings (task 034) ---------
         app.MapMeetingEndpoints();
 
+        // --------- Owner tools for the React /emails, /notifications, /users, /owner/tracing and /owner/db (task 035) ---------
+        app.MapOwnerEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in); every other page stays Blazor. Retired Blazor URLs 302 to
@@ -628,6 +631,26 @@ public class Program
 
                 context.Response.Headers.CacheControl = "no-cache";
                 return Results.File(env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!, "text/html");
+            });
+        }
+
+        // Task 035: the Owner tools, Owner only (/users, /owner/tracing and /owner/db were Owner pages; /emails and
+        // /notifications were Admin pages and are Owner only now). A visitor goes to sign in; any other member gets the
+        // shell with 403, and the page shows the refusal. The API refuses them every call (OwnerEndpoints).
+        foreach (var route in new[] { "/emails", "/notifications", "/users", "/owner/tracing", "/owner/db" })
+        {
+            app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+            {
+                if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
+                }
+
+                context.Response.Headers.CacheControl = "no-cache";
+                var shell = env.WebRootFileProvider.GetFileInfo("portal/index.html").PhysicalPath!;
+                return context.User.IsInRole("Owner")
+                    ? Results.File(shell, "text/html")
+                    : Results.Content(File.ReadAllText(shell), "text/html", System.Text.Encoding.UTF8, StatusCodes.Status403Forbidden);
             });
         }
 

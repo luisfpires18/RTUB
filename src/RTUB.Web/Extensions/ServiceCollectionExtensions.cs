@@ -235,6 +235,9 @@ public static class ServiceCollectionExtensions
         // The React /meetings (task 034): every rule of the old page, over the services above.
         services.AddScoped<IMeetingBoardService, MeetingBoardService>();
 
+        // The React Owner tools (task 035): what /emails, /notifications, /users, /owner/tracing and /owner/db did.
+        services.AddScoped<IOwnerOperationsService, OwnerOperationsService>();
+
         return services;
     }
 

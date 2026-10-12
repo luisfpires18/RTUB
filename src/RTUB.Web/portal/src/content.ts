@@ -44,6 +44,11 @@ export const portal = {
   requests: '/requests',
   questions: '/questions',
   meetings: '/meetings',
+  users: '/users',
+  ownerTracing: '/owner/tracing',
+  ownerDb: '/owner/db',
+  emails: '/emails',
+  notifications: '/notifications',
 } as const;
 
 /** Sign in, then come back to the React profile. */

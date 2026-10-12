@@ -15,15 +15,6 @@ export type Member = Extract<CurrentUser, { authenticated: true }>;
 type MenuLink = { href: string; label: string; icon: IconName; when?: keyof MemberMenu };
 type MenuGroup = { key: string; label: string; links: MenuLink[] };
 
-// Blazor pages that are still live; plain full navigations, like every link between the two front ends.
-const blazor = {
-  emails: '/emails',
-  notifications: '/notifications',
-  users: '/users',
-  tracing: '/owner/tracing',
-  database: '/owner/db',
-} as const;
-
 export const memberMenu: MenuGroup[] = [
   {
     key: 'member',
@@ -69,17 +60,17 @@ export const memberMenu: MenuGroup[] = [
       { href: portal.logistics, label: 'Logística', icon: 'kanban', when: 'logisticsAndTreasury' },
       { href: portal.treasury, label: 'Tesouraria', icon: 'cash', when: 'logisticsAndTreasury' },
       { href: portal.requests, label: 'Pedidos', icon: 'send', when: 'admin' },
-      { href: blazor.emails, label: 'Emails', icon: 'envelope', when: 'admin' },
-      { href: blazor.notifications, label: 'Notificações', icon: 'bell', when: 'admin' },
     ],
   },
   {
     key: 'owner',
     label: 'Owner',
     links: [
-      { href: blazor.users, label: 'Utilizadores', icon: 'personGear', when: 'owner' },
-      { href: blazor.tracing, label: 'Auditoria', icon: 'shield', when: 'owner' },
-      { href: blazor.database, label: 'Base de dados', icon: 'database', when: 'owner' },
+      { href: portal.users, label: 'Utilizadores', icon: 'personGear', when: 'owner' },
+      { href: portal.ownerTracing, label: 'Auditoria', icon: 'shield', when: 'owner' },
+      { href: portal.ownerDb, label: 'Base de dados', icon: 'database', when: 'owner' },
+      { href: portal.emails, label: 'Emails', icon: 'envelope', when: 'owner' },
+      { href: portal.notifications, label: 'Notificações', icon: 'bell', when: 'owner' },
     ],
   },
 ];
