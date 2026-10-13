@@ -384,6 +384,9 @@ public interface IPushNotificationFactory
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateGalleryTagNotification(string baseUrl);
 
+    /// <summary>Messaging v2: a new chat message, without its text; links to /messages?c={id}.</summary>
+    SendPushNotificationDto CreateConversationMessageNotification(string senderName, string? groupTitle, int conversationId);
+
     /// <summary>
     /// Creates a push notification when a user is @mentioned in a post or comment.
     /// Sent only to the mentioned user.

@@ -12,7 +12,7 @@ audit and evolve the existing messaging tables. They must not be dropped.
 The feature is gone from the running app; the schema is untouched (no migration,
 `dotnet ef migrations has-pending-model-changes` reports none).
 
-- Retired, plain 404: `/messages`, `/messages/{id}` (Blazor inbox) and `/hubs/messages` (SignalR `MessagesHub`,
+- Retired in 027 (plain 404 then; `/messages` is the React Messaging v2 page since 041): `/messages`, `/messages/{id}` (Blazor inbox) and `/hubs/messages` (SignalR `MessagesHub`,
   incl. `/hubs/messages/negotiate`). Also gone: the "Mensagens" item and unread badges in the top-bar user menu,
   the "Sync Chat" Owner button on `/users`, the "Mensagens" PWA manifest shortcut, the service worker's `/messages`
   click fallback, `messageComposer.js`, `messageScroller.js`, `unreadMessages.js`, the messaging CSS, and every
@@ -63,8 +63,11 @@ for Messaging v2's audit, not dead code to clean up):
 - tests: `RTUB.Core.Tests/Entities/{Conversation,ConversationUserSettings,Message}Tests.cs`, the two
   messaging lines in `DatabaseFixture.cs`
 
-Until Messaging v2 ships, nothing in the app reads or writes the four tables (`RetiredMessagesRoutesTests` proves it).
-The tables hold private member chats: treat any production or refreshed-DEV database copy accordingly.
+**Messaging v2 shipped in task 041** (`docs/react-messages.md`): the React `/messages` reads and writes these four
+tables through `/api/conversations` and `/api/messages` only, with no schema change; outside those endpoints nothing
+touches them (`MessagesRollbackSafetyTests`). `MessageReaction` joined the audit exclusions, and messaging content is
+redacted in the audit log. The tables hold private member chats: treat any production or refreshed-DEV database copy
+accordingly.
 
 ## Where the old data still is
 

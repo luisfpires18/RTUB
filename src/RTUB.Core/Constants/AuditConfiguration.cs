@@ -36,6 +36,21 @@ public static class AuditConfiguration
     /// Entity types that mark an audit log entry as a critical action.
     /// Deletions of any entity are also critical regardless of this list.
     /// </summary>
+    /// <summary>
+    /// Defence in depth for private conversations (task 041): if a messaging entity is ever audited (taken out of
+    /// <see cref="ExcludedEntityTypes"/> by mistake), these properties are written as <see cref="RedactedValue"/>, never
+    /// their content. Targeted per entity, so generic names such as Title or Body stay readable on other entities.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, HashSet<string>> RedactedProperties =
+        new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Message"] = new(StringComparer.Ordinal) { "Body", "ReplyToBody", "ReplyToSenderName", "ReadBy", "Link" },
+            ["Conversation"] = new(StringComparer.Ordinal) { "Title", "Participants" },
+            ["MessageReaction"] = new(StringComparer.Ordinal) { "Emoji" },
+        };
+
+    public const string RedactedValue = "[redacted]";
+
     public static readonly HashSet<string> CriticalEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "RoleAssignment", "Report", "ApplicationUser"
@@ -48,9 +63,11 @@ public static class AuditConfiguration
 
     public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Messaging (v1 tables, Messaging v2 since task 041): private member chats never reach /owner/tracing.
         "Message",
         "Conversation",
         "ConversationUserSettings",
+        "MessageReaction",
         "GalleryMediaPersonTag",
         "SongPlayCount",
         "NaipePlayCount",

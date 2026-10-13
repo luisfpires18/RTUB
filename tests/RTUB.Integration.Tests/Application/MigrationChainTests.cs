@@ -133,6 +133,30 @@ public class MigrationChainTests : IDisposable
             .Should().Contain("IX_NewsPosts_PublishedAt");
     }
 
+    /// <summary>
+    /// Messaging v2 (task 041) runs on the v1 tables that task 027 preserved, with no migration of its own: the four
+    /// tables, the reply / read / mute / pin / announcement columns and the one-reaction-per-member index must all still
+    /// come out of the migration chain. Messaging tables are never dropped.
+    /// </summary>
+    [Fact]
+    public async Task MigratedDatabase_KeepsTheMessagingTables_ThatMessagingV2Uses()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        (await ColumnNamesAsync(context, "Conversations")).Should().Contain(new[]
+            { "Id", "Participants", "LastMessageAt", "LastMessageId", "Title", "IsSystemConversation", "IsArchived", "IsGroup",
+              "CreatedByUserId", "IsAnnouncementOnly" });
+        (await ColumnNamesAsync(context, "Messages")).Should().Contain(new[]
+            { "Id", "ConversationId", "SenderId", "Body", "IsSystem", "ReadBy", "Link", "ReplyToMessageId", "ReplyToBody",
+              "ReplyToSenderName", "CreatedAt" });
+        (await ColumnNamesAsync(context, "MessageReactions")).Should().Contain(new[] { "Id", "MessageId", "UserId", "Emoji" });
+        (await ColumnNamesAsync(context, "ConversationUserSettings")).Should().Contain(new[]
+            { "Id", "ConversationId", "UserId", "IsMuted", "IsPinned" });
+        (await ScalarsAsync(context, "SELECT name FROM pragma_index_list('MessageReactions') WHERE \"unique\" = 1;"))
+            .Should().Contain("IX_MessageReaction_MessageId_UserId");
+    }
+
     private static async Task<List<string>> ScalarsAsync(ApplicationDbContext context, string sql)
     {
         var values = new List<string>();

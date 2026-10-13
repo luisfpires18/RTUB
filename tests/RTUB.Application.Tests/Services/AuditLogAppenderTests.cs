@@ -455,6 +455,75 @@ public class AuditLogAppenderTests : IDisposable
         pdfDataChange.Should().NotBeNull();
     }
 
+    // ---------- Messaging v2 (task 041): private conversations never reach /owner/tracing ----------
+
+    [Fact]
+    public void MessagingEntities_AreExcludedFromTheAuditLog()
+    {
+        RTUB.Core.Constants.AuditConfiguration.ExcludedEntityTypes.Should()
+            .Contain(new[] { "Message", "Conversation", "MessageReaction", "ConversationUserSettings" });
+    }
+
+    [Theory]
+    [InlineData("Created")]
+    [InlineData("Deleted")]
+    public void CreateAuditLog_ForAMessage_RedactsItsContent_EvenIfItWereAudited(string action)
+    {
+        const string secret = "texto privado da conversa";
+        var message = new Message
+        {
+            Id = 7, ConversationId = 3, SenderId = "sender-id", Body = secret, ReplyToBody = secret, ReplyToSenderName = "Fulano",
+            ReadBy = "a;b", Link = "/events/1",
+        };
+        _context.Messages.Add(message);
+        var entry = _context.Entry((BaseEntity)message);
+        if (action == "Deleted")
+        {
+            entry.State = EntityState.Deleted;
+        }
+
+        var auditLog = _appender.CreateAuditLog(entry, action, _testUsername, _testUserId, ResolveUserIdToNickname, GetEntityDisplayName);
+
+        auditLog!.Changes.Should().NotContain(secret).And.NotContain("Fulano").And.NotContain("/events/1");
+        var changes = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(auditLog.Changes!)!;
+        foreach (var field in new[] { "Body", "ReplyToBody", "ReplyToSenderName", "ReadBy", "Link" })
+        {
+            changes[field].GetString().Should().Be(RTUB.Core.Constants.AuditConfiguration.RedactedValue, field);
+        }
+
+        changes["ConversationId"].GetInt32().Should().Be(3, "safe ids stay readable");
+    }
+
+    [Fact]
+    public void CreateAuditLog_ForAConversationOrReaction_RedactsTitleParticipantsAndEmoji()
+    {
+        var conversation = new Conversation { Id = 3, Participants = "user-a;user-b", Title = "Grupo secreto", IsGroup = true };
+        var reaction = new MessageReaction { Id = 4, MessageId = 7, UserId = "user-a", Emoji = "😂" };
+        _context.Conversations.Add(conversation);
+        _context.MessageReactions.Add(reaction);
+
+        var conversationLog = _appender.CreateAuditLog(_context.Entry((BaseEntity)conversation), "Created", _testUsername, _testUserId,
+            ResolveUserIdToNickname, GetEntityDisplayName);
+        var reactionLog = _appender.CreateAuditLog(_context.Entry((BaseEntity)reaction), "Created", _testUsername, _testUserId,
+            ResolveUserIdToNickname, GetEntityDisplayName);
+
+        conversationLog!.Changes.Should().NotContain("Grupo secreto").And.NotContain("user-b").And.Contain("IsGroup");
+        JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(reactionLog!.Changes!)!["Emoji"].GetString()
+            .Should().Be(RTUB.Core.Constants.AuditConfiguration.RedactedValue);
+    }
+
+    [Fact]
+    public void CreateAuditLog_DoesNotRedactTheSamePropertyNamesOnOtherEntities()
+    {
+        var album = Album.Create("Titulo visivel", 2024);
+        _context.Albums.Add(album);
+
+        var auditLog = _appender.CreateAuditLog(_context.Entry((BaseEntity)album), "Created", _testUsername, _testUserId,
+            ResolveUserIdToNickname, GetEntityDisplayName);
+
+        auditLog!.Changes.Should().Contain("Titulo visivel").And.NotContain("[redacted]");
+    }
+
     // Helper methods to match ApplicationDbContext signature
     private string? ResolveUserIdToNickname(string? userId)
     {

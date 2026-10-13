@@ -14,9 +14,10 @@ using Xunit;
 namespace RTUB.Integration.Tests;
 
 /// <summary>
-/// Task 027 (Phase A) retired Messages / Conversas with no replacement: the inbox pages and the SignalR hub are gone,
-/// so every old URL is a plain 404 (no redirect) for visitors and members alike, and neither the Blazor layout nor the
-/// PWA manifest offers them any more. The four message tables stay until the later contract task (N-1 rule).
+/// Task 027 retired the old Messages / Conversas inbox; task 041 brought Messaging back as v2 on the same, preserved
+/// tables. What 027 removed stays removed: <c>/messages/{id}</c> and the SignalR hub are plain 404s, the old inbox
+/// scripts never come back, and the PWA manifest has no shortcut. <c>/messages</c> itself is the React v2 page now:
+/// a visitor goes to sign in, a member gets the React shell (never an old Blazor inbox).
 /// </summary>
 public class RetiredMessagesRoutesTests : IntegrationTestBase
 {
@@ -26,14 +27,15 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
     {
     }
 
-    [Theory]
-    [InlineData("/messages")]
-    [InlineData("/messages/1")]
-    public async Task RetiredPage_IsNotFound_ForVisitors(string url)
+    [Fact]
+    public async Task OldInboxUrls_StayNotFound_AndMessagesSendsVisitorsToSignIn()
     {
         var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        (await client.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was retired in 027", url);
+        (await client.GetAsync("/messages/1")).StatusCode.Should().Be(HttpStatusCode.NotFound, "the 027 inbox URL stays retired");
+        var page = await client.GetAsync("/messages");
+        page.StatusCode.Should().Be(HttpStatusCode.Redirect, "Messaging v2 is for members");
+        page.Headers.Location!.OriginalString.Should().Be("/login?returnUrl=%2Fmessages");
     }
 
     [Fact]
@@ -46,22 +48,19 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task RetiredUrls_AreNotFound_ForAMember_AndTheLayoutNoLongerOffersMessages()
+    public async Task AMember_GetsTheReactV2Page_AndNothingOfTheOldInbox()
     {
         var (member, _) = await CookieTestSession.SignInAsync(Factory, "retired-messages-member", "10.94.0.2");
 
-        (await member.GetAsync("/messages")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.GetAsync("/messages/1")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.PostAsync(Negotiate, content: null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        // No Blazor page is left to render the old navbar (task 036); the signed-in React shell and its menu carry none of it.
-        var page = await member.GetAsync("/events");
+        var page = await member.GetAsync("/messages");
         page.StatusCode.Should().Be(HttpStatusCode.OK);
-        var html = await page.Content.ReadAsStringAsync() + await member.GetStringAsync("/api/account/me");
-        html.Should().Contain("id=\"root\"");
-        html.Should().NotContain("href=\"/messages\"").And.NotContain("navbar-message-badge")
-            .And.NotContain("unreadMessages.js").And.NotContain("messageComposer.js").And.NotContain("messageScroller.js")
-            .And.NotContain(">Mensagens<");
+        var html = await page.Content.ReadAsStringAsync();
+        html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js").And.NotContain("_blazor");
+        html.Should().NotContain("navbar-message-badge")
+            .And.NotContain("unreadMessages.js").And.NotContain("messageComposer.js").And.NotContain("messageScroller.js");
     }
 
     [Fact]
@@ -77,10 +76,10 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
 }
 
 /// <summary>
-/// Rollback safety for the contract task that will drop the message tables: a 027 build is the rollback target of that
-/// release, so it must run against a database without them. With the four tables dropped, a signed-in page, every push
-/// fan-out and a member deletion run without a single SQL statement naming them. (Before 027 every push wrote an inbox
-/// copy, and the layout's unread badge queried <c>Messages</c> on every Blazor page.)
+/// Written for a contract task that would have dropped the message tables (cancelled: they are preserved and Messaging v2
+/// uses them since 041). Kept because it still proves something useful: outside /api/conversations and /api/messages,
+/// nothing touches the messaging tables - the session call, every push fan-out and a member deletion run without a single
+/// SQL statement naming them (no inbox copy per push since 027, no unread badge on every page).
 /// </summary>
 public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory>
 {

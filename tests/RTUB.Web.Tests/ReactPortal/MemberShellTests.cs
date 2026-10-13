@@ -93,9 +93,9 @@ public class MemberShellTests
         var shell = Read("MemberShell.tsx");
         var menu = string.Join("\n", MenuLinks().Select(l => l.Line));
 
-        foreach (var label in new[] { "Jogos", "Mensagens", "Imagens", "Conteúdo" })
+        foreach (var label in new[] { "Jogos", "Imagens", "Conteúdo" })
         {
-            menu.Should().NotContain($"'{label}'", "{0} was removed (026 / 027 / 029A)", label);
+            menu.Should().NotContain($"'{label}'", "{0} was removed (026 / 029A)", label);
         }
 
         foreach (var url in new[] { "/games", "/bets", "/my-tuno", "/messages", "'/images'", "/labels" })
@@ -103,6 +103,9 @@ public class MemberShellTests
             shell.Should().NotContain(url);
             Read("App.tsx").Should().NotContain(url);
         }
+
+        // Mensagens came back as Messaging v2 (task 041): the React /messages, linked through content.ts like every page.
+        menu.Should().Contain("{ href: portal.messages, label: 'Mensagens', icon: 'chat' }");
     }
 
     [Fact]

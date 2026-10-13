@@ -34,6 +34,7 @@ _Last updated: 2026-10-12 (038 Push v2)_
 | 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
 | 037 | Blazor host retired (`App.razor`, `MainLayout`, `/_blazor`, `blazor.web.js`, `RTUB.Shared`, Blazor CSS / JS); system announcement now a React listener (`GET /api/announcement`) | none new | `react-portal-pilot.md` → *System announcement* |
 | 038 | Push v2: "Notificações push" in `/profile` (opt-in / opt-out per device, repair states), `/api/push` rebuilt (own subscriptions only, validated, antiforgery), old push client removed, worker push handlers cleaned | `/profile` (section) | `react-push-v2.md` |
+| 041 | Messaging v2 on the preserved v1 tables: conversation list + chat, replies, fixed-set reactions, mute, unread / read, push without the text; text only; no schema change | `/messages` | `react-messages.md` |
 
 Route ownership is code: `src/RTUB.Web/Program.cs` (React shell section). Retired Blazor URLs (`/member/events`,
 `/member/gallery`, `/member/roles`, `/hierarchy`, `/members/manage`, `/finance…`, `/calotes`, `/mbway…`, `/nerba…`,
@@ -56,17 +57,17 @@ push client removed) is task 038.
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links only React pages since 035. `/profile` is
-the member's own profile editor (032), not the members' menu. The removed modules (games, bets, MyTuno, messages,
-images, labels) are not in it and are not to be brought back. `/naipes/config` is reached from `/naipes` ("Configurar",
+the member's own profile editor (032), not the members' menu. The removed modules (games, bets, MyTuno, images,
+labels) are not in it and are not to be brought back; "Mensagens" is Messaging v2 (041), not the old inbox. `/naipes/config` is reached from `/naipes` ("Configurar",
 Admin / Owner), not from the menu.
 
 ## Future work, outside the migration
 
 - **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
   `AspNetUsers.FidelisBalance` stay until a later contract task drops them: `docs/games-bets-mytuno-removal.md`.
-- **Messages / Conversas**: removed from the app by task 027 (no replacement; `/messages` and `/hubs/messages` 404;
-  push no longer leaves an inbox copy). The four tables are **preserved, never dropped**: Messaging v2 (planned) will
-  audit and evolve them (`docs/messages-removal.md`).
+- **Messages / Conversas**: the old inbox was removed by task 027 (`/messages/{id}` and `/hubs/messages` 404; push
+  no longer leaves an inbox copy). **Messaging v2 (task 041)** is the React `/messages` on the same four tables, which
+  are **preserved, never dropped** (`docs/react-messages.md`, `docs/messages-removal.md`).
 - **Images (slideshows) and Labels admin**: `/images` and `/labels` removed by task 029A (no replacement; both 404). The
   Leaderboard story is temporary text in code until the owner decides. 029B drops the `Labels` and `Slideshows` tables
   (with a migration) and the services left behind.

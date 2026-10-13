@@ -37,6 +37,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/requests': lazy(() => import('./Requests')),
   '/questions': lazy(() => import('./Questions')),
   '/meetings': lazy(() => import('./Meetings')),
+  '/messages': lazy(() => import('./Messages')),
   '/users': lazy(() => import('./OwnerUsers')),
   '/owner/tracing': lazy(() => import('./OwnerTracing')),
   '/owner/db': lazy(() => import('./OwnerDatabase')),

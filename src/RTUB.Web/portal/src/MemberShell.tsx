@@ -6,7 +6,8 @@ import { Icon, type IconName } from './icons';
 /**
  * The signed-in member shell (task 030): one menu, shown as a collapsible rail on wide screens and as a drawer on
  * phones and in the installed app. It replaces /profile as the members' way around. Only routes that still exist are
- * listed; the retired modules (games, bets, MyTuno, messages, images, labels) are deliberately absent.
+ * listed; the retired modules (games, bets, MyTuno, images, labels) are deliberately absent. Mensagens is Messaging v2
+ * (task 041), not the retired 027 inbox.
  * The server decides which groups a member sees (MemberMenuAccess); every page still enforces its own rule.
  */
 
@@ -21,6 +22,7 @@ export const memberMenu: MenuGroup[] = [
     label: 'Membro',
     links: [
       { href: portal.profile, label: 'Perfil', icon: 'person' },
+      { href: portal.messages, label: 'Mensagens', icon: 'chat' },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.myEnrollments, label: 'As minhas inscrições', icon: 'calendarCheck' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },

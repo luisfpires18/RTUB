@@ -529,6 +529,9 @@ public class Program
         app.MapRequestAdminEndpoints();
         app.MapQuestionEndpoints();
 
+        // --------- Messaging v2 for the React /messages over the preserved v1 tables (task 041) ---------
+        app.MapMessagingEndpoints();
+
         // --------- Profile, members map and Hall of Fame for the React /profile, /members/map and /hall-of-fame (task 032) ---------
         app.MapMemberAreaEndpoints();
 
@@ -596,10 +599,12 @@ public class Program
         // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
         // Task 033: /naipes and /naipes/config, members only (the API keeps the settings to Admin / Owner).
         // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
+        // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
+        // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings" })
+                     "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {

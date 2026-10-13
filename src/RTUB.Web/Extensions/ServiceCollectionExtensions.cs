@@ -299,6 +299,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestionReplyRepository, QuestionReplyRepository>();
         services.AddScoped<IQuestionService, QuestionService>();
         services.AddScoped<IQuestionBoardService, QuestionBoardService>();
+        services.AddScoped<IMessagingService, MessagingService>(); // Messaging v2, React /messages (task 041)
         services.AddScoped<IMeetingAtaRepository, MeetingAtaRepository>();
 
         return services;

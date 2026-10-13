@@ -109,11 +109,16 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 Removed from the app by task 026. Only their EF entities, configurations and DbSets remain, until the contract
 task drops the tables: `docs/games-bets-mytuno-removal.md`.
 
-## Messages / Conversas (UI removed, schema preserved)
+## Messages / Conversas (Messaging v2, task 041)
 
-The old inbox was removed by task 027 (`/messages`, `/hubs/messages` are 404). The `Conversations`, `Messages`,
-`MessageReactions` and `ConversationUserSettings` tables, entities, configurations and DbSets are **preserved for
-Messaging v2**, which will audit and evolve them; never drop them: `docs/messages-removal.md`.
+| Path | Responsibility |
+| --- | --- |
+| `src/RTUB.Web/Endpoints/MessagingEndpoints.cs`, `src/RTUB.Application/Services/MessagingService.cs` | `/api/conversations*`, `/api/messages/{id}/reactions`: participants only (Admin / Owner have no special access), text only, replies, fixed-set reactions, mute, read state, push without the text. `docs/react-messages.md`. |
+| `src/RTUB.Web/portal/src/Messages.tsx` | React `/messages` (list + chat, `?c=<id>`). |
+| `src/RTUB.Core/Entities/{Conversation,Message,MessageReaction,ConversationUserSettings}.cs` | The v1 model, preserved by 027 and reused unchanged; never drop the tables (`docs/messages-removal.md`). |
+
+The 027-retired inbox URLs (`/messages/{id}`, `/hubs/messages`) stay 404. Messaging entities are excluded from and
+redacted in the audit log (`AuditConfiguration`).
 
 ## Images (slideshows) and Labels admin (removed)
 

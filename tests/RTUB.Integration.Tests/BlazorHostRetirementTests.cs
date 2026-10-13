@@ -127,7 +127,7 @@ public class BlazorHostRetirementTests : IntegrationTestBase
     [InlineData("/games")]
     [InlineData("/bets")]
     [InlineData("/my-tuno")]
-    [InlineData("/messages")]
+    [InlineData("/messages/1")]
     [InlineData("/images")]
     [InlineData("/labels")]
     [InlineData("/this-page-does-not-exist")]

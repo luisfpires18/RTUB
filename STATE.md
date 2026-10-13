@@ -6,8 +6,17 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-12_
 
 ## Phase
-**Open: `fix/040-members-map-tiles` (task 040)**, from `dev` @ `0200f1b1` (has 039). Not pushed unless requested; CI must
-pass before merge. **040:** members map basemap CARTO `dark_all` (now "API KEY REQUIRED") → OpenStreetMap standard
+**Open: `feat/041-messaging-v2` (task 041)**, from `dev` @ `467d30d3` (has 040). Not pushed unless requested; CI must pass
+before merge. **041 Messaging v2:** React `/messages` (list + chat, `?c=<id>`, "Mensagens" in the member menu) over
+`/api/conversations*` + `/api/messages/{id}/reactions` (`MessagingService`) on the **preserved v1 tables, no schema change,
+no migration**: participants only (Admin / Owner no special access), text only (1-2000, no attachments), replies (v1
+`ReplyToMessageId` + snippet), one reaction per member from 👍 ❤️ 😂 😮 😢 🙏, mute (`ConversationUserSettings`, no push
+while muted), unread / read (`ReadBy`), "Sistema RTUB" read-only, v1 announcement-sender rule, archived hidden, chats with
+a deleted / expelled member closed. Push "Nova mensagem" without the text. Tracing: `MessageReaction` added to the audit
+exclusions + targeted `RedactedProperties` in `AuditLogAppender`. `/messages/{id}` and `/hubs/messages` stay 404.
+Polling (10 s chat / 30 s list), no SignalR. Detail and follow-ups: `docs/react-messages.md`.
+
+**040 merged to `dev`** (@ `467d30d3`). **040:** members map basemap CARTO `dark_all` (now "API KEY REQUIRED") → OpenStreetMap standard
 tiles (no key; CSS-darkened tile pane); CSP `img-src` `*.basemaps.cartocdn.com` → `tile.openstreetmap.org`. Config
 audit: DEV `WEBSITE_RUN_FROM_PACKAGE` optional (intentionally absent on rtub-dev), PROD still required `1`; runbook
 notes `.local/config-audit/` is generated / never committed. No schema or data change. Detail: `docs/react-member-area.md`.
@@ -250,6 +259,11 @@ migration: production's newest migration is already dev's newest.
 them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `home.js`, `scrollSpy.js`,
 `profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
 resolved by that deletion.
+
+Raised by 041 (Messaging v2; detail in `docs/react-messages.md` → *Follow-ups*):
+- Group membership frozen at v1's last auto-sync (no group creation / member management, no default-group sync).
+- No live updates (polling), no unread badge in the menu, no pin / archive UI; push fan-out inline and sequential.
+- `/owner/db` can still SELECT the messaging tables (Owner raw DB tool, as before): decide whether to block them.
 
 Raised by 039 (post-Blazor cleanup + configuration audit):
 - Live Azure audit not run in 039 (the `az` MFA session had expired): run `scripts/config/audit-azure-app-settings.ps1`

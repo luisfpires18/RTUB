@@ -159,7 +159,8 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | **React** (035) | Owner tools, **Owner only** (Admin lost `/emails` and `/notifications`): announcement emails, custom push, users and roles, audit log, database viewer, over `/api/owner/*`. Visitors get a 302 to sign in; any other member the shell with 403 and a refusal. The Blazor pages are retired. `docs/react-owner-operations.md`. |
 | `/forgot-password`, `/reset-password`, `/confirm-email` | **React** (036) | Password recovery and email confirmation, public, over `POST /api/account/*`; the pages are no-store and no-referrer and clear the token from the URL. `docs/react-identity.md`. |
 | `/Error` | **Server** (036, on purpose) | The exception handler's page: fixed static HTML (`wwwroot/error.html`) for any method, no script, no details. |
-| `/share` | **Removed** (036) | 404; the manifest has no `share_target`. (`/messages` was removed in 027; `/images` and `/labels` in 029A, all plain 404s.) No Blazor page is left. |
+| `/messages` | **React** (041) | Mensagens (Messaging v2): conversation list + chat (`?c=<id>`), replies, reactions, mute, read state, text only, over the preserved v1 tables; members only (visitors get a 302 to sign in). `/messages/{id}` and `/hubs/messages` (the 027 inbox) stay 404. `docs/react-messages.md` |
+| `/share` | **Removed** (036) | 404; the manifest has no `share_target`. (`/images` and `/labels` were removed in 029A, plain 404s.) No Blazor page is left. |
 | `GET /api/announcement` | **API** (037) | The Owner's system announcement while fresh, or 204; polled by the shell. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |

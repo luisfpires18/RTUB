@@ -1077,6 +1077,27 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Messaging v2 (task 041): a new chat message. Never carries the message text: the title is generic (it is the
+    /// only part push logging records) and the body names the sender and, for a group, the group. The link is
+    /// relative, so it never depends on the request's Host header.
+    /// </summary>
+    public SendPushNotificationDto CreateConversationMessageNotification(string senderName, string? groupTitle, int conversationId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(senderName);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova mensagem",
+            Body = string.IsNullOrWhiteSpace(groupTitle)
+                ? $"{senderName} enviou-te uma mensagem."
+                : $"{senderName} escreveu em {groupTitle}.",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = $"/messages?c={conversationId}",
+            Tag = $"message-{conversationId}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// </summary>
     public SendPushNotificationDto CreateGalleryTagNotification(string baseUrl)

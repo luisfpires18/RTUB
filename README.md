@@ -38,9 +38,9 @@ scripts/              release, archive, smoke and configuration-audit scripts
 docs/                 runbooks and per-module docs (start at docs/architecture/system-index.md)
 ```
 
-Removed modules stay removed: games, bets, MyTuno, messages, images, labels and `/share` are plain 404s. Their
-database tables are kept; the messaging tables in particular are **preserved for Messaging v2** and must never be
-dropped (`docs/messages-removal.md`).
+Removed modules stay removed: games, bets, MyTuno, images, labels and `/share` are plain 404s; their database tables
+are kept. Messages came back as **Messaging v2** (`/messages`, task 041) on the preserved v1 messaging tables, which
+must never be dropped (`docs/react-messages.md`, `docs/messages-removal.md`).
 
 ## Getting started
 
