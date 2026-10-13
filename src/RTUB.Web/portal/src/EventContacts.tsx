@@ -132,7 +132,6 @@ export default function EventContacts({ eventId }: { eventId: number }) {
         {event ? event.name : 'Atuação'}
       </a>
       <header className="page__head">
-        <p className="eyebrow">Mod e acima</p>
         <h1 id="contacts-title" className="page__title">
           Contactos
         </h1>

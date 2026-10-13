@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { ConfirmDialog } from './MusicUi';
 import { dateTime, ownerApi, ownerProblem, type OwnerUserCard, type OwnerUserDetail } from './ownerApi';
 import { Flash, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from './OwnerUi';
+import { MemberBadge } from './MemberBadge';
 
 const ROLES = [
   { value: 'Member', hint: 'Acesso básico aos recursos da aplicação.' },
@@ -140,8 +141,8 @@ function UserCard({ user, onDetails, onEdit }: { user: OwnerUserCard; onDetails:
         <h2 className="owner-user__name">{user.nickname || user.userName}</h2>
         <p className="note">{user.fullName}</p>
         <p className="member-badges">
-          <span className="member-badge member-badge--position">{user.role}</span>
-          {user.locked && <span className="member-badge owner-badge--danger">Bloqueado</span>}
+          <MemberBadge kind="position">{user.role}</MemberBadge>
+          {user.locked && <MemberBadge kind="danger">Bloqueado</MemberBadge>}
         </p>
         <p className="owner-user__meta">
           <code>{user.userName}</code>

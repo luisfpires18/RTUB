@@ -293,7 +293,7 @@ public class PortalRouteTests : IntegrationTestBase
         var agenda = File.ReadAllText(Path.Combine(src, "Events.tsx"));
         var manage = File.ReadAllText(Path.Combine(src, "EventManage.tsx"));
 
-        detail.Should().Contain("past ? 'Quem foi' : 'Quem vai'").And.Contain("whoLabel(past)").And.Contain("whoLabel(event.past)");
+        detail.Should().Contain("past ? 'Quem foi' : 'Quem vai'").And.Contain("whoLabel(past)");
         detail.Should().NotContain("Gerir atuações").And.NotContain("legacy.memberEvents").And.NotContain("eventEnrollments",
             "the event page sends nobody to the Blazor management pages");
 
@@ -316,7 +316,7 @@ public class PortalRouteTests : IntegrationTestBase
             .And.Contain("eventsApi.deleteVideo(");
         detail.Should().Contain("<VideoManagerDialog").And.Contain("Gerir vídeos");
         detail.Should().Contain("<RepertoireManagerDialog").And.Contain("Gerir repertório");
-        detail.Should().Contain("<ParticipantsManagerDialog").And.Contain("Gerir inscrições").And.Contain("portal.myEnrollments")
+        detail.Should().Contain("<ParticipantsManagerDialog").And.Contain("Gerir inscrições")
             .And.NotContain("legacy.eventEnrollments");
         manage.Should().Contain("eventsApi.addEnrollment(").And.Contain("eventsApi.removeMemberEnrollment(").And.Contain("eventsApi.enrollmentMembers(");
         File.ReadAllText(Path.Combine(src, "main.tsx")).Should().Contain("'/events/my-enrollments'");

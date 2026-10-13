@@ -701,7 +701,7 @@ function InstrumentsSection({ profile, onChange }: { profile: MyProfile; onChang
                     disabled={busy}
                   />
                   {i.label}
-                  {i.primary && <span className="member-badge member-badge--active">Principal</span>}
+                  {i.primary && <MemberBadge kind="active">Principal</MemberBadge>}
                 </label>
                 <button type="button" className="icon-btn icon-btn--danger" onClick={() => run(() => memberAreaApi.removeInstrument(i.id))} disabled={busy}>
                   <Icon name="trash" />

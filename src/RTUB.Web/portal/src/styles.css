@@ -558,8 +558,10 @@ main:focus {
    Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [category badge]
    [profile] [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
 
-.shell--member .header__inner {
-  max-width: none;
+/* One content width for every signed-in page and the header above it: wide enough that the content starts at the
+   header's left edge on a laptop, capped so a very wide screen does not stretch it (--wrap stays for the public site). */
+.shell--member {
+  --wrap: 1480px;
 }
 
 /* No public nav to push them over: the member's identity and menu button sit at the right edge. */
@@ -4942,16 +4944,6 @@ video.tile__media {
   hyphens: auto;
 }
 
-.who__badge {
-  padding: 1px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--purple-ink);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-
 .who__meta {
   margin: 2px 0 0;
   color: var(--ink-soft);
@@ -5316,13 +5308,31 @@ video.tile__media {
 
 .member-panel__links a {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  min-height: 44px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  color: var(--ink-soft);
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-weight: 600;
   text-decoration: none;
+}
+
+.member-panel__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(111, 66, 193, 0.2);
+  color: var(--purple-ink);
+  font-size: 1.25rem;
+}
+
+.member-panel__links a:hover .member-panel__icon {
+  background: var(--purple);
+  color: #fff;
 }
 
 .member-panel__links a:hover {
@@ -5447,10 +5457,6 @@ video.tile__media {
 }
 
 /* ---------- Event discussion (/events/{id}/discussion, React track 013) ---------- */
-
-.talk-page {
-  max-width: 760px;
-}
 
 .talk {
   display: grid;
@@ -5655,16 +5661,6 @@ video.tile__media {
   color: var(--ink);
   font-weight: 700;
   overflow-wrap: anywhere;
-}
-
-.talk__badge {
-  padding: 1px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--purple-ink);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
 }
 
 .talk__time {
@@ -5933,10 +5929,6 @@ video.tile__media {
 }
 
 /* ---------- Event contact tracking (/events/{id}/contacts, React track 013) ---------- */
-
-.contacts-page {
-  max-width: 960px;
-}
 
 .contacts {
   display: grid;
@@ -6280,6 +6272,12 @@ video.tile__media {
 .member-badge--leitao {
   background: #6c757d;
   color: #fff;
+}
+
+.member-badge--danger {
+  border-color: rgba(255, 143, 134, 0.5);
+  background: #000;
+  color: #ffb3ad;
 }
 
 .member-badge--active,
@@ -11193,11 +11191,6 @@ label.owner-person {
   gap: 8px;
 }
 
-.owner-badge--danger {
-  border-color: rgba(255, 143, 134, 0.5);
-  color: #ffb3ad;
-}
-
 .owner-detail {
   display: grid;
   gap: 14px;
@@ -12154,22 +12147,73 @@ label.owner-person {
   color: var(--muted);
 }
 
-/* Phones: the list, or the open chat at full height without the page heading. */
+/* Phones: /messages is an app screen (the page sets html.app-screen, see Messages.tsx). The document does not scroll and
+   there is no site footer: the RTUB header, then the list or the open chat filling what is left, so the message list is
+   the one scroll region and the composer stays at the bottom. dvh follows the browser chrome (and, with
+   interactive-widget=resizes-content, the keyboard where the browser supports it). */
 @media (max-width: 899px) {
-  .chat-page--open {
+  html.app-screen,
+  html.app-screen body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  html.app-screen #root,
+  html.app-screen .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  html.app-screen .shell__body,
+  html.app-screen main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  html.app-screen .footer {
+    display: none;
+  }
+
+  .chat-page {
+    flex: 1;
+    gap: 12px;
+    min-height: 0;
     padding-block: 12px 0;
+  }
+
+  .chat {
+    flex: 1;
+    min-height: 0;
+    margin-inline: calc(var(--gutter) * -1);
+    border-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .chat-list__items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .chat-thread {
+    height: auto;
+  }
+
+  .chat-page--open {
+    padding-block: 0;
   }
 
   .chat-page--open .chat-page__head,
   .chat-page--open .chat-list,
   .chat-page:not(.chat-page--open) .chat-thread {
     display: none;
-  }
-
-  .chat-page--open .chat {
-    margin-inline: calc(var(--gutter) * -1);
-    border-inline: 0;
-    border-radius: 0;
   }
 }
 

@@ -6,6 +6,7 @@ import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
+import { MemberBadge } from './MemberBadge';
 
 // /api/inventory (Endpoints/InventoryEndpoints.cs, React track 020). Signed-in members only; Mod, Admin and Owner
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
@@ -233,7 +234,7 @@ export default function Inventory() {
                       <Thumb url={i.thumbnailUrl} size={96} />
                       <strong className="inventory-card__name">{i.name}</strong>
                       <span className="member-badges">
-                        <span className="member-badge member-badge--position">{i.categoryLabel}</span>
+                        <MemberBadge kind="position">{i.categoryLabel}</MemberBadge>
                         <span className={conditionClass(i.condition)}>{i.conditionLabel}</span>
                       </span>
                       {i.brand && <small>Marca: {i.brand}</small>}
@@ -312,7 +313,7 @@ function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
             {detail.imageUrl ? <img className="inventory-image" src={detail.imageUrl} alt="" /> : <Thumb url={null} size={96} />}
             <p className="member-detail__name">{detail.name}</p>
             <span className="member-badges">
-              <span className="member-badge member-badge--position">{detail.categoryLabel}</span>
+              <MemberBadge kind="position">{detail.categoryLabel}</MemberBadge>
               <span className={conditionClass(detail.condition)}>{detail.conditionLabel}</span>
             </span>
           </div>

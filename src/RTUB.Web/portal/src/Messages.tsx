@@ -114,6 +114,11 @@ export default function Messages() {
   );
 
   useEffect(() => {
+    document.documentElement.classList.add('app-screen'); // phones: no page scroll, no footer (styles.css)
+    return () => document.documentElement.classList.remove('app-screen');
+  }, []);
+
+  useEffect(() => {
     document.title = 'Mensagens · RTUB';
     loadList();
     const timer = setInterval(() => document.visibilityState === 'visible' && loadList(), LIST_POLL_MS);

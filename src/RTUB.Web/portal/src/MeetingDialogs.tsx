@@ -23,6 +23,7 @@ import {
   type MeetingPushDraft,
   type MeetingRequest,
 } from './meetingsApi';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 // The /meetings dialogs (task 034): details, create / edit, "Vou / Não vou", participants, email, push, cancel,
 // proposals and request details. Texts are the old page's; every rule is the server's.
@@ -539,12 +540,6 @@ export function ParticipationDialog({
 
 // ---------- participants ----------
 
-const BADGE_CLASS: Record<string, string> = {
-  Magister: 'member-badge member-badge--position',
-  Tuno: 'member-badge member-badge--tuno',
-  Caloiro: 'member-badge member-badge--caloiro',
-};
-
 /** "Participantes - {título}": who goes and who does not, with notes; Admin / Owner add members. */
 export function ParticipantsDialog({ card, onClose, onChanged }: { card: MeetingCard; onClose: () => void; onChanged: () => void }) {
   const [list, setList] = useState<MeetingParticipants | null>();
@@ -606,7 +601,7 @@ export function ParticipantsDialog({ card, onClose, onChanged }: { card: Meeting
               <Face src={p.avatarUrl} size={64} />
               <p className="who__name">{p.nickname || p.fullName}</p>
               {p.fullName && p.fullName !== p.nickname && <p className="who__meta">{p.fullName}</p>}
-              {p.badge && <span className={BADGE_CLASS[p.badge] ?? 'member-badge'}>{p.badge}</span>}
+              {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}
               {p.notes && <p className="who__note">“{p.notes}”</p>}
               {p.canRemove && (
                 <button

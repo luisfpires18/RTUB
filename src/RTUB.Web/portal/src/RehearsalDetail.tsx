@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { loginTo } from './musicApi';
 import { CancelDialog, NoticeDialog, PresenceDialog, PresencePill, RehearsalFormDialog } from './RehearsalDialogs';
 import { rehearsalsApi, type Attendee, type InstrumentCount, type RehearsalDetail as Detail } from './rehearsalsApi';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 /**
  * /rehearsals/{id} - one rehearsal (React track 014): its details, the member's own presença and everyone's
@@ -303,7 +304,7 @@ function Group({ title, people, rehearsalId, onChanged }: { title: string; peopl
           <li key={p.id} className="who__person" title={p.member.fullName ?? undefined}>
             <img className="who__avatar" src={p.member.avatarUrl} alt="" loading="lazy" width="72" height="72" />
             <p className="who__name">{p.member.name}</p>
-            {p.member.badge && <span className="who__badge">{p.member.badge}</span>}
+            {p.member.badge && <MemberBadge kind={badgeKind(p.member.badge)}>{p.member.badge}</MemberBadge>}
             {p.status !== 'notGoing' && (
               <span className={p.status === 'approved' ? 'pill pill--yes' : 'pill pill--wait'}>{p.status === 'approved' ? 'Confirmada' : 'Pendente'}</span>
             )}

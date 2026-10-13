@@ -5,6 +5,7 @@ import type { Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { memberAdminApi, type MemberEdit, type MemberInput, type MemberInstrument, type Mentor, type Option } from './membersApi';
+import { MemberBadge } from './MemberBadge';
 
 // The member admin tools (React track 018; were the Blazor /members/manage). Admin and Owner; Owner also deletes
 // regular members and, with the current Magister, changes complete dates. The server decides and validates
@@ -477,7 +478,7 @@ function Instruments({
               <label className="form__check">
                 <input type="radio" name={`${id}-primary`} checked={i.primary} onChange={() => primary(i)} disabled={busy} />
                 {i.label}
-                {i.primary && <span className="member-badge member-badge--active">Principal</span>}
+                {i.primary && <MemberBadge kind="active">Principal</MemberBadge>}
               </label>
               <button type="button" className="icon-btn icon-btn--danger" onClick={() => remove(i)} disabled={busy}>
                 <Icon name="trash" />

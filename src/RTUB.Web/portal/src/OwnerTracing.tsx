@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { ConfirmDialog } from './MusicUi';
 import { auditQuery, dateTime, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type LoginRecord } from './ownerApi';
 import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from './OwnerUi';
+import { MemberBadge } from './MemberBadge';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, q: '', page: 1, pageSize: 20 };
 const CONFIRMATION = 'DELETE ALL';
@@ -150,7 +151,7 @@ export default function OwnerTracing() {
                 <li key={entry.id} className="owner-log">
                   <div className="owner-log__head">
                     <time dateTime={entry.timestamp}>{dateTime(entry.timestamp)}</time>
-                    <span className="member-badge">{entry.userName ?? 'Sistema'}</span>
+                    <MemberBadge>{entry.userName ?? 'Sistema'}</MemberBadge>
                     {entry.isCritical && (
                       <span className="owner-log__critical" title="Ação crítica">
                         <Icon name="warning" />

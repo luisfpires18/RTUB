@@ -288,9 +288,7 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
                   ))}
                 </span>
               </span>
-              <span className={b.date === today ? 'member-badge member-badge--active' : 'member-badge'}>
-                {b.date === today ? 'Hoje' : b.birthday}
-              </span>
+              <MemberBadge kind={b.date === today ? 'active' : undefined}>{b.date === today ? 'Hoje' : b.birthday}</MemberBadge>
             </li>
           ))}
         </ul>

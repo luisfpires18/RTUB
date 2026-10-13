@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { ConfirmDialog } from './MusicUi';
 import { ownerApi, ownerProblem, type DbGrid } from './ownerApi';
 import { Flash, OwnerPage, OwnerPager, useOwnerLoad } from './OwnerUi';
+import { MemberBadge } from './MemberBadge';
 
 type Message = { text: string; error?: boolean };
 type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; grid: DbGrid; page: number; pageSize: number };
@@ -246,7 +247,7 @@ function Grid({
       <h2 className="owner-card__title owner-db__grid-title">
         <Icon name={view?.kind === 'query' ? 'listOl' : 'database'} />
         <span>{title}</span>
-        {view && <span className="member-badge">{view.grid.total} registos</span>}
+        {view && <MemberBadge>{view.grid.total} registos</MemberBadge>}
       </h2>
       {!view ? (
         <p className="note">Escolhe uma tabela para ver os registos, ou executa uma consulta.</p>

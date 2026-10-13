@@ -13,6 +13,7 @@ import {
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 /**
  * ?respond=1 (from the members' Blazor page or an old link) opens the answer modal once. Read
@@ -298,31 +299,21 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
         </div>
       </dl>
       <ul className="member-panel__links">
-        {!event.cancelled && (
-          <li>
-            <a href="#who-title">
-              <Icon name="person" />
-              {whoLabel(event.past)}
-            </a>
-          </li>
-        )}
         <li>
           <a href={portal.eventDiscussion(event.id)}>
-            <Icon name="chat" />
+            <span className="member-panel__icon">
+              <Icon name="chatFill" />
+            </span>
             Discussão{m.discussionCount > 0 && ` (${m.discussionCount})`}
-          </a>
-        </li>
-        <li>
-          <a href={portal.myEnrollments}>
-            <Icon name="calendar" />
-            As minhas inscrições
           </a>
         </li>
         {detail.canTrackContacts && (
           <li>
             {/* Mod and above (the server refuses anyone else). */}
             <a href={portal.eventContacts(event.id)}>
-              <Icon name="phone" />
+              <span className="member-panel__icon">
+                <Icon name="contactsFill" />
+              </span>
               Contactos
             </a>
           </li>
@@ -395,7 +386,7 @@ function People({ people }: { people: EventParticipant[] }) {
         <li key={i} className="who__person" title={p.fullName ?? undefined}>
           <img className="who__avatar" src={p.avatarUrl} alt="" loading="lazy" width="72" height="72" />
           <p className="who__name">{p.name}</p>
-          {p.badge && <span className="who__badge">{p.badge}</span>}
+          {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}
           {p.instrument && <p className="who__meta">{p.instrument}</p>}
           {p.notes && <p className="who__note">“{p.notes}”</p>}
         </li>

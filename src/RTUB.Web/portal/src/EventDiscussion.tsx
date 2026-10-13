@@ -13,6 +13,7 @@ import {
 } from './eventsApi';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 const BODY_MAX = 5000;
 const COMMENT_MAX = 2000;
@@ -70,7 +71,7 @@ function Who({ author, at, edited, children }: { author: EventAuthor; at: string
       <div className="talk__meta">
         <p className="talk__name" title={author.fullName ?? undefined}>
           {author.name}
-          {author.badge && <span className="talk__badge">{author.badge}</span>}
+          {author.badge && <MemberBadge kind={badgeKind(author.badge)}>{author.badge}</MemberBadge>}
         </p>
         <p className="talk__time">
           <time dateTime={at} title={new Date(at).toLocaleString('pt-PT')}>

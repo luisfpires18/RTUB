@@ -787,6 +787,12 @@ public class MemberAreaRetirementTests
         css.Should().Contain(".member-badge--tuno").And.Contain(".member-badge--veterano").And.Contain(".member-badge--tunossauro")
             .And.NotContain(".profile-photo", "the standalone Foto card is gone");
 
+        // Sweep: no page draws its own member badge. Only MemberBadge.tsx writes the class; the old local pill classes are gone.
+        foreach (var file in Directory.GetFiles(portal, "*.tsx").Where(f => !f.EndsWith("MemberBadge.tsx", StringComparison.Ordinal)))
+        {
+            File.ReadAllText(file).Should().NotContainAny(new[] { "className=\"member-badge\"", "className=\"member-badge ", "'member-badge ", "who__badge", "talk__badge", "owner-badge--danger" }, Path.GetFileName(file));
+        }
+
         // Header (batch 4): inbox, then the category badge as its own control, then the profile chip, then the menu.
         var app = File.ReadAllText(Path.Combine(portal, "App.tsx"));
         app.IndexOf("<MemberInbox />", StringComparison.Ordinal).Should().BeInRange(0, app.Length)
@@ -803,6 +809,35 @@ public class MemberAreaRetirementTests
         {
             css.Should().Contain($".tuna-path__step--{variant}");
         }
+    }
+
+    [Fact]
+    public void EventMemberPanel_KeepsDiscussionAndContacts_AndSignedInPagesShareOneWidth()
+    {
+        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var detail = File.ReadAllText(Path.Combine(portal, "EventDetail.tsx"));
+        var panel = detail[detail.IndexOf("member-panel__links", StringComparison.Ordinal)..];
+        panel = panel[..panel.IndexOf("</aside>", StringComparison.Ordinal)];
+        panel.Should().Contain("portal.eventDiscussion(").And.Contain("portal.eventContacts(")
+            .And.NotContain("whoLabel").And.NotContain("portal.myEnrollments");
+
+        File.ReadAllText(Path.Combine(portal, "EventContacts.tsx")).Should().NotContain("Mod e acima</p>", "the eyebrow label is gone");
+
+        // One container: the signed-in shell sets the width, no page narrows itself with its own max-width.
+        var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
+        css.Should().Contain(".shell--member {");
+        System.Text.RegularExpressions.Regex.IsMatch(css, @"\.(talk|contacts)-page\s*\{\s*max-width").Should()
+            .BeFalse("Discussão and Contactos used to be narrow centred columns");
+    }
+
+    [Fact]
+    public void Messages_OnPhones_IsAnAppScreen_WithoutTheSiteFooter()
+    {
+        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal");
+        File.ReadAllText(Path.Combine(portal, "src", "Messages.tsx")).Should().Contain("classList.add('app-screen')").And.Contain("classList.remove('app-screen')");
+        var css = File.ReadAllText(Path.Combine(portal, "src", "styles.css"));
+        css.Should().Contain("html.app-screen .footer").And.Contain("100dvh", "dynamic viewport units, not 100vh");
+        File.ReadAllText(Path.Combine(portal, "index.html")).Should().Contain("interactive-widget=resizes-content");
     }
 
     private static string RepoRoot()

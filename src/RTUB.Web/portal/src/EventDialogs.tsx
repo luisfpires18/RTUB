@@ -5,6 +5,7 @@ import { PrizeManager } from './EventManage';
 import { portal } from './content';
 import { dateLabel, eventsApi, timeLabel, yearOf, type EventEnrollment, type EventStats, type EventSummary } from './eventsApi';
 import { Icon } from './icons';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 const NOTES_MAX = 1000;
 
@@ -418,7 +419,15 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
               <li key={i} className="who__person" title={m.fullName ?? undefined}>
                 <img className="who__avatar" src={m.avatarUrl} alt="" loading="lazy" width="72" height="72" />
                 <p className="who__name">{m.name}</p>
-                {m.categories.length > 0 && <span className="who__badge">{m.categories.join(' · ')}</span>}
+                {m.categories.length > 0 && (
+                  <span className="member-badges">
+                    {m.categories.map((c) => (
+                      <MemberBadge key={c} kind={badgeKind(c)}>
+                        {c}
+                      </MemberBadge>
+                    ))}
+                  </span>
+                )}
                 <p className="who__meta">
                   {m.went === 1 ? '1 participação' : `${m.went} participações`}
                   {m.going > 0 && ` · ${m.going} por fazer`}

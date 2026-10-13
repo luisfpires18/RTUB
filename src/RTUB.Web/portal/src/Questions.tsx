@@ -5,6 +5,7 @@ import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { loginTo } from './musicApi';
+import { MemberBadge } from './MemberBadge';
 
 // /api/questions (task 031, Endpoints/QuestionEndpoints.cs). Dates are UTC.
 type Status = 'unanswered' | 'answered' | 'inDiscussion' | 'closed';
@@ -423,7 +424,7 @@ function QuestionDialog({
                     <MemberFace avatarUrl={r.author.avatarUrl} size={32} />
                     <span>
                       <strong>{r.author.displayName}</strong>
-                      {r.fromRecipient && <span className="member-badge member-badge--position">{x.recipient.role}</span>}
+                      {r.fromRecipient && <MemberBadge kind="position">{x.recipient.role}</MemberBadge>}
                       <small className="note">{stamp(r.createdAt)}</small>
                     </span>
                   </span>

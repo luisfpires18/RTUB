@@ -4,6 +4,7 @@ import { newsDate, type NewsFeed, type NewsPost } from './api';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
+import { MemberBadge } from './MemberBadge';
 
 // /api/news (Endpoints/NewsEndpoints.cs, React track 025). Everyone, visitors included, reads published posts; Admin and
 // Owner also see drafts and write. The server decides every rule (NewsService); hiding a button here is only a convenience.
@@ -190,7 +191,7 @@ function Post({
         <div className="talk__meta">
           <p className="talk__name">
             RTUB
-            {draft && <span className="talk__badge">Rascunho</span>}
+            {draft && <MemberBadge>Rascunho</MemberBadge>}
           </p>
           <p className="talk__time">
             {post.publishedAt ? <time dateTime={post.publishedAt}>{newsDate(post.publishedAt)}</time> : 'Ainda não publicado'}
