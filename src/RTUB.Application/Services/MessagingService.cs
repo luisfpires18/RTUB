@@ -600,12 +600,18 @@ public sealed class MessagingService : IMessagingService
             return null;
         }
 
-        if (link.StartsWith('/') && !link.StartsWith("//") && !link.StartsWith("/\\"))
-        {
-            return link;
-        }
+        var candidate = link.StartsWith('/')
+            ? link
+            : Uri.TryCreate(link, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps ? uri.PathAndQuery : null;
 
-        return Uri.TryCreate(link, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps ? uri.PathAndQuery : null;
+        // One check on the final value for both branches: a path such as "//evil.org" (from "https://x//evil.org"),
+        // "/\\evil.org" or "/<tab>/evil.org" (browsers drop tabs and newlines) would leave the site.
+        return candidate is not null
+            && candidate.Length > 0 && candidate[0] == '/'
+            && (candidate.Length == 1 || (candidate[1] != '/' && candidate[1] != '\\'))
+            && !candidate.Any(c => char.IsControl(c) || char.IsWhiteSpace(c) || c == '\\')
+            ? candidate
+            : null;
     }
 
     private static string Truncate(string value, int max, bool ellipsis = false) =>
