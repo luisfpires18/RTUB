@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
+import { MemberBadge } from './MemberBadge';
 import { DEFAULT_AVATAR, membersApi, shortDate, type ActiveMember, type Birthday, type MemberDetail, type MemberState, type TimelineItem } from './membersApi';
 
 // The old /members modals (React track 017). The server decides who sees what (MemberDirectoryService); Admin/Owner
@@ -71,14 +72,10 @@ function MemberBody({ m }: { m: MemberDetail }) {
         {m.fullName && <p className="who__meta">{m.fullName}</p>}
         <span className="member-badges">
           {m.badges.map((b) => (
-            <span key={b.kind} className={`member-badge member-badge--${b.kind}`}>
-              {b.label}
-            </span>
+            <MemberBadge key={b.kind}>{b.label}</MemberBadge>
           ))}
           {m.positions.map((p) => (
-            <span key={p} className="member-badge member-badge--position">
-              {p}
-            </span>
+            <MemberBadge key={p}>{p}</MemberBadge>
           ))}
         </span>
       </div>
@@ -131,9 +128,7 @@ export function StateSection({ state }: { state: MemberState }) {
       <dl className="member-fields">
         {state.retired !== null && (
           <Field label="Estado atual">
-            <span className={state.retired ? 'member-badge member-badge--retired' : 'member-badge member-badge--active'}>
-              {state.retired ? 'REFORMADO' : 'NO ATIVO'}
-            </span>
+            <MemberBadge tone={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
             {state.progress && <span className="member-progress">{state.progress}</span>}
             {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
               <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} />
@@ -144,27 +139,34 @@ export function StateSection({ state }: { state: MemberState }) {
         <Field label="Último ensaio">{shortDate(state.lastRehearsal)}</Field>
         <Field label="Última atuação">{shortDate(state.lastEvent)}</Field>
       </dl>
-      <details className="who__more">
-        <summary>Ver atuações e ensaios detalhados</summary>
-        {state.activities.length === 0 ? (
-          <p className="note">Nenhuma atividade registada</p>
-        ) : (
-          <ul className="member-activities">
-            {state.activities.map((a, i) => (
-              <li key={i}>
-                <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
-                <span>
-                  <strong>{a.name}</strong>
-                  <small>
-                    {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
-                  </small>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
+      <ActivityList activities={state.activities} />
     </section>
+  );
+}
+
+/** "Ver atuações e ensaios detalhados": what the member attended, newest first (built by the server). */
+export function ActivityList({ activities }: { activities: MemberState['activities'] }) {
+  return (
+    <details className="who__more">
+      <summary>Ver atuações e ensaios detalhados</summary>
+      {activities.length === 0 ? (
+        <p className="note">Nenhuma atividade registada</p>
+      ) : (
+        <ul className="member-activities">
+          {activities.map((a, i) => (
+            <li key={i}>
+              <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
+              <span>
+                <strong>{a.name}</strong>
+                <small>
+                  {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
+                </small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
   );
 }
 
@@ -229,9 +231,7 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
                 {m.progress && <small className="member-progress">{m.progress}</small>}
                 {m.encourage && <small className="member-encourage">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</small>}
               </span>
-              <span className={m.retired ? 'member-badge member-badge--retired' : 'member-badge member-badge--active'}>
-                {m.retired ? 'REFORMADO' : 'NO ATIVO'}
-              </span>
+              <MemberBadge tone={m.retired ? 'retired' : 'active'}>{m.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
               {rowActions && <span className="member-row__actions">{rowActions(m, () => setVersion((v) => v + 1))}</span>}
             </li>
           ))}
@@ -284,9 +284,7 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
                 </small>
                 <span className="member-badges">
                   {b.badges.map((x) => (
-                    <span key={x.kind} className={`member-badge member-badge--${x.kind}`}>
-                      {x.label}
-                    </span>
+                    <MemberBadge key={x.kind}>{x.label}</MemberBadge>
                   ))}
                 </span>
               </span>

@@ -334,7 +334,7 @@ function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: ()
     <Dialog title={item.title} size="lg" onClose={onClose}>
       <div className="naipe-view">
         <span className="member-badges">
-          <span className="member-badge member-badge--position">{item.instrumentLabel}</span>
+          <span className="member-badge">{item.instrumentLabel}</span>
           <span className="member-badge">{item.isVideo ? 'Vídeo' : 'Imagem'}</span>
         </span>
         {item.isVideo ? (

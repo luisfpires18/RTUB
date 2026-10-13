@@ -225,7 +225,7 @@ export default function Leaderboard() {
                         </small>
                       </span>
                       <span className="leaderboard-row__score">
-                        <span className="member-badge member-badge--position">
+                        <span className="member-badge">
                           Nível {e.level} – {e.rankName}
                         </span>
                         <strong>{e.xp} XP</strong>
@@ -276,7 +276,7 @@ function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: str
             <p className="member-detail__name">{detail.displayName}</p>
             {detail.fullName && <p className="who__meta">{detail.fullName}</p>}
             <span className="member-badges">
-              <span className="member-badge member-badge--position">Nível {detail.progress.level}</span>
+              <span className="member-badge">Nível {detail.progress.level}</span>
               <span className="member-badge">{detail.progress.rankName}</span>
             </span>
           </div>

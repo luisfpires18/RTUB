@@ -3,9 +3,11 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13 (044 batch 2)_
+_Last updated: 2026-10-13 (044 batch 3)_
 
 ## Phase
+**044 batch 3 (uncommitted on `dev`, not pushed): profile polish.** `/profile`: photo moved into the header, "Entraste como" removed, "Informação da Tuna" with a connected-card Percurso timeline (real `member.timeline`), one shared `MemberBadge` / `.member-badge` for the whole app, aligned action buttons. React only; no API, schema or migration change. Detail: `docs/react-member-area.md` → *Profile polish, batch 3*.
+
 **044 batch 2 (uncommitted on `dev`, not pushed): authenticated shell.** Left sidebar removed; header = `[inbox + unread
 badge] [profile chip → /profile] [menu]`, menu = right-hand drawer at every width without Perfil / Mensagens. Badge =
 unread messages from new `GET /api/conversations/unread`, polled every 10 s (no hub exists; no schema change, no migration).

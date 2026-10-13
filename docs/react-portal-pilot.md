@@ -119,7 +119,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Segurança; was the Blazor `/member/profile`), with "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (header with photo, Pessoal, Informação da Tuna, Instrumentos, Notificações por email, Segurança; was the Blazor `/member/profile`), with "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |

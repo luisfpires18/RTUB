@@ -423,7 +423,7 @@ function QuestionDialog({
                     <MemberFace avatarUrl={r.author.avatarUrl} size={32} />
                     <span>
                       <strong>{r.author.displayName}</strong>
-                      {r.fromRecipient && <span className="member-badge member-badge--position">{x.recipient.role}</span>}
+                      {r.fromRecipient && <span className="member-badge">{x.recipient.role}</span>}
                       <small className="note">{stamp(r.createdAt)}</small>
                     </span>
                   </span>

@@ -613,10 +613,9 @@ main:focus {
   font-weight: 600;
 }
 
-.idchip__rank {
-  color: var(--purple-ink);
-  font-size: 0.75rem;
-  font-weight: 500;
+.idchip__rank .member-badge {
+  padding: 0 7px;
+  font-size: 0.625rem;
 }
 
 .idchip--pending {
@@ -751,6 +750,11 @@ main:focus {
 
 .signout__btn {
   color: var(--muted);
+}
+
+.profile__signout {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .signout__error {
@@ -1823,6 +1827,12 @@ main:focus {
 
 .page__title {
   font-size: clamp(2.25rem, 4vw + 1rem, 4rem);
+}
+
+/* /profile: a plain heading, the same glyph size throughout (no oversized capital). */
+.profile-page .page__title {
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+  font-optical-sizing: none;
 }
 
 .page__lead {
@@ -6216,58 +6226,30 @@ video.tile__media {
   gap: 4px;
 }
 
+/* The one badge of the portal (MemberBadge.tsx, task 044 batch 3): a compact dark pill. Membership kinds and positions
+   are never a colour; only the two statuses below differ, and only by outline / text. */
 .member-badge {
-  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  color: var(--ink-soft);
+  background: #000;
+  color: #f1eef8;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* The colours of the old badges (badges.css): black Tuno, pink Honorário, white Caloiro, grey Leitão... */
-.member-badge--tuno,
+.member-badge--active {
+  border-color: var(--purple-ink);
+}
+
 .member-badge--retired {
-  background: #000;
-  color: #fff;
-}
-
-.member-badge--veterano {
-  background: #1a1a2e;
-  color: #fff;
-}
-
-.member-badge--tunossauro {
-  background: #2c2c54;
-  color: #fff;
-}
-
-.member-badge--tunohonorario {
-  background: #ff1d8e;
-  color: #fff;
-}
-
-.member-badge--fundador {
-  background: #3d2c5c;
-  color: #fff;
-}
-
-.member-badge--caloiro {
-  background: #fff;
-  color: #000;
-}
-
-.member-badge--leitao {
-  background: #6c757d;
-  color: #fff;
-}
-
-.member-badge--active,
-.member-badge--position {
-  background: var(--purple);
-  color: #fff;
+  color: var(--muted);
 }
 
 .members-more {
@@ -8959,24 +8941,97 @@ video.tile__media {
   min-width: 0;
 }
 
-.profile__identity .who__avatar {
-  width: 96px;
-  height: 96px;
-  margin: 0;
+.profile__identity {
+  align-content: center;
 }
 
 .profile__identity .account__who {
-  flex: 1 1 14rem;
+  flex: 1 1 9rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.profile__login {
-  margin: 8px 0 0;
+/* The nickname in the body face: the display serif's capital (a J or a G, say) reads as a different font next to its lowercase. */
+.profile__identity .account__name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
+.profile__identity .member-badges {
+  justify-content: flex-start;
+}
+
+/* The avatar of the header; the change-photo button sits on its corner. */
+.profile-avatar {
+  --avatar: 96px;
+  position: relative;
+  display: grid;
+  flex: none;
+  justify-items: start;
+  gap: 6px;
+}
+
+.profile-avatar__img {
+  width: var(--avatar);
+  height: var(--avatar);
+  border: 3px solid var(--purple);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+@media (min-width: 600px) {
+  .profile-avatar {
+    --avatar: 112px;
+  }
+}
+
+.profile-avatar__edit {
+  position: absolute;
+  top: calc(var(--avatar) - 40px);
+  right: -2px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--bg-raise);
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+  cursor: pointer;
+}
+
+.profile-avatar__edit:hover {
+  background: var(--purple-hover);
+}
+
+.profile-avatar__edit.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.profile-avatar input:focus-visible + .profile-avatar__edit {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.profile-avatar__msg {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* Both header actions share one button language; the form of .btn does the rest. */
 .profile__actions {
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.profile__actions .btn {
+  min-height: 44px;
+}
+
+.profile__signout .btn .mnav__label {
+  overflow: visible;
 }
 
 .profile-rank {
@@ -9105,47 +9160,239 @@ video.tile__media {
   color: #9ee0b5;
 }
 
-.profile-photo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px 24px;
-}
-
-.profile-photo__img {
-  flex: none;
-  width: 120px;
-  height: 120px;
-  border: 3px solid var(--royal);
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--bg-card);
-}
-
-.profile-photo__pick {
+/* Informação da Tuna (instrumentos, padrinho, percurso, estado) - the old profile's structure. */
+.tuna-info {
   display: grid;
-  flex: 1 1 14rem;
-  justify-items: start;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
 }
 
-.profile-photo__pick p {
+.tuna-info__pair {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 700px) {
+  .tuna-info__pair {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+  }
+}
+
+.tuna-info__card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.tuna-info__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--purple-ink);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tuna-info__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tuna-info__tag {
+  color: var(--muted);
+}
+
+.tuna-info__value {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Percurso na Tuna: connected milestone cards. A column on a phone, a row from 700px (sideways scroll if it must). */
+.tuna-path {
+  --path-gap: 28px;
+  display: grid;
+  gap: var(--path-gap);
+  margin: 0;
+  padding: 2px 2px 8px;
+  list-style: none;
+}
+
+.tuna-path__step {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-top: 4px solid var(--step, var(--line-strong));
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.tuna-path__step + .tuna-path__step::before {
+  position: absolute;
+  bottom: 100%;
+  left: 24px;
+  width: 2px;
+  height: var(--path-gap);
+  background: var(--purple-ink);
+  content: '';
+}
+
+.tuna-path__step + .tuna-path__step::after {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--purple-ink);
+  border-radius: 50%;
+  background: var(--bg-raise);
+  content: '';
+}
+
+.tuna-path__label {
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
+}
+
+.tuna-path__years {
+  color: var(--ink-soft);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tuna-path__notes {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.tuna-path__step.is-active {
+  background: linear-gradient(180deg, rgba(111, 66, 193, 0.22), var(--bg-raise));
+  box-shadow: 0 0 0 1px rgba(185, 160, 238, 0.35);
+}
+
+.tuna-path__step.is-completed .tuna-path__label {
+  color: var(--ink-soft);
+}
+
+.tuna-path__step--leitao {
+  --step: #6c757d;
+}
+
+.tuna-path__step--caloiro {
+  --step: #e9e4f5;
+}
+
+.tuna-path__step--tuno,
+.tuna-path__step--role {
+  --step: var(--purple);
+}
+
+.tuna-path__step--veterano {
+  --step: #8b6bd6;
+}
+
+.tuna-path__step--tunossauro {
+  --step: #b9a0ee;
+}
+
+.tuna-path__step--fundador {
+  --step: #d6b36a;
+}
+
+.tuna-path__step--honorario {
+  --step: #ff1d8e;
+}
+
+.tuna-path__step--magister {
+  --step: var(--purple-ink);
+}
+
+@media (min-width: 700px) {
+  .tuna-path {
+    grid-auto-columns: minmax(148px, 1fr);
+    grid-auto-flow: column;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .tuna-path__step {
+    scroll-snap-align: start;
+  }
+
+  .tuna-path__step + .tuna-path__step::before {
+    top: 50%;
+    right: 100%;
+    bottom: auto;
+    left: auto;
+    width: var(--path-gap);
+    height: 2px;
+    transform: translateY(-1px);
+  }
+
+  .tuna-path__step + .tuna-path__step::after {
+    top: 50%;
+    right: calc(100% - 4px);
+    bottom: auto;
+    left: auto;
+    transform: translateY(-50%);
+  }
+}
+
+.tuna-state {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 700px) {
+  .tuna-state {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+.tuna-state__status {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.tuna-state__status p {
   margin: 0;
 }
 
-.profile-photo__pick label {
-  cursor: pointer;
+.tuna-state__status .member-progress__bar {
+  max-width: 28rem;
 }
 
-.profile-photo__pick input:focus-visible + label {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+.tuna-state__progress {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
 }
 
-.profile-photo__pick .is-disabled {
-  opacity: 0.6;
-  pointer-events: none;
+.tuna-state__last {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.tuna-info__card .who__more {
+  margin: 0;
 }
 
 .profile-switch {

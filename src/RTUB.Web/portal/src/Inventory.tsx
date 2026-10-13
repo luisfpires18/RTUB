@@ -233,7 +233,7 @@ export default function Inventory() {
                       <Thumb url={i.thumbnailUrl} size={96} />
                       <strong className="inventory-card__name">{i.name}</strong>
                       <span className="member-badges">
-                        <span className="member-badge member-badge--position">{i.categoryLabel}</span>
+                        <span className="member-badge">{i.categoryLabel}</span>
                         <span className={conditionClass(i.condition)}>{i.conditionLabel}</span>
                       </span>
                       {i.brand && <small>Marca: {i.brand}</small>}
@@ -312,7 +312,7 @@ function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
             {detail.imageUrl ? <img className="inventory-image" src={detail.imageUrl} alt="" /> : <Thumb url={null} size={96} />}
             <p className="member-detail__name">{detail.name}</p>
             <span className="member-badges">
-              <span className="member-badge member-badge--position">{detail.categoryLabel}</span>
+              <span className="member-badge">{detail.categoryLabel}</span>
               <span className={conditionClass(detail.condition)}>{detail.conditionLabel}</span>
             </span>
           </div>

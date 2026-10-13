@@ -86,7 +86,7 @@ export default function NaipesConfig() {
                   <strong className="naipe-setting__name">{s.label}</strong>
                   <span className="member-badges">
                     <span className="member-badge">Ordem {s.sortOrder}</span>
-                    <span className={s.isVisible ? 'member-badge member-badge--position' : 'member-badge'}>{s.isVisible ? 'Visível' : 'Oculto'}</span>
+                    <span className={s.isVisible ? 'member-badge' : 'member-badge'}>{s.isVisible ? 'Visível' : 'Oculto'}</span>
                   </span>
                   <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing(s)}>
                     <Icon name="pencil" />

@@ -3,6 +3,7 @@ import { Loading } from './App';
 import { portal } from './content';
 import { Icon } from './icons';
 import { ActiveMembersDialog, BirthdaysDialog, MemberDialog, MemberFace } from './MemberDialogs';
+import { MemberBadge } from './MemberBadge';
 import { ConfirmAction, MemberFormDialog, NicknameDialog } from './MemberManage';
 import { memberAdminApi, membersApi, type ActiveMember, type Directory, type DirectoryFilters, type MemberCard, type MemberDetail } from './membersApi';
 import { loginTo } from './musicApi';
@@ -387,12 +388,10 @@ function Group({ title, people, limit, onMore, onOpen }: { title: string; people
               {p.fullName && <span className="who__meta">{p.fullName}</span>}
               <span className="member-badges">
                 {p.badges.map((b) => (
-                  <span key={b.kind} className={`member-badge member-badge--${b.kind}`}>
-                    {b.label}
-                  </span>
+                  <MemberBadge key={b.kind}>{b.label}</MemberBadge>
                 ))}
-                {p.position && <span className="member-badge member-badge--position">{p.position}</span>}
-                {p.noRoles && <span className="member-badge">Sem cargos</span>}
+                {p.position && <MemberBadge>{p.position}</MemberBadge>}
+                {p.noRoles && <MemberBadge>Sem cargos</MemberBadge>}
               </span>
               {p.instrument && <span className="who__meta">{p.instrument}</span>}
               {p.inactive && (

@@ -761,6 +761,34 @@ public class MemberAreaRetirementTests
         File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().Contain("<PushSection />").And.NotContain("PushNotificationToggle");
     }
 
+    [Fact]
+    public void ProfilePage_Batch3_HeaderPhotoTunaInfoAndSharedBadge()
+    {
+        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var profile = File.ReadAllText(Path.Combine(portal, "Profile.tsx"));
+
+        profile.Should().NotContain("Entraste como", "one account per member: the sentence says nothing");
+        profile.Should().NotContain("<PhotoSection", "the photo lives in the header, not in a card of its own")
+            .And.Contain("<ProfilePhoto").And.Contain("memberAreaApi.photo(");
+        profile.Should().Contain("title=\"Informação da Tuna\"").And.Contain("title=\"Percurso na Tuna\"")
+            .And.Contain("title=\"Estado na Tuna\"").And.Contain("title=\"Instrumentos\"").And.Contain("title=\"Padrinho\"");
+        profile.Should().Contain("<TunaPath items={m.timeline} />", "the timeline is the server's real member data, never hardcoded")
+            .And.Contain("Último ensaio").And.Contain("Última atuação");
+        profile.Should().Contain("href={portal.myEnrollments}").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");
+
+        // One badge component for the profile header, the member dialogs, the directory and the header chip.
+        File.Exists(Path.Combine(portal, "MemberBadge.tsx")).Should().BeTrue();
+        foreach (var file in new[] { "Profile.tsx", "MemberDialogs.tsx", "Members.tsx", "MemberShell.tsx" })
+        {
+            var source = File.ReadAllText(Path.Combine(portal, file));
+            source.Should().Contain("<MemberBadge", file).And.NotContain("member-badge--${", file, "a membership kind is never its own colour");
+        }
+
+        var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
+        css.Should().NotContain(".member-badge--tuno").And.NotContain(".member-badge--position")
+            .And.NotContain(".profile-photo", "the standalone Foto card is gone");
+    }
+
     private static string RepoRoot()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());

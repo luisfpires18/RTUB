@@ -151,3 +151,17 @@ in `ContentSecurityPolicyTests`.
 - (resolved in 037) `wwwroot/js/profilePictureRefresh.js`, `ProfilePictureUpdateService` and `wwwroot/lib/cropperjs` were
   deleted with the Blazor host.
 - (resolved in 038) Push v2: React opt-in / opt-out and the push cleanup (`docs/react-push-v2.md`).
+
+## Profile polish, batch 3 (task 044)
+React only, no API / schema change: everything comes from `GET /api/profile` (`MyProfile`: `member.timeline`, `member.state`,
+`tuna`, `instruments`).
+- Header: the avatar (with the change-photo button on its corner: same pick, square crop and upload as before) lives in the
+  identity card; the standalone "Foto" section and "Entraste como …" are gone. Title is a plain `page__title`.
+- "Informação da Tuna" (was "Tuna"): Instrumentos (read-only; editing stays in the "Instrumentos" section below), Padrinho,
+  **Percurso na Tuna** (`TunaPath`: connected milestone cards from the server's `member.timeline`, `accent` = top-edge
+  colour, `state` = current steps; a row from 700px, a column on a phone), Estado na Tuna (status badge, the server's
+  progress text / bar, Último ensaio, Última atuação, the activities list). Edit still opens the padrinho / dates form; the
+  month-level dates are no longer listed read-only (the timeline shows years; the form still has the months).
+- Badges: one `MemberBadge` / `.member-badge` (dark pill, light uppercase text, thin outline) for every page, header chip
+  included. Membership kinds and positions are not colours any more; only `--active` (purple outline) and `--retired` (muted).
+- "Terminar sessão" and "As minhas inscrições" share `btn btn--ghost btn--sm` (`SignOutButton` takes `buttonClassName`).

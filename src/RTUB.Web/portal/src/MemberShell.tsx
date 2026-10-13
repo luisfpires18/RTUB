@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { signOut, type CurrentUser, type MemberMenu } from './api';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
+import { MemberBadge } from './MemberBadge';
 import { unreadLabel, useUnread } from './unread';
 
 /**
@@ -239,7 +240,11 @@ export function MemberIdentity({ member }: { member?: Member }) {
       />
       <span className="idchip__text">
         <span className="idchip__name">{member.displayName}</span>
-        {member.categories[0] && <span className="idchip__rank">{member.categories[0]}</span>}
+        {member.categories[0] && (
+          <span className="idchip__rank">
+            <MemberBadge>{member.categories[0]}</MemberBadge>
+          </span>
+        )}
       </span>
       <span className="sr-only"> (o meu perfil)</span>
     </a>
@@ -247,14 +252,14 @@ export function MemberIdentity({ member }: { member?: Member }) {
 }
 
 /** POST /auth/logout with its antiforgery token; the server redirects to /. */
-export function SignOutButton({ className = '' }: { className?: string }) {
+export function SignOutButton({ className = '', buttonClassName = 'mnav__link signout__btn' }: { className?: string; buttonClassName?: string }) {
   const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
 
   return (
     <div className={`signout ${className}`}>
       <button
         type="button"
-        className="mnav__link signout__btn"
+        className={buttonClassName}
         disabled={state === 'busy'}
         onClick={async () => {
           setState('busy');

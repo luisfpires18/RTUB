@@ -1,14 +1,15 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type Ref } from 'react';
-import { getCurrentUser, type CurrentUser } from './api';
+import { getCurrentUser } from './api';
 import { Loading, useCurrentUser } from './App';
 import { loginToProfile, portal } from './content';
 import { Cropper } from './Cropper';
 import type { Outcome } from './eventsApi';
 import { Icon, type IconName } from './icons';
-import { Field, MemberFace, StateSection, Timeline } from './MemberDialogs';
+import { ActivityList, Field } from './MemberDialogs';
+import { MemberBadge } from './MemberBadge';
 import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
-import { DEFAULT_AVATAR, shortDate, type MemberInstrument } from './membersApi';
+import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState, type TimelineItem } from './membersApi';
 import { SignOutButton } from './MemberShell';
 import { readPush, turnOff, turnOn, type PushResult, type PushState } from './push';
 
@@ -17,8 +18,8 @@ import { readPush, turnOff, turnOn, type PushResult, type PushState } from './pu
  * logins, so a visitor is told that first and keeps the public portal one tap away. Signing in is the React /login.
  *
  * Signed in, it is the member's own profile (task 032; was the Blazor /member/profile): who they are, their rank, and
- * the sections they edit - Pessoal, Tuna, Instrumentos, Foto, Notificações por email, Notificações push (038) and
- * Segurança. The server decides
+ * the sections they edit - the header (photo included), Pessoal, Informação da Tuna, Instrumentos, Notificações por
+ * email, Notificações push (038) and Segurança. The server decides
  * every rule (MyProfileService); a disabled field here is only a convenience. The members' menu is the member shell.
  */
 export default function Profile() {
@@ -48,7 +49,7 @@ export default function Profile() {
       ) : !user ? (
         <SessionSkeleton />
       ) : user.authenticated ? (
-        <MyProfilePage user={user} />
+        <MyProfilePage />
       ) : (
         <div className="members">
           <div className="members__main">
@@ -77,8 +78,6 @@ function SessionSkeleton() {
 
 // ---------- signed in: the profile editor ----------
 
-type Member = Extract<CurrentUser, { authenticated: true }>;
-
 const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
@@ -86,7 +85,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
       ? 'A sessão terminou. Entra outra vez.'
       : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
-function MyProfilePage({ user }: { user: Member }) {
+function MyProfilePage() {
   const [profile, setProfile] = useState<MyProfile | 'failed'>();
   const security = useRef<HTMLElement>(null);
 
@@ -125,27 +124,22 @@ function MyProfilePage({ user }: { user: Member }) {
 
       <div className="profile__top">
         <div className="account__card profile__identity">
-          <MemberFace avatarUrl={m.avatarUrl} size={96} />
+          <ProfilePhoto profile={profile} onChange={(avatarUrl) => setProfile({ ...profile, member: { ...m, avatarUrl } })} />
           <div className="account__who">
             <p className="account__name">{m.displayName}</p>
             {m.fullName && <p className="account__full">{m.fullName}</p>}
             {m.badges.length + m.positions.length > 0 ? (
               <span className="member-badges">
                 {m.badges.map((b) => (
-                  <span key={b.kind} className={`member-badge member-badge--${b.kind}`}>
-                    {b.label}
-                  </span>
+                  <MemberBadge key={b.kind}>{b.label}</MemberBadge>
                 ))}
                 {m.positions.map((p) => (
-                  <span key={p} className="member-badge member-badge--position">
-                    {p}
-                  </span>
+                  <MemberBadge key={p}>{p}</MemberBadge>
                 ))}
               </span>
             ) : (
               <p className="note">Ainda sem categoria atribuída.</p>
             )}
-            <p className="note profile__login">Entraste como {user.displayName}.</p>
           </div>
         </div>
         <RankCard profile={profile} />
@@ -156,13 +150,12 @@ function MyProfilePage({ user }: { user: Member }) {
           <Icon name="calendar" />
           As minhas inscrições
         </a>
-        <SignOutButton className="btn btn--ghost btn--sm" />
+        <SignOutButton className="profile__signout" buttonClassName="btn btn--ghost btn--sm" />
       </div>
 
       <PersonalSection profile={profile} onSaved={setProfile} />
       <TunaSection profile={profile} onSaved={setProfile} />
       <InstrumentsSection profile={profile} onChange={(instruments) => setProfile({ ...profile, instruments })} />
-      <PhotoSection profile={profile} onChange={(avatarUrl) => setProfile({ ...profile, member: { ...m, avatarUrl } })} />
       <SubscriptionSection profile={profile} onChange={(subscribed) => setProfile({ ...profile, subscribed })} />
       <PushSection />
       <SecuritySection ref={security} onChanged={() => setProfile({ ...profile, requirePasswordChange: false })} />
@@ -430,6 +423,96 @@ const tunaOf = (p: MyProfile): TunaInput => ({
   monthTuno: p.tuna.monthTuno,
 });
 
+/** Informação da Tuna, read-only: the old profile's layout over today's member data (instrumentos, padrinho, percurso, estado). */
+function TunaInfo({ profile }: { profile: MyProfile }) {
+  const { tuna: t, member: m, instruments } = profile;
+  return (
+    <div className="tuna-info">
+      <div className="tuna-info__pair">
+        <InfoCard title="Instrumentos" icon="music">
+          {instruments.length > 0 ? (
+            <ul className="tuna-info__list">
+              {instruments.map((i) => (
+                <li key={i.id}>
+                  {i.label}
+                  {i.primary && <span className="tuna-info__tag"> (Principal)</span>}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="note">Não definido</p>
+          )}
+        </InfoCard>
+        {t.showMentor && (
+          <InfoCard title="Padrinho" icon="person">
+            <p className="tuna-info__value">{t.mentorName ?? <span className="note">Não definido</span>}</p>
+          </InfoCard>
+        )}
+      </div>
+      <InfoCard title="Percurso na Tuna" icon="calendar">
+        {m.timeline.length > 0 ? <TunaPath items={m.timeline} /> : <p className="note">Ainda sem percurso registado.</p>}
+      </InfoCard>
+      {m.state && <TunaState state={m.state} />}
+    </div>
+  );
+}
+
+function InfoCard({ title, icon, children }: { title: string; icon: IconName; children: ReactNode }) {
+  return (
+    <section className="tuna-info__card" aria-label={title}>
+      <h3 className="tuna-info__title">
+        <Icon name={icon} />
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * "Percurso na Tuna": the milestones the server built (MemberDirectoryService.Timeline), oldest first, as connected
+ * cards - a row on wide screens (it scrolls sideways if it must), a column on a phone. `accent` colours the card's top
+ * edge; `state` marks the current step(s).
+ */
+function TunaPath({ items }: { items: TimelineItem[] }) {
+  return (
+    <ol className="tuna-path">
+      {items.map((t, i) => (
+        <li key={i} className={`tuna-path__step tuna-path__step--${t.accent}${t.state ? ` is-${t.state}` : ''}`}>
+          <span className="tuna-path__label">{t.label}</span>
+          <span className="tuna-path__years">{t.years}</span>
+          {t.notes && <span className="tuna-path__notes">{t.notes}</span>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** "Estado na Tuna": the server's status, progress and the last rehearsal / event, as in the old profile. */
+function TunaState({ state }: { state: MemberState }) {
+  return (
+    <InfoCard title="Estado na Tuna" icon="check">
+      <div className="tuna-state">
+        {state.retired !== null && (
+          <div className="tuna-state__status">
+            <MemberBadge tone={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
+            {state.progress && <span className="tuna-state__progress">{state.progress}</span>}
+            {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
+              <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} aria-label="Progresso de atividade" />
+            ) : null}
+            {state.encourage && <p className="note">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
+          </div>
+        )}
+        <dl className="tuna-state__last">
+          <Field label="Último ensaio">{shortDate(state.lastRehearsal)}</Field>
+          <Field label="Última atuação">{shortDate(state.lastEvent)}</Field>
+        </dl>
+      </div>
+      <ActivityList activities={state.activities} />
+    </InfoCard>
+  );
+}
+
 const LOCKED_DATE = 'Esta data já não muda aqui. Se estiver errada, fala com o Magister.';
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const monthYear = (year: number | null, month: number | null) => (year ? `${month ? `${MONTHS[month - 1]} de ` : ''}${year}` : null);
@@ -441,13 +524,12 @@ function TunaSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p: My
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const t = profile.tuna;
-  const m = profile.member;
   const editable = t.showMentor || t.showLeitao || t.showCaloiro || t.showTuno;
 
   return (
     <Section
       id="tuna"
-      title="Tuna"
+      title="Informação da Tuna"
       icon="music"
       action={
         editable &&
@@ -471,17 +553,10 @@ function TunaSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p: My
         />
       ) : (
         <>
-          <dl className="member-fields">
-            {t.showMentor && <Field label="Padrinho">{t.mentorName}</Field>}
-            {t.showLeitao && <Field label="Entrada a Leitão">{monthYear(t.yearLeitao, t.monthLeitao)}</Field>}
-            {t.showCaloiro && <Field label="Passagem a Caloiro">{monthYear(t.yearCaloiro, t.monthCaloiro)}</Field>}
-            {t.showTuno && <Field label="Passagem a Tuno">{monthYear(t.yearTuno, t.monthTuno)}</Field>}
-            <Field label="Percurso na tuna">{m.timeline.length > 0 ? <Timeline items={m.timeline} /> : null}</Field>
-          </dl>
+          <TunaInfo profile={profile} />
           <SavedNote show={saved} />
         </>
       )}
-      {m.state && <StateSection state={m.state} />}
     </Section>
   );
 }
@@ -648,7 +723,7 @@ function InstrumentsSection({ profile, onChange }: { profile: MyProfile; onChang
   );
 }
 
-// ---------- Foto ----------
+// ---------- Foto (in the header) ----------
 
 const MAX_PHOTO = 10 * 1024 * 1024;
 const PHOTO_TYPES = ['image/webp', 'image/jpeg', 'image/png'];
@@ -658,7 +733,8 @@ const ROUND = {
   note: 'A foto aparece num círculo: deixa a cara ao centro do quadrado.',
 };
 
-function PhotoSection({ profile, onChange }: { profile: MyProfile; onChange: (avatarUrl: string) => void }) {
+/** The avatar of the header with its change-photo button (same pick, square crop and upload as the old Foto section). */
+function ProfilePhoto({ profile, onChange }: { profile: MyProfile; onChange: (avatarUrl: string) => void }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
@@ -689,43 +765,47 @@ function PhotoSection({ profile, onChange }: { profile: MyProfile; onChange: (av
   };
 
   return (
-    <Section id="photo" title="Foto" icon="images">
-      <div className="profile-photo">
-        <img
-          className="profile-photo__img"
-          src={profile.member.avatarUrl ?? DEFAULT_AVATAR}
-          alt="A tua foto de perfil"
-          width="120"
-          height="120"
-          onError={(e) => {
-            if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-          }}
-        />
-        <div className="profile-photo__pick">
-          <input
-            ref={input}
-            id={id}
-            className="sr-only"
-            type="file"
-            accept={PHOTO_TYPES.join(',')}
-            onChange={(e) => pick(e.target.files?.[0])}
-            disabled={busy}
-          />
-          <label htmlFor={id} className={busy ? 'btn btn--ghost btn--sm is-disabled' : 'btn btn--ghost btn--sm'}>
-            {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="upload" />}
-            {busy ? 'A guardar…' : 'Escolher foto'}
-          </label>
-          <p className="note">WebP, JPEG ou PNG até 10 MB. Recortas em quadrado antes de guardar; a foto anterior é substituída.</p>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
-          <SavedNote show={saved} />
-        </div>
-      </div>
+    <div className="profile-avatar">
+      <img
+        className="profile-avatar__img"
+        src={profile.member.avatarUrl ?? DEFAULT_AVATAR}
+        alt="A tua foto de perfil"
+        width="112"
+        height="112"
+        onError={(e) => {
+          if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
+        }}
+      />
+      <input
+        ref={input}
+        id={id}
+        className="sr-only"
+        type="file"
+        accept={PHOTO_TYPES.join(',')}
+        aria-describedby={`${id}-hint`}
+        onChange={(e) => pick(e.target.files?.[0])}
+        disabled={busy}
+      />
+      <label htmlFor={id} className={busy ? 'profile-avatar__edit is-disabled' : 'profile-avatar__edit'} title="Mudar foto">
+        {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="pencil" />}
+        <span className="sr-only">{busy ? 'A guardar a foto…' : 'Mudar foto de perfil'}</span>
+      </label>
+      <span id={`${id}-hint`} className="sr-only">
+        WebP, JPEG ou PNG até 10 MB. Recortas em quadrado antes de guardar; a foto anterior é substituída.
+      </span>
+      {error && (
+        <p className="form__error profile-avatar__msg" role="alert">
+          {error}
+        </p>
+      )}
+      {saved && (
+        <p className="profile-saved profile-avatar__msg" role="status">
+          <Icon name="check" />
+          Foto guardada.
+        </p>
+      )}
       {file && <Cropper file={file} aspect={1} outWidth={600} text={ROUND} onCancel={() => setFile(undefined)} onDone={(blob) => upload(blob)} />}
-    </Section>
+    </div>
   );
 }
 
