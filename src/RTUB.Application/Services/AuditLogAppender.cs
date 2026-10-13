@@ -38,8 +38,7 @@ public class AuditLogAppender : IAuditLogAppender
         "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
         "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
         "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
-        "LastLoginDate",  // Exclude login tracking — already logged separately
-        "FidelisBalance"  // High-frequency balance updates — not business-critical
+        "LastLoginDate"   // Exclude login tracking — already logged separately
     };
 
     private static readonly HashSet<string> CriticalUserFields = new(StringComparer.Ordinal)

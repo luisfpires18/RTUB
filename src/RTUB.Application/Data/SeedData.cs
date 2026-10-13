@@ -66,10 +66,6 @@ public static partial class SeedData
             return;
         }
 
-        await SeedSlideshowsAsync(dbContext);
-
-        await SeedLabelsAsync(dbContext);
-
         await SeedEventsAsync(dbContext);
 
         await SeedEnrollmentsAsync(dbContext, userManager);

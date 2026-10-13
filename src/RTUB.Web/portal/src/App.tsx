@@ -1,15 +1,15 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getAnnouncement, getCurrentUser, getVersion, wasSignedIn, type Announcement, type CurrentUser } from './api';
 import { Dialog } from './Dialog';
-import { contactEmail, portal, social } from './content';
+import { portal, social } from './content';
 import { Icon, type IconName } from './icons';
 import { MemberDrawer, MemberIdentity, MemberRail, type Member } from './MemberShell';
 
 export const sections = [
-  { id: 'events', label: 'Atuações' },
-  { id: 'news', label: 'Novidades' },
   { id: 'music', label: 'Música' },
+  { id: 'news', label: 'Novidades' },
   { id: 'gallery', label: 'Galeria' },
+  { id: 'events', label: 'Atuações' },
   { id: 'governance', label: 'Órgãos Sociais' },
   { id: 'request', label: 'Pedidos' },
 ];
@@ -18,15 +18,7 @@ export const sections = [
 // Signed-in members get the member shell instead (MemberShell.tsx): their menu, not the public one.
 const navSections = sections.filter((s) => s.id !== 'request');
 
-// The footer also lists the home's other anchors (FITAB, joining), which stay out of the top bar.
-const footerSections = [
-  { id: 'about', label: 'Quem somos' },
-  ...sections,
-  { id: 'fitab', label: 'FITAB' },
-  { id: 'join', label: 'Junta-te a nós' },
-];
-
-// A section with its own React page links there (top bar, menu, footer); the rest are home
+// A section with its own React page links there (top bar, menu); the rest are home
 // anchors, always /#id so the same link scrolls on the home page and navigates from elsewhere.
 const sectionPages: Record<string, string> = {
   events: portal.events,
@@ -331,37 +323,7 @@ function Footer() {
             Música, capa e tradição académica em Bragança desde 1991.
           </p>
         </div>
-        <nav className="footer__col" aria-label="Portal">
-          <h2 className="footer__title">Portal</h2>
-          <ul>
-            {footerSections.map((s) => (
-              <li key={s.id}>
-                <a href={sectionHref(s.id)}>{s.label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <nav className="footer__col" aria-label="RTUB">
-          <h2 className="footer__title">RTUB</h2>
-          <ul>
-            <li>
-              <a href={portal.request}>Fazer um pedido</a>
-            </li>
-            <li>
-              <a href="/#app">Instalar a app</a>
-            </li>
-            <li>
-              <a href={portal.profile}>Área de membros</a>
-            </li>
-            <li>
-              <a href={portal.privacy}>Política de Privacidade</a>
-            </li>
-            <li>
-              <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-            </li>
-          </ul>
-        </nav>
-        <div className="footer__col">
+        <div className="footer__social-block">
           <h2 className="footer__title">Redes</h2>
           <ul className="footer__social">
             {social.map((s) => (
@@ -377,6 +339,9 @@ function Footer() {
       </div>
       <div className="wrap footer__base">
         <p>© 1991–{new Date().getFullYear()} RTUB · Boémios e Trovadores</p>
+        <a className="footer__legal" href={portal.privacy}>
+          Política de Privacidade
+        </a>
         <VersionTag />
       </div>
     </footer>

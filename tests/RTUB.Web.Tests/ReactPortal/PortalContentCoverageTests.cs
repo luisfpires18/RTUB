@@ -66,7 +66,8 @@ public class PortalContentCoverageTests
 
         ownPages.Should().Contain("governance", "the home no longer has an Órgãos Sociais section; the link opens /roles");
 
-        anchors.Should().Contain(new[] { "events", "fitab", "join", "app" });
+        // Task 044: the footer no longer links FITAB, joining or the app, so only the anchors still linked from the menu/pages are required.
+        anchors.Should().Contain(new[] { "events" });
         anchors.Where(id => !home.Contains($"id=\"{id}\"", StringComparison.Ordinal))
             .Should().BeEmpty("a footer, menu or shortcut link to /#id needs that id on the home page");
     }

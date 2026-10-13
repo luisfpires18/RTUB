@@ -259,10 +259,9 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Story_IsTheFixedText_ForEveryRole_EvenWhenTheOldLabelSaysOtherwise_AndNobodyEditsIt()
+    public async Task Story_IsTheFixedText_ForEveryRole_AndNobodyEditsIt()
     {
-        // 029A: the story no longer comes from the "ranking_story" label. A label row with other text must not leak in.
-        await EnsureStoryAsync();
+        // 029A: the story no longer comes from the "ranking_story" label (the Labels table itself went in 043).
         var fixedStory = RTUB.Application.Services.LeaderboardService.Story;
         foreach (var role in new[] { "Member", "Mod", "Admin", "Owner" })
         {
@@ -399,24 +398,6 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
             db.FiscalYears.Add(FiscalYear.Create(start, start + 1));
             await db.SaveChangesAsync();
         }
-    }
-
-    private async Task EnsureStoryAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        // A "ranking_story" row whose text differs from the fixed story, so a read through Labels would show.
-        var label = await db.Labels.FirstOrDefaultAsync(l => l.Reference == "ranking_story");
-        if (label is null)
-        {
-            db.Labels.Add(Label.Create("ranking_story", "Ranking", "Texto"));
-        }
-        else
-        {
-            label.UpdateContent("Ranking", "Texto", true);
-        }
-
-        await db.SaveChangesAsync();
     }
 
     private static int _ip;
