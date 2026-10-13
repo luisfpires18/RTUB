@@ -55,7 +55,7 @@ part in, or an archived one, is a **404** (its existence is not revealed).
   (and the group), **never the message text**; it opens `/messages?c=<id>` (relative, so no Host header is involved).
   Sent inline through `SendToSelectedUsersAsync`; a failure is logged with the conversation id only.
 - **Old system links** keep only their path, so a link can only open a page of this site: anything that would leave
-  it (`//host`, a backslash, tabs or other whitespace, non-https) is dropped (`MessagingSafeLinkTests`).
+  it (`//host`, a backslash, tabs or other whitespace, non-https) is rejected (`MessagingSafeLinkTests`).
 
 ## Privacy: `/owner/tracing` and logs
 
