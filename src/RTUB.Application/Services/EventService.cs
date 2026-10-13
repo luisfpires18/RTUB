@@ -170,6 +170,19 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
+    public async Task RemoveEventImageAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
+        if (string.IsNullOrEmpty(eventEntity.ImageUrl))
+        {
+            return;
+        }
+
+        await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
+        eventEntity.SetImage(null);
+        await _eventRepository.UpdateAsync(eventEntity);
+    }
+
     public async Task DeleteEventAsync(int id, CancellationToken cancellationToken = default)
     {
         var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);

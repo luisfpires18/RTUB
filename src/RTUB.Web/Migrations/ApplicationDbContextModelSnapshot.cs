@@ -15,7 +15,7 @@ namespace RTUB.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -320,9 +320,6 @@ namespace RTUB.Migrations
                     b.Property<int>("ExperiencePoints")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("FidelisBalance")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -490,491 +487,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_AuditLogs_EntityType_EntityId");
 
                     b.ToTable("AuditLogs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Bet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BetCategory")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CancellationReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageSrc")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsCancelled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ThumbnailUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("WinningOptionId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BetCategory")
-                        .HasDatabaseName("IX_Bets_BetCategory");
-
-                    b.HasIndex("DateTime")
-                        .HasDatabaseName("IX_Bets_DateTime");
-
-                    b.HasIndex("IsCancelled")
-                        .HasDatabaseName("IX_Bets_IsCancelled");
-
-                    b.ToTable("Bets");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BetComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("BetId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MediaType")
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MediaUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
-
-                    b.HasIndex("BetId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.ToTable("BetComments", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BetOption", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BetId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MemberAId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MemberBId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Odds")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BetId")
-                        .HasDatabaseName("IX_BetOptions_BetId");
-
-                    b.HasIndex("MemberAId");
-
-                    b.HasIndex("MemberBId");
-
-                    b.ToTable("BetOptions");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BossModeProgress", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CurrentBossStage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("DailyBossMaxHP")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0L);
-
-                    b.Property<long?>("DailyBossRemainingHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DailyBossStage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<int>("HighestBossStage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("LastDailyResetDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TotalBossStagesCleared")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TotalFitabSpent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TotalRunsAttempted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HighestBossStage")
-                        .HasDatabaseName("IX_BossModeProgresses_HighestBossStage");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BossModeProgresses_UserId");
-
-                    b.ToTable("BossModeProgresses");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Character", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ArenaLosses")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ArenaRating")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ArenaWins")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("CanhaoBuffExpiresAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("CanhaoBuffRemainingMs")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CanhaoTimerUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CastSpeedUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CigarroDodgeUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CigarroShieldHitsRemaining")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<double>("CriticalChance")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("CriticalUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long?>("CurrentHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CustomSpritePath")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Defense")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DefenseUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DoubleGatheringUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Energy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EnergyAmountUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EnergyRegenUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquipmentCriticalBonus")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("EquipmentDefenseBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquipmentHPBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquipmentPowerBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquipmentSpeedBonus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquippedBoots")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedBootsBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedBootsQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedChest")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedChestBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedChestQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedGloves")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedGlovesBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedGlovesQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedHead")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedHeadBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedHeadQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedLegs")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedLegsBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedLegsQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedShoulders")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedShouldersBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedShouldersQuality")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("EquippedWeapon1")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquippedWeapon2")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("HP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("HpUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("LastBattleAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("LastBattleId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LastDailyRewardClaim")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LastEnergyRegenAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("LastOpponentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MaxEnergy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("PenaltyBuffExpiresAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("PenaltyBuffRemainingMs")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PenaltyTimerUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Power")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PowerUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareBootsApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareChestApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareGlovesApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareHeadApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareLegsApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RareShouldersApplied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ShotBuffBattlesRemaining")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ShotBuffUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ShotStatBuffUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Speed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SpeedUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("XP")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Level")
-                        .HasDatabaseName("IX_Characters_Level");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Characters_UserId");
-
-                    b.ToTable("Characters");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
@@ -1528,109 +1040,6 @@ namespace RTUB.Migrations
                     b.ToTable("FiscalYears");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.ForgeComboConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ComboKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PictureUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ForgeComboConfigs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ForgedWeapon", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("BonusCriticalChance")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("BonusDefense")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusSpeed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsEquipped")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsTwoHanded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SourceDrink")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SourceInstrument")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("WeaponType")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_ForgedWeapons_UserId");
-
-                    b.HasIndex("UserId", "IsEquipped")
-                        .HasDatabaseName("IX_ForgedWeapons_UserId_IsEquipped");
-
-                    b.ToTable("ForgedWeapons");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>
                 {
                     b.Property<int>("Id")
@@ -1739,111 +1148,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_GalleryMediaPersonTag_GalleryMediaId_UserId_Unique");
 
                     b.ToTable("GalleryMediaPersonTags", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Game", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsComingSoon")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("MembersOnly")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PlayRoute")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("Games");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("GameKey")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("MaxLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<TimeSpan>("TimeSurvived")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "GameKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_GameScores_UserId_GameKey");
-
-                    b.HasIndex("GameKey", "Points", "MaxLevel")
-                        .HasDatabaseName("IX_GameScores_GameKey_Points_MaxLevel");
-
-                    b.ToTable("GameScores");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GeocodingCache", b =>
@@ -1955,135 +1259,6 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Instruments");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_InventoryItems_UserId");
-
-                    b.HasIndex("UserId", "Type")
-                        .IsUnique()
-                        .HasDatabaseName("IX_InventoryItems_UserId_Type");
-
-                    b.ToTable("InventoryItems");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ItemTypeConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("IconClass")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PictureUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TypeKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ItemTypeConfigs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Label", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Reference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Labels");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
@@ -3390,6 +2565,49 @@ namespace RTUB.Migrations
                     b.ToTable("NerbaOrders", (string)null);
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.NewsPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("PublishedAt");
+
+                    b.ToTable("NewsPosts");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -4086,55 +3304,6 @@ namespace RTUB.Migrations
                     b.ToTable("RoleAssignments");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.Slideshow", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("IntervalMs")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsExclusive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Slideshows");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
                 {
                     b.Property<int>("Id")
@@ -4333,199 +3502,6 @@ namespace RTUB.Migrations
                     b.ToTable("SongYouTubeUrls", (string)null);
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.StageEnemy", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("BossStageNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Placement")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Region")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SpritePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Region")
-                        .HasDatabaseName("IX_StageEnemies_Region");
-
-                    b.HasIndex("Type")
-                        .HasDatabaseName("IX_StageEnemies_Type");
-
-                    b.HasIndex("Type", "Region")
-                        .HasDatabaseName("IX_StageEnemies_Type_Region");
-
-                    b.ToTable("StageEnemies");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.StageProgress", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CurrentRegion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CurrentStage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("EndlessModeUnlocked")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EnemiesDefeatedInCurrentStage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("HighestStage")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("LastCheckpoint")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TotalBossesDefeated")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TotalStagesCleared")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HighestStage")
-                        .HasDatabaseName("IX_StageProgresses_HighestStage");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_StageProgresses_UserId");
-
-                    b.ToTable("StageProgresses");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.SurviveModeProgress", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CurrentLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<int>("CurrentRegion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("HighestLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<bool>("IsRunActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<double>("LongestSurvivalTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("REAL")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<int>("RunStartLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<DateTime?>("RunStartedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TotalEnemiesKilled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("TotalLevelsCompleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("TotalRunsAttempted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HighestLevel")
-                        .HasDatabaseName("IX_SurviveModeProgresses_HighestLevel");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_SurviveModeProgresses_UserId");
-
-                    b.ToTable("SurviveModeProgresses");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>
                 {
                     b.Property<int>("Id")
@@ -4696,62 +3672,6 @@ namespace RTUB.Migrations
                     b.ToTable("Trophies");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.UserBet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BetId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BetOptionId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("FidelisAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("FidelisWinnings")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool?>("IsWon")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BetId")
-                        .HasDatabaseName("IX_UserBets_BetId");
-
-                    b.HasIndex("BetOptionId")
-                        .HasDatabaseName("IX_UserBets_BetOptionId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_UserBets_UserId");
-
-                    b.HasIndex("UserId", "BetId")
-                        .HasDatabaseName("IX_UserBets_UserId_BetId");
-
-                    b.ToTable("UserBets");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -4841,72 +3761,6 @@ namespace RTUB.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Mentor");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BetComment", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.Bet", "Bet")
-                        .WithMany()
-                        .HasForeignKey("BetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Bet");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BetOption", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Bet", "Bet")
-                        .WithMany("Options")
-                        .HasForeignKey("BetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "MemberA")
-                        .WithMany()
-                        .HasForeignKey("MemberAId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "MemberB")
-                        .WithMany()
-                        .HasForeignKey("MemberBId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Bet");
-
-                    b.Navigation("MemberA");
-
-                    b.Navigation("MemberB");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.BossModeProgress", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Character", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
@@ -5045,17 +3899,6 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.ForgedWeapon", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Uploader")
@@ -5082,28 +3925,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("GalleryMedia");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -5508,6 +4329,16 @@ namespace RTUB.Migrations
                     b.Navigation("Report");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.NewsPost", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
@@ -5695,28 +4526,6 @@ namespace RTUB.Migrations
                     b.Navigation("Song");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.StageProgress", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.SurviveModeProgress", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Activity", "Activity")
@@ -5774,33 +4583,6 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.UserBet", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Bet", "Bet")
-                        .WithMany("UserBets")
-                        .HasForeignKey("BetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.BetOption", "BetOption")
-                        .WithMany()
-                        .HasForeignKey("BetOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bet");
-
-                    b.Navigation("BetOption");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Activity", b =>
                 {
                     b.Navigation("Transactions");
@@ -5811,13 +4593,6 @@ namespace RTUB.Migrations
                     b.Navigation("AlbumAccesses");
 
                     b.Navigation("Songs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Bet", b =>
-                {
-                    b.Navigation("Options");
-
-                    b.Navigation("UserBets");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -25,7 +26,7 @@ public sealed class MemberBuilder
     private int? _yearLeitao;
     private string? _mentorId;
     private string? _password;
-    private bool _isRetired;
+    private bool? _isRetired;
 
     public MemberBuilder(UserManager<ApplicationUser> userManager)
     {
@@ -77,7 +78,8 @@ public sealed class MemberBuilder
             _yearCaloiro,
             _yearLeitao,
             _mentorId,
-            _isRetired
+            // Unset: the same initial state as a member created in the app (only a Leitão starts active).
+            _isRetired ?? MemberActivityStatusEvaluator.InitialIsRetired(_categories)
         );
     }
 

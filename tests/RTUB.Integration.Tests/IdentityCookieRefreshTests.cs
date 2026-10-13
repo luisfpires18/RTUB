@@ -62,9 +62,9 @@ public class IdentityCookieRefreshTests : IClassFixture<RefreshingCookieFactory>
         // Signed in with no role at all, so the cookie's principal carries no "Owner" claim.
         var (client, user) = await CookieTestSession.SignInAsync(_factory, "refresh-claims", "10.31.0.2");
 
-        var denied = await PostBroadcastAsync(client);
+        var denied = await GetOwnerOnlyAsync(client);
         denied.StatusCode.Should().Be(HttpStatusCode.Forbidden,
-            "the session is authenticated, so [Authorize(Roles = \"Owner\")] forbids rather than challenges");
+            "the session is authenticated, so the Owner gate forbids rather than challenges");
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -80,11 +80,10 @@ public class IdentityCookieRefreshTests : IClassFixture<RefreshingCookieFactory>
 
         // No new login, no manual claim surgery: the next validation rebuilds the principal from
         // the database, and authorization in that same request sees the new role.
-        var allowed = await PostBroadcastAsync(client);
+        var allowed = await GetOwnerOnlyAsync(client);
 
-        allowed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await allowed.Content.ReadAsStringAsync()).Should().Contain("Web Push is not configured",
-            "reaching the action body at all proves the Owner role claim is now on the principal");
+        allowed.StatusCode.Should().Be(HttpStatusCode.OK,
+            "reaching the Owner-only read at all proves the Owner role claim is now on the principal");
     }
 
     // ------------------------------------------- RTUB checks still fire first, and immediately
@@ -199,15 +198,9 @@ public class IdentityCookieRefreshTests : IClassFixture<RefreshingCookieFactory>
         // DbContext's change tracker that RTUB's check has already populated.
     }
 
-    private static Task<HttpResponseMessage> PostBroadcastAsync(HttpClient client)
-    {
-        // Web Push is unconfigured under the test host, so an authorized call stops at the
-        // IsConfigured() guard. That is deliberate: the status alone separates "forbidden" from
-        // "reached the action", without sending anything.
-        var content = new StringContent("""{"Title":"t","Body":"b"}""", Encoding.UTF8);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-        return client.PostAsync("/api/push/broadcast", content);
-    }
+    // An Owner-only read (OwnerEndpoints' gate, task 035): 403 for any other member, 200 for the Owner, and it changes
+    // nothing. (Until 038 this probe was the old PushController broadcast, now removed.)
+    private static Task<HttpResponseMessage> GetOwnerOnlyAsync(HttpClient client) => client.GetAsync("/api/owner/db/tables");
 }
 
 /// <summary>
@@ -302,9 +295,7 @@ internal static class CookieTestSession
             }
         }
 
-        var loginPage = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await loginPage.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty();
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         var loginResponse = await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>

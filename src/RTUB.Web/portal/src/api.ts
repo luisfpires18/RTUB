@@ -1,0 +1,309 @@
+// Typed contracts with the ASP.NET Core host. See docs/react-portal-pilot.md.
+
+/**
+ * Which member-menu groups the caller sees (MemberMenuAccess, task 030): the Blazor navbar's rules, decided by the
+ * server. It only hides links; every page and API still enforces its own rule.
+ */
+export type MemberMenu = { management: boolean; logisticsAndTreasury: boolean; admin: boolean; owner: boolean };
+
+/** GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. */
+export type CurrentUser =
+  | { authenticated: false }
+  | {
+      authenticated: true;
+      displayName: string;
+      fullName: string | null;
+      avatarUrl: string;
+      categories: string[];
+      menu: MemberMenu;
+    };
+
+let session: Promise<CurrentUser> | null = null;
+
+/** One request per page load, shared by the header and the profile page; `refresh` retries. */
+export function getCurrentUser(refresh = false): Promise<CurrentUser> {
+  if (!session || refresh) {
+    session = fetch('/api/account/me', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+      .then((r) => (r.ok ? (r.json() as Promise<CurrentUser>) : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((user) => {
+        rememberMemberShell(user.authenticated);
+        return user;
+      })
+      .catch((e) => {
+        session = null; // let the next caller try again
+        throw e;
+      });
+  }
+  return session;
+}
+
+const SHELL_HINT = 'rtub-member-shell';
+
+/**
+ * Whether the last page load was signed in. Only a layout hint, so a member's page opens with the member shell
+ * instead of jumping into it once /api/account/me answers; the answer always wins. Never trusted for anything else.
+ */
+export function wasSignedIn(): boolean {
+  try {
+    return localStorage.getItem(SHELL_HINT) === '1';
+  } catch {
+    return false; // storage blocked: start as a visitor
+  }
+}
+
+function rememberMemberShell(signedIn: boolean) {
+  try {
+    if (signedIn) localStorage.setItem(SHELL_HINT, '1');
+    else localStorage.removeItem(SHELL_HINT);
+  } catch {
+    // Storage blocked: the shell simply waits for the session on each load.
+  }
+}
+
+let version: Promise<string> | null = null;
+
+/** GET /api/version, once per page load: the footer shows it, and it tells test builds apart. */
+export function getVersion(): Promise<string> {
+  version ??= fetch('/api/version', { headers: { Accept: 'application/json' } })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    .then((body: { version?: unknown }) =>
+      typeof body.version === 'string' ? body.version : Promise.reject(new Error('no version')),
+    );
+  return version;
+}
+
+/** GET /api/announcement (task 037): the Owner's system announcement while it is fresh, or null (204). */
+export type Announcement = { id: number; message: string };
+
+export function getAnnouncement(): Promise<Announcement | null> {
+  return fetch('/api/announcement', { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((r) =>
+    r.status === 204 ? null : r.ok ? (r.json() as Promise<Announcement>) : Promise.reject(new Error(`HTTP ${r.status}`)),
+  );
+}
+
+/** The React request form's fields (names match POST /api/public/requests). Dates are yyyy-MM-dd. */
+export type RequestForm = {
+  name: string;
+  email: string;
+  phone: string;
+  eventType: string;
+  preferredDate: string;
+  isDateRange: boolean;
+  preferredEndDate: string;
+  location: string;
+  message: string;
+  website: string; // honeypot - always empty for people
+};
+
+export type FieldErrors = Partial<Record<keyof RequestForm, string>>;
+
+export type SubmitOutcome =
+  | { kind: 'submitted' }
+  | { kind: 'invalid'; errors: FieldErrors }
+  | { kind: 'expired' } // antiforgery token refused: reload and retry
+  | { kind: 'throttled' }
+  | { kind: 'failed' };
+
+/**
+ * GET /api/public/antiforgery-token, then POST /api/public/requests as a form (the server enforces
+ * antiforgery on form posts). Every server answer maps to one outcome; nothing throws.
+ */
+export async function submitRequest(form: RequestForm): Promise<SubmitOutcome> {
+  try {
+    const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
+    if (!tokenResponse.ok) return { kind: 'failed' };
+    const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+
+    const body = new FormData();
+    body.set(fieldName, token);
+    for (const [key, value] of Object.entries(form)) {
+      if (key === 'preferredEndDate' && !form.isDateRange) continue;
+      body.set(key, String(value));
+    }
+
+    const response = await fetch('/api/public/requests', { method: 'POST', body, credentials: 'same-origin' });
+    if (response.ok) return { kind: 'submitted' };
+    if (response.status === 429) return { kind: 'throttled' };
+    if (response.status === 400) {
+      const problem = await response.json().catch(() => null);
+      if (!problem?.errors) return { kind: 'expired' };
+      const errors: FieldErrors = {};
+      for (const [field, messages] of Object.entries(problem.errors as Record<string, string[]>)) {
+        errors[field as keyof RequestForm] = messages[0];
+      }
+      return { kind: 'invalid', errors };
+    }
+    return { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
+  }
+}
+
+export type SignInFailure = 'invalid' | 'locked' | 'expelled' | 'throttled' | 'expired' | 'failed';
+export type SignInOutcome = { kind: 'signedIn'; redirect: string } | { kind: SignInFailure };
+
+const signInErrors: Record<string, SignInFailure> = { Invalid: 'invalid', Locked: 'locked', Expelled: 'expelled' };
+
+/**
+ * Signs out through the existing POST /auth/logout (Program.cs): a plain form post with the antiforgery
+ * token, so the browser follows its redirect to / as the Blazor menu's form did (012F). False when the
+ * token could not be fetched; nothing is sent then.
+ */
+export async function signOut(): Promise<boolean> {
+  try {
+    const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
+    if (!tokenResponse.ok) return false;
+    const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+    rememberMemberShell(false);
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/auth/logout';
+    const field = document.createElement('input');
+    field.type = 'hidden';
+    field.name = fieldName;
+    field.value = token;
+    form.append(field);
+    document.body.append(form);
+    form.submit();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The existing POST /auth/login (Program.cs): same form fields, antiforgery and per-IP limit as
+ * the old Blazor form. Accept: application/json makes it answer { redirect } or 401 { error }
+ * instead of redirecting. The server alone validates the return URL. Nothing throws.
+ */
+export async function signIn(username: string, password: string, rememberMe: boolean, returnUrl: string): Promise<SignInOutcome> {
+  try {
+    const tokenResponse = await fetch('/api/public/antiforgery-token', { credentials: 'same-origin' });
+    if (!tokenResponse.ok) return { kind: 'failed' };
+    const { fieldName, token } = (await tokenResponse.json()) as { fieldName: string; token: string };
+
+    const body = new FormData();
+    body.set(fieldName, token);
+    body.set('Username', username);
+    body.set('Password', password);
+    body.set('RememberMe', String(rememberMe));
+    body.set('ReturnUrl', returnUrl);
+
+    const response = await fetch('/auth/login', {
+      method: 'POST',
+      body,
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    if (response.ok) {
+      const { redirect } = (await response.json()) as { redirect: string };
+      return { kind: 'signedIn', redirect };
+    }
+    if (response.status === 401) {
+      const { error } = (await response.json().catch(() => ({}))) as { error?: string };
+      return { kind: signInErrors[error ?? ''] ?? 'invalid' };
+    }
+    if (response.status === 429) return { kind: 'throttled' };
+    if (response.status === 400) return { kind: 'expired' };
+    return { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
+  }
+}
+
+/** GET /api/public/governance (Endpoints/GovernanceEndpoints.cs). Public fields only. */
+export type GovernanceMember = { displayName: string; fullName: string | null; avatarUrl: string | null };
+export type GovernancePosition = { title: string; holders: GovernanceMember[] };
+export type GovernanceBody = { name: string; positions: GovernancePosition[] };
+export type Governance = { fiscalYears: string[]; fiscalYear: string | null; bodies: GovernanceBody[] };
+
+/** One mandate; the server picks the default and ignores an unknown year. */
+export function getGovernance(fiscalYear?: string): Promise<Governance> {
+  const query = fiscalYear ? `?fiscalYear=${encodeURIComponent(fiscalYear)}` : '';
+  return fetch(`/api/public/governance${query}`, { headers: { Accept: 'application/json' } }).then((r) =>
+    r.ok ? (r.json() as Promise<Governance>) : Promise.reject(new Error(`HTTP ${r.status}`)),
+  );
+}
+
+/** GET /api/gallery (Endpoints/GalleryEndpoints.cs). Viewer-aware: visitors get public items only. */
+export type GalleryPerson = { id: string; name: string };
+export type GalleryItem = {
+  id: number;
+  title: string;
+  type: 'image' | 'video';
+  url: string | null;
+  year: number;
+  month: number | null;
+  day: number | null;
+  membersOnly: boolean;
+  people: GalleryPerson[];
+  /** The uploader, Admin or Owner (015): edit and delete; the server enforces it. */
+  canEdit: boolean;
+};
+export type GalleryTimeline = {
+  isMember: boolean;
+  items: GalleryItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  years: number[];
+  people: GalleryPerson[];
+};
+export type GalleryFilters = { year?: number; q?: string; person?: string };
+
+const json = <T,>(r: Response) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`)));
+
+export function getGallery(page: number, filters: GalleryFilters): Promise<GalleryTimeline> {
+  const query = new URLSearchParams({ page: String(page) });
+  if (filters.year) query.set('year', String(filters.year));
+  if (filters.q) query.set('q', filters.q);
+  if (filters.person) query.set('person', filters.person);
+  return fetch(`/api/gallery?${query}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(
+    json<GalleryTimeline>,
+  );
+}
+
+/** One item for a shared ?item= link; rejects when it is missing or members-only for a visitor. */
+export function getGalleryItem(id: number): Promise<GalleryItem> {
+  return fetch(`/api/gallery/items/${id}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(
+    json<GalleryItem>,
+  );
+}
+
+/** The latest photos visitors can see, whoever is signed in (?public=true): the home preview. */
+export function getGalleryPreview(count: number): Promise<GalleryItem[]> {
+  return fetch(`/api/gallery?public=true&pageSize=${count}`, { headers: { Accept: 'application/json' } })
+    .then(json<GalleryTimeline>)
+    .then((t) => t.items);
+}
+
+/** GET /api/public/events/upcoming: at most 3, soonest first. Dates are local "yyyy-MM-dd" text. */
+export type UpcomingEvent = {
+  name: string;
+  date: string;
+  time: string | null;
+  endDate: string | null;
+  location: string;
+  type: string;
+  cancelled: boolean;
+};
+
+export function getUpcomingEvents(): Promise<UpcomingEvent[]> {
+  return fetch('/api/public/events/upcoming', { headers: { Accept: 'application/json' } }).then(json<UpcomingEvent[]>);
+}
+
+// ---------- Novidades (React track 025) ----------
+
+/** One post of GET /api/news. `publishedAt` is UTC ISO, null for a draft; `authorName` only reaches Admin/Owner. */
+export type NewsPost = { id: number; title: string | null; body: string; publishedAt: string | null; authorName: string | null };
+export type NewsFeed = { drafts: NewsPost[]; posts: NewsPost[]; hasMore: boolean; canManage: boolean };
+
+/** The latest published posts, for the home preview (drafts are ignored there). */
+export function getLatestNews(count: number): Promise<NewsPost[]> {
+  return fetch(`/api/news?pageSize=${count}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+    .then(json<NewsFeed>)
+    .then((feed) => feed.posts);
+}
+
+/** "5 de outubro de 2026" for a post's UTC publication time, in the reader's time zone. */
+export const newsDate = (iso: string) => new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long' }).format(new Date(iso));

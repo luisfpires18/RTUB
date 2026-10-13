@@ -131,10 +131,10 @@ publish`.
 
 **The zip guards** (`scripts/release.sh verify`): `RTUB.dll`, deps and runtimeconfig present;
 `libQuestPdfSkia.so` and `libe_sqlite3.so` present, non-empty and ELF64 x86-64; manifest, service
-worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
+worker and offline page present; at least 200 files under `wwwroot/`; no backslash or
 path-traversal entry names.
 
-**"Tested" means:** the five test suites run on the exact commit; the one zip built from it is
+**"Tested" means:** every test suite runs on the exact commit; the one zip built from it is
 guarded, archived and never rebuilt; the smoke test runs against those exact bytes in production.
 The suites do not execute the linux-x64 publish output itself - the smoke test is what checks the
 bytes.
@@ -279,6 +279,11 @@ deploy's smoke test fails, and the previous release still matches the schema, so
 safe. The app never rolls a database back by itself.
 
 ### Migrations: the N-1 rule
+
+Contract (drop) migrations waiting for their release window: task 043 (`RemoveRetiredGamesLabelsSlideshowsSchema`,
+`RemoveFidelisBalanceFromApplicationUser`). **Rolling production back across it is a full database restore from the
+pre-migration backup, never an app-only rollback and never EF Down**; release plan, backup and restore steps:
+`docs/db-cleanup-inventory.md` → *Task 043*.
 
 An app rollback never changes the schema: the older build starts against the newer schema, runs
 none of the newer migrations and ignores their history rows. So **every migration must work with

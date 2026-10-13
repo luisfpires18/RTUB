@@ -8,8 +8,7 @@ Routing map only — paths plus one-line responsibilities. No architecture prose
 | --- | --- |
 | `src/RTUB.Core/` | Domain entities, enums, constants, attributes, pure helpers. No external dependencies. |
 | `src/RTUB.Application/` | Business logic: services, repositories, EF Core data layer, DTOs, factories, interfaces. |
-| `src/RTUB.Shared/` | Reusable Razor components, base classes, shared static assets. |
-| `src/RTUB.Web/` | Blazor Interactive Server host: pages, layout, SignalR hub, a few support controllers, DI wiring. |
+| `src/RTUB.Web/` | ASP.NET Core host: minimal-API endpoints, a few controllers, DI wiring, the React portal (`portal/`) and its static files. No Blazor since 037 (`RTUB.Shared` removed with it). |
 | `tools/` | Standalone console utilities run by hand or by a manual workflow. Not part of the deployed app. |
 
 ## Data / SQLite
@@ -30,11 +29,10 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/Program.cs` | Host bootstrap; DI delegated to extensions. |
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
-| `src/RTUB.Web/Pages/` | Routable Blazor pages, grouped by area. |
-| `src/RTUB.Web/Components/`, `src/RTUB.Web/Shared/` | Host-local components and layout. |
-| `src/RTUB.Web/Hubs/MessagesHub.cs` | SignalR messaging hub. |
-| `src/RTUB.Web/Controllers/` | Non-Blazor endpoints only: push subscriptions, image/media serving, CDN proxy. |
-| `src/RTUB.Web/Interop/` | JS interop wrappers. |
+| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
+| `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
+| `src/RTUB.Web/Controllers/` | Image/media serving, React session state (`AccountController`). Push subscriptions are `Endpoints/PushEndpoints.cs` since 038. |
+| `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell (037). |
 
 ## PWA / service worker
 
@@ -45,18 +43,43 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/wwwroot/offline.html` | Offline fallback page. |
 | `docs/pwa-practices.md` | Authoritative PWA guidance. |
 
+## React public-portal pilot
+
+| Path | Responsibility |
+| --- | --- |
+| `src/RTUB.Web/portal/` | React 19 + Vite source of every React page (route list: `Program.cs`, `portal/src/main.tsx`). Not published. |
+| `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header (inbox + unread badge, profile chip, menu button) and member menu (right-hand drawer at every width; tasks 030 / 044); `unread.ts` polls the header badge. |
+| `src/RTUB.Web/Endpoints/RequestAdminEndpoints.cs`, `src/RTUB.Application/Services/RequestAdminService.cs` | React Pedidos API (031): the requests list for members but Leitões, approve / reject / delete for Admin and Owner (`RequestsAuthorization`). `docs/react-requests-questions.md`. |
+| `src/RTUB.Web/Endpoints/QuestionEndpoints.cs`, `src/RTUB.Application/Services/QuestionBoardService.cs` | React Perguntas API (031): ask a holder of an Órgãos Sociais position, replies in turns, close / delete / remind by the author (`QuestionsAuthorization`); push stays in `QuestionService`. `docs/react-requests-questions.md`. |
+| `src/RTUB.Web/Endpoints/MemberAreaEndpoints.cs`, `src/RTUB.Application/Services/MyProfileService.cs`, `MemberMapService.cs`, `HallOfFameService.cs` | React profile editor (`/api/me/*`, own profile only), members map (`/api/members/map`, city-level, geocoding cache) and Hall of Fame (`/api/hall-of-fame`), task 032. `docs/react-member-area.md`. |
+| `src/RTUB.Web/Endpoints/NaipeEndpoints.cs`, `src/RTUB.Application/Services/NaipeBoardService.cs`, `Helpers/NaipesAuthorization.cs` | React Naipes (`/api/naipes*`): instrument videos / images (byte-checked uploads, server-decided type), comments, plays, and the Admin / Owner instrument settings, over the old `NaipeService` (R2, audit, push), task 033. `docs/react-naipes.md`. |
+| `src/RTUB.Web/Endpoints/MeetingEndpoints.cs`, `src/RTUB.Application/Services/MeetingBoardService.cs`, `Helpers/MeetingAccess.cs` | React Reuniões (`/api/meetings*`): meetings, participation, atas (edit, publish, PDF, confirmation) and meeting requests, every rule checked server-side (`MeetingAccess`), over the old meeting / ata services (push, email, Documentação PDF), task 034. `docs/react-meetings.md`. |
+| `src/RTUB.Web/Endpoints/OwnerEndpoints.cs`, `src/RTUB.Application/Services/OwnerOperationsService.cs` | React Owner tools (`/api/owner/*`, Owner only, gate `RequireOwner`): announcement emails, custom push (audited), users / roles / unlock / status sync, audit log (filters, export, truncate with `DELETE ALL`), database viewer (SELECT / confirmed DML), task 035. `docs/react-owner-operations.md`. |
+| `src/RTUB.Web/Endpoints/AccountRecoveryEndpoints.cs`, `src/RTUB.Application/Services/AccountRecoveryService.cs`, `wwwroot/error.html` | React password recovery / email confirmation (`POST /api/account/{forgot-password,reset-password,confirm-email}`, public, antiforgery, Identity tokens never stored or echoed); the server-owned `/Error` page; `/share` removed (404), task 036. `docs/react-identity.md`. |
+| `src/RTUB.Application/Helpers/MemberMenuAccess.cs` | Which member-menu groups a member sees (the Blazor navbar's rules), sent as `menu` by `/api/account/me`. Hides links only. |
+| `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
+| `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |
+| `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React (+ `menu` flags since 030). |
+| `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
+| `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |
+| `docs/react-portal-pilot.md` | Route ownership, constraints, representative content, CI gap. |
+| `src/RTUB.Web/Endpoints/MusicEndpoints.cs`, `src/RTUB.Application/Services/MusicService.cs` | React Music API and its rules (`MusicAuthorization`). `docs/react-music.md`. |
+| `src/RTUB.Web/Endpoints/EventEndpoints.cs`, `src/RTUB.Application/Services/EventAgendaService.cs` | React Events API: agenda, one event, a member's enrollment, Admin/Owner create/edit/delete (`EventsAuthorization`). Admin/Owner management (`IEventAdminService`, `IEventRepertoireAdminService`, `IEventParticipantsAdminService`) and members' statistics (`/api/events/stats`). `/member/events` redirects to `/events` (012F); discussion (`IEventDiscussionBoardService`, members) and contact tracking (`IEventContactsAdminService`, Mod and above) are React since 013; no Blazor event page is left. `docs/react-events.md`. |
+| `src/RTUB.Web/Endpoints/RehearsalEndpoints.cs`, `src/RTUB.Application/Services/RehearsalAgendaService.cs`, `RehearsalAdminService.cs` | React Rehearsals API (014): list, one rehearsal, own presença, statistics (members); create/range/edit/cancel/delete, notices, confirm/add/remove presenças (Admin/Owner, `RehearsalsAuthorization`). `docs/react-rehearsals.md`. |
+| `src/RTUB.Web/Endpoints/GalleryEndpoints.cs`, `src/RTUB.Application/Services/GalleryTimelineService.cs`, `GalleryManagementService.cs` | React Gallery API: viewer-aware timeline (009) and members' upload / edit / delete / tags (015, `GalleryAuthorization`). `/member/gallery` redirects to `/gallery`. `docs/react-gallery.md`. |
+
 ## Push notifications
 
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Application/Configuration/WebPushOptions.cs` | VAPID / feature-flag options. |
-| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle, inbox fallback. |
+| `src/RTUB.Application/Services/PushNotificationService.cs` | Web Push send logic, subscription lifecycle (no inbox copy since 027). |
 | `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
 | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
-| `src/RTUB.Web/Controllers/PushController.cs` | `/api/push/*` subscription and send endpoints. |
-| `src/RTUB.Web/wwwroot/js/push-notifications.js` | Browser-side subscription manager. |
+| `src/RTUB.Web/Endpoints/PushEndpoints.cs`, `src/RTUB.Application/Helpers/PushSubscriptionRules.cs` | `/api/push/{status,check,subscribe,unsubscribe}`: the member's own subscriptions, validated (task 038; replaced `PushController`). Sending to members: domain services, background jobs and the Owner's `/api/owner/notifications`. |
+| `src/RTUB.Web/portal/src/push.ts`, `Profile.tsx` (`PushSection`) | React opt-in / opt-out in `/profile` ("Notificações push"): capability detection, permission only from a click, server ↔ browser reconciliation. `docs/react-push-v2.md`. |
 | `src/RTUB.Web/wwwroot/service-worker.js` | `push` / `notificationclick` / `pushsubscriptionchange` handlers. |
-| `src/RTUB.Shared/Components/UI/PushNotificationPrompt.razor`, `PushNotificationToggle.razor` | Opt-in UI. |
+| `src/RTUB.Web/wwwroot/js/sw-register.js` | The only service-worker registration. |
 | `.claude/skills/rtub-push/SKILL.md` | RTUB-specific push behavior and constraints. |
 
 VAPID keys are configuration/secrets — never committed.
@@ -81,15 +104,28 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 `src/RTUB.Application/Services/` — `IHostedService`/`BackgroundService` implementations:
 `ActivityReminderBackgroundService`, `BackgroundGeocodingWorker`, `BirthdayEmailSchedulerService`, `CalotesNotificationBackgroundService`, `DatabaseBackupBackgroundService`, `MemberStatusUpdateBackgroundService`, `PendingRequestReminderService`, `QuestionNotificationBackgroundService`, `RehearsalApprovalReminderBackgroundService`, `WeeklyNotificationBackgroundService`.
 
-## MyTuno / PixiJS
+## Games / Bets / MyTuno (removed)
+
+Removed from the app by task 026; their entities, DbSets and tables by task 043's migrations (not yet applied to DEV or
+PROD): `docs/games-bets-mytuno-removal.md`, `docs/db-cleanup-inventory.md`.
+
+## Messages / Conversas (Messaging v2, task 041)
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RTUB.Web/pixi/` | TypeScript game source (arena, stage battle, survive mode, scenes) built with Vite. |
-| `src/RTUB.Web/Pages/MyTuno/`, `src/RTUB.Web/Pages/Games/`, `src/RTUB.Web/Pages/Inventory/` | Game-facing Blazor pages. |
-| `src/RTUB.Application/Services/InventoryService.*.cs` | Inventory/forge/equipment logic (partial class, 5 files). |
-| `src/RTUB.Web/scaling.config.json` | Enemy/stage scaling configuration. |
-| `docs/my_tuno/` | Game domain docs: equipment, weapons, scaling, survive mode, upgrade costs. |
+| `src/RTUB.Web/Endpoints/MessagingEndpoints.cs`, `src/RTUB.Application/Services/MessagingService.cs` | `/api/conversations*`, `/api/messages/{id}/reactions`: participants only (Admin / Owner have no special access), text only, replies, fixed-set reactions, mute, read state, push without the text. `docs/react-messages.md`. |
+| `src/RTUB.Web/portal/src/Messages.tsx` | React `/messages` (list + chat, `?c=<id>`). |
+| `src/RTUB.Core/Entities/{Conversation,Message,MessageReaction,ConversationUserSettings}.cs` | The v1 model, preserved by 027 and reused unchanged; never drop the tables (`docs/messages-removal.md`). |
+
+The 027-retired inbox URLs (`/messages/{id}`, `/hubs/messages`) stay 404. Messaging entities are excluded from and
+redacted in the audit log (`AuditConfiguration`).
+
+## Images (slideshows) and Labels admin (removed)
+
+The Blazor `/images` and `/labels` admin pages were removed by task 029A (both plain 404s; `/images/<file>` is still
+served by `ImagesController`). The Leaderboard story is fixed in code (`LeaderboardService.Story`). Their services and
+repositories (no caller) went in 042; the entities, DbSets, seed data and tables in task 043
+(`docs/db-cleanup-inventory.md`).
 
 ## Tests
 
@@ -98,8 +134,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `tests/RTUB.Core.Tests/` | Domain/entity/helper tests. |
 | `tests/RTUB.Application.Tests/` | Service and repository tests against a real EF Core context. |
 | `tests/RTUB.Application.Tests/Fixtures/DatabaseFixture.cs` | Shared in-memory database fixture. |
-| `tests/RTUB.Shared.Tests/` | bUnit component tests. |
-| `tests/RTUB.Web.Tests/` | Host-level and page tests. |
+| `tests/RTUB.Web.Tests/` | Host-level, source-contract and service tests (no bUnit since 037). |
 | `tests/RTUB.Integration.Tests/` | Cross-cutting integration tests. |
 
 ## CI / deployment
@@ -116,6 +151,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `.github/actions/deploy-and-verify/` | `azure/webapps-deploy` + smoke that waits for the expected version and commit. |
 | `docs/release-and-rollback.md` | **Runbook**: branch model, versions, releasing, archive, rollback, hotfix, database rules and restore. |
 | `docs/ci-cd-and-azure-environments.md` | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC identities, setting names, smoke. |
+| `docs/configuration-runbook.md`, `scripts/config/` | Every setting per environment (`required-settings.json`), redacted audits of local user-secrets and the Azure App Settings, placeholder-only `set` templates, VAPID key generation (039). Outputs go to the git-ignored `.local/config-audit/`. |
 | `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook (inert), central build settings + version stamping, central package versions. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
 | `scripts/release.sh` | version / bump-check / package / zip guards / `release.json` / schema gate. `--self-test`. |

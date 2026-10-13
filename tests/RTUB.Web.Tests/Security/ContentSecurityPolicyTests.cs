@@ -24,15 +24,10 @@ public class ContentSecurityPolicyTests
     private const string ProdPublicUrl = "https://pub-prod.r2.dev";
 
     private static string ReferencePolicy(string? referencePublicUrl) =>
-        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, referencePublicUrl)
-            .Build("https", "rtub.example");
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, referencePublicUrl).Build();
 
-    private static string Policy(
-        string? publicUrl = PublicUrl,
-        string? accountId = AccountId,
-        string scheme = "https",
-        string host = "rtub.example") =>
-        new ContentSecurityPolicyBuilder(publicUrl, accountId).Build(scheme, host);
+    private static string Policy(string? publicUrl = PublicUrl, string? accountId = AccountId) =>
+        new ContentSecurityPolicyBuilder(publicUrl, accountId).Build();
 
     /// <summary>Splits a policy into directive name -> source list.</summary>
     private static Dictionary<string, string[]> Directives(string policy) =>
@@ -106,29 +101,23 @@ public class ContentSecurityPolicyTests
 
     /// <summary>
     /// Every external origin is justified by something the browser actually loads, and must not
-    /// leak into a directive that does not need it. cdnjs serves both cropper.min.js and
-    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; jsdelivr serves only pixi.min.js;
-    /// the Carto tiles are images only.
+    /// leak into a directive that does not need it. The OpenStreetMap tiles are images only.
+    /// No script or stylesheet comes from a CDN: cdnjs (Cropper.js) and unpkg (Leaflet) served the
+    /// Blazor layout and were dropped in 042; jsdelivr served only pixi.min.js and went with MyTuno (026).
     /// </summary>
     [Fact]
     public void ExternalOrigins_AppearOnlyInTheDirectivesThatNeedThem()
     {
         var directives = Directives(Policy());
 
-        directives["script-src"].Should().BeEquivalentTo(
-            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://cdn.jsdelivr.net");
+        directives["script-src"].Should().Equal("'self'");
+        directives["style-src"].Should().Equal("'self'");
 
-        directives["style-src"].Should().BeEquivalentTo(
-            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
-
-        directives["img-src"].Should().Contain("https://*.basemaps.cartocdn.com")
+        directives["img-src"].Should().Contain("https://tile.openstreetmap.org")
             .And.Contain("data:");
 
-        // The tile CDN and the script CDNs are images / scripts respectively, never both.
-        directives["script-src"].Should().NotContain("https://*.basemaps.cartocdn.com");
-        directives["img-src"].Should().NotContain("https://cdn.jsdelivr.net");
-        directives["style-src"].Should().NotContain("https://cdn.jsdelivr.net");
-        directives["connect-src"].Should().NotContain("https://cdnjs.cloudflare.com");
+        directives.Values.SelectMany(v => v).Should().NotContain(
+            ["https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"]);
     }
 
     // ---------- R2 is runtime configuration, not a literal ----------
@@ -199,7 +188,7 @@ public class ContentSecurityPolicyTests
     [Fact]
     public void NoReferencePublicUrl_LeavesThePolicyByteIdentical()
     {
-        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build("https", "rtub.example")
+        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build()
             .Should().Be(Policy());
     }
 
@@ -219,7 +208,7 @@ public class ContentSecurityPolicyTests
     {
         var directives = Directives(ReferencePolicy(configured));
 
-        directives["img-src"].Should().Equal("'self'", "data:", "https://*.basemaps.cartocdn.com", PublicUrl);
+        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org", PublicUrl);
         directives["media-src"].Should().Equal("'self'", PublicUrl, EndpointOrigin);
         directives.Should().NotContainKey("script-src 'unsafe-inline'");
         directives["script-src"].Should().NotContain("'unsafe-inline'");
@@ -261,7 +250,7 @@ public class ContentSecurityPolicyTests
         policy.Should().NotContain("file:");
 
         var directives = Directives(policy);
-        directives["img-src"].Should().Equal("'self'", "data:", "https://*.basemaps.cartocdn.com");
+        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org");
         directives["media-src"].Should().Equal("'self'");
     }
 
@@ -289,60 +278,64 @@ public class ContentSecurityPolicyTests
         directives["media-src"].Should().NotContain(s => s.Contains("cloudflarestorage"));
     }
 
-    // ---------- Blazor's circuit ----------
+    // ---------- connect-src ----------
 
     /// <summary>
-    /// Blazor Server's circuit runs over a WebSocket, and <c>'self'</c> is not reliably read as
-    /// covering ws:/wss: in every browser, so the exact origin of the current request is emitted.
+    /// Task 037 retired the Blazor host: nothing opens a WebSocket, so connect-src is 'self' alone (it used to add the
+    /// request's own ws:/wss: origin for the /_blazor circuit). The policy no longer depends on the request at all.
     /// </summary>
-    [Theory]
-    [InlineData("https", "rtub.example", "wss://rtub.example")]
-    [InlineData("https", "rtub.example:8443", "wss://rtub.example:8443")]
-    [InlineData("http", "localhost:5000", "ws://localhost:5000")]
-    [InlineData("http", "[::1]:5000", "ws://[::1]:5000")]
-    public void WebSocketSource_MatchesTheRequestSchemeAndHost(string scheme, string host, string expected)
+    [Fact]
+    public void ConnectSrc_IsSelfOnly_WithNoWebSocketSource()
     {
-        Directives(Policy(scheme: scheme, host: host))["connect-src"]
-            .Should().Equal("'self'", expected);
-    }
+        var policy = Policy();
 
-    /// <summary>
-    /// The Host header is client-controlled. A value that is not a plain host[:port] is dropped
-    /// rather than concatenated into the header - the circuit failing is recoverable, a policy
-    /// with attacker-chosen text in it is not.
-    /// </summary>
-    [Theory]
-    [InlineData("https", "evil.example; script-src 'unsafe-inline'")]
-    [InlineData("https", "rtub.example/path")]
-    [InlineData("https", "rtub.example:notaport")]
-    [InlineData("ftp", "rtub.example")]
-    [InlineData("https", "")]
-    public void MalformedRequestHost_ContributesNoWebSocketSource(string scheme, string host)
-    {
-        var policy = Policy(scheme: scheme, host: host);
-
-        policy.Should().NotContain("unsafe-inline");
         Directives(policy)["connect-src"].Should().Equal("'self'");
+        policy.Should().NotContain("ws:").And.NotContain("wss:");
     }
 
     // ---------- static repository policy ----------
 
     /// <summary>
-    /// The one script-src blocker unit 023 missed: memberMap.js built its Leaflet popup markup as
-    /// a string, and that string carried an inline onerror attribute. Markup-only scans cannot see
-    /// it. It now opts into the same delegated listener every avatar in .razor markup uses.
+    /// The one script-src blocker unit 023 missed was the Blazor memberMap.js, which built its Leaflet popup markup as a
+    /// string carrying an inline onerror attribute. The React map (task 032) replaced it: popups are DOM nodes, names
+    /// go in as text, and the avatar fallback is a listener, so no member data or handler is ever written as markup.
     /// </summary>
     [Fact]
-    public void MemberMap_BuildsPopupAvatarsWithoutAnInlineHandler()
+    public void MembersMap_BuildsPopupsAsDomNodesWithoutInlineHandlers()
     {
-        var content = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "memberMap.js");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
+            .Should().BeFalse("the Blazor map script was retired in 032");
+
+        var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
 
         JsMarkupEventHandler.IsMatch(content).Should().BeFalse(
             "the popup avatar must not carry an inline error handler under a strict script-src");
-        content.Should().NotContain("this.src=",
-            "the old handler body must be gone, not merely reformatted");
-        content.Should().Contain("data-avatar-fallback",
-            "the popup avatar must opt into the delegated fallback listener instead");
+        content.Should().Contain("textContent = member.displayName", "names go into the popup as text, not markup")
+            .And.Contain("addEventListener('error'", "the avatar fallback is a listener")
+            .And.NotContain("innerHTML");
+    }
+
+    /// <summary>
+    /// Task 040: CARTO's basemap started answering "API KEY REQUIRED". The map uses OpenStreetMap's standard tiles (no
+    /// key), the CSP allows exactly that tile host, and nothing in the portal, the CSP or the built bundle still asks
+    /// CARTO for tiles.
+    /// </summary>
+    [Fact]
+    public void MembersMap_UsesNoKeyOpenStreetMapTiles_AllowedByTheCsp_AndNoCartoTiles()
+    {
+        var map = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
+        map.Should().Contain("const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';")
+            .And.Contain("OpenStreetMap</a> contributors")
+            .And.NotContainAny("cartocdn", "carto.com", "apikey", "api_key", "access_token", "?key=");
+
+        Directives(Policy())["img-src"].Should().Contain("https://tile.openstreetmap.org")
+            .And.NotContain(s => s.Contains("cartocdn"));
+
+        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"))
+            .Concat(Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
+            .Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
+        sources.Where(f => File.ReadAllText(f).Contains("basemaps.cartocdn.com"))
+            .Should().BeEmpty("no CARTO tile dependency is left");
     }
 
     /// <summary>
@@ -378,14 +371,14 @@ public class ContentSecurityPolicyTests
     }
 
     /// <summary>
-    /// Unit 021 found the Google Fonts preconnect in App.razor had no matching stylesheet and no
-    /// @font-face anywhere. Removing it is what lets font-src stay 'self'; if the hint comes back
+    /// Unit 021 found a Google Fonts preconnect in the (since retired, 037) Blazor App.razor with no matching
+    /// stylesheet and no @font-face anywhere. Removing it is what lets font-src stay 'self'; if the hint comes back
     /// without a font source, it is either dead weight or a directive the policy is missing.
     /// </summary>
     [Fact]
     public void NoWebFontServiceIsReferenced()
     {
-        ReadRepoFile("src", "RTUB.Web", "App.razor")
+        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
             .Should().NotContain("fonts.googleapis.com",
                 "the preconnect had no matching stylesheet; font-src is 'self'");
 

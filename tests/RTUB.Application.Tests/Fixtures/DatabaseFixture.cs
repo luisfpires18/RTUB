@@ -87,20 +87,15 @@ public class DatabaseFixture : IDisposable
         context.LogisticsCards.RemoveRange(context.LogisticsCards);
         context.LogisticsLists.RemoveRange(context.LogisticsLists);
         context.LogisticsBoards.RemoveRange(context.LogisticsBoards);
-        context.Slideshows.RemoveRange(context.Slideshows);
-        context.Labels.RemoveRange(context.Labels);
         context.Requests.RemoveRange(context.Requests);
         context.FiscalYears.RemoveRange(context.FiscalYears);
         context.Messages.RemoveRange(context.Messages);
         context.Conversations.RemoveRange(context.Conversations);
-        context.UserBets.RemoveRange(context.UserBets);
-        context.BetOptions.RemoveRange(context.BetOptions);
-        context.Bets.RemoveRange(context.Bets);
         context.NerbaOrders.RemoveRange(context.NerbaOrders);
         context.MbwayTransfers.RemoveRange(context.MbwayTransfers);
-        context.Characters.RemoveRange(context.Characters);
         context.QuestionReplies.RemoveRange(context.QuestionReplies);
         context.Questions.RemoveRange(context.Questions);
+        context.NewsPosts.RemoveRange(context.NewsPosts);
 
         await context.SaveChangesAsync();
     }

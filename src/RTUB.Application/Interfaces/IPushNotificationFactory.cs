@@ -331,34 +331,6 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl);
 
     /// <summary>
-    /// Creates a push notification for a new bet.
-    /// Sent to all subscribed users.
-    /// </summary>
-    /// <param name="bet">The bet to notify about</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateBetNotification(Bet bet, string baseUrl);
-
-    /// <summary>
-    /// Creates a push notification for a bet reminder.
-    /// Sent to all subscribed users.
-    /// </summary>
-    /// <param name="bet">The bet to remind about</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateBetReminderNotification(Bet bet, string baseUrl);
-
-    /// <summary>
-    /// Creates a push notification when a bet is resolved.
-    /// Sent to users who placed a bet.
-    /// </summary>
-    /// <param name="bet">The bet that was resolved</param>
-    /// <param name="isWinner">Whether the recipient won</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateBetResolvedNotification(Bet bet, bool isWinner, string baseUrl);
-
-    /// <summary>
     /// Creates a push notification when a meeting request is rejected or expired.
     /// Sent to the request author.
     /// </summary>
@@ -405,32 +377,15 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname, string baseUrl);
 
     /// <summary>
-    /// Creates a push notification for a direct message (1-on-1 conversation).
-    /// Sent to the message recipient only, not stored in inbox.
-    /// </summary>
-    /// <param name="senderName">The name of the message sender</param>
-    /// <param name="conversationId">The ID of the conversation</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateDirectMessageNotification(string senderName, string conversationId, string baseUrl);
-
-    /// <summary>
-    /// Creates a push notification for a group message.
-    /// Sent to all group members, not stored in inbox.
-    /// </summary>
-    /// <param name="groupName">The name of the group</param>
-    /// <param name="conversationId">The ID of the conversation/group</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateGroupMessageNotification(string groupName, string conversationId, string baseUrl);
-
-    /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// Sent to the tagged user.
     /// </summary>
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateGalleryTagNotification(string baseUrl);
+
+    /// <summary>Messaging v2: a new chat message, without its text; links to /messages?c={id}.</summary>
+    SendPushNotificationDto CreateConversationMessageNotification(string senderName, string? groupTitle, int conversationId);
 
     /// <summary>
     /// Creates a push notification when a user is @mentioned in a post or comment.

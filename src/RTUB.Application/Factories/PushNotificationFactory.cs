@@ -55,7 +55,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             return new SendPushNotificationDto
             {
                 Title = @event.Name,
-                Body = $"Nova atuação do tipo \"{eventTypeDisplay}\" - {@event.Name}. Confirma a tua presença.",
+                Body = $"Novo evento do tipo \"{eventTypeDisplay}\" - {@event.Name}. Confirma a tua presença.",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
                 Tag = $"event-{@event.Id}"
@@ -483,82 +483,6 @@ public class PushNotificationFactory : IPushNotificationFactory
             MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
             MeetingType.ReuniaoDirecao => "Reunião de Direção",
             _ => "Reunião"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification for a new bet.
-    /// </summary>
-    /// <param name="bet">The bet to notify about</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateBetNotification(Bet bet, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(bet);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
-        var dateStr = bet.DateTime.ToString("dd/MM/yyyy", PortugueseCulture);
-
-        return new SendPushNotificationDto
-        {
-            Title = "Nova Aposta",
-            Body = $"{bet.Title} - {dateStr}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = betsUrl,
-            Tag = $"bet-{bet.Id}"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification to remind users to bet.
-    /// </summary>
-    /// <param name="bet">The bet to remind about</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateBetReminderNotification(Bet bet, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(bet);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
-        var dateStr = bet.DateTime.ToString("dd/MM/yyyy", PortugueseCulture);
-
-        return new SendPushNotificationDto
-        {
-            Title = "Lembrete: Aposta",
-            Body = $"Não te esqueças de apostar em: {bet.Title} ({dateStr})",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = betsUrl,
-            Tag = $"bet-reminder-{bet.Id}"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification when a bet is resolved.
-    /// </summary>
-    /// <param name="bet">The bet that was resolved</param>
-    /// <param name="isWinner">Whether the recipient won</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateBetResolvedNotification(Bet bet, bool isWinner, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(bet);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
-        var title = isWinner ? "Aposta ganha" : "Aposta perdida";
-        var body = isWinner
-            ? $"Parabéns! Ganhaste a aposta \"{bet.Title}\"."
-            : $"A aposta \"{bet.Title}\" foi resolvida e não foi vencedora.";
-
-        return new SendPushNotificationDto
-        {
-            Title = title,
-            Body = body,
-            Icon = "/icons/rtub-logo-192.png",
-            Url = betsUrl,
-            Tag = $"bet-resolved-{bet.Id}"
         };
     }
 
@@ -1079,7 +1003,7 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var calotesUrl = $"{baseUrl.TrimEnd('/')}/calotes";
+        var calotesUrl = $"{baseUrl.TrimEnd('/')}/treasury/calotes";
 
         return new SendPushNotificationDto
         {
@@ -1153,43 +1077,22 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
-    /// Creates a push notification for a direct message (1-on-1 conversation).
+    /// Messaging v2 (task 041): a new chat message. Never carries the message text: the title is generic (it is the
+    /// only part push logging records) and the body names the sender and, for a group, the group. The link is
+    /// relative, so it never depends on the request's Host header.
     /// </summary>
-    public SendPushNotificationDto CreateDirectMessageNotification(string senderName, string conversationId, string baseUrl)
+    public SendPushNotificationDto CreateConversationMessageNotification(string senderName, string? groupTitle, int conversationId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(senderName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
 
         return new SendPushNotificationDto
         {
-            Title = $"Nova mensagem de {senderName}",
-            Body = "Tens uma nova mensagem direta",
+            Title = "Nova mensagem",
+            Body = string.IsNullOrWhiteSpace(groupTitle)
+                ? $"{senderName} enviou-te uma mensagem."
+                : $"{senderName} escreveu em {groupTitle}.",
             Icon = "/icons/rtub-logo-192.png",
-            Url = messageUrl,
-            Tag = $"message-{conversationId}"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification for a group message.
-    /// </summary>
-    public SendPushNotificationDto CreateGroupMessageNotification(string groupName, string conversationId, string baseUrl)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(groupName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(conversationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var messageUrl = $"{baseUrl.TrimEnd('/')}/messages/{conversationId}";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Nova mensagem no grupo {groupName}",
-            Body = "Há uma nova mensagem no teu grupo",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = messageUrl,
+            Url = $"/messages?c={conversationId}",
             Tag = $"message-{conversationId}"
         };
     }

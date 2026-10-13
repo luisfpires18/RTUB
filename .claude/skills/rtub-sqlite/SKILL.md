@@ -11,8 +11,8 @@ against the current implementation. Read the linked file when you need the detai
 ## Data access contract
 
 `IDbContextFactory<ApplicationDbContext>` is the access pattern — **one context per operation**,
-created and disposed inside the method. Blazor Server circuits are long-lived; a context held
-across renders leaks and cross-talks.
+created and disposed inside the method. Hosted services and singletons outlive a request; a context
+held across awaits or requests leaks and cross-talks.
 
 `Repository<T>` (`src/RTUB.Application/Repositories/Repository.cs`) already implements this, and
 each mutating method **saves internally**. There is no `SaveChangesAsync` on `IRepository<T>`;
@@ -45,7 +45,7 @@ must still work), so a silently missing PRAGMA is possible — check there first
 behaves oddly.
 
 `Program.cs` sets `DefaultTimeout=30` and **deliberately does not set `Cache=Shared`**.
-Shared-cache adds table-level locks that deadlock against WAL under Blazor Server. If you hit
+Shared-cache adds table-level locks that deadlock against WAL under concurrent requests. If you hit
 `SQLITE_BUSY`, do not "fix" it by adding shared cache — look for a long-lived context or a write
 held open across an `await`.
 

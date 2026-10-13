@@ -2,13 +2,12 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
@@ -17,7 +16,6 @@ using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Services.Geocoding;
-using RTUB.Application.Services.Retirement;
 using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
@@ -45,6 +43,20 @@ public static class ServiceCollectionExtensions
 
     /// <summary>Matched to <c>Lockout.DefaultLockoutTimeSpan</c> so both limits tell one story.</summary>
     private const double DefaultLoginWindowMinutes = 5;
+
+    /// <summary>Name of the rate limiting policy applied to <c>POST /api/public/requests</c>.</summary>
+    public const string PublicRequestRateLimitPolicy = "public-requests";
+
+    private const string PublicRequestRateLimitSection = "PublicRequestRateLimit";
+
+    /// <summary>
+    /// Anonymous performance requests allowed per client IP per window. Each one saves a row, pushes
+    /// to every Admin and Owner and emails RTUB; a person books a performance once, so a handful per
+    /// hour never gets in the way of a real request and caps a script well below nuisance level.
+    /// </summary>
+    private const int DefaultPublicRequestPermitLimit = 5;
+
+    private const double DefaultPublicRequestWindowMinutes = 60;
 
     /// <summary>
     /// Cache-key prefix for the <c>LastLoginDate</c> write throttle, keyed by <b>user id</b>.
@@ -86,54 +98,26 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-        services.AddScoped<ILogisticsBoardRepository, LogisticsBoardRepository>();
-        services.AddScoped<ILogisticsListRepository, LogisticsListRepository>();
-        services.AddScoped<ILogisticsCardRepository, LogisticsCardRepository>();
         services.AddScoped<IEventRepertoireRepository, EventRepertoireRepository>();
         services.AddScoped<IRehearsalAttendanceRepository, RehearsalAttendanceRepository>();
         services.AddScoped<IFiscalYearRepository, FiscalYearRepository>();
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IRequestRepository, RequestRepository>();
-        services.AddScoped<ILabelRepository, LabelRepository>();
         services.AddScoped<IMeetingRequestRepository, MeetingRequestRepository>();
         services.AddScoped<IMeetingParticipationRepository, MeetingParticipationRepository>();
         services.AddScoped<IProductReservationRepository, ProductReservationRepository>();
         services.AddScoped<IMemberInstrumentRepository, MemberInstrumentRepository>();
         services.AddScoped<ITrophyRepository, TrophyRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
-        services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
-        services.AddScoped<IBetCommentRepository, BetCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
-        services.AddScoped<IConversationRepository, ConversationRepository>();
-        services.AddScoped<IMessageRepository, MessageRepository>();
-        services.AddScoped<IConversationUserSettingsRepository, ConversationUserSettingsRepository>();
         services.AddScoped<ISongVideoRepository, SongVideoRepository>();
         services.AddScoped<IEventVideoRepository, EventVideoRepository>();
         services.AddScoped<IGalleryMediaRepository, GalleryMediaRepository>();
         services.AddScoped<INaipeContentRepository, NaipeContentRepository>();
         services.AddScoped<INaipeCommentRepository, NaipeCommentRepository>();
         services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
-        services.AddScoped<IGameScoreRepository, GameScoreRepository>();
-        services.AddScoped<IGameRepository, GameRepository>();
-        services.AddScoped<IBetRepository, BetRepository>();
-        services.AddScoped<IBetOptionRepository, BetOptionRepository>();
-        services.AddScoped<IUserBetRepository, UserBetRepository>();
-        services.AddScoped<ICharacterRepository, CharacterRepository>();
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
-
-        // Stage Mode repositories
-        services.AddScoped<IStageProgressRepository, StageProgressRepository>();
-        services.AddScoped<IStageEnemyRepository, StageEnemyRepository>();
-
-        // Boss Mode repositories
-        services.AddScoped<IBossModeProgressRepository, BossModeProgressRepository>();
-
-        // Survive Mode repositories
-        services.AddScoped<ISurviveModeProgressRepository, SurviveModeProgressRepository>();
-        services.AddScoped<IItemTypeConfigRepository, ItemTypeConfigRepository>();
-        services.AddScoped<IForgeComboConfigRepository, ForgeComboConfigRepository>();
 
         return services;
     }
@@ -146,27 +130,40 @@ public static class ServiceCollectionExtensions
         // Core domain services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IAlbumService, AlbumService>();
-        services.AddScoped<IAlbumStatisticsService, AlbumStatisticsService>();
-        services.AddScoped<IAlbumFilterService, AlbumFilterService>();
-        services.AddScoped<IAlbumImageService, AlbumImageService>();
-        services.AddScoped<IEventFilterService, EventFilterService>();
-        services.AddScoped<IEventUrlService, EventUrlService>();
-        services.AddScoped<IEventStatisticsService, EventStatisticsService>();
-        services.AddScoped<IEventDiscussionService, EventDiscussionService>();
         services.AddScoped<ITransportationService, TransportationService>();
-        services.AddScoped<IEventAuthorizationService, EventAuthorizationService>();
-        services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
-        services.AddScoped<IEnrollmentStatisticsService, EnrollmentStatisticsService>();
         services.AddScoped<IEventContactService, EventContactService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
+        services.AddScoped<IMusicService, MusicService>();
+        services.AddScoped<IGovernanceService, GovernanceService>();
+        services.AddScoped<IGovernanceManagementService, GovernanceManagementService>();
+        services.AddScoped<IMemberDirectoryService, MemberDirectoryService>();
+        services.AddScoped<IMemberAdminService, MemberAdminService>();
+        services.AddScoped<IMyProfileService, MyProfileService>();
+        services.AddScoped<IMemberMapService, MemberMapService>();
+        services.AddScoped<IHallOfFameService, HallOfFameService>();
+        services.AddScoped<ILeaderboardService, LeaderboardService>();
+        services.AddScoped<IInstrumentInventoryService, InstrumentInventoryService>();
+        services.AddScoped<IProductShopService, ProductShopService>();
+        services.AddScoped<INewsService, NewsService>();
+        services.AddScoped<IDocumentationService, DocumentationService>();
+        services.AddScoped<ILogisticsKanbanService, LogisticsKanbanService>();
+        services.AddScoped<ITreasuryService, TreasuryService>();
+        services.AddScoped<ITreasuryRecordsService, TreasuryRecordsService>();
+        services.AddScoped<IGalleryTimelineService, GalleryTimelineService>();
+        services.AddScoped<IEventAgendaService, EventAgendaService>();
+        services.AddScoped<IEventAdminService, EventAdminService>();
+        services.AddScoped<IEventRepertoireAdminService, EventRepertoireAdminService>();
+        services.AddScoped<IEventParticipantsAdminService, EventParticipantsAdminService>();
+        services.AddScoped<IEventDiscussionBoardService, EventDiscussionBoardService>();
+        services.AddScoped<IEventContactsAdminService, EventContactsAdminService>();
+        services.AddScoped<IRehearsalAgendaService, RehearsalAgendaService>();
+        services.AddScoped<IRehearsalAdminService, RehearsalAdminService>();
+        services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();
-        services.AddScoped<ISongUrlCacheService, SongUrlCacheService>();
-        services.AddScoped<ISongPlayService, SongPlayService>();
-        services.AddScoped<ISongValidationService, SongValidationService>();
         services.AddScoped<IRequestService, RequestService>();
-        services.AddScoped<ISlideshowService, SlideshowService>();
-        services.AddScoped<ILabelService, LabelService>();
+        services.AddScoped<IRequestAdminService, RequestAdminService>();
+        services.AddScoped<IPublicRequestService, PublicRequestService>();
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IMemberDebtService, MemberDebtService>();
@@ -179,27 +176,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IEventRepertoireService, EventRepertoireService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
-        services.AddScoped<IRetirementStatusService, RetirementStatusService>();
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
         services.AddScoped<INaipeService, NaipeService>();
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
-        services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
-        services.AddScoped<INaipeConfigService, NaipeConfigService>();
-        services.AddScoped<IItemTypeConfigService, ItemTypeConfigService>();
-        services.AddSingleton<ItemTypeConfigInitializer>();
-        services.AddScoped<ICharacterService, CharacterService>();
-        services.AddScoped<IUpgradeService, UpgradeService>();
-        services.AddScoped<IImprovementService, ImprovementService>();
-        services.AddScoped<IConsumableUpgradeService, ConsumableUpgradeService>();
-        services.AddSingleton<ICombatEngine, DeterministicCombatEngine>();
-        services.AddScoped<ICombatActionService, CombatActionService>();
-        services.AddScoped<IBattleService, BattleService>();
-        services.AddScoped<IStageService, StageService>();
-        services.AddScoped<IStageBiomeService, StageBiomeService>();
-        services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
-        services.AddScoped<IBossModeService, BossModeService>();
-        services.AddScoped<ISurviveModeService, SurviveModeService>();
-        services.AddScoped<IShopService, ShopService>();
+        services.AddScoped<INaipeBoardService, NaipeBoardService>();
 
         return services;
     }
@@ -211,22 +191,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IRehearsalService, RehearsalService>();
         services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
-        services.AddScoped<IRehearsalAttendanceFilterService, RehearsalAttendanceFilterService>();
-        services.AddScoped<IRehearsalFilterService, RehearsalFilterService>();
-        services.AddScoped<IRehearsalStatisticsService, RehearsalStatisticsService>();
-        services.AddScoped<IRehearsalUrlService, RehearsalUrlService>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers logistics board services
-    /// </summary>
-    public static IServiceCollection AddLogisticsServices(this IServiceCollection services)
-    {
-        services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
-        services.AddScoped<ILogisticsListService, LogisticsListService>();
-        services.AddScoped<ILogisticsCardService, LogisticsCardService>();
 
         return services;
     }
@@ -243,6 +207,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMeetingAtaConfirmationService, MeetingAtaConfirmationService>();
         services.AddScoped<IAtaPdfService, AtaPdfService>();
 
+        // The React /meetings (task 034): every rule of the old page, over the services above.
+        services.AddScoped<IMeetingBoardService, MeetingBoardService>();
+
+        // The React Owner tools (task 035): what /emails, /notifications, /users, /owner/tracing and /owner/db did.
+        services.AddScoped<IOwnerOperationsService, OwnerOperationsService>();
+
+        // The React /forgot-password, /reset-password and /confirm-email (task 036).
+        services.AddScoped<AccountRecoveryService>();
+
         return services;
     }
 
@@ -255,7 +228,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductReservationService, ProductReservationService>();
         services.AddScoped<ITrophyService, TrophyService>();
-        services.AddScoped<IInventoryService, InventoryService>();
 
         return services;
     }
@@ -269,7 +241,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
-        services.AddScoped<IBetCommentService, BetCommentService>();
 
         return services;
     }
@@ -282,7 +253,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberFilterService, MemberFilterService>();
         services.AddScoped<IActiveMemberFilterService, ActiveMemberFilterService>();
         services.AddScoped<IMemberMentorService, MemberMentorService>();
-        services.AddScoped<IMemberPositionService, MemberPositionService>();
         services.AddScoped<IMemberAnniversaryService, MemberAnniversaryService>();
         services.AddScoped<IMemberHierarchyService, MemberHierarchyService>();
 
@@ -308,6 +278,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestionRepository, QuestionRepository>();
         services.AddScoped<IQuestionReplyRepository, QuestionReplyRepository>();
         services.AddScoped<IQuestionService, QuestionService>();
+        services.AddScoped<IQuestionBoardService, QuestionBoardService>();
+        services.AddScoped<IMessagingService, MessagingService>(); // Messaging v2, React /messages (task 041)
         services.AddScoped<IMeetingAtaRepository, MeetingAtaRepository>();
 
         return services;
@@ -324,39 +296,14 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers game services
-    /// </summary>
-    public static IServiceCollection AddGameServices(this IServiceCollection services)
-    {
-        services.AddScoped<IGameScoreService, GameScoreService>();
-        services.AddScoped<IGameService, GameService>();
-        services.AddScoped<IGameFilterService, GameFilterService>();
-        services.AddScoped<ITimeFormatter, TimeFormatter>();
-
-        return services;
-    }
-
-    /// <summary>
     /// Registers finance and transaction services
     /// </summary>
     public static IServiceCollection AddFinanceServices(this IServiceCollection services)
     {
-        services.AddScoped<ITransactionFilterService, TransactionFilterService>();
-        services.AddScoped<IDebtService, DebtService>();
         services.AddScoped<IFinanceManagementService, FinanceManagementService>();
         services.AddScoped<IFiscalYearHelper, FiscalYearHelperService>();
         services.AddScoped<IRequestToEventService, RequestToEventService>();
         services.AddScoped<IRequestValidationService, RequestValidationService>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers betting services (Fidelis wagering system)
-    /// </summary>
-    public static IServiceCollection AddBettingServices(this IServiceCollection services)
-    {
-        services.AddScoped<IBetService, BetService>();
 
         return services;
     }
@@ -448,7 +395,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
         services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
         services.AddScoped<INaipeMediaStorageService, CloudflareNaipeMediaStorageService>();
-        services.AddScoped<IItemTypeMediaStorageService, CloudflareItemTypeMediaStorageService>();
 
         return services;
     }
@@ -527,7 +473,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMemberQueryServices(this IServiceCollection services)
     {
         services.AddScoped<IMemberStatisticsService, MemberStatisticsService>();
-        services.AddScoped<IUserRoleQueryService, UserRoleQueryService>();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IMemberStatusService, MemberStatusService>();
 
         return services;
@@ -541,20 +487,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers internal messaging services
-    /// </summary>
-    public static IServiceCollection AddMessagingServices(this IServiceCollection services)
-    {
-        services.AddScoped<IMessagingService, MessagingService>();
-        services.AddScoped<IGroupConversationSyncService, GroupConversationSyncService>();
-        services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
-        services.AddScoped<IMessagingDisplayService, MessagingDisplayService>();
-        services.AddScoped<IMessagingSortService, MessagingSortService>();
 
         return services;
     }
@@ -601,7 +533,8 @@ public static class ServiceCollectionExtensions
                         QueueLimit = 0
                     }));
 
-            // Only the login policy exists, so this callback is reached only by a login rejection.
+            // One handler for every policy, so it answers per policy: the login form keeps its plain
+            // text, the public request API gets problem JSON that the React form can read.
             options.OnRejected = async (context, cancellationToken) =>
             {
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
@@ -611,6 +544,22 @@ public static class ServiceCollectionExtensions
                 }
 
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+                var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+                if (policy == PublicRequestRateLimitPolicy)
+                {
+                    await context.HttpContext.Response.WriteAsJsonAsync(
+                        new Microsoft.AspNetCore.Mvc.ProblemDetails
+                        {
+                            Status = StatusCodes.Status429TooManyRequests,
+                            Title = "Recebemos vários pedidos seguidos deste dispositivo. Tente novamente mais tarde."
+                        },
+                        (System.Text.Json.JsonSerializerOptions?)null,
+                        "application/problem+json",
+                        cancellationToken);
+                    return;
+                }
+
                 await context.HttpContext.Response.WriteAsync(
                     "Demasiadas tentativas de login. Tente novamente mais tarde.", cancellationToken);
             };
@@ -620,7 +569,32 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings / scaling.config.json
+    /// Registers the per-client rate limiter for <c>POST /api/public/requests</c> (React track 003).
+    /// Same partitioning as <see cref="AddLoginRateLimiting"/> - <c>RemoteIpAddress</c> only, never a
+    /// caller-supplied header - with its own budget and its own rejection body (see OnRejected there).
+    /// </summary>
+    public static IServiceCollection AddPublicRequestRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(PublicRequestRateLimitSection);
+        var permitLimit = section.GetValue("PermitLimit", DefaultPublicRequestPermitLimit);
+        var window = TimeSpan.FromMinutes(section.GetValue("WindowMinutes", DefaultPublicRequestWindowMinutes));
+
+        services.AddRateLimiter(options =>
+            options.AddPolicy(PublicRequestRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = window,
+                        QueueLimit = 0
+                    })));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers all IOptions&lt;T&gt; configuration bindings from appsettings
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
@@ -650,14 +624,6 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
-        services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.FidelisRewardsConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
-        services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
-            configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
             configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
 
@@ -876,7 +842,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ReportPdfService>();
-        services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
+        services.AddScoped<IEmailSender, EmailSender>();
         services.AddControllersWithViews();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailTemplateRenderer, RazorEmailTemplateRenderer>();
@@ -925,8 +891,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpClient("Nominatim")
             .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(10); });
-        services.AddHttpClient("CdnProxy")
-            .ConfigureHttpClient(client => { client.Timeout = TimeSpan.FromSeconds(15); });
 
         services.AddSingleton<IGeocodingQueue, InMemoryGeocodingQueue>();
         services.AddScoped<NominatimGeocodingService>();
@@ -954,46 +918,11 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers UI state services, interop services, and Blazor-specific singletons
+    /// Configures the system announcement, authorization, antiforgery, response compression and caching
     /// </summary>
-    public static IServiceCollection AddWebUiServices(this IServiceCollection services)
+    public static IServiceCollection AddWebServices(this IServiceCollection services, IHostEnvironment environment)
     {
-        services.AddScoped<ProfilePictureUpdateService>();
-        services.AddSingleton<MessagesNotificationService>();
-        services.AddSingleton<AdminRefreshService>();
         services.AddSingleton<AnnouncementService>();
-        services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
-        services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
-        services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
-        services.AddScoped<MediaQueueService>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Configures Blazor Interactive Server, SignalR hub options, authorization, antiforgery,
-    /// response compression and caching
-    /// </summary>
-    public static IServiceCollection AddBlazorAndWebServices(this IServiceCollection services, IHostEnvironment environment)
-    {
-        services.AddRazorComponents()
-            .AddInteractiveServerComponents(options =>
-            {
-                options.DetailedErrors = environment.IsDevelopment();
-                options.MaxBufferedUnacknowledgedRenderBatches = 20;
-                options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(3);
-            });
-
-        services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
-        {
-            options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
-            options.EnableDetailedErrors = environment.IsDevelopment();
-            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
-        });
-
-        services.AddCascadingAuthenticationState();
-        services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));

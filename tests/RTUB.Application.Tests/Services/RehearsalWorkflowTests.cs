@@ -25,7 +25,7 @@ public class RehearsalWorkflowTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly RehearsalService _rehearsalService;
     private readonly RehearsalAttendanceService _attendanceService;
-    private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
+    private readonly Mock<IMemberStatusService> _mockRetirementStatusService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
@@ -47,7 +47,7 @@ public class RehearsalWorkflowTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-        _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        _mockRetirementStatusService = new Mock<IMemberStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();

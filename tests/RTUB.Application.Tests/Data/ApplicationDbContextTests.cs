@@ -151,18 +151,15 @@ public class ApplicationDbContextTests : IDisposable
         // Arrange
         var album = Album.Create("Test Album", 2024);
         var song = Song.Create("Test Song", 1, 1);
-        var label = Label.Create("REF001", "Test Label", "Test content");
 
         // Act
         _context.Albums.Add(album);
         _context.Songs.Add(song);
-        _context.Labels.Add(label);
         await _context.SaveChangesAsync();
 
         // Assert
         album.CreatedBy.Should().Be(_testUsername);
         song.CreatedBy.Should().Be(_testUsername);
-        label.CreatedBy.Should().Be(_testUsername);
     }
 
     [Fact]

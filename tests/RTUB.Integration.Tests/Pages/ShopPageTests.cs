@@ -43,7 +43,7 @@ public class ShopPageTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
+        location.Should().Contain("returnUrl=%2Fshop", "the React /shop sends visitors to sign in and back (021)");
     }
 
     [Fact]

@@ -22,7 +22,7 @@ Why it is built this way: `docs/architecture/adr/0001-production-release-and-rol
 | Artifact | one zip per push, workflow artifact of that run (1 day) | one zip per release, archived privately and immutably as `releases/<version>/` |
 | `/api/version` | `<VERSION>-dev.<run>` + commit | `<VERSION>` + commit |
 | Rollback | push again | **Rollback • PROD** redeploys any archived version |
-| Run from package | `WEBSITE_RUN_FROM_PACKAGE=1` | adopted after the first OIDC release (`STATE.md`) |
+| Run from package | not used: `WEBSITE_RUN_FROM_PACKAGE` intentionally absent (040) | `WEBSITE_RUN_FROM_PACKAGE=1` |
 | Database | `Data Source=/home/site/data/<file>.db` - **read the live setting; never hardcode it** (`rtub-dev-v3.db` as of 2026-09-22) | `Data Source=/home/site/data/app.db` |
 | Daily backup | off (`DatabaseBackup__Enabled=false`) | on, to the private `rtub-db` R2 bucket at 03:30 UTC |
 | Pre-migration snapshot | yes | yes |
@@ -42,7 +42,7 @@ The Actions sidebar is meant to be read without opening anything:
 
 | Workflow | File | Trigger | Does |
 | --- | --- | --- | --- |
-| **CI • Build & Test** | `ci.yml` | PRs into `dev`/`master`; called by both deploy workflows | restore, Release build, all five test suites, coverage + TRX artifacts. PRs into `master` also run *VERSION is bumped*. Deploys nothing. |
+| **CI • Build & Test** | `ci.yml` | PRs into `dev`/`master`; called by both deploy workflows | restore, Release build, all four test suites (five before 037 removed `RTUB.Shared.Tests`), coverage + TRX artifacts. PRs into `master` also run *VERSION is bumped*. Deploys nothing. |
 | **Deploy • DEV** | `deploy-dev.yml` | push to `dev` | CI → package one zip → deploy to `rtub-dev` → smoke. |
 | **Deploy • PROD** | `deploy-prod.yml` | push to `master` | VERSION check → CI → package one zip → archive → read back → schema gate → deploy to `rtub` → smoke → tag. |
 | **Rollback • PROD** | `rollback-prod.yml` | manual only | redeploy an archived version to `rtub` → smoke. Never builds. |
@@ -80,9 +80,9 @@ dotnet test --no-build --configuration Release \
   --coverage --coverage-output-format cobertura
 ```
 
-This discovers and runs all five suites: `global.json` carries
+This discovers and runs all four suites: `global.json` carries
 `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, which makes `dotnet test` drive MTP rather
-than VSTest (unit 011). Report filenames are left unset on purpose: all five projects write into one
+than VSTest (unit 011). Report filenames are left unset on purpose: all test projects write into one
 results directory and MTP assigns unique names.
 
 Baseline (unit 030): **4855 total, 0 failed**. On Windows 66 are skipped; on the Linux runner six of
@@ -90,10 +90,9 @@ those (the bash script self-tests) run, leaving 60.
 
 ## Build and packaging
 
-**Node is required for publish.** `RTUB.csproj`'s `BuildPixiTS` target runs `npm ci
---ignore-scripts` + `npm run build:pixi` before publish. CI uses **Node 22** (Node 20 left
-maintenance in April 2026; 22 satisfies `vite ^6`, `cross-env ^10`, `typescript ^5.7` as pinned).
-`dotnet build` and `dotnet test` do not need Node.
+**Publish needs no Node** (since 026, which removed the PixiJS bundles and their `BuildPixiTS`
+target). The React portal build, `wwwroot/portal`, is committed and published as-is; rebuild it by
+hand with Node 22 (`docs/react-portal-pilot.md`). `dotnet build` and `dotnet test` do not need Node.
 
 **linux-x64, framework-dependent**, in `.github/actions/package-release` only:
 
@@ -108,7 +107,9 @@ dotnet publish src/RTUB.Web/RTUB.csproj -c Release -r linux-x64 --self-contained
 | `libQuestPdfSkia.so`, `libe_sqlite3.so` | under `runtimes/linux-x64/native/` | **publish root** |
 
 The RID is scoped to that one command - no `RuntimeIdentifier` anywhere in the build - so Windows
-development and the test projects are untouched. The zip is ~230 MB (mostly `wwwroot/sprites`).
+development and the test projects are untouched. The zip was ~230 MB, mostly `wwwroot/sprites`
+(~180 MB) and `wwwroot/sound` (~17 MB), both removed in 026; the table predates that (a local
+`-r linux-x64` publish after 026: 68 MB / 760 files, with no Node on `PATH`).
 
 **Native libraries are startup-fatal.** `QuestPDF.Settings.License` is set at the top of
 `Program.cs`, before any service exists; a missing `libQuestPdfSkia.so` aborts the container with
@@ -116,7 +117,7 @@ development and the test projects are untouched. The zip is ~230 MB (mostly `www
 
 **The guards run on the zip** (`scripts/release.sh verify`), not on the folder: `RTUB.dll`, deps and
 runtimeconfig present; both native libraries present, non-empty and ELF64 x86-64; manifest,
-service worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
+service worker and offline page present; at least 200 files under `wwwroot/`; no backslash or
 path-traversal entry names. Its `--self-test` proves each refusal.
 
 **Never package with `Compress-Archive`.** It writes entry names with backslashes; Linux unpacks
@@ -130,7 +131,8 @@ with `zipfile`, whose rewrite is correct on write.
 
 `WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
 Microsoft's current documentation excludes only Python and Java; an older "Windows only" quote this
-document used to carry is obsolete. `rtub-dev` runs this way.
+document used to carry is obsolete. `rtub` runs this way; `rtub-dev` used to and no longer does (setting
+intentionally absent, 040).
 
 With it, a zip deploy stores the zip as-is in `/home/data/SitePackages/` and restarts the app, which
 mounts the zip read-only as `/home/site/wwwroot`: only complete deployments ever run, and there is no
@@ -215,22 +217,24 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `ASPNETCORE_URLS`, `WEBSITES_PORT` | set | set | must agree |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | `true` | real client address and scheme behind the Azure front end |
 | `ConnectionStrings__SqliteConnection` | set | set | under `/home/site/data` |
-| `WEBSITE_RUN_FROM_PACKAGE` | `1` | `1` after cutover | see above |
+| `WEBSITE_RUN_FROM_PACKAGE` | intentionally absent (040) | `1` | DEV does not run from package on its current plan; do not re-add unless DEV's deployment strategy changes |
 | `AdminUser__Password` | set | not needed while users exist | startup-fatal on an empty database |
 | `SeedData__SeedFullDataset`, `SeedData__MemberPassword` | set | absent | |
 | `DatabaseBackup__Enabled` | `false` | `true` | plus `DatabaseBackup__Bucket`/`AccessKeyId`/`SecretAccessKey`/`AccountId`/`ScheduledTime` in PROD |
 | `Cloudflare__R2__AccountId`, `…AccessKeyId`, `…SecretAccessKey`, `…Bucket`, `…PublicUrl` | DEV bucket, bucket-scoped token | production | **required**: the home page resolves storage services |
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
-| `WebPush__Vapid*`, `EmailSettings__*` | optional | set | absence disables the feature, not startup |
+| `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | set (own key pair) | set (own key pair) | required for push since 038 (`/profile` shows "not configured" without them); absence disables push, not startup. Never rotate a live pair casually: existing subscriptions stop working |
+| `EmailSettings__*` | set for real mail | set | required for real outgoing email; absence disables email, not startup |
+| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | `true` / `false` | `true` / `false` | maps need **no API key** (Leaflet + OpenStreetMap tiles, Nominatim geocoding) |
+| `IDrive__*` | absent | **absent** (dead since the move to R2; owner action to delete on `rtub`) | |
 
-**R2 is required, not optional.** `Index.razor` (`@page "/"`) resolves `ISlideshowService` →
-`CloudflareImageStorageService` → `IAmazonS3`; without credentials the app starts and `/health`
-answers 200, but `/` returns 500. `IAmazonS3` reaches 13 domain services through 11 storage
+**R2 is required, not optional.** Storage-backed API routes (events, music, gallery, governance, naipes,
+documentation, treasury, …) resolve e.g. `IImageStorageService` → `CloudflareImageStorageService` → `IAmazonS3`;
+without credentials the app starts and `/health` answers 200, but those routes return 500. `IAmazonS3` reaches 13 domain services through 11 storage
 services. Making it optional was rejected: it would turn real storage failures into silence.
 
-`RemoteNavigationManager already initialized` in a log is fallout from an earlier unhandled
-exception (`UseExceptionHandler` re-rendering `/Error` on the same `HttpContext`), not a bug of its
-own.
+Every setting with its environment, secrecy and source, plus scripts that audit local user-secrets and both App
+Services without printing a value: **`docs/configuration-runbook.md`**.
 
 ## Deployment smoke test
 

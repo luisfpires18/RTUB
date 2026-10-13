@@ -34,18 +34,6 @@ public class DataWorkflowTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task RequestsPage_IsAccessibleAndFunctional()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/request");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeNullOrEmpty();
-    }
-
-    [Fact]
     public async Task MultiplePageLoads_DoNotCauseMemoryLeak()
     {
         // Test that multiple page loads don't cause issues
@@ -69,13 +57,10 @@ public class DataWorkflowTests : IntegrationTestBase
     [Fact]
     public async Task StaticFiles_AreAccessible()
     {
-        // Test that CSS and other static files load properly
-        // Arrange & Act
-        var response = await _client.GetAsync("/css/site.css");
+        // The static /Error page's stylesheet (037: the Blazor site.css is gone)
+        var response = await _client.GetAsync("/css/error.css");
 
-        // Assert
-        // May be 404 if file doesn't exist, or OK if it does
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]

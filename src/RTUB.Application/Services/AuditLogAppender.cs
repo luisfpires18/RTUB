@@ -38,8 +38,7 @@ public class AuditLogAppender : IAuditLogAppender
         "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
         "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
         "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
-        "LastLoginDate",  // Exclude login tracking — already logged separately
-        "FidelisBalance"  // High-frequency balance updates — not business-critical
+        "LastLoginDate"   // Exclude login tracking — already logged separately
     };
 
     private static readonly HashSet<string> CriticalUserFields = new(StringComparer.Ordinal)
@@ -116,6 +115,7 @@ public class AuditLogAppender : IAuditLogAppender
         }
 
         ResolveUserIdsToNicknames(changes, entityType, action, resolveUserIdToNickname);
+        Redact(changes, entityType);
 
         return new AuditLog
         {
@@ -129,6 +129,16 @@ public class AuditLogAppender : IAuditLogAppender
             IsCriticalAction = IsCriticalAction(entityType, action),
             EntityDisplayName = getEntityDisplayName(entry)
         };
+    }
+
+    /// <summary>Private-conversation content (AuditConfiguration.RedactedProperties) never lands in a log entry.</summary>
+    private static void Redact(Dictionary<string, object?> changes, string entityType)
+    {
+        if (!AuditConfiguration.RedactedProperties.TryGetValue(entityType, out var redacted))
+            return;
+
+        foreach (var name in changes.Keys.Where(redacted.Contains).ToList())
+            changes[name] = AuditConfiguration.RedactedValue;
     }
 
     public AuditLog? CreateAuditLogForUser(EntityEntry<ApplicationUser> entry, string action, string? username, string? userId)

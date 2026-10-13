@@ -150,7 +150,9 @@ cmd_verify() {
     [ $# -eq 1 ] || die "usage: release.sh verify <zip>"
     need_python
     [ -s "$1" ] || die "no zip at $1"
-    "$PY" - "$1" "${MIN_WWWROOT_FILES:-500}" <<'PY'
+    # Floor for "the tree looks truncated". A healthy linux-x64 publish has 260 wwwroot files since 042 (portal 206):
+    # 042 dropped the Identity UI package, whose 187 unused Bootstrap / jQuery files had kept it above 400 (452 before).
+    "$PY" - "$1" "${MIN_WWWROOT_FILES:-200}" <<'PY'
 import struct, sys, zipfile
 
 path, min_wwwroot = sys.argv[1], int(sys.argv[2])

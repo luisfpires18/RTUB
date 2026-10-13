@@ -8,9 +8,9 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-Blazor Interactive Server on .NET 10 · EF Core 10 · SQLite · ASP.NET Identity · SignalR · PWA (service worker + Web Push) · PixiJS/TypeScript mini-game (MyTuno) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions + bUnit.
+ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers; Blazor host retired in 037) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/messages`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`, `/forgot-password`, `/reset-password`, `/confirm-email`; `/Error` is a server static page, `/share` removed; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
 
-Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Shared` (reusable Razor) → `RTUB.Web` (host, pages, hub, controllers).
+Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Web` (host, endpoints, controllers, React portal). `RTUB.Shared` was removed in 037.
 
 ## Context discipline
 - Architecture / cross-layer tracing (callers, blast radius, layering): `graphify explain "<sym>"` and `graphify affected "<sym>"` first, while `graphify-out/` is current. Not `graphify query` — it is lexical and noisy.
@@ -24,14 +24,14 @@ Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (service
 - **Preserve behavior** unless the task explicitly changes it.
 - **No opportunistic refactoring.** Unrelated findings get one line in `STATE.md` (Deferred), not a fix.
 - Stay inside the requested scope. Out-of-scope problems get recorded, not solved.
-- `InventoryService` and `ApplicationDbContext` are partial classes split across files — edit the right partial.
+- `ApplicationDbContext` is a partial class split across files — edit the right partial.
 - EF Core: one context per operation via `IDbContextFactory<ApplicationDbContext>`.
 
 ## Git model
 - `dev` = GitHub default + integration branch. `feat`/`fix`/`chore` branches merge into `dev` → Deploy • DEV.
 - `master` = production. A `dev → master` PR (merged with a **merge commit**) is a release → Deploy • PROD. Root `VERSION` (SemVer) must go up.
 - After **every** production release, and after every `hotfix/*` → `master`, merge `master` back into `dev`, then bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → 2.0.1, or 2.1.0/3.0.0 if planned) — never leave `dev` on a released number.
-- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence.
+- Branch name: `<type>/<NNN>/<slug>` — `NNN` is the next unused number in the global sequence. Exception: the React track has its own sequence from `001` (`feat/001/react-portal-pilot`); once a module's React version is reviewed, its Blazor UI is retired; replacement, testing, schema and wording rules in `docs/react-portal-pilot.md`.
 - Never push, merge, open PRs, touch remotes, delete branches, or force-push without explicit authorization in the current request.
 - Never discard or reset pre-existing working-tree changes.
 
@@ -51,12 +51,40 @@ Run only what the change can break.
 | --- | --- |
 | General repo conventions | `.github/copilot-instructions.md` |
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
-| Blazor / Razor / CSS standards | `docs/frontend-practices.md` |
+| Frontend basics (React-only; no Blazor since 037) | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
-| MyTuno game domain & balancing | `docs/my_tuno/` |
+| React public shell (route ownership, module rules) | `docs/react-portal-pilot.md` |
+| React Music area (API, rules, data audit) | `docs/react-music.md` |
+| React Gallery (API, visibility, data audit) | `docs/react-gallery.md` |
+| React Events (API, visibility, enrollment, data audit) | `docs/react-events.md` |
+| React Rehearsals (API, presenças/attendance, data audit) | `docs/react-rehearsals.md` |
+| React Órgãos Sociais (API, RGI, management rules) | `docs/react-governance.md` |
+| React Members (directory, hierarchy, member admin) | `docs/react-members.md` |
+| Member activity status (active / Reformado rules, reconciliation) | `docs/member-activity-status.md` |
+| React Classificação (`/leaderboard`: scoring, comments) | `docs/react-leaderboard.md` |
+| React Inventário: Instrumentos (`/inventory`) | `docs/react-inventory.md` |
+| React Loja (`/shop`: products, reservations) | `docs/react-shop.md` |
+| React Documentação (`/documentation`: folders, files, storage) | `docs/react-documentation.md` |
+| React Logística (`/logistics`: boards, Kanban, reminders) | `docs/react-logistics.md` |
+| React Tesouraria (`/treasury`: reports, calotes, MBWay, Nerba) | `docs/react-treasury.md` |
+| React Novidades (`/news`: public posts wall, drafts, publish) | `docs/react-news.md` |
+| React Pedidos + Perguntas (`/requests`, `/questions`) | `docs/react-requests-questions.md` |
+| React profile editor, members map, Hall of Fame (`/profile`, `/members/map`, `/hall-of-fame`) | `docs/react-member-area.md` |
+| React Naipes (`/naipes`, `/naipes/config`: instrument media, comments, settings) | `docs/react-naipes.md` |
+| React Reuniões (`/meetings`: meetings, atas, requests, permission matrix) | `docs/react-meetings.md` |
+| React Owner tools (`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db`: Owner only) | `docs/react-owner-operations.md` |
+| React password recovery / email confirmation, `/Error`, `/share` removal | `docs/react-identity.md` |
+| React Push v2 (`/profile` push opt-in / opt-out, `/api/push`, service-worker push handlers) | `docs/react-push-v2.md` |
+| React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
+| Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
+| React Mensagens (`/messages`: Messaging v2 on the preserved v1 tables, privacy, tracing redaction) | `docs/react-messages.md` |
+| Messages / Conversas removal (schema preserved for Messaging v2 — never drop) | `docs/messages-removal.md` |
+| Database cleanup candidates for task 043 (dead tables, evidence, KEEP list) | `docs/db-cleanup-inventory.md` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
+| Settings per environment, user-secrets / App Settings audit, VAPID keys | `docs/configuration-runbook.md` |
 | Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |
+| Performance gate (Lighthouse baseline, budgets, deferred perf findings) | `docs/performance-gate.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |
 | Role guidance for AI agents | `.github/agents/` |

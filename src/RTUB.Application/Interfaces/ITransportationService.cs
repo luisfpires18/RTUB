@@ -10,5 +10,4 @@ public interface ITransportationService
     Task DeleteByPostIdAsync(int postId);
     Task AddPassengerAsync(int transportationId, string userId);
     Task RemovePassengerAsync(int transportationId, string userId);
-    Task<IEnumerable<ApplicationUser>> GetAllMembersAsync();
 }

@@ -1,6 +1,6 @@
 # Graphify scope for RTUB.
 # .gitignore is honoured automatically (bin/, obj/, node_modules/, *.db, publish/,
-# .vs/, pixi-build/). This file only ADDS exclusions on top of it.
+# .vs/). This file only ADDS exclusions on top of it.
 
 # Graphify's own output and skill payload — never index them back into the graph.
 graphify-out/

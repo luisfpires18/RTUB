@@ -73,12 +73,9 @@ public class AuthenticationTests : IntegrationTestBase
         var createResult = await userManager.CreateAsync(testUser, password);
         createResult.Succeeded.Should().BeTrue();
 
-        // Act - Login to get a cookie, following the real browser flow so the login form's
+        // Act - Login to get a cookie, following the real browser flow so the login page's
         // antiforgery token is submitted with the POST
-        var loginPage = await client.GetAsync("/login");
-        loginPage.StatusCode.Should().Be(HttpStatusCode.OK);
-        var antiforgeryToken = AntiforgeryFormToken.Find(await loginPage.Content.ReadAsStringAsync());
-        antiforgeryToken.Should().NotBeNullOrEmpty();
+        var antiforgeryToken = await AntiforgeryFormToken.FetchAsync(client);
 
         var loginData = new Dictionary<string, string>
         {

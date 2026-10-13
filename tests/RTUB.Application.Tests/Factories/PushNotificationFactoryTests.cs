@@ -34,7 +34,7 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Atuação de Natal", notification.Title);
-        Assert.Equal("Nova atuação do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
+        Assert.Equal("Novo evento do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
         Assert.Equal("https://rtub.example.com/events", notification.Url);
         Assert.Equal("event-123", notification.Tag);
@@ -197,7 +197,7 @@ public class PushNotificationFactoryTests
         var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
 
         // Assert
-        Assert.Contains("Nova atuação do tipo", notification.Body);
+        Assert.Contains("Novo evento do tipo", notification.Body);
         Assert.Contains("Test Event", notification.Body);
     }
 
@@ -800,50 +800,6 @@ public class PushNotificationFactoryTests
     }
 
     [Fact]
-    public void CreateBetResolvedNotification_Winner_ReturnsWinningMessage()
-    {
-        // Arrange
-        var bet = new Bet
-        {
-            Id = 42,
-            Title = "Aposta do Derby",
-            DateTime = DateTime.UtcNow.AddDays(-1)
-        };
-        var baseUrl = "https://rtub.example.com";
-
-        // Act
-        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: true, baseUrl);
-
-        // Assert
-        Assert.Equal("Aposta ganha", notification.Title);
-        Assert.Contains("Ganhaste a aposta", notification.Body);
-        Assert.Equal("https://rtub.example.com/bets", notification.Url);
-        Assert.Equal("bet-resolved-42", notification.Tag);
-    }
-
-    [Fact]
-    public void CreateBetResolvedNotification_Loser_ReturnsLosingMessage()
-    {
-        // Arrange
-        var bet = new Bet
-        {
-            Id = 77,
-            Title = "Aposta do Jogo",
-            DateTime = DateTime.UtcNow.AddDays(-1)
-        };
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: false, baseUrl);
-
-        // Assert
-        Assert.Equal("Aposta perdida", notification.Title);
-        Assert.Contains("não foi vencedora", notification.Body);
-        Assert.Equal("https://rtub.example.com/bets", notification.Url);
-        Assert.Equal("bet-resolved-77", notification.Tag);
-    }
-
-    [Fact]
     public void CreateMeetingRequestRejectedNotification_Expired_ReturnsExpirationMessage()
     {
         // Arrange
@@ -885,5 +841,14 @@ public class PushNotificationFactoryTests
         Assert.Contains("foi rejeitado", notification.Body);
         Assert.Equal("https://rtub.example.com/meetings", notification.Url);
         Assert.Equal("meeting-request-rejected-21", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateCalotesReminderNotification_OpensTheReactCalotesPage()
+    {
+        var notification = _factory.CreateCalotesReminderNotification(12.5m, "/");
+
+        Assert.Equal("/treasury/calotes", notification.Url);
+        Assert.Equal("calotes-reminder", notification.Tag);
     }
 }

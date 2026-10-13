@@ -49,9 +49,6 @@ public class ApplicationUser : IdentityUser
     public int ExperiencePoints { get; set; } = 0;
     public int Level { get; set; } = 1;
 
-    // Betting system - Fidelis currency balance (default 10 for new users)
-    public decimal FidelisBalance { get; set; } = 10m;
-
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 
@@ -68,10 +65,6 @@ public class ApplicationUser : IdentityUser
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }
-
-    // UI-only property for category validation (not mapped to database)
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? SelectedCategory { get; set; }
 
     // Image handling
     public string? ImageUrl { get; set; }

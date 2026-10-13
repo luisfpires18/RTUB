@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,9 +15,9 @@ namespace RTUB.Integration.Tests.Api;
 ///
 /// * <c>POST /api/admin/refresh-all</c> was CSRF-reachable — an authenticated Admin form POST
 ///   with an arbitrary body returned 200 — and had no caller, so it was deleted.
-/// * The <c>PushController</c> JSON actions are not form-CSRF-reachable: the JSON input
-///   formatter rejects every content type a cross-site HTML form can emit with 415, before
-///   the action runs. No antiforgery token plumbing was added for them.
+/// * The push writes (<c>/api/push/*</c>, minimal APIs since task 038; were <c>PushController</c>) are not
+///   form-CSRF-reachable: JSON binding rejects every content type a cross-site HTML form can emit with 415, before
+///   the handler runs. Since 038 they also need the antiforgery token in X-CSRF-TOKEN (PushApiTests).
 /// </summary>
 public class CookieApiCsrfTests : IntegrationTestBase
 {
@@ -80,11 +81,15 @@ public class CookieApiCsrfTests : IntegrationTestBase
     {
         var client = await SignInAsAdminAsync();
 
-        // The shape push-notifications.js and service-worker.js actually send.
-        var response = await client.PostAsync("/api/push/unsubscribe", new StringContent(
-            "{\"endpoint\":\"https://fcm.example/real-caller\"}", Encoding.UTF8, "application/json"));
+        // The shape the React /profile and service-worker.js send: JSON plus the antiforgery header.
+        var token = await client.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/public/antiforgery-token");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/push/unsubscribe")
+        {
+            Content = new StringContent("{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/real-caller\"}", Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK,
+        (await client.SendAsync(request)).StatusCode.Should().Be(HttpStatusCode.OK,
             "the 415 above must be a content-type gate, not a blanket block on the real caller");
     }
 
@@ -125,9 +130,7 @@ public class CookieApiCsrfTests : IntegrationTestBase
     /// </summary>
     private async Task<HttpResponseMessage> SignInAsync(HttpClient client)
     {
-        var page = await client.GetAsync("/login");
-        var token = AntiforgeryFormToken.Find(await page.Content.ReadAsStringAsync());
-        token.Should().NotBeNullOrEmpty();
+        var token = await AntiforgeryFormToken.FetchAsync(client);
 
         return await client.PostAsync("/auth/login", new FormUrlEncodedContent(
             new Dictionary<string, string>

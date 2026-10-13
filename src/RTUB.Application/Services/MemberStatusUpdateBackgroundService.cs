@@ -3,25 +3,30 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Background service that updates member status for all active members once per day at a scheduled time
-/// Configured via appsettings.json MemberStatusUpdate section
+/// Schedules the member status reconciliation (<see cref="IMemberStatusService.ReconcileAllMemberStatusesAsync"/>): once on
+/// startup, then daily at MemberStatusUpdate:ScheduledTime (local time from the injected <see cref="TimeProvider"/>).
+/// Orchestration only - the rules live in <see cref="MemberActivityStatusEvaluator"/>.
 /// </summary>
 public class MemberStatusUpdateBackgroundService : BackgroundService
 {
     private readonly ILogger<MemberStatusUpdateBackgroundService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly MemberStatusUpdateOptions _options;
+    private readonly TimeProvider _time;
 
     public MemberStatusUpdateBackgroundService(
         ILogger<MemberStatusUpdateBackgroundService> logger,
         IServiceProvider serviceProvider,
-        IOptions<MemberStatusUpdateOptions> options)
+        IOptions<MemberStatusUpdateOptions> options,
+        TimeProvider time)
     {
+        _time = time;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -45,7 +50,7 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         {
             try
             {
-                var now = DateTime.Now;
+                var now = _time.GetLocalNow().DateTime;
                 var scheduledTime = TimeSpan.Parse(_options.ScheduledTime);
                 var nextRun = now.Date.Add(scheduledTime);
 
@@ -62,7 +67,7 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
                     delay.ToString(@"hh\:mm\:ss"));
 
                 // Wait until the scheduled time
-                await Task.Delay(delay, stoppingToken);
+                await Task.Delay(delay, _time, stoppingToken);
 
                 // Run the update
                 await RunUpdateAsync();
@@ -76,19 +81,20 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
             {
                 _logger.LogError(ex, "Error in member status update scheduling");
                 // Wait 1 hour before retrying to avoid rapid failure loops
-                await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(1), _time, stoppingToken);
             }
         }
 
         _logger.LogInformation("Member Status Update Background Service is stopping");
     }
 
-    private async Task RunUpdateAsync()
+    /// <summary>One reconciliation run in its own scope; never throws (the scheduler goes on). Internal for the tests.</summary>
+    internal async Task<MemberStatusReconciliationResult?> RunUpdateAsync()
     {
         try
         {
             _logger.LogInformation("========================================");
-            _logger.LogInformation("Starting member status update cycle at {Time}", DateTime.UtcNow);
+            _logger.LogInformation("Starting member status update cycle at {Time}", _time.GetUtcNow());
             _logger.LogInformation("========================================");
 
             using (var scope = _serviceProvider.CreateScope())
@@ -96,17 +102,25 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
                 var memberStatusService = scope.ServiceProvider
                     .GetRequiredService<IMemberStatusService>();
 
-                var updatedCount = await memberStatusService.UpdateAllMemberStatusesAsync();
+                var run = await memberStatusService.ReconcileAllMemberStatusesAsync();
 
                 _logger.LogInformation("========================================");
-                _logger.LogInformation("Member status update completed. Updated {Count} members", updatedCount);
+                _logger.LogInformation(
+                    "Member status update completed: {Evaluated} evaluated, {Activated} activated, {Reformed} reformed, {Unchanged} unchanged, {Excluded} excluded, {Failed} failed",
+                    run.Evaluated, run.Activated, run.Reformed, run.Unchanged, run.Excluded, run.Failed);
+                if (run.Failed > 0)
+                {
+                    _logger.LogError("Member status update: {Failed} member(s) failed; see the errors above for their ids", run.Failed);
+                }
                 _logger.LogInformation("Next update scheduled for tomorrow at {ScheduledTime}", _options.ScheduledTime);
                 _logger.LogInformation("========================================");
+                return run;
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while updating member statuses");
+            return null;
         }
     }
 }

@@ -167,15 +167,6 @@ public partial class ApplicationDbContext
                         return $"{instrument.Category} - {instrument.Name}";
                     break;
 
-                case "Label":
-                    if (entry.Entity is Label label && !string.IsNullOrEmpty(label.Content))
-                    {
-                        return label.Content.Length > 100
-                            ? label.Content[..100] + "..."
-                            : label.Content;
-                    }
-                    break;
-
                 case "Product":
                     if (entry.Entity is Product product)
                         return product.Name;
@@ -204,11 +195,6 @@ public partial class ApplicationDbContext
                 case "Request":
                     // Request doesn't have a specific name field, use ID
                     return null;
-
-                case "Slideshow":
-                    if (entry.Entity is Slideshow slideshow)
-                        return slideshow.Title;
-                    break;
 
                 case "LogisticsBoard":
                     if (entry.Entity is LogisticsBoard logisticsBoard)
@@ -353,65 +339,6 @@ public partial class ApplicationDbContext
                 case "Question":
                     if (entry.Entity is Question question)
                         return question.Title;
-                    break;
-
-                case "Bet":
-                    if (entry.Entity is Bet bet)
-                        return bet.Title;
-                    break;
-
-                case "UserBet":
-                    if (entry.Entity is UserBet userBet)
-                    {
-                        // Try navigation properties first (if loaded), then fall back to Local cache
-                        var betEntity2 = userBet.Bet
-                            ?? Bets.Local.FirstOrDefault(b => b.Id == userBet.BetId);
-                        var betOptionEntity = userBet.BetOption
-                            ?? BetOptions.Local.FirstOrDefault(o => o.Id == userBet.BetOptionId);
-                        var betName2 = betEntity2?.Title ?? $"Aposta #{userBet.BetId}";
-                        var optionName = betOptionEntity?.Title ?? $"Opção #{userBet.BetOptionId}";
-                        return $"{betName2} - {optionName}";
-                    }
-                    break;
-
-                case "BetComment":
-                    if (entry.Entity is BetComment betComment)
-                    {
-                        // Try navigation properties first (if loaded), then fall back to Local cache
-                        var authorName = betComment.Author?.Nickname
-                            ?? betComment.Author?.UserName
-                            ?? ResolveUserIdToNickname(betComment.AuthorId)
-                            ?? betComment.AuthorId;
-                        var betEntity = betComment.Bet
-                            ?? Bets.Local.FirstOrDefault(b => b.Id == betComment.BetId);
-                        var betName = betEntity?.Title ?? $"Aposta #{betComment.BetId}";
-                        var textPreview = string.IsNullOrEmpty(betComment.Text)
-                            ? "[Media]"
-                            : (betComment.Text.Length > 50 ? betComment.Text[..50] + "..." : betComment.Text);
-                        return $"{authorName} em {betName}: {textPreview}";
-                    }
-                    break;
-
-                case "GameScore":
-                    if (entry.Entity is GameScore gameScore)
-                    {
-                        // Try to get the game title from local cache based on GameKey
-                        var game = Games.Local.FirstOrDefault(g => g.Key == gameScore.GameKey);
-                        var gameName = game?.Title ?? gameScore.GameKey;
-                        return gameName;
-                    }
-                    break;
-
-                case "Character":
-                    if (entry.Entity is Character character)
-                    {
-                        // Try navigation property first (if loaded), then fall back to Local cache
-                        var userName = character.User?.Nickname
-                            ?? character.User?.UserName
-                            ?? ResolveUserIdToNickname(character.UserId)
-                            ?? character.UserId;
-                        return $"Character - {userName} (Level {character.Level})";
-                    }
                     break;
 
                 case "Transportation":

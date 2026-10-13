@@ -45,7 +45,7 @@ public class MemberPagesTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
+        location.Should().ContainEquivalentOf("returnUrl=%2Fmembers", "017: the React /members sends visitors to sign in and back");
     }
 
     #endregion
@@ -53,14 +53,13 @@ public class MemberPagesTests : IntegrationTestBase
     #region Hierarchy Page Tests
 
     [Fact]
-    public async Task HierarchyPage_WithoutAuth_RedirectsToLogin()
+    public async Task HierarchyPage_IsRetired_AndRedirectsToTheReactHierarchy()
     {
-        // Arrange & Act
+        // 017: the Blazor /hierarchy is the React /members/hierarchy.
         var response = await _client.GetAsync("/hierarchy");
 
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.Headers.Location?.ToString().Should().Be("/members/hierarchy");
     }
 
     #endregion
@@ -103,7 +102,7 @@ public class MemberPagesTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
-        location.Should().Contain("ReturnUrl");
+        location.Should().Contain("returnUrl=%2Finventory", "the React /inventory sends visitors to sign in and back (020)");
     }
 
     #endregion
@@ -111,14 +110,14 @@ public class MemberPagesTests : IntegrationTestBase
     #region Profile Page Tests
 
     [Fact]
-    public async Task ProfilePage_WithoutAuth_RedirectsToLogin()
+    public async Task OldProfileUrl_RedirectsToTheReactProfile()
     {
-        // Arrange & Act
-        var response = await _client.GetAsync("/profile");
+        // The Blazor /member/profile was retired in 032: the React /profile edits the profile (and shows a visitor
+        // how to sign in).
+        var response = await _client.GetAsync("/member/profile");
 
-        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.Headers.Location?.ToString().Should().Be("/profile");
     }
 
     #endregion
@@ -156,9 +155,12 @@ public class MemberPagesTests : IntegrationTestBase
 
     [Theory]
     [InlineData("/members")]
-    [InlineData("/hierarchy")]
+    [InlineData("/members/hierarchy")]
     [InlineData("/rehearsals")]
-    [InlineData("/profile")]
+    [InlineData("/members/map")]
+    [InlineData("/hall-of-fame")]
+    [InlineData("/naipes")]
+    [InlineData("/naipes/config")]
     [InlineData("/events/1/discussion")]
     public async Task MemberPages_RequireAuthentication(string url)
     {
@@ -176,7 +178,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/hierarchy", "/rehearsals", "/profile", "/events/1/discussion" };
+        var memberUrls = new[] { "/members", "/members/hierarchy", "/rehearsals", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/events/1/discussion" };
 
         // Act & Assert
         foreach (var url in memberUrls)

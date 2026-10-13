@@ -9,9 +9,8 @@ namespace RTUB.Security;
 /// whitelisted "just in case", and no directive gets an origin it does not use. See STATE.md
 /// for the per-directive evidence.
 ///
-/// Two parts of the policy cannot be constants:
-///
-/// <para><b>Cloudflare R2</b> has two distinct origins, both runtime configuration:</para>
+/// One part of the policy cannot be a constant: <b>Cloudflare R2</b> has two distinct origins, both runtime
+/// configuration:
 /// <list type="bullet">
 /// <item><description><c>Cloudflare:R2:PublicUrl</c> - the public bucket (images and video are
 /// stored as absolute URLs under it), parsed as an absolute http/https URI so only its
@@ -25,17 +24,15 @@ namespace RTUB.Security;
 /// replaced with a wildcard, so bad configuration can only make R2 content unavailable, never
 /// weaken the policy or inject header text.</para>
 ///
-/// <para><b>The WebSocket source</b> is per-request. Blazor Server's circuit runs over
-/// <c>/_blazor</c>, and CSP3's <c>'self'</c> is not reliably taken to cover <c>ws:</c>/<c>wss:</c>
-/// in every browser, so the exact scheme+host of the current request is emitted instead of the
-/// broad <c>ws:</c>/<c>wss:</c> schemes.</para>
+/// <para><c>connect-src</c> is <c>'self'</c> only. Until task 037 it also named the request's own ws:/wss: origin for
+/// the Blazor Server circuit (<c>/_blazor</c>); the Blazor host is gone and nothing opens a WebSocket.</para>
 /// </summary>
 public sealed class ContentSecurityPolicyBuilder
 {
     private const string R2EndpointSuffix = ".r2.cloudflarestorage.com";
 
-    /// <summary>Everything before <c>connect-src</c>, built once.</summary>
-    private readonly string _staticDirectives;
+    /// <summary>The whole policy, built once: nothing in it depends on the request.</summary>
+    private readonly string _policy;
 
     public ContentSecurityPolicyBuilder(IConfiguration configuration)
         : this(configuration["Cloudflare:R2:PublicUrl"],
@@ -65,21 +62,11 @@ public sealed class ContentSecurityPolicyBuilder
             referenceOrigin = null;
         }
 
-        _staticDirectives = BuildStaticDirectives(publicOrigin, endpointOrigin, referenceOrigin);
+        _policy = BuildStaticDirectives(publicOrigin, endpointOrigin, referenceOrigin) + "connect-src 'self'";
     }
 
-    /// <summary>
-    /// Produces the full header value for one request. <paramref name="requestHost"/> is the
-    /// Host header, which a client controls, so it is only used when it looks like a host.
-    /// </summary>
-    public string Build(string? requestScheme, string? requestHost)
-    {
-        var socketSource = WebSocketSource(requestScheme, requestHost);
-
-        return socketSource is null
-            ? _staticDirectives + "connect-src 'self'"
-            : _staticDirectives + "connect-src 'self' " + socketSource;
-    }
+    /// <summary>The header value.</summary>
+    public string Build() => _policy;
 
     /// <summary>
     /// <c>scheme://host[:port]</c> for an absolute http/https URI, or null for anything else.
@@ -117,25 +104,6 @@ public sealed class ContentSecurityPolicyBuilder
         return IsDnsLabel(id) ? $"https://{id}{R2EndpointSuffix}" : null;
     }
 
-    /// <summary>
-    /// <c>ws://host[:port]</c> or <c>wss://host[:port]</c> matching the current request, or null
-    /// when the scheme is not http/https or the host is not a plain host[:port].
-    /// </summary>
-    internal static string? WebSocketSource(string? requestScheme, string? requestHost)
-    {
-        if (string.IsNullOrEmpty(requestHost) || !IsHostWithOptionalPort(requestHost))
-        {
-            return null;
-        }
-
-        return requestScheme switch
-        {
-            "https" => $"wss://{requestHost}",
-            "http" => $"ws://{requestHost}",
-            _ => null
-        };
-    }
-
     private static string BuildStaticDirectives(string? r2PublicOrigin, string? r2EndpointOrigin, string? r2ReferenceOrigin)
     {
         var policy = new StringBuilder();
@@ -171,17 +139,16 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned), jsdelivr -> pixi.min.js.
-        // No 'unsafe-eval': unit 022 removed every JSRuntime eval dispatch, and no component
-        // uses an InteractiveWebAssembly/Auto render mode, so no wasm source is needed either.
-        Directive("script-src", "'self'",
-            "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://cdn.jsdelivr.net");
+        // Own origin only. cdnjs (cropper.min.js) and unpkg (leaflet.js) served the Blazor layout until task 032 and
+        // were dropped in 042: the React Cropper is canvas-only and Leaflet is bundled with the React map.
+        // No 'unsafe-eval' and no wasm source: nothing evaluates strings or runs WebAssembly.
+        Directive("script-src", "'self'");
 
         // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
         Directive("script-src-attr", "'none'");
 
-        // cdnjs -> cropper.min.css, unpkg -> leaflet.css (SRI pinned).
-        Directive("style-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
+        // Own origin only (the cdnjs / unpkg stylesheets went with them, as above; the Leaflet CSS is bundled).
+        Directive("style-src", "'self'");
 
         // Inline style attributes: removed by unit 024. Dynamic values go through the CSSOM,
         // which CSP does not govern.
@@ -189,17 +156,17 @@ public sealed class ContentSecurityPolicyBuilder
 
         // data: - the cropper and the gallery upload preview render the picked file as a
         //         data: URL before it is uploaded.
-        // carto - the Leaflet dark-matter tiles in memberMap.js.
+        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap since 040, CARTO
+        //             before, which started to require an API key).
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
         // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
         // a wildcard, and absent unless explicitly configured (i.e. never in production).
-        Directive("img-src", "'self'", "data:", "https://*.basemaps.cartocdn.com", r2PublicOrigin, r2ReferenceOrigin);
+        Directive("img-src", "'self'", "data:", "https://tile.openstreetmap.org", r2PublicOrigin, r2ReferenceOrigin);
 
         // Public origin for <video>; the S3 endpoint for the pre-signed album audio URLs.
-        // Game music and effects are same-origin under /sound.
         Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin, r2ReferenceOrigin);
 
-        // bootstrap-icons ships its woff2 next to its stylesheet; no web font service is used.
+        // The portal bundles its one web font (Fraunces) under /portal/assets; no web font service is used.
         Directive("font-src", "'self'");
 
         Directive("manifest-src", "'self'");
@@ -225,73 +192,6 @@ public sealed class ContentSecurityPolicyBuilder
         foreach (var c in value)
         {
             if (!char.IsAsciiLetterOrDigit(c) && c != '-')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// A host optionally followed by a port: DNS name, IPv4, or bracketed IPv6. Deliberately
-    /// narrow - the value goes straight into a header, and Kestrel's own Host validation is not
-    /// something this needs to rely on.
-    /// </summary>
-    private static bool IsHostWithOptionalPort(string value)
-    {
-        var host = value;
-        var colon = value.LastIndexOf(':');
-
-        // A bare IPv6 host ends in ']', so a colon after it is the port separator.
-        if (colon > 0 && value.IndexOf(']', colon) < 0)
-        {
-            var port = value.AsSpan(colon + 1);
-
-            if (port.Length is 0 or > 5)
-            {
-                return false;
-            }
-
-            foreach (var c in port)
-            {
-                if (!char.IsAsciiDigit(c))
-                {
-                    return false;
-                }
-            }
-
-            host = value[..colon];
-        }
-
-        if (host.Length == 0)
-        {
-            return false;
-        }
-
-        if (host[0] == '[')
-        {
-            if (host.Length < 3 || host[^1] != ']')
-            {
-                return false;
-            }
-
-            for (var i = 1; i < host.Length - 1; i++)
-            {
-                var c = host[i];
-
-                if (!char.IsAsciiHexDigit(c) && c != ':' && c != '.')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        foreach (var c in host)
-        {
-            if (!char.IsAsciiLetterOrDigit(c) && c != '.' && c != '-')
             {
                 return false;
             }

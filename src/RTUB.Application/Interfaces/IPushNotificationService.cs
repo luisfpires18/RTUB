@@ -18,26 +18,24 @@ public interface IPushNotificationService
     Task<bool> SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null);
 
     /// <summary>
-    /// Unsubscribes from push notifications by endpoint
+    /// Removes the user's own subscription with <paramref name="endpoint"/>, or every one of theirs when it is null.
+    /// Another member's subscription is never touched. Returns how many the user has left.
     /// </summary>
-    /// <param name="endpoint">The subscription endpoint</param>
-    Task UnsubscribeAsync(string endpoint);
+    Task<int> RemoveForUserAsync(string userId, string? endpoint);
+
+    /// <summary>How many push subscriptions (devices / browsers) the user has.</summary>
+    Task<int> CountForUserAsync(string userId);
+
+    /// <summary>Whether <paramref name="endpoint"/> is stored as one of the user's own subscriptions.</summary>
+    Task<bool> IsRegisteredAsync(string userId, string endpoint);
 
     /// <summary>
-    /// Sends a push notification to a specific user and creates an inbox message
+    /// Sends a push notification to a specific user
     /// Use this for system notifications (events, rehearsals, etc.)
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <param name="notification">The notification to send</param>
     Task SendToUserAsync(string userId, SendPushNotificationDto notification);
-
-    /// <summary>
-    /// Sends only the push notification to a user without creating an inbox message
-    /// Use this for direct message notifications (the message itself is already in the inbox)
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <param name="notification">The notification to send</param>
-    Task SendPushOnlyAsync(string userId, SendPushNotificationDto notification);
 
     /// <summary>
     /// Sends a push notification to all subscribed users
@@ -47,7 +45,6 @@ public interface IPushNotificationService
 
     /// <summary>
     /// Sends a push notification to specific users by their user IDs
-    /// Also creates inbox messages for each user as a delivery fallback
     /// Returns the count of successful and failed push deliveries
     /// </summary>
     /// <param name="userIds">The list of user IDs to send notifications to</param>

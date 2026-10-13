@@ -12,7 +12,11 @@
 // '/'. Existing clients therefore hold private HTML on disk. The activate handler
 // deletes every `rtub-` cache outside the current set, so bumping the version is what
 // actually purges those entries from installed clients.
-const CACHE_VERSION = 'rtub-v2.7.0';
+// v2.8.0 (task 037): the Blazor host is gone, so its framework script left the precache list;
+// the bump drops the copy older workers stored.
+// v2.9.0 (task 046): new RTUB logo under the same /icons/* URLs. Images are cache-first here and never revalidated,
+// so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
+const CACHE_VERSION = 'rtub-v2.9.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -21,12 +25,11 @@ const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
 // Matched as prefixes against url.pathname, case-insensitively.
 //   /api/      - JSON endpoints, many authenticated and user-specific
 //   /auth/     - sign-in / sign-out / challenge round trips
-//   /_blazor   - Blazor Server negotiate + long-poll fallback
 //   /hubs/     - SignalR hubs
 //   /health    - liveness probe, must always hit the origin
 // Before v2.7.0 these fell through to the document branch (`!pathname.includes('.')`
 // matches '/api/push/status', '/health', '/hubs/notifications', ...) and were cached.
-const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/_blazor', '/hubs/', '/health'];
+const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/hubs/', '/health'];
 
 function isNeverCached(pathname) {
     const path = pathname.toLowerCase();
@@ -45,11 +48,10 @@ const STATIC_ASSETS = [
     '/js/offline.js',
     '/css/offline.css',
     '/icons/rtub-logo-192.png',
-    '/icons/rtub-logo-512.png',
+    '/icons/rtub-logo-352.webp',
     '/icons/rtub-badge-96.png',
     '/images/default-avatar.webp',
-    '/manifest.webmanifest',
-    '/_framework/blazor.web.js'
+    '/manifest.webmanifest'
 ];
 
 // Install event - cache critical static assets
@@ -65,10 +67,8 @@ self.addEventListener('install', (event) => {
                 console.error('[Service Worker] Failed to cache static assets:', error);
             })
             // Deliberately NO forced activation here. Doing it on install made every new
-            // worker take over immediately, claim clients and trigger a reload, which
-            // defeated the "Nova versão disponível / Atualizar" prompt entirely.
-            // The worker now waits; it activates only via the SKIP_WAITING message that
-            // sw-register.js posts after the user chooses "Atualizar".
+            // worker take over immediately, claim clients and trigger a reload mid-use.
+            // The worker waits and activates on its own once every RTUB window is closed.
     );
 });
 
@@ -124,7 +124,7 @@ self.addEventListener('fetch', (event) => {
 
     // Network-only, never cached in either direction:
     //  - non-GET requests (mutations; the Cache API cannot store them anyway)
-    //  - our own /api, /auth, /_blazor, /hubs and /health paths
+    //  - our own /api, /auth, /hubs and /health paths
     // The prefix test is scoped to same-origin so a third-party URL that happens to
     // carry an '/api/...' path is judged on its own merits further down.
     if (request.method !== 'GET' || (isSameOrigin && isNeverCached(url.pathname))) {
@@ -226,20 +226,20 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request));
 });
 
-// Push event - handle incoming push notifications
-// CRITICAL: Must call showNotification synchronously within waitUntil
-// to prevent iOS Safari from killing the service worker before display
+// ---------- Web Push (task 038, docs/react-push-v2.md) ----------
+// The member turns push on and off in the React /profile; this worker only shows what arrives, opens the
+// notification's page, and keeps a subscription alive when the browser rotates its endpoint.
+
+// Push event - show the notification.
+// CRITICAL: showNotification runs inside waitUntil, and nothing else does: iOS kills the worker quickly.
 self.addEventListener('push', (event) => {
-    console.log('[Service Worker] Push received at', new Date().toISOString());
-    
     let notificationData = {
-        title: 'RTUB Notification',
-        body: 'You have a new notification',
+        title: 'RTUB',
+        body: 'Nova notificação',
         icon: '/icons/rtub-logo-192.png',
         badge: '/icons/rtub-badge-96.png',
         url: '/',
-        tag: null,
-        unreadCount: null
+        tag: null
     };
 
     if (event.data) {
@@ -251,31 +251,24 @@ self.addEventListener('push', (event) => {
                 icon: data.icon || notificationData.icon,
                 badge: data.badge || notificationData.badge,
                 url: data.url || notificationData.url,
-                tag: data.tag || null,
-                unreadCount: data.unreadCount != null ? data.unreadCount : null
+                tag: data.tag || null
             };
         } catch (e) {
-            console.error('[Service Worker] Error parsing push data:', e);
             try {
-                notificationData.body = event.data.text();
+                notificationData.body = event.data.text() || notificationData.body;
             } catch (textError) {
-                console.error('[Service Worker] Error reading push text:', textError);
+                console.error('[Service Worker] Unreadable push payload:', textError);
             }
         }
     }
 
-    // CRITICAL FIX: Generate unique tag per notification to prevent collapsing
-    // iOS and Android replace notifications with the same tag silently.
-    // Append timestamp to ensure each notification gets its own slot.
-    // Keep the base tag for grouping context (e.g., for notificationclick routing)
+    // A unique tag per notification: browsers silently replace a notification that has the same tag as one already
+    // shown. The original tag is kept in data.baseTag for click routing.
     const baseTag = notificationData.tag || 'rtub-notification';
     const uniqueTag = baseTag + '-' + Date.now();
 
-    // Detect iOS to avoid setting vibrate (causes silent failures on iOS 16.4-17.x)
-    const isIOS = /iPad|iPhone|iPod/.test(self.navigator?.userAgent || '') ||
-        (/Macintosh/.test(self.navigator?.userAgent || '') && 'ontouchend' in self);
-
-    // Build notification options - platform-compatible
+    // No vibrate pattern: the platform's default notification behaviour applies (a vibrate option made some iOS
+    // versions drop the notification, and setting it only elsewhere needed a user-agent check).
     const notificationOptions = {
         body: notificationData.body,
         icon: notificationData.icon,
@@ -289,278 +282,137 @@ self.addEventListener('push', (event) => {
         },
         requireInteraction: false,
         renotify: true,
-        silent: false,           // Explicitly not silent — ensures Android shows popup/sound
+        silent: false,
         timestamp: Date.now()
     };
 
-    // Add vibrate for Android only — iOS Safari fails silently if vibrate is present
-    if (!isIOS) {
-        notificationOptions.vibrate = [200, 100, 200];
-    }
-
-    // Show notification FIRST (critical for iOS — SW gets killed quickly)
-    // Then notify open clients as a secondary action
-    const showAndNotify = self.registration.showNotification(
-        notificationData.title,
-        notificationOptions
-    ).then(() => {
-        console.log('[Service Worker] Notification displayed:', uniqueTag);
-        return clients.matchAll({ type: 'window', includeUncontrolled: true });
-    }).then((clientList) => {
-        clientList.forEach((client) => {
-            client.postMessage({
-                type: 'rtub:push-received',
-                title: notificationData.title,
-                tag: baseTag
-            });
-        });
-        // Thread clientList into the next step to decide whether to update the badge.
-        return clientList;
-    }).then((clientList) => {
-        // Only update the app badge from the service worker when the app is NOT open.
-        // When the app is open, it will update the badge itself via RefreshUnreadMessages
-        // (triggered by the rtub:push-received postMessage above), which uses the real DB count.
-        // Using notifications.length here would set the badge to the OS notification tray count,
-        // which diverges from the actual unread message count when notifications pile up.
-        if ('setAppBadge' in self.navigator && clientList.length === 0) {
-            // App is closed — use unreadCount from payload if available (accurate),
-            // otherwise fall back to notification tray count (best available proxy).
-            if (notificationData.unreadCount != null) {
-                return self.navigator.setAppBadge(notificationData.unreadCount).catch(() => {});
-            }
-            return self.registration.getNotifications().then((notifications) => {
-                return self.navigator.setAppBadge(notifications.length).catch(() => {});
-            }).catch(() => {});
-        }
-    }).catch((error) => {
-        console.error('[Service Worker] Error showing notification:', error);
-        // Last resort: try a minimal notification
-        return self.registration.showNotification('RTUB', {
-            body: notificationData.body || 'Nova notificação',
-            icon: '/icons/rtub-logo-192.png',
-            tag: 'rtub-fallback-' + Date.now()
-        });
-    });
-
-    event.waitUntil(showAndNotify);
-});
-
-// Notification click event - handle user clicking on notification
-self.addEventListener('notificationclick', (event) => {
-    console.log('[Service Worker] Notification clicked');
-    
-    event.notification.close();
-
-    // Clear the app badge when the user taps a notification.
-    // The Blazor app will re-set it to the accurate DB unread count once it opens.
-    // Do NOT use notifications.length here — that counts OS notification tray items,
-    // which diverges from the actual unread message count.
-    if ('clearAppBadge' in self.navigator) {
-        self.navigator.clearAppBadge().catch(() => {});
-    }
-
-    // Get the URL and tag from notification data
-    const notificationPayload = event.notification.data || {};
-    let urlToOpen = notificationPayload.url || '/';
-    // Use baseTag for routing logic (without the unique timestamp suffix)
-    const notificationTag = notificationPayload.baseTag || notificationPayload.tag || event.notification.tag || '';
-    
-    // Fallback: if URL is missing or root, check tag to determine correct destination
-    if (!urlToOpen || urlToOpen === '/') {
-        if (notificationTag.startsWith('question')) {
-            urlToOpen = '/questions';
-        } else if (notificationTag.startsWith('message')) {
-            urlToOpen = '/messages';
-        }
-    }
-    console.log('[Service Worker] Raw URL from notification:', urlToOpen, 'Tag:', notificationTag);
-    
-    // Ensure the URL is absolute
-    if (!urlToOpen.startsWith('http')) {
-        urlToOpen = new URL(urlToOpen, self.location.origin).href;
-    }
-    
-    // Security: Validate URL is same-origin to prevent open redirect
-    const urlObj = new URL(urlToOpen);
-    if (urlObj.origin !== self.location.origin) {
-        console.warn('[Service Worker] Blocked navigation to external URL:', urlToOpen);
-        urlToOpen = self.location.origin; // Fallback to root of same origin
-    }
-    console.log('[Service Worker] Final URL to open:', urlToOpen);
-
-    // For PWA standalone mode, we need a different approach
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then(async (clientList) => {
-                console.log('[Service Worker] Found', clientList.length, 'open windows');
-                
-                // First, try to find an existing window that we can navigate
-                // This is important for PWA mode where clients.openWindow might not work correctly
-                for (let i = 0; i < clientList.length; i++) {
-                    const client = clientList[i];
-                    console.log('[Service Worker] Client', i, 'URL:', client.url, 'visibilityState:', client.visibilityState);
-                    
-                    // Check if this is an RTUB window (same origin)
-                    if (client.url.startsWith(self.location.origin)) {
-                        console.log('[Service Worker] Found RTUB window, navigating to:', urlToOpen);
-                        
-                        // Try to use client.navigate() if available (more reliable)
-                        if ('navigate' in client) {
-                            try {
-                                await client.navigate(urlToOpen);
-                                if ('focus' in client) {
-                                    return client.focus();
-                                }
-                                return;
-                            } catch (navError) {
-                                console.log('[Service Worker] client.navigate failed, falling back to postMessage:', navError);
-                            }
-                        }
-                        
-                        // Fallback: Send a message to the client to navigate
-                        client.postMessage({ 
-                            type: 'rtub:navigate', 
-                            url: urlToOpen 
-                        });
-                        // Focus the window
-                        if ('focus' in client) {
-                            return client.focus();
-                        }
-                        return;
-                    }
-                }
-                
-                // No existing window found, open a new one
-                if (clients.openWindow) {
-                    console.log('[Service Worker] No existing window, opening new one:', urlToOpen);
-                    return clients.openWindow(urlToOpen);
-                }
+        self.registration.showNotification(notificationData.title, notificationOptions)
+            .catch((error) => {
+                console.error('[Service Worker] Error showing notification:', error);
+                // Last resort: a minimal notification
+                return self.registration.showNotification('RTUB', {
+                    body: notificationData.body || 'Nova notificação',
+                    icon: '/icons/rtub-logo-192.png',
+                    tag: 'rtub-fallback-' + Date.now()
+                });
             })
     );
 });
 
-// Message event - handle messages from the client
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
+// The page a notification opens: its own same-origin URL; anything else (external, malformed) opens the home page.
+function notificationTarget(data) {
+    let url = (data && data.url) || '/';
+    const tag = (data && (data.baseTag || data.tag)) || '';
+
+    if (url === '/' && tag.startsWith('question')) {
+        url = '/questions';
     }
+
+    try {
+        const target = new URL(url, self.location.origin);
+        return target.origin === self.location.origin ? target.href : self.location.origin + '/';
+    } catch (e) {
+        return self.location.origin + '/';
+    }
+}
+
+// Notification click - open (or focus and navigate) an RTUB window on the notification's page.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const urlToOpen = notificationTarget(event.notification.data);
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
+            for (const client of clientList) {
+                if (!client.url.startsWith(self.location.origin)) {
+                    continue;
+                }
+
+                // An installed app may not support client.navigate(): sw-register.js navigates on this message.
+                if ('navigate' in client) {
+                    try {
+                        await client.navigate(urlToOpen);
+                        return 'focus' in client ? client.focus() : undefined;
+                    } catch (navError) {
+                        // fall through to the message
+                    }
+                }
+
+                client.postMessage({ type: 'rtub:navigate', url: urlToOpen });
+                return 'focus' in client ? client.focus() : undefined;
+            }
+
+            return clients.openWindow ? clients.openWindow(urlToOpen) : undefined;
+        })
+    );
 });
 
-// Push subscription change event - handle browser-initiated subscription rotation
-// Chrome on Android periodically rotates push endpoints for security.
-// Without this handler, the old endpoint becomes invalid (410 Gone) and
-// the user silently stops receiving notifications until they manually re-subscribe.
-self.addEventListener('pushsubscriptionchange', (event) => {
-    console.log('[Service Worker] Push subscription changed');
-    
-    const resubscribe = async () => {
-        try {
-            // Get the new subscription using the same VAPID key
-            const oldSubscription = event.oldSubscription;
-            const newSubscription = event.newSubscription;
-            
-            if (newSubscription) {
-                // Browser already created a new subscription, send it to server
-                const subJson = newSubscription.toJSON();
-                
-                const response = await fetch('/api/push/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        endpoint: subJson.endpoint,
-                        keys: {
-                            p256dh: subJson.keys.p256dh,
-                            auth: subJson.keys.auth
-                        },
-                        expirationTime: newSubscription.expirationTime
-                    })
-                });
-                
-                if (response.ok) {
-                    console.log('[Service Worker] New push subscription sent to server');
-                } else {
-                    console.error('[Service Worker] Failed to send new subscription:', response.status);
-                }
-            } else if (oldSubscription) {
-                // No new subscription provided, try to create one
-                // We need the VAPID key - fetch it from the server
-                try {
-                    const statusResponse = await fetch('/api/push/status', { credentials: 'include' });
-                    if (statusResponse.ok) {
-                        const status = await statusResponse.json();
-                        if (status.vapidPublicKey) {
-                            // Convert VAPID key and resubscribe
-                            const applicationServerKey = urlBase64ToUint8Array(status.vapidPublicKey);
-                            const subscription = await self.registration.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: applicationServerKey
-                            });
-                            
-                            const subJson = subscription.toJSON();
-                            await fetch('/api/push/subscribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({
-                                    endpoint: subJson.endpoint,
-                                    keys: {
-                                        p256dh: subJson.keys.p256dh,
-                                        auth: subJson.keys.auth
-                                    },
-                                    expirationTime: subscription.expirationTime
-                                })
-                            });
-                            console.log('[Service Worker] Successfully re-subscribed after endpoint rotation');
-                        }
-                    }
-                } catch (resubError) {
-                    console.error('[Service Worker] Failed to re-subscribe:', resubError);
-                    // Notify clients that subscription was lost so they can show re-subscribe UI
-                    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-                    clientList.forEach((client) => {
-                        client.postMessage({ type: 'rtub:subscription-lost' });
-                    });
-                }
-            }
+// The antiforgery token every /api/push write needs (X-CSRF-TOKEN); the worker sends the member's cookies.
+async function antiforgeryToken() {
+    const response = await fetch('/api/public/antiforgery-token', { credentials: 'include', cache: 'no-store' });
+    if (!response.ok) {
+        throw new Error('antiforgery token ' + response.status);
+    }
+    return (await response.json()).token;
+}
 
-            // Notify server to remove old subscription if we had one
-            if (oldSubscription && oldSubscription.endpoint) {
-                try {
-                    await fetch('/api/push/unsubscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ endpoint: oldSubscription.endpoint })
-                    });
-                } catch (e) {
-                    // Ignore cleanup errors
-                }
+// Stores a subscription for the signed-in member, replacing the endpoint it took over from (same device).
+async function sendSubscription(subscription, replacedEndpoint) {
+    const json = subscription.toJSON();
+    const response = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': await antiforgeryToken() },
+        body: JSON.stringify({
+            endpoint: json.endpoint,
+            keys: json.keys,
+            expirationTime: json.expirationTime ?? null,
+            replaces: replacedEndpoint || null
+        })
+    });
+    if (!response.ok) {
+        throw new Error('subscribe ' + response.status);
+    }
+}
+
+// The browser rotated (or dropped) this device's push endpoint. Keep the member subscribed, unless they turned push
+// off: they asked for it on this device already, so no prompt is involved. If it fails, /profile shows the device as
+// not subscribed and offers to turn it on again.
+self.addEventListener('pushsubscriptionchange', (event) => {
+    const keepSubscribed = async () => {
+        const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
+        let subscription = event.newSubscription;
+
+        if (!subscription) {
+            const statusResponse = await fetch('/api/push/status', { credentials: 'include', cache: 'no-store' });
+            if (!statusResponse.ok) {
+                return;
             }
-        } catch (error) {
-            console.error('[Service Worker] Error handling subscription change:', error);
-            // Notify clients about the failure
-            const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-            clientList.forEach((client) => {
-                client.postMessage({ type: 'rtub:subscription-lost' });
+            const status = await statusResponse.json();
+            if (!status.vapidPublicKey || status.optedOut) {
+                return;
+            }
+            subscription = await self.registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(status.vapidPublicKey)
             });
         }
+
+        await sendSubscription(subscription, oldEndpoint);
     };
-    
-    event.waitUntil(resubscribe());
+
+    event.waitUntil(keepSubscribed().catch((error) => {
+        console.error('[Service Worker] Could not renew the push subscription:', error);
+    }));
 });
 
-// Helper: Convert URL-safe base64 string to Uint8Array (for service worker context)
+// Helper: URL-safe base64 string to Uint8Array (the VAPID public key)
 function urlBase64ToUint8Array(base64String) {
-    const paddingLength = (4 - base64String.length % 4) % 4;
-    const padding = '='.repeat(paddingLength);
-    const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
     }

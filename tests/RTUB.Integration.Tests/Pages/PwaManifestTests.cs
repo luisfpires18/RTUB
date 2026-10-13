@@ -256,7 +256,7 @@ public class PwaManifestTests : IntegrationTestBase
     public async Task AppleTouchIcon_IsAccessible()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/icons/rtub-logo-180.png");
+        var response = await _client.GetAsync("/apple-touch-icon.png");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK, "Apple touch icon should still work");

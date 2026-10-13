@@ -41,28 +41,30 @@ public class ServiceWorkerReliabilityTests
             string.Join(", ", callers.Select(c => $"{c.Source} x{c.Count}")));
     }
 
+    /// <summary>
+    /// 038: the React push client (portal/src/push.ts) replaced push-notifications.js. It adopts sw-register.js's
+    /// registration through navigator.serviceWorker.ready (which also guarantees an active worker before
+    /// pushManager.subscribe()) and never registers one itself.
+    /// </summary>
     [Fact]
-    public void PushNotificationsManager_AdoptsTheExistingRegistrationInsteadOfRegistering()
+    public void ReactPushClient_AdoptsTheExistingRegistrationInsteadOfRegistering()
     {
-        var push = ReadRepoFile("src", "RTUB.Web", "wwwroot", "js", "push-notifications.js");
+        var push = ReadRepoFile("src", "RTUB.Web", "portal", "src", "push.ts");
 
-        push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready",
-            "PushNotificationsManager must wait for the registration sw-register.js owns; " +
-            "navigator.serviceWorker.ready also guarantees an active worker, which iOS Safari " +
-            "requires before pushManager.subscribe()");
-
-        push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(",
-            "PushNotificationsManager must not register a second time");
+        push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready");
+        push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "push-notifications.js")).Should().BeFalse();
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "pwa-helper.js")).Should().BeFalse();
     }
 
     /// <summary>
-    /// push-notifications.js waits on navigator.serviceWorker.ready, which never resolves if
-    /// nothing ever registers. MainLayout must keep loading the owner on every page.
+    /// navigator.serviceWorker.ready never resolves if nothing ever registers. Since 037 the React shell is the only
+    /// page shell left, so it must keep loading the owner on every page.
     /// </summary>
     [Fact]
-    public void MainLayout_LoadsTheRegistrationOwner()
+    public void PortalShell_LoadsTheRegistrationOwner()
     {
-        ReadRepoFile("src", "RTUB.Web", "Shared", "MainLayout.razor")
+        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
             .Should().Contain("/js/sw-register.js");
     }
 
@@ -71,7 +73,6 @@ public class ServiceWorkerReliabilityTests
     [Theory]
     [InlineData("/api/")]
     [InlineData("/auth/")]
-    [InlineData("/_blazor")]
     [InlineData("/hubs/")]
     [InlineData("/health")]
     public void ServiceWorker_DeclaresPathAsNeverCached(string prefix)
@@ -79,6 +80,16 @@ public class ServiceWorkerReliabilityTests
         NeverCacheList().Should().Contain($"'{prefix}'",
             "{0} is authenticated, real-time or a liveness probe; a cached copy is either " +
             "private data on disk or a stale answer", prefix);
+    }
+
+    /// <summary>
+    /// Task 037 retired the Blazor host: /_framework/blazor.web.js is no longer served, so a precache entry for it
+    /// would fail cache.addAll and leave the offline page uncached; /_blazor no longer exists to exclude.
+    /// </summary>
+    [Fact]
+    public void ServiceWorker_KnowsNoBlazorAssetOrPath()
+    {
+        ServiceWorker.Should().NotContain("_framework").And.NotContain("_blazor").And.NotContain("blazor.web.js");
     }
 
     /// <summary>
@@ -162,89 +173,48 @@ public class ServiceWorkerReliabilityTests
 
     /// <summary>
     /// install() used to call self.skipWaiting() unconditionally, so every new worker activated
-    /// at once, claimed clients and forced a reload - which made the "Nova versao disponivel /
-    /// Atualizar" prompt unreachable in practice. skipWaiting is now reached only through the
-    /// SKIP_WAITING message the user's "Atualizar" click posts.
+    /// at once, claimed clients and forced a reload mid-use. Since 006 updates are silent: a new
+    /// worker waits and activates on its own once every RTUB window is closed. Nothing may
+    /// activate it early - no skipWaiting anywhere, no SKIP_WAITING message to ask for it.
     /// </summary>
     [Fact]
-    public void ServiceWorker_SkipsWaitingOnlyOnUserRequest()
+    public void ServiceWorker_NeverForcesActivation()
     {
-        var content = ServiceWorker;
-
-        Section(content, "addEventListener('install'", "addEventListener('activate'")
-            .Should().NotContain("skipWaiting",
-                "a new worker must wait so the user can choose when to update");
-
-        var messageHandler = Section(content, "addEventListener('message'", "addEventListener('pushsubscriptionchange'");
-        messageHandler.Should().Contain("SKIP_WAITING");
-        messageHandler.Should().Contain("self.skipWaiting()",
-            "the SKIP_WAITING message posted by the update toast is the only activation trigger");
-    }
-
-    [Fact]
-    public void SwRegister_PostsSkipWaitingOnlyFromTheUpdateButton()
-    {
-        var register = SwRegister();
-
-        Regex.Matches(register, @"SKIP_WAITING").Count.Should().Be(1,
-            "exactly one place may ask the waiting worker to activate");
-
-        Section(register, "updateBtn.addEventListener('click'", "dismissBtn.addEventListener")
-            .Should().Contain("SKIP_WAITING",
-                "the only SKIP_WAITING post must be the 'Atualizar' click handler");
+        ServiceWorker.Should().NotContain("skipWaiting",
+            "a new worker must wait for every RTUB window to close instead of taking over mid-use");
+        ServiceWorker.Should().NotContain("SKIP_WAITING");
+        SwRegister().Should().NotContain("SKIP_WAITING");
     }
 
     /// <summary>
-    /// controllerchange fires both for a real update and for the first-ever install, where
-    /// clients.claim() takes control of a page that was never controlled. Reloading in the
-    /// latter case is a pointless extra navigation, and an unguarded reload is how a
-    /// controllerchange loop starts.
+    /// The "Nova versão disponível! / Atualizar / Depois" toast was retired in 006: React assets
+    /// are hashed, Blazor assets carry ?v=, and documents are network-only, so there is no stale
+    /// page to warn about. No prompt, and no reload path that could fire mid-use.
     /// </summary>
     [Fact]
-    public void SwRegister_HasOneGuardedReloadPath()
+    public void SwRegister_UpdatesSilently()
     {
         var register = SwRegister();
 
-        Regex.Matches(register, @"location\.reload\(").Count.Should().Be(1,
-            "exactly one reload path may exist");
+        register.Should().NotContain("Nova vers").And.NotContain("Atualizar").And.NotContain("Depois")
+            .And.NotContain("rtub-sw-toast", "the update prompt is gone");
+        register.Should().NotContain("location.reload(", "an update must never reload an open page");
+        register.Should().Contain(".update()", "update checks still fetch new workers in the background");
 
-        var handler = Section(register, "addEventListener('controllerchange'", "})();");
-        handler.Should().Contain("if (refreshing) return;",
-            "the reload must be guarded against firing twice");
-        handler.Should().Contain("hadControllerAtStartup",
-            "a first-ever install must not trigger a reload");
+        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css", "3-components", "sw-update-toast.css"))
+            .Should().BeFalse("the toast stylesheet was only used by the retired prompt");
     }
 
     /// <summary>
     /// registerServiceWorker() is invoked twice (immediately, then on window load). register()
     /// itself is idempotent, but each call attached another updatefound listener, another
-    /// visibilitychange listener and another update-check timer - which is how one update
-    /// produced two toasts.
+    /// visibilitychange listener and another update-check timer.
     /// </summary>
     [Fact]
     public void SwRegister_WiresTheUpdateLifecycleOnlyOnce()
     {
         SwRegister().Should().Contain("registrationStarted",
             "registerServiceWorker must be single-shot so its listeners are attached once");
-    }
-
-    // ---------- A: MobileBottomNav ----------
-
-    /// <summary>
-    /// MobileBottomNav is pinned with position: fixed; bottom: 0 and pads itself out of the
-    /// iOS home-indicator area. Losing either half puts the nav under the system gesture bar.
-    /// </summary>
-    [Fact]
-    public void MobileBottomNav_KeepsFixedBottomAndSafeAreaContract()
-    {
-        var css = ReadRepoFile("src", "RTUB.Shared", "Components", "UI", "MobileBottomNav.razor.css");
-
-        css.Should().MatchRegex(@"position:\s*fixed");
-        css.Should().MatchRegex(@"bottom:\s*0");
-        css.Should().MatchRegex(@"left:\s*0");
-        css.Should().MatchRegex(@"right:\s*0");
-        css.Should().MatchRegex(@"padding-bottom:\s*env\(safe-area-inset-bottom",
-            "the nav must clear the iOS home indicator");
     }
 
     /// <summary>

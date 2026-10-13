@@ -166,7 +166,6 @@ public class ReleaseWorkflowTests
 
         Regex.Matches(all, "dotnet publish").Should().HaveCount(1);
         PackageAction.Should().Contain("dotnet publish").And.Contain("-r linux-x64").And.Contain("--self-contained false");
-        PackageAction.Should().Contain("node-version: '22'");
         PackageAction.Should().Contain("release.sh package", "the guards run on the zip itself");
         Regex.Matches(DeployDev + DeployProd, "uses: ./.github/actions/package-release").Should().HaveCount(2);
     }

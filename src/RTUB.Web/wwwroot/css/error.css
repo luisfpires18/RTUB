@@ -1,0 +1,62 @@
+/* The server-owned /Error page (wwwroot/error.html, task 036): no script, no dependency on the portal bundle. */
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #0c0b0e;
+  color: #d8d1df;
+  font: 400 1rem/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.error-page {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 32rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 64px 16px;
+  box-sizing: border-box;
+  align-content: center;
+  text-align: center;
+}
+
+.error-page__logo {
+  width: 96px;
+  height: 96px;
+}
+
+.error-page h1 {
+  margin: 0;
+  color: #f3eee7;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.75rem;
+}
+
+.error-page p {
+  margin: 0;
+}
+
+.error-page__link {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #6f42c1;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.error-page__link:hover,
+.error-page__link:focus-visible {
+  background: #5a379c;
+}
+
+.error-page__link:focus-visible {
+  outline: 2px solid #d4bcff;
+  outline-offset: 2px;
+}

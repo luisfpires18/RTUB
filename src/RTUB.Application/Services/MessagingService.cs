@@ -1,839 +1,639 @@
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing conversations and messages
+/// Messaging v2 (task 041, docs/react-messages.md): the React /messages over the v1 tables that task 027 preserved, with
+/// the v1 rules (git: a121f3f1^ MessagingService) and no schema change:
+/// - a member sees only the conversations they take part in (<see cref="Conversation.HasParticipant"/>); archived ones
+///   stay hidden; there is no Admin / Owner reading of other people's chats;
+/// - "Sistema RTUB" conversations are read-only; announcement-only groups take messages from the Owner and the current
+///   Magister, Vice-Magister, Presidents of the CF / MAG / CV and the Ensaiador only (v1's list);
+/// - text only (1-2000), a reply quotes a message of the same conversation (snippet ≤200 + sender, denormalized as v1
+///   did), one reaction per member per message from a fixed emoji set, mute per member (no push while muted);
+/// - unread = not sent by me and my id not in <see cref="Message.ReadBy"/>.
+/// Message text never reaches a log, the audit log (Message, Conversation, MessageReaction and ConversationUserSettings
+/// are excluded and redacted, AuditConfiguration / AuditLogAppender) or a push notification.
 /// </summary>
-public class MessagingService : IMessagingService
+public sealed class MessagingService : IMessagingService
 {
-    private const int MessagePreviewMaxLength = DefaultValues.Messaging.MessagePreviewMaxLength;
+    public const int MaxBodyLength = 2000;
+    public const int ReplySnippetLength = 200;
+    public const int ReplySenderNameLength = 100;
+    public const int PreviewLength = 80;
+    public const int PageSize = 50;
+    public const string SystemTitle = "Sistema RTUB";
+    public const string GroupAvatar = "/images/rtub_logo.webp";
 
-    /// <summary>
-    /// Positions that are allowed to send messages in announcement-only channels
-    /// </summary>
+    /// <summary>The emoji a member can react with. Older reactions outside the set still show.</summary>
+    public static readonly IReadOnlyList<string> ReactionChoices = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+    /// <summary>v1's announcement senders (besides the Owner), in the current fiscal year.</summary>
     private static readonly Position[] AnnouncementSenderPositions =
-    {
-        Position.Magister,
-        Position.ViceMagister,
-        Position.PresidenteConselhoFiscal,
-        Position.PresidenteMesaAssembleia,
-        Position.PresidenteConselhoVeteranos,
-        Position.Ensaiador
-    };
+    [
+        Position.Magister, Position.ViceMagister, Position.PresidenteConselhoFiscal,
+        Position.PresidenteMesaAssembleia, Position.PresidenteConselhoVeteranos, Position.Ensaiador,
+    ];
 
-    private readonly IConversationRepository _conversationRepository;
-    private readonly IMessageRepository _messageRepository;
-    private readonly IConversationUserSettingsRepository _settingsRepository;
-    private readonly IRoleAssignmentRepository _roleAssignmentRepository;
-    private readonly IPushNotificationService _pushNotificationService;
-    private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly IMessagesHubService? _messagesHubService;
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IDbContextFactory<ApplicationDbContext> _contexts;
+    private readonly IPushNotificationService _push;
+    private readonly IPushNotificationFactory _notifications;
     private readonly ILogger<MessagingService> _logger;
-    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public MessagingService(
-        IConversationRepository conversationRepository,
-        IMessageRepository messageRepository,
-        IConversationUserSettingsRepository settingsRepository,
-        IRoleAssignmentRepository roleAssignmentRepository,
-        IPushNotificationService pushNotificationService,
-        IPushNotificationFactory pushNotificationFactory,
-        UserManager<ApplicationUser> userManager,
-        ILogger<MessagingService> logger,
-        IDbContextFactory<ApplicationDbContext> contextFactory,
-        IMessagesHubService? messagesHubService = null)
+    public MessagingService(IDbContextFactory<ApplicationDbContext> contexts, IPushNotificationService push,
+        IPushNotificationFactory notifications, ILogger<MessagingService> logger)
     {
-        _conversationRepository = conversationRepository;
-        _messageRepository = messageRepository;
-        _settingsRepository = settingsRepository;
-        _roleAssignmentRepository = roleAssignmentRepository;
-        _pushNotificationService = pushNotificationService;
-        _pushNotificationFactory = pushNotificationFactory;
-        _userManager = userManager;
+        _contexts = contexts;
+        _push = push;
+        _notifications = notifications;
         _logger = logger;
-        _contextFactory = contextFactory;
-        _messagesHubService = messagesHubService;
     }
 
-    public async Task<IEnumerable<ConversationDto>> GetUserConversationsAsync(string userId)
-    {
-        var conversations = await _conversationRepository.GetUserConversationsAsync(userId);
-        var conversationList = conversations.ToList();
+    // ---------- reads ----------
 
-        if (!conversationList.Any())
+    public async Task<EventResult<IReadOnlyList<ConversationListItem>>> GetConversationsAsync(ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
         {
-            return Enumerable.Empty<ConversationDto>();
+            return EventResult<IReadOnlyList<ConversationListItem>>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var userSettings = (await _settingsRepository.GetByUserAsync(userId)).ToDictionary(s => s.ConversationId);
+        await using var db = await _contexts.CreateDbContextAsync();
+        var conversations = await MyConversationsAsync(db, me);
 
-        // Batch load unread counts for all conversations (fixes N+1 query issue)
-        var conversationIds = conversationList.Select(c => c.Id).ToList();
-        var unreadCounts = await _messageRepository.GetUnreadCountsForConversationsAsync(conversationIds, userId);
+        var items = await ListItemsAsync(db, conversations, user, me);
+        return EventResult<IReadOnlyList<ConversationListItem>>.Ok(items
+            .OrderByDescending(i => i.Pinned)
+            .ThenByDescending(i => i.LastMessageAt)
+            .ToList());
+    }
 
-        // Batch load latest messages for conversations that need them (fixes N+1 query issue)
-        var conversationsNeedingLatestMessage = conversationList
-            .Where(c => c.LastMessageId.HasValue &&
-                       !c.Messages.Any(m => m.Id == c.LastMessageId.Value))
-            .Select(c => c.Id)
+    /// <summary>Same rows and same rule as the list's per-conversation <c>UnreadCount</c>, summed, without building the list.</summary>
+    public async Task<EventResult<UnreadSummary>> GetUnreadAsync(ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<UnreadSummary>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var ids = (await MyConversationsAsync(db, me)).Select(c => c.Id).ToList();
+        var unread = await db.Messages.AsNoTracking()
+            .CountAsync(m => ids.Contains(m.ConversationId) && m.SenderId != me && !m.ReadBy.Contains(me));
+        return EventResult<UnreadSummary>.Ok(new UnreadSummary(unread));
+    }
+
+    // The SQL filter is a substring match on the id list; HasParticipant makes it exact. Archived ones stay hidden.
+    private static async Task<List<Conversation>> MyConversationsAsync(ApplicationDbContext db, string me) =>
+        (await db.Conversations.AsNoTracking()
+            .Where(c => !c.IsArchived && c.Participants.Contains(me))
+            .ToListAsync())
+        .Where(c => c.HasParticipant(me))
+        .ToList();
+
+    public async Task<EventResult<IReadOnlyList<MessagingPerson>>> GetRecipientsAsync(ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<IReadOnlyList<MessagingPerson>>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var people = await db.Users.AsNoTracking()
+            .Where(u => u.Id != me && !u.IsExpelled)
+            .Select(u => new { u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl })
+            .ToListAsync();
+
+        return EventResult<IReadOnlyList<MessagingPerson>>.Ok(people
+            .Select(u => Person(u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl))
+            .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList());
+    }
+
+    public async Task<EventResult<ConversationDetail>> GetConversationAsync(int id, int? beforeMessageId, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<ConversationDetail>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await FindMineAsync(db, id, me, tracked: false) is not { } conversation)
+        {
+            return EventResult<ConversationDetail>.Fail(EventResultStatus.NotFound);
+        }
+
+        return EventResult<ConversationDetail>.Ok(await DetailAsync(db, conversation, beforeMessageId, user, me));
+    }
+
+    // ---------- writes ----------
+
+    public async Task<EventResult<ConversationDetail>> StartConversationAsync(StartConversationRequest input, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<ConversationDetail>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        var other = input.UserId?.Trim();
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (string.IsNullOrEmpty(other) || other == me || !await db.Users.AnyAsync(u => u.Id == other && !u.IsExpelled))
+        {
+            return EventResult<ConversationDetail>.Invalid("userId", "Escolhe um membro.");
+        }
+
+        // v1 stored the pair sorted; both orders are looked up so either sort order finds the existing chat.
+        var pair = new[] { me, other }.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        var forward = $"{pair[0]};{pair[1]}";
+        var backward = $"{pair[1]};{pair[0]}";
+        var conversation = await db.Conversations
+            .FirstOrDefaultAsync(c => !c.IsGroup && !c.IsSystemConversation && (c.Participants == forward || c.Participants == backward));
+
+        if (conversation is null)
+        {
+            conversation = new Conversation { Participants = forward, LastMessageAt = DateTime.UtcNow, IsGroup = false };
+            db.Conversations.Add(conversation);
+            await db.SaveChangesAsync();
+        }
+        else if (conversation.IsArchived)
+        {
+            // v1 "deleted" a chat by archiving it for both; writing to the person again brings it back.
+            conversation.IsArchived = false;
+            await db.SaveChangesAsync();
+        }
+
+        return EventResult<ConversationDetail>.Ok(await DetailAsync(db, conversation, null, user, me));
+    }
+
+    public async Task<EventResult<MessageItem>> SendAsync(int conversationId, SendMessageRequest input, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        var body = input.Body?.Trim() ?? "";
+        if (body.Length == 0)
+        {
+            return EventResult<MessageItem>.Invalid("body", "Escreve uma mensagem.");
+        }
+
+        if (body.Length > MaxBodyLength)
+        {
+            return EventResult<MessageItem>.Invalid("body", $"A mensagem tem no máximo {MaxBodyLength} caracteres.");
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await FindMineAsync(db, conversationId, me, tracked: true) is not { } conversation)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (!await CanSendAsync(db, conversation, user, me))
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.Forbidden);
+        }
+
+        var message = new Message { ConversationId = conversation.Id, SenderId = me, Body = body, IsSystem = false };
+        if (input.ReplyToMessageId is { } replyTo)
+        {
+            var original = await db.Messages.AsNoTracking().Include(m => m.Sender)
+                .FirstOrDefaultAsync(m => m.Id == replyTo && m.ConversationId == conversation.Id);
+            if (original is null)
+            {
+                return EventResult<MessageItem>.Invalid("replyToMessageId", "A mensagem a que respondes já não existe.");
+            }
+
+            message.ReplyToMessageId = original.Id;
+            message.ReplyToBody = Truncate(original.Body, ReplySnippetLength);
+            message.ReplyToSenderName = original.Sender is { } s
+                ? Truncate(Person(s.Id, s.Nickname, s.FirstName, s.LastName, null).DisplayName, ReplySenderNameLength)
+                : original.IsSystem ? SystemTitle : null;
+        }
+
+        db.Messages.Add(message);
+        await db.SaveChangesAsync();
+        conversation.LastMessageAt = message.CreatedAt;
+        conversation.LastMessageId = message.Id;
+        await db.SaveChangesAsync();
+
+        var sender = await db.Users.AsNoTracking().Where(u => u.Id == me)
+            .Select(u => new { u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl }).FirstAsync();
+        var senderPerson = Person(sender.Id, sender.Nickname, sender.FirstName, sender.LastName, sender.ImageUrl);
+        await NotifyAsync(db, conversation, me, senderPerson.DisplayName);
+
+        return EventResult<MessageItem>.Ok(new MessageItem(message.Id, conversation.Id, senderPerson, true, false, message.Body, null,
+            Utc(message.CreatedAt), Reply(message), Array.Empty<ReactionSummary>(), false));
+    }
+
+    public async Task<EventResult<bool>> MarkReadAsync(int conversationId, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await FindMineAsync(db, conversationId, me, tracked: false) is null)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.NotFound);
+        }
+
+        var unread = (await db.Messages
+                .Where(m => m.ConversationId == conversationId && m.SenderId != me && !m.ReadBy.Contains(me))
+                .ToListAsync())
+            .Where(m => !m.IsReadBy(me))
             .ToList();
-        var latestMessages = conversationsNeedingLatestMessage.Any()
-            ? await _messageRepository.GetLatestMessagesForConversationsAsync(conversationsNeedingLatestMessage)
-            : new Dictionary<int, Message?>();
-
-        var conversationDtos = new List<ConversationDto>();
-
-        foreach (var conversation in conversationList)
+        foreach (var message in unread)
         {
-            var dto = await MapConversationToDtoAsync(conversation, userId, userSettings, unreadCounts, latestMessages);
-            conversationDtos.Add(dto);
+            message.MarkAsReadBy(me);
         }
 
-        // Sort: pinned first (by LastMessageAt), then non-pinned (by LastMessageAt)
-        return conversationDtos
-            .OrderByDescending(c => c.IsPinned)
-            .ThenByDescending(c => c.LastMessageAt);
+        await db.SaveChangesAsync();
+        return EventResult<bool>.Ok(true);
     }
 
-    public async Task<ConversationDto?> GetConversationAsync(int conversationId, string currentUserId)
+    public async Task<EventResult<ConversationSettings>> SetMutedAsync(int conversationId, bool muted, ClaimsPrincipal user)
     {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<ConversationSettings>.Fail(EventResultStatus.SignInRequired);
+        }
 
-        if (conversation == null || !conversation.HasParticipant(currentUserId))
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await FindMineAsync(db, conversationId, me, tracked: false) is null)
+        {
+            return EventResult<ConversationSettings>.Fail(EventResultStatus.NotFound);
+        }
+
+        var settings = await db.ConversationUserSettings.FirstOrDefaultAsync(s => s.ConversationId == conversationId && s.UserId == me);
+        if (settings is null)
+        {
+            db.ConversationUserSettings.Add(new ConversationUserSettings { ConversationId = conversationId, UserId = me, IsMuted = muted });
+        }
+        else
+        {
+            settings.IsMuted = muted;
+        }
+
+        await db.SaveChangesAsync();
+        return EventResult<ConversationSettings>.Ok(new ConversationSettings(muted));
+    }
+
+    public async Task<EventResult<MessageItem>> ReactAsync(int messageId, ReactionRequest input, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        var emoji = input.Emoji?.Trim() ?? "";
+        if (!ReactionChoices.Contains(emoji))
+        {
+            return EventResult<MessageItem>.Invalid("emoji", "Escolhe uma das reações.");
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await ReactableAsync(db, messageId, me) is not { } status)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (status == EventResultStatus.Forbidden)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.Forbidden);
+        }
+
+        var existing = await db.MessageReactions.FirstOrDefaultAsync(r => r.MessageId == messageId && r.UserId == me);
+        if (existing is null)
+        {
+            db.MessageReactions.Add(new MessageReaction { MessageId = messageId, UserId = me, Emoji = emoji });
+        }
+        else
+        {
+            existing.Emoji = emoji;
+        }
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Two taps at once: the unique (MessageId, UserId) index kept one reaction; show what is stored.
+        }
+
+        return EventResult<MessageItem>.Ok(await MessageAsync(messageId, me));
+    }
+
+    public async Task<EventResult<MessageItem>> RemoveReactionAsync(int messageId, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await ReactableAsync(db, messageId, me) is not { } status)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (status == EventResultStatus.Forbidden)
+        {
+            return EventResult<MessageItem>.Fail(EventResultStatus.Forbidden);
+        }
+
+        await db.MessageReactions.Where(r => r.MessageId == messageId && r.UserId == me).ExecuteDeleteAsync();
+        return EventResult<MessageItem>.Ok(await MessageAsync(messageId, me));
+    }
+
+    // ---------- helpers ----------
+
+    private static string? UserId(ClaimsPrincipal user) =>
+        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+
+    /// <summary>The conversation, only if the member takes part in it and it is not archived; null otherwise (a 404).</summary>
+    private static async Task<Conversation?> FindMineAsync(ApplicationDbContext db, int id, string me, bool tracked)
+    {
+        var query = tracked ? db.Conversations : db.Conversations.AsNoTracking();
+        var conversation = await query.FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived);
+        return conversation is not null && conversation.HasParticipant(me) ? conversation : null;
+    }
+
+    /// <summary>Null: no such message for this member (404). Forbidden: a read-only "Sistema RTUB" message. Ok otherwise.</summary>
+    private static async Task<EventResultStatus?> ReactableAsync(ApplicationDbContext db, int messageId, string me)
+    {
+        var target = await db.Messages.AsNoTracking().Where(m => m.Id == messageId)
+            .Select(m => new { m.ConversationId }).FirstOrDefaultAsync();
+        if (target is null || await FindMineAsync(db, target.ConversationId, me, tracked: false) is not { } conversation)
         {
             return null;
         }
 
-        var settings = await _settingsRepository.GetByUserAndConversationAsync(currentUserId, conversationId);
-        var settingsDict = settings != null
-            ? new Dictionary<int, ConversationUserSettings> { { conversationId, settings } }
-            : new Dictionary<int, ConversationUserSettings>();
-
-        return await MapConversationToDtoAsync(conversation, currentUserId, settingsDict, null, null);
+        return conversation.IsSystemConversation ? EventResultStatus.Forbidden : EventResultStatus.Ok;
     }
 
-    public async Task<IEnumerable<MessageDto>> GetConversationMessagesAsync(int conversationId, string currentUserId, int? limit = null)
+    private static async Task<bool> CanSendAsync(ApplicationDbContext db, Conversation conversation, ClaimsPrincipal user, string me)
     {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-
-        if (conversation == null || !conversation.HasParticipant(currentUserId))
-        {
-            return Enumerable.Empty<MessageDto>();
-        }
-
-        var messages = await _messageRepository.GetConversationMessagesAsync(conversationId, limit);
-
-        return messages.Select(m => MapMessageToDto(m, currentUserId)).Reverse();
-    }
-
-    public async Task<MessageDto> SendDirectMessageAsync(string senderId, SendMessageDto messageDto)
-    {
-        // Get or create conversation
-        var conversation = await _conversationRepository.GetOrCreateOneToOneAsync(senderId, messageDto.ReceiverId);
-
-        // Resolve reply-to fields (denormalized for performance)
-        var (replyToBody, replyToSenderName) = await ResolveReplyFieldsAsync(messageDto.ReplyToMessageId);
-
-        // Create message
-        var message = new Message
-        {
-            ConversationId = conversation.Id,
-            SenderId = senderId,
-            Body = messageDto.Body,
-            IsSystem = false,
-            CreatedAt = DateTime.UtcNow,
-            ReplyToMessageId = messageDto.ReplyToMessageId,
-            ReplyToBody = replyToBody,
-            ReplyToSenderName = replyToSenderName
-        };
-
-        await _messageRepository.AddAsync(message);
-
-        // Update conversation
-        conversation.LastMessageAt = message.CreatedAt;
-        conversation.LastMessageId = message.Id;
-        await _conversationRepository.UpdateAsync(conversation);
-
-        // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
-        var sender = await _userManager.FindByIdAsync(senderId);
-
-        // Get recipient IDs (all participants except the sender) for real-time notification filtering
-        var recipientIds = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
-
-        // Create DTO for broadcasting with sender info and recipient IDs
-        var resultDto = MapMessageToDto(message, senderId, sender, recipientIds);
-
-        // Broadcast message via SignalR to all participants in the conversation
-        if (_messagesHubService != null)
-        {
-            await _messagesHubService.BroadcastMessageAsync(conversation.Id, resultDto);
-        }
-
-        // Send push notification (without creating inbox message - the direct message itself is already there)
-        // Only send if the receiver has not muted this conversation
-        if (sender != null && !string.IsNullOrEmpty(messageDto.Body))
-        {
-            var isReceiverMuted = await _settingsRepository.IsConversationMutedAsync(messageDto.ReceiverId, conversation.Id);
-
-            if (!isReceiverMuted)
-            {
-                var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-                var notification = _pushNotificationFactory.CreateDirectMessageNotification(senderName, conversation.Id.ToString(), "/");
-                // Include the receiver's current unread count so the service worker can set an accurate badge.
-                // Queried after the message is saved, so it already includes the new message.
-                notification.UnreadCount = await _messageRepository.GetUnreadCountForUserAsync(messageDto.ReceiverId);
-                await _pushNotificationService.SendPushOnlyAsync(messageDto.ReceiverId, notification);
-            }
-        }
-
-        return resultDto;
-    }
-
-    public async Task<MessageDto> SendSystemMessageAsync(string receiverId, string body, string? link = null)
-    {
-        // Create or get system conversation for this user
-        var conversation = await _conversationRepository.GetSystemConversationForUserAsync(receiverId);
-
-        if (conversation == null)
-        {
-            conversation = new Conversation
-            {
-                Participants = receiverId,
-                LastMessageAt = DateTime.UtcNow,
-                IsSystemConversation = true,
-                Title = "Sistema RTUB",
-                CreatedAt = DateTime.UtcNow
-            };
-            await _conversationRepository.AddAsync(conversation);
-        }
-
-        // Auto-pin system conversation for the user (both new and existing)
-        // This ensures existing conversations are also pinned for users who had them before this feature
-        var settings = await _settingsRepository.GetOrCreateAsync(receiverId, conversation.Id);
-        if (!settings.IsPinned)
-        {
-            settings.IsPinned = true;
-            settings.UpdatedAt = DateTime.UtcNow;
-            await _settingsRepository.UpdateAsync(settings);
-        }
-
-        // Create system message
-        var message = new Message
-        {
-            ConversationId = conversation.Id,
-            SenderId = null,
-            Body = body,
-            IsSystem = true,
-            Link = link,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _messageRepository.AddAsync(message);
-
-        // Update conversation
-        conversation.LastMessageAt = message.CreatedAt;
-        conversation.LastMessageId = message.Id;
-        await _conversationRepository.UpdateAsync(conversation);
-
-        // System messages have a single recipient
-        // Note: receiverId is passed as currentUserId for the DTO's IsRead perspective calculation
-        // (system messages have null SenderId, so IsRead will be calculated from receiver's perspective)
-        var recipientIds = new List<string> { receiverId };
-
-        return MapMessageToDto(message, receiverId, null, recipientIds);
-    }
-
-    public async Task MarkConversationAsReadAsync(int conversationId, string userId)
-    {
-        await _messageRepository.MarkConversationAsReadAsync(conversationId, userId);
-
-        // Notify other participants that messages were seen
-        if (_messagesHubService != null)
-        {
-            await _messagesHubService.NotifyMessageSeenAsync(conversationId, userId, DateTime.UtcNow);
-        }
-    }
-
-    public async Task MarkConversationAsUnreadAsync(int conversationId, string userId)
-    {
-        var latestMessage = await _messageRepository.GetLatestMessageAsync(conversationId);
-
-        if (latestMessage != null && latestMessage.SenderId != userId)
-        {
-            latestMessage.MarkAsUnreadBy(userId);
-            await _messageRepository.UpdateAsync(latestMessage);
-        }
-    }
-
-    public async Task<bool> DeleteConversationAsync(int conversationId, string userId)
-    {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-
-        if (conversation == null || !conversation.HasParticipant(userId))
-        {
-            return false;
-        }
-
-        // Check if user can delete this conversation using the shared helper
-        if (!CanUserDeleteConversation(conversation, userId))
-        {
-            return false;
-        }
-
-        await _conversationRepository.ArchiveConversationAsync(conversationId);
-        return true;
-    }
-
-    public async Task<int> GetUnreadCountAsync(string userId)
-    {
-        return await _messageRepository.GetUnreadCountForUserAsync(userId);
-    }
-
-    public async Task<ConversationDto> GetOrCreateConversationAsync(string userId1, string userId2)
-    {
-        var conversation = await _conversationRepository.GetOrCreateOneToOneAsync(userId1, userId2);
-        var settings = await _settingsRepository.GetByUserAndConversationAsync(userId1, conversation.Id);
-        var settingsDict = settings != null
-            ? new Dictionary<int, ConversationUserSettings> { { conversation.Id, settings } }
-            : new Dictionary<int, ConversationUserSettings>();
-        return await MapConversationToDtoAsync(conversation, userId1, settingsDict);
-    }
-
-    public async Task<ConversationDto> CreateGroupConversationAsync(string creatorUserId, string groupName, List<string> participantIds)
-    {
-        // Ensure creator is in the participants list
-        if (!participantIds.Contains(creatorUserId))
-        {
-            participantIds.Add(creatorUserId);
-        }
-
-        var conversation = new Conversation
-        {
-            Participants = string.Join(";", participantIds),
-            Title = groupName,
-            IsGroup = true,
-            CreatedByUserId = creatorUserId,
-            LastMessageAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _conversationRepository.AddAsync(conversation);
-
-        // Send system message announcing group creation
-        var creator = await _userManager.FindByIdAsync(creatorUserId);
-        var creatorName = creator?.Nickname ?? $"{creator?.FirstName} {creator?.LastName}";
-
-        var systemMessage = new Message
-        {
-            ConversationId = conversation.Id,
-            SenderId = null,
-            Body = $"{creatorName} criou o grupo \"{groupName}\"",
-            IsSystem = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _messageRepository.AddAsync(systemMessage);
-
-        conversation.LastMessageId = systemMessage.Id;
-        await _conversationRepository.UpdateAsync(conversation);
-
-        return await MapConversationToDtoAsync(conversation, creatorUserId, new Dictionary<int, ConversationUserSettings>());
-    }
-
-    public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body, int? replyToMessageId = null)
-    {
-        var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
-
-        if (!conversation.IsGroup)
-        {
-            throw new InvalidOperationException("Conversation is not a group conversation");
-        }
-
-        if (!conversation.HasParticipant(senderId))
-        {
-            throw new InvalidOperationException("User is not a participant in this group");
-        }
-
-        // Check if user can send messages in announcement-only channels
-        if (conversation.IsAnnouncementOnly)
-        {
-            var canSend = await CanUserSendMessageInAnnouncementChannelAsync(senderId);
-            if (!canSend)
-            {
-                throw new InvalidOperationException("User does not have permission to send messages in this announcement channel");
-            }
-        }
-
-        // Resolve reply-to fields (denormalized for performance)
-        var (replyToBody, replyToSenderName) = await ResolveReplyFieldsAsync(replyToMessageId);
-
-        // Create message
-        var message = new Message
-        {
-            ConversationId = conversationId,
-            SenderId = senderId,
-            Body = body,
-            IsSystem = false,
-            CreatedAt = DateTime.UtcNow,
-            ReplyToMessageId = replyToMessageId,
-            ReplyToBody = replyToBody,
-            ReplyToSenderName = replyToSenderName
-        };
-
-        await _messageRepository.AddAsync(message);
-
-        // Update conversation
-        conversation.LastMessageAt = message.CreatedAt;
-        conversation.LastMessageId = message.Id;
-        await _conversationRepository.UpdateAsync(conversation);
-
-        // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
-        var sender = await _userManager.FindByIdAsync(senderId);
-
-        // Get recipient IDs (all participants except the sender) for real-time notification filtering
-        var recipientIds = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
-
-        // Create DTO for broadcasting with sender info and recipient IDs
-        var messageDto = MapMessageToDto(message, senderId, sender, recipientIds);
-
-        // Broadcast message via SignalR to all participants in the conversation
-        if (_messagesHubService != null)
-        {
-            await _messagesHubService.BroadcastMessageAsync(conversationId, messageDto);
-        }
-
-        // Send push notifications to all other participants (unless they have muted)
-        if (sender != null && !string.IsNullOrEmpty(body))
-        {
-            var groupName = conversation.Title ?? "Grupo";
-
-            // Batch fetch muted status for all recipients in one query
-            var mutedUserIds = await _settingsRepository.GetMutedUserIdsAsync(conversationId, recipientIds);
-
-            // Send push notifications in parallel to non-muted recipients
-            var notification = _pushNotificationFactory.CreateGroupMessageNotification(groupName, conversationId.ToString(), "/");
-
-            var pushTasks = recipientIds
-                .Where(participantId => !mutedUserIds.Contains(participantId))
-                .Select(participantId => _pushNotificationService.SendPushOnlyAsync(participantId, notification));
-
-            await Task.WhenAll(pushTasks);
-        }
-
-        return messageDto;
-    }
-
-    public async Task<ConversationDto> GetOrCreateSystemGroupAsync(string groupTitle, List<string> participantIds)
-    {
-        var conversation = await _conversationRepository.GetGroupByTitleAsync(groupTitle);
-
-        if (conversation == null)
-        {
-            conversation = new Conversation
-            {
-                Participants = string.Join(";", participantIds),
-                Title = groupTitle,
-                IsGroup = true,
-                CreatedByUserId = "system",
-                LastMessageAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _conversationRepository.AddAsync(conversation);
-        }
-
-        return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());
-    }
-
-    public async Task UpdateGroupParticipantsAsync(int conversationId, List<string> participantIds)
-    {
-        var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
-
-        if (!conversation.IsGroup)
-        {
-            throw new InvalidOperationException("Conversation is not a group");
-        }
-
-        conversation.SetParticipants(participantIds);
-        conversation.UpdatedAt = DateTime.UtcNow;
-
-        await _conversationRepository.UpdateAsync(conversation);
-    }
-
-    public async Task<bool> ToggleMuteAsync(int conversationId, string userId)
-    {
-        var settings = await _settingsRepository.GetOrCreateAsync(userId, conversationId);
-        settings.IsMuted = !settings.IsMuted;
-        settings.UpdatedAt = DateTime.UtcNow;
-        await _settingsRepository.UpdateAsync(settings);
-        return settings.IsMuted;
-    }
-
-    public async Task<bool> TogglePinAsync(int conversationId, string userId)
-    {
-        var settings = await _settingsRepository.GetOrCreateAsync(userId, conversationId);
-        settings.IsPinned = !settings.IsPinned;
-        settings.UpdatedAt = DateTime.UtcNow;
-        await _settingsRepository.UpdateAsync(settings);
-        return settings.IsPinned;
-    }
-
-    public async Task<bool> IsConversationMutedAsync(int conversationId, string userId)
-    {
-        return await _settingsRepository.IsConversationMutedAsync(userId, conversationId);
-    }
-
-    private async Task<ConversationDto> MapConversationToDtoAsync(
-        Conversation conversation,
-        string currentUserId,
-        Dictionary<int, ConversationUserSettings> userSettings,
-        Dictionary<int, int>? unreadCounts = null,
-        Dictionary<int, Message?>? latestMessages = null)
-    {
-        // Get settings for this conversation from the provided dictionary
-        userSettings.TryGetValue(conversation.Id, out var settings);
-
-        // Determine if user can send messages
-        var canSendMessage = true;
-        if (conversation.IsSystemConversation)
-        {
-            canSendMessage = false; // System conversations are read-only
-        }
-        else if (conversation.IsAnnouncementOnly)
-        {
-            canSendMessage = await CanUserSendMessageInAnnouncementChannelAsync(currentUserId);
-        }
-
-        // Determine if user can delete this conversation
-        var canDelete = CanUserDeleteConversation(conversation, currentUserId);
-
-        // Use batch-loaded unread count if provided, otherwise query individually
-        var unreadCount = unreadCounts?.GetValueOrDefault(conversation.Id)
-            ?? await _messageRepository.GetUnreadCountForConversationAsync(conversation.Id, currentUserId);
-
-        var dto = new ConversationDto
-        {
-            Id = conversation.Id,
-            ParticipantIds = conversation.GetParticipantIds(),
-            LastMessageAt = conversation.LastMessageAt,
-            Title = conversation.Title,
-            IsSystemConversation = conversation.IsSystemConversation,
-            IsGroup = conversation.IsGroup,
-            CreatedByUserId = conversation.CreatedByUserId,
-            IsAnnouncementOnly = conversation.IsAnnouncementOnly,
-            CanSendMessage = canSendMessage,
-            CanDelete = canDelete,
-            UnreadCount = unreadCount,
-            IsMuted = settings?.IsMuted ?? false,
-            IsPinned = settings?.IsPinned ?? false
-        };
-
-        // Get last message preview
-        if (conversation.LastMessageId.HasValue)
-        {
-            var lastMessage = conversation.Messages.FirstOrDefault(m => m.Id == conversation.LastMessageId.Value);
-            if (lastMessage == null)
-            {
-                // Use batch-loaded latest message if provided, otherwise query individually
-                lastMessage = latestMessages?.GetValueOrDefault(conversation.Id)
-                    ?? await _messageRepository.GetLatestMessageAsync(conversation.Id);
-            }
-
-            if (lastMessage != null)
-            {
-                dto.LastMessagePreview = lastMessage.Body.Length > MessagePreviewMaxLength
-                    ? $"{lastMessage.Body[..MessagePreviewMaxLength]}..."
-                    : lastMessage.Body;
-                dto.LastMessageSenderId = lastMessage.SenderId;
-            }
-        }
-
-        // For group conversations, batch load participant info
-        if (conversation.IsGroup)
-        {
-            var participantIds = conversation.GetParticipantIds().ToList();
-            if (participantIds.Any())
-            {
-                // Batch load all participants at once to avoid N+1 queries and tracking conflicts
-                var users = await _userManager.Users
-                    .AsNoTracking()
-                    .Where(u => participantIds.Contains(u.Id))
-                    .ToListAsync();
-
-                var userDict = users.ToDictionary(u => u.Id);
-
-                foreach (var participantId in participantIds)
-                {
-                    if (userDict.TryGetValue(participantId, out var user))
-                    {
-                        dto.GroupParticipants.Add(new GroupParticipantDto
-                        {
-                            UserId = participantId,
-                            Name = $"{user.FirstName} {user.LastName}",
-                            Nickname = user.Nickname,
-                            Avatar = user.ImageUrl
-                        });
-                    }
-                }
-            }
-        }
-        // For one-to-one conversations, get other participant info
-        else if (!conversation.IsSystemConversation)
-        {
-            var otherParticipantId = conversation.GetOtherParticipantId(currentUserId);
-            if (otherParticipantId != null)
-            {
-                // Load user with AsNoTracking() to avoid tracking conflicts
-                var otherUser = await _userManager.Users
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Id == otherParticipantId);
-
-                if (otherUser != null)
-                {
-                    dto.OtherParticipantId = otherParticipantId;
-                    dto.OtherParticipantName = $"{otherUser.FirstName} {otherUser.LastName}";
-                    dto.OtherParticipantNickname = otherUser.Nickname;
-                    dto.OtherParticipantAvatar = otherUser.ImageUrl;
-                }
-            }
-        }
-
-        return dto;
-    }
-
-    private MessageDto MapMessageToDto(Message message, string currentUserId, ApplicationUser? senderOverride = null, List<string>? recipientIds = null)
-    {
-        // Determine IsRead based on the perspective:
-        // - For messages SENT by current user: true if any recipient has read it
-        // - For messages RECEIVED by current user: true if current user has read it
-        var isRead = message.SenderId == currentUserId
-            ? message.GetReadByIds().Any(id => id != currentUserId) // At least one recipient has read it (exclude sender)
-            : message.IsReadBy(currentUserId); // Current user has read it
-
-        var dto = new MessageDto
-        {
-            Id = message.Id,
-            ConversationId = message.ConversationId,
-            SenderId = message.SenderId,
-            Body = message.Body,
-            IsSystem = message.IsSystem,
-            CreatedAt = message.CreatedAt,
-            IsRead = isRead,
-            Link = message.Link,
-            ReadBy = message.ReadBy,
-            RecipientIds = recipientIds ?? [],
-            ReplyToMessageId = message.ReplyToMessageId,
-            ReplyToBody = message.ReplyToBody,
-            ReplyToSenderName = message.ReplyToSenderName,
-            Reactions = MapReactions(message.Reactions, currentUserId)
-        };
-
-        // Use senderOverride if provided, otherwise fall back to message.Sender navigation property
-        var sender = senderOverride ?? message.Sender;
-        if (sender != null)
-        {
-            dto.SenderName = $"{sender.FirstName} {sender.LastName}";
-            dto.SenderNickname = sender.Nickname;
-            dto.SenderAvatar = sender.ImageUrl;
-        }
-
-        return dto;
-    }
-
-    private static List<MessageReactionSummaryDto> MapReactions(IEnumerable<MessageReaction>? reactions, string currentUserId)
-    {
-        if (reactions == null) return [];
-        return reactions
-            .GroupBy(r => r.Emoji)
-            .Select(g => new MessageReactionSummaryDto
-            {
-                Emoji = g.Key,
-                Count = g.Count(),
-                ReactedByCurrentUser = g.Any(r => r.UserId == currentUserId),
-                UserIds = g.Select(r => r.UserId).ToList()
-            })
-            .OrderByDescending(r => r.Count)
-            .ToList();
-    }
-
-    private async Task<(string? replyToBody, string? replyToSenderName)> ResolveReplyFieldsAsync(int? replyToMessageId)
-    {
-        if (!replyToMessageId.HasValue) return (null, null);
-
-        var original = await _messageRepository.GetByIdAsync(replyToMessageId.Value);
-        if (original == null) return (null, null);
-
-        var body = original.Body.Length > 200 ? original.Body[..200] : original.Body;
-
-        string? senderName = null;
-        if (!string.IsNullOrEmpty(original.SenderId))
-        {
-            var sender = await _userManager.FindByIdAsync(original.SenderId);
-            if (sender != null)
-                senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-        }
-
-        return (body, senderName);
-    }
-
-    public async Task<List<MessageReactionSummaryDto>> ToggleReactionAsync(int messageId, string userId, string emoji)
-    {
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        var existing = await context.MessageReactions
-            .FirstOrDefaultAsync(r => r.MessageId == messageId && r.UserId == userId);
-
-        if (existing != null)
-        {
-            if (existing.Emoji == emoji)
-            {
-                // Same emoji — remove it (toggle off)
-                context.MessageReactions.Remove(existing);
-            }
-            else
-            {
-                // Different emoji — replace
-                existing.Emoji = emoji;
-                existing.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-        else
-        {
-            context.MessageReactions.Add(new MessageReaction
-            {
-                MessageId = messageId,
-                UserId = userId,
-                Emoji = emoji,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-
-        await context.SaveChangesAsync();
-
-        // Return updated summaries
-        var reactions = await context.MessageReactions
-            .Where(r => r.MessageId == messageId)
-            .ToListAsync();
-
-        return MapReactions(reactions, userId);
-    }
-
-    public async Task<bool> CanUserSendMessageAsync(int conversationId, string userId)
-    {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-
-        if (conversation == null)
-        {
-            return false;
-        }
-
-        // System conversations are read-only
         if (conversation.IsSystemConversation)
         {
             return false;
         }
 
-        // User must be a participant
-        if (!conversation.HasParticipant(userId))
-        {
-            return false;
-        }
-
-        // Announcement-only channels require specific positions
         if (conversation.IsAnnouncementOnly)
         {
-            return await CanUserSendMessageInAnnouncementChannelAsync(userId);
+            return await CanAnnounceAsync(db, user, me);
+        }
+
+        if (!conversation.IsGroup)
+        {
+            // A one-to-one chat whose other member was deleted or expelled takes no new messages.
+            var other = conversation.GetOtherParticipantId(me);
+            return other is not null && await db.Users.AnyAsync(u => u.Id == other && !u.IsExpelled);
         }
 
         return true;
     }
 
-    public async Task<ConversationDto> GetOrCreateAnnouncementGroupAsync(string groupTitle, List<string> participantIds)
+    private static async Task<bool> CanAnnounceAsync(ApplicationDbContext db, ClaimsPrincipal user, string me)
     {
-        var conversation = await _conversationRepository.GetGroupByTitleAsync(groupTitle);
-
-        if (conversation == null)
-        {
-            conversation = new Conversation
-            {
-                Participants = string.Join(";", participantIds),
-                Title = groupTitle,
-                IsGroup = true,
-                IsAnnouncementOnly = true,
-                CreatedByUserId = "system",
-                LastMessageAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _conversationRepository.AddAsync(conversation);
-        }
-
-        return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());
-    }
-
-    /// <summary>
-    /// Checks if a user has one of the positions required to send messages in announcement channels,
-    /// or if the user has the Owner role
-    /// </summary>
-    private async Task<bool> CanUserSendMessageInAnnouncementChannelAsync(string userId)
-    {
-        // Check if user has the Owner role (owners can always send messages in announcement channels)
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user != null && await _userManager.IsInRoleAsync(user, "Owner"))
+        if (user.IsInRole("Owner"))
         {
             return true;
         }
 
-        // Get current fiscal year bounds
         var now = DateTime.UtcNow;
-        var startYear = now.Month >= 9 ? now.Year : now.Year - 1;
-        var endYear = startYear + 1;
+        var start = now.Month >= 9 ? now.Year : now.Year - 1;
+        return await db.RoleAssignments.AnyAsync(r =>
+            r.UserId == me && r.StartYear == start && r.EndYear == start + 1 && AnnouncementSenderPositions.Contains(r.Position));
+    }
 
-        // Get user's current role assignments
-        var roleAssignments = await _roleAssignmentRepository.GetByUserIdAsync(userId);
+    private async Task<List<ConversationListItem>> ListItemsAsync(ApplicationDbContext db, List<Conversation> conversations,
+        ClaimsPrincipal user, string me)
+    {
+        if (conversations.Count == 0)
+        {
+            return new List<ConversationListItem>();
+        }
 
-        // Check if user has any of the allowed positions in the current fiscal year
-        return roleAssignments.Any(ra =>
-            ra.StartYear == startYear &&
-            ra.EndYear == endYear &&
-            AnnouncementSenderPositions.Contains(ra.Position));
+        var ids = conversations.Select(c => c.Id).ToList();
+        var unread = await db.Messages.AsNoTracking()
+            .Where(m => ids.Contains(m.ConversationId) && m.SenderId != me && !m.ReadBy.Contains(me))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+
+        var lastIds = await db.Messages.AsNoTracking()
+            .Where(m => ids.Contains(m.ConversationId))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => g.Max(m => m.Id))
+            .ToListAsync();
+        var last = await db.Messages.AsNoTracking()
+            .Where(m => lastIds.Contains(m.Id))
+            .Select(m => new { m.ConversationId, m.Body, m.SenderId, m.CreatedAt })
+            .ToDictionaryAsync(m => m.ConversationId);
+
+        var settings = await db.ConversationUserSettings.AsNoTracking()
+            .Where(s => s.UserId == me && ids.Contains(s.ConversationId))
+            .ToDictionaryAsync(s => s.ConversationId);
+
+        var people = await PeopleAsync(db, conversations.Where(c => !c.IsGroup && !c.IsSystemConversation)
+            .Select(c => c.GetOtherParticipantId(me)).OfType<string>());
+
+        bool? canAnnounce = null;
+        var items = new List<ConversationListItem>();
+        foreach (var c in conversations)
+        {
+            var (kind, title, avatar) = Heading(c, me, people);
+            bool canSend;
+            if (c.IsSystemConversation)
+            {
+                canSend = false;
+            }
+            else if (c.IsAnnouncementOnly)
+            {
+                canSend = canAnnounce ??= await CanAnnounceAsync(db, user, me);
+            }
+            else if (!c.IsGroup)
+            {
+                canSend = c.GetOtherParticipantId(me) is { } other && people.TryGetValue(other, out var p) && !p.Expelled;
+            }
+            else
+            {
+                canSend = true;
+            }
+
+            last.TryGetValue(c.Id, out var lm);
+            settings.TryGetValue(c.Id, out var s);
+            var lastAt = lm is not null && lm.CreatedAt > c.LastMessageAt ? lm.CreatedAt : c.LastMessageAt;
+            items.Add(new ConversationListItem(c.Id, kind, title, avatar,
+                lm is null ? null : Truncate(lm.Body, PreviewLength, ellipsis: true),
+                lm is not null && lm.SenderId == me,
+                Utc(lastAt),
+                unread.GetValueOrDefault(c.Id),
+                s?.IsMuted ?? false,
+                s?.IsPinned ?? false,
+                canSend));
+        }
+
+        return items;
+    }
+
+    private async Task<ConversationDetail> DetailAsync(ApplicationDbContext db, Conversation conversation, int? before,
+        ClaimsPrincipal user, string me)
+    {
+        var item = (await ListItemsAsync(db, new List<Conversation> { conversation }, user, me))[0];
+
+        var page = await db.Messages.AsNoTracking()
+            .Include(m => m.Sender)
+            .Include(m => m.Reactions)
+            .Where(m => m.ConversationId == conversation.Id && (before == null || m.Id < before))
+            .OrderByDescending(m => m.Id)
+            .Take(PageSize + 1)
+            .ToListAsync();
+        var hasMore = page.Count > PageSize;
+        var messages = page.Take(PageSize).Reverse().Select(m => Item(m, me)).ToList();
+
+        var others = conversation.GetParticipantIds().Where(id => id != me).ToList();
+        var people = conversation.IsSystemConversation ? new Dictionary<string, (MessagingPerson Person, bool Expelled)>() : await PeopleAsync(db, others);
+        var participants = others.Where(people.ContainsKey).Select(id => people[id].Person)
+            .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList();
+
+        return new ConversationDetail(item, participants, messages, hasMore, ReactionChoices);
+    }
+
+    private async Task<MessageItem> MessageAsync(int messageId, string me)
+    {
+        await using var db = await _contexts.CreateDbContextAsync();
+        var message = await db.Messages.AsNoTracking().Include(m => m.Sender).Include(m => m.Reactions).FirstAsync(m => m.Id == messageId);
+        return Item(message, me);
+    }
+
+    private static MessageItem Item(Message m, string me) => new(
+        m.Id,
+        m.ConversationId,
+        m.Sender is { } s ? Person(s.Id, s.Nickname, s.FirstName, s.LastName, s.ImageUrl) : null,
+        m.SenderId == me,
+        m.IsSystem,
+        m.Body,
+        SafeLink(m.Link),
+        Utc(m.CreatedAt),
+        Reply(m),
+        m.Reactions.GroupBy(r => r.Emoji)
+            .Select(g => new ReactionSummary(g.Key, g.Count(), g.Any(r => r.UserId == me)))
+            .OrderByDescending(r => r.Count).ThenBy(r => r.Emoji, StringComparer.Ordinal)
+            .ToList(),
+        m.SenderId == me && m.GetReadByIds().Any(id => id != me));
+
+    private static MessageReplyPreview? Reply(Message m) =>
+        m.ReplyToMessageId is null && string.IsNullOrEmpty(m.ReplyToBody)
+            ? null
+            : new MessageReplyPreview(m.ReplyToMessageId, m.ReplyToSenderName, m.ReplyToBody ?? "");
+
+    private static (string Kind, string Title, string Avatar) Heading(Conversation c, string me,
+        IReadOnlyDictionary<string, (MessagingPerson Person, bool Expelled)> people)
+    {
+        if (c.IsSystemConversation)
+        {
+            return ("system", string.IsNullOrWhiteSpace(c.Title) ? SystemTitle : c.Title!, GroupAvatar);
+        }
+
+        if (c.IsGroup)
+        {
+            return ("group", string.IsNullOrWhiteSpace(c.Title) ? "Grupo" : c.Title!, GroupAvatar);
+        }
+
+        return c.GetOtherParticipantId(me) is { } other && people.TryGetValue(other, out var p)
+            ? ("direct", p.Person.DisplayName, p.Person.AvatarUrl)
+            : ("direct", "Membro removido", EventAgendaService.DefaultAvatar);
+    }
+
+    private static async Task<Dictionary<string, (MessagingPerson Person, bool Expelled)>> PeopleAsync(ApplicationDbContext db, IEnumerable<string> ids)
+    {
+        var wanted = ids.Distinct().ToList();
+        if (wanted.Count == 0)
+        {
+            return new Dictionary<string, (MessagingPerson, bool)>();
+        }
+
+        var users = await db.Users.AsNoTracking().Where(u => wanted.Contains(u.Id))
+            .Select(u => new { u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl, u.IsExpelled })
+            .ToListAsync();
+        return users.ToDictionary(u => u.Id, u => (Person(u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl), u.IsExpelled));
+    }
+
+    /// <summary>Push to every other participant who has not muted the conversation. Never the message text.</summary>
+    private async Task NotifyAsync(ApplicationDbContext db, Conversation conversation, string me, string senderName)
+    {
+        try
+        {
+            var recipients = conversation.GetParticipantIds().Where(id => id != me).ToList();
+            var muted = await db.ConversationUserSettings.AsNoTracking()
+                .Where(s => s.ConversationId == conversation.Id && s.IsMuted)
+                .Select(s => s.UserId)
+                .ToListAsync();
+            recipients = recipients.Except(muted).ToList();
+            if (recipients.Count == 0)
+            {
+                return;
+            }
+
+            // ponytail: sent inline and sequentially (SendToSelectedUsersAsync); a big group with many devices slows the
+            // send by the push round trips. Move to a background queue if that becomes noticeable.
+            var notification = _notifications.CreateConversationMessageNotification(senderName,
+                conversation.IsGroup ? (string.IsNullOrWhiteSpace(conversation.Title) ? "Grupo" : conversation.Title) : null, conversation.Id);
+            await _push.SendToSelectedUsersAsync(recipients, notification);
+        }
+        catch (Exception ex)
+        {
+            // The message is saved; a failed push must not fail the send. No text, no names in the log.
+            _logger.LogWarning(ex, "Push for a new message in conversation {ConversationId} failed", conversation.Id);
+        }
+    }
+
+    internal static MessagingPerson Person(string id, string? nickname, string? first, string? last, string? imageUrl)
+    {
+        var fullName = $"{first} {last}".Trim();
+        var display = !string.IsNullOrWhiteSpace(nickname) ? nickname! : fullName.Length > 0 ? fullName : "Membro";
+        return new MessagingPerson(id, display, fullName.Length == 0 ? null : fullName,
+            EventAgendaService.IsSafeUrl(imageUrl) ? imageUrl! : EventAgendaService.DefaultAvatar);
     }
 
     /// <summary>
-    /// Checks if a user can delete a conversation based on the deletion rules
+    /// Old "Sistema RTUB" messages carry links built from the request's host: only the path is kept, so a link can only
+    /// open a page of this site. Anything that is not a plain https or site-relative link is dropped.
     /// </summary>
-    private static bool CanUserDeleteConversation(Conversation conversation, string userId)
+    internal static string? SafeLink(string? link)
     {
-        // System conversations cannot be deleted by anyone
-        if (conversation.IsSystemConversation)
+        if (string.IsNullOrWhiteSpace(link))
         {
-            return false;
+            return null;
         }
 
-        // System groups (CreatedByUserId = "system") cannot be deleted by anyone
-        if (conversation.IsGroup && conversation.CreatedByUserId == "system")
-        {
-            return false;
-        }
+        var candidate = link.StartsWith('/')
+            ? link
+            : Uri.TryCreate(link, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps ? uri.PathAndQuery : null;
 
-        // Group conversations can only be deleted by their creator
-        if (conversation.IsGroup && conversation.CreatedByUserId != userId)
-        {
-            return false;
-        }
-
-        // Regular 1:1 conversations can be deleted by any participant
-        return true;
+        // One check on the final value for both branches: a path such as "//evil.org" (from "https://x//evil.org"),
+        // "/\\evil.org" or "/<tab>/evil.org" (browsers drop tabs and newlines) would leave the site.
+        return candidate is not null
+            && candidate.Length > 0 && candidate[0] == '/'
+            && (candidate.Length == 1 || (candidate[1] != '/' && candidate[1] != '\\'))
+            && !candidate.Any(c => char.IsControl(c) || char.IsWhiteSpace(c) || c == '\\')
+            ? candidate
+            : null;
     }
+
+    private static string Truncate(string value, int max, bool ellipsis = false) =>
+        value.Length <= max ? value : ellipsis ? value[..(max - 1)].TrimEnd() + "…" : value[..max];
+
+    private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
 }

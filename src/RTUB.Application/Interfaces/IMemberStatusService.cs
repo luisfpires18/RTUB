@@ -3,42 +3,21 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// Service for managing member status (retirement status, activity tracking)
+/// Member activity status (active / Reformado), rules in <see cref="Services.MemberActivityStatusEvaluator"/>.
+/// <c>ApplicationUser.IsRetired</c> is the authoritative flag, <c>MemberStatus</c> its calculated projection.
+/// <b>Read</b> methods calculate for display and never write; <b>Reconcile</b> methods persist transitions, audit and notify.
 /// </summary>
 public interface IMemberStatusService
 {
-    /// <summary>
-    /// Gets the current status for a specific member
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Member status result</returns>
+    /// <summary>Read: one member's status (persisted flag, computed progress). No writes. Throws <see cref="InvalidOperationException"/> for an unknown user.</summary>
     Task<MemberStatusResult> GetMemberStatusAsync(string userId);
 
-    /// <summary>
-    /// Updates the status for a specific member
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Updated member status result</returns>
-    Task<MemberStatusResult> UpdateMemberStatusAsync(string userId);
-
-    /// <summary>
-    /// Updates status for all active members
-    /// </summary>
-    /// <returns>Number of members updated</returns>
-    Task<int> UpdateAllMemberStatusesAsync();
-
-    /// <summary>
-    /// Gets status for multiple members in batch
-    /// </summary>
-    /// <param name="userIds">Collection of user IDs to get status for</param>
-    /// <returns>Dictionary mapping user ID to member status result (nullable values)</returns>
+    /// <summary>Read: several members; unknown ids map to null. No writes.</summary>
     Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds);
 
-    /// <summary>
-    /// Activates a member with override, bypassing normal retirement checks
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Updated member status result</returns>
-    /// <exception cref="InvalidOperationException">Thrown when user is not found</exception>
-    Task<MemberStatusResult> ActivateMemberWithOverrideAsync(string userId);
+    /// <summary>Reconcile one member (rehearsal attendance / event enrollment triggers).</summary>
+    Task<MemberStatusResult> ReconcileMemberStatusAsync(string userId);
+
+    /// <summary>Reconcile every member, active and Reformado alike (startup/daily job, Owner sync). Per-member failures are logged and counted.</summary>
+    Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync();
 }

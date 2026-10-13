@@ -75,6 +75,29 @@ public class MigrationChainTests : IDisposable
     }
 
     [Fact]
+    public void Model_HasNoChangesThatAMigrationWouldHaveToCapture()
+    {
+        using var context = CreateContext();
+
+        // React work adds DTOs and APIs, rarely schema (003 reused Request; 025 added NewsPosts with its
+        // migration): the EF model must still match the latest migration snapshot exactly.
+        context.Database.HasPendingModelChanges().Should().BeFalse(
+            "a model change without its migration would silently diverge from every deployed database");
+    }
+
+    [Fact]
+    public async Task MigratedDatabase_RequestsTableIsUnchanged()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        // The React request form maps onto exactly these columns; none were added for it.
+        (await ColumnNamesAsync(context, "Requests")).Should().BeEquivalentTo(
+            "Id", "Name", "Email", "Phone", "EventType", "PreferredDate", "PreferredEndDate", "IsDateRange",
+            "Location", "Message", "Status", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
+    }
+
+    [Fact]
     public async Task MigratedDatabase_HasApplicationUserMembershipDateColumns()
     {
         await using var context = CreateContext();
@@ -90,6 +113,105 @@ public class MigrationChainTests : IDisposable
             "YearLeitao", "YearCaloiro", "YearTuno",
             "MonthLeitao", "MonthCaloiro", "MonthTuno"
         });
+    }
+
+    /// <summary>
+    /// React track 025 (Novidades): the only schema change is the new NewsPosts table. A deleted account leaves its
+    /// posts with no author (ON DELETE SET NULL) and the feed is read by PublishedAt.
+    /// </summary>
+    [Fact]
+    public async Task MigratedDatabase_HasNewsPosts_WithAuthorSetNullAndPublishedAtIndex()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        (await ColumnNamesAsync(context, "NewsPosts")).Should().BeEquivalentTo(
+            "Id", "Title", "Body", "PublishedAt", "AuthorId", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
+        (await ScalarsAsync(context, "SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('NewsPosts');"))
+            .Should().Equal("AspNetUsers:AuthorId:SET NULL");
+        (await ScalarsAsync(context, "SELECT name FROM pragma_index_list('NewsPosts');"))
+            .Should().Contain("IX_NewsPosts_PublishedAt");
+    }
+
+    /// <summary>
+    /// Messaging v2 (task 041) runs on the v1 tables that task 027 preserved, with no migration of its own: the four
+    /// tables, the reply / read / mute / pin / announcement columns and the one-reaction-per-member index must all still
+    /// come out of the migration chain. Messaging tables are never dropped.
+    /// </summary>
+    [Fact]
+    public async Task MigratedDatabase_KeepsTheMessagingTables_ThatMessagingV2Uses()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        (await ColumnNamesAsync(context, "Conversations")).Should().Contain(new[]
+            { "Id", "Participants", "LastMessageAt", "LastMessageId", "Title", "IsSystemConversation", "IsArchived", "IsGroup",
+              "CreatedByUserId", "IsAnnouncementOnly" });
+        (await ColumnNamesAsync(context, "Messages")).Should().Contain(new[]
+            { "Id", "ConversationId", "SenderId", "Body", "IsSystem", "ReadBy", "Link", "ReplyToMessageId", "ReplyToBody",
+              "ReplyToSenderName", "CreatedAt" });
+        (await ColumnNamesAsync(context, "MessageReactions")).Should().Contain(new[] { "Id", "MessageId", "UserId", "Emoji" });
+        (await ColumnNamesAsync(context, "ConversationUserSettings")).Should().Contain(new[]
+            { "Id", "ConversationId", "UserId", "IsMuted", "IsPinned" });
+        (await ScalarsAsync(context, "SELECT name FROM pragma_index_list('MessageReactions') WHERE \"unique\" = 1;"))
+            .Should().Contain("IX_MessageReaction_MessageId_UserId");
+    }
+
+    /// <summary>Task 043: the retired Games / Bets / MyTuno, Labels and Slideshows tables (docs/db-cleanup-inventory.md).</summary>
+    private static readonly string[] RetiredTables =
+    [
+        "Bets", "BetOptions", "UserBets", "BetComments", "Games", "GameScores", "Characters", "InventoryItems",
+        "ForgedWeapons", "StageProgresses", "StageEnemies", "BossModeProgresses", "SurviveModeProgresses",
+        "ItemTypeConfigs", "ForgeComboConfigs", "Labels", "Slideshows",
+    ];
+
+    private static readonly string[] IdentityTables =
+        ["AspNetUsers", "AspNetRoles", "AspNetUserRoles", "AspNetUserClaims", "AspNetUserLogins", "AspNetUserTokens", "AspNetRoleClaims"];
+
+    private static readonly string[] MessagingTables = ["Conversations", "Messages", "MessageReactions", "ConversationUserSettings"];
+
+    /// <summary>
+    /// Task 043 dropped the retired feature schema and <c>AspNetUsers.FidelisBalance</c>, and nothing else: Identity and
+    /// the messaging tables stay. Its Down path (local / DEV schema testing only; production rolls back by restoring
+    /// the pre-migration backup) must bring the tables back in the EF model's shape, and Up must drop them again.
+    /// </summary>
+    [Fact]
+    public async Task Task043_DropsOnlyTheRetiredSchema_AndItsDownPathRestoresIt()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        async Task<List<string>> TablesAsync() => await ScalarsAsync(context, "SELECT name FROM sqlite_master WHERE type = 'table';");
+
+        (await TablesAsync()).Should().NotContain(RetiredTables).And.Contain(IdentityTables).And.Contain(MessagingTables);
+        (await ColumnNamesAsync(context, "AspNetUsers")).Should().NotContain("FidelisBalance").And.Contain("PasswordHash");
+
+        await context.Database.MigrateAsync("20261005175342_AddNewsPosts");
+        (await TablesAsync()).Should().Contain(RetiredTables).And.Contain(MessagingTables);
+        (await ColumnNamesAsync(context, "AspNetUsers")).Should().Contain("FidelisBalance");
+        (await ScalarsAsync(context, "SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('BetComments');"))
+            .Should().Contain("AspNetUsers:AuthorId:RESTRICT", "Down recreates the keys too");
+
+        await context.Database.MigrateAsync();
+        (await TablesAsync()).Should().NotContain(RetiredTables).And.Contain(MessagingTables);
+        (await ColumnNamesAsync(context, "AspNetUsers")).Should().NotContain("FidelisBalance");
+    }
+
+    private static async Task<List<string>> ScalarsAsync(ApplicationDbContext context, string sql)
+    {
+        var values = new List<string>();
+
+        await using var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = sql;
+
+        await context.Database.OpenConnectionAsync();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            values.Add(reader.GetString(0));
+        }
+
+        return values;
     }
 
     private static async Task<List<string>> ColumnNamesAsync(ApplicationDbContext context, string table)
