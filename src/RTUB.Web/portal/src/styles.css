@@ -120,6 +120,12 @@ main:focus {
   outline: none;
 }
 
+/* The footer starts below the fold: every page shows a loader first, and a footer visible under it jumped down when
+   the content arrived (CLS). app-screen pages override this with their own flex layout. */
+main {
+  min-height: calc(100vh - var(--header-h));
+}
+
 .wrap {
   width: 100%;
   max-width: calc(var(--wrap) + 2 * var(--gutter));
@@ -334,8 +340,9 @@ main:focus {
 
 .boot {
   max-width: 36rem;
-  margin: 96px auto;
-  padding-inline: 16px;
+  /* Padding, not margin: a top margin collapses through <body>, which then jumps when React replaces this (CLS). */
+  margin: 0 auto;
+  padding: 96px 16px;
   color: var(--muted);
   text-align: center;
 }
@@ -1391,6 +1398,8 @@ main:focus {
 
 .record img {
   width: 34%;
+  /* The height="192" attribute would otherwise keep it 192px tall at 34% width: a squashed logo. */
+  height: auto;
   border-radius: 50%;
 }
 

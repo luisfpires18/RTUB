@@ -100,7 +100,8 @@ export default function Members() {
           </h1>
           <p className="page__lead">Toda a RTUB: tunos, caloiros e leitões, com o instrumento e o cargo deste ano.</p>
         </div>
-        {data && (
+        {/* Shown while the list loads too, so they don't push the search bar down when it arrives (CLS). */}
+        {directory !== 'signin' && directory !== null && (
           <div className="events-page__actions">
             <a className="btn btn--ghost btn--sm" href={portal.membersHierarchy}>
               <Icon name="person" />
@@ -118,7 +119,7 @@ export default function Members() {
               <Icon name="calendar" />
               Aniversários
             </button>
-            {data.canManage && (
+            {data?.canManage && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setTool({ kind: 'create' })}>
                 <Icon name="plus" />
                 Adicionar membro

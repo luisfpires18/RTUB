@@ -14,7 +14,9 @@
 // actually purges those entries from installed clients.
 // v2.8.0 (task 037): the Blazor host is gone, so its framework script left the precache list;
 // the bump drops the copy older workers stored.
-const CACHE_VERSION = 'rtub-v2.8.0';
+// v2.9.0 (task 046): new RTUB logo under the same /icons/* URLs. Images are cache-first here and never revalidated,
+// so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
+const CACHE_VERSION = 'rtub-v2.9.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -46,7 +48,7 @@ const STATIC_ASSETS = [
     '/js/offline.js',
     '/css/offline.css',
     '/icons/rtub-logo-192.png',
-    '/icons/rtub-logo-512.png',
+    '/icons/rtub-logo-352.webp',
     '/icons/rtub-badge-96.png',
     '/images/default-avatar.webp',
     '/manifest.webmanifest'

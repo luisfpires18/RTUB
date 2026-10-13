@@ -71,7 +71,7 @@ function Hero() {
         <div className="hero__copy">
           <div className="hero__eyebrow">
             {/* Phones get a small badge here instead of the large emblem: the splash already shows it. */}
-            <img className="hero__badge" src="/icons/rtub-logo-192.png" alt="" width="52" height="52" />
+            <img className="hero__badge" src="/icons/rtub-logo-352.webp" alt="" width="52" height="52" />
             <p className="eyebrow">Bragança · desde 1991</p>
           </div>
           <h1 id="hero-title" className="hero__title">
@@ -94,12 +94,17 @@ function Hero() {
           </div>
         </div>
         <div className="hero__art">
-          <img
-            src="/icons/rtub-logo-512.png"
-            width="512"
-            height="512"
-            alt="Emblema da RTUB: o Castelo de Bragança sob a lua, com guitarra e bandolim"
-          />
+          {/* Hidden on phones (max-width: 599px), but a hidden <img> still downloads: there it gets the splash's
+              already-cached 34 KB WebP instead of the full logo. */}
+          <picture>
+            <source media="(max-width: 599px)" srcSet="/icons/rtub-logo-352.webp" />
+            <img
+              src="/images/rtub_logo.webp"
+              width="512"
+              height="512"
+              alt="Emblema da RTUB: o Castelo de Bragança sob a lua, com guitarra e bandolim"
+            />
+          </picture>
         </div>
       </div>
       <dl className="wrap facts">
@@ -344,7 +349,7 @@ function Music() {
             </span>
           </div>
           <div className="record">
-            <img src="/icons/rtub-logo-192.png" alt="" width="192" height="192" />
+            <img src="/icons/rtub-logo-352.webp" alt="" width="192" height="192" />
           </div>
         </div>
       </div>

@@ -116,10 +116,11 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const dragged = useRef<Drag | undefined>(undefined);
   const ids = { q: useId(), status: useId(), label: useId() };
 
-  const load = () => {
-    // The board renders as soon as it arrives; its files (a storage listing) join when they do.
-    logisticsApi.fileList(boardId).then((f) => f.kind === 'ok' && setFiles(f.data));
-    return logisticsApi.board(boardId).then((o) =>
+  // The files are a storage listing (one slow R2 round trip): fetched on open and after a file change only, never
+  // again on each card / list change. The board renders as soon as it arrives; the files join when they do.
+  const loadFiles = () => logisticsApi.fileList(boardId).then((f) => f.kind === 'ok' && setFiles(f.data));
+  const load = () =>
+    logisticsApi.board(boardId).then((o) =>
       setBoard(
         o.kind === 'ok'
           ? o.data
@@ -132,9 +133,9 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                 : null,
       ),
     );
-  };
 
   useEffect(() => {
+    loadFiles();
     load();
   }, [boardId]);
 
@@ -167,7 +168,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           ) : (
             <>
               <p>Não conseguimos abrir o quadro agora.</p>
-              <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => (loadFiles(), load())}>
                 Tentar novamente
               </button>
             </>
@@ -519,7 +520,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         />
       )}
       {open?.kind === 'reminder' && <ReminderDialog board={data} onClose={() => setOpen(undefined)} />}
-      {open?.kind === 'files' && <FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={load} />}
+      {open?.kind === 'files' && <FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={loadFiles} />}
     </section>
   );
 }

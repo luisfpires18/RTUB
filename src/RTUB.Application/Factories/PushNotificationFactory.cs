@@ -55,7 +55,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             return new SendPushNotificationDto
             {
                 Title = @event.Name,
-                Body = $"Nova atuação do tipo \"{eventTypeDisplay}\" - {@event.Name}. Confirma a tua presença.",
+                Body = $"Novo evento do tipo \"{eventTypeDisplay}\" - {@event.Name}. Confirma a tua presença.",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
                 Tag = $"event-{@event.Id}"

@@ -93,7 +93,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
 /** "Sistema RTUB" and the groups wear the logo the portal header uses (the server still sends the old file for them). */
-const RTUB_LOGO = '/icons/rtub-logo-192.png';
+const RTUB_LOGO = '/icons/rtub-logo-352.webp';
 const chatAvatar = (c: { kind: string; avatarUrl: string }) => (c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO);
 
 /** Sistema RTUB first, then the groups, then the people; inside each the server's order (pinned, then latest activity). */

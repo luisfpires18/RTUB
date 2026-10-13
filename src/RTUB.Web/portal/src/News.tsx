@@ -187,7 +187,7 @@ function Post({
   return (
     <article id={`post-${post.id}`} className={draft ? 'talk__post news-post news-post--draft' : 'talk__post news-post'}>
       <header className="talk__who">
-        <img className="talk__avatar news-post__avatar" src="/icons/rtub-logo-192.png" alt="" width="44" height="44" />
+        <img className="talk__avatar news-post__avatar" src="/icons/rtub-logo-352.webp" alt="" width="44" height="44" />
         <div className="talk__meta">
           <p className="talk__name">
             RTUB

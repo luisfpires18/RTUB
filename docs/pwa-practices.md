@@ -17,8 +17,9 @@ This document outlines Progressive Web App (PWA) development best practices for 
 ✅ **Always:**
 - Use `.webmanifest` extension (not `.json`)
 - Include all required fields: `name`, `short_name`, `icons`, `start_url`, `display`
-- Provide multiple icon sizes (120, 152, 167, 180, 192, 256, 384, 512)
-- Include maskable icons for Android
+- Provide 192 and 512 PNG icons (`any`) plus one maskable 512 PNG (artwork inside the 80% safe zone on a full-bleed
+  background); more sizes are optional and RTUB does not ship them
+- Include maskable icons for Android (a separate file: the normal icon has transparent rounded corners)
 - Add shortcuts for common actions
 - Set proper `scope` and `start_url`
 - Keep `"id": "/"` unchanged. It is the installed app's identity and resolves against the origin
@@ -42,8 +43,8 @@ This document outlines Progressive Web App (PWA) development best practices for 
       "purpose": "any"
     },
     {
-      "src": "/icons/rtub-logo-192.png",
-      "sizes": "192x192",
+      "src": "/icons/rtub-logo-maskable-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
@@ -148,6 +149,25 @@ self.addEventListener('install', (event) => {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
 ```
 
+### RTUB brand assets (task 046)
+
+One source: the square artwork `wwwroot/images/rtub_new_logo.png` (1254px, not shipped as such). Everything else is
+resized from it, never cropped or stretched:
+
+| File | Size | Used by |
+|---|---|---|
+| `/images/rtub_logo.webp` | 1024px WebP | canonical full logo: Home hero (desktop), email header, server `GroupAvatar` |
+| `/icons/rtub-logo-352.webp` | 352px WebP, ~34 KB | splash, header brand, Home badge / record / hero on phones, News, Messages "Sistema RTUB" and groups, `error.html`, `offline.html` |
+| `/icons/rtub-logo-192.png`, `-512.png` | PNG | manifest `any`, push `icon`, media-session artwork, owner push preview |
+| `/icons/rtub-logo-maskable-512.png` | PNG, opaque | manifest `maskable` (artwork at 80% on the artwork's own border colour `#1E0B1A`) |
+| `/icons/rtub-badge-96.png` | PNG | push `badge` |
+| `/apple-touch-icon.png` | 180px PNG, opaque | iOS home screen (`<link rel="apple-touch-icon">`) |
+| `/favicon.ico` | 16 / 32 / 48 | browser tab. The full artwork, not a crop: a tower-only crop was tested and is a grey blob at 16px, while the full badge keeps its dark-purple shape and colours |
+
+Images are cache-first in the service worker and never revalidated: replacing any of these under the same URL needs a
+`CACHE_VERSION` bump, or installed apps keep the old picture. `wwwroot/images/icons/*` (Nov 2025 copies of the old
+logo) has no reference anywhere and is left alone.
+
 ### Touch Icons
 
 ✅ **Always:**
@@ -156,7 +176,7 @@ self.addEventListener('install', (event) => {
 - Use PNG format
 
 ```html
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" type="image/png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" type="image/png" />
 ```
 
 ### Mobile Meta Tags

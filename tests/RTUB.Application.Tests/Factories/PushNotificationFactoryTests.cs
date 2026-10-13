@@ -34,7 +34,7 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Atuação de Natal", notification.Title);
-        Assert.Equal("Nova atuação do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
+        Assert.Equal("Novo evento do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
         Assert.Equal("https://rtub.example.com/events", notification.Url);
         Assert.Equal("event-123", notification.Tag);
@@ -197,7 +197,7 @@ public class PushNotificationFactoryTests
         var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
 
         // Assert
-        Assert.Contains("Nova atuação do tipo", notification.Body);
+        Assert.Contains("Novo evento do tipo", notification.Body);
         Assert.Contains("Test Event", notification.Body);
     }
 

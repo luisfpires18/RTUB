@@ -3,9 +3,13 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13 (044B)_
+_Last updated: 2026-10-13 (045)_
 
 ## Phase
+**046 new RTUB logo (uncommitted on `dev`, not pushed):** every brand asset regenerated from the square `wwwroot/images/rtub_new_logo.png`: canonical `/images/rtub_logo.webp` (1024px), `/icons/rtub-logo-352.webp`, manifest 192 / 512 + new maskable 512, push badge, `apple-touch-icon.png`, `favicon.ico` (16/32/48). Unused sizes removed (16, 32, 120, 152, 167, 180, 256, 384, `apple-touch-icon-180x180.png`). Service worker `CACHE_VERSION` v2.9.0 (images are cache-first). No API, schema or migration change. Detail: `docs/pwa-practices.md` → *RTUB brand assets*.
+
+**045 performance gate (uncommitted on `dev`, not pushed):** splash / header logo 465 KB PNG → 45 KB WebP (`icons/rtub-logo-352.webp`), CLS fixes (`.boot` padding, `main` min-height, `/members` actions while loading), logistics board no longer re-lists R2 on every card / list change. Mobile Lighthouse 61-79 → 94-98, mobile LCP 4.35 → 2.25-3.0 s, CLS ≤ 0.03. Frontend only; no API, schema or migration change. Detail: `docs/performance-gate.md`.
+
 **044B (uncommitted on `dev`, not pushed): member activity status refactor.** One pure evaluator
 (`MemberActivityStatusEvaluator`), `MemberStatusService` reconciles every member (active and Reformado), per-member
 failure isolation, audit + push only on real transitions, `TimeProvider`. Leitões are in the rule (six months
@@ -291,6 +295,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
 - (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:
   `PostMedia` / `CommentImages` row counts on production (write-dead since 013, read only by delete clean-up).
@@ -322,7 +327,7 @@ Raised by 039 (post-Blazor cleanup + configuration audit):
   `ImageCaching:*`, `UseSqlServer`, `LoginPopup:*` (`LoginPopupOptions` bound, nothing shows it). Left as is.
 - (042) `ILogistics{Board,List,Card}Service`, `ILabelService` / `ISlideshowService` removed. Still no caller, kept
   (method-level): `MimeTypeHelper.GetMediaMimeType`, the unused `IQuestionService` / `IRequestService` methods (031).
-- `wwwroot/images/icons/*`, `apple-touch-icon-180x180.png` have no in-repo reference; kept (served by convention or to
+- `wwwroot/images/icons/*` has no in-repo reference (old-design logo copies); kept, untouched by 046 (`apple-touch-icon-180x180.png` removed in 046). Was: kept (served by convention or to
   installed apps). (042) `wwwroot/images/hierarchy/*` (only the Blazor hierarchy page used them) removed.
 - Branch name `feat/039-post-blazor-config-audit` reuses number 039 (an old `chore/039/ui-management-dense-screens`
   branch exists), as the task asked.

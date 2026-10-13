@@ -166,7 +166,7 @@ function revealApp() {
 function Brand() {
   return (
     <a className="brand" href={portal.home} aria-label="RTUB, início do portal">
-      <img className="brand__logo" src="/icons/rtub-logo-192.png" alt="" width="40" height="40" />
+      <img className="brand__logo" src="/icons/rtub-logo-352.webp" alt="" width="40" height="40" />
       <span className="brand__text" aria-hidden="true">
         <span className="brand__name">RTUB</span>
         <span className="brand__sub">Boémios e Trovadores</span>
