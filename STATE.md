@@ -3,9 +3,17 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13 (044 batch 3)_
+_Last updated: 2026-10-13 (044B)_
 
 ## Phase
+**044B (uncommitted on `dev`, not pushed): member activity status refactor.** One pure evaluator
+(`MemberActivityStatusEvaluator`), `MemberStatusService` reconciles every member (active and Reformado), per-member
+failure isolation, audit + push only on real transitions, `TimeProvider`. Leitões are in the rule (six months
+from the Leitão month when there is no activity); reads never write, only reconcile paths do. `RetirementStatusService` and "Tornar ativo" /
+`OverrideRetired` usage removed (column kept, dead — drop in a later migration). No migration. Detail:
+`docs/member-activity-status.md`. **First DEV/PROD run will reform active members with no activity in 6 months**
+(incl. old `OverrideRetired` ones) — expected per the rules.
+
 **044 batch 3 (uncommitted on `dev`, not pushed): profile polish.** `/profile`: photo moved into the header, "Entraste como" removed, "Informação da Tuna" with a connected-card Percurso timeline (real `member.timeline`), one shared `MemberBadge` / `.member-badge` for the whole app, aligned action buttons. React only; no API, schema or migration change. Detail: `docs/react-member-area.md` → *Profile polish, batch 3*.
 
 **044 batch 2 (uncommitted on `dev`, not pushed): authenticated shell.** Left sidebar removed; header = `[inbox + unread

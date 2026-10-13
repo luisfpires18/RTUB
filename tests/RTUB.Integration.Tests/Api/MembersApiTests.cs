@@ -156,6 +156,8 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
     {
         var tag = Tag();
         var active = await AddAsync($"{tag} Ativo", MemberCategory.Tuno, yearTuno: 2020);
+        // Active only with recent activity: since 044B a flag with nothing in six months is reformed on the next read.
+        await AttendAsync(active.Id, DateTime.Today.AddDays(-7));
         var retired = await AddAsync($"{tag} Reformado", MemberCategory.Caloiro, retired: true);
         await AddAsync($"{tag} Leitão", MemberCategory.Leitao);
         await AddAsync($"{tag} Honra", MemberCategory.TunoHonorario);
@@ -168,7 +170,6 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         (await Json(member, $"/api/members/active?status=retired&q={Uri.EscapeDataString(tag)}")).EnumerateArray()
             .Select(m => m.GetProperty("id").GetString()).Should().Equal(retired.Id);
         (await member.GetAsync("/api/members/active?status=sleeping")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        _ = active;
     }
 
     [Fact]
@@ -314,5 +315,18 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         }
 
         return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
+    }
+
+    private async Task AttendAsync(string userId, DateTime day)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var rehearsal = Rehearsal.Create(day, "Centro Académico");
+        db.Rehearsals.Add(rehearsal);
+        await db.SaveChangesAsync();
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        db.RehearsalAttendances.Add(attendance);
+        await db.SaveChangesAsync();
     }
 }

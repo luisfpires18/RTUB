@@ -47,7 +47,8 @@ public sealed record OwnerUserDetail(
 /// <summary>The one role the account keeps: Member, Mod, Admin or Owner (Owner also gets Admin, as before).</summary>
 public sealed record OwnerRoleInput(string? Role);
 
-public sealed record OwnerSyncResult(int Updated);
+/// <summary>Members evaluated, of which changed (activated + reformed), and members whose evaluation failed.</summary>
+public sealed record OwnerSyncResult(int Updated, int Changed, int Failed);
 
 // ---------- /owner/tracing ----------
 

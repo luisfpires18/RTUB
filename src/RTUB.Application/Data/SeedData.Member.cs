@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RTUB.Application.Data.Builders;
+using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -56,6 +57,7 @@ public static partial class SeedData
                 PhoneNumber = "936854524",
                 Positions = new List<Position>(),
                 Categories = new List<MemberCategory> { MemberCategory.Tuno },
+                IsRetired = MemberActivityStatusEvaluator.InitialIsRetired(new[] { MemberCategory.Tuno }),
                 YearLeitao = 2013,
                 YearCaloiro = 2017,
                 YearTuno = 2019,

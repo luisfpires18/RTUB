@@ -33,7 +33,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     private readonly EventRepository _eventRepository;
     private readonly EventService _eventService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
-    private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
+    private readonly Mock<IMemberStatusService> _mockRetirementStatusService;
 
     public EnrollmentServiceTests(DatabaseFixture fixture)
     {
@@ -46,7 +46,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        _mockRetirementStatusService = new Mock<IMemberStatusService>();
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
@@ -329,7 +329,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Assert
         _mockRetirementStatusService.Verify(
-            x => x.UpdateUserRetirementStatusAsync("user123"),
+            x => x.ReconcileMemberStatusAsync("user123"),
             Times.Once,
             "Retirement status should be updated when enrollment changes to attending");
     }
@@ -732,7 +732,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        var mockRetirementStatusService = new Mock<IMemberStatusService>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
@@ -751,7 +751,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Times.Once);
 
         mockRetirementStatusService.Verify(
-            x => x.UpdateUserRetirementStatusAsync("enroll_attend_user2"),
+            x => x.ReconcileMemberStatusAsync("enroll_attend_user2"),
             Times.Once,
             "Retirement status should be updated when enrollment changes to attending");
 

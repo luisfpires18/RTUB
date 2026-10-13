@@ -63,7 +63,7 @@ the API is what enforces access.
   and the lockout end, with "Desbloquear" (clears the lockout and resets the failed-attempt count). The edit modal sets
   one role (Member / Mod / Admin / Owner): it removes every role, adds the new one, adds Admin as well for Owner, and
   updates the security stamp. Its "Guardar" saved straight away; the page's confirm dialog was never wired up. The
-  "Sincronizar Estado da Tuna" button calls `MemberStatusService.UpdateAllMemberStatusesAsync`.
+  "Sincronizar Estado da Tuna" button calls `MemberStatusService.ReconcileAllMemberStatusesAsync`.
 - **Now:** the same features, with the search and paging done on the server. A role change now asks for
   **confirmation** (a new safeguard). An unknown role gets 400 and an unknown account 404.
 

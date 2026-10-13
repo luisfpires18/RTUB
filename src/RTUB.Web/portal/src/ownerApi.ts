@@ -96,7 +96,7 @@ export const ownerApi = {
   user: (id: string) => call<OwnerUserDetail>('GET', `/api/owner/users/${encodeURIComponent(id)}`),
   changeRole: (id: string, role: string) => call<OwnerUserDetail>('PUT', `/api/owner/users/${encodeURIComponent(id)}/role`, { role }),
   unlock: (id: string) => call<OwnerUserDetail>('POST', `/api/owner/users/${encodeURIComponent(id)}/unlock`),
-  syncStatus: () => call<{ updated: number }>('POST', '/api/owner/users/sync-status'),
+  syncStatus: () => call<{ updated: number; changed: number; failed: number }>('POST', '/api/owner/users/sync-status'),
 
   auditFilters: () => call<AuditFilters>('GET', '/api/owner/tracing/filters'),
   audit: (f: AuditFilter) => call<AuditPage>('GET', `/api/owner/tracing${auditQuery(f)}`),

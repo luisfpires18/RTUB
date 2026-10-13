@@ -45,7 +45,9 @@ export default function OwnerUsers() {
     setSyncing(false);
     setMessage(
       o.kind === 'ok'
-        ? { text: `Estado de ${o.data.updated} membros sincronizado com sucesso.` }
+        ? o.data.failed > 0
+          ? { text: `Estado de ${o.data.updated} membros sincronizado (${o.data.changed} alterados); ${o.data.failed} falharam.`, error: true }
+          : { text: `Estado de ${o.data.updated} membros sincronizado com sucesso (${o.data.changed} alterados).` }
         : { text: 'Erro ao sincronizar o estado dos membros. Tenta outra vez.', error: true },
     );
     if (o.kind === 'ok') reload();

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,495 +11,297 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing member status (retirement status, activity tracking)
+/// Member activity status (task 044B). Two strictly separate paths over the same batch-loaded activity and
+/// <see cref="MemberActivityStatusEvaluator"/>:
+/// <list type="bullet">
+/// <item><b>Read</b> (<see cref="GetMemberStatusAsync"/>, <see cref="GetMemberStatusesBatchAsync"/>): calculate and
+/// display only. The persisted <see cref="ApplicationUser.IsRetired"/> is shown; progress is computed in memory.
+/// No database write, no audit, no notification.</item>
+/// <item><b>Reconcile</b> (<see cref="ReconcileMemberStatusAsync"/>, <see cref="ReconcileAllMemberStatusesAsync"/>):
+/// calculate, then in one SaveChanges per member write the flag, its <see cref="MemberStatus"/> projection and, on a
+/// transition, a "MemberActivityStatus" audit entry; then notify. Callers: the background service, the rehearsal
+/// attendance and event enrollment triggers, the Owner sync. Idempotent.</item>
+/// </list>
 /// </summary>
 public class MemberStatusService : IMemberStatusService
 {
-    private static readonly TimeSpan CacheFreshDuration = TimeSpan.FromHours(1);
-    private static readonly TimeSpan CacheStaleMinAge = TimeSpan.FromHours(1);
+    public const string AuditEntityType = "MemberActivityStatus";
 
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<MemberStatusService> _logger;
     private readonly MemberStatusUpdateOptions _options;
+    private readonly TimeProvider _time;
 
     public MemberStatusService(
         IDbContextFactory<ApplicationDbContext> contextFactory,
-        UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
-        IAuditLogService auditLogService,
         ILogger<MemberStatusService> logger,
-        IOptions<MemberStatusUpdateOptions> options)
+        IOptions<MemberStatusUpdateOptions> options,
+        TimeProvider time)
     {
         _contextFactory = contextFactory;
-        _userManager = userManager;
         _pushNotificationService = pushNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
-        _auditLogService = auditLogService;
         _logger = logger;
         _options = options.Value;
+        _time = time;
     }
 
-    /// <summary>
-    /// Gets the current status for a specific member
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Member status result</returns>
+    // ---------- Read: calculate and display, never write ----------
+
     public async Task<MemberStatusResult> GetMemberStatusAsync(string userId)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            throw new ArgumentException("User ID cannot be empty", nameof(userId));
-        }
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-        {
-            throw new InvalidOperationException($"User '{userId}' not found");
-        }
-
-        var now = DateTime.UtcNow;
-
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        // Query MemberStatus without tracking to avoid navigation property conflicts
-        var cached = await context.MemberStatuses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ms => ms.UserId == userId);
-        var isCacheFresh = cached is not null && (now - cached.LastUpdatedAt) < CacheFreshDuration;
-        var isCacheStale = cached is not null && (now - cached.LastUpdatedAt) >= CacheStaleMinAge;
-
-        // Always compute "dynamic" aspects from actual activities (tests rely on this),
-        // but only persist cache when missing/stale.
-        var activity = await ComputeActivityDataAsync(context, userId, now);
-
-        var computed = ComputeStatusResult(user, cached, activity, now);
-
-        // Persist cache if missing or stale
-        if (cached is null)
-        {
-            cached = new MemberStatus
-            {
-                UserId = userId,
-                CreatedAt = now
-            };
-            context.MemberStatuses.Add(cached);
-            ApplyToEntity(cached, computed, now);
-            await context.SaveChangesAsync();
-        }
-        else if (isCacheStale)
-        {
-            // Attach the existing entity for update
-            context.MemberStatuses.Attach(cached);
-            context.Entry(cached).State = EntityState.Modified;
-            ApplyToEntity(cached, computed, now);
-            await context.SaveChangesAsync();
-        }
-
-        // Update ApplicationUser.IsRetired if needed (and not overridden)
-        await SyncUserRetiredFlagAsync(user, cached, computed.IsRetired);
-
-        // For fresh cache, we still return the dynamically computed view of status.
-        // (No DB write expected.)
-        _ = isCacheFresh;
-
-        return computed;
+        RequireId(userId);
+        return (await ReadAsync(new[] { userId })).GetValueOrDefault(userId) ?? throw new InvalidOperationException($"User '{userId}' not found");
     }
 
-    /// <summary>
-    /// Updates the status for a specific member
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Updated member status result</returns>
-    public async Task<MemberStatusResult> UpdateMemberStatusAsync(string userId)
+    public async Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            throw new ArgumentException("User ID cannot be empty", nameof(userId));
-        }
+        ArgumentNullException.ThrowIfNull(userIds);
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
+        var ids = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        var results = await ReadAsync(ids);
+        return ids.ToDictionary(id => id, id => (MemberStatusResult?)results.GetValueOrDefault(id), StringComparer.Ordinal);
+    }
+
+    private async Task<Dictionary<string, MemberStatusResult>> ReadAsync(IReadOnlyCollection<string> ids)
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+        await using var db = await _contextFactory.CreateDbContextAsync();
+        var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync();
+        var activity = await LoadActivityAsync(db, ids, now);
+
+        return users.ToDictionary(u => u.Id, u =>
+        {
+            var userActivity = activity.GetValueOrDefault(u.Id) ?? Activity.None;
+            // The persisted flag is what the member is until a reconciliation changes it.
+            return ToResult(u.IsRetired, Evaluate(u, userActivity, now), userActivity, now);
+        }, StringComparer.Ordinal);
+    }
+
+    // ---------- Reconcile: calculate + persist transition + audit + notify ----------
+
+    public async Task<MemberStatusResult> ReconcileMemberStatusAsync(string userId)
+    {
+        RequireId(userId);
+        var results = (await ReconcileAsync(new[] { userId })).Results;
+        if (!results.TryGetValue(userId, out var result))
         {
             throw new InvalidOperationException($"User '{userId}' not found");
         }
 
-        var now = DateTime.UtcNow;
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        // Query MemberStatus without tracking to avoid navigation property conflicts
-        // We'll attach it later if needed
-        var existing = await context.MemberStatuses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ms => ms.UserId == userId);
-
-        var activity = await ComputeActivityDataAsync(context, userId, now);
-
-        var beforeIsRetired = existing?.IsRetired ?? user.IsRetired;
-
-        var computed = ComputeStatusResult(user, existing, activity, now);
-
-        if (existing is null)
-        {
-            existing = new MemberStatus
-            {
-                UserId = userId,
-                CreatedAt = now
-            };
-            context.MemberStatuses.Add(existing);
-        }
-        else
-        {
-            // Attach the existing entity for update
-            context.MemberStatuses.Attach(existing);
-            context.Entry(existing).State = EntityState.Modified;
-        }
-
-        ApplyToEntity(existing, computed, now);
-        await context.SaveChangesAsync();
-
-        await SyncUserRetiredFlagAsync(user, existing, computed.IsRetired);
-
-        // Notifications (only on transition retired -> active)
-        if (_options.PushNotificationsEnabled && beforeIsRetired && !computed.IsRetired)
-        {
-            var userNickname = user.Nickname ?? user.UserName ?? "Membro";
-            var notification = _pushNotificationFactory.CreateMemberReactivatedNotification(userNickname, "/");
-            await _pushNotificationService.BroadcastAsync(notification);
-        }
-
-        // Warning (active member is close to retirement)
-        if (_options.PushNotificationsEnabled && !computed.IsRetired && computed.ProgressMonths == 1)
-        {
-            var userNickname = user.Nickname ?? user.UserName ?? "Membro";
-            var notification = _pushNotificationFactory.CreateMemberRetirementWarningNotification(userNickname, "/");
-            await _pushNotificationService.SendToUserAsync(userId, notification);
-        }
-
-        // Audit logging is intentionally lightweight here (tests mock but don't assert).
-        try
-        {
-            await _auditLogService.AddAsync(new AuditLog
-            {
-                EntityType = "MemberStatus",
-                Action = "UpdateMemberStatus",
-                UserId = userId,
-                UserName = user.UserName,
-                Timestamp = now,
-                Changes = $"IsRetired: {beforeIsRetired} -> {computed.IsRetired}"
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to write audit log for MemberStatus update");
-        }
-
-        return computed;
+        return result ?? throw new InvalidOperationException($"Could not evaluate the status of member '{userId}'");
     }
 
-    /// <summary>
-    /// Updates status for all active members
-    /// </summary>
-    /// <returns>Number of members updated</returns>
-    public async Task<int> UpdateAllMemberStatusesAsync()
+    public async Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync()
     {
         if (!_options.Enabled)
         {
-            return 0;
+            return MemberStatusReconciliationResult.Empty;
         }
 
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        var activeUserIds = await context.Users
-            .AsNoTracking()
-            .Where(u => !u.IsRetired)
-            .Select(u => u.Id)
-            .ToListAsync();
-
-        var updated = 0;
-        foreach (var userId in activeUserIds)
-        {
-            await UpdateMemberStatusAsync(userId);
-            updated++;
-        }
-
-        return updated;
+        return (await ReconcileAsync(null)).Counts;
     }
 
-    /// <summary>
-    /// Gets status for multiple members in batch
-    /// </summary>
-    /// <param name="userIds">Collection of user IDs to get status for</param>
-    /// <returns>Dictionary mapping user ID to member status result (nullable values)</returns>
-    public async Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds)
-    {
-        if (userIds is null)
-        {
-            throw new ArgumentNullException(nameof(userIds));
-        }
-
-        var ids = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
-        var results = new Dictionary<string, MemberStatusResult?>(StringComparer.Ordinal);
-
-        foreach (var id in ids)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user is null)
-            {
-                results[id] = null;
-                continue;
-            }
-
-            results[id] = await GetMemberStatusAsync(id);
-        }
-
-        return results;
-    }
-
-    /// <summary>
-    /// Activates a member with override, bypassing normal retirement checks
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>Updated member status result</returns>
-    /// <exception cref="InvalidOperationException">Thrown when user is not found</exception>
-    public async Task<MemberStatusResult> ActivateMemberWithOverrideAsync(string userId)
+    private static void RequireId(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
             throw new ArgumentException("User ID cannot be empty", nameof(userId));
         }
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-        {
-            throw new InvalidOperationException($"User '{userId}' not found");
-        }
-
-        var now = DateTime.UtcNow;
-        await using var context = await _contextFactory.CreateDbContextAsync();
-
-        // Query MemberStatus without tracking to avoid navigation property conflicts
-        var status = await context.MemberStatuses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ms => ms.UserId == userId);
-
-        if (status is null)
-        {
-            status = new MemberStatus
-            {
-                UserId = userId,
-                CreatedAt = now
-            };
-            context.MemberStatuses.Add(status);
-        }
-        else
-        {
-            // Attach the existing entity for update
-            context.MemberStatuses.Attach(status);
-            context.Entry(status).State = EntityState.Modified;
-        }
-
-        status.OverrideRetired = true;
-        status.IsRetired = false;
-        status.LastUpdatedAt = now;
-
-        user.IsRetired = false;
-        await _userManager.UpdateAsync(user);
-
-        await context.SaveChangesAsync();
-
-        // Return current computed status (with override applied)
-        return await GetMemberStatusAsync(userId);
     }
 
-    private sealed record ActivityData(
-        DateTime? LastRehearsalDate,
-        DateTime? LastEventDate,
-        HashSet<(int Year, int Month)> ActivityMonths,
-        int TotalActivitiesCount,
-        bool HasActivityInCurrentMonth);
+    private static MemberActivityEvaluation? Evaluate(ApplicationUser user, Activity activity, DateTime now) =>
+        MemberActivityStatusEvaluator.IsSubjectToRule(user)
+            ? MemberActivityStatusEvaluator.Evaluate(user.IsRetired, activity.Dates, MemberActivityStatusEvaluator.ActiveSince(user), now)
+            : null;
 
-    private static async Task<ActivityData> ComputeActivityDataAsync(ApplicationDbContext context, string userId, DateTime nowUtc)
+    /// <summary>Null <paramref name="ids"/> = every user. Failed members map to null and are counted, never stop the run.</summary>
+    private async Task<(Dictionary<string, MemberStatusResult?> Results, MemberStatusReconciliationResult Counts)> ReconcileAsync(
+        IReadOnlyCollection<string>? ids)
     {
-        var nowMonth = (nowUtc.Year, nowUtc.Month);
-
-        // Rehearsals: only past, not canceled, attended=true (approved)
-        var rehearsalDates = await context.RehearsalAttendances
-            .AsNoTracking()
-            .Where(a => a.UserId == userId && a.Attended)
-            .Join(
-                context.Rehearsals.AsNoTracking(),
-                a => a.RehearsalId,
-                r => r.Id,
-                (a, r) => new { r.Date, r.IsCanceled })
-            .Where(x => !x.IsCanceled && x.Date < nowUtc)
-            .Select(x => x.Date)
-            .ToListAsync();
-
-        // Events: only past (end date if multi-day), not canceled, WillAttend=true
-        var eventDates = await context.Enrollments
-            .AsNoTracking()
-            .Where(e => e.UserId == userId && e.WillAttend)
-            .Join(
-                context.Events.AsNoTracking(),
-                e => e.EventId,
-                ev => ev.Id,
-                (e, ev) => new { Start = ev.Date, End = ev.EndDate ?? ev.Date, ev.IsCancelled })
-            .Where(x => !x.IsCancelled && x.End < nowUtc)
-            .Select(x => x.Start)
-            .ToListAsync();
-
-        var activityMonths = new HashSet<(int Year, int Month)>();
-        foreach (var d in rehearsalDates)
+        var now = _time.GetUtcNow().UtcDateTime;
+        List<string> userIds;
+        Dictionary<string, Activity> activity;
+        await using (var db = await _contextFactory.CreateDbContextAsync())
         {
-            activityMonths.Add((d.Year, d.Month));
-        }
-        foreach (var d in eventDates)
-        {
-            activityMonths.Add((d.Year, d.Month));
+            userIds = await db.Users.AsNoTracking()
+                .Where(u => ids == null || ids.Contains(u.Id))
+                .Select(u => u.Id)
+                .ToListAsync();
+            activity = await LoadActivityAsync(db, ids, now);
         }
 
-        var lastRehearsal = rehearsalDates.Count == 0 ? (DateTime?)null : rehearsalDates.Max();
-        var lastEvent = eventDates.Count == 0 ? (DateTime?)null : eventDates.Max();
-
-        var totalCount = rehearsalDates.Count + eventDates.Count;
-        var hasCurrentMonth = activityMonths.Contains(nowMonth);
-
-        return new ActivityData(lastRehearsal, lastEvent, activityMonths, totalCount, hasCurrentMonth);
-    }
-
-    private static MemberStatusResult ComputeStatusResult(
-        ApplicationUser user,
-        MemberStatus? cached,
-        ActivityData activity,
-        DateTime nowUtc)
-    {
-        var lastActivity = Max(activity.LastRehearsalDate, activity.LastEventDate);
-        var hasAnyActivity = lastActivity.HasValue;
-
-        var overrideRetired = cached?.OverrideRetired ?? false;
-        var isRetired = user.IsRetired;
-
-        if (overrideRetired)
+        var results = new Dictionary<string, MemberStatusResult?>(StringComparer.Ordinal);
+        int evaluated = 0, activated = 0, reformed = 0, unchanged = 0, excluded = 0, failed = 0;
+        foreach (var userId in userIds)
         {
-            isRetired = false;
-        }
-        else if (!hasAnyActivity)
-        {
-            // No activity: keep current status (active stays active; retired stays retired)
-            isRetired = user.IsRetired;
-        }
-        else if (!user.IsRetired)
-        {
-            // Active -> may become retired after 6 completed months without activity
-            var completed = CompletedMonthsWithoutActivity(lastActivity!.Value, nowUtc);
-            if (completed >= 6)
+            try
             {
-                isRetired = true;
+                var (result, outcome) = await ReconcileMemberAsync(userId, activity.GetValueOrDefault(userId) ?? Activity.None, now);
+                results[userId] = result;
+                switch (outcome)
+                {
+                    case Outcome.Excluded: excluded++; break;
+                    case Outcome.Activated: evaluated++; activated++; break;
+                    case Outcome.Reformed: evaluated++; reformed++; break;
+                    default: evaluated++; unchanged++; break;
+                }
             }
-        }
-        else
-        {
-            // Retired -> may become active after 3 consecutive months with activity
-            var consecutive = ConsecutiveActivityMonths(activity.ActivityMonths, nowUtc, activity.HasActivityInCurrentMonth);
-            if (consecutive >= 3)
+            catch (Exception ex)
             {
-                isRetired = false;
+                _logger.LogError(ex, "Member status reconciliation failed for member {UserId}", userId);
+                results[userId] = null;
+                failed++;
             }
         }
 
+        return (results, new MemberStatusReconciliationResult(evaluated, activated, reformed, unchanged, excluded, failed));
+    }
+
+    private async Task<(MemberStatusResult Result, Outcome Outcome)> ReconcileMemberAsync(string userId, Activity activity, DateTime now)
+    {
+        await using var db = await _contextFactory.CreateDbContextAsync();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new InvalidOperationException($"User '{userId}' not found");
+        var projection = await db.MemberStatuses.FirstOrDefaultAsync(s => s.UserId == userId);
+
+        // Members outside the rule (only Tuno Honorário, or no category) keep their flag; only their projection is refreshed.
+        var evaluation = Evaluate(user, activity, now);
+        var result = ToResult(evaluation?.IsRetired ?? user.IsRetired, evaluation, activity, now);
+        var previousProgressMonths = projection?.IsRetired == false ? projection.ProgressMonths : null;
+
+        if (evaluation is { Changed: true })
+        {
+            db.AuditLogs.Add(TransitionAudit(user, evaluation, now));
+            user.IsRetired = evaluation.IsRetired;
+        }
+
+        if (projection is null)
+        {
+            projection = new MemberStatus { UserId = userId, CreatedAt = now };
+            db.MemberStatuses.Add(projection);
+        }
+
+        if (Project(projection, result, now) || evaluation is { Changed: true })
+        {
+            await db.SaveChangesAsync();
+        }
+
+        if (evaluation is { Changed: true })
+        {
+            _logger.LogInformation("Member {UserName} is now {State} ({Reason})",
+                user.UserName, evaluation.IsRetired ? "Reformado" : "active", evaluation.Reason);
+        }
+
+        await NotifyAsync(user, evaluation, result, previousProgressMonths);
+
+        return (result, evaluation switch
+        {
+            null => Outcome.Excluded,
+            { Changed: false } => Outcome.Unchanged,
+            { IsRetired: true } => Outcome.Reformed,
+            _ => Outcome.Activated,
+        });
+    }
+
+    /// <summary>One query per source for the members asked for (all users when <paramref name="ids"/> is null).</summary>
+    private static async Task<Dictionary<string, Activity>> LoadActivityAsync(ApplicationDbContext db, IReadOnlyCollection<string>? ids, DateTime now)
+    {
+        var rehearsals = await RehearsalActivityAsync(db, ids, now);
+        var performances = await PerformanceActivityAsync(db, ids, now);
+
+        return rehearsals.Select(r => r.UserId).Concat(performances.Select(e => e.UserId)).Distinct()
+            .ToDictionary(id => id, id => new Activity(
+                rehearsals.Where(r => r.UserId == id).Select(r => r.Date).ToList(),
+                performances.Where(e => e.UserId == id).Select(e => e.Date).ToList()));
+    }
+
+    /// <summary>Ensaio: a presença confirmed by Admin (<c>Attended</c>) at a past, not cancelled rehearsal.</summary>
+    private static async Task<List<ActivityRow>> RehearsalActivityAsync(ApplicationDbContext db, IReadOnlyCollection<string>? ids, DateTime now) =>
+        await db.RehearsalAttendances.AsNoTracking()
+            .Where(a => a.Attended && (ids == null || ids.Contains(a.UserId)))
+            .Join(db.Rehearsals.AsNoTracking(), a => a.RehearsalId, r => r.Id, (a, r) => new { a.UserId, r.Date, r.IsCanceled })
+            .Where(x => !x.IsCanceled && x.Date < now)
+            .Select(x => new ActivityRow(x.UserId, x.Date))
+            .ToListAsync();
+
+    /// <summary>
+    /// Atuação: an ended (<c>EndDate ?? Date</c> before now), not cancelled event with a <c>WillAttend</c> enrollment,
+    /// dated by its start. <b>Temporary source:</b> <c>WillAttend</c> is the member's answer ("vai"), reused as post-event
+    /// participation because RTUB has no performance-attendance record (after the event the app shows it as "Quem foi"
+    /// and Admin corrects it by removing / adding answers). When a real attendance field or table exists, replace only
+    /// this query.
+    /// </summary>
+    private static async Task<List<ActivityRow>> PerformanceActivityAsync(ApplicationDbContext db, IReadOnlyCollection<string>? ids, DateTime now) =>
+        await db.Enrollments.AsNoTracking()
+            .Where(e => e.WillAttend && (ids == null || ids.Contains(e.UserId)))
+            .Join(db.Events.AsNoTracking(), e => e.EventId, ev => ev.Id,
+                (e, ev) => new { e.UserId, Start = ev.Date, End = ev.EndDate ?? ev.Date, ev.IsCancelled })
+            .Where(x => !x.IsCancelled && x.End < now)
+            .Select(x => new ActivityRow(x.UserId, x.Start))
+            .ToListAsync();
+
+    private static MemberStatusResult ToResult(bool isRetired, MemberActivityEvaluation? evaluation, Activity activity, DateTime now)
+    {
+        var dates = activity.Dates.ToList();
         var result = new MemberStatusResult
         {
             IsRetired = isRetired,
-            LastRehearsalDate = activity.LastRehearsalDate,
-            LastEventDate = activity.LastEventDate,
-            LastActivityDate = lastActivity,
-            HasAnyActivity = hasAnyActivity,
-            TotalActivitiesCount = activity.TotalActivitiesCount,
-            HasActivityInCurrentMonth = activity.HasActivityInCurrentMonth
+            LastRehearsalDate = activity.Rehearsals.Count == 0 ? null : activity.Rehearsals.Max(),
+            LastEventDate = activity.Events.Count == 0 ? null : activity.Events.Max(),
+            LastActivityDate = dates.Count == 0 ? null : dates.Max(),
+            HasAnyActivity = dates.Count > 0,
+            TotalActivitiesCount = dates.Count,
+            HasActivityInCurrentMonth = dates.Any(d => d.Year == now.Year && d.Month == now.Month),
         };
 
-        if (!hasAnyActivity)
+        // No progress for members outside the rule or with nothing to show yet (the UI hides the section then).
+        if (evaluation is null || !result.HasAnyActivity)
         {
-            result.ProgressMonths = null;
-            result.ProgressTotalMonths = null;
-            result.ProgressDescription = null;
             return result;
         }
 
         if (isRetired)
         {
-            var consecutive = ConsecutiveActivityMonths(activity.ActivityMonths, nowUtc, activity.HasActivityInCurrentMonth);
-            result.ProgressMonths = consecutive;
-            result.ProgressTotalMonths = 3;
-            result.ProgressDescription = $"{consecutive}/3 meses de atividade consecutiva";
+            var months = Math.Min(evaluation.ConsecutiveActiveMonths, MemberActivityStatusEvaluator.ReturnMonths);
+            result.ProgressMonths = months;
+            result.ProgressTotalMonths = MemberActivityStatusEvaluator.ReturnMonths;
+            result.ProgressDescription = $"{months}/{MemberActivityStatusEvaluator.ReturnMonths} meses de atividade consecutiva";
         }
         else
         {
-            var completed = CompletedMonthsWithoutActivity(lastActivity!.Value, nowUtc);
-            var warningCount = completed + (activity.HasActivityInCurrentMonth ? 0 : 1);
-            var monthsUntilRetire = Math.Max(0, 6 - warningCount);
-            result.ProgressMonths = monthsUntilRetire;
-            result.ProgressTotalMonths = 6;
-            result.ProgressDescription = monthsUntilRetire == 0 ? "Próximo da reforma" : $"{monthsUntilRetire} meses até reforma";
+            // On a read the persisted flag can still say active past the threshold: 0 until the next reconciliation.
+            var months = evaluation.MonthsUntilRetirement ?? 0;
+            result.ProgressMonths = months;
+            result.ProgressTotalMonths = MemberActivityStatusEvaluator.InactivityMonths;
+            result.ProgressDescription = months == 0 ? "Próximo da reforma" : $"{months} meses até reforma";
         }
 
         return result;
     }
 
-    private static int CompletedMonthsWithoutActivity(DateTime lastActivityDateUtc, DateTime nowUtc)
+    /// <summary>Copies the result onto the projection; true when anything changed (and only then is it saved).</summary>
+    private static bool Project(MemberStatus entity, MemberStatusResult result, DateTime now)
     {
-        // Count full months between last activity month and current month (excluding both endpoints).
-        var currentMonthIndex = nowUtc.Year * 12 + nowUtc.Month;
-        var lastMonthIndex = lastActivityDateUtc.Year * 12 + lastActivityDateUtc.Month;
-
-        return Math.Max(0, currentMonthIndex - lastMonthIndex - 1);
-    }
-
-    private static int ConsecutiveActivityMonths(HashSet<(int Year, int Month)> activityMonths, DateTime nowUtc, bool hasCurrentMonth)
-    {
-        // Start from current month if it has activity, otherwise last month (completed month).
-        var year = nowUtc.Year;
-        var month = nowUtc.Month;
-
-        if (!hasCurrentMonth)
+        var same = entity.Id != 0
+            && entity.IsRetired == result.IsRetired
+            && entity.LastRehearsalDate == result.LastRehearsalDate
+            && entity.LastEventDate == result.LastEventDate
+            && entity.LastActivityDate == result.LastActivityDate
+            && entity.HasAnyActivity == result.HasAnyActivity
+            && entity.ProgressMonths == result.ProgressMonths
+            && entity.ProgressTotalMonths == result.ProgressTotalMonths
+            && entity.ProgressDescription == result.ProgressDescription
+            && entity.TotalActivitiesCount == result.TotalActivitiesCount;
+        if (same)
         {
-            (year, month) = PreviousMonth(year, month);
+            return false;
         }
 
-        var count = 0;
-        while (activityMonths.Contains((year, month)))
-        {
-            count++;
-            (year, month) = PreviousMonth(year, month);
-        }
-
-        return count;
-    }
-
-    private static (int Year, int Month) PreviousMonth(int year, int month)
-    {
-        month--;
-        if (month == 0)
-        {
-            return (year - 1, 12);
-        }
-        return (year, month);
-    }
-
-    private static DateTime? Max(DateTime? a, DateTime? b)
-    {
-        if (a is null) return b;
-        if (b is null) return a;
-        return a > b ? a : b;
-    }
-
-    private static void ApplyToEntity(MemberStatus entity, MemberStatusResult result, DateTime nowUtc)
-    {
         entity.IsRetired = result.IsRetired;
         entity.LastRehearsalDate = result.LastRehearsalDate;
         entity.LastEventDate = result.LastEventDate;
@@ -509,26 +311,64 @@ public class MemberStatusService : IMemberStatusService
         entity.ProgressTotalMonths = result.ProgressTotalMonths;
         entity.ProgressDescription = result.ProgressDescription;
         entity.TotalActivitiesCount = result.TotalActivitiesCount;
-        entity.LastUpdatedAt = nowUtc;
+        entity.LastUpdatedAt = now;
+        return true;
     }
 
-    private async Task SyncUserRetiredFlagAsync(ApplicationUser user, MemberStatus? cached, bool computedIsRetired)
+    private static AuditLog TransitionAudit(ApplicationUser user, MemberActivityEvaluation evaluation, DateTime now) => new()
     {
-        // Respect override: never auto-retire if OverrideRetired is set.
-        if (cached?.OverrideRetired == true)
+        EntityType = AuditEntityType,
+        Action = evaluation.IsRetired ? "Reformed" : "Activated",
+        UserId = user.Id,
+        UserName = user.UserName,
+        EntityDisplayName = user.Nickname ?? user.UserName,
+        Timestamp = now,
+        Changes = JsonSerializer.Serialize(new
         {
-            if (user.IsRetired)
-            {
-                user.IsRetired = false;
-                await _userManager.UpdateAsync(user);
-            }
+            From = evaluation.IsRetired ? "Active" : "Reformado",
+            To = evaluation.IsRetired ? "Reformado" : "Active",
+            Reason = evaluation.Reason.ToString(),
+            LastActivity = evaluation.LastActivity?.ToString("yyyy-MM-dd"),
+            Threshold = evaluation.IsRetired ? evaluation.RetirementThreshold?.ToString("yyyy-MM-dd") : null,
+            Months = evaluation.IsRetired ? null : evaluation.StreakMonths.Select(m => m.ToString("yyyy-MM")).ToList(),
+        }),
+    };
+
+    private async Task NotifyAsync(ApplicationUser user, MemberActivityEvaluation? evaluation, MemberStatusResult result, int? previousProgressMonths)
+    {
+        if (!_options.PushNotificationsEnabled || evaluation is null)
+        {
             return;
         }
 
-        if (user.IsRetired != computedIsRetired)
+        try
         {
-            user.IsRetired = computedIsRetired;
-            await _userManager.UpdateAsync(user);
+            var nickname = user.Nickname ?? user.UserName ?? "Membro";
+            if (evaluation is { Changed: true, IsRetired: false })
+            {
+                await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname, "/"));
+            }
+
+            // The warning once, when an active member enters the last month - not on every run while in it.
+            if (!result.IsRetired && result.ProgressMonths == 1 && previousProgressMonths != 1)
+            {
+                await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname, "/"));
+            }
         }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Member status notification failed for {UserName}", user.UserName);
+        }
+    }
+
+    private enum Outcome { Excluded, Unchanged, Activated, Reformed }
+
+    private sealed record ActivityRow(string UserId, DateTime Date);
+
+    private sealed record Activity(List<DateTime> Rehearsals, List<DateTime> Events)
+    {
+        public static readonly Activity None = new(new List<DateTime>(), new List<DateTime>());
+
+        public IEnumerable<DateTime> Dates => Rehearsals.Concat(Events);
     }
 }

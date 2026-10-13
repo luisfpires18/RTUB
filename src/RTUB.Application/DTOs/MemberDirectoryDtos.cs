@@ -83,8 +83,8 @@ public sealed record MemberStateDto(
 
 public sealed record MemberActivityDto(DateTime Date, string Name, string Type, bool IsRehearsal);
 
-/// <summary>The old "Gestão de Membros Ativos" list. <c>CanMakeActive</c>: retired or on the three months back, when
-/// Admin/Owner may "Tornar ativo" (018); <c>Encourage</c> also allows the push reminder.</summary>
+/// <summary>The old "Gestão de Membros Ativos" list. <c>Encourage</c> allows the push reminder ("Tornar ativo" removed in
+/// 044B: the activity rules alone decide the state).</summary>
 public sealed record ActiveMemberDto(
     string Id,
     string DisplayName,
@@ -95,8 +95,7 @@ public sealed record ActiveMemberDto(
     DateTime? LastRehearsal,
     DateTime? LastEvent,
     string? Progress,
-    bool Encourage,
-    bool CanMakeActive);
+    bool Encourage);
 
 /// <summary>The old "Aniversários": the birthdays still to come this year. <c>Birthday</c> is "dd/MM", <c>Date</c> this
 /// year's date (yyyy-MM-dd); no birth year is sent, only the age it turns.</summary>

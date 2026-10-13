@@ -202,8 +202,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
                 var who = GovernanceService.ToMember(m.Member.Nickname, m.Member.FirstName, m.Member.LastName, m.Member.ImageUrl);
                 return new ActiveMemberDto(m.Member.Id, who.DisplayName, who.FullName, who.AvatarUrl, PrimaryInstrument(m.Member.Id, instruments),
                     Retired(m), m.StatusData?.LastRehearsalDate, m.StatusData?.LastEventDate,
-                    ShowProgress(m.StatusData) ? m.StatusData!.ProgressDescription : null, Encourage(m.StatusData),
-                    Retired(m) || m.StatusData?.ProgressTotalMonths == 3);
+                    ShowProgress(m.StatusData) ? m.StatusData!.ProgressDescription : null, Encourage(m.StatusData));
             })
             .ToList());
     }
@@ -281,20 +280,8 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             return new Dictionary<string, MemberStatusResult?>();
         }
 
-        var statuses = await _status.GetMemberStatusesBatchAsync(ids);
-        foreach (var id in ids.Where(id => statuses.GetValueOrDefault(id) is null))
-        {
-            try
-            {
-                statuses[id] = await _status.UpdateMemberStatusAsync(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to update status for Leitão {UserId}", id);
-            }
-        }
-
-        return statuses;
+        // A read: computed for display, never reconciled here (044B).
+        return await _status.GetMemberStatusesBatchAsync(ids);
     }
 
     private static MemberCardDto Card(ApplicationUser u, IEnumerable<MemberBadgeDto> badges, string? position, bool noRoles,

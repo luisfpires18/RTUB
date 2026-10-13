@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
@@ -15,7 +16,6 @@ using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Services.Geocoding;
-using RTUB.Application.Services.Retirement;
 using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
@@ -176,7 +176,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IEventRepertoireService, EventRepertoireService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
-        services.AddScoped<IRetirementStatusService, RetirementStatusService>();
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
         services.AddScoped<INaipeService, NaipeService>();
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
@@ -474,6 +473,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMemberQueryServices(this IServiceCollection services)
     {
         services.AddScoped<IMemberStatisticsService, MemberStatisticsService>();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IMemberStatusService, MemberStatusService>();
 
         return services;

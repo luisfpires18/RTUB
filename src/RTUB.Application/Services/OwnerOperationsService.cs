@@ -330,7 +330,11 @@ public class OwnerOperationsService : IOwnerOperationsService
         return EventResult<OwnerUserDetail>.Ok(await DetailAsync(user));
     }
 
-    public async Task<OwnerSyncResult> SyncMemberStatusesAsync() => new(await _memberStatus.UpdateAllMemberStatusesAsync());
+    public async Task<OwnerSyncResult> SyncMemberStatusesAsync()
+    {
+        var run = await _memberStatus.ReconcileAllMemberStatusesAsync();
+        return new OwnerSyncResult(run.Evaluated + run.Excluded, run.Changed, run.Failed);
+    }
 
     private async Task<OwnerUserDetail> DetailAsync(ApplicationUser user) => new(
         user.Id, user.UserName ?? "", user.Nickname ?? "", FullName(user), user.Email, user.ProfilePictureSrc,

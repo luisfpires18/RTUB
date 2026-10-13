@@ -49,7 +49,6 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
             (HttpMethod.Put, $"/api/members/{leitao.Id}/nickname", new { nickname = "Novo" }),
             (HttpMethod.Post, $"/api/members/{leitao.Id}/expel", null),
             (HttpMethod.Post, $"/api/members/{leitao.Id}/reactivate", null),
-            (HttpMethod.Post, $"/api/members/{tuno.Id}/activate", null),
             (HttpMethod.Post, $"/api/members/{tuno.Id}/reminder", null),
         };
 
@@ -144,6 +143,70 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
         var f = (await UserByEmailAsync(fundadorEmail))!;
         f.Categories.Should().Equal(MemberCategory.Tuno, MemberCategory.Fundador);
         (f.YearTuno, f.MonthTuno, f.YearLeitao, f.YearCaloiro, f.MentorId).Should().Be((1991, 12, null, null, null));
+    }
+
+    [Theory]
+    [InlineData("Leitao", false)]
+    [InlineData("Caloiro", true)]
+    [InlineData("Tuno", true)]
+    public async Task Create_StartsActiveOnlyAsALeitao(string category, bool expectedRetired)
+    {
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var email = Unique() + "@test.com";
+        (await admin.PostAsJsonAsync("/api/members", Valid(category, "Init " + Unique(), email))).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        (await UserByEmailAsync(email))!.IsRetired.Should().Be(expectedRetired, "a Leitão is new to the Tuna; anyone else is an old member being digitised");
+    }
+
+    [Fact]
+    public async Task Create_ALeitaoWithoutDates_StartsTheSixMonthsInTheCreationMonth()
+    {
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var email = Unique() + "@test.com";
+        var before = DateTime.UtcNow;
+
+        (await admin.PostAsJsonAsync("/api/members", Valid("Leitao", "Novo " + Unique(), email))).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = (await UserByEmailAsync(email))!;
+        var after = DateTime.UtcNow;
+        new[] { (before.Year, before.Month), (after.Year, after.Month) }.Should().Contain((created.YearLeitao!.Value, created.MonthLeitao!.Value));
+        created.IsRetired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ProfileAndListReads_NeverChangeTheStatus_OnlyTheAttendanceTriggerDoes()
+    {
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        // Active with nothing since 2020: a reconciliation would reform them.
+        var stale = await AddAsync(MemberCategory.Tuno, yearTuno: 2020);
+        // Reformado with confirmed rehearsals three and two months ago, and a pending one last month.
+        var returning = await AddAsync(MemberCategory.Tuno, yearTuno: 2015, retired: true);
+        var thisMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        await AttendAsync(returning.Id, thisMonth.AddMonths(-3).AddDays(9));
+        await AttendAsync(returning.Id, thisMonth.AddMonths(-2).AddDays(9));
+        var (rehearsalId, pendingId) = await PendingAttendanceAsync(returning.Id, thisMonth.AddMonths(-1).AddDays(9));
+
+        for (var n = 0; n < 2; n++)
+        {
+            (await admin.GetAsync($"/api/members/{stale.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await admin.GetAsync($"/api/members/{returning.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await admin.GetAsync($"/api/members/active?q={Uri.EscapeDataString(stale.Nickname!)}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await admin.GetAsync("/api/members")).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        (await UserAsync(stale.Id))!.IsRetired.Should().BeFalse("reads display, they do not reconcile");
+        (await UserAsync(returning.Id))!.IsRetired.Should().BeTrue();
+        (await StatusTransitionsAsync(stale.Id, returning.Id)).Should().BeEmpty();
+        (await ProjectionCountAsync(stale.Id, returning.Id)).Should().Be(0);
+
+        // Confirming the third consecutive month is a reconcile trigger.
+        (await admin.PostAsync($"/api/rehearsals/{rehearsalId}/attendances/{pendingId}/approve", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await UserAsync(returning.Id))!.IsRetired.Should().BeFalse();
+        (await StatusTransitionsAsync(returning.Id)).Should().ContainSingle().Which.Action.Should().Be("Activated");
     }
 
     [Fact]
@@ -310,12 +373,11 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task MakeActive_AndTheReminder_FollowTheOldListsConditions()
+    public async Task TheReminder_FollowsTheOldListsConditions_AndMakeActiveIsGone()
     {
         var (admin, _) = await SignInAsync("Admin");
         await WithTokenAsync(admin);
         var activeTuno = await AddAsync(MemberCategory.Tuno, yearTuno: 2020);
-        var leitao = await AddAsync(MemberCategory.Leitao);
         var almostBack = await AddAsync(MemberCategory.Tuno, yearTuno: 2015, retired: true);
         // Two completed months with a rehearsal, none this month: 2/3 on the way back.
         var thisMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -324,22 +386,16 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
 
         var row = (await admin.GetFromJsonAsync<JsonElement>($"/api/members/active?q={Uri.EscapeDataString(almostBack.Nickname!)}")).EnumerateArray().Single();
         row.GetProperty("encourage").GetBoolean().Should().BeTrue();
-        row.GetProperty("canMakeActive").GetBoolean().Should().BeTrue();
+        row.TryGetProperty("canMakeActive", out _).Should().BeFalse("\"Tornar ativo\" and its permanent override were removed in 044B");
 
         (await admin.PostAsync($"/api/members/{activeTuno.Id}/reminder", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await admin.PostAsync($"/api/members/{leitao.Id}/activate", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await admin.PostAsync($"/api/members/{activeTuno.Id}/activate", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden,
-            "active with no way back to make: the old list offered no button");
         _factory.Push.Verify(p => p.SendToUserAsync(activeTuno.Id, It.IsAny<SendPushNotificationDto>()), Times.Never);
 
         (await admin.PostAsync($"/api/members/{almostBack.Id}/reminder", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         _factory.Push.Verify(p => p.SendToUserAsync(almostBack.Id, It.IsAny<SendPushNotificationDto>()), Times.Once);
 
-        (await admin.PostAsync($"/api/members/{almostBack.Id}/activate", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await UserAsync(almostBack.Id))!.IsRetired.Should().BeFalse();
-        using var scope = _factory.Services.CreateScope();
-        (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().MemberStatuses.AsNoTracking().SingleAsync(s => s.UserId == almostBack.Id))
-            .OverrideRetired.Should().BeTrue();
+        (await admin.PostAsync($"/api/members/{almostBack.Id}/activate", null)).IsSuccessStatusCode.Should().BeFalse();
+        (await UserAsync(almostBack.Id))!.IsRetired.Should().BeTrue("only three consecutive months of activity bring a Reformado back");
     }
 
     [Fact]
@@ -489,6 +545,34 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
         attendance.MarkAttendance(true);
         db.RehearsalAttendances.Add(attendance);
         await db.SaveChangesAsync();
+    }
+
+    private async Task<(int RehearsalId, int AttendanceId)> PendingAttendanceAsync(string userId, DateTime day)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var rehearsal = Rehearsal.Create(day, "Centro Académico");
+        db.Rehearsals.Add(rehearsal);
+        await db.SaveChangesAsync();
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.WillAttend = true;
+        db.RehearsalAttendances.Add(attendance);
+        await db.SaveChangesAsync();
+        return (rehearsal.Id, attendance.Id);
+    }
+
+    private async Task<List<AuditLog>> StatusTransitionsAsync(params string[] userIds)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == RTUB.Application.Services.MemberStatusService.AuditEntityType && userIds.Contains(a.UserId!))
+            .ToListAsync();
+    }
+
+    private async Task<int> ProjectionCountAsync(params string[] userIds)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().MemberStatuses.CountAsync(s => userIds.Contains(s.UserId));
     }
 
     private async Task<ApplicationUser?> UserAsync(string id)

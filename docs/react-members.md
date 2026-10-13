@@ -55,7 +55,7 @@ Admin/Owner tools). It replaces the Blazor `/members` (directory, "Detalhes do M
 | --- | --- | --- |
 | Visitor | `401` (pages: 302 to sign in) | `401` |
 | Member, Mod | yes | `403` |
-| Admin | yes | create, edit, instruments, Leitões' nickname / expel / reactivate, "Tornar ativo", push reminder, delete **Leitões** |
+| Admin | yes | create, edit, instruments, Leitões' nickname / expel / reactivate, push reminder, delete **Leitões** |
 | Owner | yes | everything Admin does (Owner inherits Admin), plus delete **any** member |
 
 Complete Leitão / Caloiro / Tuno date pairs (year and month) change only for Owner or an Admin who is this fiscal year's
@@ -99,9 +99,10 @@ Audit of the old page's tools (`Members.razor`, `IsInRole` checks in the UI only
   primary promotes the next).
 - **Leitões**: "Definir alcunha" (nickname + normalised username; taken username refused; the member gets the
   username-changed email), **expel / reactivate** (`IsExpelled`; the server refuses them on non-Leitões).
-- **Gestão de Membros Ativos**: "Tornar ativo" when retired or on the 3 months back (`ActivateMemberWithOverrideAsync`),
-  and the **push reminder** only to a retired member 2/3 months back with nothing this month (`SendToUserAsync`, fake
-  in tests). Both refused server-side outside those conditions.
+- **Gestão de Membros Ativos**: the **push reminder** only to a retired member 2/3 months back with nothing this month
+  (`SendToUserAsync`, fake in tests), refused server-side otherwise. "Tornar ativo" (`POST /api/members/{id}/activate`,
+  a permanent `OverrideRetired`) was removed in 044B: the activity rules alone decide the state
+  (`docs/member-activity-status.md`). A new member starts active only as a Leitão.
 - **Delete**: the old hard delete with related data (`IUserProfileService.DeleteMemberWithRelatedDataAsync`).
 - **Not moved** (no caller in the old page): the birthday-email flow and the Owner-only "toggle retired".
 

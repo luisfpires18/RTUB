@@ -169,8 +169,8 @@ public class Program
                         {
                             logger.LogInformation("MemberStatus migration detected. Starting initial population...");
                             var memberStatusService = sp.GetRequiredService<IMemberStatusService>();
-                            var updatedCount = await memberStatusService.UpdateAllMemberStatusesAsync();
-                            logger.LogInformation("Initial MemberStatus population completed. Updated {Count} members", updatedCount);
+                            var run = await memberStatusService.ReconcileAllMemberStatusesAsync();
+                            logger.LogInformation("Initial MemberStatus population completed: {Run}", run);
                         }
                         catch (Exception ex)
                         {

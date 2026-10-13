@@ -40,7 +40,7 @@ public class EventParticipantsAdminTests
     {
         var contexts = new Contexts(_db);
         var users = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null!, null!, null!, null!, null!, null!, null!, null!);
-        var enrollments = new EnrollmentService(new EnrollmentRepository(contexts), Mock.Of<IRetirementStatusService>(), Mock.Of<IPushNotificationFactory>(),
+        var enrollments = new EnrollmentService(new EnrollmentRepository(contexts), Mock.Of<IMemberStatusService>(), Mock.Of<IPushNotificationFactory>(),
             _push.Object, Mock.Of<IHttpContextAccessor>(), users.Object);
         _service = new EventParticipantsAdminService(contexts, enrollments, _instruments.Object);
         _agenda = new EventAgendaService(contexts, enrollments, Mock.Of<IEventService>(), Mock.Of<IPushNotificationFactory>(),

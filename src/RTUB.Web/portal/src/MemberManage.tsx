@@ -629,7 +629,7 @@ export function NicknameDialog({ member, onClose, onDone }: { member: { id: stri
   );
 }
 
-/** One confirmation for expel, reactivate, delete, "Tornar ativo" and the push reminder. */
+/** One confirmation for expel, reactivate, delete and the push reminder. */
 export function ConfirmAction({
   title,
   confirmLabel,

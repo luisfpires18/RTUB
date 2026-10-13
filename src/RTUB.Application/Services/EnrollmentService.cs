@@ -17,7 +17,7 @@ namespace RTUB.Application.Services;
 public class EnrollmentService : IEnrollmentService
 {
     private readonly IEnrollmentRepository _enrollmentRepository;
-    private readonly IRetirementStatusService _retirementStatusService;
+    private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -25,14 +25,14 @@ public class EnrollmentService : IEnrollmentService
 
     public EnrollmentService(
         IEnrollmentRepository enrollmentRepository,
-        IRetirementStatusService retirementStatusService,
+        IMemberStatusService memberStatusService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager)
     {
         _enrollmentRepository = enrollmentRepository;
-        _retirementStatusService = retirementStatusService;
+        _memberStatusService = memberStatusService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
@@ -117,7 +117,7 @@ public class EnrollmentService : IEnrollmentService
         // Update retirement status if enrollment was confirmed
         if (willAttend)
         {
-            await _retirementStatusService.UpdateUserRetirementStatusAsync(enrollment.UserId);
+            await _memberStatusService.ReconcileMemberStatusAsync(enrollment.UserId);
         }
 
         // Send notification if user is now attending (was not attending before)

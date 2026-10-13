@@ -23,7 +23,9 @@ namespace RTUB.Application.Services;
 ///   Tuno Honorário have no Leitão / Caloiro dates and no padrinho; nobody is their own padrinho;
 /// - instruments one by one (the first is the primary; removing the primary promotes the next);
 /// - Leitões: "Definir alcunha" (new nickname and username, email to the member), expel and reactivate;
-/// - "Tornar ativo" and the push reminder, under the old list's conditions;
+/// - the push reminder, under the old list's conditions ("Tornar ativo" and its permanent override removed in 044B);
+/// - a new member starts active only as a Leitão, whose Leitão date defaults to the creation month
+///   (<see cref="MemberActivityStatusEvaluator.ApplyInitialState"/>);
 /// - delete: the old hard delete with related data; Owner any member, Admin Leitões only.
 /// No schema change.
 /// </summary>
@@ -49,6 +51,7 @@ public sealed class MemberAdminService : IMemberAdminService
     private readonly IPushNotificationService _push;
     private readonly IPushNotificationFactory _pushFactory;
     private readonly ILogger<MemberAdminService> _logger;
+    private readonly TimeProvider _time;
 
     public MemberAdminService(
         IDbContextFactory<ApplicationDbContext> contexts,
@@ -61,8 +64,10 @@ public sealed class MemberAdminService : IMemberAdminService
         IEmailNotificationService email,
         IPushNotificationService push,
         IPushNotificationFactory pushFactory,
-        ILogger<MemberAdminService> logger)
+        ILogger<MemberAdminService> logger,
+        TimeProvider time)
     {
+        _time = time;
         _contexts = contexts;
         _users = users;
         _assignments = assignments;
@@ -163,6 +168,7 @@ public sealed class MemberAdminService : IMemberAdminService
             Categories = Categories(input),
             RequirePasswordChange = true,
         };
+        MemberActivityStatusEvaluator.ApplyInitialState(member, _time.GetUtcNow().UtcDateTime);
         ApplySpecialCategories(member, input);
 
         if (await _users.FindByNameAsync(member.UserName) is not null)
@@ -409,26 +415,6 @@ public sealed class MemberAdminService : IMemberAdminService
         }
 
         _logger.LogInformation("Member {UserName} was {Action} by an admin", member.UserName, expelled ? "expelled" : "reactivated");
-        return EventResult<bool>.Ok(true);
-    }
-
-    public async Task<EventResult<bool>> MakeActiveAsync(string id, ClaimsPrincipal user)
-    {
-        var (member, refused) = await MemberAsync<bool>(id, user);
-        if (refused is not null)
-        {
-            return refused;
-        }
-
-        // The old active-members list: Caloiro, Tuno, Veterano, Tunossauro; retired, or on the three months back.
-        var status = await StatusAsync(id);
-        if (!InActiveList(member) || !((status?.IsRetired ?? member.IsRetired) || status?.ProgressTotalMonths == 3))
-        {
-            return EventResult<bool>.Fail(EventResultStatus.Forbidden);
-        }
-
-        await _status.ActivateMemberWithOverrideAsync(id);
-        _logger.LogInformation("Member {UserName} was manually made active by an admin", member.UserName);
         return EventResult<bool>.Ok(true);
     }
 

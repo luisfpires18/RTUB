@@ -60,6 +60,7 @@ Run only what the change can break.
 | React Rehearsals (API, presenças/attendance, data audit) | `docs/react-rehearsals.md` |
 | React Órgãos Sociais (API, RGI, management rules) | `docs/react-governance.md` |
 | React Members (directory, hierarchy, member admin) | `docs/react-members.md` |
+| Member activity status (active / Reformado rules, reconciliation) | `docs/member-activity-status.md` |
 | React Classificação (`/leaderboard`: scoring, comments) | `docs/react-leaderboard.md` |
 | React Inventário: Instrumentos (`/inventory`) | `docs/react-inventory.md` |
 | React Loja (`/shop`: products, reservations) | `docs/react-shop.md` |

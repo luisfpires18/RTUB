@@ -26,9 +26,6 @@ public interface IMemberAdminService
     /// <summary>Expel (true) or reactivate (false) a Leitão.</summary>
     Task<EventResult<bool>> SetExpelledAsync(string id, bool expelled, ClaimsPrincipal user);
 
-    /// <summary>"Tornar ativo": a retired member, or one on the way back, is active again with the override.</summary>
-    Task<EventResult<bool>> MakeActiveAsync(string id, ClaimsPrincipal user);
-
     /// <summary>The push reminder to a retired member one activity away from coming back.</summary>
     Task<EventResult<bool>> SendReminderAsync(string id, string baseUrl, ClaimsPrincipal user);
 

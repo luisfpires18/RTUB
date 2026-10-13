@@ -1,9 +1,9 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Stores the computed status of a member in the Tuna
-/// This entity persists calculated retirement status and activity tracking to avoid repeated computations
-/// Updated periodically by a background service and on-demand when activities change
+/// Calculated projection of a member's activity status (task 044B). Never business truth: every reconciliation
+/// recomputes it from the attendance data; <see cref="ApplicationUser.IsRetired"/> is the authoritative flag and
+/// <see cref="IsRetired"/> here is always written together with it, in the same SaveChanges.
 /// </summary>
 public class MemberStatus : BaseEntity
 {
@@ -17,11 +17,7 @@ public class MemberStatus : BaseEntity
     /// </summary>
     public ApplicationUser User { get; set; } = null!;
 
-    /// <summary>
-    /// Indicates if the member is currently retired
-    /// Retired: 6+ months without activity
-    /// Active: Less than 6 months since last activity OR has 3 consecutive months with activity
-    /// </summary>
+    /// <summary>Copy of <see cref="ApplicationUser.IsRetired"/> as of the last reconciliation (Reformado = true).</summary>
     public bool IsRetired { get; set; }
 
     /// <summary>
@@ -78,15 +74,11 @@ public class MemberStatus : BaseEntity
     public int TotalActivitiesCount { get; set; }
 
     /// <summary>
-    /// Indicates if the retirement status was manually overridden by an administrator
-    /// When true, automatic retirement calculations will not change the IsRetired status
-    /// This allows admins to manually activate members without automatic re-retirement
+    /// Retired in 044B: no longer read or written (the permanent manual override and "Tornar ativo" were removed; the
+    /// activity rules alone decide the state). Kept only so the schema needs no migration; drop it in a later one.
     /// </summary>
     public bool OverrideRetired { get; set; }
 
-    /// <summary>
-    /// Timestamp when this status was last calculated and updated
-    /// Used to determine when a refresh is needed
-    /// </summary>
+    /// <summary>When the projection last changed (it is rewritten only when a value differs).</summary>
     public DateTime LastUpdatedAt { get; set; }
 }

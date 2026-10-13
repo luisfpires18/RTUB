@@ -73,9 +73,6 @@ public static class MemberEndpoints
         writes.MapPost("/{id}/reactivate", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.SetExpelledAsync(id, false, http.User), _ => Results.NoContent()));
 
-        writes.MapPost("/{id}/activate", async (string id, HttpContext http, IMemberAdminService admin) =>
-            ToResult(await admin.MakeActiveAsync(id, http.User), _ => Results.NoContent()));
-
         writes.MapPost("/{id}/reminder", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.SendReminderAsync(id, $"{http.Request.Scheme}://{http.Request.Host}", http.User), _ => Results.NoContent()));
     }

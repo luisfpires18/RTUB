@@ -27,7 +27,7 @@ type Tool =
   | { kind: 'create' }
   | { kind: 'edit'; id: string }
   | { kind: 'nickname' | 'expel' | 'reactivate' | 'delete'; member: MemberDetail }
-  | { kind: 'activate' | 'reminder'; member: ActiveMember; reload: () => void };
+  | { kind: 'reminder'; member: ActiveMember; reload: () => void };
 
 function filtersFromUrl(): DirectoryFilters {
   const p = new URLSearchParams(location.search);
@@ -44,7 +44,7 @@ function filtersFromUrl(): DirectoryFilters {
  * /members - Membros (React track 017; was the Blazor /members). Signed-in members only. Everyone in the tuna with
  * the old filters (search, category, Tuno sub-category, instrument, só ativos), members by nickname and Leitões by
  * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are the old lists.
- * Admin and Owner also add, edit, expel / reactivate Leitões, set a Leitão's nickname, make members active, send the
+ * Admin and Owner also add, edit, expel / reactivate Leitões, set a Leitão's nickname, send the
  * push reminder and delete (React track 018; was the Blazor /members/manage). Owner deletes any member, Admin Leitões.
  */
 export default function Members() {
@@ -224,12 +224,6 @@ export default function Members() {
             data?.canManage
               ? (m, reload) => (
                   <>
-                    {m.canMakeActive && (
-                      <button type="button" className="icon-btn" onClick={() => setTool({ kind: 'activate', member: m, reload })}>
-                        <Icon name="check" />
-                        <span className="sr-only">Tornar {m.displayName} ativo</span>
-                      </button>
-                    )}
                     {m.encourage && (
                       <button type="button" className="icon-btn" onClick={() => setTool({ kind: 'reminder', member: m, reload })}>
                         <Icon name="bell" />
@@ -340,24 +334,6 @@ function ToolDialog({
           <p className="warning">
             <Icon name="warning" />
             Apaga a conta e tudo o que lhe está ligado. Não dá para desfazer.
-          </p>
-        </ConfirmAction>
-      );
-    case 'activate':
-      return (
-        <ConfirmAction
-          title="Tornar membro ativo"
-          confirmLabel="Tornar ativo"
-          run={() => memberAdminApi.activate(tool.member.id)}
-          onClose={onClose}
-          onDone={() => {
-            tool.reload();
-            changed();
-          }}
-        >
-          <p>
-            Tornar <strong>{tool.member.displayName}</strong> ativo? O estado de reforma é reposto e deixa de precisar de 3 meses seguidos de atividade
-            para voltar.
           </p>
         </ConfirmAction>
       );

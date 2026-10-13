@@ -66,7 +66,6 @@ export type ActiveMember = {
   lastEvent: string | null;
   progress: string | null;
   encourage: boolean;
-  canMakeActive: boolean;
 };
 export type Birthday = {
   id: string;
@@ -135,7 +134,6 @@ export const memberAdminApi = {
   nickname: (id: string, nickname: string) => call<void>('PUT', `${at(id)}/nickname`, { nickname }),
   expel: (id: string) => call<void>('POST', `${at(id)}/expel`),
   reactivate: (id: string) => call<void>('POST', `${at(id)}/reactivate`),
-  activate: (id: string) => call<void>('POST', `${at(id)}/activate`),
   reminder: (id: string) => call<void>('POST', `${at(id)}/reminder`),
 };
 
