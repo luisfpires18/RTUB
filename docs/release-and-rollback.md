@@ -131,7 +131,7 @@ publish`.
 
 **The zip guards** (`scripts/release.sh verify`): `RTUB.dll`, deps and runtimeconfig present;
 `libQuestPdfSkia.so` and `libe_sqlite3.so` present, non-empty and ELF64 x86-64; manifest, service
-worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
+worker and offline page present; at least 200 files under `wwwroot/`; no backslash or
 path-traversal entry names.
 
 **"Tested" means:** every test suite runs on the exact commit; the one zip built from it is

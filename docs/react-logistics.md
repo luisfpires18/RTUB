@@ -103,7 +103,7 @@ Reminders are stored exactly as before and still never sent (unchanged). No emai
 ## Follow-ups
 
 - Reminder delivery (a job reading `LogisticsCardReminders`) never existed; decide whether to build or drop it.
-- `ILogisticsBoardService` / `ILogisticsListService` / `ILogisticsCardService` (and their tests) have no page caller;
-  `BoardCard` (Shared) and `css/3-components/kanban.css` are unused.
+- (042, resolved) `ILogistics{Board,List,Card}Service` and their repositories (no page caller) are removed; the board
+  folder sanitizer moved unchanged into `LogisticsKanbanService`. `BoardCard` and `kanban.css` went with 037.
 - Members still cannot open card details (as before); a read-only view would expose checklist and links.
 - Board files follow the current fiscal year: after 1 September a board shows an empty folder (unchanged).

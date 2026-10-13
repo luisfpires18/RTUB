@@ -78,6 +78,7 @@ Run only what the change can break.
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
 | React Mensagens (`/messages`: Messaging v2 on the preserved v1 tables, privacy, tracing redaction) | `docs/react-messages.md` |
 | Messages / Conversas removal (schema preserved for Messaging v2 — never drop) | `docs/messages-removal.md` |
+| Database cleanup candidates for task 043 (dead tables, evidence, KEEP list) | `docs/db-cleanup-inventory.md` |
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
 | Settings per environment, user-secrets / App Settings audit, VAPID keys | `docs/configuration-runbook.md` |

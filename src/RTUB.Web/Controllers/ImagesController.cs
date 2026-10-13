@@ -23,7 +23,7 @@ public class ImagesController : ControllerBase
     /// <summary>
     /// Serves an image file with E-Tag caching support.
     /// Returns 304 Not Modified if the E-Tag matches.
-    /// Supports subdirectories (e.g., "hierarchy/bag_leitao.webp")
+    /// Supports subdirectories (e.g., "icons/rtub-logo-192.png")
     /// </summary>
     /// <param name="**">The image path including subdirectories and filename</param>
     [HttpGet("{**imagePath}")]

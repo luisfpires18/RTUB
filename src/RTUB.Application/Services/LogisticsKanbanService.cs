@@ -890,7 +890,23 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
     }
 
     private string Folder(string boardName) =>
-        $"docs/{_environment.EnvironmentName}/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{LogisticsCardService.SanitizePathComponent(boardName)}/";
+        $"docs/{_environment.EnvironmentName}/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{SanitizePathComponent(boardName)}/";
+
+    /// <summary>Allowed board-folder characters: letters, digits, hyphen, underscore, space and accented Latin-1 letters.</summary>
+    private static readonly Regex SafePathRegex = new(@"[^a-zA-Z0-9\-_\sÀ-ÿ]", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The board name as one folder name: no "..", no separator or other unsafe character, "unnamed" when nothing is
+    /// left. Moved unchanged from the old LogisticsCardService (removed in 042, no caller).
+    /// </summary>
+    internal static string SanitizePathComponent(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        var sanitized = SafePathRegex.Replace(input.Replace("..", ""), "").Trim();
+        return string.IsNullOrEmpty(sanitized) ? "unnamed" : sanitized;
+    }
 
     private async Task<List<DocumentMetadata>> FilesAsync(string boardName)
     {

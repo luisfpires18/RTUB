@@ -69,10 +69,6 @@ public class ApplicationUser : IdentityUser
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }
 
-    // UI-only property for category validation (not mapped to database)
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? SelectedCategory { get; set; }
-
     // Image handling
     public string? ImageUrl { get; set; }
 

@@ -26,7 +26,9 @@ The features are gone from the running app; the schema is untouched (no migratio
   (773 deleted files at their repo paths, pre-change copies of the 35 edited files under `modified-before/`,
   `MANIFEST.md` with per-file blob SHA and SHA-256, `SHA256SUMS`). Git history holds the same bytes.
 
-## Phase 2 - the contract task (not started)
+## Phase 2 - the contract task (task 043, not started)
+
+Inventory with every other database leftover found by the 042 audit: `docs/db-cleanup-inventory.md`.
 
 Only after the release carrying 026 is live in production and its rollback window is over. Take and keep
 a production database backup first (it holds every Fidelis balance, bet and character). Rolling back across

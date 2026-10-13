@@ -117,7 +117,7 @@ development and the test projects are untouched. The zip was ~230 MB, mostly `ww
 
 **The guards run on the zip** (`scripts/release.sh verify`), not on the folder: `RTUB.dll`, deps and
 runtimeconfig present; both native libraries present, non-empty and ELF64 x86-64; manifest,
-service worker and offline page present; at least 500 files under `wwwroot/`; no backslash or
+service worker and offline page present; at least 200 files under `wwwroot/`; no backslash or
 path-traversal entry names. Its `--self-test` proves each refusal.
 
 **Never package with `Compress-Archive`.** It writes entry names with backslashes; Linux unpacks

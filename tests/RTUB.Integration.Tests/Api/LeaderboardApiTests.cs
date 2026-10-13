@@ -284,10 +284,11 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
     [Fact]
     public void LeaderboardService_NoLongerDependsOnTheLabelService()
     {
+        // ILabelService itself is gone since 042 (no caller left); RetiredImagesLabelsRoutesTests guards that.
         typeof(RTUB.Application.Services.LeaderboardService).GetConstructors()
             .SelectMany(c => c.GetParameters())
-            .Select(p => p.ParameterType)
-            .Should().NotContain(typeof(RTUB.Application.Interfaces.ILabelService));
+            .Select(p => p.ParameterType.Name)
+            .Should().NotContain(name => name.Contains("Label"));
         typeof(RTUB.Application.Interfaces.ILeaderboardService).GetMethod("UpdateStoryAsync").Should().BeNull();
     }
 

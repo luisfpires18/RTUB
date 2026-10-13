@@ -4,9 +4,9 @@ Where the React track stands, what comes next, and the shape every next task tak
 testing, schema, wording) live in `docs/react-portal-pilot.md` → *Rules for every React module*; per-module detail in
 `docs/react-*.md`. "Migration" in this file means moving a page from Blazor to React, never a database migration.
 
-_Last updated: 2026-10-12 (038 Push v2)_
+_Last updated: 2026-10-13 (042 cleanup audit)_
 
-## Done: 001-025 and 030-037 (merged to `dev`); 038 Push v2 (open, not merged)
+## Done: 001-025 and 030-041 (merged to `dev`)
 
 | Tasks | Module | React routes | Doc |
 | --- | --- | --- | --- |
@@ -64,18 +64,21 @@ Admin / Owner), not from the menu.
 ## Future work, outside the migration
 
 - **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
-  `AspNetUsers.FidelisBalance` stay until a later contract task drops them: `docs/games-bets-mytuno-removal.md`.
+  `AspNetUsers.FidelisBalance` stay until task 043 drops them: `docs/games-bets-mytuno-removal.md`,
+  `docs/db-cleanup-inventory.md`.
 - **Messages / Conversas**: the old inbox was removed by task 027 (`/messages/{id}` and `/hubs/messages` 404; push
   no longer leaves an inbox copy). **Messaging v2 (task 041)** is the React `/messages` on the same four tables, which
   are **preserved, never dropped** (`docs/react-messages.md`, `docs/messages-removal.md`).
 - **Images (slideshows) and Labels admin**: `/images` and `/labels` removed by task 029A (no replacement; both 404). The
-  Leaderboard story is temporary text in code until the owner decides. 029B drops the `Labels` and `Slideshows` tables
-  (with a migration) and the services left behind.
+  Leaderboard story is temporary text in code until the owner decides. Their services and repositories went in 042;
+  task 043 drops the `Labels` and `Slideshows` tables with a migration (`docs/db-cleanup-inventory.md`).
 
 ## Cleanup and polish (after or between features)
 
 Recorded in `STATE.md` → *Deferred*; the main ones:
-- Dead code with no caller since 013-024 (Shared cards, unused services, CSS, JS): one cleanup task.
+- (037, 039, 042, resolved) Dead code with no caller since 013-024: the Shared cards, Blazor CSS / JS went with the
+  host (037), most unused services in 039, the rest (Labels / Slideshows / Logistics board-list-card services, Blazor-era
+  helpers, CDN CSP sources, unused packages) in 042. Database leftovers: task 043, `docs/db-cleanup-inventory.md`.
 - Treasury report delete blocked by a Nerba order: 500 → 409.
 - Leitões seeing members' email/phone in member details: decide.
 - Real R2 checks on DEV for every storage-backed module (local runs use placeholder storage).
@@ -95,7 +98,7 @@ Every React-track task prompt states, and every task report answers:
 
 1. **Start:** `git checkout dev && git pull origin dev`; confirm the previous task is merged (`git merge-base
    --is-ancestor <sha> dev`); stop if not.
-2. **Branch:** `feat/<NNN>-<slug>` from `dev` (React sequence; next is `026`). Commit message `<NNN>: <what>`.
+2. **Branch:** `feat/<NNN>-<slug>` from `dev` (`chore/` for clean-up; next is `043`). Commit message `<NNN>: <what>`.
 3. **Scope:** the module and routes it owns; what is explicitly out of scope.
 4. **Never without an explicit request:** push, merge, PR, touch `master`, deploy PROD, change PROD DB / storage /
    Azure, send real email or push. No migration unless the task says so (stop and report first).

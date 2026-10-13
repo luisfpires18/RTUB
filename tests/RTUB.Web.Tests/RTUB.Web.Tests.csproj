@@ -9,10 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-    <PackageReference Include="MockQueryable.Moq" />
     <PackageReference Include="Moq" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
