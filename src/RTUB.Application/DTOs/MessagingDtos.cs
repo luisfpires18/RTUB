@@ -20,6 +20,9 @@ public sealed record ConversationListItem(
     bool Pinned,
     bool CanSend);
 
+/// <summary>The header badge (task 044): unread messages, summed over the member's conversations - the list's <c>UnreadCount</c>s.</summary>
+public sealed record UnreadSummary(int UnreadCount);
+
 /// <summary>An emoji and who used it, from the caller's point of view.</summary>
 public sealed record ReactionSummary(string Emoji, int Count, bool Mine);
 

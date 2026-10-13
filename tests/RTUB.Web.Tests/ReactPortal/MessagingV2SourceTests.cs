@@ -22,7 +22,8 @@ public class MessagingV2SourceTests
     {
         Read(Portal, "main.tsx").Should().Contain("'/messages': lazy(() => import('./Messages')),");
         Read(Portal, "content.ts").Should().Contain("messages: '/messages',");
-        Read(Portal, "MemberShell.tsx").Should().Contain("{ href: portal.messages, label: 'Mensagens', icon: 'chat' }");
+        // Task 044: the header inbox button links it (not the drawer menu).
+        Read(Portal, "MemberShell.tsx").Should().Contain("href={portal.messages}").And.NotContain("label: 'Mensagens'");
         Read(Web, "Program.cs").Should().Contain("\"/meetings\", \"/messages\" })").And.Contain("app.MapMessagingEndpoints();");
     }
 
@@ -61,6 +62,23 @@ public class MessagingV2SourceTests
 
         var service = Read(Root, "src", "RTUB.Application", "Services", "MessagingService.cs");
         service.Should().NotContain("StorageService").And.NotContain("IFormFile").And.NotContain("Stream ");
+    }
+
+    [Fact]
+    public void TheHeaderBadge_IsOneServerNumber_PolledByThePortal_NoHubNeeded()
+    {
+        var unread = Read(Portal, "unread.ts");
+        unread.Should().Contain("'/api/conversations/unread'").And.Contain("document.visibilityState === 'visible'")
+            .And.Contain("'visibilitychange'", "coming back to the tab refreshes it").And.Contain("useSyncExternalStore")
+            .And.Contain("publishUnread", "/messages feeds the badge from the list it already loaded");
+        unread.Should().NotContain("SignalR").And.NotContain("WebSocket").And.NotContain("EventSource");
+
+        Read(Portal, "Messages.tsx").Should().Contain("publishUnread(o.data)");
+        Read(Web, "Endpoints", "MessagingEndpoints.cs").Should().Contain("MapGet(\"/unread\"");
+
+        // Semantics shared with the list: not mine and my id not in ReadBy, summed.
+        Read(Root, "src", "RTUB.Application", "Services", "MessagingService.cs").Should()
+            .Contain("CountAsync(m => ids.Contains(m.ConversationId) && m.SenderId != me && !m.ReadBy.Contains(me))");
     }
 
     [Fact]

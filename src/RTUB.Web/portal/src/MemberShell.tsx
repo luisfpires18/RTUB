@@ -2,12 +2,13 @@ import { useRef, useState } from 'react';
 import { signOut, type CurrentUser, type MemberMenu } from './api';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
+import { unreadLabel, useUnread } from './unread';
 
 /**
- * The signed-in member shell (task 030): one menu, shown as a collapsible rail on wide screens and as a drawer on
- * phones and in the installed app. It replaces /profile as the members' way around. Only routes that still exist are
- * listed; the retired modules (games, bets, MyTuno, images, labels) are deliberately absent. Mensagens is Messaging v2
- * (task 041), not the retired 027 inbox.
+ * The signed-in member shell (task 030, reshaped in 044): the header carries [inbox] [profile] [menu] on the right, and
+ * the one member menu is a drawer from the right on every screen size (no permanent sidebar). Only routes that still
+ * exist are listed; the retired modules (games, bets, MyTuno, images, labels) are deliberately absent. Perfil and
+ * Mensagens are not in the menu: the profile chip and the inbox button are their direct entries.
  * The server decides which groups a member sees (MemberMenuAccess); every page still enforces its own rule.
  */
 
@@ -21,8 +22,6 @@ export const memberMenu: MenuGroup[] = [
     key: 'member',
     label: 'Membro',
     links: [
-      { href: portal.profile, label: 'Perfil', icon: 'person' },
-      { href: portal.messages, label: 'Mensagens', icon: 'chat' },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.myEnrollments, label: 'As minhas inscrições', icon: 'calendarCheck' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
@@ -92,7 +91,7 @@ function currentHref(groups: MenuGroup[], path: string): string | undefined {
     .sort((a, b) => b.length - a.length)[0];
 }
 
-function MemberNav({ member, compact = false, onNavigate }: { member: Member; compact?: boolean; onNavigate?: () => void }) {
+function MemberNav({ member, onNavigate }: { member: Member; onNavigate?: () => void }) {
   const groups = visibleMenu(member.menu);
   const current = currentHref(groups, location.pathname.replace(/\/+$/, '') || '/');
   const [closed, setClosed] = useState<string[]>([]);
@@ -100,8 +99,8 @@ function MemberNav({ member, compact = false, onNavigate }: { member: Member; co
   return (
     <nav className="mnav" aria-label="Menu de membro">
       {groups.map((g) => {
-        const open = compact || !closed.includes(g.key);
-        const listId = `mnav-${g.key}-${compact ? 'rail' : 'list'}`;
+        const open = !closed.includes(g.key);
+        const listId = `mnav-${g.key}`;
         return (
           <section key={g.key} className="mnav__group">
             <h2 className="mnav__heading">
@@ -110,7 +109,6 @@ function MemberNav({ member, compact = false, onNavigate }: { member: Member; co
                 className="mnav__toggle"
                 aria-expanded={open}
                 aria-controls={listId}
-                disabled={compact}
                 onClick={() => setClosed((c) => (c.includes(g.key) ? c.filter((k) => k !== g.key) : [...c, g.key]))}
               >
                 <span className="mnav__heading-text">{g.label}</span>
@@ -124,7 +122,6 @@ function MemberNav({ member, compact = false, onNavigate }: { member: Member; co
                     className="mnav__link"
                     href={l.href}
                     aria-current={l.href === current ? 'page' : undefined}
-                    title={compact ? l.label : undefined}
                     onClick={onNavigate}
                   >
                     <Icon name={l.icon} />
@@ -140,36 +137,7 @@ function MemberNav({ member, compact = false, onNavigate }: { member: Member; co
   );
 }
 
-/** Wide screens: a rail under the header, labels when expanded, icons only when collapsed. */
-export function MemberRail({ member, collapsed, onToggle }: { member?: Member; collapsed: boolean; onToggle: () => void }) {
-  return (
-    <div className="rail">
-      <button
-        type="button"
-        className="rail__toggle"
-        aria-expanded={!collapsed}
-        aria-controls="member-rail-menu"
-        title={collapsed ? 'Expandir o menu' : undefined}
-        onClick={onToggle}
-      >
-        <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} />
-        <span className="rail__toggle-label">{collapsed ? 'Expandir o menu' : 'Recolher o menu'}</span>
-      </button>
-      <div id="member-rail-menu" className="rail__menu">
-        {member ? (
-          <MemberNav member={member} compact={collapsed} />
-        ) : (
-          <p className="rail__wait" role="status">
-            <span className="sr-only">A carregar o menu…</span>
-          </p>
-        )}
-      </div>
-      {member && <SignOutButton className="rail__signout" compact={collapsed} />}
-    </div>
-  );
-}
-
-/** Phones and the installed app: the same menu in a drawer (native modal dialog), closed after every choice. */
+/** The member menu: a drawer from the right (native modal dialog: Esc, focus containment, inert page), closed after every choice. */
 export function MemberDrawer({ member }: { member?: Member }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -184,7 +152,7 @@ export function MemberDrawer({ member }: { member?: Member }) {
     <>
       <button
         type="button"
-        className="icon-btn header__menu"
+        className="icon-btn"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="member-drawer"
@@ -205,7 +173,7 @@ export function MemberDrawer({ member }: { member?: Member }) {
       >
         <div className="drawer__panel">
           <div className="drawer__top">
-            {member ? <MemberIdentity member={member} onNavigate={hide} /> : <span className="drawer__spacer" />}
+            <span className="drawer__title">Menu</span>
             <button type="button" className="icon-btn" onClick={hide}>
               <Icon name="close" />
               <span className="sr-only">Fechar o menu</span>
@@ -227,10 +195,27 @@ export function MemberDrawer({ member }: { member?: Member }) {
   );
 }
 
+/** Header inbox: straight to the messages page, with the unread message count (see unread.ts) as a badge. */
+export function MemberInbox() {
+  const unread = useUnread();
+  const label = unreadLabel(unread);
+  return (
+    <a className="icon-btn inbox" href={portal.messages} aria-current={location.pathname === portal.messages ? 'page' : undefined}>
+      <Icon name="inbox" />
+      {label && (
+        <span className="inbox__badge" aria-hidden="true">
+          {label}
+        </span>
+      )}
+      <span className="sr-only">{unread > 0 ? `Mensagens, ${unread} por ler` : 'Mensagens'}</span>
+    </a>
+  );
+}
+
 const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
-/** Who is signed in: avatar, name and the first category, linking to the account page. */
-export function MemberIdentity({ member, onNavigate }: { member?: Member; onNavigate?: () => void }) {
+/** Who is signed in: avatar, name and the first category. One click goes straight to /profile. */
+export function MemberIdentity({ member }: { member?: Member }) {
   if (!member) {
     return (
       <span className="idchip idchip--pending" role="status">
@@ -241,7 +226,7 @@ export function MemberIdentity({ member, onNavigate }: { member?: Member; onNavi
   }
 
   return (
-    <a className="idchip" href={portal.profile} onClick={onNavigate}>
+    <a className="idchip" href={portal.profile}>
       <img
         className="idchip__avatar"
         src={member.avatarUrl}
@@ -262,7 +247,7 @@ export function MemberIdentity({ member, onNavigate }: { member?: Member; onNavi
 }
 
 /** POST /auth/logout with its antiforgery token; the server redirects to /. */
-export function SignOutButton({ className = '', compact = false }: { className?: string; compact?: boolean }) {
+export function SignOutButton({ className = '' }: { className?: string }) {
   const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
 
   return (
@@ -271,7 +256,6 @@ export function SignOutButton({ className = '', compact = false }: { className?:
         type="button"
         className="mnav__link signout__btn"
         disabled={state === 'busy'}
-        title={compact ? 'Terminar sessão' : undefined}
         onClick={async () => {
           setState('busy');
           if (!(await signOut())) setState('failed');

@@ -66,12 +66,7 @@ public sealed class MessagingService : IMessagingService
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
-        // The SQL filter is a substring match on the id list; HasParticipant makes it exact.
-        var conversations = (await db.Conversations.AsNoTracking()
-                .Where(c => !c.IsArchived && c.Participants.Contains(me))
-                .ToListAsync())
-            .Where(c => c.HasParticipant(me))
-            .ToList();
+        var conversations = await MyConversationsAsync(db, me);
 
         var items = await ListItemsAsync(db, conversations, user, me);
         return EventResult<IReadOnlyList<ConversationListItem>>.Ok(items
@@ -79,6 +74,29 @@ public sealed class MessagingService : IMessagingService
             .ThenByDescending(i => i.LastMessageAt)
             .ToList());
     }
+
+    /// <summary>Same rows and same rule as the list's per-conversation <c>UnreadCount</c>, summed, without building the list.</summary>
+    public async Task<EventResult<UnreadSummary>> GetUnreadAsync(ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<UnreadSummary>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var ids = (await MyConversationsAsync(db, me)).Select(c => c.Id).ToList();
+        var unread = await db.Messages.AsNoTracking()
+            .CountAsync(m => ids.Contains(m.ConversationId) && m.SenderId != me && !m.ReadBy.Contains(me));
+        return EventResult<UnreadSummary>.Ok(new UnreadSummary(unread));
+    }
+
+    // The SQL filter is a substring match on the id list; HasParticipant makes it exact. Archived ones stay hidden.
+    private static async Task<List<Conversation>> MyConversationsAsync(ApplicationDbContext db, string me) =>
+        (await db.Conversations.AsNoTracking()
+            .Where(c => !c.IsArchived && c.Participants.Contains(me))
+            .ToListAsync())
+        .Where(c => c.HasParticipant(me))
+        .ToList();
 
     public async Task<EventResult<IReadOnlyList<MessagingPerson>>> GetRecipientsAsync(ClaimsPrincipal user)
     {

@@ -6,6 +6,7 @@ import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { loginTo } from './musicApi';
+import { publishUnread } from './unread';
 
 // /api/conversations + /api/messages (task 041, Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
 // tables. The server decides every rule (MessagingService): a conversation the member is not in is a 404, and
@@ -104,7 +105,11 @@ export default function Messages() {
   const [starting, setStarting] = useState(false);
 
   const loadList = useCallback(
-    () => api.list().then((o) => setList((cur) => (o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : Array.isArray(cur) ? cur : 'failed'))),
+    () =>
+      api.list().then((o) => {
+        if (o.kind === 'ok') publishUnread(o.data); // the header badge follows the list
+        setList((cur) => (o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : Array.isArray(cur) ? cur : 'failed'));
+      }),
     [],
   );
 

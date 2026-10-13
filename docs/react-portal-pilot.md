@@ -327,19 +327,20 @@ everyone. Pinned by `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTe
 
 Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not with `/profile`:
 
-- **Wide screens (≥ 1000px):** a rail under the header, left side; the page moves over for it. Expanded it shows
-  icons and labels (groups can be folded); collapsed it shows icons only, with the labels kept for screen readers
-  and as tooltips. The collapsed choice is kept per browser (`localStorage` `rtub-member-rail`).
-- **Phones and the installed app:** the menu button opens the same menu in a right-hand drawer (native modal
-  `<dialog>`: Esc, focus containment, backdrop tap), 48px rows, safe-area insets; it closes after every choice.
-- **Groups:** Membro (Perfil, Atuações, As minhas inscrições, Ensaios, Música, Galeria, Novidades) · Tuna
+- **Task 044 (current):** no sidebar. The header ends with `[inbox] [profile chip] [menu]`; the menu button opens the
+  one menu in a right-hand drawer at every width (native modal `<dialog>`: Esc, focus containment, backdrop tap),
+  48px rows, safe-area insets; it closes after every choice. The profile chip links straight to `/profile`; the inbox
+  button to `/messages` with the unread badge (`portal/src/unread.ts`, `docs/react-messages.md`). **Perfil and
+  Mensagens are not in the menu** (routes and pages unchanged). The rail below (and `rtub-member-rail`) is gone.
+- ~~**Wide screens (≥ 1000px):** a rail under the header (task 030, removed in 044).~~
+- **Groups:** Membro (Atuações, As minhas inscrições, Ensaios, Música, Galeria, Novidades) · Tuna
   (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Recursos (Instrumentos, Loja,
   Documentação) · Gestão (Reuniões, Questões, Logística, Tesouraria, Pedidos, Emails, Notificações) · Owner
   (Utilizadores, Auditoria, Base de dados).
 - **Who sees what** (`MemberMenuAccess`, the retired Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
   Owner, Mod or anyone not a Leitão; Logística, Tesouraria → Admin, Owner, Mod or Tuno; Pedidos, Emails,
   Notificações → Admin; the Owner group → Owner. The rest → every member.
-- **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Mensagens (027), Imagens and Conteúdo /
+- **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Imagens and Conteúdo /
   Labels (029A). `MemberShellTests` pins the list, the gating and that every link opens a live route.
 - **No jump on load:** `localStorage` `rtub-member-shell` remembers that the last load was signed in, so a
   member's page opens in the shell while `/api/account/me` answers; the answer always wins, and signing out

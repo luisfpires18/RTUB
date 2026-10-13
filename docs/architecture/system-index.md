@@ -48,7 +48,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Web/portal/` | React 19 + Vite source of every React page (route list: `Program.cs`, `portal/src/main.tsx`). Not published. |
-| `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header and member menu (rail ≥ 1000px, drawer below; task 030). |
+| `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header (inbox + unread badge, profile chip, menu button) and member menu (right-hand drawer at every width; tasks 030 / 044); `unread.ts` polls the header badge. |
 | `src/RTUB.Web/Endpoints/RequestAdminEndpoints.cs`, `src/RTUB.Application/Services/RequestAdminService.cs` | React Pedidos API (031): the requests list for members but Leitões, approve / reject / delete for Admin and Owner (`RequestsAuthorization`). `docs/react-requests-questions.md`. |
 | `src/RTUB.Web/Endpoints/QuestionEndpoints.cs`, `src/RTUB.Application/Services/QuestionBoardService.cs` | React Perguntas API (031): ask a holder of an Órgãos Sociais position, replies in turns, close / delete / remind by the author (`QuestionsAuthorization`); push stays in `QuestionService`. `docs/react-requests-questions.md`. |
 | `src/RTUB.Web/Endpoints/MemberAreaEndpoints.cs`, `src/RTUB.Application/Services/MyProfileService.cs`, `MemberMapService.cs`, `HallOfFameService.cs` | React profile editor (`/api/me/*`, own profile only), members map (`/api/members/map`, city-level, geocoding cache) and Hall of Fame (`/api/hall-of-fame`), task 032. `docs/react-member-area.md`. |

@@ -3,7 +3,7 @@ import { getAnnouncement, getCurrentUser, getVersion, wasSignedIn, type Announce
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
 import { Icon, type IconName } from './icons';
-import { MemberDrawer, MemberIdentity, MemberRail, type Member } from './MemberShell';
+import { MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 
 export const sections = [
   { id: 'music', label: 'Música' },
@@ -32,15 +32,13 @@ const sectionHref = (id: string) => sectionPages[id] ?? `/#${id}`;
 export function Layout({ children }: { children: ReactNode }) {
   useEffect(revealApp, []);
   const session = useSession();
-  const [collapsed, toggleRail] = useRailCollapsed();
   const shell = session.kind !== 'visitor';
   const member = session.kind === 'member' ? session.user : undefined;
 
   return (
-    <div className={shell ? `shell shell--member${collapsed ? ' shell--collapsed' : ''}` : 'shell'}>
+    <div className={shell ? 'shell shell--member' : 'shell'}>
       <a className="skip" href="#conteudo">Saltar para o conteúdo</a>
       <Header shell={shell} member={member} />
-      {shell && <MemberRail member={member} collapsed={collapsed} onToggle={toggleRail} />}
       <div className="shell__body">
         <main id="conteudo" tabIndex={-1}>
           {children}
@@ -130,32 +128,6 @@ function useSession(): Session {
   return { kind: 'pending' };
 }
 
-const RAIL_KEY = 'rtub-member-rail';
-
-/** The rail's collapsed state, kept per browser; storage blocked → expanded on every load. */
-function useRailCollapsed(): [boolean, () => void] {
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(RAIL_KEY) === 'collapsed';
-    } catch {
-      return false;
-    }
-  });
-
-  const toggle = () =>
-    setCollapsed((c) => {
-      try {
-        if (c) localStorage.removeItem(RAIL_KEY);
-        else localStorage.setItem(RAIL_KEY, 'collapsed');
-      } catch {
-        // Storage blocked: the choice lasts for this page only.
-      }
-      return !c;
-    });
-
-  return [collapsed, toggle];
-}
-
 // ---------- launch splash ----------
 
 const LAUNCH_KEY = 'rtub-portal-launched';
@@ -205,7 +177,7 @@ function Brand() {
 
 /**
  * Visitors: the public sections, "Pedir atuação" and Login. Members: no public call to action - who is signed in, and
- * the member menu (the rail on wide screens, the drawer behind the menu button on phones).
+ * the inbox, the profile chip and the member menu (a drawer from the right, behind the menu button).
  */
 function Header({ shell, member }: { shell: boolean; member?: Member }) {
   return (
@@ -226,6 +198,7 @@ function Header({ shell, member }: { shell: boolean; member?: Member }) {
         <div className="header__actions">
           {shell ? (
             <>
+              {member && <MemberInbox />}
               <MemberIdentity member={member} />
               <MemberDrawer member={member} />
             </>

@@ -34,7 +34,7 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
     {
         var anonymous = Anonymous();
         await WithTokenAsync(anonymous);
-        foreach (var path in new[] { "/api/conversations", "/api/conversations/recipients", "/api/conversations/1" })
+        foreach (var path in new[] { "/api/conversations", "/api/conversations/unread", "/api/conversations/recipients", "/api/conversations/1" })
         {
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
         }
@@ -90,6 +90,33 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         (await stranger.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "intruso" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await stranger.PostAsync($"/api/conversations/{id}/read", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await stranger.PostAsync($"/api/conversations/{id}/mute", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task TheHeaderBadge_CountsUnreadMessages_ForTheRecipientOnly_AndAgreesWithTheList()
+    {
+        var (a, aUser) = await SignInAsync();
+        var (b, bUser) = await SignInAsync();
+        var (c, _) = await SignInAsync();
+
+        async Task<int> Unread(HttpClient client) => (await Json(client, "/api/conversations/unread")).GetProperty("unreadCount").GetInt32();
+
+        (await Unread(b)).Should().Be(0);
+        var id = await StartAsync(a, bUser.Id);
+        await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "um" });
+        await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "dois" });
+
+        (await Unread(b)).Should().Be(2, "messages, not conversations");
+        (await Unread(a)).Should().Be(0, "my own messages never count");
+        (await Unread(c)).Should().Be(0, "a stranger sees nothing");
+        Row(await Json(b, "/api/conversations"), id).GetProperty("unreadCount").GetInt32().Should().Be(await Unread(b));
+
+        await b.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "resposta" });
+        (await Unread(b)).Should().Be(2, "sending does not change my own count");
+        (await Unread(a)).Should().Be(1);
+
+        await b.PostAsync($"/api/conversations/{id}/read", null);
+        (await Unread(b)).Should().Be(0);
     }
 
     [Fact]

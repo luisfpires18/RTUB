@@ -5,9 +5,9 @@ using Xunit;
 namespace RTUB.Web.Tests.ReactPortal;
 
 /// <summary>
-/// Task 030: the React member shell. Visitors keep the public header (five sections, "Pedir atuação", Login); signed-in
-/// members get no public call to action, their identity, and one member menu - a collapsible rail on wide screens and a
-/// drawer on phones (MemberShell.tsx). The menu lists only live routes, never the retired modules, and the server decides
+/// Task 030 / 044: the React member shell. Visitors keep the public header (five sections, "Pedir atuação", Login);
+/// signed-in members get no public call to action and no sidebar: [inbox] [profile] [menu] in the header, the menu being
+/// a drawer from the right at every width (MemberShell.tsx). Perfil and Mensagens are header controls, not menu links. The menu lists only live routes, never the retired modules, and the server decides
 /// which groups a member sees (MemberMenuAccess; its rules are covered by AccountEndpointTests).
 /// </summary>
 public class MemberShellTests
@@ -19,6 +19,9 @@ public class MemberShellTests
 
     private static string Function(string file, string name) =>
         Regex.Match(Read(file), $@"\nfunction {name}\(.*?\n\}}\n", RegexOptions.Singleline).Value;
+
+    private static string Exported(string file, string name) =>
+        Regex.Match(Read(file), $@"\nexport function {name}\(.*?\n\}}\n", RegexOptions.Singleline).Value;
 
     [Fact]
     public void Header_ShowsVisitorsPedirAtuacaoAndLogin_AndMembersTheirIdentityAndMenu()
@@ -33,8 +36,11 @@ public class MemberShellTests
         var visitor = split.Groups[2].Value;
 
         visitor.Should().Contain("Pedir atuação").And.Contain("<LoginLink").And.Contain("<MobileMenu");
-        member.Should().Contain("<MemberIdentity").And.Contain("<MemberDrawer")
+        member.Should().Contain("<MemberInbox").And.Contain("<MemberIdentity").And.Contain("<MemberDrawer")
             .And.NotContain("Pedir atuação").And.NotContain("LoginLink").And.NotContain("MobileMenu");
+        member.IndexOf("<MemberInbox", StringComparison.Ordinal).Should().BeLessThan(member.IndexOf("<MemberIdentity", StringComparison.Ordinal))
+            .And.BeLessThan(member.IndexOf("<MemberDrawer", StringComparison.Ordinal), "the order is inbox, profile, menu");
+        member.IndexOf("<MemberIdentity", StringComparison.Ordinal).Should().BeLessThan(member.IndexOf("<MemberDrawer", StringComparison.Ordinal));
         header.Should().Contain("{!shell && (", "the public section nav is the visitors' header only")
             .And.NotContain("AccountLink", "the header never says Membros or A minha conta");
 
@@ -43,19 +49,37 @@ public class MemberShellTests
     }
 
     [Fact]
-    public void Layout_ShowsTheRailOnlyInTheMemberShell()
+    public void Layout_HasNoSidebar_AndTheSessionStillDecidesTheShell()
     {
-        var layout = Regex.Match(Read("App.tsx"), @"export function Layout\(.*?\n\}\n", RegexOptions.Singleline).Value;
+        var layout = Exported("App.tsx", "Layout");
+        layout.Should().NotContain("Rail").And.NotContain("collapsed");
 
-        layout.Should().Contain("{shell && <MemberRail");
-        Read("App.tsx").Should().Contain("if (user?.authenticated) return { kind: 'member', user };")
+        var app = Read("App.tsx");
+        app.Should().NotContain("MemberRail").And.NotContain("useRailCollapsed").And.NotContain("rtub-member-rail")
+            .And.Contain("if (user?.authenticated) return { kind: 'member', user };")
             .And.Contain("if (user || failed || !hint) return { kind: 'visitor' };", "a visitor never waits for the session");
+        Read("MemberShell.tsx").Should().NotContain("MemberRail").And.NotContain("compact");
         Read("api.ts").Should().Contain("rememberMemberShell(false);\n    const form = document.createElement('form');",
             "signing out drops the layout hint before leaving");
+
+        var css = Read("styles.css");
+        css.Should().NotContain("--rail").And.NotContain(".rail").And.NotContain("shell--collapsed", "no leftover sidebar offset or grid column");
+    }
+
+    [Fact]
+    public void ProfileAndInboxControls_GoStraightToTheirPages()
+    {
+        var shell = Read("MemberShell.tsx");
+        var identity = Exported("MemberShell.tsx", "MemberIdentity");
+        identity.Should().Contain("<a className=\"idchip\" href={portal.profile}>", "one click, no dropdown first").And.Contain("(o meu perfil)");
+
+        var inbox = Exported("MemberShell.tsx", "MemberInbox");
+        inbox.Should().Contain("href={portal.messages}").And.Contain("<Icon name=\"inbox\" />").And.Contain("useUnread()")
+            .And.Contain("Mensagens, ${unread} por ler", "the accessible name carries the count");
+        Read("content.ts").Should().Contain("profile: '/profile',").And.Contain("messages: '/messages',");
     }
 
     [Theory]
-    [InlineData("portal.profile")]
     [InlineData("portal.events")]
     [InlineData("portal.myEnrollments")]
     [InlineData("portal.rehearsals")]
@@ -104,8 +128,8 @@ public class MemberShellTests
             Read("App.tsx").Should().NotContain(url);
         }
 
-        // Mensagens came back as Messaging v2 (task 041): the React /messages, linked through content.ts like every page.
-        menu.Should().Contain("{ href: portal.messages, label: 'Mensagens', icon: 'chat' }");
+        // Task 044: Perfil and Mensagens are header controls (profile chip, inbox), not drawer links.
+        menu.Should().NotContain("'Perfil'").And.NotContain("'Mensagens'").And.NotContain("portal.profile").And.NotContain("portal.messages");
     }
 
     [Fact]
@@ -143,7 +167,6 @@ public class MemberShellTests
     [InlineData("portal.membersMap", null)]
     [InlineData("portal.hallOfFame", null)]
     [InlineData("portal.naipes", null)]
-    [InlineData("portal.profile", null)]
     public void Menu_GatesEachRestrictedLinkOnTheServersMenuFlag(string href, string? flag)
     {
         var line = MenuLinks().Single(l => l.Href == href).Line;
@@ -169,7 +192,8 @@ public class MemberShellTests
         var css = Read("styles.css");
         Regex.Match(css, @"\.drawer__panel \{[^}]*\}").Value.Should().Contain("env(safe-area-inset-bottom)").And.Contain("env(safe-area-inset-top)");
         Regex.Match(css, @"\.drawer \.mnav__link \{[^}]*\}").Value.Should().Contain("min-height: 48px", "thumb-sized targets on phones");
-        Regex.Match(css, @"\n\.rail \{[^}]*\}").Value.Should().Contain("display: none", "phones get the drawer, not the rail");
+        Regex.Match(css, @"\n\.drawer \{[^}]*\}").Value.Should().Contain("inset: 0 0 0 auto", "the drawer opens from the right at every width");
+        drawer.Should().NotContain("header__menu", "the menu button is never hidden on wide screens");
         css.Should().Contain("@keyframes drawer-in");
         Regex.Match(css, @"@media \(prefers-reduced-motion: no-preference\) \{.*?@keyframes drawer-in", RegexOptions.Singleline).Success
             .Should().BeTrue("the drawer only animates when motion is welcome");

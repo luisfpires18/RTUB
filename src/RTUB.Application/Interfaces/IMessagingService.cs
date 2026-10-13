@@ -7,6 +7,7 @@ namespace RTUB.Application.Interfaces;
 public interface IMessagingService
 {
     Task<EventResult<IReadOnlyList<ConversationListItem>>> GetConversationsAsync(ClaimsPrincipal user);
+    Task<EventResult<UnreadSummary>> GetUnreadAsync(ClaimsPrincipal user);
     Task<EventResult<IReadOnlyList<MessagingPerson>>> GetRecipientsAsync(ClaimsPrincipal user);
     Task<EventResult<ConversationDetail>> GetConversationAsync(int id, int? beforeMessageId, ClaimsPrincipal user);
     Task<EventResult<ConversationDetail>> StartConversationAsync(StartConversationRequest input, ClaimsPrincipal user);

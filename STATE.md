@@ -3,9 +3,14 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13 (043)_
+_Last updated: 2026-10-13 (044 batch 2)_
 
 ## Phase
+**044 batch 2 (uncommitted on `dev`, not pushed): authenticated shell.** Left sidebar removed; header = `[inbox + unread
+badge] [profile chip → /profile] [menu]`, menu = right-hand drawer at every width without Perfil / Mensagens. Badge =
+unread messages from new `GET /api/conversations/unread`, polled every 10 s (no hub exists; no schema change, no migration).
+Detail: `docs/react-messages.md` → *Header unread badge*, `docs/react-portal-pilot.md` → *Member shell*.
+
 **Open: `chore/043-db-cleanup` (task 043)**, from `dev` @ `593b1d63` (has 042). Not committed / pushed; **do not merge
 into `dev` until a release without it (026-042) is live in PROD past its rollback window** (N-1: PROD 2.0.4 still reads
 these tables and `FidelisBalance`). **043:** migrations `RemoveRetiredGamesLabelsSlideshowsSchema` (drops the 15 game

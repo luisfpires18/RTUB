@@ -32,6 +32,7 @@ part in, or an archived one, is a **404** (its existence is not revealed).
 | Method | Path | Does |
 | --- | --- | --- |
 | GET | `/api/conversations` | my conversations: title, avatar, last-message preview, unread count, muted, pinned, `canSend`; pinned first, then latest activity |
+| GET | `/api/conversations/unread` | `{ unreadCount }`: unread **messages** summed over my conversations (task 044, the header badge); same rule and rows as the list's `unreadCount` |
 | GET | `/api/conversations/recipients` | members I can start a chat with (not me, not expelled) |
 | GET | `/api/conversations/{id}?before=<messageId>` | one conversation: the other participants and 50 messages (oldest first), `hasMore`, the reaction choices |
 | POST | `/api/conversations` `{ userId }` | opens (or reopens, un-archiving) the one-to-one conversation with that member |
@@ -74,7 +75,19 @@ Conversation list + chat; one pane at a time below 900px (the back button return
 Bubbles (mine right), sender names in groups, day separators, reply quote, reaction chips + picker, "Vista" on my
 messages someone has read, mute toggle in the chat header, "Nova" to start a chat, read-only notice where `canSend` is
 false, "Mensagens anteriores" for older pages. Polls the open chat every 10 s and the list every 30 s while the tab is
-visible; opening a chat marks it read. Menu: "Mensagens" in the member group.
+visible; opening a chat marks it read. Entry: the inbox button in the member header (not the menu, task 044).
+
+### Header unread badge (task 044, `portal/src/unread.ts`, `MemberShell.tsx` `MemberInbox`)
+
+- **Semantics:** unread *messages*, not conversations: not sent by me and my id not in `ReadBy`, summed over my
+  non-archived conversations (muted ones count, as in the list). My own messages never count. Shown as `1`…`99`, `99+`,
+  nothing at 0; the accessible name is "Mensagens, N por ler".
+- **Source:** one number from `GET /api/conversations/unread`, polled every 10 s while the tab is visible, on
+  `visibilitychange` and `online`; `/messages` publishes the sum from the list it loads (so reading a chat updates the
+  badge as soon as the list reloads). Every page load starts from the server's number, so a reload reconciles. A failed
+  poll keeps the last number.
+- **No push channel:** there is no hub (`/hubs/messages` stays 404, no SignalR package, 037 / 039), so "real time" is the
+  poll: a message shows up within ~10 s, no refresh. A hub is the follow-up if that is too slow.
 
 ## Tests
 
@@ -88,7 +101,7 @@ read state, system / announcement / group / archived / expelled rules, paging, t
 
 - Group membership is frozen at what v1's auto-sync last wrote before task 027; no group creation or member
   management in v2 yet. Decide whether to bring back the default groups' sync.
-- No live push to an open chat (polling); no unread badge in the member menu; no pin / archive UI.
+- No live push (polling, 10 s for the badge); no pin / archive UI.
 - Push fan-out is inline and sequential: move to a background queue if large groups make sending slow.
 - `/owner/db` can read private messages: decide whether to block the messaging tables there.
 - DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them).

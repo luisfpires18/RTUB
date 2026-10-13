@@ -20,6 +20,10 @@ public static class MessagingEndpoints
         conversations.MapGet("/", async (HttpContext http, IMessagingService service) =>
             ToResult(await service.GetConversationsAsync(http.User)));
 
+        // The header badge (task 044): one number, polled from every member page.
+        conversations.MapGet("/unread", async (HttpContext http, IMessagingService service) =>
+            ToResult(await service.GetUnreadAsync(http.User)));
+
         conversations.MapGet("/recipients", async (HttpContext http, IMessagingService service) =>
             ToResult(await service.GetRecipientsAsync(http.User)));
 

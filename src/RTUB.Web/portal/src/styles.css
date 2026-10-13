@@ -555,13 +555,8 @@ main:focus {
 }
 
 /* ---------- member shell (task 030) ----------
-   Signed-in members: no public header nav or call to action; the member menu is a rail on wide screens (labels or
-   icons only) and a right-hand drawer on phones and in the installed app (MemberShell.tsx). */
-
-.shell {
-  --rail-w: 248px;
-  --rail-w-collapsed: 72px;
-}
+   Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [profile]
+   [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
 
 .shell--member .header__inner {
   max-width: none;
@@ -641,7 +636,7 @@ main:focus {
   }
 }
 
-/* The menu itself, shared by the rail and the drawer. */
+/* The member menu inside the drawer. */
 .mnav {
   display: grid;
   gap: 4px;
@@ -764,100 +759,7 @@ main:focus {
   font-size: 0.8125rem;
 }
 
-/* Wide screens: the rail sits under the header and the page moves over for it. */
-.rail {
-  display: none;
-}
-
-@media (min-width: 1000px) {
-  .shell--member {
-    --rail: var(--rail-w);
-  }
-
-  .shell--member.shell--collapsed {
-    --rail: var(--rail-w-collapsed);
-  }
-
-  .rail {
-    position: fixed;
-    top: var(--header-h);
-    bottom: 0;
-    left: 0;
-    z-index: 40;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: var(--rail);
-    padding: 12px 12px calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-    border-right: 1px solid var(--line);
-    background: var(--bg-raise);
-    transition: width 180ms ease;
-  }
-
-  .shell--member .shell__body {
-    padding-left: var(--rail);
-    transition: padding-left 180ms ease;
-  }
-
-  /* The music player bar spans the page, not the rail. */
-  .shell--member .player {
-    left: var(--rail);
-  }
-}
-
-.rail__toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--muted);
-  font: 500 0.8125rem/1.2 var(--font-body);
-  cursor: pointer;
-}
-
-.rail__toggle:hover {
-  border-color: var(--purple-ink);
-  color: var(--ink);
-}
-
-.rail__menu {
-  flex: 1;
-  min-height: 0;
-  margin-inline: -4px;
-  padding-inline: 4px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-
-.rail__wait {
-  min-height: 40px;
-}
-
-/* Collapsed: icons only. Labels and group names stay for screen readers; the title attribute names each icon. */
-.shell--collapsed .rail .mnav__label,
-.shell--collapsed .rail .rail__toggle-label,
-.shell--collapsed .rail .mnav__heading {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.shell--collapsed .rail .mnav__link,
-.shell--collapsed .rail .rail__toggle {
-  justify-content: center;
-  padding: 0;
-}
-
-/* Phones and the installed app: the same menu in a drawer from the right, where the thumb is. */
+/* The member menu: a drawer from the right at every width, where the thumb is. */
 .drawer {
   position: fixed;
   inset: 0 0 0 auto;
@@ -891,6 +793,42 @@ main:focus {
   justify-content: space-between;
   gap: 12px;
   min-height: 56px;
+}
+
+.drawer__title {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Header inbox: the unread count sits on the icon's top-right corner. */
+.inbox {
+  position: relative;
+  text-decoration: none;
+}
+
+.inbox[aria-current='page'] {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.14);
+}
+
+.inbox__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
 }
 
 .drawer__menu {
