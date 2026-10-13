@@ -575,10 +575,10 @@ public class Program
         // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
         // React Events (track 011): the agenda and one event; a member answers in a modal on the event
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
-        // (Minhas Inscrições, 012E) are /events/my-enrollments. The discussion and contact tracking are
+        // are the "Onde estiveste" modal on /events. The discussion and contact tracking are
         // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
-                     "/events", "/events/{id:int}", "/events/my-enrollments", "/news" })
+                     "/events", "/events/{id:int}", "/news" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));

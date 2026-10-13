@@ -8,6 +8,14 @@ import { DEFAULT_AVATAR, membersApi, shortDate, type ActiveMember, type Birthday
 // The old /members modals (React track 017). The server decides who sees what (MemberDirectoryService); Admin/Owner
 // tools (018) come in through `actions` / `rowActions` from Members.tsx.
 
+/**
+ * The server's progress sentence (MemberStatusService): "N meses até reforma" for an active member (shown only with no
+ * activity this month and 1-5 months left; MemberDirectoryService.ShowProgress) or "N/3 meses de atividade consecutiva"
+ * for a retired one. Only the "1 meses" wording is fixed here; a countdown is never shown for a retired member.
+ */
+export const progressText = (progress: string | null, retired: boolean | null) =>
+  !progress || (retired && /até reforma/.test(progress)) ? null : progress.replace(/^1 meses/, '1 mês');
+
 export function MemberFace({ avatarUrl, size }: { avatarUrl: string | null; size: number }) {
   return (
     <img
@@ -129,7 +137,7 @@ export function StateSection({ state }: { state: MemberState }) {
         {state.retired !== null && (
           <Field label="Estado atual">
             <MemberBadge kind={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
-            {state.progress && <span className="member-progress">{state.progress}</span>}
+            {progressText(state.progress, state.retired) && <span className="member-progress">{progressText(state.progress, state.retired)}</span>}
             {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
               <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} />
             ) : null}
@@ -225,10 +233,29 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
               <span className="member-row__who">
                 <strong>{m.displayName}</strong>
                 {m.fullName && <small>{m.fullName}</small>}
-                <small>
-                  {m.instrument ?? '-'} · Último ensaio {shortDate(m.lastRehearsal) ?? '-'} · Última atuação {shortDate(m.lastEvent) ?? '-'}
-                </small>
-                {m.progress && <small className="member-progress">{m.progress}</small>}
+                <small>{m.instrument ?? '-'}</small>
+                <span className="member-dates">
+                  <span className="member-date">
+                    <Icon name="music" />
+                    <span>
+                      <span className="member-date__label">Último ensaio</span>
+                      <strong>{shortDate(m.lastRehearsal) ?? '-'}</strong>
+                    </span>
+                  </span>
+                  <span className="member-date">
+                    <Icon name="calendar" />
+                    <span>
+                      <span className="member-date__label">Última atuação</span>
+                      <strong>{shortDate(m.lastEvent) ?? '-'}</strong>
+                    </span>
+                  </span>
+                </span>
+                {progressText(m.progress, m.retired) && (
+                  <span className="member-progress member-progress--row">
+                    <Icon name="clock" />
+                    {progressText(m.progress, m.retired)}
+                  </span>
+                )}
                 {m.encourage && <small className="member-encourage">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</small>}
               </span>
               <MemberBadge kind={m.retired ? 'retired' : 'active'}>{m.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>

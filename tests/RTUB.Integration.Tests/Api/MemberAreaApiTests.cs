@@ -748,7 +748,7 @@ public class MemberAreaRetirementTests
         content.Should().Contain("membersMap: '/members/map'").And.Contain("hallOfFame: '/hall-of-fame'").And.NotContain("memberProfile");
         File.ReadAllText(Path.Combine(portal, "MemberShell.tsx")).Should().Contain("href: portal.membersMap,").And.Contain("href: portal.hallOfFame,");
         File.ReadAllText(Path.Combine(portal, "Members.tsx")).Should().Contain("href={portal.membersMap}");
-        File.ReadAllText(Path.Combine(portal, "Leaderboard.tsx")).Should().Contain("href={portal.hallOfFame}");
+        File.ReadAllText(Path.Combine(portal, "Leaderboard.tsx")).Should().NotContain("portal.hallOfFame", "Classificação and Hall of Fame are not presented as one feature");
         var main = File.ReadAllText(Path.Combine(portal, "main.tsx"));
         main.Should().Contain("'/members/map': lazy(").And.Contain("'/hall-of-fame': lazy(").And.Contain("'/profile': lazy(");
 
@@ -774,7 +774,7 @@ public class MemberAreaRetirementTests
             .And.Contain("label=\"Instrumentos\"").And.Contain("label=\"Padrinho\"");
         profile.Should().Contain("<TunaPath items={m.timeline} />", "the timeline is the server's real member data, never hardcoded")
             .And.Contain("Último ensaio").And.Contain("Última atuação");
-        profile.Should().Contain("href={portal.myEnrollments}").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");
+        profile.Should().NotContain("portal.myEnrollments").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");
 
         // One badge component, with the per-kind variants kept in it: profile header, dialogs, directory and the header badge.
         File.ReadAllText(Path.Combine(portal, "MemberBadge.tsx")).Should().Contain("member-badge--${kind}");
@@ -838,6 +838,50 @@ public class MemberAreaRetirementTests
         var css = File.ReadAllText(Path.Combine(portal, "src", "styles.css"));
         css.Should().Contain("html.app-screen .footer").And.Contain("100dvh", "dynamic viewport units, not 100vh");
         File.ReadAllText(Path.Combine(portal, "index.html")).Should().Contain("interactive-widget=resizes-content");
+    }
+
+    [Fact]
+    public void Messages_FillTheViewportOnDesktop_AndSystemWearsThePortalLogo()
+    {
+        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var messages = File.ReadAllText(Path.Combine(src, "Messages.tsx"));
+        messages.Should().Contain("/icons/rtub-logo-192.png", "the logo the portal header uses").And.Contain("c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO", "system and groups wear the portal logo, people their own avatar")
+            .And.Contain("system: 0, group: 1, direct: 2", "Sistema RTUB, then groups, then people");
+        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("/icons/rtub-logo-192.png");
+
+        // The app-screen rules are not phone-only: the desktop shell fits the viewport too, scoped to /messages by html.app-screen.
+        var css = File.ReadAllText(Path.Combine(src, "styles.css"));
+        var screen = css.IndexOf("html.app-screen,", StringComparison.Ordinal);
+        screen.Should().BeGreaterThan(0);
+        css.LastIndexOf("@media (max-width: 899px)", screen, StringComparison.Ordinal).Should().BeLessThan(css.LastIndexOf("@media (max-width: 899px)", StringComparison.Ordinal),
+            "the base app-screen rules come before the phone-only block");
+        css.Should().Contain("grid-template-columns: minmax(260px, 30%) minmax(0, 1fr)");
+    }
+
+    [Fact]
+    public void MultiPagePolish_MenuLabelsAndDecoupling()
+    {
+        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        string R(string f) => File.ReadAllText(Path.Combine(src, f));
+
+        // Menu: no "Recursos" group, no "As minhas inscrições"; Documentação and Instrumentos da Tuna once, under Gestão.
+        var shell = R("MemberShell.tsx");
+        shell.Should().NotContain("'Recursos'").And.NotContain("As minhas inscrições").And.NotContain("key: 'resources'");
+        var management = shell[shell.IndexOf("key: 'management'", StringComparison.Ordinal)..shell.IndexOf("key: 'owner'", StringComparison.Ordinal)];
+        management.Should().Contain("portal.documentation").And.Contain("Instrumentos da Tuna");
+        System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.documentation,").Count.Should().Be(1);
+        System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.inventory,").Count.Should().Be(1);
+
+        R("Events.tsx").Should().Contain("Onde estiveste").And.Contain("<WhereYouWereDialog").And.Contain("btn--prizes").And.NotContain("btn--gold");
+        R("EventDetail.tsx").Should().Contain("Área da atuação").And.NotContain("Para membros").And.Contain("btn--prizes");
+        R("Rehearsals.tsx").Should().Contain("Adicionar vários").And.NotContain("Vários");
+        R("HallOfFame.tsx").Should().NotContain("portal.leaderboard");
+        R("Events.tsx").Should().NotContain("As minhas inscrições", "the button says Onde estiveste");
+        R("EventDialogs.tsx").Should().Contain("title=\"Onde estiveste\"");
+        System.Text.RegularExpressions.Regex.IsMatch(R("Naipes.tsx"), @"btn--primary btn--sm""\s+onClick=\{\(\) => setEditing\(\{ kind: 'new', isVideo: false \}\)\}").Should().BeTrue("Adicionar imagem is a primary action");
+        System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.lx-board-page\s*\{\s*max-width").Should().BeFalse("the board uses the shared container");
+        R("MemberDialogs.tsx").Should().Contain("export const progressText");
+        System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.naipe-picker\s*\{[^}]*justify-content:\s*center").Should().BeTrue("the instrument picker is centred");
     }
 
     private static string RepoRoot()

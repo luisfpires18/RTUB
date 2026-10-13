@@ -5,7 +5,7 @@ import { loginToProfile, portal } from './content';
 import { Cropper } from './Cropper';
 import type { Outcome } from './eventsApi';
 import { Icon, type IconName } from './icons';
-import { ActivityList, Field } from './MemberDialogs';
+import { ActivityList, Field, progressText } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
@@ -146,10 +146,6 @@ function MyProfilePage() {
       </div>
 
       <div className="account__actions profile__actions">
-        <a className="btn btn--ghost btn--sm" href={portal.myEnrollments}>
-          <Icon name="calendar" />
-          As minhas inscrições
-        </a>
         <SignOutButton className="profile__signout" buttonClassName="btn btn--ghost btn--sm" />
       </div>
 
@@ -493,7 +489,7 @@ function TunaState({ state }: { state: MemberState }) {
       {state.retired !== null && (
         <div className="tuna-state">
           <MemberBadge kind={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
-          {state.progress && <span className="tuna-state__progress">{state.progress}</span>}
+          {progressText(state.progress, state.retired) && <span className="tuna-state__progress">{progressText(state.progress, state.retired)}</span>}
           {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
             <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} aria-label="Progresso de atividade" />
           ) : null}

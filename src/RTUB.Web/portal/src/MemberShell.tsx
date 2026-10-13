@@ -24,11 +24,11 @@ export const memberMenu: MenuGroup[] = [
     label: 'Membro',
     links: [
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
-      { href: portal.myEnrollments, label: 'As minhas inscrições', icon: 'calendarCheck' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
       { href: portal.music, label: 'Música', icon: 'music' },
       { href: portal.gallery, label: 'Galeria', icon: 'images' },
       { href: portal.news, label: 'Novidades', icon: 'newspaper' },
+      { href: portal.shop, label: 'Loja', icon: 'bag' },
     ],
   },
   {
@@ -45,19 +45,12 @@ export const memberMenu: MenuGroup[] = [
     ],
   },
   {
-    key: 'resources',
-    label: 'Recursos',
-    links: [
-      { href: portal.inventory, label: 'Instrumentos', icon: 'music' },
-      { href: portal.shop, label: 'Loja', icon: 'bag' },
-      { href: portal.documentation, label: 'Documentação', icon: 'folder', when: 'management' },
-    ],
-  },
-  {
     key: 'management',
     label: 'Gestão',
     links: [
       { href: portal.meetings, label: 'Reuniões', icon: 'journal', when: 'management' },
+      { href: portal.documentation, label: 'Documentação', icon: 'folder', when: 'management' },
+      { href: portal.inventory, label: 'Instrumentos da Tuna', icon: 'music' },
       { href: portal.questions, label: 'Questões', icon: 'question', when: 'management' },
       { href: portal.logistics, label: 'Logística', icon: 'kanban', when: 'logisticsAndTreasury' },
       { href: portal.treasury, label: 'Tesouraria', icon: 'cash', when: 'logisticsAndTreasury' },

@@ -15,7 +15,6 @@ export const portal = {
   news: '/news',
   events: '/events',
   event: (id: number) => `/events/${id}`,
-  myEnrollments: '/events/my-enrollments',
   eventDiscussion: (id: number) => `/events/${id}/discussion`,
   eventContacts: (id: number) => `/events/${id}/contacts`,
   rehearsals: '/rehearsals',

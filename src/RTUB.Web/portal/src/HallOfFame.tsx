@@ -29,12 +29,6 @@ export default function HallOfFame() {
           </h1>
           <p className="page__lead">Os recordes da RTUB, de quem passou a Tuno mais depressa a quem mais ensaios somou.</p>
         </div>
-        <div className="events-page__actions">
-          <a className="btn btn--ghost btn--sm" href={portal.leaderboard}>
-            <Icon name="trophy" />
-            Classificação
-          </a>
-        </div>
       </header>
 
       {fame === undefined ? (

@@ -103,6 +103,7 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
+  const [files, setFiles] = useState<Board['files']>();
   const [text, setText] = useState('');
   const [status, setStatus] = useState<Status | ''>('');
   const [label, setLabel] = useState('');
@@ -115,8 +116,10 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const dragged = useRef<Drag | undefined>(undefined);
   const ids = { q: useId(), status: useId(), label: useId() };
 
-  const load = () =>
-    logisticsApi.board(boardId).then((o) =>
+  const load = () => {
+    // The board renders as soon as it arrives; its files (a storage listing) join when they do.
+    logisticsApi.fileList(boardId).then((f) => f.kind === 'ok' && setFiles(f.data));
+    return logisticsApi.board(boardId).then((o) =>
       setBoard(
         o.kind === 'ok'
           ? o.data
@@ -129,12 +132,13 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                 : null,
       ),
     );
+  };
 
   useEffect(() => {
     load();
   }, [boardId]);
 
-  const data = board && typeof board === 'object' ? board : null;
+  const data = board && typeof board === 'object' ? { ...board, files: files ?? board.files } : null;
 
   useEffect(() => {
     document.title = `${data?.name ?? 'Logística'} · RTUB`;

@@ -81,7 +81,6 @@ public class MemberShellTests
 
     [Theory]
     [InlineData("portal.events")]
-    [InlineData("portal.myEnrollments")]
     [InlineData("portal.rehearsals")]
     [InlineData("portal.music")]
     [InlineData("portal.gallery")]

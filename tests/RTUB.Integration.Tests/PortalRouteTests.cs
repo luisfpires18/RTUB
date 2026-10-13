@@ -187,7 +187,6 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/gallery")]
     [InlineData("/events")]
     [InlineData("/events/{id:int}")]
-    [InlineData("/events/my-enrollments")]
     [InlineData("/member/events")]
     [InlineData("/events/{eventId:int}/discussion")]
     [InlineData("/events/{eventId:int}/contacts")]
@@ -264,7 +263,7 @@ public class PortalRouteTests : IntegrationTestBase
         var list = await client.GetAsync("/events/12/enrollments");
         list.StatusCode.Should().Be(HttpStatusCode.Redirect);
         list.Headers.Location!.ToString().Should().Be("/events/12#who-title");
-        (await client.GetAsync("/events/my-enrollments")).StatusCode.Should().Be(HttpStatusCode.OK, "the React shell; the page asks to sign in");
+        (await client.GetAsync("/events/my-enrollments")).StatusCode.Should().Be(HttpStatusCode.NotFound, "the page is gone: \"Onde estiveste\" is a modal on /events");
         (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
@@ -273,7 +272,7 @@ public class PortalRouteTests : IntegrationTestBase
         File.Exists(Path.Combine(portal, "EventEnrollment.tsx")).Should().BeFalse("the standalone answer page was retired");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("EventEnrollment").And.NotContain("/enrollment'");
         var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal)
-                || f.EndsWith("eventsApi.ts") || f.EndsWith("MyEnrollments.tsx"))
+                || f.EndsWith("eventsApi.ts"))
             .Select(File.ReadAllText).ToList();
         events.Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
             "event pages speak of enrollment, never attendance");
@@ -319,8 +318,9 @@ public class PortalRouteTests : IntegrationTestBase
         detail.Should().Contain("<ParticipantsManagerDialog").And.Contain("Gerir inscrições")
             .And.NotContain("legacy.eventEnrollments");
         manage.Should().Contain("eventsApi.addEnrollment(").And.Contain("eventsApi.removeMemberEnrollment(").And.Contain("eventsApi.enrollmentMembers(");
-        File.ReadAllText(Path.Combine(src, "main.tsx")).Should().Contain("'/events/my-enrollments'");
-        File.ReadAllText(Path.Combine(src, "MyEnrollments.tsx")).Should().Contain("<EnrollmentDialog").And.NotContain("presen");
+        File.ReadAllText(Path.Combine(src, "main.tsx")).Should().NotContain("my-enrollments");
+        File.Exists(Path.Combine(src, "MyEnrollments.tsx")).Should().BeFalse("\"Onde estiveste\" is a modal on /events now");
+        File.ReadAllText(Path.Combine(src, "EventDialogs.tsx")).Should().Contain("export function WhereYouWereDialog");
         manage.Should().Contain("eventsApi.addToRepertoire(").And.Contain("eventsApi.removeFromRepertoire(")
             .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
     }
@@ -365,9 +365,9 @@ public class PortalRouteTests : IntegrationTestBase
             "Requests' prefill opens the React create form (Admin/Owner)");
         // 030: the member menu (MemberShell.tsx) is the members' way around; /profile keeps the enrollments and sign-out.
         var shell = File.ReadAllText(Path.Combine(portal, "MemberShell.tsx"));
-        shell.Should().Contain("href: portal.events,").And.Contain("href: portal.myEnrollments,").And.Contain("signOut()")
+        shell.Should().Contain("href: portal.events,").And.NotContain("portal.myEnrollments").And.Contain("signOut()")
             .And.NotContain("memberEvents");
-        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().Contain("href={portal.myEnrollments}")
+        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().NotContain("portal.myEnrollments")
             .And.Contain("<SignOutButton").And.NotContain("memberEvents");
 
     }
