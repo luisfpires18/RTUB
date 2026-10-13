@@ -3,11 +3,19 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13_
+_Last updated: 2026-10-13 (043)_
 
 ## Phase
-**Open: `chore/042-cleanup-audit` (task 042)**, from `dev` @ `55dbf279` (has 041). Not pushed; review before merge.
-**042 cleanup audit:** code with no caller removed, **no schema change, no migration, no data touched**: Labels /
+**Open: `chore/043-db-cleanup` (task 043)**, from `dev` @ `593b1d63` (has 042). Not committed / pushed; **do not merge
+into `dev` until a release without it (026-042) is live in PROD past its rollback window** (N-1: PROD 2.0.4 still reads
+these tables and `FidelisBalance`). **043:** migrations `RemoveRetiredGamesLabelsSlideshowsSchema` (drops the 15 game
+tables, `Labels`, `Slideshows`) and `RemoveFidelisBalanceFromApplicationUser` (EF rebuild of `AspNetUsers` without the
+column), with their entities / enums / configs / DbSets / seed / display cases / audit entries removed. **PROD
+rollback across 043 = full restore of the pre-migration backup** (EF Down is local / DEV schema testing only). Upgrade / rollback / reapply validated on a scratch copy (messaging and Identity
+counts unchanged). `PostMedia` / `CommentImages` deferred (production row counts unknown). Not applied to DEV or PROD.
+Release plan: `docs/db-cleanup-inventory.md` → *Task 043*.
+
+**042 merged to `dev`** (@ `593b1d63`). **042 cleanup audit:** code with no caller removed, **no schema change, no migration, no data touched**: Labels /
 Slideshows services + repositories (tables stay), `ILogistics{Board,List,Card}Service` + their repositories (the board
 folder sanitizer moved unchanged into `LogisticsKanbanService`), Blazor-era `PaginationHelper`, `SortableTableHelper`,
 `DateTimeExtensions`, `DatabaseFacadeExtensions`, `NaipeContentFormModel`, `ReservationModel`,
@@ -267,8 +275,8 @@ migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
-- Task 043: drop the 15 game tables + `AspNetUsers.FidelisBalance` (release window), `Labels`, `Slideshows`; check
-  `PostMedia` / `CommentImages` row counts on production first (write-dead since 013, read only by delete clean-up).
+- (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:
+  `PostMedia` / `CommentImages` row counts on production (write-dead since 013, read only by delete clean-up).
 - Kept on purpose: the old-URL 302s in `Program.cs` (bookmarks, emails, installed apps; comments still say "while DEV is
   hybrid"); the service worker's `/hubs/` never-cache prefix (a worker change forces every client to update); npm
   `bootstrap-icons` (path-data source for `icons.tsx`, not bundled); config bound but unread (`LoginPopupOptions`,
@@ -379,8 +387,8 @@ Raised by 030 (member shell):
   scratch Playwright script; `MemberShellTests` pins the source contract only.
 
 Raised by 029A (Images / Labels admin removal, UI only):
-- Task 043: drop `Labels`/`Slideshows` (migration) with their entities, DbSets and seed; services, repositories and their
-  tests went in 042 (`docs/db-cleanup-inventory.md`).
+- (043, written, not applied) `Labels`/`Slideshows` dropped by migration with their entities, DbSets and seed; services,
+  repositories and their tests went in 042 (`docs/db-cleanup-inventory.md`).
   Any production edits to the `ranking_story` label are no longer shown; copy them out first if wanted.
 - `ImageUploadManager` (Shared, + bUnit tests) has no caller since `Slideshows.razor` went.
 - Slideshow images in R2 (upload category `slideshows`) are left in place, unused.
@@ -396,7 +404,8 @@ Raised by 027 (Messages / Conversas removal, Phase A):
 
 Raised by 026 (Games / Bets / MyTuno removal):
 - Task 043 (never the messaging tables, since 039), only after the release carrying 026 is live in production: drop
-  the 15 game tables and `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept
+  the 15 game tables and `AspNetUsers.FidelisBalance` (written in 043, not applied: `RemoveRetiredGamesLabelsSlideshowsSchema`
+  + `RemoveFidelisBalanceFromApplicationUser`), delete the kept
   entities/configs/DbSets; take a production DB backup first; that release may be MAJOR. Exact list:
   `docs/games-bets-mytuno-removal.md`.
 - R2 objects left in place, public-read and unused: `images/{env}/bets/`, `images/{env}/bet-comments/`,

@@ -1,8 +1,8 @@
-# Database cleanup inventory (for task 043)
+# Database cleanup inventory (tasks 042 / 043)
 
-Written by task 042 (cleanup audit, 2026-10-13). **042 changed no schema, wrote no migration and touched no data**: it
-removed only code with no caller. This file is what task 043 needs to write its migration without re-auditing the
-repository. Evidence is as of `dev` after 042.
+Written by task 042 (cleanup audit, 2026-10-13; no schema change). **Task 043** (branch `chore/043-db-cleanup`) removes
+the CONFIRMED DEAD rows below with two migrations; see *Task 043* at the end for the migrations, what they do, the scratch
+validation and the production release plan. **Nothing here has been applied to DEV or PROD.**
 
 Rules that apply to every row below (`docs/release-and-rollback.md`):
 
@@ -16,12 +16,13 @@ Rules that apply to every row below (`docs/release-and-rollback.md`):
 
 ## Summary
 
-| Object | Class | Task 043 action |
+| Object | Class | Task 043 outcome |
 | --- | --- | --- |
-| 15 Games / Bets / MyTuno tables + `AspNetUsers.FidelisBalance` | **CONFIRMED DEAD** | Drop (`DropGamesBetsMyTuno`, `docs/games-bets-mytuno-removal.md`), release window only |
-| `Labels` | **CONFIRMED DEAD** | Copy out the `ranking_story` row if the owner wants it, then drop |
-| `Slideshows` | **CONFIRMED DEAD** | Drop; R2 `slideshows` images are separate (by hand) |
-| `PostMedia`, `CommentImages` | **LIKELY DEAD** | Count rows on production first; decide the R2 objects; then drop with a code change |
+| 15 Games / Bets / MyTuno tables | **CONFIRMED DEAD** | **REMOVED IN 043** (`RemoveRetiredGamesLabelsSlideshowsSchema`); applied only in the release window |
+| `AspNetUsers.FidelisBalance` | **CONFIRMED DEAD** | **REMOVED IN 043** (`RemoveFidelisBalanceFromApplicationUser`) |
+| `Labels` | **CONFIRMED DEAD** | **REMOVED IN 043**; export the production `ranking_story` row first |
+| `Slideshows` | **CONFIRMED DEAD** | **REMOVED IN 043**; R2 `slideshows` images are a separate manual clean-up |
+| `PostMedia`, `CommentImages` | **LIKELY DEAD** | **DEFERRED**: production row counts unknown (see below) |
 | `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings` | **KEEP** | Nothing. Messaging v2 |
 | `AlbumAccesses` | **KEEP** | Nothing (18 stale rows for album 12, ignored by the rules; `docs/react-music.md`) |
 | `LogisticsCardReminders` | **KEEP** | Nothing (written by the React board; no job sends them, a product decision) |
@@ -127,7 +128,12 @@ The authoritative drop list (tables, foreign keys, indexes, the `FidelisBalance`
 
 ## LIKELY DEAD (verify data first)
 
-### `PostMedia` and `CommentImages`
+### `PostMedia` and `CommentImages` (DEFERRED by 043)
+
+043 left them in place: whether production holds rows (and so member-uploaded R2 media) can only be read on a
+production snapshot, which 043 does not touch. Missing evidence: the row counts of both tables on production (or a
+fresh sanitized DEV refresh), and the owner's decision on their R2 objects.
+
 
 - **Object/table:** `PostMedia` (`PostId`, `Url` ≤ 2048, `MediaType`, `MimeType`, `SizeBytes`, `SortOrder`);
   `CommentImages` (`CommentId`, `Url`, `MimeType`, `SizeBytes`, `SortOrder`).
@@ -168,3 +174,100 @@ The authoritative drop list (tables, foreign keys, indexes, the `FidelisBalance`
   never ran them; both hold destructive SQL. Do not "fix" them by adding the attribute.
 - **`__EFMigrationsHistory`** in a local copy showed 8 non-dated ids (task 003); unexplained. Check production
   read-only before a release that migrates.
+
+## Task 043
+
+Two migrations on `chore/043-db-cleanup`, after `20261005175342_AddNewsPosts`. Split on purpose: to drop a column on
+SQLite EF rebuilds `AspNetUsers` with `PRAGMA foreign_keys` outside a transaction ("cannot be executed in a
+transaction"); kept on its own, a failure there cannot leave the 17 drops committed without their history row. Same
+shape as `RemoveIsActiveFromApplicationUser`, which already ran in production.
+
+1. **`20261013093127_RemoveRetiredGamesLabelsSlideshowsSchema`** (one transaction). Up: `DROP TABLE` `BetComments`,
+   `BossModeProgresses`, `Characters`, `ForgeComboConfigs`, `ForgedWeapons`, `Games`, `GameScores`, `InventoryItems`,
+   `ItemTypeConfigs`, `Labels`, `Slideshows`, `StageEnemies`, `StageProgresses`, `SurviveModeProgresses`, `UserBets`,
+   `BetOptions`, `Bets` (children before parents; their indexes and foreign keys go with their tables; no kept table
+   references them). Down: recreates the 17 tables with primary keys, foreign keys (users cascade / restrict as before)
+   and 31 indexes, as the EF model defines them.
+2. **`20261013093143_RemoveFidelisBalanceFromApplicationUser`**. Up: EF's SQLite rebuild of `AspNetUsers` without the
+   column (copy into `ef_temp_AspNetUsers`, `PRAGMA foreign_keys = 0`, drop, rename, `PRAGMA foreign_keys = 1`,
+   recreate `EmailIndex`, `IX_AspNetUsers_MentorId`, `UserNameIndex`); every row and every other column is copied.
+   Down: `ALTER TABLE "AspNetUsers" ADD "FidelisBalance" TEXT NOT NULL DEFAULT '0.0'`.
+
+Code removed with them: the 17 entities, the 7 game enums, `MyTunoScaling`, `WeaponTypeHelper`, the game members of
+`InstrumentTypeHelper`, 13 configurations, 17 DbSets, 7 display-name cases, the game audit exclusions, the
+`FidelisBalance` property and audit skip, the bet clean-up in member deletion, `SeedData.Labels.cs` /
+`SeedData.Slideshows.cs`, and the entity tests of those types.
+
+### Rollback across 043: full database restore only
+
+**Down restores schema only; dropped production row data would require restoration from the pre-migration
+backup/export.** Down is kept for local / DEV schema testing. **It is not a supported production rollback path**, and
+an app-only rollback is not one either.
+
+Down rebuilds what the EF model says, not what the migration chain built. A scratch copy of a real database, a fresh
+database migrated to `AddNewsPosts` (both give the same pre-043 shape) and the result of Up + Down differ in:
+
+| Object | Pre-043 (real and fresh chain) | After Down |
+| --- | --- | --- |
+| `Bets.DiscussionId` | `INTEGER NULL`, FK → `Discussions.Id` (NO ACTION), `IX_Bets_DiscussionId` (since `AddBettingSystem`; `RemoveDiscussionIdFromBet` is a no-op) | absent |
+| `Labels.Reference`, `Title`, `Content` | nullable | `NOT NULL` |
+| `Bets.IsApproved`, `ForgedWeapons.Level`, `Slideshows.IsExclusive` | `DEFAULT 0` | no default |
+| `AspNetUsers.FidelisBalance` | `TEXT NOT NULL`, each member's balance | `TEXT NOT NULL DEFAULT '0.0'`, every member 0 |
+| `AspNetUsers.PushNotificationsOptedOut` | `DEFAULT 0` | no default (Up's `AspNetUsers` rebuild drops it; Down does not bring it back) |
+| rows of the 17 tables | production data | none |
+
+What that means for an older build:
+
+- **2.0.4 (production today) and any build before 026** use these tables at runtime. Its model does not map
+  `Bets.DiscussionId` and wants the `Labels` columns required, and EF sends every column value on insert (no default
+  is used), so the schema differences alone would not stop it. The missing rows would: no games, no stage enemies,
+  no item configs, the home texts and slides gone, every Fidelis balance 0. Schema Down cannot fix that; only the
+  backup can.
+- **The release right before 043 (a 026-042 build)** still maps `ApplicationUser.FidelisBalance` (every user query
+  selects it) and the 17 entities (member deletion touches `BetComments` / `BetOptions`). An app-only rollback onto
+  the 043 schema fails on the first sign-in, whatever `allow_newer_schema` says.
+- A faithful Down would need hand-written SQL that brings back a column the model dropped on purpose
+  (`Bets.DiscussionId`) and two more `AspNetUsers` rebuilds, for a schema that still holds no rows. Not done: more risk
+  on a live Identity table for no recovery gain.
+
+**FidelisBalance:** no migration can bring the balances back. They live only in the pre-migration backup (and the
+step-3 export); recovering them means restoring that backup.
+
+
+**Scratch validation** (local only, never DEV or PROD): an online-backup copy of the local `app.db` (108 users, 145
+conversations, 17,761 messages, rows in all 17 tables), first migrated to `AddNewsPosts`. Upgrade, rollback to
+`AddNewsPosts` and reapply all passed; messaging and Identity row counts and checksums identical at every step,
+`foreign_key_check` empty and `integrity_check` ok at every step, schema after reapply identical to the first upgrade. A
+second copy was migrated by the app's own startup (pre-migration snapshot taken, both migrations applied); `/health`, the
+React shell and, signed in, `/api/account/me`, `/api/members`, `/api/conversations`, `/api/me/profile`,
+`/api/leaderboard`, `/api/hall-of-fame`, `/api/owner/users` answered 200. `MigrationChainTests` pins the drop set, the
+Down path and the reapply.
+
+### Production release plan (not done; release window only)
+
+**Ordering is the hard constraint.** Production runs 2.0.4, which does **not** contain 026, 029A or 037-042: it still
+reads these tables, and `ApplicationUser.FidelisBalance` is in every user query. Shipped in the same release as that
+code, 043 would make an app rollback to 2.0.4 fail on the first sign-in.
+
+0. Release `dev` **without** 043 first (it carries 026-042) and let it run past its rollback window. Only then merge 043
+   into `dev` and release it on its own, with no other migration.
+1. **Back up**: besides the app's own pre-migration snapshot, take an independent online backup of the production
+   database (the same day's `current.db`, or a manual online backup) and keep it outside the rotation.
+2. **Verify the backup**: `PRAGMA integrity_check` = `ok`; the 17 tables and `AspNetUsers.FidelisBalance` are present.
+3. **Count** (read-only, on the backup): rows of the 17 tables; non-default `FidelisBalance`; `AspNetUsers`; and
+   `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`.
+4. **Preserve**: export `Labels` (at least `ranking_story`: the code keeps only the seeded text,
+   `LeaderboardService.Story`, not later production edits), the `Slideshows` rows (their R2 image URLs) and any game
+   data the owner wants kept; the verified backup is the full archive.
+5. **Apply**: Deploy • PROD of the 043 release; startup takes the snapshot, then migrates.
+6. **Validate**: `/api/version`, sign-in, `/members`, `/messages`, `/profile`; messaging and `AspNetUsers` counts equal
+   step 3; the 17 tables and the column are gone.
+7. **Rollback = full database restore (mandatory).** Stop the app, restore the step-1 backup (replace `app.db`, delete
+   stale `-wal` / `-shm`), then Rollback • PROD to the previous release. Restoring brings back the 17 tables with their
+   rows, the old balances and the exact pre-043 schema; it also discards anything written after the 043 release, so
+   decide quickly. Never roll the app back alone (it fails on the first user query) and never use EF Down as the
+   production rollback.
+
+**Storage is separate.** Dropping the tables deletes no R2 object. Left for a separate manual clean-up:
+`images/{env}/slideshows` (slideshow images), `images/{env}/bets/`, `images/{env}/bet-comments/`,
+`item-configs/{env}/images/`.

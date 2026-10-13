@@ -280,6 +280,11 @@ safe. The app never rolls a database back by itself.
 
 ### Migrations: the N-1 rule
 
+Contract (drop) migrations waiting for their release window: task 043 (`RemoveRetiredGamesLabelsSlideshowsSchema`,
+`RemoveFidelisBalanceFromApplicationUser`). **Rolling production back across it is a full database restore from the
+pre-migration backup, never an app-only rollback and never EF Down**; release plan, backup and restore steps:
+`docs/db-cleanup-inventory.md` → *Task 043*.
+
 An app rollback never changes the schema: the older build starts against the newer schema, runs
 none of the newer migrations and ignores their history rows. So **every migration must work with
 the release immediately before it** (expand/contract):

@@ -26,7 +26,7 @@ The features are gone from the running app; the schema is untouched (no migratio
   (773 deleted files at their repo paths, pre-change copies of the 35 edited files under `modified-before/`,
   `MANIFEST.md` with per-file blob SHA and SHA-256, `SHA256SUMS`). Git history holds the same bytes.
 
-## Phase 2 - the contract task (task 043, not started)
+## Phase 2 - the contract task (task 043: migrations written, not applied anywhere)
 
 Inventory with every other database leftover found by the 042 audit: `docs/db-cleanup-inventory.md`.
 
@@ -35,7 +35,9 @@ a production database backup first (it holds every Fidelis balance, bet and char
 it is a database restore, not an app rollback; the release that carries it may be MAJOR
 (`docs/release-and-rollback.md`).
 
-Migration name: **`DropGamesBetsMyTuno`**. It drops, and nothing else - **never the messaging tables**, which are
+Migrations (task 043): **`RemoveRetiredGamesLabelsSlideshowsSchema`** (the 15 tables below, with `Labels` and
+`Slideshows`) and **`RemoveFidelisBalanceFromApplicationUser`** (the column), with the code listed below already
+removed; release plan in `docs/db-cleanup-inventory.md` → *Task 043*. They drop, and nothing else - **never the messaging tables**, which are
 preserved for Messaging v2 (`docs/messages-removal.md`):
 
 | Table | Foreign keys | Indexes |
@@ -53,7 +55,7 @@ plus the column `AspNetUsers.FidelisBalance` (`TEXT NOT NULL`, no database defau
 column must go in the same change, or creating a user fails). No kept table has a foreign key into these.
 Check that the generated SQL drops the column without rebuilding `AspNetUsers`.
 
-Code kept in 026 only for this task, to delete with the migration:
+Code kept in 026 only for this task (removed by task 043 together with the migrations):
 
 - `src/RTUB.Core/Entities/`: `Bet`, `BetComment`, `BetOption`, `UserBet`, `Game`, `GameScore`, `Character`,
   `InventoryItem`, `ForgedWeapon`, `ForgeComboConfig`, `ItemTypeConfig`, `StageProgress`, `StageEnemy`,

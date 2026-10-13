@@ -340,19 +340,6 @@ public class UserProfileService : IUserProfileService
             foreach (var post in posts)
                 await _postRepository.DeleteAsync(post);
 
-            // BetComments by AuthorId
-            await ctx.BetComments
-                .Where(bc => bc.AuthorId == userId)
-                .ExecuteDeleteAsync();
-
-            // BetOptions - set nullable MemberAId/MemberBId to null
-            await ctx.BetOptions
-                .Where(bo => bo.MemberAId == userId)
-                .ExecuteUpdateAsync(s => s.SetProperty(bo => bo.MemberAId, (string?)null));
-            await ctx.BetOptions
-                .Where(bo => bo.MemberBId == userId)
-                .ExecuteUpdateAsync(s => s.SetProperty(bo => bo.MemberBId, (string?)null));
-
             // EventVideos by CreatedByUserId
             await ctx.EventVideos
                 .Where(ev => ev.CreatedByUserId == userId)

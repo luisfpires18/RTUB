@@ -106,8 +106,8 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 
 ## Games / Bets / MyTuno (removed)
 
-Removed from the app by task 026. Only their EF entities, configurations and DbSets remain, until task 043 drops the
-tables: `docs/games-bets-mytuno-removal.md`, `docs/db-cleanup-inventory.md`.
+Removed from the app by task 026; their entities, DbSets and tables by task 043's migrations (not yet applied to DEV or
+PROD): `docs/games-bets-mytuno-removal.md`, `docs/db-cleanup-inventory.md`.
 
 ## Messages / Conversas (Messaging v2, task 041)
 
@@ -124,8 +124,8 @@ redacted in the audit log (`AuditConfiguration`).
 
 The Blazor `/images` and `/labels` admin pages were removed by task 029A (both plain 404s; `/images/<file>` is still
 served by `ImagesController`). The Leaderboard story is fixed in code (`LeaderboardService.Story`). Their services and
-repositories (no caller) went in 042; still in place until task 043: the `Label`/`Slideshow` entities, DbSets, tables
-and seed data (`docs/db-cleanup-inventory.md`).
+repositories (no caller) went in 042; the entities, DbSets, seed data and tables in task 043
+(`docs/db-cleanup-inventory.md`).
 
 ## Tests
 

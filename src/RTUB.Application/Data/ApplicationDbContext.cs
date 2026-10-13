@@ -48,8 +48,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MemberDebt> MemberDebts { get; set; }
     public DbSet<MbwayTransfer> MbwayTransfers { get; set; } = null!;
     public DbSet<NerbaOrder> NerbaOrders { get; set; } = null!;
-    public DbSet<Slideshow> Slideshows { get; set; }
-    public DbSet<Label> Labels { get; set; }
     public DbSet<Request> Requests { get; set; }
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Rehearsal> Rehearsals { get; set; }
@@ -131,37 +129,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NaipeComment> NaipeComments { get; set; } = null!;
     public DbSet<NaipePlayCount> NaipePlayCounts { get; set; } = null!;
     public DbSet<NaipeTypeConfig> NaipeTypeConfigs { get; set; } = null!;
-
-    // Game Scores DbSet
-    public DbSet<GameScore> GameScores { get; set; }
-
-    // Games DbSet
-    public DbSet<Game> Games { get; set; }
-
-    // Betting DbSets
-    public DbSet<Bet> Bets { get; set; }
-    public DbSet<BetOption> BetOptions { get; set; }
-    public DbSet<UserBet> UserBets { get; set; }
-    public DbSet<BetComment> BetComments { get; set; }
-
-    // My Tuno DbSets
-    public DbSet<Character> Characters { get; set; }
-    public DbSet<InventoryItem> InventoryItems { get; set; }
-    public DbSet<ForgedWeapon> ForgedWeapons { get; set; }
-
-    // Stage Mode DbSets
-    public DbSet<StageProgress> StageProgresses { get; set; }
-    public DbSet<StageEnemy> StageEnemies { get; set; }
-
-    // Boss Mode DbSets
-    public DbSet<BossModeProgress> BossModeProgresses { get; set; }
-
-    // Survive Mode DbSets
-    public DbSet<SurviveModeProgress> SurviveModeProgresses { get; set; }
-
-    // Item Type Config DbSets
-    public DbSet<ItemTypeConfig> ItemTypeConfigs { get; set; }
-    public DbSet<ForgeComboConfig> ForgeComboConfigs { get; set; }
 
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }

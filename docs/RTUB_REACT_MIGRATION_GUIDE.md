@@ -64,14 +64,14 @@ Admin / Owner), not from the menu.
 ## Future work, outside the migration
 
 - **Games / Bets / MyTuno**: removed from the app by task 026 (no replacement; the old URLs 404). Their tables and
-  `AspNetUsers.FidelisBalance` stay until task 043 drops them: `docs/games-bets-mytuno-removal.md`,
+  `AspNetUsers.FidelisBalance` are dropped by task 043's migrations (release window only): `docs/games-bets-mytuno-removal.md`,
   `docs/db-cleanup-inventory.md`.
 - **Messages / Conversas**: the old inbox was removed by task 027 (`/messages/{id}` and `/hubs/messages` 404; push
   no longer leaves an inbox copy). **Messaging v2 (task 041)** is the React `/messages` on the same four tables, which
   are **preserved, never dropped** (`docs/react-messages.md`, `docs/messages-removal.md`).
 - **Images (slideshows) and Labels admin**: `/images` and `/labels` removed by task 029A (no replacement; both 404). The
   Leaderboard story is temporary text in code until the owner decides. Their services and repositories went in 042;
-  task 043 drops the `Labels` and `Slideshows` tables with a migration (`docs/db-cleanup-inventory.md`).
+  task 043's migration drops the `Labels` and `Slideshows` tables (release window only) (`docs/db-cleanup-inventory.md`).
 
 ## Cleanup and polish (after or between features)
 

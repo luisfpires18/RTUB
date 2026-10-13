@@ -10,8 +10,8 @@ namespace RTUB.Integration.Tests;
 /// Task 029A retired the Blazor admin pages /images (homepage slideshows, shown nowhere since React task 004) and
 /// /labels (editable site texts; the Leaderboard story, their last reader, is fixed in code now) with no replacement:
 /// both URLs are plain 404s (no redirect) for visitors and admins alike, and the Admin menu no longer offers them. Task 042
-/// removed the services and repositories left behind; the Labels and Slideshows tables (entities, DbSets, seed) stay until
-/// task 043 removes them with a migration (docs/db-cleanup-inventory.md).
+/// removed the services and repositories left behind; task 043 removed the entities, DbSets and seed and dropped the
+/// Labels and Slideshows tables (RemoveRetiredGamesLabelsSlideshowsSchema, docs/db-cleanup-inventory.md).
 /// </summary>
 public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
 {
@@ -61,7 +61,7 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
     }
 
     [Fact]
-    public void LabelAndSlideshowCode_IsGone_ButTheirTablesStayFor043()
+    public void LabelAndSlideshowCode_AndModel_AreGone()
     {
         var application = typeof(RTUB.Application.Data.ApplicationDbContext).Assembly;
         foreach (var name in new[] { "ILabelService", "LabelService", "ILabelRepository", "LabelRepository",
@@ -70,9 +70,14 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
             application.GetTypes().Should().NotContain(t => t.Name == name, "{0} had no caller and went in 042", name);
         }
 
-        // Dropping the tables is task 043's migration, not a side effect of this cleanup.
-        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Labels").Should().NotBeNull();
-        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Slideshows").Should().NotBeNull();
+        foreach (var name in new[] { "Label", "Slideshow" })
+        {
+            typeof(RTUB.Core.Entities.ApplicationUser).Assembly.GetTypes().Should().NotContain(t => t.Name == name, "{0} went in 043", name);
+        }
+
+        // 043 dropped the tables with their entities and DbSets.
+        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Labels").Should().BeNull();
+        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Slideshows").Should().BeNull();
     }
 
     [Fact]

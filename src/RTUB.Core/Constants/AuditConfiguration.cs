@@ -58,7 +58,6 @@ public static class AuditConfiguration
 
     public static readonly HashSet<string> ModifiedExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ForgedWeapon",
     };
 
     public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -72,17 +71,7 @@ public static class AuditConfiguration
         "SongPlayCount",
         "NaipePlayCount",
         "MemberStatus",
-        "BetOption",
         "MeetingAtaAgendaPoint",
         "MeetingAtaConfirmation",
-        "InventoryItem",
-        "Character",
-        "StageProgress",
-        "BossModeProgress",
-        "ItemTypeConfig",
-        "ForgeComboConfig",
-        "SurviveModeProgress",
-        "StageEnemy",
-        "ForgedWeapon",
     };
 }
