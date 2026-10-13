@@ -101,28 +101,23 @@ public class ContentSecurityPolicyTests
 
     /// <summary>
     /// Every external origin is justified by something the browser actually loads, and must not
-    /// leak into a directive that does not need it. cdnjs serves both cropper.min.js and
-    /// cropper.min.css; unpkg serves leaflet.js and leaflet.css; the OpenStreetMap tiles are images only.
-    /// jsdelivr served only pixi.min.js and went with MyTuno (026): no directive allows it.
+    /// leak into a directive that does not need it. The OpenStreetMap tiles are images only.
+    /// No script or stylesheet comes from a CDN: cdnjs (Cropper.js) and unpkg (Leaflet) served the
+    /// Blazor layout and were dropped in 042; jsdelivr served only pixi.min.js and went with MyTuno (026).
     /// </summary>
     [Fact]
     public void ExternalOrigins_AppearOnlyInTheDirectivesThatNeedThem()
     {
         var directives = Directives(Policy());
 
-        directives["script-src"].Should().BeEquivalentTo(
-            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
-
-        directives["style-src"].Should().BeEquivalentTo(
-            "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
+        directives["script-src"].Should().Equal("'self'");
+        directives["style-src"].Should().Equal("'self'");
 
         directives["img-src"].Should().Contain("https://tile.openstreetmap.org")
             .And.Contain("data:");
 
-        // The tile CDN and the script CDNs are images / scripts respectively, never both.
-        directives["script-src"].Should().NotContain("https://tile.openstreetmap.org");
-        directives.Values.SelectMany(v => v).Should().NotContain("https://cdn.jsdelivr.net");
-        directives["connect-src"].Should().NotContain("https://cdnjs.cloudflare.com");
+        directives.Values.SelectMany(v => v).Should().NotContain(
+            ["https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"]);
     }
 
     // ---------- R2 is runtime configuration, not a literal ----------

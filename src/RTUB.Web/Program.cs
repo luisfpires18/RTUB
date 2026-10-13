@@ -92,7 +92,6 @@ public class Program
         // --------- Application Services (organized by domain) ---------
         services.AddApplicationServices();
         services.AddRehearsalServices();
-        services.AddLogisticsServices();
         services.AddMeetingServices();
         services.AddInventoryServices();
         services.AddDiscussionServices();

@@ -24,7 +24,6 @@ public class ImageStorageIntegrationTests : IDisposable
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly AlbumService _albumService;
     private readonly EventService _eventService;
-    private readonly SlideshowService _slideshowService;
 
     public ImageStorageIntegrationTests()
     {
@@ -59,8 +58,6 @@ public class ImageStorageIntegrationTests : IDisposable
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
             factory);
-
-        _slideshowService = new SlideshowService(new SlideshowRepository(factory), _mockImageStorageService.Object);
     }
 
     #region Album Image Tests
@@ -233,66 +230,6 @@ public class ImageStorageIntegrationTests : IDisposable
 
     #endregion
 
-    #region Slideshow Image Tests
-
-    [Fact]
-    public async Task SlideshowService_SetSlideshowImageAsync_UploadsToR2AndSavesUrl()
-    {
-        // Arrange
-        var slideshow = await _slideshowService.CreateSlideshowAsync("Test Slideshow", 1, "Test Description", 5000);
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
-        var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", normalizedName))
-            .ReturnsAsync(imageUrl);
-
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
-
-        // Act
-        await _slideshowService.SetSlideshowImageAsync(slideshow.Id, imageStream, "slide.jpg", "image/jpeg");
-
-        // Assert
-        _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.jpg", "image/jpeg", "slideshows", normalizedName),
-            Times.Once);
-
-        var updatedSlideshow = await _slideshowService.GetSlideshowByIdAsync(slideshow.Id);
-        updatedSlideshow.Should().NotBeNull();
-        updatedSlideshow!.ImageUrl.Should().Be(imageUrl);
-    }
-
-    [Fact]
-    public async Task SlideshowService_DeleteSlideshowAsync_DeletesImageFromR2()
-    {
-        // Arrange
-        var slideshow = await _slideshowService.CreateSlideshowAsync("Test Slideshow", 1, "Test Description", 5000);
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
-        var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", normalizedName))
-            .ReturnsAsync(imageUrl);
-
-        using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
-        {
-            await _slideshowService.SetSlideshowImageAsync(slideshow.Id, imageStream, "slide.jpg", "image/jpeg");
-        }
-
-        // Act
-        await _slideshowService.DeleteSlideshowAsync(slideshow.Id);
-
-        // Assert
-        _mockImageStorageService.Verify(
-            x => x.DeleteImageAsync(imageUrl),
-            Times.Once);
-
-        var deletedSlideshow = await _slideshowService.GetSlideshowByIdAsync(slideshow.Id);
-        deletedSlideshow.Should().BeNull();
-    }
-
-    #endregion
-
     #region Error Handling Tests
 
     [Fact]
@@ -315,17 +252,6 @@ public class ImageStorageIntegrationTests : IDisposable
         // Act & Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(
             () => _eventService.SetEventImageAsync(999, imageStream, "event.jpg", "image/jpeg"));
-    }
-
-    [Fact]
-    public async Task SlideshowService_SetSlideshowImageAsync_WithInvalidId_ThrowsException()
-    {
-        // Arrange
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
-
-        // Act & Assert
-        await Assert.ThrowsAsync<EntityNotFoundException>(
-            () => _slideshowService.SetSlideshowImageAsync(999, imageStream, "slide.jpg", "image/jpeg"));
     }
 
     #endregion

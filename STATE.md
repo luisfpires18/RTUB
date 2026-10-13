@@ -3,11 +3,23 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-12_
+_Last updated: 2026-10-13_
 
 ## Phase
-**Open: `feat/041-messaging-v2` (task 041)**, from `dev` @ `467d30d3` (has 040). Not pushed unless requested; CI must pass
-before merge. **041 Messaging v2:** React `/messages` (list + chat, `?c=<id>`, "Mensagens" in the member menu) over
+**Open: `chore/042-cleanup-audit` (task 042)**, from `dev` @ `55dbf279` (has 041). Not pushed; review before merge.
+**042 cleanup audit:** code with no caller removed, **no schema change, no migration, no data touched**: Labels /
+Slideshows services + repositories (tables stay), `ILogistics{Board,List,Card}Service` + their repositories (the board
+folder sanitizer moved unchanged into `LogisticsKanbanService`), Blazor-era `PaginationHelper`, `SortableTableHelper`,
+`DateTimeExtensions`, `DatabaseFacadeExtensions`, `NaipeContentFormModel`, `ReservationModel`,
+`ApplicationUser.SelectedCategory` (`[NotMapped]`), and their tests; CSP `script-src` / `style-src` now `'self'` only
+(cdnjs / unpkg unused since 032); the `Microsoft.AspNetCore.Identity.UI` package (only its `IEmailSender` was used, now
+`RTUB.Application.Interfaces.IEmailSender`), which shipped 187 unused Bootstrap / jQuery files under `/Identity/*`, so the
+package guard floor is 200 wwwroot files (was 400; a healthy publish has 260); unused package refs (`AutoFixture`, test
+`AWSSDK.Core` / `MockQueryable.Moq` / `Moq`), npm `cropperjs` / `sharp`; `wwwroot/images/hierarchy/*`,
+`wwwroot/uploads/events/.gitkeep`. Database leftovers for **task 043**: `docs/db-cleanup-inventory.md`. Messaging tables
+untouched.
+
+**041 merged to `dev`** (@ `55dbf279`). **041 Messaging v2:** React `/messages` (list + chat, `?c=<id>`, "Mensagens" in the member menu) over
 `/api/conversations*` + `/api/messages/{id}/reactions` (`MessagingService`) on the **preserved v1 tables, no schema change,
 no migration**: participants only (Admin / Owner no special access), text only (1-2000, no attachments), replies (v1
 `ReplyToMessageId` + snippet), one reaction per member from 👍 ❤️ 😂 😮 😢 🙏, mute (`ConversationUserSettings`, no push
@@ -121,9 +133,8 @@ No schema change. Detail: `docs/react-portal-pilot.md` → *Member shell*.
 Operações "Imagens" and "Conteúdo" items, `LabelCard`, `SlideshowCard` and their CSS are gone. **Leaderboard story is now
 temporary code-backed text** (`LeaderboardService.Story`, the seeded label's text; owner decides the final text later):
 no `ILabelService` dependency, `PUT /api/leaderboard/story`, `canEditStory` and the React "Editar" dialog removed, so
-nobody edits it. **No migration, schema unchanged.** **029B remains** (needs `dotnet`): drop the `Labels` and `Slideshows`
-tables with a migration, and delete their entities/configs/DbSets/seed, `ILabelService`/`LabelService` (last caller: the
-dead `Components/Portal/*`), `ISlideshowService`/`SlideshowService`, their repositories and tests.
+nobody edits it. **No migration, schema unchanged.** (042) The services, repositories and their tests are gone; the
+`Labels` / `Slideshows` tables, entities, DbSets and seed go in task 043 (`docs/db-cleanup-inventory.md`).
 
 **027 merged to `dev`** (@ `77487805`). **Messages /
 Conversas removed from the app (Phase A):** `/messages`, `/messages/{id}` and `/hubs/messages` are plain 404s (no
@@ -255,6 +266,19 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
+- Task 043: drop the 15 game tables + `AspNetUsers.FidelisBalance` (release window), `Labels`, `Slideshows`; check
+  `PostMedia` / `CommentImages` row counts on production first (write-dead since 013, read only by delete clean-up).
+- Kept on purpose: the old-URL 302s in `Program.cs` (bookmarks, emails, installed apps; comments still say "while DEV is
+  hybrid"); the service worker's `/hubs/` never-cache prefix (a worker change forces every client to update); npm
+  `bootstrap-icons` (path-data source for `icons.tsx`, not bundled); config bound but unread (`LoginPopupOptions`,
+  `Toggles`, `UseSqlServer`, `ImageCaching:*`, `Gallery:MaxVideoSizeMB`: flagged `unused` by the 039 audit, Azure
+  settings first); method-level leftovers (`ApplicationUserExtensions.GetYearsAsTuno` / `HasBeenTunoForYears` /
+  `IsTunossauro` / `IsVeterano`, `QueryableExtensions.Paginate`: tests only).
+- `npm audit`: 5 high (vite 6 and its `nanoid` / `picomatch` / `postcss` / `source-map-js`), build-time only, pre-existing.
+- `MessagesRollbackSafetyTests` drops the messaging tables only inside its throwaway test database (never a real one) to
+  prove nothing else touches them; test-only, kept.
+
 037 deleted every `RTUB.Shared` component, the Blazor CSS and JS and `wwwroot/lib`: older entries below that name one of
 them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `home.js`, `scrollSpy.js`,
 `profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
@@ -271,11 +295,10 @@ Raised by 039 (post-Blazor cleanup + configuration audit):
 - Local user-secrets still hold six dead `IDrive:*` keys (the local audit flags them); remove by hand.
 - Committed but unread settings: `Gallery:MaxVideoSizeMB` (the code reads `GalleryMedia:MaxVideoSize`, bytes),
   `ImageCaching:*`, `UseSqlServer`, `LoginPopup:*` (`LoginPopupOptions` bound, nothing shows it). Left as is.
-- Still no caller, kept: `ILogistics{Board,List,Card}Service` (`LogisticsKanbanService` uses a static of
-  `LogisticsCardService`), `ILabelService` / `ISlideshowService` (029B), `MimeTypeHelper.GetMediaMimeType` (tests only
-  since the post-media upload went), the unused `IQuestionService` / `IRequestService` methods listed under 031.
-- `wwwroot/images/icons/*`, `wwwroot/images/hierarchy/*`, `apple-touch-icon-180x180.png` have no in-repo reference;
-  kept (served by convention, by `ImagesController` or to old emails / installed apps).
+- (042) `ILogistics{Board,List,Card}Service`, `ILabelService` / `ISlideshowService` removed. Still no caller, kept
+  (method-level): `MimeTypeHelper.GetMediaMimeType`, the unused `IQuestionService` / `IRequestService` methods (031).
+- `wwwroot/images/icons/*`, `apple-touch-icon-180x180.png` have no in-repo reference; kept (served by convention or to
+  installed apps). (042) `wwwroot/images/hierarchy/*` (only the Blazor hierarchy page used them) removed.
 - Branch name `feat/039-post-blazor-config-audit` reuses number 039 (an old `chore/039/ui-management-dense-screens`
   branch exists), as the task asked.
 
@@ -288,8 +311,7 @@ Raised by 038 (Push v2; detail in `docs/react-push-v2.md` → *Follow-ups*):
 
 Raised by 037 (Blazor host retirement):
 - (039, resolved) Copilot / agent instructions and `docs/frontend-practices.md` describe the React stack; the
-  SignalR client package and the Blazor-era `RTUB.Application` signatures are gone. `ILabelService` (no caller) waits
-  for 029B.
+  SignalR client package and the Blazor-era `RTUB.Application` signatures are gone. (042) `ILabelService` removed.
 - (resolved in 038) `push-notifications.js` and `pwa-helper.js` were removed with the React push client.
 - The system announcement lives in one app instance's memory (fine for one App Service instance; a shared store if it
   scales out) and plays no sound.
@@ -336,7 +358,7 @@ Raised by 033 (Naipes):
 Raised by 032 (profile, members map, Hall of Fame):
 - The map lists expelled accounts (and the Hall of Fame counts every account), as before: decide whether to leave them out.
 - (resolved in 038) Push opt-in / opt-out is the `/profile` section "Notificações push".
-- CSP `script-src` / `style-src` still allow cdnjs and unpkg, now unused (Cropper.js and Leaflet left `MainLayout`).
+- (042, resolved) CSP `script-src` / `style-src` are `'self'` only.
 - No caller left: `wwwroot/js/profilePictureRefresh.js` + `ProfilePictureUpdateService` (still wired in `MainLayout`),
   `wwwroot/lib/cropperjs`; profile / rank / timeline selectors in the Blazor CSS.
 - `CachedGeocodingService` creates a DbContext per lookup without disposing it.
@@ -357,7 +379,8 @@ Raised by 030 (member shell):
   scratch Playwright script; `MemberShellTests` pins the source contract only.
 
 Raised by 029A (Images / Labels admin removal, UI only):
-- 029B: drop `Labels`/`Slideshows` (migration) and the services, repositories, seed and tests left for it (see Phase).
+- Task 043: drop `Labels`/`Slideshows` (migration) with their entities, DbSets and seed; services, repositories and their
+  tests went in 042 (`docs/db-cleanup-inventory.md`).
   Any production edits to the `ranking_story` label are no longer shown; copy them out first if wanted.
 - `ImageUploadManager` (Shared, + bUnit tests) has no caller since `Slideshows.razor` went.
 - Slideshow images in R2 (upload category `slideshows`) are left in place, unused.
@@ -372,7 +395,7 @@ Raised by 027 (Messages / Conversas removal, Phase A):
 - DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them); Messaging v2 decides.
 
 Raised by 026 (Games / Bets / MyTuno removal):
-- Contract task (never the messaging tables, since 039), only after the release carrying 026 is live in production: drop
+- Task 043 (never the messaging tables, since 039), only after the release carrying 026 is live in production: drop
   the 15 game tables and `AspNetUsers.FidelisBalance` (migration `DropGamesBetsMyTuno`), delete the kept
   entities/configs/DbSets; take a production DB backup first; that release may be MAJOR. Exact list:
   `docs/games-bets-mytuno-removal.md`.
@@ -393,7 +416,7 @@ Accepted after the 018-024 audit (2026-10-05):
   correctly but answers 500; it should answer 409 with a message.
 - Members: every signed-in member, Leitões included, sees other members' email and phone in "Detalhes" (as the old
   page did; `docs/react-members.md`). Decide whether Leitões keep that.
-- Dead code with no caller (one cleanup task, not piecemeal): Shared `ReportCard`, `TransactionCard`, `MbwayTransferCard`,
+- (037 / 039 / 042, resolved) Dead code with no caller: Shared `ReportCard`, `TransactionCard`, `MbwayTransferCard`,
   `NerbaOrderCard`, `ReservationCard`, `FolderCard`, `DocumentCard`, `BoardCard`, `LeaderboardCard`, `LeaderboardCommentItem`,
   `InstrumentCircle`, `AvatarCard`, `EventCard`; services `ITransactionFilterService`, `IDebtService`,
   `ILogistics{Board,List,Card}Service`, `IMemberPositionService`, `IUserRoleQueryService`, `IEnrollmentFilterService`;
@@ -411,7 +434,7 @@ Raised by React track 024 (Tesouraria):
 
 Raised by React track 023 (Logística):
 - `LogisticsCardReminders` are stored but no job sends them (pre-existing); build delivery or drop the feature.
-- `ILogistics{Board,List,Card}Service` (+ tests), `BoardCard` (Shared) and `css/3-components/kanban.css` have no page caller.
+- (037 / 042, resolved) `BoardCard`, `kanban.css` (037) and `ILogistics{Board,List,Card}Service` + tests (042) are gone.
 
 Raised by React track 022 (Documentação):
 - `FolderCard`/`DocumentCard` (Shared, + bUnit tests) and `css/3-components/folder-card.css`/`document-card.css` have no page caller.
@@ -528,7 +551,8 @@ Carried (one line each; detail in git history):
 - Password-policy hardening skipped by owner decision (2026-09-21).
 - `LastLoginDate` means "last authenticated activity"; `IsInRoleAsync` pair is 2 SELECTs.
 - Dependencies: Microsoft 10.0.11 → 10.0.12 (unblocks `MockQueryable.Moq` 10.0.12); AWSSDK train;
-  QuestPDF 2026.x major; dead `AWSSDK.Core` references in three test projects.
+  QuestPDF 2026.x major. (042) Dead `AWSSDK.Core` refs removed from Web.Tests / Integration.Tests (Application.Tests uses
+  Amazon types directly, kept).
 - `xUnit1051` suppressed; MTP telemetry (`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` to opt out).
 - Push: `WebPushClient` newed up (untestable sends); two service-worker registration paths;
   unbounded broadcast; `PushNotificationsManager` parked on `window`.

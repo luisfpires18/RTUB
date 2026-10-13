@@ -6,7 +6,7 @@ namespace RTUB.Core.Tests.Validation;
 
 /// <summary>
 /// Unit tests for ApplicationUser validation attributes
-/// Tests Email and SelectedCategory validation
+/// Tests Email validation
 /// </summary>
 public class ApplicationUserValidationTests
 {
@@ -144,76 +144,6 @@ public class ApplicationUserValidationTests
 
     #endregion
 
-    #region SelectedCategory Validation Tests
-
-    [Fact]
-    public void SelectedCategory_IsNotValidatedByDataAnnotations()
-    {
-        // SelectedCategory is validated manually in SaveMember method
-        // It doesn't have Required attribute, so it doesn't fail DataAnnotations validation
-        // This test verifies that behavior
-
-        // Arrange
-        var user = new ApplicationUser
-        {
-            FirstName = "Test",
-            LastName = "User",
-            Nickname = "testuser",
-            PhoneNumber = "912345678",
-            Email = "test@example.com",
-            SelectedCategory = null // This is OK for DataAnnotations
-        };
-
-        // Act
-        var validationResults = ValidateModel(user);
-
-        // Assert
-        validationResults.Should().NotContain(v => v.MemberNames.Contains("SelectedCategory"),
-            "SelectedCategory is validated manually in SaveMember, not via DataAnnotations");
-    }
-
-    [Fact]
-    public void SelectedCategory_WithValidValue_DoesNotAffectOtherValidation()
-    {
-        // Arrange
-        var user = new ApplicationUser
-        {
-            FirstName = "Test",
-            LastName = "User",
-            Nickname = "testuser",
-            PhoneNumber = "912345678",
-            Email = "test@example.com",
-            SelectedCategory = "Tuno"
-        };
-
-        // Act
-        var validationResults = ValidateModel(user);
-
-        // Assert
-        validationResults.Should().BeEmpty("All required fields are valid");
-    }
-
-    [Theory]
-    [InlineData("Leitão")]
-    [InlineData("Caloiro")]
-    [InlineData("Tuno")]
-    public void SelectedCategory_AcceptsAllValidCategories(string category)
-    {
-        // Arrange
-        var user = new ApplicationUser
-        {
-            SelectedCategory = category
-        };
-
-        // Act
-        var value = user.SelectedCategory;
-
-        // Assert
-        value.Should().Be(category, $"Category '{category}' should be accepted");
-    }
-
-    #endregion
-
     #region Combined Validation Tests
 
     [Fact]
@@ -227,7 +157,6 @@ public class ApplicationUserValidationTests
             Nickname = "Joãozinho",
             PhoneNumber = "912345678",
             Email = "joao@rtub.pt",
-            SelectedCategory = "Tuno"
         };
 
         // Act
@@ -248,7 +177,6 @@ public class ApplicationUserValidationTests
             Nickname = "Joãozinho",
             PhoneNumber = "912345678",
             Email = null, // Missing required field
-            SelectedCategory = "Tuno"
         };
 
         // Act

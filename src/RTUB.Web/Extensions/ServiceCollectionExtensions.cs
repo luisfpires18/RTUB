@@ -98,23 +98,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-        services.AddScoped<ILogisticsBoardRepository, LogisticsBoardRepository>();
-        services.AddScoped<ILogisticsListRepository, LogisticsListRepository>();
-        services.AddScoped<ILogisticsCardRepository, LogisticsCardRepository>();
         services.AddScoped<IEventRepertoireRepository, EventRepertoireRepository>();
         services.AddScoped<IRehearsalAttendanceRepository, RehearsalAttendanceRepository>();
         services.AddScoped<IFiscalYearRepository, FiscalYearRepository>();
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IRequestRepository, RequestRepository>();
-        services.AddScoped<ILabelRepository, LabelRepository>();
         services.AddScoped<IMeetingRequestRepository, MeetingRequestRepository>();
         services.AddScoped<IMeetingParticipationRepository, MeetingParticipationRepository>();
         services.AddScoped<IProductReservationRepository, ProductReservationRepository>();
         services.AddScoped<IMemberInstrumentRepository, MemberInstrumentRepository>();
         services.AddScoped<ITrophyRepository, TrophyRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
-        services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<ISongVideoRepository, SongVideoRepository>();
@@ -169,8 +164,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<IRequestAdminService, RequestAdminService>();
         services.AddScoped<IPublicRequestService, PublicRequestService>();
-        services.AddScoped<ISlideshowService, SlideshowService>();
-        services.AddScoped<ILabelService, LabelService>();
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IMemberDebtService, MemberDebtService>();
@@ -199,18 +192,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IRehearsalService, RehearsalService>();
         services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers logistics board services
-    /// </summary>
-    public static IServiceCollection AddLogisticsServices(this IServiceCollection services)
-    {
-        services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
-        services.AddScoped<ILogisticsListService, LogisticsListService>();
-        services.AddScoped<ILogisticsCardService, LogisticsCardService>();
 
         return services;
     }
@@ -861,7 +842,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ReportPdfService>();
-        services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
+        services.AddScoped<IEmailSender, EmailSender>();
         services.AddControllersWithViews();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailTemplateRenderer, RazorEmailTemplateRenderer>();

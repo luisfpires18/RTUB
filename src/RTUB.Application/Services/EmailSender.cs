@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
 

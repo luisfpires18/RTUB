@@ -51,7 +51,7 @@ place, comment, like), all to the same URL.
 **Story text (029A, temporary).** The explanation above the levels no longer comes from the `ranking_story` label: the
 Labels admin (`/labels`) was removed, so the text is fixed in code (`LeaderboardService.Story`, the seeded label's text)
 and nobody edits it; `PUT /api/leaderboard/story`, `canEditStory` and the React "Editar" dialog are gone. The owner
-decides the final text and whether it becomes editable again. The `Labels` table is untouched until 029B.
+decides the final text and whether it becomes editable again. The `Labels` table is untouched until task 043 (`docs/db-cleanup-inventory.md`).
 
 ## API (GET `no-store`; writes need `X-CSRF-TOKEN`)
 

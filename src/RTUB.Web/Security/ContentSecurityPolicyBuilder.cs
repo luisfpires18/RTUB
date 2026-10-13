@@ -139,17 +139,16 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // cdnjs -> cropper.min.js, unpkg -> leaflet.js (SRI pinned) until task 032: nothing loads from either now (the
-        // React Cropper is canvas-only and Leaflet is bundled with the React map). Dropping them is a follow-up.
-        // No 'unsafe-eval': unit 022 removed every JSRuntime eval dispatch, and no component
-        // uses an InteractiveWebAssembly/Auto render mode, so no wasm source is needed either.
-        Directive("script-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
+        // Own origin only. cdnjs (cropper.min.js) and unpkg (leaflet.js) served the Blazor layout until task 032 and
+        // were dropped in 042: the React Cropper is canvas-only and Leaflet is bundled with the React map.
+        // No 'unsafe-eval' and no wasm source: nothing evaluates strings or runs WebAssembly.
+        Directive("script-src", "'self'");
 
         // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
         Directive("script-src-attr", "'none'");
 
-        // cdnjs -> cropper.min.css, unpkg -> leaflet.css (SRI pinned) until task 032; unused since, as above.
-        Directive("style-src", "'self'", "https://cdnjs.cloudflare.com", "https://unpkg.com");
+        // Own origin only (the cdnjs / unpkg stylesheets went with them, as above; the Leaflet CSS is bundled).
+        Directive("style-src", "'self'");
 
         // Inline style attributes: removed by unit 024. Dynamic values go through the CSSOM,
         // which CSP does not govern.
@@ -167,7 +166,7 @@ public sealed class ContentSecurityPolicyBuilder
         // Public origin for <video>; the S3 endpoint for the pre-signed album audio URLs.
         Directive("media-src", "'self'", r2PublicOrigin, r2EndpointOrigin, r2ReferenceOrigin);
 
-        // bootstrap-icons ships its woff2 next to its stylesheet; no web font service is used.
+        // The portal bundles its one web font (Fraunces) under /portal/assets; no web font service is used.
         Directive("font-src", "'self'");
 
         Directive("manifest-src", "'self'");

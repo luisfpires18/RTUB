@@ -9,8 +9,9 @@ namespace RTUB.Integration.Tests;
 /// <summary>
 /// Task 029A retired the Blazor admin pages /images (homepage slideshows, shown nowhere since React task 004) and
 /// /labels (editable site texts; the Leaderboard story, their last reader, is fixed in code now) with no replacement:
-/// both URLs are plain 404s (no redirect) for visitors and admins alike, and the Admin menu no longer offers them. The
-/// Labels and Slideshows tables stay until 029B removes them with a migration.
+/// both URLs are plain 404s (no redirect) for visitors and admins alike, and the Admin menu no longer offers them. Task 042
+/// removed the services and repositories left behind; the Labels and Slideshows tables (entities, DbSets, seed) stay until
+/// task 043 removes them with a migration (docs/db-cleanup-inventory.md).
 /// </summary>
 public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
 {
@@ -57,6 +58,21 @@ public class RetiredImagesLabelsRoutesTests : IntegrationTestBase
         var html = await page.Content.ReadAsStringAsync() + await admin.GetStringAsync("/api/account/me");
         html.Should().Contain("id=\"root\"");
         html.Should().NotContain("href=\"/images\"").And.NotContain("href=\"/labels\"");
+    }
+
+    [Fact]
+    public void LabelAndSlideshowCode_IsGone_ButTheirTablesStayFor043()
+    {
+        var application = typeof(RTUB.Application.Data.ApplicationDbContext).Assembly;
+        foreach (var name in new[] { "ILabelService", "LabelService", "ILabelRepository", "LabelRepository",
+                     "ISlideshowService", "SlideshowService", "ISlideshowRepository", "SlideshowRepository" })
+        {
+            application.GetTypes().Should().NotContain(t => t.Name == name, "{0} had no caller and went in 042", name);
+        }
+
+        // Dropping the tables is task 043's migration, not a side effect of this cleanup.
+        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Labels").Should().NotBeNull();
+        typeof(RTUB.Application.Data.ApplicationDbContext).GetProperty("Slideshows").Should().NotBeNull();
     }
 
     [Fact]
