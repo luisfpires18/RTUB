@@ -770,23 +770,39 @@ public class MemberAreaRetirementTests
         profile.Should().NotContain("Entraste como", "one account per member: the sentence says nothing");
         profile.Should().NotContain("<PhotoSection", "the photo lives in the header, not in a card of its own")
             .And.Contain("<ProfilePhoto").And.Contain("memberAreaApi.photo(");
-        profile.Should().Contain("title=\"Informação da Tuna\"").And.Contain("title=\"Percurso na Tuna\"")
-            .And.Contain("title=\"Estado na Tuna\"").And.Contain("title=\"Instrumentos\"").And.Contain("title=\"Padrinho\"");
+        profile.Should().Contain("title=\"Informação da Tuna\"").And.Contain("Percurso na Tuna").And.Contain("Estado na Tuna")
+            .And.Contain("label=\"Instrumentos\"").And.Contain("label=\"Padrinho\"");
         profile.Should().Contain("<TunaPath items={m.timeline} />", "the timeline is the server's real member data, never hardcoded")
             .And.Contain("Último ensaio").And.Contain("Última atuação");
         profile.Should().Contain("href={portal.myEnrollments}").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");
 
-        // One badge component for the profile header, the member dialogs, the directory and the header chip.
-        File.Exists(Path.Combine(portal, "MemberBadge.tsx")).Should().BeTrue();
+        // One badge component, with the per-kind variants kept in it: profile header, dialogs, directory and the header badge.
+        File.ReadAllText(Path.Combine(portal, "MemberBadge.tsx")).Should().Contain("member-badge--${kind}");
         foreach (var file in new[] { "Profile.tsx", "MemberDialogs.tsx", "Members.tsx", "MemberShell.tsx" })
         {
-            var source = File.ReadAllText(Path.Combine(portal, file));
-            source.Should().Contain("<MemberBadge", file).And.NotContain("member-badge--${", file, "a membership kind is never its own colour");
+            File.ReadAllText(Path.Combine(portal, file)).Should().Contain("<MemberBadge", file);
         }
 
         var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
-        css.Should().NotContain(".member-badge--tuno").And.NotContain(".member-badge--position")
+        css.Should().Contain(".member-badge--tuno").And.Contain(".member-badge--veterano").And.Contain(".member-badge--tunossauro")
             .And.NotContain(".profile-photo", "the standalone Foto card is gone");
+
+        // Header (batch 4): inbox, then the category badge as its own control, then the profile chip, then the menu.
+        var app = File.ReadAllText(Path.Combine(portal, "App.tsx"));
+        app.IndexOf("<MemberInbox />", StringComparison.Ordinal).Should().BeInRange(0, app.Length)
+            .And.BeLessThan(app.IndexOf("<MemberCategory", StringComparison.Ordinal));
+        app.IndexOf("<MemberCategory", StringComparison.Ordinal).Should().BeLessThan(app.IndexOf("<MemberIdentity", StringComparison.Ordinal));
+        app.IndexOf("<MemberIdentity", StringComparison.Ordinal).Should().BeLessThan(app.IndexOf("<MemberDrawer", StringComparison.Ordinal));
+        var shell = File.ReadAllText(Path.Combine(portal, "MemberShell.tsx"));
+        var chip = shell[shell.IndexOf("export function MemberIdentity", StringComparison.Ordinal)..shell.IndexOf("export function SignOutButton", StringComparison.Ordinal)];
+        chip.Should().NotContain("MemberBadge", "the badge is no longer inside the profile chip").And.Contain("href={portal.profile}");
+
+        // The timeline exposes semantic variants (leitao, caloiro, position, tuno, veterano, tunossauro) from the server's accent.
+        profile.Should().Contain("tuna-path__step--${pathVariant(t)}").And.Contain("'position'");
+        foreach (var variant in new[] { "leitao", "caloiro", "position", "tuno", "veterano", "tunossauro" })
+        {
+            css.Should().Contain($".tuna-path__step--{variant}");
+        }
     }
 
     private static string RepoRoot()

@@ -165,3 +165,14 @@ React only, no API / schema change: everything comes from `GET /api/profile` (`M
 - Badges: one `MemberBadge` / `.member-badge` (dark pill, light uppercase text, thin outline) for every page, header chip
   included. Membership kinds and positions are not colours any more; only `--active` (purple outline) and `--retired` (muted).
 - "Terminar sessão" and "As minhas inscrições" share `btn btn--ghost btn--sm` (`SignOutButton` takes `buttonClassName`).
+
+### Batch 4 (task 044)
+- Header: `[inbox] [category badge] [profile chip] [menu]`. The badge (`MemberCategory`, first of `/api/account/me` `categories`) is its
+  own control, the shared `MemberBadge` with the kind derived from the label (`badgeKind`); the chip is avatar + name only.
+  On phones the tagline is hidden so the four controls fit.
+- `MemberBadge` takes `kind` (tuno, veterano, tunossauro, tunohonorario, fundador, caloiro, leitao, position, active, retired):
+  the original per-kind colours are back everywhere (Batch 3 had flattened them); veterano / tunossauro gain a lavender outline.
+- Percurso: `TunaPath` variant from the server's `accent` (`role` / `magister` → `position`): leitão grey, caloiro light, position
+  purple with a star marker, tuno black, veterano / tunossauro dark with a purple outline; thin neutral rail, markers on it; a
+  row from 700px (six milestones fit at 1440px), a column with a vertical rail on phones.
+- Informação da Tuna is flat: label / value rows, ruled blocks (Percurso, Estado), no nested cards.

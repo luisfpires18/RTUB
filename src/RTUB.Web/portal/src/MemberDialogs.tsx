@@ -72,10 +72,10 @@ function MemberBody({ m }: { m: MemberDetail }) {
         {m.fullName && <p className="who__meta">{m.fullName}</p>}
         <span className="member-badges">
           {m.badges.map((b) => (
-            <MemberBadge key={b.kind}>{b.label}</MemberBadge>
+            <MemberBadge key={b.kind} kind={b.kind}>{b.label}</MemberBadge>
           ))}
           {m.positions.map((p) => (
-            <MemberBadge key={p}>{p}</MemberBadge>
+            <MemberBadge key={p} kind="position">{p}</MemberBadge>
           ))}
         </span>
       </div>
@@ -128,7 +128,7 @@ export function StateSection({ state }: { state: MemberState }) {
       <dl className="member-fields">
         {state.retired !== null && (
           <Field label="Estado atual">
-            <MemberBadge tone={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
+            <MemberBadge kind={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
             {state.progress && <span className="member-progress">{state.progress}</span>}
             {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
               <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} />
@@ -231,7 +231,7 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
                 {m.progress && <small className="member-progress">{m.progress}</small>}
                 {m.encourage && <small className="member-encourage">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</small>}
               </span>
-              <MemberBadge tone={m.retired ? 'retired' : 'active'}>{m.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
+              <MemberBadge kind={m.retired ? 'retired' : 'active'}>{m.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
               {rowActions && <span className="member-row__actions">{rowActions(m, () => setVersion((v) => v + 1))}</span>}
             </li>
           ))}
@@ -284,7 +284,7 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
                 </small>
                 <span className="member-badges">
                   {b.badges.map((x) => (
-                    <MemberBadge key={x.kind}>{x.label}</MemberBadge>
+                    <MemberBadge key={x.kind} kind={x.kind}>{x.label}</MemberBadge>
                   ))}
                 </span>
               </span>

@@ -3,7 +3,7 @@ import { getAnnouncement, getCurrentUser, getVersion, wasSignedIn, type Announce
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
 import { Icon, type IconName } from './icons';
-import { MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
+import { MemberCategory, MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 
 export const sections = [
   { id: 'music', label: 'Música' },
@@ -199,6 +199,7 @@ function Header({ shell, member }: { shell: boolean; member?: Member }) {
           {shell ? (
             <>
               {member && <MemberInbox />}
+              {member && <MemberCategory member={member} />}
               <MemberIdentity member={member} />
               <MemberDrawer member={member} />
             </>

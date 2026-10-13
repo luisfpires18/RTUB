@@ -555,8 +555,8 @@ main:focus {
 }
 
 /* ---------- member shell (task 030) ----------
-   Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [profile]
-   [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
+   Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [category badge]
+   [profile] [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
 
 .shell--member .header__inner {
   max-width: none;
@@ -565,6 +565,12 @@ main:focus {
 /* No public nav to push them over: the member's identity and menu button sit at the right edge. */
 .shell--member .header__actions {
   margin-left: auto;
+}
+
+.header__category {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
 }
 
 .idchip {
@@ -601,8 +607,7 @@ main:focus {
   line-height: 1.2;
 }
 
-.idchip__name,
-.idchip__rank {
+.idchip__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -611,11 +616,6 @@ main:focus {
 .idchip__name {
   font-size: 0.9375rem;
   font-weight: 600;
-}
-
-.idchip__rank .member-badge {
-  padding: 0 7px;
-  font-size: 0.625rem;
 }
 
 .idchip--pending {
@@ -631,6 +631,11 @@ main:focus {
   }
 
   .header__actions > .idchip .idchip__text {
+    display: none;
+  }
+
+  /* Four controls (inbox, category, profile, menu) need the room the tagline had. */
+  .shell--member .brand__sub {
     display: none;
   }
 }
@@ -6226,30 +6231,61 @@ video.tile__media {
   gap: 4px;
 }
 
-/* The one badge of the portal (MemberBadge.tsx, task 044 batch 3): a compact dark pill. Membership kinds and positions
-   are never a colour; only the two statuses below differ, and only by outline / text. */
+/* The one badge of the portal (MemberBadge.tsx): a compact pill; `kind` picks the per-status colours below. */
 .member-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
+  padding: 1px 8px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: #000;
-  color: #f1eef8;
+  color: var(--ink-soft);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
-.member-badge--active {
-  border-color: var(--purple-ink);
+/* The colours of the old badges (badges.css): black Tuno, pink Honorário, white Caloiro, grey Leitão... */
+.member-badge--tuno,
+.member-badge--retired {
+  background: #000;
+  color: #fff;
 }
 
-.member-badge--retired {
-  color: var(--muted);
+.member-badge--veterano {
+  border-color: var(--purple-ink);
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.member-badge--tunossauro {
+  border-color: var(--purple-ink);
+  background: #2c2c54;
+  color: #fff;
+}
+
+.member-badge--tunohonorario {
+  background: #ff1d8e;
+  color: #fff;
+}
+
+.member-badge--fundador {
+  background: #3d2c5c;
+  color: #fff;
+}
+
+.member-badge--caloiro {
+  background: #fff;
+  color: #000;
+}
+
+.member-badge--leitao {
+  background: #6c757d;
+  color: #fff;
+}
+
+.member-badge--active,
+.member-badge--position {
+  background: var(--purple);
+  color: #fff;
 }
 
 .members-more {
@@ -9160,40 +9196,22 @@ video.tile__media {
   color: #9ee0b5;
 }
 
-/* Informação da Tuna (instrumentos, padrinho, percurso, estado) - the old profile's structure. */
+/* Informação da Tuna: flat rows and ruled blocks (the old profile's density); the timeline is the focus. */
 .tuna-info {
   display: grid;
-  gap: 14px;
   min-width: 0;
 }
 
-.tuna-info__pair {
+.tuna-info__block {
   display: grid;
-  gap: 14px;
-}
-
-@media (min-width: 700px) {
-  .tuna-info__pair {
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    grid-auto-flow: column;
-  }
-}
-
-.tuna-info__card {
-  display: grid;
-  align-content: start;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-card);
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
 .tuna-info__title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   color: var(--purple-ink);
   font-family: var(--font-body);
   font-size: 0.8125rem;
@@ -9202,197 +9220,232 @@ video.tile__media {
   text-transform: uppercase;
 }
 
-.tuna-info__list {
+.tuna-rows {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.tuna-info__tag {
+.tuna-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: baseline;
+}
+
+.tuna-row dt {
   color: var(--muted);
+  font-size: 0.875rem;
 }
 
-.tuna-info__value {
+.tuna-row dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-/* Percurso na Tuna: connected milestone cards. A column on a phone, a row from 700px (sideways scroll if it must). */
+.tuna-info__block .who__more {
+  margin: 0;
+}
+
+/* Percurso na Tuna: cards on a thin neutral rail, one marker each. The card colours follow the legacy milestones:
+   leitão grey, caloiro light, officer position purple, tuno black, veterano / tunossauro dark with a purple outline. */
 .tuna-path {
-  --path-gap: 28px;
+  --gap: 20px;
+  --marker: 18px;
+  --card: #2a2a33;
+  --card-ink: #f1eef8;
+  --card-line: var(--line-strong);
+  --track: var(--line-strong);
   display: grid;
-  gap: var(--path-gap);
+  gap: var(--gap);
   margin: 0;
   padding: 2px 2px 8px;
   list-style: none;
 }
 
 .tuna-path__step {
+  --mark: var(--card-ink);
+  --mark-ink: var(--card);
   position: relative;
   display: grid;
-  gap: 2px;
-  padding: 12px 14px;
-  border: 1px solid var(--line-strong);
-  border-top: 4px solid var(--step, var(--line-strong));
-  border-radius: var(--radius);
-  background: var(--bg-raise);
+  grid-template-columns: var(--marker) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
 }
 
-.tuna-path__step + .tuna-path__step::before {
-  position: absolute;
-  bottom: 100%;
-  left: 24px;
-  width: 2px;
-  height: var(--path-gap);
-  background: var(--purple-ink);
-  content: '';
-}
-
-.tuna-path__step + .tuna-path__step::after {
-  position: absolute;
-  bottom: calc(100% - 2px);
-  left: 20px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--purple-ink);
+.tuna-path__marker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--marker);
+  height: var(--marker);
+  margin-top: 14px;
+  border: 2px solid var(--mark);
   border-radius: 50%;
-  background: var(--bg-raise);
-  content: '';
+  background: var(--mark-ink);
+  color: var(--mark);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.tuna-path__card {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-ink);
 }
 
 .tuna-path__label {
-  color: var(--ink);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   overflow-wrap: anywhere;
 }
 
 .tuna-path__years {
-  color: var(--ink-soft);
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-variant-numeric: tabular-nums;
+  opacity: 0.85;
 }
 
 .tuna-path__notes {
-  color: var(--muted);
   font-size: 0.8125rem;
-}
-
-.tuna-path__step.is-active {
-  background: linear-gradient(180deg, rgba(111, 66, 193, 0.22), var(--bg-raise));
-  box-shadow: 0 0 0 1px rgba(185, 160, 238, 0.35);
-}
-
-.tuna-path__step.is-completed .tuna-path__label {
-  color: var(--ink-soft);
+  opacity: 0.75;
 }
 
 .tuna-path__step--leitao {
-  --step: #6c757d;
+  --card: #6c757d;
+  --card-line: #8a939a;
+  --card-ink: #fff;
+  --mark: #fff;
+  --mark-ink: #6c757d;
 }
 
 .tuna-path__step--caloiro {
-  --step: #e9e4f5;
+  --card: #f4f2fa;
+  --card-line: #f4f2fa;
+  --card-ink: #14121c;
+  --mark: #14121c;
+  --mark-ink: #f4f2fa;
 }
 
-.tuna-path__step--tuno,
-.tuna-path__step--role {
-  --step: var(--purple);
+.tuna-path__step--position {
+  --card: var(--purple);
+  --card-line: var(--purple-ink);
+  --card-ink: #fff;
+  --mark: #fff;
+  --mark-ink: var(--bg-raise);
 }
 
-.tuna-path__step--veterano {
-  --step: #8b6bd6;
+.tuna-path__step--position .tuna-path__marker {
+  border-color: transparent;
+  background: var(--bg-raise);
+  font-size: 0.8125rem;
+}
+
+.tuna-path__step--position .tuna-path__marker::after {
+  content: '\2605';
+}
+
+.tuna-path__step--tuno {
+  --card: #000;
+  --card-line: #3a3a44;
+  --card-ink: #fff;
+  --mark: #e9e4f5;
+  --mark-ink: #e9e4f5;
+}
+
+.tuna-path__step--veterano,
+.tuna-path__step--tunossauro {
+  --card: #1a1a2e;
+  --card-line: var(--purple-ink);
+  --card-ink: #f1eef8;
+  --mark: var(--purple-ink);
+  --mark-ink: #1a1a2e;
 }
 
 .tuna-path__step--tunossauro {
-  --step: #b9a0ee;
+  --card: #2c2c54;
 }
 
 .tuna-path__step--fundador {
-  --step: #d6b36a;
+  --card: #3d2c5c;
+  --card-line: var(--purple-ink);
+  --card-ink: #fff;
 }
 
 .tuna-path__step--honorario {
-  --step: #ff1d8e;
+  --card: #ff1d8e;
+  --card-line: #ff1d8e;
+  --card-ink: #fff;
+  --mark-ink: #ff1d8e;
 }
 
-.tuna-path__step--magister {
-  --step: var(--purple-ink);
+/* The rail: a thin neutral line from this marker to the next one. A column on a phone... */
+.tuna-path__step:not(:last-child)::before {
+  position: absolute;
+  top: calc(14px + var(--marker) / 2);
+  bottom: calc(var(--gap) * -1);
+  left: calc(var(--marker) / 2 - 1px);
+  width: 2px;
+  background: var(--track);
+  content: '';
 }
 
+/* ... a row from 700px, the markers on the rail above the cards (it scrolls sideways if it must). */
 @media (min-width: 700px) {
   .tuna-path {
-    grid-auto-columns: minmax(148px, 1fr);
+    grid-auto-columns: minmax(140px, 1fr);
     grid-auto-flow: column;
     overflow-x: auto;
-    scroll-snap-type: x proximity;
   }
 
   .tuna-path__step {
-    scroll-snap-align: start;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
-  .tuna-path__step + .tuna-path__step::before {
-    top: 50%;
-    right: 100%;
+  .tuna-path__marker {
+    justify-self: center;
+    margin-top: 0;
+  }
+
+  .tuna-path__step:not(:last-child)::before {
+    top: calc(var(--marker) / 2 - 1px);
+    right: auto;
     bottom: auto;
-    left: auto;
-    width: var(--path-gap);
+    left: 50%;
+    width: calc(100% + var(--gap));
     height: 2px;
-    transform: translateY(-1px);
-  }
-
-  .tuna-path__step + .tuna-path__step::after {
-    top: 50%;
-    right: calc(100% - 4px);
-    bottom: auto;
-    left: auto;
-    transform: translateY(-50%);
   }
 }
 
 .tuna-state {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
 }
 
-@media (min-width: 700px) {
-  .tuna-state {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    align-items: start;
-  }
-}
-
-.tuna-state__status {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-}
-
-.tuna-state__status p {
-  margin: 0;
-}
-
-.tuna-state__status .member-progress__bar {
+.tuna-state .member-progress__bar {
+  flex: 1 1 100%;
   max-width: 28rem;
+}
+
+.tuna-state p {
+  flex: 1 1 100%;
+  margin: 0;
 }
 
 .tuna-state__progress {
   color: var(--ink-soft);
   font-size: 0.875rem;
-}
-
-.tuna-state__last {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.tuna-info__card .who__more {
-  margin: 0;
 }
 
 .profile-switch {

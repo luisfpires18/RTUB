@@ -140,7 +140,7 @@ function UserCard({ user, onDetails, onEdit }: { user: OwnerUserCard; onDetails:
         <h2 className="owner-user__name">{user.nickname || user.userName}</h2>
         <p className="note">{user.fullName}</p>
         <p className="member-badges">
-          <span className="member-badge">{user.role}</span>
+          <span className="member-badge member-badge--position">{user.role}</span>
           {user.locked && <span className="member-badge owner-badge--danger">Bloqueado</span>}
         </p>
         <p className="owner-user__meta">

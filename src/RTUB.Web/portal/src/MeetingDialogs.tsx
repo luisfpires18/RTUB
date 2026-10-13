@@ -540,9 +540,9 @@ export function ParticipationDialog({
 // ---------- participants ----------
 
 const BADGE_CLASS: Record<string, string> = {
-  Magister: 'member-badge',
-  Tuno: 'member-badge',
-  Caloiro: 'member-badge',
+  Magister: 'member-badge member-badge--position',
+  Tuno: 'member-badge member-badge--tuno',
+  Caloiro: 'member-badge member-badge--caloiro',
 };
 
 /** "Participantes - {título}": who goes and who does not, with notes; Admin / Owner add members. */

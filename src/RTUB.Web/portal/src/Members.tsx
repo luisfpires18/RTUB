@@ -364,9 +364,9 @@ function Group({ title, people, limit, onMore, onOpen }: { title: string; people
               {p.fullName && <span className="who__meta">{p.fullName}</span>}
               <span className="member-badges">
                 {p.badges.map((b) => (
-                  <MemberBadge key={b.kind}>{b.label}</MemberBadge>
+                  <MemberBadge key={b.kind} kind={b.kind}>{b.label}</MemberBadge>
                 ))}
-                {p.position && <MemberBadge>{p.position}</MemberBadge>}
+                {p.position && <MemberBadge kind="position">{p.position}</MemberBadge>}
                 {p.noRoles && <MemberBadge>Sem cargos</MemberBadge>}
               </span>
               {p.instrument && <span className="who__meta">{p.instrument}</span>}

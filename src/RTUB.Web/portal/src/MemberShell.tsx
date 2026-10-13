@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { signOut, type CurrentUser, type MemberMenu } from './api';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
-import { MemberBadge } from './MemberBadge';
+import { MemberBadge, badgeKind } from './MemberBadge';
 import { unreadLabel, useUnread } from './unread';
 
 /**
@@ -215,7 +215,17 @@ export function MemberInbox() {
 
 const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
-/** Who is signed in: avatar, name and the first category. One click goes straight to /profile. */
+/** Header category: the member's first category as the shared badge, its own control between the inbox and the profile. */
+export function MemberCategory({ member }: { member: Member }) {
+  const label = member.categories[0];
+  return label ? (
+    <span className="header__category">
+      <MemberBadge kind={badgeKind(label)}>{label}</MemberBadge>
+    </span>
+  ) : null;
+}
+
+/** Who is signed in: avatar and name. One click goes straight to /profile. */
 export function MemberIdentity({ member }: { member?: Member }) {
   if (!member) {
     return (
@@ -240,11 +250,6 @@ export function MemberIdentity({ member }: { member?: Member }) {
       />
       <span className="idchip__text">
         <span className="idchip__name">{member.displayName}</span>
-        {member.categories[0] && (
-          <span className="idchip__rank">
-            <MemberBadge>{member.categories[0]}</MemberBadge>
-          </span>
-        )}
       </span>
       <span className="sr-only"> (o meu perfil)</span>
     </a>

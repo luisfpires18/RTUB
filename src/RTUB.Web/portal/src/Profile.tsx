@@ -131,10 +131,10 @@ function MyProfilePage() {
             {m.badges.length + m.positions.length > 0 ? (
               <span className="member-badges">
                 {m.badges.map((b) => (
-                  <MemberBadge key={b.kind}>{b.label}</MemberBadge>
+                  <MemberBadge key={b.kind} kind={b.kind}>{b.label}</MemberBadge>
                 ))}
                 {m.positions.map((p) => (
-                  <MemberBadge key={p}>{p}</MemberBadge>
+                  <MemberBadge key={p} kind="position">{p}</MemberBadge>
                 ))}
               </span>
             ) : (
@@ -423,65 +423,60 @@ const tunaOf = (p: MyProfile): TunaInput => ({
   monthTuno: p.tuna.monthTuno,
 });
 
-/** Informação da Tuna, read-only: the old profile's layout over today's member data (instrumentos, padrinho, percurso, estado). */
+/** Informação da Tuna, read-only: the old profile's flat layout over today's member data (instrumentos, padrinho, percurso, estado). */
 function TunaInfo({ profile }: { profile: MyProfile }) {
   const { tuna: t, member: m, instruments } = profile;
   return (
     <div className="tuna-info">
-      <div className="tuna-info__pair">
-        <InfoCard title="Instrumentos" icon="music">
-          {instruments.length > 0 ? (
-            <ul className="tuna-info__list">
-              {instruments.map((i) => (
-                <li key={i.id}>
-                  {i.label}
-                  {i.primary && <span className="tuna-info__tag"> (Principal)</span>}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="note">Não definido</p>
-          )}
-        </InfoCard>
-        {t.showMentor && (
-          <InfoCard title="Padrinho" icon="person">
-            <p className="tuna-info__value">{t.mentorName ?? <span className="note">Não definido</span>}</p>
-          </InfoCard>
-        )}
-      </div>
-      <InfoCard title="Percurso na Tuna" icon="calendar">
+      <dl className="tuna-rows">
+        <Row label="Instrumentos">
+          {instruments.length > 0 ? instruments.map((i) => (i.primary ? `${i.label} (Principal)` : i.label)).join(', ') : null}
+        </Row>
+        {t.showMentor && <Row label="Padrinho">{t.mentorName}</Row>}
+      </dl>
+      <section className="tuna-info__block" aria-labelledby="tuna-path-title">
+        <h3 id="tuna-path-title" className="tuna-info__title">
+          Percurso na Tuna
+        </h3>
         {m.timeline.length > 0 ? <TunaPath items={m.timeline} /> : <p className="note">Ainda sem percurso registado.</p>}
-      </InfoCard>
+      </section>
       {m.state && <TunaState state={m.state} />}
     </div>
   );
 }
 
-function InfoCard({ title, icon, children }: { title: string; icon: IconName; children: ReactNode }) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className="tuna-info__card" aria-label={title}>
-      <h3 className="tuna-info__title">
-        <Icon name={icon} />
-        {title}
-      </h3>
-      {children}
-    </section>
+    <div className="tuna-row">
+      <dt>{label}</dt>
+      <dd>{children ?? <span className="note">Não definido</span>}</dd>
+    </div>
   );
 }
 
 /**
- * "Percurso na Tuna": the milestones the server built (MemberDirectoryService.Timeline), oldest first, as connected
- * cards - a row on wide screens (it scrolls sideways if it must), a column on a phone. `accent` colours the card's top
- * edge; `state` marks the current step(s).
+ * The look of a milestone, from what the server already says (MemberDirectoryService.Timeline): `accent` is the
+ * category (leitao, caloiro, tuno, veterano, tunossauro, fundador, honorario) and `role` / `magister` are the officer
+ * positions, one look for both.
+ */
+const pathVariant = (t: TimelineItem) => (t.accent === 'role' || t.accent === 'magister' ? 'position' : t.accent);
+
+/**
+ * "Percurso na Tuna": the milestones the server built, oldest first, as cards on a thin rail - a row on wide screens
+ * (it scrolls sideways if it must), a column on a phone. The variant colours the card and shapes the marker; `state`
+ * marks the current steps.
  */
 function TunaPath({ items }: { items: TimelineItem[] }) {
   return (
     <ol className="tuna-path">
       {items.map((t, i) => (
-        <li key={i} className={`tuna-path__step tuna-path__step--${t.accent}${t.state ? ` is-${t.state}` : ''}`}>
-          <span className="tuna-path__label">{t.label}</span>
-          <span className="tuna-path__years">{t.years}</span>
-          {t.notes && <span className="tuna-path__notes">{t.notes}</span>}
+        <li key={i} className={`tuna-path__step tuna-path__step--${pathVariant(t)}${t.state ? ` is-${t.state}` : ''}`}>
+          <span className="tuna-path__marker" aria-hidden="true" />
+          <span className="tuna-path__card">
+            <span className="tuna-path__label">{t.label}</span>
+            <span className="tuna-path__years">{t.years}</span>
+            {t.notes && <span className="tuna-path__notes">{t.notes}</span>}
+          </span>
         </li>
       ))}
     </ol>
@@ -491,25 +486,26 @@ function TunaPath({ items }: { items: TimelineItem[] }) {
 /** "Estado na Tuna": the server's status, progress and the last rehearsal / event, as in the old profile. */
 function TunaState({ state }: { state: MemberState }) {
   return (
-    <InfoCard title="Estado na Tuna" icon="check">
-      <div className="tuna-state">
-        {state.retired !== null && (
-          <div className="tuna-state__status">
-            <MemberBadge tone={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
-            {state.progress && <span className="tuna-state__progress">{state.progress}</span>}
-            {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
-              <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} aria-label="Progresso de atividade" />
-            ) : null}
-            {state.encourage && <p className="note">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
-          </div>
-        )}
-        <dl className="tuna-state__last">
-          <Field label="Último ensaio">{shortDate(state.lastRehearsal)}</Field>
-          <Field label="Última atuação">{shortDate(state.lastEvent)}</Field>
-        </dl>
-      </div>
+    <section className="tuna-info__block" aria-labelledby="tuna-state-title">
+      <h3 id="tuna-state-title" className="tuna-info__title">
+        Estado na Tuna
+      </h3>
+      {state.retired !== null && (
+        <div className="tuna-state">
+          <MemberBadge kind={state.retired ? 'retired' : 'active'}>{state.retired ? 'REFORMADO' : 'NO ATIVO'}</MemberBadge>
+          {state.progress && <span className="tuna-state__progress">{state.progress}</span>}
+          {state.progress && state.progressMonths !== null && state.progressTotalMonths ? (
+            <progress className="member-progress__bar" max={state.progressTotalMonths} value={state.progressMonths} aria-label="Progresso de atividade" />
+          ) : null}
+          {state.encourage && <p className="note">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
+        </div>
+      )}
+      <dl className="tuna-rows">
+        <Row label="Último ensaio">{shortDate(state.lastRehearsal)}</Row>
+        <Row label="Última atuação">{shortDate(state.lastEvent)}</Row>
+      </dl>
       <ActivityList activities={state.activities} />
-    </InfoCard>
+    </section>
   );
 }
 

@@ -232,7 +232,7 @@ export default function ShopPage() {
                     <div className="shop-card__body">
                       <strong>{p.name}</strong>
                       <span className="member-badges">
-                        <span className="member-badge">{p.type}</span>
+                        <span className="member-badge member-badge--position">{p.type}</span>
                         {p.stock > 0 ? (
                           <span className="member-badge">{p.stock} em stock</span>
                         ) : (
