@@ -6,6 +6,7 @@ import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { loginTo } from './musicApi';
+import { MemberBadge } from './MemberBadge';
 
 // /api/leaderboard (Endpoints/LeaderboardEndpoints.cs, React track 019). Signed-in members only; the server decides
 // every rule (LeaderboardService). Hiding a button here is only a convenience.
@@ -225,9 +226,9 @@ export default function Leaderboard() {
                         </small>
                       </span>
                       <span className="leaderboard-row__score">
-                        <span className="member-badge member-badge--position">
+                        <MemberBadge kind="position">
                           Nível {e.level} – {e.rankName}
-                        </span>
+                        </MemberBadge>
                         <strong>{e.xp} XP</strong>
                       </span>
                     </button>
@@ -276,8 +277,8 @@ function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: str
             <p className="member-detail__name">{detail.displayName}</p>
             {detail.fullName && <p className="who__meta">{detail.fullName}</p>}
             <span className="member-badges">
-              <span className="member-badge member-badge--position">Nível {detail.progress.level}</span>
-              <span className="member-badge">{detail.progress.rankName}</span>
+              <MemberBadge kind="position">Nível {detail.progress.level}</MemberBadge>
+              <MemberBadge>{detail.progress.rankName}</MemberBadge>
             </span>
           </div>
 
@@ -299,7 +300,7 @@ function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: str
                       {detail.breakdown.rehearsalCount} × {detail.breakdown.rehearsalXpPerUnit} XP
                     </small>
                   </span>
-                  <span className="member-badge">{detail.breakdown.rehearsalXpTotal} XP</span>
+                  <MemberBadge>{detail.breakdown.rehearsalXpTotal} XP</MemberBadge>
                 </li>
                 {detail.breakdown.eventsByType.length === 0 ? (
                   <li className="note">Nenhuma atuação registada</li>
@@ -313,7 +314,7 @@ function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: str
                           {t.count} × {t.xpPerUnit} XP
                         </small>
                       </span>
-                      <span className="member-badge">{t.totalXp} XP</span>
+                      <MemberBadge>{t.totalXp} XP</MemberBadge>
                     </li>
                   ))
                 )}
@@ -336,7 +337,7 @@ function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: str
                         {a.date.split('-').reverse().join('/')} · {a.type}
                       </small>
                     </span>
-                    <span className="member-badge member-badge--active">+{a.xpEarned} XP</span>
+                    <MemberBadge kind="active">+{a.xpEarned} XP</MemberBadge>
                   </li>
                 ))}
               </ul>

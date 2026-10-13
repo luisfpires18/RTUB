@@ -6,6 +6,7 @@ import type { Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
 import { naipesApi, type NaipeSetting } from './naipesApi';
+import { MemberBadge } from './MemberBadge';
 
 const MAX_PICTURE = 5 * 1024 * 1024;
 const PICTURE_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -85,8 +86,8 @@ export default function NaipesConfig() {
                   </span>
                   <strong className="naipe-setting__name">{s.label}</strong>
                   <span className="member-badges">
-                    <span className="member-badge">Ordem {s.sortOrder}</span>
-                    <span className={s.isVisible ? 'member-badge member-badge--position' : 'member-badge'}>{s.isVisible ? 'Visível' : 'Oculto'}</span>
+                    <MemberBadge>Ordem {s.sortOrder}</MemberBadge>
+                    <MemberBadge kind={s.isVisible ? 'position' : undefined}>{s.isVisible ? 'Visível' : 'Oculto'}</MemberBadge>
                   </span>
                   <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing(s)}>
                     <Icon name="pencil" />

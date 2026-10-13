@@ -6,6 +6,7 @@ import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
+import { MemberBadge } from './MemberBadge';
 
 // /api/shop (Endpoints/ShopEndpoints.cs, React track 021). Signed-in members only; Mod adds products, Admin and Owner
 // manage them and every reservation. The server decides every rule (ProductShopService).
@@ -232,13 +233,13 @@ export default function ShopPage() {
                     <div className="shop-card__body">
                       <strong>{p.name}</strong>
                       <span className="member-badges">
-                        <span className="member-badge member-badge--position">{p.type}</span>
+                        <MemberBadge kind="position">{p.type}</MemberBadge>
                         {p.stock > 0 ? (
-                          <span className="member-badge">{p.stock} em stock</span>
+                          <MemberBadge>{p.stock} em stock</MemberBadge>
                         ) : (
-                          <span className="member-badge member-badge--retired">Esgotado</span>
+                          <MemberBadge kind="retired">Esgotado</MemberBadge>
                         )}
-                        {!p.isPublic && <span className="member-badge member-badge--active">Apenas membros</span>}
+                        {!p.isPublic && <MemberBadge kind="active">Apenas membros</MemberBadge>}
                       </span>
                       <span className="shop-card__price">{euros(p.price)}</span>
                       <span className="shop-card__actions">

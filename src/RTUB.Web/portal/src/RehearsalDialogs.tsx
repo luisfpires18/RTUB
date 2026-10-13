@@ -12,6 +12,7 @@ import {
   type RehearsalStats,
   type RehearsalSummary,
 } from './rehearsalsApi';
+import { MemberBadge, badgeKind } from './MemberBadge';
 
 const NOTES_MAX = 500;
 
@@ -578,7 +579,15 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
               <li key={i} className="who__person" title={m.fullName ?? undefined}>
                 <img className="who__avatar" src={m.avatarUrl} alt="" loading="lazy" width="72" height="72" />
                 <p className="who__name">{m.name}</p>
-                {m.categories.length > 0 && <span className="who__badge">{m.categories.join(' · ')}</span>}
+                {m.categories.length > 0 && (
+                  <span className="member-badges">
+                    {m.categories.map((c) => (
+                      <MemberBadge key={c} kind={badgeKind(c)}>
+                        {c}
+                      </MemberBadge>
+                    ))}
+                  </span>
+                )}
                 <p className="who__meta">
                   {m.approved === 1 ? '1 presença' : `${m.approved} presenças`}
                   {m.pending > 0 && ` · ${m.pending} pendentes`}

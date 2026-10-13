@@ -7,6 +7,7 @@ import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { loginTo } from './musicApi';
 import { naipesApi, type NaipeBoard, type NaipeComment, type NaipeItem } from './naipesApi';
+import { MemberBadge } from './MemberBadge';
 
 const PAGE_SIZES = [10, 20, 30, 40, 50];
 const MAX_VIDEO = 100 * 1024 * 1024;
@@ -334,8 +335,8 @@ function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: ()
     <Dialog title={item.title} size="lg" onClose={onClose}>
       <div className="naipe-view">
         <span className="member-badges">
-          <span className="member-badge member-badge--position">{item.instrumentLabel}</span>
-          <span className="member-badge">{item.isVideo ? 'Vídeo' : 'Imagem'}</span>
+          <MemberBadge kind="position">{item.instrumentLabel}</MemberBadge>
+          <MemberBadge>{item.isVideo ? 'Vídeo' : 'Imagem'}</MemberBadge>
         </span>
         {item.isVideo ? (
           <video className="naipe-view__media" controls playsInline preload="metadata" onPlay={onPlay}>
