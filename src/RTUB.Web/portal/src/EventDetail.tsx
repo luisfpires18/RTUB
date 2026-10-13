@@ -87,7 +87,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
             </button>
           )}
           {loaded && (loaded.event.trophies.length > 0 || loaded.canManagePrizes) && (
-            <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
+            <button type="button" className="btn btn--prizes btn--sm" onClick={() => setPrizes(true)}>
               <Icon name="trophy" />
               Prémios
             </button>
@@ -269,7 +269,7 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
   return (
     <aside className="member-panel" aria-labelledby="member-panel-title">
       <h2 id="member-panel-title" className="member-panel__title">
-        Para membros
+        Área da atuação
       </h2>
       {open ? (
         <>

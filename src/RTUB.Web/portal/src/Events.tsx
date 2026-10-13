@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
-import { EnrollmentDialog, PrizesDialog, StatsDialog } from './EventDialogs';
+import { EnrollmentDialog, PrizesDialog, StatsDialog, WhereYouWereDialog } from './EventDialogs';
 import { CancelEventDialog, DeleteEventDialog, EventFormDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
 import { portal } from './content';
 import {
@@ -82,6 +82,7 @@ export default function Events() {
   const [deleting, setDeleting] = useState<EventSummary>();
   const [acting, setActing] = useState<{ action: 'notice' | 'cancel' | 'reactivate'; event: EventSummary }>();
   const [prizes, setPrizes] = useState(false);
+  const [where, setWhere] = useState(false);
   const [stats, setStats] = useState(false);
 
   useEffect(() => {
@@ -148,16 +149,16 @@ export default function Events() {
               </button>
             )}
             {hasPrizes && (
-              <button type="button" className="btn btn--gold btn--sm" onClick={() => setPrizes(true)}>
+              <button type="button" className="btn btn--prizes btn--sm" onClick={() => setPrizes(true)}>
                 <Icon name="trophy" />
                 Prémios
               </button>
             )}
             {agenda?.isMember && (
-              <a className="btn btn--ghost btn--sm" href={portal.myEnrollments}>
-                <Icon name="calendar" />
-                As minhas inscrições
-              </a>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setWhere(true)}>
+                <Icon name="check" />
+                Onde estiveste
+              </button>
             )}
             {agenda?.isMember && (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setStats(true)}>
@@ -265,6 +266,7 @@ export default function Events() {
         <EnrollmentDialog eventId={answering} onClose={() => setAnswering(undefined)} onSaved={() => load(true)} />
       )}
       {prizes && agenda && <PrizesDialog history={agenda.past} onClose={() => setPrizes(false)} />}
+      {where && agenda && <WhereYouWereDialog past={agenda.past} onClose={() => setWhere(false)} />}
     </section>
   );
 }

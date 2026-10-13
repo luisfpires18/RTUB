@@ -19,14 +19,14 @@ counts follow: Vão / Não vão, Foram / Não foram).
 reached DEV - is a temporary `302` to `/events/{id}?respond=1`; the draft `/events/{id}/attendance` never
 reached `dev` and is not served (404). `/events/{id}/enrollments` - the members' Blazor list of everyone's
 answers with its admin tools - is retired since 012E: a `302` to `/events/{id}#who-title` ("Quem vai / Quem
-foi", with the Admin/Owner manager). `/events/my-enrollments` is the member's own answers (012E).
+foi", with the Admin/Owner manager). The member's own history is the "Onde estiveste" modal on `/events` (the page `/events/my-enrollments` was removed in 044).
 `/member/events` is a `302` to `/events` with its query kept (012F), so Requests' "criar atuação"
 (`?openModal=true&name=&location=&date=&description=`, now sent straight to `/events`) still opens the React
 create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 
 | Route | Owner after 013 |
 | --- | --- |
-| `/events`, `/events/{id}`, `/events/my-enrollments` | React |
+| `/events`, `/events/{id}` | React |
 | `/events/{id}/enrollment` | 302 → `/events/{id}?respond=1` |
 | `/events/{id}/enrollments` | 302 → `/events/{id}#who-title` |
 | `/member/events` | 302 → `/events` (query kept) |
@@ -170,7 +170,7 @@ in the repertoire, titles only. No song is created here.
 Every write answers the whole repertoire; the page refreshes behind, so a first song shows the section to
 members and clearing the last leaves them none (Admin/Owner keep an empty state with the button).
 
-## Participants and "As minhas inscrições" (012E) - audited against the old pages
+## Participants and "Onde estiveste" (012E, 044) - audited against the old pages
 
 `Enrollments`: `UserId`, `EventId` (unique together), `WillAttend`, `Instrument` (enum, optional),
 `OtherInstruments` (text), `Notes` (text), `EnrolledAt`, `CategoryAtEvent` (snapshot), audit columns. Events
@@ -182,7 +182,7 @@ use *enrollment* / *inscrição*; *attendance* / *presença* stays with rehearsa
 | Add a member | Admin/Owner: name search over **every** user not answered yet; added as going with their primary instrument, `skipNotification`; an existing answer was silently overwritten to going | Admin/Owner (server-side) **Gerir inscrições** → "Inscrever um membro": search by nickname or name (accents ignored, 20 at a time) over members who have not answered and are **not expelled**; same going + primary instrument + no notification (`IEnrollmentService`); a duplicate is refused; a cancelled event takes none (the answer modal already refused them) |
 | Remove an answer | Admin/Owner any; a member their own (trash on the list) | Admin/Owner any, in the manager (inline confirm); a member changes their own in the answer modal (withdrawing from a past event they went to, as in 011) |
 | Edit someone else's answer | not offered | not offered |
-| "Minhas Inscrições" | `/member/events` modal: the last 10 (or all) past, not cancelled events, Foi / Não foi (no answer = Não foi), participation share, search | `/events/my-enrollments` (signed-in; visitors get a sign-in prompt): the next dates with Vais / Não vais / Responder (the usual answer modal), then the same archive view - Foste / Não foste, the share, last 10 or all, search; built on `GET /api/events` (own answers only). Linked from the agenda, the event page and `/profile` |
+| "Minhas Inscrições" | `/member/events` modal: the last 10 (or all) past, not cancelled events, Foi / Não foi (no answer = Não foi), participation share, search | the "Onde estiveste" modal on `/events` (044; was the page `/events/my-enrollments`): the last 10 (or all) past, not cancelled events, Foste / Não foste, the share; built on `GET /api/events` (own answers only). The "Próximas datas" answers and the search of the old page went with it (answering stays on the agenda and the event page) |
 
 The picker sends user ids and display fields to Admin/Owner only; no email or phone anywhere. No
 notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above) lost its
@@ -330,7 +330,7 @@ image (012A) and videos (012C), through the existing storage services.
   edit / delete buttons on every card and archive row, plus **aviso** (bell, not on cancelled dates) and
   **cancelar / reativar** on upcoming cards, and **Adicionar atuação** in the header; all are modals and
   the list refreshes in place. Header: **Prémios** (modal with the prize
-  history), and for members **As minhas inscrições** and **Estatísticas** (modal, 012F). Archive by season with search (name, place; description for
+  history), and for members **Onde estiveste** and **Estatísticas** (modal, 012F). Archive by season with search (name, place; description for
   members), season, type and "Só com vídeos" filters kept in the URL.
 - **Event page:** back link and **Prémios** (top right, when the event won any - or, for Admin/Owner, on
   any past festival: its prizes, editable by them, then the history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**

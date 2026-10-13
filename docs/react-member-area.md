@@ -164,7 +164,7 @@ React only, no API / schema change: everything comes from `GET /api/profile` (`M
   month-level dates are no longer listed read-only (the timeline shows years; the form still has the months).
 - Badges: one `MemberBadge` / `.member-badge` (dark pill, light uppercase text, thin outline) for every page, header chip
   included. Membership kinds and positions are not colours any more; only `--active` (purple outline) and `--retired` (muted).
-- "Terminar sessão" and "As minhas inscrições" share `btn btn--ghost btn--sm` (`SignOutButton` takes `buttonClassName`).
+- "Terminar sessão" uses `btn btn--ghost btn--sm` (`SignOutButton` takes `buttonClassName`); "As minhas inscrições" left /profile in 044 (the page is gone).
 
 ### Batch 4 (task 044)
 - Header: `[inbox] [category badge] [profile chip] [menu]`. The badge (`MemberCategory`, first of `/api/account/me` `categories`) is its

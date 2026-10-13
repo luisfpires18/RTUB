@@ -32,7 +32,9 @@ public static class LogisticsEndpoints
             ToResult(await s.DeleteBoardAsync(id, http.User), _ => Results.NoContent()));
 
         // One board and its lists
-        api.MapGet("/boards/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetBoardAsync(id, http.User)));
+        // files=false: the React page loads the storage listing on its own request (file-list), so the board does not wait for it.
+        api.MapGet("/boards/{id:int}", async (int id, bool? files, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetBoardAsync(id, http.User, files ?? true)));
+        api.MapGet("/boards/{id:int}/file-list", async (int id, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetFilesAsync(id, http.User)));
         writes.MapPost("/boards/{id:int}/lists", async (int id, LogisticsListInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.CreateListAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPut("/lists/{id:int}", async (int id, LogisticsListInput input, HttpContext http, ILogisticsKanbanService s) =>

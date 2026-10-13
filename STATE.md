@@ -16,6 +16,8 @@ from the Leitão month when there is no activity); reads never write, only recon
 
 **044 batch 3 (uncommitted on `dev`, not pushed): profile polish.** `/profile`: photo moved into the header, "Entraste como" removed, "Informação da Tuna" with a connected-card Percurso timeline (real `member.timeline`), one shared `MemberBadge` / `.member-badge` for the whole app, aligned action buttons. React only; no API, schema or migration change. Batch 4 (same files, uncommitted): header order inbox / category badge / profile / menu, original per-kind badge colours restored, legacy-coloured timeline, flatter Tuna section. Detail: `docs/react-member-area.md` → *Profile polish, batch 3* and *Batch 4*.
 
+**044 UI polish (uncommitted on `feat/044-ui-polish`):** signed-in container 1320px (`.shell--member --wrap`), event card "Área da atuação" with Discussão / Contactos only, `/events/my-enrollments` removed (modal "Onde estiveste" on `/events`), menu: no "Recursos" (Documentação + Instrumentos da Tuna under Gestão, Loja under Membro), Classificação / Hall of Fame no longer cross-linked, Naipes picker centred, `/messages` as an app screen (list → system → groups → people).
+
 **044 batch 2 (uncommitted on `dev`, not pushed): authenticated shell.** Left sidebar removed; header = `[inbox + unread
 badge] [profile chip → /profile] [menu]`, menu = right-hand drawer at every width without Perfil / Mensagens. Badge =
 unread messages from new `GET /api/conversations/unread`, polled every 10 s (no hub exists; no schema change, no migration).

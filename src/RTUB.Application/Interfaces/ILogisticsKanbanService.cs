@@ -14,7 +14,11 @@ public interface ILogisticsKanbanService
     Task<EventResult<IReadOnlyList<LogisticsEventDto>>> GetEventsAsync(string? search, ClaimsPrincipal user);
     Task<EventResult<IReadOnlyList<LogisticsMemberOptionDto>>> SearchMembersAsync(string? search, ClaimsPrincipal user);
 
-    Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user);
+    /// <summary><paramref name="includeFiles"/> false leaves <c>Files</c> empty: the file listing is a storage round trip, so the page asks for it separately (<see cref="GetFilesAsync"/>).</summary>
+    Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user, bool includeFiles = true);
+
+    /// <summary>The files of one board (a storage listing).</summary>
+    Task<EventResult<IReadOnlyList<LogisticsFileDto>>> GetFilesAsync(int boardId, ClaimsPrincipal user);
     Task<EventResult<LogisticsListDto>> CreateListAsync(int boardId, LogisticsListInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsListDto>> RenameListAsync(int id, LogisticsListInput input, ClaimsPrincipal user);
     Task<EventResult<bool>> MoveListAsync(int id, LogisticsPositionInput input, ClaimsPrincipal user);

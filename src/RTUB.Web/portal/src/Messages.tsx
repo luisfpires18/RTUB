@@ -92,6 +92,14 @@ const problem = (o: Outcome<unknown>, what: string) =>
           ? 'A sessão terminou. Entra outra vez.'
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
+/** "Sistema RTUB" and the groups wear the logo the portal header uses (the server still sends the old file for them). */
+const RTUB_LOGO = '/icons/rtub-logo-192.png';
+const chatAvatar = (c: { kind: string; avatarUrl: string }) => (c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO);
+
+/** Sistema RTUB first, then the groups, then the people; inside each the server's order (pinned, then latest activity). */
+const TIER: Record<string, number> = { system: 0, group: 1, direct: 2 };
+const byTier = (list: ConversationItem[]) => [...list].sort((a, b) => TIER[a.kind] - TIER[b.kind]);
+
 const conversationFromUrl = () => Number(new URLSearchParams(location.search).get('c')) || undefined;
 
 /**
@@ -108,7 +116,7 @@ export default function Messages() {
     () =>
       api.list().then((o) => {
         if (o.kind === 'ok') publishUnread(o.data); // the header badge follows the list
-        setList((cur) => (o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : Array.isArray(cur) ? cur : 'failed'));
+        setList((cur) => (o.kind === 'ok' ? byTier(o.data) : o.kind === 'signin' ? 'signin' : Array.isArray(cur) ? cur : 'failed'));
       }),
     [],
   );
@@ -180,7 +188,7 @@ export default function Messages() {
                       aria-current={c.id === selected ? 'true' : undefined}
                       onClick={() => open(c.id)}
                     >
-                      <MemberFace avatarUrl={c.avatarUrl} size={44} />
+                      <MemberFace avatarUrl={chatAvatar(c)} size={44} />
                       <span className="chat-row__main">
                         <span className="chat-row__top">
                           <span className="chat-row__title">{c.title}</span>
@@ -371,7 +379,7 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
           <Icon name="arrowLeft" />
           <span className="sr-only">Voltar às conversas</span>
         </button>
-        <MemberFace avatarUrl={c.avatarUrl} size={40} />
+        <MemberFace avatarUrl={chatAvatar(c)} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{c.title}</h2>
           {subtitle && <p className="chat-thread__subtitle">{subtitle}</p>}

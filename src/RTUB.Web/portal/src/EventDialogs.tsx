@@ -342,6 +342,61 @@ const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toL
  * by default), how many events each member said "vou" to - already past, and still to come - and the
  * share of that range's past, not cancelled events. Read-only; the server refuses visitors.
  */
+const RECENT = 10;
+
+/** "Onde estiveste" (was the page "As minhas inscrições"): the last 10 (or all) past, not cancelled events and the share the member went to. */
+export function WhereYouWereDialog({ past, onClose }: { past: EventSummary[]; onClose: () => void }) {
+  const [all, setAll] = useState(false);
+  const id = useId();
+  const done = past.filter((e) => !e.cancelled);
+  const shown = all ? done : done.slice(0, RECENT);
+  const went = shown.filter((e) => e.member?.myStatus === 'going').length;
+
+  return (
+    <Dialog title="Onde estiveste" onClose={onClose} size="lg">
+      {shown.length === 0 ? (
+        <p className="note">Ainda sem atuações no arquivo.</p>
+      ) : (
+        <>
+          <p className="enrollment-rate">
+            Foste a <strong>{went}</strong> de {shown.length} {all ? 'atuações' : `atuações (as últimas ${RECENT})`} ·{' '}
+            {(went / shown.length).toLocaleString('pt-PT', { style: 'percent', maximumFractionDigits: 1 })}
+          </p>
+          <label className="check" htmlFor={id}>
+            <input id={id} type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
+            Mostrar todas
+          </label>
+          <ul className="my-list">
+            {shown.map((e) => (
+              <li key={e.id}>
+                <a className="enrollment-row" href={portal.event(e.id)}>
+                  <span>
+                    <strong>{e.name}</strong>
+                    <small>
+                      {dateLabel(e)} · {e.location}
+                    </small>
+                  </span>
+                  {e.member?.myStatus === 'going' ? (
+                    <span className="pill pill--yes">
+                      <Icon name="check" />
+                      Foste
+                    </span>
+                  ) : (
+                    <span className="pill pill--no">
+                      <Icon name="close" />
+                      Não foste
+                    </span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Dialog>
+  );
+}
+
 export function StatsDialog({ onClose }: { onClose: () => void }) {
   const [stats, setStats] = useState<EventStats | null>();
   const [range, setRange] = useState<{ from: string; to: string }>();

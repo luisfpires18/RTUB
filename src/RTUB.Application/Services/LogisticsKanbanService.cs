@@ -224,7 +224,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
     // ---------------------------------------------------------------- one board
 
-    public async Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user)
+    public async Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user, bool includeFiles = true)
     {
         if (await RefusalAsync<LogisticsBoardDto>(user, manage: false) is { } refused)
         {
@@ -249,8 +249,24 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
             lists.Select(l => new LogisticsListDto(l.Id, l.Name, cards.Where(c => c.ListId == l.Id).OrderBy(c => c.Position).ThenBy(c => c.Id)
                 .Select(c => faces[c.Id]).ToList())).ToList(),
             faces.Values.SelectMany(c => c.Labels).Select(l => l.Text).Distinct().OrderBy(t => t, StringComparer.Ordinal).ToList(),
-            (await FilesAsync(board.Name)).Select(d => new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes)).ToList(),
+            includeFiles ? await FileDtosAsync(board.Name) : new List<LogisticsFileDto>(),
             LogisticsAuthorization.CanManage(user)));
+    }
+
+    public async Task<EventResult<IReadOnlyList<LogisticsFileDto>>> GetFilesAsync(int boardId, ClaimsPrincipal user)
+    {
+        if (await RefusalAsync<IReadOnlyList<LogisticsFileDto>>(user, manage: false) is { } refused)
+        {
+            return refused;
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await db.LogisticsBoards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId) is not { } board)
+        {
+            return EventResult<IReadOnlyList<LogisticsFileDto>>.Fail(EventResultStatus.NotFound);
+        }
+
+        return EventResult<IReadOnlyList<LogisticsFileDto>>.Ok(await FileDtosAsync(board.Name));
     }
 
     public async Task<EventResult<LogisticsListDto>> CreateListAsync(int boardId, LogisticsListInput input, ClaimsPrincipal user)
@@ -907,6 +923,9 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         var sanitized = SafePathRegex.Replace(input.Replace("..", ""), "").Trim();
         return string.IsNullOrEmpty(sanitized) ? "unnamed" : sanitized;
     }
+
+    private async Task<List<LogisticsFileDto>> FileDtosAsync(string boardName) =>
+        (await FilesAsync(boardName)).Select(d => new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes)).ToList();
 
     private async Task<List<DocumentMetadata>> FilesAsync(string boardName)
     {

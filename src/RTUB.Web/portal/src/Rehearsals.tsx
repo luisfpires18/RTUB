@@ -84,9 +84,9 @@ export default function Rehearsals() {
                   <Icon name="plus" />
                   Adicionar ensaio
                 </button>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('range')}>
+                <button type="button" className="btn btn--primary btn--sm" onClick={() => setDialog('range')}>
                   <Icon name="calendar" />
-                  Vários
+                  Adicionar vários
                 </button>
               </>
             )}

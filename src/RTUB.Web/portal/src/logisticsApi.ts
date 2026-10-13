@@ -66,7 +66,9 @@ export const logisticsApi = {
   setBoardState: (id: number, completed: boolean) => call<BoardSummary>('POST', `/api/logistics/boards/${id}/state`, { completed }),
   removeBoard: (id: number) => call<void>('DELETE', `/api/logistics/boards/${id}`),
 
-  board: (id: number) => call<Board>('GET', `/api/logistics/boards/${id}`),
+  // Without the files (a storage round trip): fileList brings them on a second request.
+  board: (id: number) => call<Board>('GET', `/api/logistics/boards/${id}?files=false`),
+  fileList: (id: number) => call<BoardFile[]>('GET', `/api/logistics/boards/${id}/file-list`),
   createList: (boardId: number, name: string) => call<List>('POST', `/api/logistics/boards/${boardId}/lists`, { name }),
   renameList: (id: number, name: string) => call<List>('PUT', `/api/logistics/lists/${id}`, { name }),
   moveList: (id: number, position: number) => call<void>('POST', `/api/logistics/lists/${id}/move`, { position }),

@@ -139,12 +139,6 @@ export default function Leaderboard() {
           </h1>
           <p className="page__lead">Cada ensaio e cada atuação contam XP; o XP sobe o nível.</p>
         </div>
-        <div className="events-page__actions">
-          <a className="btn btn--ghost btn--sm" href={portal.hallOfFame}>
-            <Icon name="star" />
-            Hall of Fame
-          </a>
-        </div>
       </header>
 
       {table === 'signin' ? (

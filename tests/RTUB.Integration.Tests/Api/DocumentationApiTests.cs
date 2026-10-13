@@ -392,8 +392,12 @@ public sealed class FakeDocumentStorage : IDocumentStorageService
             .ToList());
     }
 
+    /// <summary>How many folder listings were asked for (each one is a storage round trip).</summary>
+    public int ListCalls;
+
     public Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath)
     {
+        Interlocked.Increment(ref ListCalls);
         var prefix = folderPath.EndsWith('/') ? folderPath : folderPath + "/";
         return Task.FromResult(Objects
             .Where(o => o.Key.StartsWith(prefix, StringComparison.Ordinal) && o.Key.Length > prefix.Length && o.Key.IndexOf('/', prefix.Length) < 0)

@@ -558,10 +558,10 @@ main:focus {
    Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [category badge]
    [profile] [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
 
-/* One content width for every signed-in page and the header above it: wide enough that the content starts at the
-   header's left edge on a laptop, capped so a very wide screen does not stretch it (--wrap stays for the public site). */
+/* One content width for every signed-in page and the header above it: wider than the public site's 1200px but framed
+   (the outer gutter stays visible on a laptop and the content never touches the edges). */
 .shell--member {
-  --wrap: 1480px;
+  --wrap: 1320px;
 }
 
 /* No public nav to push them over: the member's identity and menu button sit at the right edge. */
@@ -4207,6 +4207,21 @@ video.tile__media {
   color: #f5c46b;
 }
 
+.btn--prizes {
+  border-color: var(--purple);
+  background: rgba(111, 66, 193, 0.14);
+  color: var(--ink);
+}
+
+.btn--prizes:hover {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.3);
+}
+
+.btn--prizes svg {
+  color: var(--purple-ink);
+}
+
 .events-block {
   display: grid;
   gap: 18px;
@@ -5020,45 +5035,13 @@ video.tile__media {
   font-size: 0.85rem;
 }
 
-/* As minhas inscrições (012E). */
+/* Lists inside the "Onde estiveste" / "As minhas presenças" dialogs. */
 .my-list {
   display: grid;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.my-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-.my-row__main {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 220px;
-}
-
-.my-row__name {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.my-row__meta {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.my-enrollments__rate {
-  margin: 0 0 12px;
 }
 
 /* Admin/Owner repertoire management (012D) reuses the prize rows and the segmented control. */
@@ -6114,7 +6097,8 @@ video.tile__media {
   margin-top: 20px;
 }
 
-.presence-row {
+.presence-row,
+.enrollment-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6127,7 +6111,8 @@ video.tile__media {
   text-decoration: none;
 }
 
-.presence-row small {
+.presence-row small,
+.enrollment-row small {
   display: block;
   color: var(--muted);
 }
@@ -6136,7 +6121,8 @@ video.tile__media {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.presence-rate {
+.presence-rate,
+.enrollment-rate {
   margin: 0 0 12px;
 }
 
@@ -6390,6 +6376,17 @@ video.tile__media {
   font-size: 0.8125rem;
 }
 
+.member-progress--row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.member-progress--row > svg {
+  color: var(--purple-ink);
+}
+
 .member-progress__bar {
   width: 100%;
   accent-color: var(--purple);
@@ -6449,6 +6446,40 @@ video.tile__media {
 
 .member-row__who {
   flex: 1;
+}
+
+.member-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin-top: 6px;
+}
+
+.member-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-date > svg {
+  color: var(--purple-ink);
+  font-size: 1.125rem;
+}
+
+.member-date > span {
+  display: grid;
+  line-height: 1.25;
+}
+
+.member-date__label {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.member-date strong {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .member-row__who .member-badges {
@@ -7251,7 +7282,6 @@ video.tile__media {
 /* ---- one board ---- */
 
 .lx-board-page {
-  max-width: none;
   gap: 16px;
   padding-block: 20px 64px;
 }
@@ -9479,6 +9509,7 @@ video.tile__media {
 .naipe-picker {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   margin: 0 0 20px;
   padding: 0;
@@ -12147,59 +12178,80 @@ label.owner-person {
   color: var(--muted);
 }
 
-/* Phones: /messages is an app screen (the page sets html.app-screen, see Messages.tsx). The document does not scroll and
-   there is no site footer: the RTUB header, then the list or the open chat filling what is left, so the message list is
-   the one scroll region and the composer stays at the bottom. dvh follows the browser chrome (and, with
-   interactive-widget=resizes-content, the keyboard where the browser supports it). */
+/* /messages is an app screen at every width (the page sets html.app-screen, see Messages.tsx): the document does not
+   scroll and there is no site footer. The RTUB header, a compact heading, then the chat filling what is left, so the
+   list and the message area are the only scroll regions and the composer stays at the bottom. dvh follows the browser
+   chrome (and, with interactive-widget=resizes-content, the keyboard where the browser supports it). */
+html.app-screen,
+html.app-screen body {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html.app-screen #root,
+html.app-screen .shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+html.app-screen .shell__body,
+html.app-screen main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+html.app-screen .footer {
+  display: none;
+}
+
+.chat-page {
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+  padding-block: 12px 0;
+}
+
+.chat {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.chat-list__items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.chat-list .who__avatar,
+.chat-thread__head .who__avatar {
+  flex: none;
+  margin: 0;
+  box-shadow: none;
+}
+
+.chat-list .who__avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.chat-thread__head .who__avatar {
+  width: 40px;
+  height: 40px;
+}
+
+/* Phones: one pane at a time, edge to edge. */
 @media (max-width: 899px) {
-  html.app-screen,
-  html.app-screen body {
-    height: 100dvh;
-    overflow: hidden;
-  }
-
-  html.app-screen #root,
-  html.app-screen .shell {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-  }
-
-  html.app-screen .shell__body,
-  html.app-screen main {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  html.app-screen .footer {
-    display: none;
-  }
-
-  .chat-page {
-    flex: 1;
-    gap: 12px;
-    min-height: 0;
-    padding-block: 12px 0;
-  }
-
   .chat {
-    flex: 1;
-    min-height: 0;
     margin-inline: calc(var(--gutter) * -1);
     border-inline: 0;
     border-bottom: 0;
     border-radius: 0;
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  .chat-list__items {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
   }
 
   .chat-thread {
@@ -12217,10 +12269,30 @@ label.owner-person {
   }
 }
 
+/* Desktop: a compact heading line, then the list (about 30%) and the dominant chat filling the viewport. */
 @media (min-width: 900px) {
+  .chat-page {
+    padding-block: 16px 20px;
+  }
+
+  .chat-page__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    max-width: none;
+  }
+
+  .chat-page__head .eyebrow {
+    display: none;
+  }
+
+  .chat-page__head .page__title {
+    font-size: 1.5rem;
+  }
+
   .chat {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-    height: min(76vh, 780px);
+    grid-template-columns: minmax(260px, 30%) minmax(0, 1fr);
+    height: auto;
   }
 
   .chat-list {

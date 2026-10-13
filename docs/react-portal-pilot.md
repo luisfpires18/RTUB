@@ -119,7 +119,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | --- | --- | --- |
 | `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
 | `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (header with photo, Pessoal, Informação da Tuna, Instrumentos, Notificações por email, Segurança; was the Blazor `/member/profile`), with "As minhas inscrições" and "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
+| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (header with photo, Pessoal, Informação da Tuna, Instrumentos, Notificações por email, Segurança; was the Blazor `/member/profile`), with "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
 | `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
 | `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
 | `/portal/privacy` | **Redirect** → `/privacy` | Same. |
@@ -133,7 +133,6 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
 | `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
 | `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
-| `/events/my-enrollments` | **React** (012E) | The member's own answers ("As minhas inscrições"). |
 | `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
 | `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
 | `/roles` | **React canonical** (008, 016) | Órgãos Sociais; `?fy=` picks a mandate. RGI for members, fiscal years and assignments for Mod/Admin/Owner (016). `docs/react-governance.md`. |
@@ -333,9 +332,9 @@ Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not wit
   button to `/messages` with the unread badge (`portal/src/unread.ts`, `docs/react-messages.md`). **Perfil and
   Mensagens are not in the menu** (routes and pages unchanged). The rail below (and `rtub-member-rail`) is gone.
 - ~~**Wide screens (≥ 1000px):** a rail under the header (task 030, removed in 044).~~
-- **Groups:** Membro (Atuações, As minhas inscrições, Ensaios, Música, Galeria, Novidades) · Tuna
-  (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Recursos (Instrumentos, Loja,
-  Documentação) · Gestão (Reuniões, Questões, Logística, Tesouraria, Pedidos, Emails, Notificações) · Owner
+- **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna
+  (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Gestão (Reuniões, Documentação,
+  Instrumentos da Tuna, Questões, Logística, Tesouraria, Pedidos) · Owner
   (Utilizadores, Auditoria, Base de dados).
 - **Who sees what** (`MemberMenuAccess`, the retired Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
   Owner, Mod or anyone not a Leitão; Logística, Tesouraria → Admin, Owner, Mod or Tuno; Pedidos, Emails,

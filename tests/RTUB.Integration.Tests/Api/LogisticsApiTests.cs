@@ -303,6 +303,16 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         var (member, _) = await SignInAsync();
         var board = await Json(member, $"/api/logistics/boards/{boardId}");
         board.GetProperty("files").EnumerateArray().Single().GetProperty("name").GetString().Should().Be("orcamento.pdf");
+
+        // The board page does not wait for the storage: ?files=false asks the storage nothing, file-list is the one listing.
+        var listings = _factory.Storage.ListCalls;
+        var lean = await Json(member, $"/api/logistics/boards/{boardId}?files=false");
+        lean.GetProperty("files").GetArrayLength().Should().Be(0);
+        lean.GetProperty("lists").GetArrayLength().Should().Be(board.GetProperty("lists").GetArrayLength());
+        _factory.Storage.ListCalls.Should().Be(listings, "the lean board makes no storage listing");
+        (await Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Single().GetProperty("name").GetString().Should().Be("orcamento.pdf");
+        _factory.Storage.ListCalls.Should().Be(listings + 1, "the file list is one listing");
+        (await member.GetAsync("/api/logistics/boards/999999/file-list")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await Json(member, $"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).GetProperty("url").GetString()
             .Should().Be($"https://r2.test/{folder}orcamento.pdf?download=True");
         (await member.GetAsync($"/api/logistics/boards/{boardId}/files?name=..%2Forcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);

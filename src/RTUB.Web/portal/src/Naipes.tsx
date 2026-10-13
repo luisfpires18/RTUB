@@ -105,7 +105,7 @@ export default function Naipes() {
               <Icon name="video" />
               Adicionar vídeo
             </button>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing({ kind: 'new', isVideo: false })}>
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing({ kind: 'new', isVideo: false })}>
               <Icon name="images" />
               Adicionar imagem
             </button>
