@@ -318,7 +318,8 @@ detalhes ou partilha uma dúvida." Every write answers the whole conversation (n
 | `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
 
 Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
-its last day. Seasons run September-August. Images and videos are absolute public R2 URLs
+its last day. "Today" is the calendar date in Portugal (`PortugalTime.Today`, Europe/Lisbon via the injected
+`TimeProvider`), never the server's zone (Azure is UTC); stored event dates are local and are not converted. Seasons run September-August. Images and videos are absolute public R2 URLs
 (https or same-site only); no object key or credential is sent. The only uploads are the Admin/Owner event
 image (012A) and videos (012C), through the existing storage services.
 

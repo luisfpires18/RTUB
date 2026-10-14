@@ -19,7 +19,8 @@ namespace RTUB.Application.Services;
 /// snapshot and retirement update stay exactly as they were.
 ///
 /// Upcoming/past is the old page's rule: an event is past once its last day (EndDate, else Date) is
-/// before today. Upcoming soonest first, past newest first, Id breaking ties.
+/// before today in Portugal (<see cref="PortugalTime"/>, not the server's zone). Upcoming soonest first,
+/// past newest first, Id breaking ties.
 /// </summary>
 public sealed class EventAgendaService : IEventAgendaService
 {
@@ -32,6 +33,7 @@ public sealed class EventAgendaService : IEventAgendaService
     private readonly IPushNotificationService _push;
     private readonly IAuditLogService _audit;
     private readonly ILogger<EventAgendaService> _logger;
+    private readonly TimeProvider _time;
 
     public EventAgendaService(
         IDbContextFactory<ApplicationDbContext> contexts,
@@ -40,7 +42,8 @@ public sealed class EventAgendaService : IEventAgendaService
         IPushNotificationFactory pushFactory,
         IPushNotificationService push,
         IAuditLogService audit,
-        ILogger<EventAgendaService> logger)
+        ILogger<EventAgendaService> logger,
+        TimeProvider? time = null)
     {
         _contexts = contexts;
         _enrollments = enrollments;
@@ -49,6 +52,7 @@ public sealed class EventAgendaService : IEventAgendaService
         _push = push;
         _audit = audit;
         _logger = logger;
+        _time = time ?? TimeProvider.System;
     }
 
     public async Task<EventAgendaDto> GetAgendaAsync(ClaimsPrincipal user)
@@ -401,7 +405,7 @@ public sealed class EventAgendaService : IEventAgendaService
         }
 
         var endExclusive = end.AddDays(1);
-        var today = DateTime.Today;
+        var today = Today;
         await using var db = await _contexts.CreateDbContextAsync();
         var pastEvents = await db.Events.CountAsync(e => e.Date >= start && e.Date < endExclusive && e.Date < today && !e.IsCancelled);
         var rows = await db.Enrollments.AsNoTracking()
@@ -533,9 +537,11 @@ public sealed class EventAgendaService : IEventAgendaService
 
     private static DateTime LastDay(Event e) => (e.EndDate ?? e.Date).Date;
 
-    private static bool IsPast(Event e) => LastDay(e) < DateTime.Today;
+    private DateTime Today => PortugalTime.Today(_time);
 
-    private static IEnumerable<Event> Upcoming(IEnumerable<Event> events) =>
+    private bool IsPast(Event e) => LastDay(e) < Today;
+
+    private IEnumerable<Event> Upcoming(IEnumerable<Event> events) =>
         events.Where(e => !IsPast(e)).OrderBy(e => e.Date).ThenBy(e => e.Id);
 
     /// <summary>September to August, as the old fiscal-year filter.</summary>
@@ -584,7 +590,7 @@ public sealed class EventAgendaService : IEventAgendaService
     private static async Task<IReadOnlyDictionary<int, int>> CountAsync(IQueryable<int> eventIds) =>
         (await eventIds.ToListAsync()).GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
 
-    private static EventSummaryDto ToSummary(Event e, Extras extras) => new(
+    private EventSummaryDto ToSummary(Event e, Extras extras) => new(
         e.Id,
         e.Name,
         DateText(e.Date),

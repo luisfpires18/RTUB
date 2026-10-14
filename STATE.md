@@ -295,6 +295,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by hotfix 2026-10-14 (agenda Portugal date): the same server-zone `DateTime.Today` remains in `EventAdminService.IsPast` (prizes / videos / cancel / notices; also `TakesPrizes` on the event page), `EventRepository`, `EnrollmentService`, `RehearsalRepository`, `FiscalYearHelper`, `PushNotificationFactory` — wrong only 00:00-01:00 Portugal in summer; move to `PortugalTime.Today`.
 Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
 - (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:

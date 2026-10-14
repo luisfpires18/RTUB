@@ -278,7 +278,12 @@ public class MemberStatusService : IMemberStatusService
             var months = evaluation.MonthsUntilRetirement ?? 0;
             result.ProgressMonths = months;
             result.ProgressTotalMonths = MemberActivityStatusEvaluator.InactivityMonths;
-            result.ProgressDescription = months == 0 ? "Próximo da reforma" : $"{months} meses até reforma";
+            result.ProgressDescription = months switch
+            {
+                0 => "Próximo da reforma",
+                1 => "1 mês até reforma",
+                _ => $"{months} meses até reforma",
+            };
         }
 
         return result;
@@ -349,8 +354,9 @@ public class MemberStatusService : IMemberStatusService
                 await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname, "/"));
             }
 
-            // The warning once, when an active member enters the last month - not on every run while in it.
-            if (!result.IsRetired && result.ProgressMonths == 1 && previousProgressMonths != 1)
+            // The warning once, when an active member enters the last month - not on every run while in it. A stored 0
+            // is the old countdown's final partial month (now 1), already warned when it passed 1: no second warning.
+            if (!result.IsRetired && result.ProgressMonths == 1 && previousProgressMonths is not (1 or 0))
             {
                 await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname, "/"));
             }

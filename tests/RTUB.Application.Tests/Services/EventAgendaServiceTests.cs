@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
@@ -29,16 +30,22 @@ public class EventAgendaServiceTests
     private readonly EventAgendaService _service;
     private readonly string _memberId;
     private readonly ClaimsPrincipal _member;
-    private readonly DateTime _today = DateTime.Today;
+    // One frozen instant per test, so "today" cannot move between arranging and asserting.
+    private readonly TimeProvider _clock = new FixedClock(DateTimeOffset.UtcNow);
+    private readonly DateTime _today;
 
     public EventAgendaServiceTests()
     {
-        _service = new EventAgendaService(new Contexts(_db), _enrollments.Object, Mock.Of<IEventService>(), Mock.Of<IPushNotificationFactory>(),
-            Mock.Of<IPushNotificationService>(), _audit.Object, NullLogger<EventAgendaService>.Instance);
+        _today = PortugalTime.Today(_clock);
+        _service = Service(_clock);
         _memberId = AddUser("Tuno");
         _member = SignedIn(_memberId);
         FakeEnrollmentWrites();
     }
+
+    private EventAgendaService Service(TimeProvider clock) =>
+        new(new Contexts(_db), _enrollments.Object, Mock.Of<IEventService>(), Mock.Of<IPushNotificationFactory>(),
+            Mock.Of<IPushNotificationService>(), _audit.Object, NullLogger<EventAgendaService>.Instance, clock);
 
     // ---------- agenda ----------
 
@@ -603,6 +610,49 @@ public class EventAgendaServiceTests
         return user.Id;
     }
 
+    // ---------- Portugal calendar date (hotfix) ----------
+
+    /// <summary>00:51 on 14 Oct 2026 in Portugal (WEST, UTC+1) is still 23:51 on 13 Oct in UTC.</summary>
+    private static readonly DateTimeOffset JustAfterMidnightInPortugal = new(2026, 10, 13, 23, 51, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void PortugalToday_IsThePortugueseCalendarDate_NotTheUtcOne()
+    {
+        PortugalTime.Today(new FixedClock(JustAfterMidnightInPortugal)).Should().Be(new DateTime(2026, 10, 14));
+        // Winter (WET, UTC+0): the dates agree.
+        PortugalTime.Today(new FixedClock(new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2026, 12, 31));
+        PortugalTime.Today(new FixedClock(new DateTimeOffset(2027, 1, 1, 0, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2027, 1, 1));
+    }
+
+    [Fact]
+    public async Task JustAfterMidnightInPortugal_WhileUtcIsStillTheDayBefore_YesterdaysEventsArePast()
+    {
+        AddEvent("Ontem", new DateTime(2026, 10, 13, 21, 30, 0));
+        AddEvent("Hoje", new DateTime(2026, 10, 14, 21, 30, 0));
+        AddEvent("Termina hoje", new DateTime(2026, 10, 12), endDate: new DateTime(2026, 10, 14));
+        AddEvent("Terminou ontem", new DateTime(2026, 10, 11), endDate: new DateTime(2026, 10, 13));
+
+        var agenda = await Service(new FixedClock(JustAfterMidnightInPortugal)).GetAgendaAsync(Visitor);
+
+        agenda.Upcoming.Select(e => e.Name).Should().Equal("Termina hoje", "Hoje");
+        agenda.Upcoming.Should().OnlyContain(e => !e.Past);
+        agenda.Past.Select(e => e.Name).Should().Equal("Ontem", "Terminou ontem");
+        agenda.Past.Should().OnlyContain(e => e.Past);
+    }
+
+    [Fact]
+    public async Task LateEveningInPortugal_TodaysEventStaysUpcomingForTheWholePortugueseDay()
+    {
+        AddEvent("Hoje", new DateTime(2026, 10, 14, 10, 0, 0));
+        AddEvent("Termina hoje", new DateTime(2026, 10, 12), endDate: new DateTime(2026, 10, 14));
+
+        // 23:59 on 14 Oct in Portugal = 22:59 UTC, well after the event's start time.
+        var agenda = await Service(new FixedClock(new DateTimeOffset(2026, 10, 14, 22, 59, 0, TimeSpan.Zero))).GetAgendaAsync(Visitor);
+
+        agenda.Upcoming.Select(e => e.Name).Should().Equal("Termina hoje", "Hoje");
+        agenda.Past.Should().BeEmpty();
+    }
+
     private int AddEvent(string name, DateTime date, DateTime? endDate = null, EventType type = EventType.Atuacao,
         string description = "", string? cancelReason = null, string? imageUrl = null)
     {
@@ -666,6 +716,11 @@ public class EventAgendaServiceTests
         db.SaveChanges();
         db.EventRepertoires.Add(EventRepertoire.Create(eventId, song.Id, order, day));
         db.SaveChanges();
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class Contexts(DatabaseFixture db) : IDbContextFactory<ApplicationDbContext>

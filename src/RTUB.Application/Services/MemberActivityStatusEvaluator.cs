@@ -18,7 +18,7 @@ public enum MemberStatusTransition
 
 /// <summary>The outcome of <see cref="MemberActivityStatusEvaluator.Evaluate"/>: the state and everything the projection and UI show.</summary>
 /// <param name="RetirementThreshold">Active: the moment the member becomes Reformado without new activity; just reformed: the threshold that passed. Null for a member who stays Reformado.</param>
-/// <param name="MonthsUntilRetirement">Active: whole months left before the threshold. Null for a Reformado.</param>
+/// <param name="MonthsUntilRetirement">Active: whole months left before the threshold, at least 1 (the final partial month counts as 1). Null for a Reformado.</param>
 /// <param name="StreakMonths">The current run of calendar months with activity, oldest first (first day of each month).</param>
 public sealed record MemberActivityEvaluation(
     bool IsRetired,
@@ -114,7 +114,7 @@ public static class MemberActivityStatusEvaluator
         var changed = isRetired != currentIsRetired;
         return new MemberActivityEvaluation(isRetired, changed, reason, last,
             isRetired && !changed ? null : threshold,
-            isRetired ? null : WholeMonthsUntil(now, threshold!.Value),
+            isRetired ? null : MonthsUntil(now, threshold!.Value),
             streak);
     }
 
@@ -140,9 +140,13 @@ public static class MemberActivityStatusEvaluator
         return streak;
     }
 
-    private static int WholeMonthsUntil(DateTime now, DateTime threshold)
+    /// <summary>
+    /// Whole months left before <paramref name="threshold"/>, with the final partial month counted as 1: only called
+    /// while the member is still active (now &lt; threshold), so the countdown never shows 0 before reconciliation reforms them.
+    /// </summary>
+    private static int MonthsUntil(DateTime now, DateTime threshold)
     {
-        var months = 0;
+        var months = 1;
         while (months < InactivityMonths && now.AddMonths(months + 1) <= threshold)
         {
             months++;
