@@ -3,9 +3,15 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-15 (#229 / #224 / #225)_
+_Last updated: 2026-10-15 (#221; #220 / #223 audited)_
 
 ## Phase
+**#221 shop products in every fiscal year (uncommitted on `dev` @ 2.0.10, not pushed, issue stays open):**
+`Products.AvailableAllYears` + migration `AddProductAvailableAllYears` (default 0: existing and N-1 products stay
+year-specific, by `CreatedAt`); one rule `ProductShopService.InFiscalYear`; "Disponível em todos os anos letivos" in the
+product form (`availableAllYears` absent = unchanged on edit). Reservations untouched. Detail: `docs/react-shop.md` →
+*Products in every fiscal year*. **#220 / #223: audit only, no code** (proposals in the batch report).
+
 **UI/PWA batch #229 + #224 + #225 (uncommitted on `dev` @ 2.0.10, not pushed, issues stay open):** no page scrolls
 sideways at 320-414 px, fixed per element, and the old global mask `body { overflow-x: clip }` removed. Member header
 at < 360 px (logo only, category truncates); `.sr-only` hardened (hidden file inputs widened "Adicionar atuação");
@@ -323,6 +329,9 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by #221: a shop reservation snapshots no product name or price and is deleted with its product (cascade);
+`ProductShopService.InFiscalYear` ends a year at 31 Aug 23:59:59 (sub-second gap) and compares UTC `CreatedAt` with
+local-calendar bounds.
 Raised by #229: iOS Safari native date / time controls and the `black-translucent` status-bar inset not checked on a
 real iPhone (Playwright WebKit not installed; CSS is defensive); inline text links in lists (`.archive-row__name`,
 `.door__mail`) are 24-26 px tall (WCAG inline exception); 12 leaderboard level rows on phones are long but readable.

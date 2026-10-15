@@ -16,7 +16,10 @@ public sealed record ShopDto(
     bool CanCreate,
     bool CanManage);
 
-/// <summary>A product card. <c>CanReserve</c>: members-only, in stock and not yet reserved by the caller.</summary>
+/// <summary>
+/// A product card. <c>CanReserve</c>: members-only, in stock and not yet reserved by the caller.
+/// <c>AvailableAllYears</c> (#221): shown in every fiscal year, not only the year it was created in.
+/// </summary>
 public sealed record ShopProductDto(
     int Id,
     string Name,
@@ -26,9 +29,13 @@ public sealed record ShopProductDto(
     bool IsPublic,
     string? ImageUrl,
     ShopReservationDto? MyReservation,
-    bool CanReserve);
+    bool CanReserve,
+    bool AvailableAllYears);
 
-/// <summary>"Detalhes do Produto".</summary>
+/// <summary>
+/// "Detalhes do Produto". <c>FiscalYear</c>: the fiscal year of the product's creation ("2025-2026"), the only year a
+/// year-specific product is shown in; <c>AvailableAllYears</c> (#221): shown in every year instead.
+/// </summary>
 public sealed record ShopProductDetailDto(
     int Id,
     string Name,
@@ -38,12 +45,15 @@ public sealed record ShopProductDetailDto(
     bool IsAvailable,
     bool IsPublic,
     string? Description,
-    string? ImageUrl);
+    string? ImageUrl,
+    bool AvailableAllYears,
+    string FiscalYear);
 
 /// <summary><c>Username</c> is the reserving member's username, as stored with the reservation.</summary>
 public sealed record ShopReservationDto(int Id, string Username, string? DisplayName, string? Size, DateTime CreatedAt);
 
-public sealed record ShopProductInput(string? Name, string? Type, decimal Price, int Stock, bool IsPublic, string? Description);
+/// <summary><c>AvailableAllYears</c> (#221): absent = year-specific on create, unchanged on edit.</summary>
+public sealed record ShopProductInput(string? Name, string? Type, decimal Price, int Stock, bool IsPublic, string? Description, bool? AvailableAllYears = null);
 
 public sealed record ShopReservationInput(bool HasSizes, string? Size, string? DisplayName);
 

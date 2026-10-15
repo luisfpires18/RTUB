@@ -85,13 +85,123 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         products[1].GetProperty("canReserve").GetBoolean().Should().BeFalse("public products are not reserved here");
         products[2].GetProperty("canReserve").GetBoolean().Should().BeFalse("out of stock");
         products[0].EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "name", "type", "price", "stock", "isPublic", "imageUrl",
-            "myReservation", "canReserve");
+            "myReservation", "canReserve", "availableAllYears");
 
         Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Contain($"{tag} Antigo", "Todos os anos");
         Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}&type=Roupa")).Should().Equal($"{tag} Alfa");
         Names(await Json(member, $"/api/shop?q={tag.ToUpperInvariant()}%20b")).Should().Equal($"{tag} Beta");
         (await Json(member, "/api/shop?fiscalYear=")).GetProperty("types").EnumerateArray().Select(t => t.GetString()).Should().Contain(new[] { "Album", "Roupa" });
         (await member.GetAsync("/api/shop?fiscalYear=1999-2000")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    /// <summary>
+    /// #221: a product available in all years shows in every fiscal year; a year-specific one only in the year it was
+    /// created in, as before. Stock and reservation rules are the same for both.
+    /// </summary>
+    [Fact]
+    public async Task AllYearsProducts_ShowInEveryYear_YearSpecificOnlyInTheirOwn()
+    {
+        var tag = Tag();
+        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        var previous = $"{current - 1}-{current}";
+        await EnsureFiscalYearAsync(current - 1);
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+
+        var yearly = await CreateAsync(admin, Input($"{tag} Sweat 2025", "Roupa"));
+        var cd = await CreateAsync(admin, Input($"{tag} CD", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 4 });
+        var soldOut = await CreateAsync(admin, Input($"{tag} CD antigo", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 0 });
+        foreach (var id in new[] { yearly, cd, soldOut })
+        {
+            await SetCreatedAsync(id, new DateTime(current - 1, 10, 1, 12, 0, 0, DateTimeKind.Utc));
+        }
+
+        (await ProductAsync(yearly))!.AvailableAllYears.Should().BeFalse("year-specific unless chosen");
+        (await ProductAsync(cd))!.AvailableAllYears.Should().BeTrue();
+
+        var (member, _) = await SignInAsync("Member");
+        Names(await Json(member, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo");
+        Names(await Json(member, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} Sweat 2025");
+        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} Sweat 2025");
+
+        var cards = (await Json(member, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().ToList();
+        cards.Select(c => c.GetProperty("availableAllYears").GetBoolean()).Should().AllBeEquivalentTo(true);
+        (cards[0].GetProperty("canReserve").GetBoolean(), cards[1].GetProperty("canReserve").GetBoolean())
+            .Should().Be((true, false), "a sold-out product is still listed and not reservable, all years or not");
+        (await ProductAsync(soldOut))!.IsAvailable.Should().BeFalse("availability still follows the stock");
+
+        var detail = await Json(member, $"/api/shop/products/{cd}");
+        (detail.GetProperty("availableAllYears").GetBoolean(), detail.GetProperty("fiscalYear").GetString()).Should().Be((true, previous));
+        (await Json(member, $"/api/shop/products/{yearly}")).GetProperty("availableAllYears").GetBoolean().Should().BeFalse();
+    }
+
+    /// <summary>
+    /// #221: edit turns a product into all years and back; an edit without the field keeps it. A year-specific product's
+    /// year is the year it was created in (immutable), so turning the option off always lands on a real year.
+    /// </summary>
+    [Fact]
+    public async Task AllYears_EditsBothWays_AbsentKeeps_AndOffGoesBackToTheCreationYear()
+    {
+        var tag = Tag();
+        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        var previous = $"{current - 1}-{current}";
+        await EnsureFiscalYearAsync(current - 1);
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var id = await CreateAsync(admin, Input($"{tag} CD", "Album"));
+        (await Json(admin, $"/api/shop/products/{id}")).GetProperty("fiscalYear").GetString()
+            .Should().Be(FiscalYearHelper.GetCurrentFiscalYearString(), "a new product belongs to the year it is created in");
+        await SetCreatedAsync(id, new DateTime(current - 1, 10, 1, 12, 0, 0, DateTimeKind.Utc));
+
+        async Task<JsonElement> PutAsync(InputBody body) => await Json(await admin.PutAsJsonAsync($"/api/shop/products/{id}", body));
+        bool Listed(JsonElement shop) => Names(shop).Contains($"{tag} CD");
+
+        (await PutAsync(Input($"{tag} CD", "Album") with { AvailableAllYears = true })).GetProperty("availableAllYears").GetBoolean().Should().BeTrue();
+        Listed(await Json(admin, $"/api/shop?q={tag}")).Should().BeTrue();
+
+        (await PutAsync(Input($"{tag} CD", "Album") with { Price = 12m })).GetProperty("availableAllYears").GetBoolean()
+            .Should().BeTrue("an edit without the field keeps it");
+
+        var off = await PutAsync(Input($"{tag} CD", "Album") with { AvailableAllYears = false, Price = 12m });
+        (off.GetProperty("availableAllYears").GetBoolean(), off.GetProperty("fiscalYear").GetString()).Should().Be((false, previous));
+        Listed(await Json(admin, $"/api/shop?q={tag}")).Should().BeFalse("back to the year it was created in only");
+        Listed(await Json(admin, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().BeTrue();
+        (await ProductAsync(id))!.Price.Should().Be(12m);
+    }
+
+    /// <summary>
+    /// #221: a product available in all years is reserved like any other, and switching the option never touches a
+    /// reservation (member, size, date) nor the stock. Year-specific products keep reserving as before.
+    /// </summary>
+    [Fact]
+    public async Task AllYears_ReservesNormally_AndTheToggleNeverChangesAReservation()
+    {
+        var tag = Tag();
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var cd = await CreateAsync(admin, Input($"{tag} CD", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 2 });
+        var tee = await CreateAsync(admin, Input($"{tag} T-shirt", "Roupa") with { IsPublic = false, Stock = 2 });
+        await SetCreatedAsync(cd, DateTime.UtcNow.AddYears(-2));
+        var (member, me) = await SignInAsync("Member");
+        await WithTokenAsync(member);
+
+        (await member.PostAsJsonAsync($"/api/shop/products/{cd}/reservations", new { hasSizes = true, size = "L" })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var reservation = (await Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single();
+        (reservation.GetProperty("username").GetString(), reservation.GetProperty("size").GetString()).Should().Be((me.UserName, "L"));
+        (await Json(await member.PostAsJsonAsync($"/api/shop/products/{tee}/reservations", new { hasSizes = false })))
+            .GetProperty("username").GetString().Should().Be(me.UserName, "year-specific products reserve as before");
+
+        foreach (var allYears in new[] { false, true })
+        {
+            (await admin.PutAsJsonAsync($"/api/shop/products/{cd}", Input($"{tag} CD", "Album") with { AvailableAllYears = allYears, IsPublic = false, Stock = 2 }))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+            (await Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single().GetRawText()
+                .Should().Be(reservation.GetRawText(), "the reservation is the same whatever the option");
+            (await Json(member, $"/api/shop?fiscalYear=&q={tag}")).GetProperty("products").EnumerateArray()
+                .Single(p => p.GetProperty("id").GetInt32() == cd).GetProperty("myReservation").GetRawText().Should().Be(reservation.GetRawText());
+        }
+
+        (await ProductAsync(cd))!.Stock.Should().Be(2, "reserving never changed the stock");
     }
 
     [Fact]
@@ -244,11 +354,45 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
     }
 
+    /// <summary>
+    /// #221 form wiring: one checkbox carries availableAllYears on create and edit (off for a new product), loads the
+    /// saved value, and its hint names the creation year a year-specific product falls back to.
+    /// </summary>
+    [Fact]
+    public void ReactProductForm_WiresTheAllYearsOption()
+    {
+        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "Shop.tsx"));
+        shop.Should().Contain("Disponível em todos os anos letivos")
+            .And.Contain("availableAllYears: false })", "a new product is year-specific")
+            .And.Contain("availableAllYears: d.availableAllYears,", "edit loads the saved value")
+            .And.Contain("onChange={(e) => set({ availableAllYears: e.target.checked })}")
+            .And.Contain("setCreatedYear(d.fiscalYear);")
+            .And.Contain("`Aparece só no ano letivo ${createdYear}, em que foi criado.`");
+    }
+
     // ---------- helpers ----------
 
     private static string Tag() => "shp" + Guid.NewGuid().ToString("N")[..8];
 
-    private sealed record InputBody(string? Name, string? Type, decimal Price, int Stock, bool IsPublic, string? Description);
+    private sealed record InputBody(string? Name, string? Type, decimal Price, int Stock, bool IsPublic, string? Description, bool? AvailableAllYears = null);
+
+    private static async Task<int> CreateAsync(HttpClient client, InputBody body)
+    {
+        var response = await client.PostAsJsonAsync("/api/shop/products", body);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    private async Task EnsureFiscalYearAsync(int start)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (!await db.FiscalYears.AnyAsync(f => f.StartYear == start))
+        {
+            db.FiscalYears.Add(FiscalYear.Create(start, start + 1));
+            await db.SaveChangesAsync();
+        }
+    }
 
     private static InputBody Input(string name, string type) => new(name, type, 9.99m, 1, true, null);
 

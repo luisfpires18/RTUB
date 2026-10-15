@@ -147,6 +147,38 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         updated.Price.Should().Be(15.00m);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task UpdateAsync_SavesAvailableAllYears_BothWays(bool before, bool after)
+    {
+        var product = Product.Create("CD", "Album", 10.00m, 5);
+        product.AvailableAllYears = before;
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+
+        product.AvailableAllYears = after;
+        await _service.UpdateAsync(product);
+
+        _context.ChangeTracker.Clear();
+        var saved = await _context.Products.FindAsync(product.Id);
+        (saved!.AvailableAllYears, saved.Price, saved.Stock, saved.CreatedAt).Should().Be((after, 10.00m, 5, product.CreatedAt));
+    }
+
+    [Fact]
+    public async Task GetAvailableAsync_StillHidesAnUnavailableProductAvailableInAllYears()
+    {
+        var soldOut = Product.Create("CD esgotado", "Album", 10.00m, 0);
+        soldOut.SetAvailability(false);
+        soldOut.AvailableAllYears = true;
+        var inStock = Product.Create("CD", "Album", 10.00m, 3);
+        inStock.AvailableAllYears = true;
+        _context.Products.AddRange(soldOut, inStock);
+        await _context.SaveChangesAsync();
+
+        (await _service.GetAvailableAsync()).Select(p => p.Name).Should().Equal("CD");
+    }
+
     [Fact]
     public async Task DeleteAsync_WithExistingProduct_DeletesProduct()
     {

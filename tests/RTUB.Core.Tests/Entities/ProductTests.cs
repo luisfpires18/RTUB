@@ -31,6 +31,14 @@ public class ProductTests
     }
 
     [Fact]
+    public void Create_IsYearSpecificByDefault()
+    {
+        // #221: only an explicit choice makes a product available in every fiscal year.
+        Product.Create("CD RTUB", "Album", 10m, 5).AvailableAllYears.Should().BeFalse();
+        Product.CreateEmpty().AvailableAllYears.Should().BeFalse();
+    }
+
+    [Fact]
     public void Create_WithEmptyName_ThrowsArgumentException()
     {
         // Arrange
