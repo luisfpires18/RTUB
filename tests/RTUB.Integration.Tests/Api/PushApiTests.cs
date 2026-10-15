@@ -39,7 +39,7 @@ public class PushApiTests : IClassFixture<PushApiFactory>
 
         (await visitor.GetAsync("/api/push/status")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         await AreaHttp.WithTokenAsync(visitor);
-        foreach (var path in new[] { "/api/push/check", "/api/push/subscribe", "/api/push/unsubscribe" })
+        foreach (var path in new[] { "/api/push/check", "/api/push/subscribe", "/api/push/unsubscribe", "/api/push/test" })
         {
             (await visitor.PostAsJsonAsync(path, new { endpoint = Endpoint() })).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
         }
@@ -222,6 +222,45 @@ public class PushApiTests : IClassFixture<PushApiFactory>
         _factory.Options.Enabled = false;
         (await member.PostAsJsonAsync("/api/push/unsubscribe", new { endpoint = phone })).StatusCode.Should().Be(HttpStatusCode.OK);
         (await WithDbAsync(db => db.PushSubscriptions.CountAsync(s => s.UserId == user.Id))).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Test_NeedsTheToken_AndOnlyReachesTheCallersOwnDevice_OncePerCooldown()
+    {
+        var (member, _) = await SignInAsync();
+        var (other, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(other);
+        var theirs = Endpoint();
+        (await other.PostAsJsonAsync("/api/push/subscribe", Subscription(theirs))).EnsureSuccessStatusCode();
+
+        (await member.PostAsJsonAsync("/api/push/test", new { endpoint = theirs })).StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "no antiforgery token");
+
+        // Another member's device is never sent to (nothing reaches a push service in this test).
+        await AreaHttp.WithTokenAsync(member);
+        var response = await member.PostAsJsonAsync("/api/push/test", new { endpoint = theirs });
+        response.Headers.CacheControl!.NoStore.Should().BeTrue();
+        var result = await AreaHttp.Json(response);
+        result.GetProperty("outcome").GetString().Should().Be("not-registered");
+        result.GetProperty("status").ValueKind.Should().Be(JsonValueKind.Null);
+
+        (await member.PostAsJsonAsync("/api/push/test", new { endpoint = theirs })).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task Test_IsRefused_WhenPushIsOffOrUnconfigured_OrWithoutAnEndpoint()
+    {
+        var (member, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(member);
+
+        (await AreaHttp.Errors(await member.PostAsJsonAsync("/api/push/test", new { endpoint = " " }))).Keys.Should().Equal("endpoint");
+
+        _factory.Options.VapidPrivateKey = "";
+        (await member.PostAsJsonAsync("/api/push/test", new { endpoint = Endpoint() })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        _factory.Options.VapidPrivateKey = PushApiFactory.PrivateKey;
+        _factory.Options.Enabled = false;
+        (await member.PostAsJsonAsync("/api/push/test", new { endpoint = Endpoint() })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

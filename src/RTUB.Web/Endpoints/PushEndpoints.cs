@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
@@ -10,7 +12,7 @@ namespace RTUB.Web.Endpoints;
 
 /// <summary>
 /// The member's own Web Push subscriptions, for the React /profile (task 038, docs/react-push-v2.md; replaces
-/// PushController). Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
+/// PushController), plus a test push to the caller's own device (#230). Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
 /// token in X-CSRF-TOKEN. A member only ever reads, adds or removes their own subscriptions. Push is available to the
 /// Owner always and to everyone else when WebPush:Enabled; sending needs the VAPID keys. Sending to members is not
 /// here: the domain services and the Owner's /notifications (OwnerEndpoints) do it.
@@ -83,6 +85,45 @@ public static class PushEndpoints
                 })
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
+        // #230: a fixed test push to this browser's own subscription, so a member can see the whole path work on the
+        // device. Only the caller's subscription with this endpoint (another member's endpoint is "not-registered"),
+        // fixed text, one per member every TestCooldown. The answer is what the push service said (accepted ≠ shown).
+        writes.MapPost("/test", async (PushEndpointInput input, HttpContext http, IPushNotificationService service,
+                    IPushNotificationFactory factory, IOptions<WebPushOptions> options, IMemoryCache cache, ILoggerFactory logs) =>
+                {
+                    if (!HasAccess(http.User, options.Value))
+                    {
+                        return Results.Problem(title: "As notificações push ainda não estão disponíveis.", statusCode: StatusCodes.Status403Forbidden);
+                    }
+
+                    if (!service.IsConfigured())
+                    {
+                        return Results.Problem(title: "As notificações push não estão configuradas neste servidor.",
+                            statusCode: StatusCodes.Status409Conflict, type: "push:not-configured");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(input.Endpoint))
+                    {
+                        return Invalid("endpoint", "Falta o endereço da subscrição.");
+                    }
+
+                    var userId = UserId(http.User);
+                    if (cache.TryGetValue(TestCooldownKey(userId), out _))
+                    {
+                        return Results.Problem(title: "Espera um pouco antes de enviar outra notificação de teste.",
+                            statusCode: StatusCodes.Status429TooManyRequests);
+                    }
+                    cache.Set(TestCooldownKey(userId), true, TestCooldown);
+
+                    var result = await service.SendTestAsync(userId, input.Endpoint, factory.CreatePushTestNotification());
+                    var outcome = Kebab(result.Outcome);
+                    logs.CreateLogger(typeof(PushEndpoints)).LogInformation(
+                        "User {UserName} sent a push test: {Outcome} {StatusCode}", http.User.Identity?.Name, outcome, result.StatusCode);
+
+                    return Results.Ok(new PushTestResultDto(outcome, result.StatusCode));
+                })
+            .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
+
         // Works even when push is switched off, so a member can always remove what is stored. Opted out once nothing
         // is left, so the service worker's endpoint-rotation handler does not bring a subscription back.
         writes.MapPost("/unsubscribe", async (PushUnsubscribeInput input, HttpContext http, IPushNotificationService service,
@@ -123,6 +164,13 @@ public static class PushEndpoints
             await service.IsOptedOutAsync(userId),
             await service.CountForUserAsync(userId));
     }
+
+    internal static readonly TimeSpan TestCooldown = TimeSpan.FromSeconds(30);
+
+    private static string TestCooldownKey(string userId) => $"push-test:{userId}";
+
+    /// <summary>NotRegistered → "not-registered", the form the React client reads.</summary>
+    private static string Kebab(PushDeliveryOutcome outcome) => JsonNamingPolicy.KebabCaseLower.ConvertName(outcome.ToString());
 
     private static bool HasAccess(ClaimsPrincipal user, WebPushOptions options) => user.IsInRole("Owner") || options.Enabled;
 

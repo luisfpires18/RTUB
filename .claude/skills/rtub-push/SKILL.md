@@ -16,7 +16,7 @@ Read the linked file when you need the detail.
 | Send + subscribe logic | `src/RTUB.Application/Services/PushNotificationService.cs` |
 | Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy) |
 | Persistence | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` |
-| HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` (`/api/push/{status,check,subscribe,unsubscribe}`, task 038; own subscriptions only, X-CSRF-TOKEN, no-store) + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths) |
+| HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` (`/api/push/{status,check,subscribe,unsubscribe,test}`, task 038 / #230; own subscriptions only, X-CSRF-TOKEN, no-store) + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths) |
 | Browser client | `src/RTUB.Web/portal/src/push.ts` + `Profile.tsx` `PushSection` (React `/profile`, task 038) |
 | SW push handlers | `src/RTUB.Web/wwwroot/service-worker.js` — the `push`, `notificationclick` and `pushsubscriptionchange` listeners |
 | Opt-in UI | `/profile` → "Notificações push" (no prompt on load). Detail: `docs/react-push-v2.md` |
@@ -107,17 +107,18 @@ cookie scope or SameSite affects the SW's `pushsubscriptionchange` re-subscribe.
 `tests/RTUB.Application.Tests/` — `Services/PushNotificationServiceTests.cs`, `Factories/PushNotificationFactoryTests.cs`;
 `RTUB.Integration.Tests/Api/PushApiTests.cs`; `RTUB.Web.Tests/ReactPortal/PushV2SourceTests.cs`; `RTUB.Core.Tests/Entities/PushSubscriptionTests.cs`.
 
-`PushNotificationService` constructs `new WebPushClient()` internally — it is not injected and cannot be
-mocked. The tests use placeholder VAPID strings, so `SetVapidDetails` throws and is swallowed: **no test
-exercises an actual send, a retry, or 404/410 cleanup.** They cover subscribe/unsubscribe, opt-out,
-the push-only paths and filtering only. Treat green tests as no evidence that delivery works; verify
-delivery changes on a real device.
+Since #230 every send returns a `PushSendResult` (`sent` = push service 2xx, never "shown"), and
+`Services/PushDeliveryTests.cs` drives the real WebPush request through the **internal** constructor's `HttpClient`
+over a fake handler (2xx, 404/410 cleanup, 4xx/5xx kept, retries). The public constructor still news up
+`WebPushClient`. Accepted by the push service is still no proof of display: verify on a real device with
+`/profile` → "Enviar notificação de teste" (`POST /api/push/test`, own endpoint only, 30 s cooldown).
 
 ## Known debt
 
-- `WebPush-NetCore` is obsolete; `WebPushClient` is newed up inline, blocking injection and send tests.
+- `WebPush` 1.0.13 speaks legacy `aesgcm` + `Authorization: WebPush`; WebKit still accepts it. Move to RFC 8291/8292
+  only with evidence (a `rejected` test push on an iPhone).
 - No `CancellationToken` anywhere in the push API; `BroadcastAsync` fan-out is unbounded.
-- No delivery metrics beyond the `ILogger` counts from `SendToSelectedUsersAsync`.
+- PROD App Service has no persisted application logs, so the push warnings are only visible in the log stream.
 
 Logging convention: push logs identify users by **username/nickname**, never by user ID
 (`subscription.User?.Nickname ?? subscription.User?.FirstName`, falling back to `"unknown"`) — which is

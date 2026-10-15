@@ -31,12 +31,23 @@ public class PushNotificationService : IPushNotificationService
         IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
+        : this(subscriptionRepository, userProfileRepository, options, logger, null)
+    {
+    }
+
+    /// <summary>Tests pass an <see cref="HttpClient"/> over a fake handler, so no real push service is called.</summary>
+    internal PushNotificationService(
+        IPushSubscriptionRepository subscriptionRepository,
+        IUserProfileRepository userProfileRepository,
+        IOptions<WebPushOptions> options,
+        ILogger<PushNotificationService> logger,
+        HttpClient? httpClient)
     {
         _subscriptionRepository = subscriptionRepository;
         _userProfileRepository = userProfileRepository;
         _options = options.Value;
         _logger = logger;
-        _webPushClient = new WebPushClient();
+        _webPushClient = httpClient is null ? new WebPushClient() : new WebPushClient(httpClient);
 
         // Configure VAPID details if available and valid
         if (_options.IsConfigured())
@@ -130,12 +141,13 @@ public class PushNotificationService : IPushNotificationService
             return;
         }
 
-        var subscriptions = await _subscriptionRepository.GetByUserIdAsync(userId);
-
-        foreach (var subscription in subscriptions)
+        var results = new List<PushSendResult>();
+        foreach (var subscription in await _subscriptionRepository.GetByUserIdAsync(userId))
         {
-            await SendNotificationAsync(subscription, notification);
+            results.Add(await SendNotificationWithResultAsync(subscription, notification));
         }
+
+        LogSummary(notification, results);
     }
 
     public async Task BroadcastAsync(SendPushNotificationDto notification)
@@ -147,8 +159,22 @@ public class PushNotificationService : IPushNotificationService
 
         var subscriptions = await _subscriptionRepository.GetAllActiveAsync();
 
-        var tasks = subscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
-        await Task.WhenAll(tasks);
+        var results = await Task.WhenAll(subscriptions.Select(subscription => SendNotificationWithResultAsync(subscription, notification)));
+        LogSummary(notification, results);
+    }
+
+    public async Task<PushSendResult> SendTestAsync(string userId, string endpoint, SendPushNotificationDto notification)
+    {
+        if (!_options.IsConfigured())
+        {
+            return new PushSendResult(PushDeliveryOutcome.NotConfigured);
+        }
+
+        // Only the caller's own subscription, found by this browser's endpoint: never another member's device.
+        var subscription = (await _subscriptionRepository.GetByUserIdAsync(userId)).FirstOrDefault(s => s.Endpoint == endpoint);
+        return subscription is null
+            ? new PushSendResult(PushDeliveryOutcome.NotRegistered)
+            : await SendNotificationWithResultAsync(subscription, notification);
     }
 
     public async Task<(int Sent, int Failed)> SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification)
@@ -182,9 +208,8 @@ public class PushNotificationService : IPushNotificationService
         // (parallel sends with Task.WhenAll can swallow errors and cause rate limiting)
         foreach (var subscription in selectedSubscriptions)
         {
-            var userName = subscription.User?.Nickname ?? subscription.User?.FirstName;
-            var success = await SendNotificationWithResultAsync(subscription, notification, userName);
-            if (success) sent++;
+            var result = await SendNotificationWithResultAsync(subscription, notification);
+            if (result.Outcome == PushDeliveryOutcome.Sent) sent++;
             else failed++;
         }
 
@@ -229,26 +254,30 @@ public class PushNotificationService : IPushNotificationService
     }
 
     /// <summary>
-    /// Sends a push notification to a specific subscription (fire-and-forget, no result)
-    /// Handles failures and removes invalid subscriptions
-    /// Implements retry logic for transient network errors
+    /// One line per fan-out (#230): a warning when anything failed, so a delivery problem shows in the logs without a
+    /// line per successful send.
     /// </summary>
-    private async Task SendNotificationAsync(Core.Entities.PushSubscription subscription, SendPushNotificationDto notification)
+    private void LogSummary(SendPushNotificationDto notification, IReadOnlyCollection<PushSendResult> results)
     {
-        var userName = subscription.User?.Nickname ?? subscription.User?.FirstName;
-        await SendNotificationWithResultAsync(subscription, notification, userName);
+        var sent = results.Count(r => r.Outcome == PushDeliveryOutcome.Sent);
+        var gone = results.Count(r => r.Outcome == PushDeliveryOutcome.Gone);
+        var failed = results.Count - sent - gone;
+        _logger.Log(failed > 0 ? LogLevel.Warning : LogLevel.Debug,
+            "Push '{Tag}': {Sent} sent, {Gone} stale removed, {Failed} failed of {Total} subscriptions",
+            notification.Tag ?? "none", sent, gone, failed, results.Count);
     }
 
     /// <summary>
-    /// Sends a push notification to a specific subscription and returns success/failure
-    /// Handles failures and removes invalid subscriptions
-    /// Implements retry logic for transient network errors
-    /// Sets TTL and Urgency headers for reliable delivery on iOS/Android
+    /// Sends a push notification to one subscription and says what the push service answered (#230). Success is a 2xx
+    /// from the push service, nothing more. 404 / 410 remove the subscription; every other failure keeps it. Retries
+    /// transient network errors and 429. Sets TTL and Urgency headers for reliable delivery on iOS / Android. Logs the
+    /// subscription id and push service host, never the endpoint path or the keys.
     /// </summary>
-    private async Task<bool> SendNotificationWithResultAsync(Core.Entities.PushSubscription subscription, SendPushNotificationDto notification, string? userName = null)
+    private async Task<PushSendResult> SendNotificationWithResultAsync(Core.Entities.PushSubscription subscription, SendPushNotificationDto notification)
     {
-        // Use userName for logging, fallback to "unknown" if not available
-        var displayName = !string.IsNullOrWhiteSpace(userName) ? userName : "unknown";
+        var displayName = subscription.User?.Nickname ?? subscription.User?.FirstName ?? "unknown";
+        var host = Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out var uri) ? uri.Host : "invalid";
+        var tag = notification.Tag ?? "none";
 
         var pushSubscription = new WebPush.PushSubscription(
             subscription.Endpoint,
@@ -284,16 +313,22 @@ public class PushNotificationService : IPushNotificationService
             try
             {
                 await _webPushClient.SendNotificationAsync(pushSubscription, payload, options);
-                return true; // Success
+                return new PushSendResult(PushDeliveryOutcome.Sent);
             }
-            catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
-                                               ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (WebPushException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Gone or System.Net.HttpStatusCode.NotFound)
             {
-                // Subscription is no longer valid, remove it
-                _logger.LogWarning("Push subscription {SubscriptionId} for user {UserName} is no longer valid ({StatusCode}), removing it",
-                    subscription.Id, displayName, ex.StatusCode);
-                await _subscriptionRepository.DeleteAsync(subscription);
-                return false;
+                _logger.LogWarning("Push '{Tag}' to subscription {SubscriptionId} ({Host}) of {UserName}: {StatusCode}, subscription gone, removing it",
+                    tag, subscription.Id, host, displayName, (int)ex.StatusCode);
+                try
+                {
+                    await _subscriptionRepository.DeleteAsync(subscription);
+                }
+                catch (Exception deleteEx)
+                {
+                    // A failed cleanup must not stop the fan-out to the member's other devices; the next send retries it.
+                    _logger.LogWarning(deleteEx, "Could not remove gone push subscription {SubscriptionId}", subscription.Id);
+                }
+                return new PushSendResult(PushDeliveryOutcome.Gone, (int)ex.StatusCode);
             }
             catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt <= MaxRetryAttempts)
             {
@@ -302,6 +337,18 @@ public class PushNotificationService : IPushNotificationService
                 _logger.LogWarning("Push service rate limited for subscription {SubscriptionId}, retry {RetryAttempt} after {Delay}ms",
                     subscription.Id, attempt, delay.TotalMilliseconds);
                 await Task.Delay(delay);
+            }
+            catch (WebPushException ex)
+            {
+                // 400 / 401 / 403 / 413 / 5xx / 429 after the retries: the subscription stays (a VAPID or server problem
+                // is not the device's fault), and the push service's own reason goes in the log.
+                var status = (int)ex.StatusCode;
+                var outcome = status == 429 ? PushDeliveryOutcome.RateLimited
+                    : status >= 500 ? PushDeliveryOutcome.ProviderError
+                    : PushDeliveryOutcome.Rejected;
+                _logger.LogWarning("Push '{Tag}' to subscription {SubscriptionId} ({Host}) of {UserName} refused: {StatusCode} {Outcome} {Reason}",
+                    tag, subscription.Id, host, displayName, status, outcome, await ReasonAsync(ex));
+                return new PushSendResult(outcome, status);
             }
             catch (Exception ex) when (IsTransientError(ex) && attempt <= MaxRetryAttempts)
             {
@@ -312,13 +359,32 @@ public class PushNotificationService : IPushNotificationService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending push notification to subscription {SubscriptionId} for user {UserName}",
-                    subscription.Id, displayName);
-                return false;
+                var outcome = IsTransientError(ex) ? PushDeliveryOutcome.NetworkError : PushDeliveryOutcome.Failed;
+                _logger.LogError(ex, "Push '{Tag}' to subscription {SubscriptionId} ({Host}) of {UserName} failed: {Outcome}",
+                    tag, subscription.Id, host, displayName, outcome);
+                return new PushSendResult(outcome);
             }
         }
 
-        return false;
+        return new PushSendResult(PushDeliveryOutcome.Failed);
+    }
+
+    /// <summary>
+    /// The push service's short reason (Apple: <c>{"reason":"BadJwtToken"}</c>, FCM / Mozilla: a sentence), capped.
+    /// It describes the request, never the subscription keys.
+    /// </summary>
+    private static async Task<string> ReasonAsync(WebPushException ex)
+    {
+        try
+        {
+            var body = ex.HttpResponseMessage is null ? "" : await ex.HttpResponseMessage.Content.ReadAsStringAsync();
+            body = body.ReplaceLineEndings(" ").Trim();
+            return body.Length > 200 ? body[..200] : body;
+        }
+        catch (Exception)
+        {
+            return "";
+        }
     }
 
     /// <summary>
