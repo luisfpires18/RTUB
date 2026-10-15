@@ -42,7 +42,7 @@ export default function Music() {
 
   return (
     <section className="page wrap music" aria-labelledby="music-title">
-      <header className="page__head music__head">
+      <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Discografia</p>
           <h1 id="music-title" className="page__title">

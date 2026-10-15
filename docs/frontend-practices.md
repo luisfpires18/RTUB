@@ -23,6 +23,14 @@ Authoritative rules live elsewhere — this file only routes and lists the cross
 - **Portuguese (pt-PT)** for every user-facing string.
 - **Mobile first in practice:** check every change at phone width (≈375 px) and in the installed app; no horizontal
   overflow, tap targets large enough, dialogs scroll inside themselves.
+- **No sideways page scroll, never masked (#229).** At 320-414 px the document is never wider than the viewport. Fix the
+  element that overflows (`min-width: 0` on flex / grid children, wrapping action rows, `minmax(0, 1fr)` columns);
+  `html` / `body` / `main` / `.shell` never get `overflow-x: hidden` or `clip` (pinned by `ResponsiveLayoutSourceTests`).
+  A component may scroll sideways on its own only when reflow is worse, with a visible scrollbar, listed in
+  `tests/responsive/README.md`. Page heads with actions use the shared `page__head events-page__head`. Check with
+  `tests/responsive/responsive_audit.py` (Playwright, names the offending element).
+- **Safe area:** `--safe-top` (the iOS status bar of the installed app, 0 elsewhere) pads the sticky header and is part
+  of `--header-h`; the drawer, footer and player pad by the other insets. Add insets only where an edge is reached.
 - **Accessibility:** labelled controls (`aria-label` when there is no visible text), `alt` on images, keyboard
   reachable dialogs with a visible focus.
 - **No inline styles** where a class will do; one stylesheet (`portal/src/styles.css`).

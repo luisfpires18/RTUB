@@ -105,7 +105,7 @@ export default function Gallery() {
 
   return (
     <section className="page wrap gallery-page" aria-labelledby="gallery-title">
-      <header className="page__head gallery-page__head">
+      <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Memórias</p>
           <h1 id="gallery-title" className="page__title">

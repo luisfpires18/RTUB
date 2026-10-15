@@ -57,7 +57,7 @@ decides the final text and whether it becomes editable again. The `Labels` table
 
 | Endpoint | Does |
 | --- | --- |
-| `GET /api/leaderboard?fiscalYear=&q=` | `{ fiscalYears, fiscalYear, total, entries, levels, story }` (`story` fixed in code since 029A); unknown year → 400 |
+| `GET /api/leaderboard?fiscalYear=&q=` | `{ fiscalYears, fiscalYear, total, entries, levels, story, me }` (`story` fixed in code since 029A; `me` the reader's own row, #225); unknown year → 400 |
 | `GET /api/leaderboard/members/{id}?fiscalYear=` | the details; 404 when unknown |
 | `GET /api/leaderboard/members/{id}/comments` | the comments, newest first (author name and avatar, no ids) |
 | `POST /api/leaderboard/members/{id}/comments` | `{ text }` → the new list; 400 empty / over 1000 |
@@ -69,6 +69,11 @@ decides the final text and whether it becomes editable again. The `Labels` table
 - The search runs on the server (`?q=`), same fields and positions; "Mostrar mais" (20 at a time) instead of numbered
   pages.
 - The levels are a plain list instead of the snake-shaped grid with connectors.
+- **#225:** "Níveis de Alcoolismo" is one card, **open by default** (it still folds away): the explanation, then the 12
+  levels with number, name and XP threshold; one column on phones, then 2 / 3 / 4 balanced columns (6x2, 4x3, 3x4, never
+  the old auto-fill 8 + 4). The reader's level for the year shown is marked ("O teu nível", the ones below read as
+  reached) from `me` in `GET /api/leaderboard`: their own row of that table whatever the search (null when not listed).
+  Names, thresholds and scoring unchanged.
 - A deleted comment can no longer be liked (the old repository allowed it, the UI never offered it); unknown members
   and fiscal years are refused instead of falling back.
 

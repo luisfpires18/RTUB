@@ -3,9 +3,18 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-15 (#230)_
+_Last updated: 2026-10-15 (#229 / #224 / #225)_
 
 ## Phase
+**UI/PWA batch #229 + #224 + #225 (uncommitted on `dev` @ 2.0.10, not pushed, issues stay open):** no page scrolls
+sideways at 320-414 px, fixed per element, and the old global mask `body { overflow-x: clip }` removed. Member header
+at < 360 px (logo only, category truncates); `.sr-only` hardened (hidden file inputs widened "Adicionar atuação");
+Tesouraria tabs reflow on phones; "+N XP" badges no longer spill out of the details dialogs' activity rows; header pads by `--safe-top` (iOS installed app). #224: `/roles` on the shared
+`events-page__head`, year controls in one panel, "Adicionar ano letivo" only while the server lists a missing year
+(Galeria / Música heads fixed the same way). #225: levels open by default, balanced 1 / 2 / 3 / 4 columns, the reader's
+level from the new `me` of `GET /api/leaderboard`. Audit: `tests/responsive/responsive_audit.py`. Detail:
+`docs/frontend-practices.md`, `docs/react-governance.md`, `docs/react-leaderboard.md`.
+
 **#222 News public / members-only + #228 Music teaser removed (committed on `dev` @ `66bff340`):** `NewsPosts.IsPublic` + migration
 `AddNewsPostIsPublic` (default 1), `NewsService.VisibleTo` on the only news read, `MembersOnly` on create / update (absent
 keeps), "Privado (só membros)" toggle, "Só membros" tag, Todas / Públicas / Privadas tabs for signed-in readers; public
@@ -314,6 +323,9 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by #229: iOS Safari native date / time controls and the `black-translucent` status-bar inset not checked on a
+real iPhone (Playwright WebKit not installed; CSS is defensive); inline text links in lists (`.archive-row__name`,
+`.door__mail`) are 24-26 px tall (WCAG inline exception); 12 leaderboard level rows on phones are long but readable.
 Raised by #230: PROD App Service has no persisted application logs (no `*_default_docker.log`), so push warnings are visible only in the live log stream; `WebPush` 1.0.13 sends legacy `aesgcm` / `Authorization: WebPush` (move to RFC 8291/8292 only if an iPhone test push comes back `rejected`); 5xx from a push service is not retried; DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there. STATE's #227 "uncommitted" line is stale (released as 2.0.8).
 Raised by hotfix 2026-10-14 (agenda Portugal date): the same server-zone `DateTime.Today` remains in `EventAdminService.IsPast` (prizes / videos / cancel / notices; also `TakesPrizes` on the event page), `EventRepository`, `EnrollmentService`, `RehearsalRepository`, `FiscalYearHelper`, `PushNotificationFactory` — wrong only 00:00-01:00 Portugal in summer; move to `PortugalTime.Today`.
 Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).

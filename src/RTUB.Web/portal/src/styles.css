@@ -43,7 +43,10 @@
   --section: clamp(64px, 10vw, 128px);
   --radius: 16px;
   --radius-lg: 24px;
-  --header-h: 68px;
+  /* #229: the installed iOS app draws under a black-translucent status bar; 0 everywhere else. The header pads by it
+     and --header-h includes it, so every sticky offset below the header stays right. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --header-h: calc(68px + var(--safe-top));
 }
 
 *,
@@ -66,7 +69,6 @@ body {
   background: var(--bg);
   color: var(--ink-soft);
   font: 400 1rem/1.6 var(--font-body);
-  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -133,16 +135,20 @@ main {
   padding-inline: var(--gutter);
 }
 
+/* !important on purpose (#229): a field rule such as `.form__field input { width: 100%; min-height: 48px }` is more
+   specific, and gave the hidden file inputs (cover / image pickers) a full width that scrolled dialogs sideways. */
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .icon {
@@ -357,6 +363,7 @@ main {
   position: sticky;
   top: 0;
   z-index: 50;
+  padding-top: var(--safe-top);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
@@ -365,7 +372,7 @@ main {
   display: flex;
   align-items: center;
   gap: 24px;
-  min-height: var(--header-h);
+  min-height: calc(var(--header-h) - var(--safe-top));
 }
 
 .brand {
@@ -645,6 +652,34 @@ main {
 
   /* Four controls (inbox, category, profile, menu) need the room the tagline had. */
   .shell--member .brand__sub {
+    display: none;
+  }
+
+  /* #229: the actions may shrink, and a long category ("TUNO HONORÁRIO") truncates instead of pushing the menu
+     button past the edge. */
+  .shell--member .header__inner {
+    gap: 12px;
+  }
+
+  .shell--member .header__actions {
+    min-width: 0;
+  }
+
+  .header__category {
+    min-width: 0;
+  }
+
+  .header__category .member-badge {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* #229: below 360px the four controls take the whole bar (they overflowed by 40px at 320px): the logo alone is the
+   home link there (the link keeps its aria-label). */
+@media (max-width: 359px) {
+  .shell--member .brand__text {
     display: none;
   }
 }
@@ -1997,6 +2032,37 @@ main {
   display: grid;
   gap: 8px;
   align-content: start;
+  min-width: 0;
+}
+
+/* #229: a field never widens its row (grid items default to min-width: auto). */
+.form__row > * {
+  min-width: 0;
+}
+
+/* #229: native date / time controls (iOS Safari above all) have an intrinsic width that can ignore width: 100% and
+   push a dialog or a row past the screen; they shrink like any other input, value aligned left. */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .form__field input[type='date'],
+  .form__field input[type='time'],
+  .form__field input[type='datetime-local'],
+  .form__field input[type='month'] {
+    display: block;
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 .form__field label {
@@ -2799,17 +2865,8 @@ main {
 
 /* ---------- /gallery ---------- */
 
-.gallery-page__head {
-  display: grid;
-  gap: 20px;
-}
-
-@media (min-width: 760px) {
-  .gallery-page__head {
-    grid-template-columns: 1fr auto;
-    align-items: end;
-  }
-}
+/* The head is the shared events-page__head (#224 / #229): its 1fr auto grid inside .page__head's 44rem cap floated
+   the upload button mid-page. */
 
 .gallery-tools {
   display: grid;
@@ -3162,24 +3219,45 @@ video.tile__media {
 
 /* ---------- /roles ---------- */
 
-.governance-page__head {
-  display: grid;
-  gap: 20px;
+/* #224: the head is the shared events-page__head (intro on the left, tools at the right edge, as on Atuações and
+   Classificação); the year controls are one compact panel instead of a select floating at the intro's edge. */
+.governance-page__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
 }
 
 .governance-page__year {
-  display: inline-grid;
+  display: grid;
+  flex: 1 1 170px;
   gap: 6px;
-  min-width: 180px;
-  justify-self: start;
   color: var(--ink-soft);
   font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.governance-page__add {
+  flex: 1 1 auto;
+  min-height: 46px;
+  justify-content: center;
 }
 
 @media (min-width: 760px) {
-  .governance-page__head {
-    grid-template-columns: 1fr auto;
-    align-items: end;
+  .governance-page__tools {
+    flex-wrap: nowrap;
+  }
+
+  .governance-page__year {
+    flex: 0 0 190px;
+  }
+
+  .governance-page__add {
+    flex: none;
   }
 }
 
@@ -3189,13 +3267,6 @@ video.tile__media {
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-}
-
-.governance-page__tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px;
 }
 
 .governance-page__rgi {
@@ -3309,22 +3380,10 @@ video.tile__media {
 
 /* ---------- /music ---------- */
 
-.music__head {
-  display: grid;
-  gap: 20px;
-}
-
 .music__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-}
-
-@media (min-width: 760px) {
-  .music__head {
-    grid-template-columns: 1fr auto;
-    align-items: end;
-  }
 }
 
 .albums {
@@ -6640,18 +6699,68 @@ video.tile__media {
 
 /* ---------- classification (React track 019) ---------- */
 
+/* "Níveis de Alcoolismo" (#225): one card, open by default; the summary is its header and still folds it away. */
 .leaderboard-levels {
   margin-bottom: 20px;
+  padding: 4px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
 }
 
+.leaderboard-levels__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.leaderboard-levels__head::-webkit-details-marker {
+  display: none;
+}
+
+.leaderboard-levels__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.leaderboard-levels__me {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.leaderboard-levels__me strong {
+  color: var(--purple-ink);
+}
+
+.leaderboard-levels__head > .icon {
+  margin-left: auto;
+  color: var(--purple-ink);
+  transition: transform 160ms ease;
+}
+
+.leaderboard-levels:not([open]) .leaderboard-levels__head > .icon {
+  transform: rotate(-90deg);
+}
+
+.leaderboard-levels__head:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* The explanation is the card's intro, not a card of its own. */
 .leaderboard-story {
   display: grid;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--bg-raise);
+  gap: 6px;
+  max-width: 62rem;
+  margin: 4px 0 0;
 }
 
 .leaderboard-story__title {
@@ -6669,32 +6778,103 @@ video.tile__media {
   overflow-wrap: anywhere;
 }
 
+/* Phones: one column, a compact progression read top to bottom. Wider: a balanced 2 / 3 / 4-column grid of the 12
+   levels (6x2, 4x3, 3x4), never the accidental 8 + 4 of auto-fill. */
 .leaderboard-level-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
 
-.leaderboard-level-list li {
-  display: grid;
-  gap: 2px;
-  padding: 10px 12px;
+@media (min-width: 560px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (min-width: 820px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.leaderboard-level {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--bg-raise);
+  background: var(--bg);
 }
 
-.leaderboard-level-list li.is-last {
-  border-color: var(--purple-ink);
+.leaderboard-level__n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.leaderboard-level-list__n {
+.leaderboard-level__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.leaderboard-level__name {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-level__xp {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-level.is-reached .leaderboard-level__n {
+  border-color: transparent;
+  background: rgba(111, 66, 193, 0.28);
+  color: var(--ink);
+}
+
+.leaderboard-level.is-current {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.14);
+}
+
+.leaderboard-level.is-current .leaderboard-level__n {
+  border-color: transparent;
+  background: var(--purple);
+  color: #fff;
+}
+
+.leaderboard-level__you {
+  margin-top: 2px;
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -6801,7 +6981,19 @@ video.tile__media {
 }
 
 .member-activities .member-badge {
+  flex: none;
+  /* #229: `.member-activities span` (min-width: 0) matched the badge too, so its nowrap "+15 XP" shrank and spilled
+     out of the row, scrolling the "Detalhes da classificação" dialog sideways at 320px. */
+  min-width: auto;
   margin-left: auto;
+}
+
+.member-activities li > span:not(.member-badge) {
+  flex: 1 1 auto;
+}
+
+.member-activities strong {
+  overflow-wrap: anywhere;
 }
 
 
@@ -8032,6 +8224,20 @@ video.tile__media {
 .tr-tabs__tab[aria-current='page'] {
   border-bottom-color: var(--purple-ink);
   color: var(--ink);
+}
+
+/* #229: on phones the four tabs (Relatórios, Calotes, MBWay, Nerba) did not fit and the last one sat past the edge
+   of a scroller with no visible scrollbar: they reflow into a grid instead, every tab in view. */
+@media (max-width: 479px) {
+  .tr-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    overflow-x: visible;
+  }
+
+  .tr-tabs__tab {
+    text-align: center;
+  }
 }
 
 /* Money tiles: totals of a report, calotes, MBWay recipients, a Nerba order. */

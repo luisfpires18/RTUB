@@ -92,7 +92,8 @@ public sealed class LeaderboardService : ILeaderboardService
             table.Count,
             shown.Select(e => e.Entry).ToList(),
             Levels(),
-            Story));
+            Story,
+            table.FirstOrDefault(e => e.Entry.Id == LeaderboardAuthorization.UserId(user))?.Entry));
     }
 
     public async Task<EventResult<LeaderboardMemberDto>> GetMemberAsync(string id, string? fiscalYear, ClaimsPrincipal user)

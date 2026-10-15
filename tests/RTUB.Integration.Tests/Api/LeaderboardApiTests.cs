@@ -128,7 +128,7 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         var before = await AddAsync(MemberCategory.Tuno, $"{tag} Antes");
         await EnrollAsync(now.Id, thisYear, EventType.Atuacao);
         await EnrollAsync(before.Id, lastYear, EventType.Festival);
-        var (member, _) = await SignInAsync("Member");
+        var (member, memberUser) = await SignInAsync("Member");
 
         var all = await Json(member, "/api/leaderboard");
         var total = all.GetProperty("total").GetInt32();
@@ -141,6 +141,8 @@ public class LeaderboardApiTests : IClassFixture<EventsApiFactory>
         hit.GetProperty("id").GetString().Should().Be(now.Id);
         hit.GetProperty("position").GetInt32().Should().Be(Position(all, now), "the search keeps the place in the full table");
         searched.GetProperty("total").GetInt32().Should().Be(total);
+        searched.GetProperty("me").GetProperty("id").GetString().Should().Be(memberUser.Id, "'me' is the reader's own row whatever the search (#225)");
+        searched.GetProperty("me").GetProperty("position").GetInt32().Should().Be(Position(all, memberUser));
         (await Json(member, "/api/leaderboard?q=vai%20mais%20um")).GetProperty("entries").EnumerateArray()
             .Should().OnlyContain(e => e.GetProperty("rankName").GetString() == "Vai mais um copo", "the rank name is searched too");
 

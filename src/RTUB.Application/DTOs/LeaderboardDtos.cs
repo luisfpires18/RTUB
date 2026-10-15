@@ -7,6 +7,8 @@ namespace RTUB.Application.DTOs;
 /// <summary>
 /// The table for one fiscal year ("" = every year), positions assigned before the search, as the old page did.
 /// <c>Story</c> is the text shown above the levels when active: fixed in code since 029A (no Labels, no editing).
+/// <c>Me</c> is the signed-in member's own row of that table whatever the search (null when not listed): it marks
+/// their current level on the levels list (#225).
 /// </summary>
 public sealed record LeaderboardDto(
     IReadOnlyList<MemberOptionDto> FiscalYears,
@@ -14,7 +16,8 @@ public sealed record LeaderboardDto(
     int Total,
     IReadOnlyList<LeaderboardEntryDto> Entries,
     IReadOnlyList<LeaderboardLevelDto> Levels,
-    LeaderboardStoryDto? Story);
+    LeaderboardStoryDto? Story,
+    LeaderboardEntryDto? Me = null);
 
 public sealed record LeaderboardEntryDto(
     int Position,
