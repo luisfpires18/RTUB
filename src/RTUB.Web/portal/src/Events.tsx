@@ -405,6 +405,7 @@ function AgendaCard({ event, onAnswer, manage }: { event: EventSummary; onAnswer
         <div className="agenda-card__tags">
           <span className="tag">{event.type}</span>
           {event.cancelled && <span className="tag tag--cancelled">Cancelada</span>}
+          {event.membersOnly && <span className="tag tag--private">Só membros</span>}
           <ManageButtons event={event} manage={manage} />
         </div>
         <h3 className="agenda-card__name">
@@ -470,6 +471,7 @@ function ArchiveRow({ event, manage }: { event: EventSummary; manage: Manage }) 
         <span className="archive-row__meta">
           {event.location} · {event.type}
           {event.cancelled && ' · cancelada'}
+          {event.membersOnly && ' · só membros'}
         </span>
       </span>
       <span className="archive-row__badges">

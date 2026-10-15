@@ -825,6 +825,9 @@ namespace RTUB.Migrations
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(200)

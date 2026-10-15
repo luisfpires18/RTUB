@@ -144,7 +144,49 @@ public class MemberActivityStatusEvaluatorTests
         var result = Active(Now.AddMonths(-6).AddSeconds(1));
 
         result.IsRetired.Should().BeFalse();
-        result.MonthsUntilRetirement.Should().Be(0);
+        result.MonthsUntilRetirement.Should().Be(1, "the final partial month still counts as 1 until the threshold");
+    }
+
+    // ---------- Countdown (hotfix: the final partial month counts as 1) ----------
+
+    private static readonly DateTime HotfixNow = new(2026, 10, 14, 12, 0, 0, DateTimeKind.Utc);
+
+    [Theory]
+    [InlineData(2026, 5, 5, 1)]   // Calhau: threshold 05 Nov, less than one full month left
+    [InlineData(2026, 5, 29, 1)]  // Prepúcio: threshold 29 Nov, one month and a half left
+    [InlineData(2026, 6, 14, 2)]  // threshold 14 Dec 20:00, two full months (and hours) left
+    [InlineData(2026, 8, 14, 4)]  // threshold 14 Feb 20:00
+    [InlineData(2026, 10, 1, 5)]  // threshold 01 Apr: five full months and a half
+    public void Countdown_IsWholeMonths_WithTheFinalPartialMonthCountedAsOne(int year, int month, int day, int expected)
+    {
+        var result = MemberActivityStatusEvaluator.Evaluate(false, new[] { D(year, month, day) }, null, HotfixNow);
+
+        result.IsRetired.Should().BeFalse();
+        result.MonthsUntilRetirement.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Countdown_ExactlyOneMonthLeft_IsOne()
+    {
+        var threshold = HotfixNow.AddMonths(1);
+        var result = MemberActivityStatusEvaluator.Evaluate(false, new[] { threshold.AddMonths(-6) }, null, HotfixNow);
+
+        result.RetirementThreshold.Should().Be(threshold);
+        result.MonthsUntilRetirement.Should().Be(1);
+    }
+
+    [Fact]
+    public void Countdown_OneSecondBeforeTheThreshold_IsStillOne_AndAtTheThreshold_IsReformed()
+    {
+        var last = D(2026, 5, 5);
+        var threshold = last.AddMonths(6);
+
+        MemberActivityStatusEvaluator.Evaluate(false, new[] { last }, null, threshold.AddSeconds(-1)).MonthsUntilRetirement.Should().Be(1);
+
+        var reached = MemberActivityStatusEvaluator.Evaluate(false, new[] { last }, null, threshold);
+        reached.IsRetired.Should().BeTrue();
+        reached.Reason.Should().Be(MemberStatusTransition.SixMonthsWithoutActivity);
+        reached.MonthsUntilRetirement.Should().BeNull();
     }
 
     [Fact]

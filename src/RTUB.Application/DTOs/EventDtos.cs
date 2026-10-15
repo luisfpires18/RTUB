@@ -24,7 +24,7 @@ public sealed record EventTypeOptionDto(string Value, string Label);
 /// <summary>
 /// An event as the Admin/Owner edit form loads it. <c>Time</c> is null for a whole-day or multi-day
 /// event; <c>EndDate</c> only for a multi-day one. <c>ImageUrl</c> is the current image (https/same-site) or null;
-/// the image itself changes through /api/events/{id}/image (012A).
+/// the image itself changes through /api/events/{id}/image (012A). <c>MembersOnly</c>: the "Só membros" toggle (#227).
 /// </summary>
 public sealed record EventEditDto(
     int Id,
@@ -36,11 +36,14 @@ public sealed record EventEditDto(
     string Type,
     string Description,
     bool HasImage,
-    string? ImageUrl = null);
+    string? ImageUrl = null,
+    bool MembersOnly = false);
 
 /// <summary>
 /// What the Admin/Owner form sends. Dates are "yyyy-MM-dd", the time "HH:mm". A multi-day event
-/// (an <c>EndDate</c> after <c>Date</c>) has no time, as on the old form.
+/// (an <c>EndDate</c> after <c>Date</c>) has no time, as on the old form. <c>MembersOnly</c> (#227): on create,
+/// true = members only, false or absent = public; on update, true / false set it, absent keeps what the event has,
+/// so a client that does not know the field can never make a private event public.
 /// </summary>
 public sealed record EventInput(
     string? Name,
@@ -49,12 +52,14 @@ public sealed record EventInput(
     string? EndDate,
     string? Location,
     string? Type,
-    string? Description);
+    string? Description,
+    bool? MembersOnly = null);
 
 /// <summary>
 /// One event as the agenda shows it. <c>Time</c> is null for a whole-day event, <c>EndDate</c> only for
 /// a multi-day one. <c>Season</c> is the fiscal year ("2025-2026", September to August).
 /// <c>ImageUrl</c> is null unless it is an https or same-site link. <c>Member</c> is null for visitors.
+/// <c>MembersOnly</c> (#227) is only ever true for a signed-in member: a visitor never gets such an event.
 /// </summary>
 public sealed record EventSummaryDto(
     int Id,
@@ -70,7 +75,8 @@ public sealed record EventSummaryDto(
     string? ImageUrl,
     int VideoCount,
     IReadOnlyList<string> Trophies,
-    EventMemberSummaryDto? Member);
+    EventMemberSummaryDto? Member,
+    bool MembersOnly = false);
 
 /// <summary>Member-only part of a summary. <c>MyStatus</c>: "going", "notGoing" or null.</summary>
 public sealed record EventMemberSummaryDto(

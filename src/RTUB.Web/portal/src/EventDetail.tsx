@@ -175,6 +175,7 @@ function Body({
           <div className="agenda-card__tags">
             <span className="tag">{event.type}</span>
             {event.cancelled && <span className="tag tag--cancelled">Cancelada</span>}
+            {event.membersOnly && <span className="tag tag--private">Só membros</span>}
             {!event.past && !event.cancelled && <span className="tag tag--soon">Próxima</span>}
             <MyStatus event={event} />
           </div>

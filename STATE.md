@@ -6,6 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-13 (045)_
 
 ## Phase
+**P0 hotfix #227 events public / members-only (uncommitted on `master`, not pushed):** `Events.IsPublic` + migration
+`AddEventIsPublic` (default 1: existing rows and N-1 inserts stay public), server-side `EventAgendaService.VisibleTo`
+on the agenda, archive, event page and video plays; home preview public-only; "Privado (só membros)" toggle (off by
+default) and "Só membros" tag in React. Push unchanged (subscribers are signed-in members only). Detail:
+`docs/react-events.md` → *Visibility and permissions*. Needs a hotfix branch, VERSION bump and the master → dev
+back-merge before release.
+
 **046 new RTUB logo (uncommitted on `dev`, not pushed):** every brand asset regenerated from the square `wwwroot/images/rtub_new_logo.png`: canonical `/images/rtub_logo.webp` (1024px), `/icons/rtub-logo-352.webp`, manifest 192 / 512 + new maskable 512, push badge, `apple-touch-icon.png`, `favicon.ico` (16/32/48). Unused sizes removed (16, 32, 120, 152, 167, 180, 256, 384, `apple-touch-icon-180x180.png`). Service worker `CACHE_VERSION` v2.9.0 (images are cache-first). No API, schema or migration change. Detail: `docs/pwa-practices.md` → *RTUB brand assets*.
 
 **045 performance gate (uncommitted on `dev`, not pushed):** splash / header logo 465 KB PNG → 45 KB WebP (`icons/rtub-logo-352.webp`), CLS fixes (`.boot` padding, `main` min-height, `/members` actions while loading), logistics board no longer re-lists R2 on every card / list change. Mobile Lighthouse 61-79 → 94-98, mobile LCP 4.35 → 2.25-3.0 s, CLS ≤ 0.03. Frontend only; no API, schema or migration change. Detail: `docs/performance-gate.md`.
@@ -295,6 +302,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by hotfix 2026-10-14 (agenda Portugal date): the same server-zone `DateTime.Today` remains in `EventAdminService.IsPast` (prizes / videos / cancel / notices; also `TakesPrizes` on the event page), `EventRepository`, `EnrollmentService`, `RehearsalRepository`, `FiscalYearHelper`, `PushNotificationFactory` — wrong only 00:00-01:00 Portugal in summer; move to `PortugalTime.Today`.
 Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
 - (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:

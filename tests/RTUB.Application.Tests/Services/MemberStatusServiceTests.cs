@@ -287,6 +287,73 @@ public sealed class MemberStatusServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Hotfix_FinalPartialMonth_ShowsOneMonthUntilRetirement()
+    {
+        // Calhau: last activity 05 May, threshold 05 Nov; on 13 Oct less than one full month is left.
+        var id = await AddMemberAsync(MemberCategory.Tuno, retired: false);
+        await RehearsalAsync(id, new DateTime(2026, 5, 5));
+
+        var status = await Service().ReconcileMemberStatusAsync(id);
+
+        status.IsRetired.Should().BeFalse();
+        status.ProgressMonths.Should().Be(1);
+        status.ProgressDescription.Should().Be("1 mês até reforma");
+        _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(1, false, true)]
+    [InlineData(1, true, false)] // activity this month: no countdown
+    [InlineData(5, true, false)]
+    [InlineData(3, false, true)]
+    public void Hotfix_DirectoryCountdown_IsShownForTheFinalMonth_AndStillSuppressedByActivityThisMonth(
+        int months, bool activityThisMonth, bool shown)
+    {
+        var status = new MemberStatusResult
+        {
+            IsRetired = false, ProgressMonths = months, ProgressTotalMonths = MemberActivityStatusEvaluator.InactivityMonths,
+            ProgressDescription = months == 1 ? "1 mês até reforma" : $"{months} meses até reforma",
+            HasActivityInCurrentMonth = activityThisMonth,
+        };
+
+        MemberDirectoryService.ShowProgress(status).Should().Be(shown);
+    }
+
+    [Fact]
+    public async Task Hotfix_MultipleMonths_KeepThePluralDescription()
+    {
+        var id = await AddMemberAsync(MemberCategory.Tuno, retired: false);
+        await RehearsalAsync(id, new DateTime(2026, 7, 20));
+
+        (await Service().ReconcileMemberStatusAsync(id)).ProgressDescription.Should().Be("3 meses até reforma");
+    }
+
+    [Theory]
+    [InlineData(0, false)] // stored by the old countdown in its final partial month: already warned when it passed 1
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public async Task Hotfix_RetirementWarning_IsNotRepeatedForAMemberAlreadyInTheFinalMonth(int storedMonths, bool warned)
+    {
+        var id = await AddMemberAsync(MemberCategory.Tuno, retired: false);
+        await RehearsalAsync(id, new DateTime(2026, 5, 5));
+        await using (var db = _db.CreateContext())
+        {
+            db.MemberStatuses.Add(new MemberStatus
+            {
+                UserId = id, IsRetired = false, HasAnyActivity = true, LastActivityDate = new DateTime(2026, 5, 5),
+                ProgressMonths = storedMonths, ProgressTotalMonths = 6, LastUpdatedAt = Now.AddDays(-1),
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var service = Service();
+        (await service.ReconcileMemberStatusAsync(id)).ProgressMonths.Should().Be(1);
+        await service.ReconcileAllMemberStatusesAsync();
+
+        _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), warned ? Times.Once() : Times.Never());
+    }
+
+    [Fact]
     public async Task UnknownUser_Throws_AndTheBatchMapsItToNull()
     {
         var service = Service();

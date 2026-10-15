@@ -40,6 +40,8 @@ Clock: one injected `TimeProvider` (`TimeProvider.System` in DI); no `DateTime.N
   creation month (`YearLeitao` / `MonthLeitao`), so the six months always have a start.
 - **Active → Reformado** when `now >= threshold`, `threshold = max(lastActivity, activeSince).AddMonths(6)` (calendar
   months, `DateTime.AddMonths`: 31 Aug → 28/29 Feb; not 180 days). Exactly at the threshold = six full months = Reformado.
+  **Countdown** (`MonthsUntilRetirement`, "N meses até reforma" / "1 mês até reforma"): whole months left, with the final
+  partial month counted as 1, so an active member before the threshold never shows 0 (hotfix 2026-10-14).
   **Start-date hierarchy** for the six months: (1) the latest qualifying activity; (2) when there is none or it is
   older, the latest admission milestone — Tuno, Caloiro or Leitão year+month, first day of the month, January when the
   month is missing (`ActiveSince`); (3) neither → Reformado at once (`NoQualifyingActivity`). There is no account
@@ -60,6 +62,7 @@ Clock: one injected `TimeProvider` (`TimeProvider.System` in DI); no `DateTime.N
   `/owner/tracing` (the `ApplicationUser` change is also audited by the context).
 - Push (only with `MemberStatusUpdate:PushNotificationsEnabled`): reactivation broadcast on an actual Reformado → active
   change; the retirement warning once, when an active member's months left become 1. Repeated runs send nothing new.
+  A stored `ProgressMonths = 0` (the pre-hotfix final partial month, already warned at 1) does not trigger it again.
 - Idempotent: same data + same `now` → no state change, no audit, no push, no projection write.
 - A member whose evaluation throws is logged with its id and counted as `Failed`; the run continues.
   `ReconcileAllMemberStatusesAsync` returns `MemberStatusReconciliationResult` (evaluated / activated / reformed /

@@ -94,8 +94,42 @@ public class EventManagementTests
             e.Name == "Serenata nova" && e.Date == "2031-05-03" && e.Time == "21:30" && e.EndDate == null
             && e.Location == "Sé" && e.Type == "Serenata" && !e.Past);
         _events.Verify(s => s.CreateEventAsync("Serenata nova", new DateTime(2031, 5, 3, 21, 30, 0), "Sé", EventType.Serenata,
-            "Levar capa", null, null, default), Times.Once);
+            "Levar capa", null, null, true, default), Times.Once);
         _push.Verify(p => p.BroadcastAsync(It.Is<SendPushNotificationDto>(n => n.Title == "Serenata nova" && n.Url == "https://rtub.test")), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_MembersOnly_StoresItPrivate_AndTheAdminSeesItMarked()
+    {
+        var result = await _service.CreateEventAsync(Input(name: "Surpresa") with { MembersOnly = true }, Admin, "https://rtub.test");
+
+        result.Value!.MembersOnly.Should().BeTrue();
+        _events.Verify(s => s.CreateEventAsync("Surpresa", It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<EventType>(),
+            It.IsAny<string>(), It.IsAny<DateTime?>(), null, false, default), Times.Once);
+        (await _service.GetEventAsync(result.Value.Id, Visitor)).Should().BeNull();
+        (await _service.GetEventForEditAsync(result.Value.Id, Admin)).Value!.MembersOnly.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(null, false, false)]
+    [InlineData(null, true, true)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, true)]
+    public async Task Update_ChangesVisibility_OnlyWhenMembersOnlyIsSent(bool? sent, bool wasPrivate, bool privateAfter)
+    {
+        var id = AddEvent("Serenata", _future);
+        using (var db = _db.CreateContext())
+        {
+            db.Events.Single(e => e.Id == id).IsPublic = !wasPrivate;
+            db.SaveChanges();
+        }
+
+        var result = await _service.UpdateEventAsync(id, Input() with { MembersOnly = sent }, Admin);
+
+        result.Value!.MembersOnly.Should().Be(privateAfter);
+        bool? isPublicSent = sent is { } membersOnly ? !membersOnly : null;
+        _events.Verify(s => s.UpdateEventAsync(id, It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<EventType>(), It.IsAny<DateTime?>(), isPublicSent, default), Times.Once);
     }
 
     [Fact]
@@ -106,7 +140,7 @@ public class EventManagementTests
         result.Value!.Time.Should().BeNull("a multi-day event has no time, as on the old form");
         result.Value.EndDate.Should().Be("2031-05-05");
         _events.Verify(s => s.CreateEventAsync(It.IsAny<string>(), new DateTime(2031, 5, 3), It.IsAny<string>(), It.IsAny<EventType>(),
-            It.IsAny<string>(), new DateTime(2031, 5, 5), null, default), Times.Once);
+            It.IsAny<string>(), new DateTime(2031, 5, 5), null, true, default), Times.Once);
     }
 
     [Fact]
@@ -172,7 +206,7 @@ public class EventManagementTests
         result.Value!.Name.Should().Be("Serenata ao luar");
         result.Value.Location.Should().Be("Castelo");
         _events.Verify(s => s.UpdateEventAsync(id, "Serenata ao luar", new DateTime(2031, 7, 1, 22, 0, 0), "Castelo", string.Empty,
-            EventType.Atuacao, null, default), Times.Once);
+            EventType.Atuacao, null, null, default), Times.Once);
         _push.VerifyNoOtherCalls();
     }
 
@@ -219,9 +253,9 @@ public class EventManagementTests
     public void ManagementContracts_CarryNoInternalField()
     {
         typeof(EventEditDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
-            "Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "HasImage", "ImageUrl");
+            "Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "HasImage", "ImageUrl", "MembersOnly");
         typeof(EventInput).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
-            "Name", "Date", "Time", "EndDate", "Location", "Type", "Description");
+            "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "MembersOnly");
     }
 
     // ---------- helpers ----------
@@ -254,24 +288,26 @@ public class EventManagementTests
     private void FakeEventWrites()
     {
         _events.Setup(s => s.CreateEventAsync(It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<EventType>(),
-                It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string name, DateTime date, string location, EventType type, string description, DateTime? end, string? _, CancellationToken _) =>
+                It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, DateTime date, string location, EventType type, string description, DateTime? end, string? _, bool isPublic, CancellationToken _) =>
             {
                 using var db = _db.CreateContext();
                 var e = Event.Create(name, date, location, type, description);
                 e.EndDate = end;
+                e.IsPublic = isPublic;
                 db.Events.Add(e);
                 db.SaveChanges();
                 return e;
             });
         _events.Setup(s => s.UpdateEventAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string>(),
-                It.IsAny<string>(), It.IsAny<EventType>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
-            .Returns((int id, string name, DateTime date, string location, string description, EventType type, DateTime? end, CancellationToken _) =>
+                It.IsAny<string>(), It.IsAny<EventType>(), It.IsAny<DateTime?>(), It.IsAny<bool?>(), It.IsAny<CancellationToken>()))
+            .Returns((int id, string name, DateTime date, string location, string description, EventType type, DateTime? end, bool? isPublic, CancellationToken _) =>
             {
                 using var db = _db.CreateContext();
                 var e = db.Events.Single(x => x.Id == id);
                 e.UpdateDetails(name, date, location, description, type);
                 e.EndDate = end;
+                e.IsPublic = isPublic ?? e.IsPublic;
                 db.SaveChanges();
                 return Task.CompletedTask;
             });

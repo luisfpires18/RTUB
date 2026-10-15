@@ -39,6 +39,12 @@ public class Event : BaseEntity
     [MaxLength(1000, ErrorMessage = "O motivo de cancelamento não pode exceder 1000 caracteres")]
     public string? CancellationReason { get; set; }
 
+    /// <summary>
+    /// Public (the default) or members only. A members-only event never reaches a visitor:
+    /// the server leaves it out of every anonymous read (docs/react-events.md → Visibility).
+    /// </summary>
+    public bool IsPublic { get; set; } = true;
+
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public virtual ICollection<EventRepertoire> RepertoireSongs { get; set; } = new List<EventRepertoire>();

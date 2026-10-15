@@ -197,6 +197,31 @@ public class MigrationChainTests : IDisposable
         (await ColumnNamesAsync(context, "AspNetUsers")).Should().NotContain("FidelisBalance");
     }
 
+    /// <summary>
+    /// #227 Events.IsPublic: every event that exists before the migration stays public, and so does an event the
+    /// previous release (N-1, which never writes the column) inserts after an app rollback. No row is lost.
+    /// </summary>
+    [Fact]
+    public async Task AddEventIsPublic_KeepsExistingEventsPublic_AndDefaultsN1InsertsToPublic()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync("20261013093143_RemoveFidelisBalanceFromApplicationUser");
+
+        const string insert = "INSERT INTO Events (Name, Date, Description, Location, Type, IsCancelled, CreatedAt) " +
+                              "VALUES ('{0}', '2026-12-01 21:00:00', '', 'Bragança', 0, {1}, '2026-10-01 00:00:00');";
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Antes", 0));
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Antes cancelada", 1));
+
+        await context.Database.MigrateAsync();
+        (await ColumnNamesAsync(context, "Events")).Should().Contain("IsPublic");
+
+        // What N-1 would insert after a rollback: it does not know the column.
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Da versão anterior", 0));
+
+        (await ScalarsAsync(context, "SELECT Name || ':' || IsPublic FROM Events ORDER BY Id;"))
+            .Should().Equal("Antes:1", "Antes cancelada:1", "Da versão anterior:1");
+    }
+
     private static async Task<List<string>> ScalarsAsync(ApplicationDbContext context, string sql)
     {
         var values = new List<string>();

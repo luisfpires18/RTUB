@@ -4490,6 +4490,11 @@ video.tile__media {
   color: var(--purple-ink);
 }
 
+/* Members-only event (#227); visitors never get one. */
+.tag--private {
+  border-style: dashed;
+}
+
 /* The member's own answer. */
 .pill {
   display: inline-flex;

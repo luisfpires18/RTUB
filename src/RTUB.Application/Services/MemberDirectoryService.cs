@@ -326,7 +326,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
     }
 
     /// <summary>Retired: always. Active: only between 1 and 5 months without activity and none this month.</summary>
-    private static bool ShowProgress(MemberStatusResult? s)
+    internal static bool ShowProgress(MemberStatusResult? s)
     {
         if (s?.ProgressDescription is null)
         {
