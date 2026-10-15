@@ -87,9 +87,10 @@ public class EventService : IEventService
         return events.Where(e => !e.IsCancelled).OrderByDescending(e => e.Date);
     }
 
-    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, CancellationToken cancellationToken = default)
+    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, bool isPublic = true, CancellationToken cancellationToken = default)
     {
         var eventEntity = Event.Create(name, date, location, type, description);
+        eventEntity.IsPublic = isPublic;
 
         if (endDate.HasValue)
         {
@@ -104,11 +105,13 @@ public class EventService : IEventService
         return await _eventRepository.AddAsync(eventEntity);
     }
 
-    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, CancellationToken cancellationToken = default)
+    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, bool? isPublic = null, CancellationToken cancellationToken = default)
     {
         var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.UpdateDetails(name, date, location, description, type);
+        // Null keeps the event's visibility (#227): only an explicit choice changes it.
+        eventEntity.IsPublic = isPublic ?? eventEntity.IsPublic;
 
         if (endDate.HasValue)
         {

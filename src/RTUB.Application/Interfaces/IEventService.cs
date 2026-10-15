@@ -15,8 +15,8 @@ public interface IEventService
     Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10, CancellationToken cancellationToken = default);
     Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default);
     Task<IEnumerable<Event>> GetActiveEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default);
-    Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, CancellationToken cancellationToken = default);
-    Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, CancellationToken cancellationToken = default);
+    Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, bool isPublic = true, CancellationToken cancellationToken = default);
+    Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, bool? isPublic = null, CancellationToken cancellationToken = default);
     Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default);
     Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default);
     /// <summary>Deletes the event's image from storage (only what this environment owns) and clears it.</summary>

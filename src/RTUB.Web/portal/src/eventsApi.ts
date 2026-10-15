@@ -25,6 +25,8 @@ export type EventSummary = {
   videoCount: number;
   trophies: string[];
   member: EventMemberSummary | null;
+  /** "Só membros" (#227). Only ever true for a member: the server never sends such an event to a visitor. */
+  membersOnly: boolean;
 };
 
 export type EventTypeOption = { value: string; label: string };
@@ -115,6 +117,7 @@ export type EventEdit = {
   description: string;
   hasImage: boolean;
   imageUrl: string | null;
+  membersOnly: boolean;
 };
 
 /** POST /api/events, PUT /api/events/{id}. A multi-day event (endDate) has no time. */
@@ -126,6 +129,8 @@ export type EventInput = {
   location: string;
   type: string;
   description: string;
+  /** true = members only, false = public. The server keeps the current value on an update that omits it; the form always sends it. */
+  membersOnly: boolean;
 };
 
 /** GET /api/events/{id}/notices (Admin/Owner): who a notice would reach, as counts. */

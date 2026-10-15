@@ -252,12 +252,61 @@ public class EventAgendaServiceTests
         preview[1].Cancelled.Should().BeTrue();
     }
 
+    // ---------- members-only events (#227) ----------
+
+    [Fact]
+    public async Task UpcomingPreview_LeavesOutMembersOnlyEvents()
+    {
+        AddEvent("Surpresa", _today.AddDays(1), isPublic: false);
+        AddEvent("Pública", _today.AddDays(2));
+
+        var preview = await _service.GetUpcomingPreviewAsync(3);
+
+        preview.Select(e => e.Name).Should().Equal("Pública");
+    }
+
+    [Fact]
+    public async Task AVisitor_NeverGetsAMembersOnlyEvent_WhileAMemberDoes()
+    {
+        var surprise = AddEvent("Surpresa", _today.AddDays(1), isPublic: false);
+        var pastSurprise = AddEvent("Surpresa antiga", _today.AddDays(-3), isPublic: false);
+        var open = AddEvent("Pública", _today.AddDays(2));
+
+        var visitor = await _service.GetAgendaAsync(Visitor);
+        visitor.Upcoming.Select(e => e.Id).Should().Equal(open);
+        visitor.Past.Should().BeEmpty();
+        (await _service.GetEventAsync(surprise, Visitor)).Should().BeNull();
+        (await _service.GetEventAsync(pastSurprise, Visitor)).Should().BeNull();
+        (await _service.GetEventAsync(open, Visitor))!.Event.MembersOnly.Should().BeFalse();
+
+        var member = await _service.GetAgendaAsync(_member);
+        member.Upcoming.Select(e => (e.Id, e.MembersOnly)).Should().Equal((surprise, true), (open, false));
+        member.Past.Select(e => e.Id).Should().Equal(pastSurprise);
+        (await _service.GetEventAsync(surprise, _member))!.Event.MembersOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AVideoPlay_OnAMembersOnlyEvent_IsUnknownToAVisitor()
+    {
+        var video = AddVideo(AddEvent("Surpresa", _today.AddDays(-3), isPublic: false), "Vídeo", 1, "https://pub-test.r2.dev/v.mp4");
+
+        (await _service.RecordVideoPlayAsync(video, Visitor)).Should().BeFalse();
+        (await _service.RecordVideoPlayAsync(video, _member)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ANewEvent_IsPublic_UnlessMadePrivate()
+    {
+        Event.Create("Nova", _today, "Bragança", EventType.Atuacao).IsPublic.Should().BeTrue();
+        new EventInput("Nova", null, null, null, "Bragança", "Atuacao", null).MembersOnly.Should().BeNull("absent: public on create, unchanged on update");
+    }
+
     [Fact]
     public void Contracts_CarryNoUserIdNoteOrInternalField()
     {
         // A new property on these records is a new field in the browser: add it here on purpose.
         Names<EventSummaryDto>().Should().BeEquivalentTo("Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Cancelled",
-            "Past", "Season", "ImageUrl", "VideoCount", "Trophies", "Member");
+            "Past", "Season", "ImageUrl", "VideoCount", "Trophies", "Member", "MembersOnly");
         Names<EventMemberSummaryDto>().Should().BeEquivalentTo("Description", "MyStatus", "GoingCount", "RepertoireCount", "DiscussionCount");
         Names<EventMemberDetailDto>().Should().BeEquivalentTo("CancellationReason", "NotGoingCount", "Repertoire", "Participants");
         Names<EventParticipantsDto>().Should().BeEquivalentTo("Going", "Leitoes", "NotGoing");
@@ -654,12 +703,13 @@ public class EventAgendaServiceTests
     }
 
     private int AddEvent(string name, DateTime date, DateTime? endDate = null, EventType type = EventType.Atuacao,
-        string description = "", string? cancelReason = null, string? imageUrl = null)
+        string description = "", string? cancelReason = null, string? imageUrl = null, bool isPublic = true)
     {
         using var db = _db.CreateContext();
         var e = Event.Create(name, date, "Bragança", type, description);
         e.EndDate = endDate;
         e.ImageUrl = imageUrl;
+        e.IsPublic = isPublic;
         if (cancelReason != null)
         {
             e.Cancel(cancelReason);

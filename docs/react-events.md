@@ -60,6 +60,21 @@ create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 
 Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
 
+**Public / members-only events (#227, P0 hotfix).** `Events.IsPublic` (bool, migration `AddEventIsPublic`: column
+default `1`, so every existing row and anything N-1 inserts after a rollback stays public; the EF model has no
+default, so the app always writes its own value). New events are public unless Admin/Owner tick **"Privado (só
+membros)"** on the create/edit form (`EventInput.MembersOnly`, `bool?`: on create absent / false = public, true =
+members only; on update true / false set it and **absent keeps the event's current visibility**, so an edit can
+never declassify a private event by omission). The
+rule lives in one place, `EventAgendaService.VisibleTo`, applied in the query: a signed-in member sees every
+event, anyone else only public ones. A visitor therefore never receives a members-only event from `GET
+/api/events` (upcoming and archive), `GET /api/events/{id}` (404, same as a missing event) or `POST
+/api/events/videos/{id}/plays` (404); the home preview `GET /api/public/events/upcoming` is public-only for
+everyone. Every other event endpoint already refuses visitors (401). Members get `membersOnly: true` on the
+summary and a "Só membros" tag on the card, archive row and event page. Push: the new-event broadcast and notices go
+only to push subscriptions, which only signed-in members can create (`/api/push` requires one), so no visitor is
+told about a members-only event; emails go to members only, as before.
+
 - **Visitor:** name, dates, time, location, type, cancelled, image, trophies, videos, season. No
   description, cancellation reason, counts, repertoire, answers, user ids or notes; the `member`
   parts are `null`. Same set the old public page showed.

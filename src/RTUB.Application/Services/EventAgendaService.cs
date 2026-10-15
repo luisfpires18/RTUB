@@ -59,7 +59,7 @@ public sealed class EventAgendaService : IEventAgendaService
     {
         await using var db = await _contexts.CreateDbContextAsync();
         // ponytail: whole table in memory (57 events today); page it if it ever reaches thousands.
-        var events = await db.Events.AsNoTracking().ToListAsync();
+        var events = await VisibleTo(db.Events.AsNoTracking(), user).ToListAsync();
         var extras = await LoadExtrasAsync(db, events.Select(e => e.Id).ToList(), EventsAuthorization.UserId(user));
 
         var canManage = EventsAuthorization.CanManage(user);
@@ -74,15 +74,17 @@ public sealed class EventAgendaService : IEventAgendaService
 
     public async Task<IReadOnlyList<UpcomingEventDto>> GetUpcomingPreviewAsync(int count)
     {
+        // Anonymous and cacheable: public events only, whoever asks.
         await using var db = await _contexts.CreateDbContextAsync();
-        var events = await db.Events.AsNoTracking().ToListAsync();
+        var events = await db.Events.AsNoTracking().Where(e => e.IsPublic).ToListAsync();
         return Upcoming(events).Take(count).Select(UpcomingEventDto.From).ToList();
     }
 
     public async Task<EventDetailDto?> GetEventAsync(int id, ClaimsPrincipal user)
     {
         await using var db = await _contexts.CreateDbContextAsync();
-        var e = await db.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        // A members-only event is a 404 for a visitor, exactly like one that does not exist.
+        var e = await VisibleTo(db.Events.AsNoTracking(), user).FirstOrDefaultAsync(x => x.Id == id);
         if (e is null)
         {
             return null;
@@ -242,7 +244,8 @@ public sealed class EventAgendaService : IEventAgendaService
             e.Type.ToString(),
             e.Description,
             !string.IsNullOrEmpty(e.ImageUrl),
-            IsSafeUrl(e.ImageUrl) ? e.ImageUrl : null));
+            IsSafeUrl(e.ImageUrl) ? e.ImageUrl : null,
+            !e.IsPublic));
     }
 
     public async Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user, string baseUrl)
@@ -258,9 +261,12 @@ public sealed class EventAgendaService : IEventAgendaService
         }
 
         var valid = Parse(input);
-        var created = await _events.CreateEventAsync(valid.Name, valid.Start, valid.Location, valid.Type, valid.Description, valid.End);
+        var created = await _events.CreateEventAsync(valid.Name, valid.Start, valid.Location, valid.Type, valid.Description, valid.End,
+            isPublic: input.MembersOnly != true);
 
         // The old form announced every new event to everyone; a failed push never fails the create.
+        // Every push subscription belongs to a signed-in member (/api/push needs one), so a
+        // members-only event announced this way reaches no visitor.
         try
         {
             await _push.BroadcastAsync(_pushFactory.CreateEventNotification(created, isReminder: false, baseUrl));
@@ -291,7 +297,8 @@ public sealed class EventAgendaService : IEventAgendaService
         }
 
         var valid = Parse(input);
-        await _events.UpdateEventAsync(id, valid.Name, valid.Start, valid.Location, valid.Description, valid.Type, valid.End);
+        await _events.UpdateEventAsync(id, valid.Name, valid.Start, valid.Location, valid.Description, valid.Type, valid.End,
+            isPublic: input.MembersOnly is { } membersOnly ? !membersOnly : null);
         return EventResult<EventSummaryDto>.Ok((await SummaryAsync(id, user))!);
     }
 
@@ -448,9 +455,10 @@ public sealed class EventAgendaService : IEventAgendaService
 
     public async Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user)
     {
+        var isMember = EventsAuthorization.IsMember(user);
         await using var db = await _contexts.CreateDbContextAsync();
         var video = await db.EventVideos.AsNoTracking()
-            .Where(v => v.Id == videoId)
+            .Where(v => v.Id == videoId && (v.Event.IsPublic || isMember))
             .Select(v => new { v.Id, v.Title, EventName = v.Event.Name })
             .FirstOrDefaultAsync();
         if (video is null)
@@ -541,6 +549,13 @@ public sealed class EventAgendaService : IEventAgendaService
 
     private bool IsPast(Event e) => LastDay(e) < Today;
 
+    /// <summary>
+    /// The one visibility rule (#227): a signed-in member sees every event, anyone else only public
+    /// ones. Applied in the query, so a members-only event never leaves the database for a visitor.
+    /// </summary>
+    internal static IQueryable<Event> VisibleTo(IQueryable<Event> events, ClaimsPrincipal user) =>
+        EventsAuthorization.IsMember(user) ? events : events.Where(e => e.IsPublic);
+
     private IEnumerable<Event> Upcoming(IEnumerable<Event> events) =>
         events.Where(e => !IsPast(e)).OrderBy(e => e.Date).ThenBy(e => e.Id);
 
@@ -611,7 +626,8 @@ public sealed class EventAgendaService : IEventAgendaService
                 extras.Going.GetValueOrDefault(e.Id),
                 extras.Repertoire.GetValueOrDefault(e.Id),
                 extras.Discussion.GetValueOrDefault(e.Id))
-            : null);
+            : null,
+            !e.IsPublic);
 
     private static string DateText(DateTime date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 

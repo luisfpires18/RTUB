@@ -357,6 +357,18 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
+    public async Task UpdateEventAsync_KeepsVisibility_UnlessItIsGiven()
+    {
+        var eventEntity = await _eventService.CreateEventAsync("Surpresa", DateTime.Now.AddDays(5), "Location", EventType.Festival, isPublic: false);
+
+        await _eventService.UpdateEventAsync(eventEntity.Id, "Surpresa", DateTime.Now.AddDays(5), "Castelo", "", EventType.Festival);
+        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.IsPublic.Should().BeFalse("no visibility given keeps it private");
+
+        await _eventService.UpdateEventAsync(eventEntity.Id, "Surpresa", DateTime.Now.AddDays(5), "Castelo", "", EventType.Festival, isPublic: true);
+        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.IsPublic.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task UpdateEventAsync_WithValidData_UpdatesEvent()
     {
         // Arrange

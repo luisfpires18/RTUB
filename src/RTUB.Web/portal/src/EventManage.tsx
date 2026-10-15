@@ -63,6 +63,7 @@ const blank = (): Form => ({
   location: '',
   type: 'Atuacao',
   description: '',
+  membersOnly: false,
   multiDay: false,
 });
 
@@ -96,7 +97,7 @@ export function EventFormDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const ids = { name: useId(), multi: useId(), date: useId(), time: useId(), end: useId(), location: useId(), type: useId(), description: useId() };
+  const ids = { name: useId(), multi: useId(), membersOnly: useId(), date: useId(), time: useId(), end: useId(), location: useId(), type: useId(), description: useId() };
 
   useEffect(() => {
     if (eventId === undefined) return;
@@ -129,6 +130,7 @@ export function EventFormDialog({
       location: form.location,
       type: form.type,
       description: form.description,
+      membersOnly: form.membersOnly,
     };
     const outcome = savedId === undefined ? await eventsApi.createEvent(input) : await eventsApi.updateEvent(savedId, input);
     if (outcome.kind !== 'ok') {
@@ -237,6 +239,11 @@ export function EventFormDialog({
             <textarea id={ids.description} rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
             {error('description')}
           </div>
+
+          <label className="form__check" htmlFor={ids.membersOnly}>
+            <input id={ids.membersOnly} type="checkbox" checked={form.membersOnly} onChange={(e) => set({ membersOnly: e.target.checked })} />
+            Privado (só membros): quem não tem sessão iniciada não vê esta atuação
+          </label>
 
           <div className={errors.image ? 'form__field form__field--error' : 'form__field'}>
             <span className="form__label">Imagem (opcional)</span>
