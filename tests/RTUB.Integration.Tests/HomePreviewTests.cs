@@ -124,6 +124,16 @@ public class HomePreviewTests : IntegrationTestBase
     }
 
     [Fact]
+    public void Music_ShowsVisitorsNoMembersOnlyAlbumsTeaser()
+    {
+        // #228: the header already has Login; the public page carries no extra "reservados a membros" block.
+        var music = Source("Music.tsx");
+
+        music.Should().NotContain("reservados a membros").And.NotContain("Entrar como membro").And.NotContain("music__members");
+        Source("styles.css").Should().NotContain(".music__members");
+    }
+
+    [Fact]
     public void RequestForm_Copy_Follows010()
     {
         var request = Source("Request.tsx");

@@ -63,6 +63,28 @@ Table **`NewsPosts`** (`NewsPost : BaseEntity`, so also `Id`, `CreatedAt`, `Crea
 Additive only: no existing table changes, so the previous release runs on the migrated database (N-1). Posts are in
 the audit log like other content (they hold no private data).
 
+## Visibility: public / members only (#222)
+
+`NewsPosts.IsPublic` (bool, migration `AddNewsPostIsPublic`: column default `1`, so every existing post, draft included,
+and anything N-1 inserts after an app rollback stays public; the EF model has no default, so the app always writes its
+own value). Rollback: the column is additive and ignored by N-1, which would show private posts to visitors, so roll back
+the app only together with a hotfix or accept that window; `Down` drops the column.
+
+- **Create**: `NewsPostInput.MembersOnly` (`bool?`) absent / false = public, true = members only ("Privado (só membros)",
+  off by default). **Update**: true / false set it, **absent keeps the post's current visibility**, so no client can
+  declassify a private post by omission. Publish / unpublish never touch it.
+- **One rule**, `NewsService.VisibleTo`, in the query: a visitor gets public posts only (a `?visibility=` they send is
+  ignored, so `private` answers like `all` and reveals nothing); a signed-in caller gets everything, or `public` /
+  `private` for the Todas / Públicas / Privadas tabs. Drafts follow the same filter for managers.
+- **Surfaces audited**: `GET /api/news` (the only read of `NewsPost`: /news feed, tabs, "Mostrar mais", home
+  "Últimas novidades" via `getLatestNews(3)` = the same endpoint and session), there is no per-post endpoint (a guessed id
+  is a 404, `/news#post-{id}` is the static React shell), no search / feed / sitemap / OpenGraph, no seed data; the service
+  worker never caches `/api/`. Visitors get `signedIn: false`, `membersOnly: false` everywhere and no tabs.
+- **Push / in-app / audit**: news sends no push, e-mail or in-app notification (asserted in the tests), so nothing can leak
+  and no recipient filter is needed (push subscriptions are members-only anyway, see `react-events.md`). The audit appender
+  is generic over entities: `IsPublic` shows up in create / update changes with no code change.
+- UI: `.tag--private` "Só membros" next to the author line, `.news-tabs` pills (signed-in only), checkbox in the form.
+
 ## Tests
 
 - `tests/RTUB.Integration.Tests/Api/NewsApiTests.cs`: public read (published only, newest first, no author, no ids or

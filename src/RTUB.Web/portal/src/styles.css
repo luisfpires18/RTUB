@@ -1683,6 +1683,10 @@ main {
   border-color: var(--line-strong);
 }
 
+.news-latest__tag {
+  justify-self: start;
+}
+
 .news-latest__date {
   color: var(--purple-ink);
   font-size: 0.8125rem;
@@ -3422,10 +3426,6 @@ video.tile__media {
   right: 10px;
   display: flex;
   gap: 6px;
-}
-
-.music__members {
-  margin-top: 32px;
 }
 
 /* ---------- statistics ---------- */
@@ -12320,4 +12320,37 @@ html.app-screen .footer {
   .chat-thread__back {
     display: none;
   }
+}
+
+/* Novidades: Todas / Públicas / Privadas for signed-in readers (#222). */
+.news-tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.news-tabs button {
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.news-tabs button[aria-pressed='true'] {
+  background: var(--purple);
+  color: #fff;
+}
+
+.talk__name .tag--private {
+  margin-left: 8px;
+  vertical-align: middle;
 }

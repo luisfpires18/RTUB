@@ -9,10 +9,17 @@ import { MemberBadge } from './MemberBadge';
 // /api/news (Endpoints/NewsEndpoints.cs, React track 025). Everyone, visitors included, reads published posts; Admin and
 // Owner also see drafts and write. The server decides every rule (NewsService); hiding a button here is only a convenience.
 
-type Input = { title: string; body: string; publish: boolean };
+type Input = { title: string; body: string; publish: boolean; membersOnly: boolean };
+type Tab = 'all' | 'public' | 'private';
+const TABS: [Tab, string][] = [
+  ['all', 'Todas'],
+  ['public', 'Públicas'],
+  ['private', 'Privadas'],
+];
 
 const api = {
-  feed: (page: number) => call<NewsFeed>('GET', `/api/news?page=${page}`),
+  feed: (page: number, tab: Tab = 'all') =>
+    call<NewsFeed>('GET', `/api/news?page=${page}${tab === 'all' ? '' : `&visibility=${tab}`}`),
   create: (input: Input) => call<NewsPost>('POST', '/api/news', input),
   update: (id: number, input: Input) => call<NewsPost>('PUT', `/api/news/${id}`, input),
   publish: (id: number) => call<NewsPost>('POST', `/api/news/${id}/publish`),
@@ -43,6 +50,7 @@ export default function News() {
   const [feed, setFeed] = useState<NewsFeed | null>();
   const [page, setPage] = useState(1);
   const [more, setMore] = useState<'idle' | 'busy' | 'failed'>('idle');
+  const [tab, setTab] = useState<Tab>('all');
   const [editing, setEditing] = useState<NewsPost | 'new'>();
   const [deleting, setDeleting] = useState<NewsPost>();
   const scrolled = useRef(false);
@@ -52,8 +60,8 @@ export default function News() {
     document.title = 'Novidades · RTUB';
   }, []);
 
-  const load = () =>
-    api.feed(1).then((o) => {
+  const load = (t: Tab = tab) =>
+    api.feed(1, t).then((o) => {
       setPage(1);
       setMore('idle');
       setFeed(o.kind === 'ok' ? o.data : null);
@@ -62,6 +70,11 @@ export default function News() {
   useEffect(() => {
     load();
   }, []);
+
+  const choose = (t: Tab) => {
+    setTab(t);
+    load(t);
+  };
 
   useEffect(() => {
     if (!feed || scrolled.current) return;
@@ -72,7 +85,7 @@ export default function News() {
   const loadMore = async () => {
     if (!feed) return;
     setMore('busy');
-    const o = await api.feed(page + 1);
+    const o = await api.feed(page + 1, tab);
     if (o.kind !== 'ok') return setMore('failed');
     setMore('idle');
     setPage(page + 1);
@@ -82,7 +95,7 @@ export default function News() {
 
   const post = (p: NewsPost) => (
     <li key={p.id}>
-      <Post post={p} manage={feed?.canManage === true} onEdit={() => setEditing(p)} onDelete={() => setDeleting(p)} onChange={load} />
+      <Post post={p} manage={feed?.canManage === true} onEdit={() => setEditing(p)} onDelete={() => setDeleting(p)} onChange={() => load()} />
     </li>
   );
 
@@ -111,12 +124,22 @@ export default function News() {
       ) : feed === null ? (
         <div className="notice" role="status">
           <p>Não conseguimos abrir as novidades agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
             Tentar novamente
           </button>
         </div>
       ) : (
         <div className="talk">
+          {feed.signedIn && (
+            <div className="news-tabs" role="group" aria-label="Filtrar publicações">
+              {TABS.map(([id, label]) => (
+                <button key={id} type="button" aria-pressed={tab === id} onClick={() => choose(id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {feed.drafts.length > 0 && (
             <section className="news-drafts" aria-labelledby={draftsTitle}>
               <h2 id={draftsTitle} className="news-drafts__title">
@@ -130,7 +153,7 @@ export default function News() {
             <div className="talk__empty">
               <Icon name="chat" />
               <p className="talk__empty-title">Ainda não há novidades</p>
-              <p>Quando a RTUB publicar alguma coisa, aparece aqui.</p>
+              <p>{tab === 'all' ? 'Quando a RTUB publicar alguma coisa, aparece aqui.' : 'Não há publicações nesta categoria.'}</p>
             </div>
           ) : (
             <ol className="talk__feed" aria-label="Publicações">
@@ -152,8 +175,8 @@ export default function News() {
         </div>
       )}
 
-      {editing && <FormDialog post={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={load} />}
-      {deleting && <DeleteDialog post={deleting} onClose={() => setDeleting(undefined)} onDone={load} />}
+      {editing && <FormDialog post={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={() => load()} />}
+      {deleting && <DeleteDialog post={deleting} onClose={() => setDeleting(undefined)} onDone={() => load()} />}
     </section>
   );
 }
@@ -192,6 +215,7 @@ function Post({
           <p className="talk__name">
             RTUB
             {draft && <MemberBadge>Rascunho</MemberBadge>}
+            {post.membersOnly && <span className="tag tag--private">Só membros</span>}
           </p>
           <p className="talk__time">
             {post.publishedAt ? <time dateTime={post.publishedAt}>{newsDate(post.publishedAt)}</time> : 'Ainda não publicado'}
@@ -234,6 +258,7 @@ function Post({
 function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [body, setBody] = useState(post?.body ?? '');
+  const [membersOnly, setMembersOnly] = useState(post?.membersOnly ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -243,7 +268,7 @@ function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () =
     if (!body.trim()) return setErrors({ body: 'Escreve o texto da publicação.' });
     setBusy(true);
     setBanner(undefined);
-    const input = { title, body, publish };
+    const input = { title, body, publish, membersOnly };
     const o = post ? await api.update(post.id, input) : await api.create(input);
     setBusy(false);
     if (o.kind === 'ok') {
@@ -317,6 +342,10 @@ function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () =
           </p>
           {error('body')}
         </div>
+        <label className="form__check" htmlFor={`${fid}-private`}>
+          <input id={`${fid}-private`} type="checkbox" checked={membersOnly} onChange={(e) => setMembersOnly(e.target.checked)} />
+          Privado (só membros): quem não tem sessão iniciada não vê esta publicação
+        </label>
         {!post && <p className="note">Um rascunho só é visto por Admin e Owner até ser publicado.</p>}
       </form>
     </Dialog>

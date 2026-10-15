@@ -6,8 +6,9 @@ namespace RTUB.Application.Interfaces;
 /// <summary>The public "Novidades" feed (/news, React track 025). Every rule is decided here, from the session.</summary>
 public interface INewsService
 {
-    /// <summary>Published posts, newest first, <paramref name="pageSize"/> (1-20) per page; drafts too for Admin/Owner.</summary>
-    Task<EventResult<NewsFeedDto>> GetFeedAsync(int page, int pageSize, ClaimsPrincipal user);
+    /// <summary>Published posts, newest first, <paramref name="pageSize"/> (1-20) per page; drafts too for Admin/Owner.
+    /// Visitors only ever get public posts; signed-in callers get every post, or only "public" / "private" ones with <paramref name="visibility"/>.</summary>
+    Task<EventResult<NewsFeedDto>> GetFeedAsync(int page, int pageSize, ClaimsPrincipal user, string? visibility = null);
     Task<EventResult<NewsPostDto>> CreateAsync(NewsPostInput input, ClaimsPrincipal user);
     Task<EventResult<NewsPostDto>> UpdateAsync(int id, NewsPostInput input, ClaimsPrincipal user);
     /// <summary>Sets <c>PublishedAt</c> to now on a draft (a re-published post goes back to the top); a published post is left as is.</summary>

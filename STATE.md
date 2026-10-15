@@ -6,6 +6,11 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-13 (045)_
 
 ## Phase
+**#222 News public / members-only + #228 Music teaser removed (uncommitted on `dev`, not pushed):** `NewsPosts.IsPublic` + migration
+`AddNewsPostIsPublic` (default 1), `NewsService.VisibleTo` on the only news read, `MembersOnly` on create / update (absent
+keeps), "Privado (só membros)" toggle, "Só membros" tag, Todas / Públicas / Privadas tabs for signed-in readers; public
+Music page no longer shows "Há também álbuns reservados a membros". Detail: `docs/react-news.md` → *Visibility*.
+
 **P0 hotfix #227 events public / members-only (uncommitted on `master`, not pushed):** `Events.IsPublic` + migration
 `AddEventIsPublic` (default 1: existing rows and N-1 inserts stay public), server-side `EventAgendaService.VisibleTo`
 on the agenda, archive, event page and video plays; home preview public-only; "Privado (só membros)" toggle (off by

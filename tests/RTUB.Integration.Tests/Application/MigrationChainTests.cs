@@ -126,7 +126,7 @@ public class MigrationChainTests : IDisposable
         await context.Database.MigrateAsync();
 
         (await ColumnNamesAsync(context, "NewsPosts")).Should().BeEquivalentTo(
-            "Id", "Title", "Body", "PublishedAt", "AuthorId", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
+            "Id", "Title", "Body", "PublishedAt", "AuthorId", "IsPublic", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy");
         (await ScalarsAsync(context, "SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('NewsPosts');"))
             .Should().Equal("AspNetUsers:AuthorId:SET NULL");
         (await ScalarsAsync(context, "SELECT name FROM pragma_index_list('NewsPosts');"))
@@ -220,6 +220,29 @@ public class MigrationChainTests : IDisposable
 
         (await ScalarsAsync(context, "SELECT Name || ':' || IsPublic FROM Events ORDER BY Id;"))
             .Should().Equal("Antes:1", "Antes cancelada:1", "Da versão anterior:1");
+    }
+
+    /// <summary>
+    /// #222 NewsPosts.IsPublic: every post that exists before the migration (drafts included) stays public, untouched,
+    /// and so does a post the previous release (N-1, which never writes the column) inserts after an app rollback.
+    /// </summary>
+    [Fact]
+    public async Task AddNewsPostIsPublic_KeepsExistingPostsPublic_AndDefaultsN1InsertsToPublic()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync("20261014225351_AddEventIsPublic");
+
+        const string insert = "INSERT INTO NewsPosts (Title, Body, PublishedAt, CreatedAt) VALUES ('{0}', 'Texto {0}', {1}, '2026-10-01 00:00:00');";
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Antes", "'2026-10-02 10:00:00'"));
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Rascunho", "NULL"));
+
+        await context.Database.MigrateAsync();
+        (await ColumnNamesAsync(context, "NewsPosts")).Should().Contain("IsPublic");
+
+        await context.Database.ExecuteSqlRawAsync(string.Format(insert, "Da versão anterior", "NULL"));
+
+        (await ScalarsAsync(context, "SELECT Title || ':' || Body || ':' || IsPublic || ':' || ifnull(PublishedAt, '-') FROM NewsPosts ORDER BY Id;"))
+            .Should().Equal("Antes:Texto Antes:1:2026-10-02 10:00:00", "Rascunho:Texto Rascunho:1:-", "Da versão anterior:Texto Da versão anterior:1:-");
     }
 
     private static async Task<List<string>> ScalarsAsync(ApplicationDbContext context, string sql)

@@ -16,6 +16,12 @@ public class NewsPost : BaseEntity
 
     public DateTime? PublishedAt { get; set; }
 
+    /// <summary>
+    /// Public (the default) or members only (#222). A members-only post never reaches a visitor: the server leaves it
+    /// out of every anonymous read (docs/react-news.md → Visibility).
+    /// </summary>
+    public bool IsPublic { get; set; } = true;
+
     /// <summary>The member who wrote it; null once that account is deleted (the post stays).</summary>
     public string? AuthorId { get; set; }
 
