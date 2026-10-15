@@ -1139,4 +1139,13 @@ public class PushNotificationFactory : IPushNotificationFactory
         };
     }
 
+    /// <summary>The /profile test push (#230). No member input reaches it.</summary>
+    public SendPushNotificationDto CreatePushTestNotification() => new()
+    {
+        Title = "RTUB: notificação de teste",
+        Body = "Se estás a ver isto, as notificações push funcionam neste dispositivo.",
+        Icon = "/icons/rtub-logo-192.png",
+        Url = "/profile#push",
+        Tag = "push-test"
+    };
 }

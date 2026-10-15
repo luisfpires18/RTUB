@@ -3,9 +3,16 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-13 (045)_
+_Last updated: 2026-10-15 (#230)_
 
 ## Phase
+**P1 hotfix #230 push enabled but not received (uncommitted on `master`, not pushed, #230 stays open):** every send
+returns a classified `PushSendResult` (only 404/410 delete; 4xx/5xx kept and logged with the push service's reason,
+never keys / endpoint), per-fan-out summary warnings, `/profile` "Enviar notificação de teste" → `POST /api/push/test`
+(own endpoint only, 30 s cooldown, says "enviada ao serviço push", never "recebida"), "on" now also needs granted
+permission. PROD VAPID verified (configured, valid, private ↔ public match); real FCM delivery verified locally. Needs
+the affected iPhone test after release. Detail: `docs/react-push-v2.md` → *Test push and delivery outcomes*.
+
 **P0 hotfix #227 events public / members-only (uncommitted on `master`, not pushed):** `Events.IsPublic` + migration
 `AddEventIsPublic` (default 1: existing rows and N-1 inserts stay public), server-side `EventAgendaService.VisibleTo`
 on the agenda, archive, event page and video plays; home preview public-only; "Privado (só membros)" toggle (off by
@@ -302,6 +309,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by #230: PROD App Service has no persisted application logs (no `*_default_docker.log`), so push warnings are visible only in the live log stream; `WebPush` 1.0.13 sends legacy `aesgcm` / `Authorization: WebPush` (move to RFC 8291/8292 only if an iPhone test push comes back `rejected`); 5xx from a push service is not retried; DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there. STATE's #227 "uncommitted" line is stale (released as 2.0.8).
 Raised by hotfix 2026-10-14 (agenda Portugal date): the same server-zone `DateTime.Today` remains in `EventAdminService.IsPast` (prizes / videos / cancel / notices; also `TakesPrizes` on the event page), `EventRepository`, `EnrollmentService`, `RehearsalRepository`, `FiscalYearHelper`, `PushNotificationFactory` — wrong only 00:00-01:00 Portugal in summer; move to `PortugalTime.Today`.
 Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):

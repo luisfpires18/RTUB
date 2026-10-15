@@ -398,4 +398,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment, string baseUrl);
+
+    /// <summary>The /profile test push (#230): fixed text, opens the push section of /profile.</summary>
+    SendPushNotificationDto CreatePushTestNotification();
 }

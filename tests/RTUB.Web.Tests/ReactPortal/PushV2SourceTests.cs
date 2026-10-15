@@ -122,6 +122,47 @@ public class PushV2SourceTests
             .Should().Contain("'X-CSRF-TOKEN': await antiforgeryToken()").And.Contain("replaces: replacedEndpoint");
     }
 
+    [Fact]
+    public void On_NeedsThisBrowsersSubscription_GrantedPermission_AndTheServersRecord()
+    {
+        // #230: "Ligadas neste dispositivo" only when the browser holds a subscription, may show notifications, and the
+        // server stores that endpoint for the member. Permission alone, or a server row alone, is never "on".
+        var read = Section(Push, "export async function readPush", "export type PushResult");
+
+        read.Should().Contain("await reg.pushManager.getSubscription()").And.Contain("pushApi.check(subscription.endpoint)");
+        read.Should().Contain("if (!subscription || Notification.permission !== 'granted') return { kind: 'off'");
+        read.Should().Contain("return { kind: registered ? 'on' : 'unregistered'");
+        Section(Profile, "state.kind === 'on'", "} else {").Should().Contain("Ligadas neste dispositivo");
+    }
+
+    [Fact]
+    public void TestButton_SendsToThisBrowsersEndpoint_AndClaimsOnlyWhatTheServerKnows()
+    {
+        Section(Profile, "state.kind === 'on'", "} else {").Should().Contain("'Enviar notificação de teste'").And.Contain("run(sendTest)");
+
+        var test = Section(Push, "export async function sendTest", "export async function turnOff");
+        test.Should().Contain("pushApi.test(subscription.endpoint)");
+        Push.Should().Contain("'/api/push/test'").And.Contain("Notificação enviada ao serviço push.");
+        Push.Should().NotContainAny("Notificação recebida", "foi recebida", "chegou ao dispositivo");
+    }
+
+    [Fact]
+    public void Worker_ReadsEveryFieldTheServerSends_WithFallbacks()
+    {
+        var service = Read(Root, "src", "RTUB.Application", "Services", "PushNotificationService.cs");
+        var push = Section(Worker, "addEventListener('push'", "function notificationTarget");
+
+        foreach (var field in new[] { "title", "body", "icon", "url", "tag" })
+        {
+            service.Should().Contain($"{field} = notification.", field);
+            push.Should().Contain($"data.{field}", field);
+        }
+
+        // Missing fields fall back to defaults; an unparseable payload still shows a notification.
+        push.Should().Contain("title: data.title || notificationData.title").And.Contain("event.data.text()");
+        push.Should().Contain("return self.registration.showNotification('RTUB'", "a failed icon or option still shows a minimal notification");
+    }
+
     private static string Section(string content, string start, string end)
     {
         var a = content.IndexOf(start, StringComparison.Ordinal);

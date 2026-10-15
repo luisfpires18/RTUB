@@ -26,6 +26,7 @@ export const pushApi = {
       replaces,
     }),
   unsubscribe: (endpoint: string | null, all: boolean) => call<PushStatus>('POST', '/api/push/unsubscribe', { endpoint, all }),
+  test: (endpoint: string) => call<{ outcome: string; status: number | null }>('POST', '/api/push/test', { endpoint }),
 };
 
 /**
@@ -107,7 +108,8 @@ export async function readPush(): Promise<PushState> {
     const others = Math.max(0, status.subscriptions - (registered ? 1 : 0));
 
     if (Notification.permission === 'denied') return { kind: 'denied', status, registered, others };
-    if (!subscription) return { kind: 'off', status, others };
+    // #230: a subscription without granted permission cannot show anything, so it is not "on" (turnOn asks again).
+    if (!subscription || Notification.permission !== 'granted') return { kind: 'off', status, others };
     if (!sameKey(subscription, status.vapidPublicKey) || expired(subscription)) return { kind: 'stale', status, others };
     return { kind: registered ? 'on' : 'unregistered', status, others };
   } catch {
@@ -151,6 +153,34 @@ export async function turnOn(vapidPublicKey: string): Promise<PushResult> {
     return o.kind === 'ok' ? { state: await readPush() } : { state: await readPush(), error: failure(o) };
   } catch {
     return { state: await readPush(), error: 'O navegador não conseguiu ativar as notificações. Tenta outra vez daqui a pouco.' };
+  }
+}
+
+/** What the server can know about a test push: the push service took it, not that the device showed it (#230). */
+const testMessages: Record<string, string> = {
+  sent: 'Notificação enviada ao serviço push. Deve aparecer neste dispositivo dentro de segundos, mesmo com a RTUB fechada. Se não aparecer, vê as definições de notificações do sistema para a RTUB.',
+  gone: 'O serviço push diz que esta subscrição já não existe, por isso foi removida. Ativa as notificações outra vez.',
+  'not-registered': 'A RTUB não conhece a subscrição deste dispositivo. Ativa as notificações outra vez.',
+  rejected: 'O serviço push recusou a notificação',
+  'rate-limited': 'O serviço push está a limitar os envios. Tenta outra vez daqui a pouco.',
+};
+
+/** Sends the fixed test push to this browser's own subscription (#230). message: the push service took it. */
+export async function sendTest(): Promise<PushResult & { message?: string }> {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const subscription = reg ? await reg.pushManager.getSubscription() : null;
+    if (!subscription) return { state: await readPush(), error: 'Este dispositivo não tem uma subscrição push.' };
+
+    const o = await pushApi.test(subscription.endpoint);
+    if (o.kind !== 'ok') return { state: await readPush(), error: 'Não foi possível enviar a notificação de teste. Espera um pouco e tenta outra vez.' };
+
+    const { outcome, status } = o.data;
+    if (outcome === 'sent') return { state: await readPush(), message: testMessages.sent };
+    const text = testMessages[outcome] ?? 'Não foi possível entregar a notificação ao serviço push. Tenta outra vez daqui a pouco.';
+    return { state: await readPush(), error: outcome === 'rejected' ? `${text} (código ${status}).` : text };
+  } catch {
+    return { state: await readPush(), error: 'Não foi possível enviar a notificação de teste. Tenta outra vez daqui a pouco.' };
   }
 }
 

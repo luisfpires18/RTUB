@@ -53,6 +53,12 @@ public interface IPushNotificationService
     Task<(int Sent, int Failed)> SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification);
 
     /// <summary>
+    /// Sends <paramref name="notification"/> to the member's own subscription with this endpoint only (#230, the
+    /// /profile test button) and says what the push service answered. Another member's endpoint is NotRegistered.
+    /// </summary>
+    Task<PushSendResult> SendTestAsync(string userId, string endpoint, SendPushNotificationDto notification);
+
+    /// <summary>
     /// Gets the VAPID public key for client-side subscription
     /// </summary>
     /// <returns>The VAPID public key</returns>

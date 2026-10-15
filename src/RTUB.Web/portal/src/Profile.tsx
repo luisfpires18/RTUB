@@ -11,7 +11,7 @@ import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
 import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState, type TimelineItem } from './membersApi';
 import { SignOutButton } from './MemberShell';
-import { readPush, turnOff, turnOn, type PushResult, type PushState } from './push';
+import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from './push';
 
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'
@@ -845,21 +845,25 @@ function PushSection() {
   const [state, setState] = useState<PushState>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [message, setMessage] = useState<string>();
 
   const load = () => {
     setState(undefined);
     setError(undefined);
+    setMessage(undefined);
     readPush().then(setState);
   };
   useEffect(load, []);
 
-  const run = async (action: () => Promise<PushResult>) => {
+  const run = async (action: () => Promise<PushResult & { message?: string }>) => {
     setBusy(true);
     setError(undefined);
+    setMessage(undefined);
     const result = await action();
     setBusy(false);
     setState(result.state);
     setError(result.error);
+    setMessage(result.message);
   };
 
   const key = state && 'status' in state ? state.status.vapidPublicKey : null;
@@ -926,6 +930,7 @@ function PushSection() {
     );
     actions = (
       <>
+        {button('Enviar notificação de teste', 'bell', () => run(sendTest))}
         {button('Desativar neste dispositivo', 'ban', () => run(() => turnOff(false)))}
         {offEverywhere}
       </>
@@ -960,6 +965,11 @@ function PushSection() {
         )}
       </div>
       {actions && <div className="push-actions">{actions}</div>}
+      {message && (
+        <p className="note" role="status">
+          {message}
+        </p>
+      )}
       {error && (
         <p className="form__error" role="alert">
           {error}
