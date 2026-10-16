@@ -556,10 +556,14 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
 
   useEffect(() => {
     if (!query.trim()) return setMembers(undefined);
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      eventsApi.enrollmentMembers(event.id, query.trim()).then((o) => setMembers(o.kind === 'ok' ? o.data : []));
+      eventsApi.enrollmentMembers(event.id, query.trim()).then((o) => live && setMembers(o.kind === 'ok' ? o.data : []));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [event.id, query, version]);
 
   const run = async (call: Promise<Outcome<EnrollmentList>>, done: () => void = () => undefined) => {
@@ -711,10 +715,14 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
   }, [event.id]);
 
   useEffect(() => {
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      eventsApi.repertoireSongs(event.id, query.trim()).then((o) => setSongs(o.kind === 'ok' ? o.data : null));
+      eventsApi.repertoireSongs(event.id, query.trim()).then((o) => live && setSongs(o.kind === 'ok' ? o.data : null));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [event.id, query, version]);
 
   const run = async (call: Promise<Outcome<RepertoireManage>>) => {

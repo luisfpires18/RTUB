@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { call } from './eventsApi';
 
 // The header's unread badge (task 044). One authoritative number: GET /api/conversations/unread, the sum of the
@@ -10,6 +10,10 @@ const POLL_MS = 10_000;
 
 let count = 0;
 const listeners = new Set<() => void>();
+
+// Pages that already load the conversation list (/messages) and publish its sum (#226 F12): while one is mounted the
+// shell's 10 s poll stands down - the list's own poll keeps the badge right. Coming back to the tab or online still asks.
+let providers = 0;
 
 function publish(n: number) {
   if (n === count) return;
@@ -36,7 +40,7 @@ function subscribe(listener: () => void) {
 
   const tick = () => document.visibilityState === 'visible' && void refreshUnread();
   tick();
-  const timer = setInterval(tick, POLL_MS);
+  const timer = setInterval(() => providers === 0 && tick(), POLL_MS);
   document.addEventListener('visibilitychange', tick);
   addEventListener('online', tick);
   return () => {
@@ -45,6 +49,16 @@ function subscribe(listener: () => void) {
     document.removeEventListener('visibilitychange', tick);
     removeEventListener('online', tick);
   };
+}
+
+/** Marks the calling page as the badge's source (see providers) for as long as it is mounted. */
+export function useUnreadProvider() {
+  useEffect(() => {
+    providers += 1;
+    return () => {
+      providers -= 1;
+    };
+  }, []);
 }
 
 /** The member's unread message count; polling runs while at least one component uses it. */

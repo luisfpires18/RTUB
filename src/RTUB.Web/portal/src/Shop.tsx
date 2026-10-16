@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
@@ -146,7 +146,8 @@ export default function ShopPage() {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const load = () => api.shop(fiscalYear, q, type).then((o) => setShop(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+  const latest = useLatest();
+  const load = () => latest(api.shop(fiscalYear, q, type), (o) => setShop(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
 
   useEffect(() => {
     setShown(PAGE);

@@ -627,9 +627,6 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.idchip__name {
   font-size: 0.9375rem;
   font-weight: 600;
 }
@@ -1281,14 +1278,6 @@ main {
   color: var(--purple-ink);
 }
 
-.tag {
-  padding: 3px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--ink-soft);
-  font-size: 0.75rem;
-}
-
 /* FITAB: one compact highlight, no dates of its own. */
 .fitab {
   display: grid;
@@ -1914,14 +1903,6 @@ main {
     var(--bg-raise);
 }
 
-.account__avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 0 0 3px var(--purple);
-}
-
 .account__who {
   display: grid;
   gap: 8px;
@@ -1941,20 +1922,10 @@ main {
   color: var(--muted);
 }
 
-.account__lead {
-  font-size: 1.125rem;
-  line-height: 1.6;
-}
-
 .account__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-}
-
-/* Signed in (030): /profile is a small account page; the member menu does the navigating. */
-.account__signout {
-  max-width: 280px;
 }
 
 .request {
@@ -3711,14 +3682,6 @@ video.tile__media {
 }
 
 /* Admin/Owner event notices (012A): channel switch, audience line, second confirmation. */
-.segmented {
-  display: inline-flex;
-  padding: 4px;
-  gap: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-}
-
 .segmented__option {
   position: relative;
   display: inline-flex;
@@ -4141,9 +4104,12 @@ video.tile__media {
   margin-top: 0;
 }
 
+/* Shared by the event notices / repertoire days (labels) and the lyrics format (buttons). */
 .segmented {
   display: inline-flex;
   justify-self: start;
+  padding: 4px;
+  gap: 4px;
   overflow: hidden;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -6411,37 +6377,18 @@ video.tile__media {
   overflow-wrap: anywhere;
 }
 
-.member-timeline {
+/* Member details: "Percurso na tuna" is the /profile timeline (TunaPath). min-width 0 keeps its own sideways scroll
+   (a row from 700px) inside the dialog, never the page. */
+.member-path {
   display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
 }
 
-.member-timeline__item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  padding-left: 12px;
-  border-left: 3px solid var(--line-strong);
-}
-
-.member-timeline__item.is-active {
-  border-left-color: var(--purple-ink);
-}
-
-.member-timeline__item--magister {
-  border-left-color: var(--purple);
-}
-
-.member-timeline__label {
-  font-weight: 700;
-}
-
-.member-timeline__years {
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
+.member-path__title {
+  color: var(--muted);
+  font-size: 0.8125rem;
 }
 
 .member-progress {
@@ -9662,9 +9609,6 @@ video.tile__media {
 
 .profile__identity {
   min-width: 0;
-}
-
-.profile__identity {
   align-content: center;
 }
 
@@ -11462,7 +11406,7 @@ video.tile__media {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* Forms in the meeting dialogs: one shrinkable column, so a long option or a date field never widens a phone dialog. */
@@ -11482,6 +11426,7 @@ video.tile__media {
 
 .mtg-form input[type='datetime-local'] {
   min-width: 0;
+  padding-inline: 10px;
 }
 
 @media (max-width: 639px) {
@@ -11502,16 +11447,8 @@ video.tile__media {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mtg-form input[type='datetime-local'] {
-  padding-inline: 10px;
-}
-
 .mtg-ata-foot .btn {
   padding: 0 12px;
-}
-
-.mtg-ata-foot__main {
-  gap: 6px;
 }
 
 .mtg-point .form__field label {

@@ -16,7 +16,9 @@
 // the bump drops the copy older workers stored.
 // v2.9.0 (task 046): new RTUB logo under the same /icons/* URLs. Images are cache-first here and never revalidated,
 // so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
-const CACHE_VERSION = 'rtub-v2.9.0';
+// v2.10.0 (#226 F09 / F15): the 192 / 512 icons were recompressed (same picture, ~85% smaller) and hashed portal assets
+// are now pruned per chunk (see pruneOlderBuilds), so the dynamic cache no longer grows with every release.
+const CACHE_VERSION = 'rtub-v2.10.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -30,6 +32,27 @@ const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
 // Before v2.7.0 these fell through to the document branch (`!pathname.includes('.')`
 // matches '/api/push/status', '/health', '/hubs/notifications', ...) and were cached.
 const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/hubs/', '/health'];
+
+// The React build names its files /portal/assets/<Name>-<hash>.<ext> (Vite). A new release brings new hashes under
+// the same names; without pruning, the stale-while-revalidate cache kept every old copy until CACHE_VERSION changed.
+const HASHED_PORTAL_ASSET = /^\/portal\/assets\/(.+)-[A-Za-z0-9_-]{8}\.(js|css)$/;
+
+// When a hashed asset is cached for the first time, drop the other builds of the same chunk (same name and type, any
+// other hash). Runs only on that first store - never per request - and touches nothing else in the cache.
+function pruneOlderBuilds(cache, url) {
+    const current = url.pathname.match(HASHED_PORTAL_ASSET);
+    if (!current) {
+        return Promise.resolve();
+    }
+
+    return cache.keys().then((requests) => Promise.all(requests
+        .filter((request) => {
+            const other = new URL(request.url);
+            const match = other.pathname.match(HASHED_PORTAL_ASSET);
+            return match && other.pathname !== url.pathname && match[1] === current[1] && match[2] === current[2];
+        })
+        .map((request) => cache.delete(request))));
+}
 
 function isNeverCached(pathname) {
     const path = pathname.toLowerCase();
@@ -175,7 +198,11 @@ self.addEventListener('fetch', (event) => {
                             const fetchPromise = fetch(request)
                                 .then((response) => {
                                     if (response && response.status === 200) {
-                                        cache.put(request, response.clone());
+                                        const stored = cache.put(request, response.clone());
+                                        if (!cached) {
+                                            // A build this device has not stored yet: its older copies can go.
+                                            stored.then(() => pruneOlderBuilds(cache, url)).catch(() => {});
+                                        }
                                     }
                                     return response;
                                 })

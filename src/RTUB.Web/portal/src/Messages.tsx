@@ -6,7 +6,7 @@ import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
 import { loginTo } from './musicApi';
-import { publishUnread } from './unread';
+import { publishUnread, useUnreadProvider } from './unread';
 
 // /api/conversations + /api/messages (task 041, Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
 // tables. The server decides every rule (MessagingService): a conversation the member is not in is a 404, and
@@ -92,7 +92,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
           ? 'A sessão terminou. Entra outra vez.'
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
-/** "Sistema RTUB" and the groups wear the logo the portal header uses (the server still sends the old file for them). */
+/** "Sistema RTUB" and the groups wear the logo the portal header uses (the server sends the same file since #226 F09). */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
 const chatAvatar = (c: { kind: string; avatarUrl: string }) => (c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO);
 
@@ -108,6 +108,7 @@ const conversationFromUrl = () => Number(new URLSearchParams(location.search).ge
  * mute, unread / read. Text only: no attachments.
  */
 export default function Messages() {
+  useUnreadProvider(); // the list below publishes the badge's number: no separate 10 s badge request here
   const [list, setList] = useState<ConversationItem[] | 'signin' | 'failed'>();
   const [selected, setSelected] = useState<number | undefined>(conversationFromUrl);
   const [starting, setStarting] = useState(false);

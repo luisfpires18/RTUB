@@ -166,7 +166,13 @@ resized from it, never cropped or stretched:
 
 Images are cache-first in the service worker and never revalidated: replacing any of these under the same URL needs a
 `CACHE_VERSION` bump, or installed apps keep the old picture. `wwwroot/images/icons/*` (Nov 2025 copies of the old
-logo) has no reference anywhere and is left alone.
+logo, no reference anywhere) was removed in #226. Also #226: the 512 and 192 PNGs are 256-colour PNGs (same size and
+picture, 427 → 61 KB and 79 → 15 KB; the maskable 512 is untouched), with the `CACHE_VERSION` bump to `rtub-v2.10.0`.
+
+Hashed portal assets (`/portal/assets/<Name>-<hash>.js|css`) are stale-while-revalidate in the dynamic cache. Since
+#226 F15, the first time a build of a chunk is stored, the worker deletes the other builds of the same chunk (same name
+and type), so a release no longer leaves the old copies until the next `CACHE_VERSION`. A Vite build never has two
+chunks with one name and type (guarded by `FrontendRemediation226SourceTests`).
 
 ### Touch Icons
 

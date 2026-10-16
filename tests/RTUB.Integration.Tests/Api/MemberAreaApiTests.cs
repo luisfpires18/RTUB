@@ -804,7 +804,9 @@ public class MemberAreaRetirementTests
         chip.Should().NotContain("MemberBadge", "the badge is no longer inside the profile chip").And.Contain("href={portal.profile}");
 
         // The timeline exposes semantic variants (leitao, caloiro, position, tuno, veterano, tunossauro) from the server's accent.
-        profile.Should().Contain("tuna-path__step--${pathVariant(t)}").And.Contain("'position'");
+        // Since #226 batch 2 the component lives in MemberDialogs.tsx, shared by /profile and the member details.
+        var dialogs = File.ReadAllText(Path.Combine(portal, "MemberDialogs.tsx"));
+        dialogs.Should().Contain("tuna-path__step--${pathVariant(t)}").And.Contain("'position'");
         foreach (var variant in new[] { "leitao", "caloiro", "position", "tuno", "veterano", "tunossauro" })
         {
             css.Should().Contain($".tuna-path__step--{variant}");

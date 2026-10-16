@@ -9,7 +9,7 @@ import {
   ReactivateEventDialog,
   RepertoireManagerDialog,
   VideoManagerDialog,
-} from './EventManage';
+} from './EventManageLazy';
 import { MyStatus } from './Events';
 import { dateLabel, eventsApi, timeLabel, type EventDetail as Detail, type EventParticipant, type EventVideo } from './eventsApi';
 import { Icon } from './icons';

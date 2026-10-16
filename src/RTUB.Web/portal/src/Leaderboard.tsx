@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
@@ -115,8 +115,9 @@ export default function Leaderboard() {
     return () => clearTimeout(timer);
   }, [text]);
 
+  const latest = useLatest();
   const load = () =>
-    api.table(fiscalYear, q).then((o) => setTable(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+    latest(api.table(fiscalYear, q), (o) => setTable(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
 
   useEffect(() => {
     const url = new URL(location.href);

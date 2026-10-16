@@ -77,7 +77,11 @@ export default function Members() {
     }
     history.replaceState(null, '', url.pathname + url.search);
     setShown(PAGE);
-    membersApi.directory(filters).then((o) => setDirectory(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+    let live = true; // a slower answer for older filters never replaces the newer one
+    membersApi.directory(filters).then((o) => live && setDirectory(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+    return () => {
+      live = false;
+    };
   }, [filters]);
 
   const openMember = (id: string | null) => {

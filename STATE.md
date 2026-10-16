@@ -6,8 +6,18 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**Now: #226 remediation batch 1 — F01 + F02 + F04 + F16 + F19 (uncommitted on `dev` @ 2.0.10, for review; #226 stays
-open).** F01: Documentation reads a fiscal year from ONE storage listing of `docs/{env}/{year}/`
+**Now: #226 remediation batch 2 — F07 to F15 + member-details timeline (uncommitted on `dev` @ 2.0.10, for review; #226
+stays open).** F07 vite 6.4.1 → 6.4.4 (lock only; `npm audit` 0). F08 `wwwroot/images/icons/*` removed (6 unreferenced
+copies, 402 KB). F09 `icons/rtub-logo-512.png` 427 → 61 KB and `-192.png` 79 → 15 KB (same 512 / 192 px, 256-colour PNG,
+visually identical; maskable untouched); Messages group / system avatar = `/icons/rtub-logo-352.webp` on the server too.
+F10 three dead `.account__*` rules gone, five duplicated selectors merged (the `/messages` app-screen overrides kept on
+purpose). F11 unused locals and the `globe` icon gone. F12 `useUnreadProvider`: no 10 s badge poll while `/messages` is
+open (its list feeds the badge). F13 `EventManageLazy`: the admin dialogs are their own chunk (Events 57.5 → 23.6 KB).
+F14 latest answer wins on 21 search paths (`useLatest` for list reloads, `live` flags in debounced pickers). F15 service
+worker `rtub-v2.10.0` prunes older builds of a hashed chunk when a new one is first stored. Member details show the
+`/profile` "Percurso na Tuna" (shared `TunaPath`). Detail: `docs/pwa-practices.md`, `docs/react-messages.md`.
+
+**#226 batch 1 committed** (`3fc1ea6d`): F01 + F02 + F04 + F16 + F19. F01: Documentation reads a fiscal year from ONE storage listing of `docs/{env}/{year}/`
 (`IDocumentStorageService.ListTreeAsync`, shared 30 s by `DocumentTreeCache`, dropped by every writer under `docs/`:
 Documentation, Logistics board files, Meetings ata PDFs; failures never kept) - page was 2 listings in a row + 1 per
 folder, download 3 in a row; now 1 cold / 0 warm for both. F02: Portugal time everywhere a date or clock means Portugal
@@ -303,11 +313,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
-Raised by #226 (final audit; batch 1 = F01 F02 F04 F16 F19 above): still open F03 avatar thumbnails, F05 ~100 service /
-repository methods with no production caller, F06 DEV VAPID settings (Owner action), F07 `npm audit` (vite 6 chain), F08
-unreferenced `wwwroot/images/icons/*`, F09 512 PNG weight / Messages group avatar, F10 CSS leftovers, F11 unused React
-locals / `globe` icon, F12 unread poll on `/messages`, F13 Events admin chunk, F14 stale search responses, F15 service
-worker cache pruning, F17 unread config keys, F18 full-entity reads, F20 reservation count in the product delete. Batch 1
+Raised by #226 (final audit; batches 1 and 2 above): still open F03 avatar thumbnails, F05 ~100 service / repository
+methods with no production caller, F06 DEV VAPID settings (Owner action), F17 unread config keys, F18 full-entity reads,
+F20 reservation count in the product delete. Batch 2 leftovers: `icons/rtub-logo-maskable-512.png` (260 KB) left as is
+(palette compression visibly changed it); on `/messages` the badge follows the list's 30 s poll instead of 10 s. Batch 1
 leftovers: the tracing search still matches redacted values in old stored changes (Owner only; the values are never
 shown); Documentation shows a file written straight to R2 (not through the app) after at most 30 s.
 Raised by #220 / #223: names resolved at read time are not searchable (1.1 % of rows on the DEV copy - accepted); the

@@ -85,7 +85,9 @@ visible; opening a chat marks it read. Entry: the inbox button in the member hea
 - **Source:** one number from `GET /api/conversations/unread`, polled every 10 s while the tab is visible, on
   `visibilitychange` and `online`; `/messages` publishes the sum from the list it loads (so reading a chat updates the
   badge as soon as the list reloads). Every page load starts from the server's number, so a reload reconciles. A failed
-  poll keeps the last number.
+  poll keeps the last number. Since #226 F12 `/messages` calls `useUnreadProvider()`: while it is open the shell skips its
+  10 s badge request (the list's 30 s poll and the open chat's reads keep the number right; coming back to the tab or
+  online still asks), and the 10 s poll resumes when the page goes.
 - **No push channel:** there is no hub (`/hubs/messages` stays 404, no SignalR package, 037 / 039), so "real time" is the
   poll: a message shows up within ~10 s, no refresh. A hub is the follow-up if that is too slow.
 

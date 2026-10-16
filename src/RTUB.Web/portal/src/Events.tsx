@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from './App';
 import { EnrollmentDialog, PrizesDialog, StatsDialog, WhereYouWereDialog } from './EventDialogs';
-import { CancelEventDialog, DeleteEventDialog, EventFormDialog, NoticeDialog, ReactivateEventDialog } from './EventManage';
+import { CancelEventDialog, DeleteEventDialog, EventFormDialog, NoticeDialog, ReactivateEventDialog } from './EventManageLazy';
 import { portal } from './content';
 import {
   dateLabel,
