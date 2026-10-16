@@ -79,6 +79,22 @@ public class MemberShellTests
         Read("content.ts").Should().Contain("profile: '/profile',").And.Contain("messages: '/messages',");
     }
 
+    [Fact]
+    public void PublicNavigation_AndMemberMenuEachLinkToShopOnce()
+    {
+        var app = Read("App.tsx");
+        app.Should().Contain("{ id: 'shop', label: 'Loja' }")
+            .And.Contain("shop: portal.shop,")
+            .And.Contain("{!shell && (", "the public header is replaced by the member shell after sign-in")
+            .And.Contain("{navSections.map((s) => (", "desktop and mobile public navigation share the same list");
+        Read("MemberShell.tsx").Should().Contain("{ href: portal.shop, label: 'Loja', icon: 'bag' }");
+        Read("Shop.tsx").Should().Contain("const memberProduct = 'myReservation' in p;")
+            .And.Contain("memberProduct && <span className=\"shop-card__actions\">")
+            .And.Contain("memberShop?.canManage && memberProduct")
+            .And.Contain("p.availableAllYears && (!memberProduct || memberShop?.canManage)")
+            .And.Contain("!memberProduct && p.description");
+    }
+
     [Theory]
     [InlineData("portal.events")]
     [InlineData("portal.rehearsals")]

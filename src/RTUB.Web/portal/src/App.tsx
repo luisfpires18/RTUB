@@ -11,10 +11,11 @@ export const sections = [
   { id: 'gallery', label: 'Galeria' },
   { id: 'events', label: 'Atuações' },
   { id: 'governance', label: 'Órgãos Sociais' },
+  { id: 'shop', label: 'Loja' },
   { id: 'request', label: 'Pedidos' },
 ];
 
-// The visitors' top bar and menu stay short: five public sections plus the "Pedir atuação" call to action.
+// The visitors' top bar and menu stay short: six public sections plus the "Pedir atuação" call to action.
 // Signed-in members get the member shell instead (MemberShell.tsx): their menu, not the public one.
 const navSections = sections.filter((s) => s.id !== 'request');
 
@@ -26,6 +27,7 @@ const sectionPages: Record<string, string> = {
   music: portal.music,
   governance: portal.roles,
   gallery: portal.gallery,
+  shop: portal.shop,
 };
 const sectionHref = (id: string) => sectionPages[id] ?? `/#${id}`;
 
@@ -293,7 +295,7 @@ function Footer() {
         <div className="footer__about">
           <Brand />
           <p>
-            Portal público da RTUB: atuações, novidades, música, órgãos sociais, galeria e pedidos de atuação.
+            Portal público da RTUB: atuações, novidades, música, órgãos sociais, galeria, loja e pedidos de atuação.
             Música, capa e tradição académica em Bragança desde 1991.
           </p>
         </div>

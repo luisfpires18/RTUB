@@ -10,6 +10,8 @@ namespace RTUB.Application.Interfaces;
 public interface IProductShopService
 {
     /// <summary><paramref name="fiscalYear"/>: null = the current year, "" = every year, or one of the listed years.</summary>
+    Task<EventResult<PublicShopDto>> GetPublicAsync(string? fiscalYear, string? search, string? type);
+
     Task<EventResult<ShopDto>> GetAsync(string? fiscalYear, string? search, string? type, ClaimsPrincipal user);
 
     Task<EventResult<ShopProductDetailDto>> GetProductAsync(int id, ClaimsPrincipal user);

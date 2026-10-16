@@ -577,7 +577,7 @@ public class Program
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
         // are the "Onde estiveste" modal on /events. The discussion and contact tracking are
         // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
-        foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery",
+        foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery", "/shop",
                      "/events", "/events/{id:int}", "/news" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
@@ -590,7 +590,8 @@ public class Program
         // React Rehearsals (track 014): the list and one rehearsal, members only (the Blazor page was [Authorize]).
         // React Members (track 017): the directory and the Padrinho → Afilhado tree, members only (both Blazor pages were
         // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
-        // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop; React Documentação (track 022):
+        // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop is public read-only, while member
+        // actions remain service-authorized; React Documentação (track 022):
         // /documentation; React Logística (track 023): /logistics and /logistics/{id}; members only (the Blazor pages were
         // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
@@ -601,7 +602,7 @@ public class Program
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
-                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/shop", "/documentation", "/logistics", "/logistics/{id:int}",
+                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
                      "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
         {
