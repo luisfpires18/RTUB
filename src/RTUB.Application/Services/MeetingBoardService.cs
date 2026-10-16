@@ -32,6 +32,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class MeetingBoardService : IMeetingBoardService
 {
+    private readonly TimeProvider _time;
+
     public const int MaxTitleLength = 200;
     public const int MaxLocationLength = 200;
     public const int MaxStatementLength = 5000;
@@ -73,6 +75,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
     private readonly IFiscalYearService _fiscalYears;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<MeetingBoardService> _logger;
+    private readonly DocumentTreeCache _trees;
 
     public MeetingBoardService(
         IDbContextFactory<ApplicationDbContext> contexts,
@@ -90,8 +93,12 @@ public sealed class MeetingBoardService : IMeetingBoardService
         IAuditLogService audit,
         IFiscalYearService fiscalYears,
         IHostEnvironment environment,
-        ILogger<MeetingBoardService> logger)
+        ILogger<MeetingBoardService> logger,
+        DocumentTreeCache trees,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
+        _trees = trees;
         _contexts = contexts;
         _meetings = meetings;
         _requests = requests;
@@ -140,7 +147,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
                                            || (m.Statement ?? string.Empty).Contains(q, StringComparison.OrdinalIgnoreCase));
         }
 
-        var today = DateTime.Today;
+        var today = Today;
         var list = meetings.ToList();
         var upcoming = list.Where(m => m.Date.Date >= today).OrderBy(m => m.Date).ToList();
         var past = list.Where(m => m.Date.Date < today).OrderByDescending(m => m.Date).ToList();
@@ -660,7 +667,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
         }
 
         // "Vou / Não vou" only before the day of a meeting that is not cancelled, as on the old card.
-        if (meeting.IsCancelled || meeting.Date.Date <= DateTime.Today)
+        if (meeting.IsCancelled || meeting.Date.Date <= Today)
         {
             return EventResult<MeetingCardDto>.Fail(EventResultStatus.Closed);
         }
@@ -1053,6 +1060,8 @@ public sealed class MeetingBoardService : IMeetingBoardService
             _logger.LogWarning(ex, "Failed to create ATA folder or upload PDF to {FolderPath}, but ATA was published", folderPath);
         }
 
+        _trees.Forget(folderPath); // the ata folder is shown in Documentation (#226 F01), even half written
+
         try
         {
             await _atas.PublishAtaAsync(context.Existing.Id);
@@ -1354,7 +1363,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             return (null, EventResultStatus.Forbidden);
         }
 
-        return meeting.IsCancelled || meeting.Date.Date < DateTime.Today
+        return meeting.IsCancelled || meeting.Date.Date < Today
             ? (null, EventResultStatus.Closed)
             : (meeting, EventResultStatus.Ok);
     }
@@ -1386,7 +1395,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             return (null, EventResultStatus.NotFound);
         }
 
-        if (meeting.IsCancelled || meeting.Date.Date > DateTime.Today)
+        if (meeting.IsCancelled || meeting.Date.Date > Today)
         {
             return (null, EventResultStatus.Closed);
         }
@@ -1399,10 +1408,10 @@ public sealed class MeetingBoardService : IMeetingBoardService
     /// The ata "Ver Ata" may open: the meeting is before today, the member passes the old reading rule, and the ata is
     /// published, or a draft they may write (decision A1). Null = nothing to show (a draft is never revealed).
     /// </summary>
-    private static MeetingAta? ReadableAta(MeetingAccess access, AtaContext context)
+    private MeetingAta? ReadableAta(MeetingAccess access, AtaContext context)
     {
         var ata = context.Existing;
-        if (ata is null || context.Meeting.Date.Date >= DateTime.Today || !access.CanReadPublishedAta(context.Meeting))
+        if (ata is null || context.Meeting.Date.Date >= Today || !access.CanReadPublishedAta(context.Meeting))
         {
             return null;
         }
@@ -1417,7 +1426,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             meeting,
             access.AtaRoles,
             access.User.Positions ?? new List<Position>(),
-            meeting.Date.Date < DateTime.Today ? existing : null);
+            meeting.Date.Date < Today ? existing : null);
 
     private async Task<(MeetingRequest? Request, EventResultStatus Refusal)> DecidableRequestAsync(int requestId, ClaimsPrincipal user)
     {
@@ -1478,7 +1487,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
 
     private async Task<List<MeetingCardDto>> CardsAsync(MeetingAccess access, IReadOnlyList<Meeting> meetings)
     {
-        var today = DateTime.Today;
+        var today = Today;
         var ids = meetings.Select(m => m.Id).ToList();
         var counts = ids.Count == 0 ? new Dictionary<int, int>() : await _participations.GetParticipationCountsByMeetingIdsAsync(ids);
         var mine = (await _participations.GetParticipationsByUserIdAsync(access.UserId))
@@ -2003,7 +2012,10 @@ public sealed class MeetingBoardService : IMeetingBoardService
             me.Positions is { Count: > 0 } positions ? PositionHelper.GetDisplayName(positions[0]) : null);
     }
 
-    private static string SenderCity() => $"Bragança, {DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", Portuguese)}";
+    private string SenderCity() => $"Bragança, {PortugalTime.Today(_time).ToString("dd 'de' MMMM 'de' yyyy", Portuguese)}";
+
+    // Meeting days are Portugal's calendar (#226 F02; was the server's DateTime.Today).
+    private DateTime Today => PortugalTime.Today(_time);
 
     private static string LongDate(DateTime date) => date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", Portuguese);
 
@@ -2025,7 +2037,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             return "< 1 ano de Tuno";
         }
 
-        var now = DateTime.Now;
+        var now = PortugalTime.Today(TimeProvider.System);
         var start = new DateTime(user.YearTuno.Value, user.MonthTuno ?? 1, 1);
         var totalMonths = ((now.Year - start.Year) * 12) + (now.Month - start.Month);
         if (totalMonths < 1)

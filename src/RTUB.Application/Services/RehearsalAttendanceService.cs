@@ -9,6 +9,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -18,6 +19,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class RehearsalAttendanceService : IRehearsalAttendanceService
 {
+    private readonly TimeProvider _time;
+
     private readonly IRehearsalAttendanceRepository _attendanceRepository;
     private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationService _pushNotificationService;
@@ -33,8 +36,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         IPushNotificationFactory pushNotificationFactory,
         IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager,
-        ILogger<RehearsalAttendanceService> logger)
+        ILogger<RehearsalAttendanceService> logger,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _attendanceRepository = attendanceRepository;
         _memberStatusService = memberStatusService;
         _pushNotificationService = pushNotificationService;
@@ -486,9 +491,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     /// Same-day rehearsals are excluded because attendance needs admin approval,
     /// so broadcasting "vai ao ensaio" notifications is premature.
     /// </summary>
-    private static bool IsFutureRehearsal(DateTime rehearsalDate)
+    private bool IsFutureRehearsal(DateTime rehearsalDate)
     {
-        return rehearsalDate.Date > DateTime.Today;
+        return rehearsalDate.Date > PortugalTime.Today(_time);
     }
 
     private string GetBaseUrl()

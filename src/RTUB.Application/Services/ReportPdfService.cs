@@ -8,6 +8,7 @@ using RTUB.Core.Constants;
 using Activity = RTUB.Core.Entities.Activity;
 using Report = RTUB.Core.Entities.Report;
 using Transaction = RTUB.Core.Entities.Transaction;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -16,11 +17,17 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class ReportPdfService
 {
+    private readonly TimeProvider _time;
+
+    /// <summary>The "Gerado em" stamp: Portugal's wall clock (#226 F02; was the server's DateTime.Now, UTC on Azure).</summary>
+    internal string GeneratedAt() => PortugalTime.Now(_time).ToString("dd/MM/yyyy HH:mm");
+
     private readonly IMemoryCache _cache;
     private readonly MemoryCacheEntryOptions _cacheOptions;
 
-    public ReportPdfService(IMemoryCache cache)
+    public ReportPdfService(IMemoryCache cache, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _cache = cache;
 
         // Cache generated PDFs for 1 hour (they don't change frequently)
@@ -293,7 +300,7 @@ public class ReportPdfService
                     {
                         text.DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium));
                         text.Span("Gerado em: ");
-                        text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                        text.Span(GeneratedAt());
                         text.Span(" | Página ");
                         text.CurrentPageNumber();
                         text.Span(" de ");

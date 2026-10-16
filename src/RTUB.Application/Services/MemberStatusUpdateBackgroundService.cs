@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -50,17 +51,10 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         {
             try
             {
-                var now = _time.GetLocalNow().DateTime;
+                // The scheduled time is Portugal's clock, summer and winter (#226 F02; was the server's local zone = UTC).
                 var scheduledTime = TimeSpan.Parse(_options.ScheduledTime);
-                var nextRun = now.Date.Add(scheduledTime);
-
-                // If we've already passed today's scheduled time, schedule for tomorrow
-                if (now.TimeOfDay > scheduledTime)
-                {
-                    nextRun = nextRun.AddDays(1);
-                }
-
-                var delay = nextRun - now;
+                var nextRun = PortugalTime.NextUtc(_time, scheduledTime);
+                var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
                 _logger.LogInformation("Next member status update scheduled for {NextRun} (in {Delay})",
                     nextRun.ToString("yyyy-MM-dd HH:mm:ss"),

@@ -23,6 +23,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class OwnerOperationsService : IOwnerOperationsService
 {
+    private readonly TimeProvider _time;
+
     public const int EmailTitleMax = 200;
     public const int EmailContentMax = 5000;
     public const int PushTitleMax = 100;
@@ -57,8 +59,10 @@ public class OwnerOperationsService : IOwnerOperationsService
         IUserProfileService profiles,
         IDatabaseViewerService database,
         ISqlValidationService sql,
-        ILogger<OwnerOperationsService> logger)
+        ILogger<OwnerOperationsService> logger,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _users = users;
         _email = email;
@@ -386,7 +390,7 @@ public class OwnerOperationsService : IOwnerOperationsService
 
         var items = logs.OrderByDescending(l => l.Timestamp)
             .Select(l => new OwnerAuditEntry(l.Id, DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc), l.UserName, l.EntityType, l.EntityId,
-                l.EntityDisplayName, l.Action, l.IsCriticalAction, l.Changes, current.GetValueOrDefault(l.Id)))
+                l.EntityDisplayName, l.Action, l.IsCriticalAction, AuditLogAppender.RedactStored(l.EntityType, l.Changes), current.GetValueOrDefault(l.Id)))
             .ToList();
         return new OwnerAuditPage(items, total, page, size, items.Count(l => l.IsCritical));
     }
@@ -513,19 +517,29 @@ public class OwnerOperationsService : IOwnerOperationsService
         return EventResult<bool>.Ok(true);
     }
 
-    /// <summary>The filtered log as the old export wrote it (indented JSON of the entries; the search is not applied).</summary>
+    /// <summary>
+    /// The filtered log as the old export wrote it (indented JSON of the entries; the search is not applied), except that
+    /// redacted properties of old entries are hidden as on the page (#226 F04). The entries are detached copies: the
+    /// stored rows are not touched.
+    /// </summary>
     public async Task<string> ExportAuditLogsAsync(OwnerAuditFilter filter)
     {
-        var logs = await _audit.GetAllForExportAsync(
+        var logs = (await _audit.GetAllForExportAsync(
             Blank(filter.User), Blank(filter.ExcludeUser), Blank(filter.EntityType), Blank(filter.Action), null, null,
-            filter.CriticalOnly ? true : null);
+            filter.CriticalOnly ? true : null)).ToList();
+        foreach (var log in logs)
+        {
+            log.Changes = AuditLogAppender.RedactStored(log.EntityType, log.Changes);
+        }
+
         return JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true });
     }
 
     /// <summary>Who last signed in between two days (yyyy-MM-dd, both included; today when missing), newest first.</summary>
     public async Task<EventResult<IReadOnlyList<OwnerLoginRecord>>> GetLoginsAsync(string? from, string? to)
     {
-        if (!TryDay(from, out var start) || !TryDay(to, out var end))
+        var today = PortugalTime.Today(_time);
+        if (!TryDay(from, today, out var start) || !TryDay(to, today, out var end))
         {
             return EventResult<IReadOnlyList<OwnerLoginRecord>>.Invalid("from", "Escolha datas válidas.");
         }
@@ -545,11 +559,11 @@ public class OwnerOperationsService : IOwnerOperationsService
         return EventResult<IReadOnlyList<OwnerLoginRecord>>.Ok(records);
     }
 
-    private static bool TryDay(string? value, out DateTime day)
+    private static bool TryDay(string? value, DateTime today, out DateTime day)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            day = DateTime.Today;
+            day = today;
             return true;
         }
 

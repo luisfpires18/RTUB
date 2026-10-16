@@ -5,6 +5,7 @@ using QuestPDF.Infrastructure;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -14,11 +15,17 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class AtaPdfService : IAtaPdfService
 {
+    private readonly TimeProvider _time;
+
+    /// <summary>The "Gerado em" stamp: Portugal's wall clock (#226 F02; was the server's DateTime.Now, UTC on Azure).</summary>
+    internal string GeneratedAt() => PortugalTime.Now(_time).ToString("dd/MM/yyyy HH:mm");
+
     private readonly IMemoryCache _cache;
     private readonly MemoryCacheEntryOptions _cacheOptions;
 
-    public AtaPdfService(IMemoryCache cache)
+    public AtaPdfService(IMemoryCache cache, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _cache = cache;
         _cacheOptions = new MemoryCacheEntryOptions
         {
@@ -357,7 +364,7 @@ public class AtaPdfService : IAtaPdfService
                 {
                     text.DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium));
                     text.Span("Gerado em: ");
-                    text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                    text.Span(GeneratedAt());
                     text.Span(" | Página ");
                     text.CurrentPageNumber();
                     text.Span(" de ");

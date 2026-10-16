@@ -217,6 +217,42 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         }
     }
 
+    public async Task<List<DocumentMetadata>?> ListTreeAsync(string prefix)
+    {
+        try
+        {
+            var objects = new List<DocumentMetadata>();
+            var request = new ListObjectsV2Request { BucketName = _bucketName, Prefix = prefix };
+            ListObjectsV2Response response;
+            do
+            {
+                response = await _s3Client.ListObjectsV2Async(request);
+
+                // S3Objects is null when nothing is under the prefix.
+                foreach (var obj in response.S3Objects ?? [])
+                {
+                    objects.Add(new DocumentMetadata
+                    {
+                        FileName = Path.GetFileName(obj.Key),
+                        FilePath = obj.Key,
+                        SizeBytes = obj.Size ?? 0,
+                        LastModified = obj.LastModified ?? DateTime.UtcNow,
+                        Extension = Path.GetExtension(obj.Key)
+                    });
+                }
+
+                request.ContinuationToken = response.NextContinuationToken;
+            } while (response.IsTruncated == true);
+
+            return objects;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing {Prefix}", prefix);
+            return null;
+        }
+    }
+
     public async Task<string> UploadDocumentAsync(string folderPath, string fileName, Stream fileStream, string contentType)
     {
         try

@@ -1,3 +1,5 @@
+using RTUB.Core.Helpers;
+
 namespace RTUB.Application.Helpers;
 
 /// <summary>
@@ -12,22 +14,20 @@ public static class FiscalYearHelper
     /// </summary>
     public const int AppYearCreated = 2025;
     /// <summary>
-    /// Calculates the current fiscal year start year
+    /// Calculates the current fiscal year start year: the year turns on 1 September in Portugal (#226 F02; was the
+    /// server's DateTime.Today, an hour late on Azure's UTC). <paramref name="time"/> is for tests; callers use the clock.
     /// </summary>
     /// <returns>The start year of the current fiscal year</returns>
-    public static int GetCurrentFiscalYearStartYear()
-    {
-        var today = DateTime.Today;
-        return today.Month >= 9 ? today.Year : today.Year - 1;
-    }
+    public static int GetCurrentFiscalYearStartYear(TimeProvider? time = null) =>
+        GetFiscalYearStartYear(PortugalTime.Today(time ?? TimeProvider.System));
 
     /// <summary>
     /// Gets the current fiscal year string in "YYYY-YYYY" format
     /// </summary>
     /// <returns>Fiscal year string like "2024-2025"</returns>
-    public static string GetCurrentFiscalYearString()
+    public static string GetCurrentFiscalYearString(TimeProvider? time = null)
     {
-        var startYear = GetCurrentFiscalYearStartYear();
+        var startYear = GetCurrentFiscalYearStartYear(time);
         return $"{startYear}-{startYear + 1}";
     }
 

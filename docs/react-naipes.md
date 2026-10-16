@@ -14,6 +14,13 @@ only; **no schema change**, no migration.
 Links: the member menu (`MemberShell.tsx`, Tuna group: "Naipes"); `/naipes` → "Configurar" for Admin / Owner;
 `/naipes/config` → back to `/naipes`. The Blazor `MainLayout` links `/naipes` as a plain full-page link.
 
+## Audit log (#226 F16)
+
+Create, edit and delete of a video or image leave **one** tracing entry each: the automatic one (`Created` with the
+fields, `Modified` old → new, `Deleted`, critical). The second, manual sentence ("Video Created", "Image Modified", ...)
+that `NaipeService` used to add for the same action is gone. "Video Played" / "Image Viewed" stays manual (plays are
+`NaipePlayCounts`, excluded from the automatic audit).
+
 ## Audit (old pages)
 
 **`/naipes`** (809 lines + `NaipeCard`, `NaipeCommentItem`, `DetailsModal`, `InfoSection`, `ProfileField`,

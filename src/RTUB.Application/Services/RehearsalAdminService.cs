@@ -9,6 +9,7 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -25,6 +26,10 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class RehearsalAdminService : IRehearsalAdminService
 {
+    private readonly TimeProvider _time;
+
+    private DateTime Today => PortugalTime.Today(_time);
+
     public const int LocationMax = 200;
     public const int ThemeMax = 500;
     public const int TextMax = 1000;
@@ -49,8 +54,10 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         IPushNotificationService push,
         IPushNotificationFactory pushFactory,
         IAuditLogService audit,
-        ILogger<RehearsalAdminService> logger)
+        ILogger<RehearsalAdminService> logger,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _rehearsals = rehearsals;
         _attendance = attendance;
@@ -107,7 +114,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         {
             errors["from"] = new[] { "Indique a data de início." };
         }
-        else if (from < DateTime.Today)
+        else if (from < Today)
         {
             errors["from"] = new[] { "A data de início não pode ser anterior a hoje." };
         }
@@ -214,7 +221,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         }
 
         var r = await FindAsync(id);
-        if (!r!.IsCanceled || RehearsalAgendaService.IsPast(r))
+        if (!r!.IsCanceled || RehearsalAgendaService.IsPast(r, Today))
         {
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
@@ -243,7 +250,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         }
 
         var r = await FindAsync(id);
-        if (r!.IsCanceled || RehearsalAgendaService.IsPast(r))
+        if (r!.IsCanceled || RehearsalAgendaService.IsPast(r, Today))
         {
             return EventResult<RehearsalNoticeResultDto>.Fail(EventResultStatus.Closed);
         }
@@ -301,7 +308,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
-        if (!RehearsalAgendaService.IsApprovable(r!) || !a.WillAttend || a.Attended)
+        if (!RehearsalAgendaService.IsApprovable(r!, Today) || !a.WillAttend || a.Attended)
         {
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
@@ -323,7 +330,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
-        if (a.UserId != me && !(RehearsalsAuthorization.CanManage(user) && RehearsalAgendaService.IsApprovable(r!)))
+        if (a.UserId != me && !(RehearsalsAuthorization.CanManage(user) && RehearsalAgendaService.IsApprovable(r!, Today)))
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
@@ -371,7 +378,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         }
 
         var r = await FindAsync(id);
-        if (r!.IsCanceled || !RehearsalAgendaService.IsApprovable(r))
+        if (r!.IsCanceled || !RehearsalAgendaService.IsApprovable(r, Today))
         {
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
@@ -424,7 +431,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         var r = await db.Rehearsals.AsNoTracking().FirstAsync(x => x.Id == id);
         var going = await db.RehearsalAttendances.CountAsync(a => a.RehearsalId == id && a.WillAttend);
         var pending = await db.RehearsalAttendances.CountAsync(a => a.RehearsalId == id && a.WillAttend && !a.Attended);
-        return RehearsalAgendaService.ToSummary(r, going, pending, null);
+        return RehearsalAgendaService.ToSummary(r, going, pending, null, Today);
     }
 
     private Task SaveDetailsAsync(int id, RehearsalInput input) => _rehearsals.UpdateRehearsalAsync(id, input.Location!.Trim(),

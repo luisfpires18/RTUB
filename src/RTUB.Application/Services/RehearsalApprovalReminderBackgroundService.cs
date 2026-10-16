@@ -14,6 +14,7 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -24,6 +25,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class RehearsalApprovalReminderBackgroundService : BackgroundService
 {
+    private readonly TimeProvider _time;
+
     private readonly ILogger<RehearsalApprovalReminderBackgroundService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly RehearsalApprovalReminderOptions _options;
@@ -34,8 +37,10 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
     public RehearsalApprovalReminderBackgroundService(
         ILogger<RehearsalApprovalReminderBackgroundService> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<RehearsalApprovalReminderOptions> options)
+        IOptions<RehearsalApprovalReminderOptions> options,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
@@ -46,14 +51,14 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(StartupDelaySeconds), stoppingToken);
 
         _logger.LogInformation(
-            "Rehearsal approval reminder service started. Will check daily at {ScheduledTime} UTC. Enabled: {Enabled}",
+            "Rehearsal approval reminder service started. Will check daily at {ScheduledTime} Portugal time. Enabled: {Enabled}",
             _options.ScheduledTime,
             _options.Enabled);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             var nextRun = CalculateNextRunTime();
-            var delay = nextRun - DateTime.UtcNow;
+            var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
             if (delay.TotalMilliseconds > 0)
             {
@@ -77,7 +82,7 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
 
     private async Task CheckAndSendRemindersAsync(CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = PortugalTime.Today(_time);
 
         if (_lastRunDate == today)
         {
@@ -154,7 +159,6 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
 
     private DateTime CalculateNextRunTime()
     {
-        var now = DateTime.UtcNow;
         var scheduledTime = _options.ScheduledTime;
 
         if (!TimeSpan.TryParse(scheduledTime, out var timeOfDay))
@@ -163,13 +167,7 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(15, 0, 0);
         }
 
-        var nextRun = now.Date.Add(timeOfDay);
-
-        if (nextRun <= now)
-        {
-            nextRun = nextRun.AddDays(1);
-        }
-
-        return nextRun;
+        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

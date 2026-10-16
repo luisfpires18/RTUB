@@ -434,6 +434,46 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         export.Should().Contain(memberId).And.NotContain($"Zé {tag}").And.NotContain("currentDisplayName");
     }
 
+    /// <summary>
+    /// #226 F04: push-subscription entries written before #220 still hold the endpoint and keys in their changes. The page
+    /// and the export hide them with the same rule as new entries (AuditConfiguration.RedactedProperties); the stored row
+    /// stays byte for byte as recorded, and every other entry and field is untouched.
+    /// </summary>
+    [Fact]
+    public async Task Tracing_OldPushEntries_HideTheEndpointAndKeys_OnThePageAndInTheExport_WithoutRewritingThem()
+    {
+        var owner = await SignInAsync("Owner");
+        var tag = Tag();
+        const string created = "{\"Auth\":\"auth-secret-1\",\"Endpoint\":\"https://fcm.googleapis.com/fcm/send/endpoint-secret\",\"P256dh\":\"p256-secret\",\"UserAgent\":\"Mozilla/5.0 (Android)\",\"UserId\":\"u-1\"}";
+        const string modified = "{\"Auth\":{\"Old\":\"auth-old-secret\",\"New\":\"auth-new-secret\"},\"UserAgent\":{\"Old\":\"a\",\"New\":\"b\"}}";
+        const string recent = "{\"Auth\":\"[redacted]\",\"Endpoint\":\"[redacted]\",\"P256dh\":\"[redacted]\",\"UserAgent\":\"Edge\"}";
+        var old = await SeedLogAsync(tag, user: $"u{tag}", changes: created, setup: l => l.EntityType = "PushSubscription");
+        var changed = await SeedLogAsync(tag, user: $"u{tag}", changes: modified, setup: l => { l.EntityType = "PushSubscription"; l.Action = "Modified"; });
+        var fresh = await SeedLogAsync(tag, user: $"u{tag}", changes: recent, setup: l => l.EntityType = "PushSubscription");
+        var other = await SeedLogAsync(tag, user: $"u{tag}", changes: "{\"Auth\":\"not-a-push-key\",\"Title\":\"Ensaio\"}");
+
+        var items = (await AreaHttp.Json(owner, $"/api/owner/tracing?user=u{tag}&pageSize=100")).GetProperty("items").EnumerateArray()
+            .ToDictionary(i => i.GetProperty("id").GetInt32(), i => i.GetProperty("changes").GetString()!);
+        var oldShown = JsonDocument.Parse(items[old]).RootElement;
+        foreach (var hidden in new[] { "Auth", "Endpoint", "P256dh" })
+        {
+            oldShown.GetProperty(hidden).GetString().Should().Be("[redacted]", "the Owner sees that {0} was set, not its value", hidden);
+        }
+
+        (oldShown.GetProperty("UserAgent").GetString(), oldShown.GetProperty("UserId").GetString()).Should().Be(("Mozilla/5.0 (Android)", "u-1"));
+        items[changed].Should().NotContain("auth-old-secret").And.NotContain("auth-new-secret").And.Contain("\"Auth\":\"[redacted]\"").And.Contain("\"New\":\"b\"");
+        items[fresh].Should().Be(recent, "an entry that holds nothing to hide is shown exactly as stored");
+        items[other].Should().Contain("not-a-push-key", "the rule is per entity type: other entries keep every field");
+
+        var export = await (await owner.GetAsync($"/api/owner/tracing/export?user=u{tag}")).Content.ReadAsStringAsync();
+        export.Should().NotContain("auth-secret-1").And.NotContain("endpoint-secret").And.NotContain("p256-secret").And.NotContain("auth-new-secret")
+            .And.Contain("Mozilla/5.0 (Android)").And.Contain("not-a-push-key");
+
+        (await WithDbAsync(db => db.AuditLogs.AsNoTracking().Where(a => a.Id == old || a.Id == changed || a.Id == fresh)
+                .OrderBy(a => a.Id).Select(a => a.Changes).ToListAsync()))
+            .Should().Equal(new[] { created, modified, recent }, "the stored history is never rewritten");
+    }
+
     [Fact]
     public async Task Tracing_LoginsAndTheAnnouncement()
     {

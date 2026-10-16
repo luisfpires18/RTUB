@@ -46,13 +46,15 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
     private readonly IDocumentStorageService _storage;
+    private readonly DocumentTreeCache _trees;
     private readonly IHostEnvironment _environment;
     private readonly AuditContext _audit;
     private readonly ILogger<LogisticsKanbanService> _logger;
 
     public LogisticsKanbanService(IDbContextFactory<ApplicationDbContext> contexts, IDocumentStorageService storage, IHostEnvironment environment,
-        AuditContext audit, ILogger<LogisticsKanbanService> logger)
+        AuditContext audit, ILogger<LogisticsKanbanService> logger, DocumentTreeCache trees)
     {
+        _trees = trees;
         _contexts = contexts;
         _storage = storage;
         _environment = environment;
@@ -664,6 +666,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
         _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
         await _storage.UploadDocumentAsync(Folder(board.Name), name, upload.Content, upload.ContentType);
+        _trees.Forget(Folder(board.Name)); // the board's folder is shown in Documentation too (#226 F01)
         return EventResult<LogisticsFileDto>.Ok(new LogisticsFileDto(name, Path.GetExtension(name), upload.Length));
     }
 
@@ -698,6 +701,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
         _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
         await _storage.DeleteDocumentAsync(path);
+        _trees.Forget(path);
         return EventResult<bool>.Ok(true);
     }
 

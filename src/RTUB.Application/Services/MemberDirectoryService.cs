@@ -9,6 +9,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -23,6 +24,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class MemberDirectoryService : IMemberDirectoryService
 {
+    private readonly TimeProvider _time;
+
     private static readonly CultureInfo Pt = CultureInfo.GetCultureInfo("pt-PT");
     private static readonly string[] Categories = { "Leitao", "Caloiro", "Tuno", "TunoHonorario" };
     private static readonly string[] SubCategories = { "Tuno", "Veterano", "Tunossauro", "Fundador" };
@@ -48,8 +51,10 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
         IMemberHierarchyService hierarchy,
         IMemberStatusService status,
         IMemberStatisticsService statistics,
-        ILogger<MemberDirectoryService> logger)
+        ILogger<MemberDirectoryService> logger,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _assignments = assignments;
         _instruments = instruments;
@@ -150,7 +155,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             member.Email, member.PhoneNumber, member.City,
             member.DateOfBirth?.ToString("dd/MM/yyyy"), member.Age, member.Degree,
             !honorario, instruments, showMentor, mentor,
-            Timeline(member, assignments),
+            Timeline(member, assignments, PortugalTime.Today(_time).Year),
             await StateAsync(member),
             member.IsLeitao(), member.IsExpelled));
     }
@@ -215,7 +220,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
         }
 
         // The birthdays from today to the end of the year, soonest first, then by name - as the old list.
-        var today = DateTime.Now.Date;
+        var today = PortugalTime.Today(_time);
         var upcoming = (await UsersAsync())
             .Where(u => u.DateOfBirth.HasValue)
             .Select(u => (User: u, Next: NextBirthday(u.DateOfBirth!.Value, today.Year)))
@@ -391,7 +396,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
     }
 
     /// <summary>"Percurso na Tuna", as the old UnifiedTimeline: memberships, sub-categories and positions by year.</summary>
-    internal static IReadOnlyList<MemberTimelineItemDto> Timeline(ApplicationUser u, IEnumerable<RoleAssignment> assignments)
+    internal static IReadOnlyList<MemberTimelineItemDto> Timeline(ApplicationUser u, IEnumerable<RoleAssignment> assignments, int currentYear)
     {
         var items = new List<(int Year, int Order, MemberTimelineItemDto Item)>();
         void Add(int year, int order, string label, string kind, string state, string accent, string? years = null, string? notes = null) =>
@@ -433,7 +438,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             }
         }
 
-        var now = DateTime.Now.Year;
+        var now = currentYear;
         foreach (var a in assignments.OrderBy(a => a.StartYear))
         {
             Add(a.StartYear, 10, StatusHelper.GetPositionDisplay(a.Position), "role", a.EndYear >= now ? "active" : "completed",

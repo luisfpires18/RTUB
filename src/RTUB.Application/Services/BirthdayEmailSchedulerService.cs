@@ -8,6 +8,7 @@ using RTUB.Application.Configuration;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -17,6 +18,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class BirthdayEmailSchedulerService : BackgroundService
 {
+    private readonly TimeProvider _time;
+
     private readonly ILogger<BirthdayEmailSchedulerService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly BirthdayEmailSchedulerOptions _options;
@@ -28,8 +31,10 @@ public class BirthdayEmailSchedulerService : BackgroundService
     public BirthdayEmailSchedulerService(
         ILogger<BirthdayEmailSchedulerService> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<BirthdayEmailSchedulerOptions> options)
+        IOptions<BirthdayEmailSchedulerOptions> options,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
@@ -41,7 +46,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(StartupDelaySeconds), stoppingToken);
 
         _logger.LogInformation(
-            "Birthday email scheduler started. Will check for birthdays daily at {ScheduledTime} UTC. Enabled: {Enabled}",
+            "Birthday email scheduler started. Will check for birthdays daily at {ScheduledTime} Portugal time. Enabled: {Enabled}",
             _options.ScheduledTime,
             _options.Enabled);
 
@@ -49,7 +54,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
         {
             // Calculate time until next run BEFORE checking/sending
             var nextRun = CalculateNextRunTime();
-            var delay = nextRun - DateTime.UtcNow;
+            var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
             if (delay.TotalMilliseconds > 0)
             {
@@ -74,7 +79,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
 
     private async Task CheckAndSendBirthdayEmailsAsync(CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = PortugalTime.Today(_time);
 
         // Only run once per day
         if (_lastRunDate == today)
@@ -192,7 +197,6 @@ public class BirthdayEmailSchedulerService : BackgroundService
 
     private DateTime CalculateNextRunTime()
     {
-        var now = DateTime.UtcNow;
         var scheduledTime = _options.ScheduledTime;
 
         // Parse the scheduled time (format: "HH:mm")
@@ -202,15 +206,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
             timeOfDay = new TimeSpan(9, 0, 0); // Default to 9 AM
         }
 
-        // Calculate next run time in UTC
-        var nextRun = now.Date.Add(timeOfDay);
-
-        // If the scheduled time has already passed today, schedule for tomorrow
-        if (nextRun <= now)
-        {
-            nextRun = nextRun.AddDays(1);
-        }
-
-        return nextRun;
+        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

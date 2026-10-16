@@ -44,6 +44,14 @@ public interface IDocumentStorageService
     Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath);
 
     /// <summary>
+    /// Every object under a prefix at any depth, folder markers ("…/") included, in one listing (#226 F01: one storage
+    /// round trip for a whole fiscal year instead of one per folder).
+    /// </summary>
+    /// <param name="prefix">The prefix, ending in "/" (e.g., "docs/Production/2025-2026/")</param>
+    /// <returns>The objects (FilePath = full key), or null when storage could not be listed</returns>
+    Task<List<DocumentMetadata>?> ListTreeAsync(string prefix);
+
+    /// <summary>
     /// Uploads a document to storage
     /// </summary>
     /// <param name="folderPath">The folder path where the document should be stored</param>

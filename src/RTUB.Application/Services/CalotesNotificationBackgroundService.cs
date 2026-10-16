@@ -7,6 +7,7 @@ using RTUB.Application.Configuration;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -16,6 +17,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class CalotesNotificationBackgroundService : BackgroundService
 {
+    private readonly TimeProvider _time;
+
     private readonly ILogger<CalotesNotificationBackgroundService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly CalotesNotificationOptions _options;
@@ -26,8 +29,10 @@ public class CalotesNotificationBackgroundService : BackgroundService
     public CalotesNotificationBackgroundService(
         ILogger<CalotesNotificationBackgroundService> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<CalotesNotificationOptions> options)
+        IOptions<CalotesNotificationOptions> options,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
@@ -39,7 +44,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(StartupDelaySeconds), stoppingToken);
 
         _logger.LogInformation(
-            "Calotes notification service started. Will check for debts daily at {ScheduledTime} UTC. Enabled: {Enabled}",
+            "Calotes notification service started. Will check for debts daily at {ScheduledTime} Portugal time. Enabled: {Enabled}",
             _options.ScheduledTime,
             _options.Enabled);
 
@@ -47,7 +52,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
         {
             // Calculate time until next run BEFORE checking/sending
             var nextRun = CalculateNextRunTime();
-            var delay = nextRun - DateTime.UtcNow;
+            var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
             if (delay.TotalMilliseconds > 0)
             {
@@ -72,7 +77,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
 
     private async Task CheckAndSendCalotesNotificationsAsync(CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = PortugalTime.Today(_time);
 
         // Only run once per day
         if (_lastRunDate == today)
@@ -147,7 +152,6 @@ public class CalotesNotificationBackgroundService : BackgroundService
 
     private DateTime CalculateNextRunTime()
     {
-        var now = DateTime.UtcNow;
         var scheduledTime = _options.ScheduledTime;
 
         // Parse the scheduled time (format: "HH:mm")
@@ -157,15 +161,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(10, 30, 0); // Default to 10:30 AM
         }
 
-        // Calculate next run time in UTC
-        var nextRun = now.Date.Add(timeOfDay);
-
-        // If the scheduled time has already passed today, schedule for tomorrow
-        if (nextRun <= now)
-        {
-            nextRun = nextRun.AddDays(1);
-        }
-
-        return nextRun;
+        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

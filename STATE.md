@@ -3,81 +3,46 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-16 (#220 / #223)_
+_Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**#220 tracing names + cards and #223 hierarchy tree (uncommitted on `dev` @ 2.0.10, not pushed, issues stay open):**
-#220: audit rows named after the person / object for every audited type (one batched lookup per table before the save,
-none when not needed; deletes named before they go), push keys redacted in new entries, old entries never rewritten
-(`currentDisplayName` at read time only; export raw), search over stored changes or name with the filters and an exact
-total, Portuguese type labels, new card and Details. #223: CSS-only WAI-ARIA tree (left to right ≥ 900 px, indented
-below), search, path bar, "Focar ramo", keyboard; loop / self-padrinho guard in `MemberHierarchyService`. No schema
-change, no new dependency. Detail: `docs/react-owner-operations.md` → *Names and cards (#220)*, `docs/react-members.md`
-→ *Hierarchy tree (#223)*.
+**Now: #226 remediation batch 1 — F01 + F02 + F04 + F16 + F19 (uncommitted on `dev` @ 2.0.10, for review; #226 stays
+open).** F01: Documentation reads a fiscal year from ONE storage listing of `docs/{env}/{year}/`
+(`IDocumentStorageService.ListTreeAsync`, shared 30 s by `DocumentTreeCache`, dropped by every writer under `docs/`:
+Documentation, Logistics board files, Meetings ata PDFs; failures never kept) - page was 2 listings in a row + 1 per
+folder, download 3 in a row; now 1 cold / 0 warm for both. F02: Portugal time everywhere a date or clock means Portugal
+(`RTUB.Core.Helpers.PortugalTime`: `Today`, `Now`, `NextUtc`; hosted jobs run at their configured time on Portugal's
+clock, DST-safe); see *Portugal time* below. F04: old push-subscription audit entries shown and exported with
+`Endpoint` / `Auth` / `P256dh` as `[redacted]` (`AuditLogAppender.RedactStored`, read time only; rows never rewritten).
+F16: NaipeContent create / update / delete leave only the automatic audit entry ("Video Played" kept). No schema change,
+no migration, no new dependency. Detail: `docs/react-documentation.md` → *Storage round trips (#226 F01)*,
+`docs/backend-practices.md` → *Portugal time*, `docs/react-owner-operations.md` → *Names and cards (#220)*,
+`docs/react-naipes.md`.
 
-**#221 shop products in every fiscal year (uncommitted on `dev` @ 2.0.10, not pushed, issue stays open):**
-`Products.AvailableAllYears` + migration `AddProductAvailableAllYears` (default 0: existing and N-1 products stay
-year-specific, by `CreatedAt`); one rule `ProductShopService.InFiscalYear`; "Disponível em todos os anos letivos" in the
-product form (`availableAllYears` absent = unchanged on edit). Reservations untouched. Detail: `docs/react-shop.md` →
-*Products in every fiscal year*. **#220 / #223: audit only, no code** (proposals in the batch report).
+**On `dev` @ 2.0.10 (committed and pushed, not released; issues stay open until verified):**
+- #229 + #224 + #225 UI / PWA batch (`ba813521`): no sideways scroll at 320-414 px (`tests/responsive/responsive_audit.py`,
+  413/413), `/roles` heads and year panel, leaderboard levels open and the reader's own level.
+- #221 shop products in every fiscal year (`80b12d8b`): `Products.AvailableAllYears` + migration
+  `AddProductAvailableAllYears` (default 0), one rule `ProductShopService.InFiscalYear`. Detail: `docs/react-shop.md`.
+- #220 tracing names + cards and #223 hierarchy tree (`b22513c3`, 44 px touch targets `b753f561`). Detail:
+  `docs/react-owner-operations.md` → *Names and cards (#220)*, `docs/react-members.md` → *Hierarchy tree (#223)*.
+- #222 News public / members-only + #228 Music teaser removed (`66bff340`): `NewsPosts.IsPublic` + migration
+  `AddNewsPostIsPublic` (default 1). Detail: `docs/react-news.md` → *Visibility*.
 
-**UI/PWA batch #229 + #224 + #225 (uncommitted on `dev` @ 2.0.10, not pushed, issues stay open):** no page scrolls
-sideways at 320-414 px, fixed per element, and the old global mask `body { overflow-x: clip }` removed. Member header
-at < 360 px (logo only, category truncates); `.sr-only` hardened (hidden file inputs widened "Adicionar atuação");
-Tesouraria tabs reflow on phones; "+N XP" badges no longer spill out of the details dialogs' activity rows; header pads by `--safe-top` (iOS installed app). #224: `/roles` on the shared
-`events-page__head`, year controls in one panel, "Adicionar ano letivo" only while the server lists a missing year
-(Galeria / Música heads fixed the same way). #225: levels open by default, balanced 1 / 2 / 3 / 4 columns, the reader's
-level from the new `me` of `GET /api/leaderboard`. Audit: `tests/responsive/responsive_audit.py`. Detail:
-`docs/frontend-practices.md`, `docs/react-governance.md`, `docs/react-leaderboard.md`.
+**Released to PROD:** 2.0.9 = P1 hotfix #230 push diagnostics (`4d950507`, merged back into `dev` @ `c4a85a70`; #230
+stays open until the affected iPhone test); 2.0.8 = P0 hotfix #227 members-only events (`71db8b7e`, `Events.IsPublic`);
+2.0.7 / 2.0.6 push subscription UX; 2.0.5 = units 001-046 (incl. 043 DB cleanup, 044 / 044B member status, 045
+performance gate, 046 new logo). PROD rollback across 043 = full restore of the pre-migration backup
+(`docs/db-cleanup-inventory.md`). 044B reconciles every member daily: members with no activity in 6 months are reformed
+(`docs/member-activity-status.md`).
 
-**#222 News public / members-only + #228 Music teaser removed (committed on `dev` @ `66bff340`):** `NewsPosts.IsPublic` + migration
-`AddNewsPostIsPublic` (default 1), `NewsService.VisibleTo` on the only news read, `MembersOnly` on create / update (absent
-keeps), "Privado (só membros)" toggle, "Só membros" tag, Todas / Públicas / Privadas tabs for signed-in readers; public
-Music page no longer shows "Há também álbuns reservados a membros". Detail: `docs/react-news.md` → *Visibility*.
-
-**P1 hotfix #230 push enabled but not received (released in PROD 2.0.9, merged back into `dev`; #230 stays open):** every send
-returns a classified `PushSendResult` (only 404/410 delete; 4xx/5xx kept and logged with the push service's reason,
-never keys / endpoint), per-fan-out summary warnings, `/profile` "Enviar notificação de teste" → `POST /api/push/test`
-(own endpoint only, 30 s cooldown, says "enviada ao serviço push", never "recebida"), "on" now also needs granted
-permission. PROD VAPID verified (configured, valid, private ↔ public match); real FCM delivery verified locally. Needs
-the affected iPhone test after release. Detail: `docs/react-push-v2.md` → *Test push and delivery outcomes*.
-
-**P0 hotfix #227 events public / members-only (uncommitted on `master`, not pushed):** `Events.IsPublic` + migration
-`AddEventIsPublic` (default 1: existing rows and N-1 inserts stay public), server-side `EventAgendaService.VisibleTo`
-on the agenda, archive, event page and video plays; home preview public-only; "Privado (só membros)" toggle (off by
-default) and "Só membros" tag in React. Push unchanged (subscribers are signed-in members only). Detail:
-`docs/react-events.md` → *Visibility and permissions*. Needs a hotfix branch, VERSION bump and the master → dev
-back-merge before release.
-
-**046 new RTUB logo (uncommitted on `dev`, not pushed):** every brand asset regenerated from the square `wwwroot/images/rtub_new_logo.png`: canonical `/images/rtub_logo.webp` (1024px), `/icons/rtub-logo-352.webp`, manifest 192 / 512 + new maskable 512, push badge, `apple-touch-icon.png`, `favicon.ico` (16/32/48). Unused sizes removed (16, 32, 120, 152, 167, 180, 256, 384, `apple-touch-icon-180x180.png`). Service worker `CACHE_VERSION` v2.9.0 (images are cache-first). No API, schema or migration change. Detail: `docs/pwa-practices.md` → *RTUB brand assets*.
-
-**045 performance gate (uncommitted on `dev`, not pushed):** splash / header logo 465 KB PNG → 45 KB WebP (`icons/rtub-logo-352.webp`), CLS fixes (`.boot` padding, `main` min-height, `/members` actions while loading), logistics board no longer re-lists R2 on every card / list change. Mobile Lighthouse 61-79 → 94-98, mobile LCP 4.35 → 2.25-3.0 s, CLS ≤ 0.03. Frontend only; no API, schema or migration change. Detail: `docs/performance-gate.md`.
-
-**044B (uncommitted on `dev`, not pushed): member activity status refactor.** One pure evaluator
-(`MemberActivityStatusEvaluator`), `MemberStatusService` reconciles every member (active and Reformado), per-member
-failure isolation, audit + push only on real transitions, `TimeProvider`. Leitões are in the rule (six months
-from the Leitão month when there is no activity); reads never write, only reconcile paths do. `RetirementStatusService` and "Tornar ativo" /
-`OverrideRetired` usage removed (column kept, dead — drop in a later migration). No migration. Detail:
-`docs/member-activity-status.md`. **First DEV/PROD run will reform active members with no activity in 6 months**
-(incl. old `OverrideRetired` ones) — expected per the rules.
-
-**044 batch 3 (uncommitted on `dev`, not pushed): profile polish.** `/profile`: photo moved into the header, "Entraste como" removed, "Informação da Tuna" with a connected-card Percurso timeline (real `member.timeline`), one shared `MemberBadge` / `.member-badge` for the whole app, aligned action buttons. React only; no API, schema or migration change. Batch 4 (same files, uncommitted): header order inbox / category badge / profile / menu, original per-kind badge colours restored, legacy-coloured timeline, flatter Tuna section. Detail: `docs/react-member-area.md` → *Profile polish, batch 3* and *Batch 4*.
-
-**044 UI polish (uncommitted on `feat/044-ui-polish`):** signed-in container 1320px (`.shell--member --wrap`), event card "Área da atuação" with Discussão / Contactos only, `/events/my-enrollments` removed (modal "Onde estiveste" on `/events`), menu: no "Recursos" (Documentação + Instrumentos da Tuna under Gestão, Loja under Membro), Classificação / Hall of Fame no longer cross-linked, Naipes picker centred, `/messages` as an app screen (list → system → groups → people).
-
-**044 batch 2 (uncommitted on `dev`, not pushed): authenticated shell.** Left sidebar removed; header = `[inbox + unread
-badge] [profile chip → /profile] [menu]`, menu = right-hand drawer at every width without Perfil / Mensagens. Badge =
-unread messages from new `GET /api/conversations/unread`, polled every 10 s (no hub exists; no schema change, no migration).
-Detail: `docs/react-messages.md` → *Header unread badge*, `docs/react-portal-pilot.md` → *Member shell*.
-
-**Open: `chore/043-db-cleanup` (task 043)**, from `dev` @ `593b1d63` (has 042). Not committed / pushed; **do not merge
-into `dev` until a release without it (026-042) is live in PROD past its rollback window** (N-1: PROD 2.0.4 still reads
-these tables and `FidelisBalance`). **043:** migrations `RemoveRetiredGamesLabelsSlideshowsSchema` (drops the 15 game
-tables, `Labels`, `Slideshows`) and `RemoveFidelisBalanceFromApplicationUser` (EF rebuild of `AspNetUsers` without the
-column), with their entities / enums / configs / DbSets / seed / display cases / audit entries removed. **PROD
-rollback across 043 = full restore of the pre-migration backup** (EF Down is local / DEV schema testing only). Upgrade / rollback / reapply validated on a scratch copy (messaging and Identity
-counts unchanged). `PostMedia` / `CommentImages` deferred (production row counts unknown). Not applied to DEV or PROD.
-Release plan: `docs/db-cleanup-inventory.md` → *Task 043*.
+**Portugal time (#226 F02, the rule):** PROD runs on UTC (no `TZ` / `WEBSITE_TIME_ZONE`). "Today", fiscal year, ages,
+past / future of events, rehearsals and meetings, push "hoje / amanhã", "Gerado em" stamps and the hosted jobs' clock
+times use `PortugalTime` with the injected `TimeProvider`. Stored technical timestamps (audit, `CreatedAt`, tokens,
+cache) stay UTC. Database backup keeps its documented UTC time. Left on purpose: seed data; lenient upper-bound
+validations (date of birth / admission year / request date / album year, server date ≤ Portugal date); dead paths
+(`EventRepository` / `RehearsalRepository` upcoming-past, `Report.IsCurrentFiscalYear`,
+`ApplicationUserExtensions.GetYearsAsTuno` - #226 F05); `MemberStatusService` months (UTC, month granularity).
 
 **042 merged to `dev`** (@ `593b1d63`). **042 cleanup audit:** code with no caller removed, **no schema change, no migration, no data touched**: Labels /
 Slideshows services + repositories (tables stay), `ILogistics{Board,List,Card}Service` + their repositories (the board
@@ -338,18 +303,24 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
-Raised by #220 / #223: push-subscription log entries written before #220 still hold `Endpoint` / `Auth` / `P256dh` in
-their changes (Owner-only Details and export; redacting them would rewrite history - a decision); names resolved at read
-time are not searchable; `NaipeContent` writes both an automatic and a manual entry per change; the tracing delete
-button is 36 px on phones (existing `icon-btn--sm`); the hierarchy path bar takes two rows at 320 px.
+Raised by #226 (final audit; batch 1 = F01 F02 F04 F16 F19 above): still open F03 avatar thumbnails, F05 ~100 service /
+repository methods with no production caller, F06 DEV VAPID settings (Owner action), F07 `npm audit` (vite 6 chain), F08
+unreferenced `wwwroot/images/icons/*`, F09 512 PNG weight / Messages group avatar, F10 CSS leftovers, F11 unused React
+locals / `globe` icon, F12 unread poll on `/messages`, F13 Events admin chunk, F14 stale search responses, F15 service
+worker cache pruning, F17 unread config keys, F18 full-entity reads, F20 reservation count in the product delete. Batch 1
+leftovers: the tracing search still matches redacted values in old stored changes (Owner only; the values are never
+shown); Documentation shows a file written straight to R2 (not through the app) after at most 30 s.
+Raised by #220 / #223: names resolved at read time are not searchable (1.1 % of rows on the DEV copy - accepted); the
+hierarchy path bar takes two rows at 320 px. (Old push keys in the log: hidden at read time by #226 F04; NaipeContent
+double entries: removed by #226 F16; tracing delete button: 44 px since `b753f561`.)
 Raised by #221: a shop reservation snapshots no product name or price and is deleted with its product (cascade);
 `ProductShopService.InFiscalYear` ends a year at 31 Aug 23:59:59 (sub-second gap) and compares UTC `CreatedAt` with
 local-calendar bounds.
 Raised by #229: iOS Safari native date / time controls and the `black-translucent` status-bar inset not checked on a
 real iPhone (Playwright WebKit not installed; CSS is defensive); inline text links in lists (`.archive-row__name`,
 `.door__mail`) are 24-26 px tall (WCAG inline exception); 12 leaderboard level rows on phones are long but readable.
-Raised by #230: PROD App Service has no persisted application logs (no `*_default_docker.log`), so push warnings are visible only in the live log stream; `WebPush` 1.0.13 sends legacy `aesgcm` / `Authorization: WebPush` (move to RFC 8291/8292 only if an iPhone test push comes back `rejected`); 5xx from a push service is not retried; DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there. STATE's #227 "uncommitted" line is stale (released as 2.0.8).
-Raised by hotfix 2026-10-14 (agenda Portugal date): the same server-zone `DateTime.Today` remains in `EventAdminService.IsPast` (prizes / videos / cancel / notices; also `TakesPrizes` on the event page), `EventRepository`, `EnrollmentService`, `RehearsalRepository`, `FiscalYearHelper`, `PushNotificationFactory` — wrong only 00:00-01:00 Portugal in summer; move to `PortugalTime.Today`.
+Raised by #230: PROD App Service has no persisted application logs (no `*_default_docker.log`), so push warnings are visible only in the live log stream; `WebPush` 1.0.13 sends legacy `aesgcm` / `Authorization: WebPush` (move to RFC 8291/8292 only if an iPhone test push comes back `rejected`); 5xx from a push service is not retried; DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there. (#226 F06: still missing on 2026-10-16.)
+Raised by hotfix 2026-10-14 (agenda Portugal date): resolved by #226 F02 (see *Portugal time* in Phase).
 Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
 Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
 - (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:

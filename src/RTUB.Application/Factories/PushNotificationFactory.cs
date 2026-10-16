@@ -4,6 +4,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Factories;
 
@@ -14,6 +15,16 @@ namespace RTUB.Application.Factories;
 public class PushNotificationFactory : IPushNotificationFactory
 {
     private static readonly CultureInfo PortugueseCulture = new("pt-PT");
+
+    private readonly TimeProvider _time;
+
+    /// <summary>"hoje" / "amanhã" / "N dias" count Portugal's calendar days (#226 F02; was the server's UTC date).</summary>
+    public PushNotificationFactory(TimeProvider? time = null)
+    {
+        _time = time ?? TimeProvider.System;
+    }
+
+    private DateTime Today => PortugalTime.Today(_time);
 
     /// <summary>
     /// Creates a push notification for an event (new event or reminder).
@@ -106,7 +117,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         var rehearsalUrl = BuildRehearsalUrl(baseUrl);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
-        var whenText = rehearsal.Date.Date == DateTime.UtcNow.Date
+        var whenText = rehearsal.Date.Date == Today
             ? "é hoje"
             : "é amanhã";
 
@@ -197,9 +208,9 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// Returns appropriate text like "1 dia" or "3 dias".
     /// Throws ArgumentException if the event is in the past.
     /// </summary>
-    private static string GetDaysUntilEventText(DateTime eventDate)
+    private string GetDaysUntilEventText(DateTime eventDate)
     {
-        var daysUntil = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
+        var daysUntil = (int)Math.Ceiling((eventDate.Date - Today).TotalDays);
 
         if (daysUntil < 0)
         {
@@ -436,9 +447,9 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Gets the text for days until meeting (similar to GetDaysUntilEventText).
     /// </summary>
-    private static string? GetDaysUntilMeetingText(DateTime meetingDate)
+    private string? GetDaysUntilMeetingText(DateTime meetingDate)
     {
-        var today = DateTime.Today;
+        var today = Today;
         var daysUntil = (meetingDate.Date - today).Days;
 
         return daysUntil switch

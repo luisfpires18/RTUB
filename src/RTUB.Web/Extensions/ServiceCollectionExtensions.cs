@@ -147,6 +147,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductShopService, ProductShopService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IDocumentationService, DocumentationService>();
+        services.AddSingleton<DocumentTreeCache>();
         services.AddScoped<ILogisticsKanbanService, LogisticsKanbanService>();
         services.AddScoped<ITreasuryService, TreasuryService>();
         services.AddScoped<ITreasuryRecordsService, TreasuryRecordsService>();

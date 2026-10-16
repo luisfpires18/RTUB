@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Core.Entities;
 
@@ -73,16 +74,16 @@ public class ApplicationUser : IdentityUser
     public List<Position> Positions { get; set; } = new();
     public List<MemberCategory> Categories { get; set; } = new();
 
-    public int? Age
+    /// <summary>Age today on Portugal's calendar (#226 F02; was the server's DateTime.Today).</summary>
+    public int? Age => AgeOn(PortugalTime.Today(TimeProvider.System));
+
+    /// <summary>Age on a given calendar day.</summary>
+    public int? AgeOn(DateTime today)
     {
-        get
-        {
-            if (DateOfBirth == null) return null;
-            var today = DateTime.Today;
-            var age = today.Year - DateOfBirth.Value.Year;
-            if (DateOfBirth.Value.Date > today.AddYears(-age)) age--;
-            return age;
-        }
+        if (DateOfBirth == null) return null;
+        var age = today.Year - DateOfBirth.Value.Year;
+        if (DateOfBirth.Value.Date > today.Date.AddYears(-age)) age--;
+        return age;
     }
 
     public string CurrentRole
@@ -91,7 +92,7 @@ public class ApplicationUser : IdentityUser
         {
             if (YearTuno == null) return "N/A";
 
-            var now = DateTime.Now;
+            var now = PortugalTime.Today(TimeProvider.System);
             var tunoStartYear = YearTuno.Value;
             var tunoStartMonth = MonthTuno ?? 1; // Default to January if month not set
 

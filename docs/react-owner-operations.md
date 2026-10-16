@@ -90,17 +90,20 @@ the API is what enforces access.
   (members, events, rehearsals, ...) in **at most one batched query per table, none when nothing needs it**, so a
   deleted row is named while it still exists. Was: the tracker only, so fresh contexts stored member ids or nothing.
 - **Push keys**: `Endpoint`, `Auth` and `P256dh` are written as `[redacted]` in new log entries
-  (`AuditConfiguration.RedactedProperties`). Older entries keep what they recorded.
+  (`AuditConfiguration.RedactedProperties`). Older entries still hold them in the database, but since #226 F04 the page
+  (list and Details) and the export show them as `[redacted]` too (`AuditLogAppender.RedactStored`, same property list,
+  read time only): the key stays so the Owner sees it was set or changed. The stored rows are never rewritten. The
+  search still runs over the stored text (Owner only; a match never shows the value). `/owner/db` reads raw tables.
 - **Old entries are never rewritten.** The page adds `currentDisplayName`, at read time only, for an entry whose stored
   name is missing or carries member ids: ids become today's nicknames (one query per page), and a missing name the
   entity's current name for a few simple types when it still exists (one query per type on the page). Shown as "nome
-  atual"; Details shows the stored name and the current one; the export is the raw stored log.
+  atual"; Details shows the stored name and the current one; the export is the stored log (redacted properties hidden).
 - **Search** matches the stored changes **or the stored name**, together with the other filters, with an exact total
   (was: changes only, other filters ignored, an estimated total). A name resolved at read time is not searchable.
 - **Card**: the name (or "{type} #id"), then the Portuguese type (`ENTITY_LABELS` in `OwnerTracing.tsx`, presentation
   only; the type filter shows "Label (RawType)" and submits the raw type) with the action and a written "Crítica"
   (plus an accent border), then who and `dd/MM/yyyy HH:mm`, then Detalhes and delete. Details: type, technical type,
-  id, stored name, current name, user, date, action, critical, raw changes.
+  id, stored name, current name, user, date, action, critical, changes (redacted properties hidden).
 - Messaging stays excluded (`AuditConfiguration.ExcludedEntityTypes`): never listed, searched, filtered or exported.
 
 ### /owner/db (was `Pages/Operations/DatabaseViewer.razor`, Owner)
