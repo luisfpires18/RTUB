@@ -118,7 +118,7 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         // Publish: on top of the public feed. Publishing again leaves the date alone.
         var first = await PublishAsync(manager, id);
         Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().ContainSingle();
-        (await Json(anonymous, "/api/news")).GetProperty("posts")[0].GetProperty("id").GetInt32().Should().Be(id);
+        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
         (await PublishAsync(manager, id)).Should().Be(first);
 
         // Another post goes above it; unpublishing takes it off the feed; re-publishing puts it back on top with a new date.
@@ -128,7 +128,7 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Select(p => p.GetProperty("id").GetInt32()).Should().NotContain(id);
         var again = await PublishAsync(manager, id);
         again.Should().BeAfter(first);
-        (await Json(anonymous, "/api/news")).GetProperty("posts")[0].GetProperty("id").GetInt32().Should().Be(id);
+        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
 
         // Edit keeps the state; a blank title means none.
         var edited = await Json(await manager.PutAsJsonAsync($"/api/news/{id}", Input("   ", "Texto corrigido", publish: false)));
