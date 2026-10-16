@@ -141,7 +141,13 @@ public class OwnerOperationsSourceTests
         }
 
         tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={(type) =>", "the type filter shows labels but submits raw types");
-        Read(Web, "portal", "src", "styles.css").Should().Contain(".owner-log--critical {\n  border-left-color:");
+        var css = Read(Web, "portal", "src", "styles.css");
+        css.Should().Contain(".owner-log--critical {\n  border-left-color:");
+        // Phones: at least a 44 x 44 tap area around the compact delete (36px) and Detalhes (40px tall) buttons.
+        // The browser check is the responsive audit's owner-tracing-targets scenario.
+        css.Should().Contain("@media (max-width: 767px), (pointer: coarse) {\n  .owner-log__buttons {\n    gap: 10px;\n  }")
+            .And.Contain("  .owner-log__buttons .btn::after,\n  .owner-log__buttons .icon-btn::after {\n    position: absolute;\n    inset: -3px;")
+            .And.Contain("  .owner-log__buttons .icon-btn::after {\n    inset: -5px;");
     }
 
     private static string GetProjectRoot()

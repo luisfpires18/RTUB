@@ -261,6 +261,33 @@ def hierarchy_focus_branch(page: Page) -> None:
     _selected_in_view(page)
 
 
+def tracing_targets(page: Page) -> None:
+    """#220: on phones the card's Detalhes and delete each answer a tap anywhere in a 44 x 44 square around them
+    (their look stays compact; an invisible ring gives the area). Taps between the two never hit both."""
+    if page.viewport_size["width"] >= TABLET:
+        return
+    problem = page.evaluate(
+        """() => {
+          const card = document.querySelector('.owner-log');
+          if (!card) return 'no tracing card';
+          for (const sel of ['.owner-log__buttons .btn', '.owner-log__buttons .icon-btn']) {
+            const el = card.querySelector(sel);
+            el.scrollIntoView({ block: 'center', behavior: 'instant' });
+            const r = el.getBoundingClientRect();
+            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+            const halfW = Math.max(r.width, 44) / 2 - 0.5, halfH = Math.max(r.height, 44) / 2 - 0.5;
+            for (const [x, y] of [[cx, cy - halfH], [cx, cy + halfH], [cx - halfW, cy], [cx + halfW, cy]]) {
+              const hit = document.elementFromPoint(x, y);
+              if (!hit || !(hit === el || el.contains(hit))) return `${sel} misses a tap at ${Math.round(x)},${Math.round(y)} (${Math.round(r.width)}x${Math.round(r.height)})`;
+            }
+          }
+          return '';
+        }"""
+    )
+    if problem:
+        raise AssertionError(problem)
+
+
 SCENARIOS: list[Scenario] = [
     # Public (signed out)
     Scenario("home", "/"),
@@ -319,6 +346,7 @@ SCENARIOS: list[Scenario] = [
     Scenario("questions", "/questions", auth=True),
     Scenario("owner-users", "/users", auth=True),
     Scenario("owner-tracing", "/owner/tracing", auth=True),
+    Scenario("owner-tracing-targets", "/owner/tracing", auth=True, action=tracing_targets),
     Scenario("owner-db", "/owner/db", auth=True),
     Scenario("owner-emails", "/emails", auth=True),
     Scenario("owner-notifications", "/notifications", auth=True),

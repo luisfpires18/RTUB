@@ -12110,6 +12110,31 @@ label.owner-person {
   margin-left: auto;
 }
 
+/* Phones / touch: the compact Detalhes (40px tall) and delete (36px) buttons keep their look, but an invisible ring
+   makes each one a 46 x 46 target (44 + a pixel each side for sub-pixel layout). The rings stay 2px apart in the 10px
+   gap; the card padding holds them. */
+@media (max-width: 767px), (pointer: coarse) {
+  .owner-log__buttons {
+    gap: 10px;
+  }
+
+  .owner-log__buttons .btn,
+  .owner-log__buttons .icon-btn {
+    position: relative;
+  }
+
+  .owner-log__buttons .btn::after,
+  .owner-log__buttons .icon-btn::after {
+    position: absolute;
+    inset: -3px;
+    content: '';
+  }
+
+  .owner-log__buttons .icon-btn::after {
+    inset: -5px;
+  }
+}
+
 .owner-action {
   display: inline-block;
   padding: 2px 10px;
