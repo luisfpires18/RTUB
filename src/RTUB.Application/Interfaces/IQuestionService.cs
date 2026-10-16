@@ -57,25 +57,4 @@ public interface IQuestionService
     /// Sends a manual notification reminder for a question
     /// </summary>
     Task SendManualReminderAsync(int questionId, string requestingUserId);
-
-    /// <summary>
-    /// Checks if a user can answer a question (must be the assigned member)
-    /// </summary>
-    Task<bool> CanAnswerAsync(int questionId, string userId);
-
-    /// <summary>
-    /// Checks if a user has any of the Orgãos Sociais positions
-    /// </summary>
-    bool HasOrgaoSocialPosition(ApplicationUser user);
-
-    /// <summary>
-    /// Gets all members with a specific position
-    /// </summary>
-    Task<IEnumerable<ApplicationUser>> GetMembersWithPositionAsync(Position position);
-
-    /// <summary>
-    /// Gets all members with Órgãos Sociais positions for the single dropdown
-    /// Returns tuple of (member, group, position)
-    /// </summary>
-    Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync();
 }

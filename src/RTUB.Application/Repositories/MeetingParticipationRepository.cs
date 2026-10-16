@@ -105,23 +105,4 @@ public class MeetingParticipationRepository : Repository<MeetingParticipation>, 
             .AsNoTracking()
             .FirstOrDefaultAsync(mp => mp.MeetingId == meetingId && mp.UserId == userId);
     }
-
-    public async Task<IEnumerable<MeetingParticipation>> GetByAttendanceAsync(bool willAttend)
-    {
-        using var context = CreateContext();
-        return await context.MeetingParticipations
-            .AsNoTracking()
-            .Where(mp => mp.WillAttend == willAttend)
-            .Include(mp => mp.User)
-            .Include(mp => mp.Meeting)
-            .ToListAsync();
-    }
-
-    public async Task DeleteByMeetingIdAsync(int meetingId)
-    {
-        using var context = CreateContext();
-        await context.MeetingParticipations
-            .Where(mp => mp.MeetingId == meetingId)
-            .ExecuteDeleteAsync();
-    }
 }

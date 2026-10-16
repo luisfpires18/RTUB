@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -28,8 +28,9 @@ export default function Logistics() {
     return () => clearTimeout(timer);
   }, [text]);
 
+  const latest = useLatest();
   const load = () =>
-    logisticsApi.boards(search).then((o) =>
+    latest(logisticsApi.boards(search), (o) =>
       setBoards(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'forbidden' ? 'forbidden' : null),
     );
 
@@ -183,8 +184,12 @@ function BoardDialog({ board, onClose, onSaved }: { board?: BoardSummary; onClos
 
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
-    const timer = setTimeout(() => logisticsApi.events(query.trim()).then((o) => setFound(o.kind === 'ok' ? o.data : [])), 250);
-    return () => clearTimeout(timer);
+    let live = true; // a slower answer for an older query never replaces the newer one
+    const timer = setTimeout(() => logisticsApi.events(query.trim()).then((o) => live && setFound(o.kind === 'ok' ? o.data : [])), 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [query]);
 
   const submit = async (e: FormEvent) => {

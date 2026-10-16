@@ -92,10 +92,14 @@ function PeoplePicker({ people, onChange }: { people: GalleryPerson[]; onChange:
 
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      galleryApi.people(query.trim()).then((o) => setFound(o.kind === 'ok' ? o.data.filter((m) => !people.some((p) => p.id === m.id)) : []));
+      galleryApi.people(query.trim()).then((o) => live && setFound(o.kind === 'ok' ? o.data.filter((m) => !people.some((p) => p.id === m.id)) : []));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [query, people]);
 
   return (

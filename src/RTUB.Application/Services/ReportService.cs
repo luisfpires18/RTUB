@@ -7,6 +7,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 
 namespace RTUB.Application.Services;
@@ -17,14 +18,20 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class ReportService : IReportService
 {
+    private readonly TimeProvider _time;
+
+    /// <summary>The "Gerado em" stamp: Portugal's wall clock (#226 F02; was the server's DateTime.Now, UTC on Azure).</summary>
+    internal string GeneratedAt() => PortugalTime.Now(_time).ToString("dd/MM/yyyy HH:mm");
+
     private readonly IReportRepository _reportRepository;
 
     /// <summary>
     /// Initializes a new instance of the ReportService
     /// </summary>
     /// <param name="reportRepository">Repository for report operations</param>
-    public ReportService(IReportRepository reportRepository)
+    public ReportService(IReportRepository reportRepository, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _reportRepository = reportRepository;
     }
 
@@ -234,7 +241,7 @@ public class ReportService : IReportService
                 {
                     text.DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium));
                     text.Span("Gerado em: ");
-                    text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                    text.Span(GeneratedAt());
                     text.Span(" | Página ");
                     text.CurrentPageNumber();
                     text.Span(" de ");

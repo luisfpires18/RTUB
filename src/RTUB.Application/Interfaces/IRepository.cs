@@ -91,11 +91,4 @@ public interface IRepository<T> where T : class
     /// <param name="queryFunc">Function that builds and executes the query</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task<TResult> QueryAsync<TResult>(Func<IQueryable<T>, Task<TResult>> queryFunc, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Reloads an entity from the database, overwriting any local changes
-    /// and resetting the change tracker state for this entity.
-    /// </summary>
-    /// <param name="entity">The entity to reload</param>
-    Task ReloadAsync(T entity);
 }

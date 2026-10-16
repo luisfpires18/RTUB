@@ -76,8 +76,12 @@ export function MemberPicker({ forDebts, label, onPick }: { forDebts: boolean; l
 
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
-    const timer = setTimeout(() => treasuryApi.members(query.trim(), forDebts).then((o) => setFound(o.kind === 'ok' ? o.data : [])), 250);
-    return () => clearTimeout(timer);
+    let live = true; // a slower answer for an older query never replaces the newer one
+    const timer = setTimeout(() => treasuryApi.members(query.trim(), forDebts).then((o) => live && setFound(o.kind === 'ok' ? o.data : [])), 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [query, forDebts]);
 
   return (

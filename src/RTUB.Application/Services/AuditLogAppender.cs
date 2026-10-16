@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using RTUB.Application.Interfaces;
@@ -127,7 +128,7 @@ public class AuditLogAppender : IAuditLogAppender
             Timestamp = DateTime.UtcNow,
             Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = IsCriticalAction(entityType, action),
-            EntityDisplayName = getEntityDisplayName(entry)
+            EntityDisplayName = Fit(getEntityDisplayName(entry))
         };
     }
 
@@ -139,6 +140,40 @@ public class AuditLogAppender : IAuditLogAppender
 
         foreach (var name in changes.Keys.Where(redacted.Contains).ToList())
             changes[name] = AuditConfiguration.RedactedValue;
+    }
+
+    /// <summary>
+    /// #226 F04: entries written before a property joined <see cref="AuditConfiguration.RedactedProperties"/> (push
+    /// subscriptions before #220) still hold its value. This hides it whenever an entry is shown or exported - the stored
+    /// row is never rewritten. The key stays, so the reader sees that it was set or changed. Text that is not a JSON
+    /// object, or holds nothing to hide, comes back exactly as stored.
+    /// </summary>
+    public static string? RedactStored(string? entityType, string? changes)
+    {
+        if (string.IsNullOrEmpty(changes) || entityType is null
+            || !AuditConfiguration.RedactedProperties.TryGetValue(entityType, out var redacted))
+            return changes;
+
+        JsonObject? stored;
+        try
+        {
+            stored = JsonNode.Parse(changes) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            return changes;
+        }
+
+        var exposed = stored?
+            .Where(p => redacted.Contains(p.Key) && !(p.Value is JsonValue v && v.TryGetValue<string>(out var text) && text == AuditConfiguration.RedactedValue))
+            .Select(p => p.Key)
+            .ToList();
+        if (stored is null || exposed is not { Count: > 0 })
+            return changes;
+
+        foreach (var name in exposed)
+            stored[name] = AuditConfiguration.RedactedValue;
+        return stored.ToJsonString();
     }
 
     public AuditLog? CreateAuditLogForUser(EntityEntry<ApplicationUser> entry, string action, string? username, string? userId)
@@ -211,7 +246,10 @@ public class AuditLogAppender : IAuditLogAppender
             Timestamp = DateTime.UtcNow,
             Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCriticalChange,
-            EntityDisplayName = modifiedUser.UserName
+            // #220: the nickname members know, with the username that identifies the account.
+            EntityDisplayName = Fit(string.IsNullOrWhiteSpace(modifiedUser.Nickname) || modifiedUser.Nickname == modifiedUser.UserName
+                ? modifiedUser.UserName
+                : $"{modifiedUser.Nickname} ({modifiedUser.UserName})")
         };
     }
 
@@ -236,6 +274,9 @@ public class AuditLogAppender : IAuditLogAppender
     }
 
     // --- Private helpers ---
+
+    /// <summary>AuditLog.EntityDisplayName holds at most 500 characters.</summary>
+    private static string? Fit(string? name) => name is { Length: > 500 } ? name[..499] + "…" : name;
 
     /// <summary>
     /// Builds a ChangeEntry for a modified property, with special handling for binary data.

@@ -4,6 +4,7 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 
 namespace RTUB.Application.Services;
@@ -15,10 +16,13 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class FiscalYearService : IFiscalYearService
 {
+    private readonly TimeProvider _time;
+
     private readonly IFiscalYearRepository _fiscalYearRepository;
 
-    public FiscalYearService(IFiscalYearRepository fiscalYearRepository)
+    public FiscalYearService(IFiscalYearRepository fiscalYearRepository, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _fiscalYearRepository = fiscalYearRepository;
     }
 
@@ -45,7 +49,7 @@ public class FiscalYearService : IFiscalYearService
             throw new InvalidOperationException($"Fiscal year starting in {startYear} already exists");
 
         // Get current fiscal start year
-        var today = DateTime.Today;
+        var today = PortugalTime.Today(_time);
         var currentMonth = today.Month;
         var currentYear = today.Year;
         int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
@@ -71,7 +75,7 @@ public class FiscalYearService : IFiscalYearService
     public async Task<IEnumerable<int>> GetAvailableFiscalYearStartYearsAsync()
     {
         // Get current fiscal start year
-        var today = DateTime.Today;
+        var today = PortugalTime.Today(_time);
         var currentMonth = today.Month;
         var currentYear = today.Year;
         int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;

@@ -6,6 +6,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -26,6 +27,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class TreasuryService : ITreasuryService
 {
+    private readonly TimeProvider _time;
+
     public const long MaxReceiptBytes = 10 * 1024 * 1024;
     public const int FirstYear = 1991;
     private const string Bank = "DINHEIRO NO BANCO";
@@ -40,8 +43,10 @@ public sealed class TreasuryService : ITreasuryService
     private readonly ReportPdfService _pdf;
 
     public TreasuryService(IDbContextFactory<ApplicationDbContext> contexts, IReportService reports, IActivityService activities,
-        ITransactionService transactions, IFinanceManagementService finance, IReceiptStorageService receipts, ReportPdfService pdf)
+        ITransactionService transactions, IFinanceManagementService finance, IReceiptStorageService receipts, ReportPdfService pdf,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _reports = reports;
         _activities = activities;
@@ -178,7 +183,7 @@ public sealed class TreasuryService : ITreasuryService
         var transactions = activities.Select(a => (a, a.Transactions.OrderByDescending(t => t.Date).ToList())).ToList();
         await using var db = await _contexts.CreateDbContextAsync();
         var pdf = _pdf.GenerateReportPdf(report, activities, transactions, await CalotesAsync(db, report.Year));
-        return EventResult<TreasuryFileDto>.Ok(new TreasuryFileDto(pdf, $"Relatorio_{report.Year}_{DateTime.Now:yyyyMMdd}.pdf"));
+        return EventResult<TreasuryFileDto>.Ok(new TreasuryFileDto(pdf, $"Relatorio_{report.Year}_{PortugalTime.Today(_time):yyyyMMdd}.pdf"));
     }
 
     public async Task<EventResult<TreasuryReportDto>> SetBalanceAsync(int reportId, TreasuryBalanceInput input, ClaimsPrincipal user) =>

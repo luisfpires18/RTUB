@@ -9,6 +9,7 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -18,6 +19,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class WeeklyNotificationBackgroundService : BackgroundService
 {
+    private readonly TimeProvider _time;
+
     private readonly ILogger<WeeklyNotificationBackgroundService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly WeeklyNotificationOptions _options;
@@ -28,8 +31,10 @@ public class WeeklyNotificationBackgroundService : BackgroundService
     public WeeklyNotificationBackgroundService(
         ILogger<WeeklyNotificationBackgroundService> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<WeeklyNotificationOptions> options)
+        IOptions<WeeklyNotificationOptions> options,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
@@ -41,14 +46,14 @@ public class WeeklyNotificationBackgroundService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(StartupDelaySeconds), stoppingToken);
 
         _logger.LogInformation(
-            "Weekly notification service started. Will check every Monday at {ScheduledTime} UTC. Enabled: {Enabled}",
+            "Weekly notification service started. Will check every Monday at {ScheduledTime} Portugal time. Enabled: {Enabled}",
             _options.ScheduledTime,
             _options.Enabled);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             var nextRun = CalculateNextRunTime();
-            var delay = nextRun - DateTime.UtcNow;
+            var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
             if (delay.TotalMilliseconds > 0)
             {
@@ -72,7 +77,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
     private async Task CheckAndSendWeeklyNotificationsAsync(CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = PortugalTime.Today(_time);
 
         // Only run once per day (even though we only schedule for Mondays)
         if (_lastRunDate == today)
@@ -245,7 +250,6 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
     private DateTime CalculateNextRunTime()
     {
-        var now = DateTime.UtcNow;
         var scheduledTime = _options.ScheduledTime;
 
         // Parse the scheduled time (format: "HH:mm")
@@ -255,24 +259,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(9, 0, 0); // Default to 9 AM
         }
 
-        // Calculate next Monday
-        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
-
-        // If it's Monday and the time hasn't passed yet, schedule for today
-        if (daysUntilMonday == 0)
-        {
-            var todayAtScheduledTime = now.Date.Add(timeOfDay);
-            if (todayAtScheduledTime > now)
-            {
-                return todayAtScheduledTime;
-            }
-            // Time has passed, schedule for next Monday
-            daysUntilMonday = 7;
-        }
-
-        var nextMonday = now.Date.AddDays(daysUntilMonday);
-        var nextRun = nextMonday.Add(timeOfDay);
-
-        return nextRun;
+        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        return PortugalTime.NextUtc(_time, timeOfDay, DayOfWeek.Monday);
     }
 }

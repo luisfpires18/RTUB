@@ -216,37 +216,6 @@ public class QuestionService : IQuestionService
             question.Title, authorName);
     }
 
-    public async Task<bool> CanAnswerAsync(int questionId, string userId)
-    {
-        var question = await _questionRepository.GetByIdAsync(questionId);
-        if (question == null)
-        {
-            return false;
-        }
-
-        return question.AssignedMemberId == userId;
-    }
-
-    public bool HasOrgaoSocialPosition(ApplicationUser user)
-    {
-        if (user.Positions == null || !user.Positions.Any())
-        {
-            return false;
-        }
-
-        var orgaoSocialPositions = OrgaoSocialHelper.GetAllOrgaoSocialPositions().ToHashSet();
-        return user.Positions.Any(p => orgaoSocialPositions.Contains(p));
-    }
-
-    public async Task<IEnumerable<ApplicationUser>> GetMembersWithPositionAsync(Position position)
-    {
-        var allUsers = await _userManager.Users
-            .AsNoTracking()
-            .ToListAsync();
-
-        return allUsers.Where(u => u.Positions != null && u.Positions.Contains(position));
-    }
-
     public async Task<bool> CloseAsync(int questionId, string requestingUserId)
     {
         var question = await _questionRepository.GetByIdAsync(questionId);
@@ -276,43 +245,5 @@ public class QuestionService : IQuestionService
             "Question '{QuestionTitle}' closed by author {AuthorName}",
             question.Title, authorName);
         return true;
-    }
-
-    public async Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync()
-    {
-        // Project only fields needed for member selection — avoids loading PasswordHash,
-        // SecurityStamp, ConcurrencyStamp, and other identity fields irrelevant to this query.
-        var allUsers = await _userManager.Users
-            .AsNoTracking()
-            .Select(u => new ApplicationUser
-            {
-                Id = u.Id,
-                UserName = u.UserName,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Nickname = u.Nickname,
-                Positions = u.Positions,
-            })
-            .ToListAsync();
-
-        var result = new List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>();
-
-        // Iterate through users once and check their positions
-        foreach (var user in allUsers)
-        {
-            if (user.Positions == null || !user.Positions.Any())
-                continue;
-
-            foreach (var position in user.Positions)
-            {
-                var group = OrgaoSocialHelper.GetGroupForPosition(position);
-                if (group.HasValue)
-                {
-                    result.Add((user, group.Value, position));
-                }
-            }
-        }
-
-        return result;
     }
 }

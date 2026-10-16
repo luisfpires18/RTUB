@@ -104,8 +104,11 @@ function MemberBody({ m }: { m: MemberDetail }) {
         <dl className="member-fields">
           {m.showInstruments && <Field label="Instrumentos">{m.instruments.length > 0 ? m.instruments.join(', ') : null}</Field>}
           {m.showMentor && <Field label="Padrinho">{m.mentor}</Field>}
-          <Field label="Percurso na tuna">{m.timeline.length > 0 ? <Timeline items={m.timeline} /> : null}</Field>
         </dl>
+        <div className="member-path">
+          <p className="member-path__title">Percurso na tuna</p>
+          {m.timeline.length > 0 ? <TunaPath items={m.timeline} /> : <p className="note">Ainda sem percurso registado.</p>}
+        </div>
       </section>
 
       {m.state && <StateSection state={m.state} />}
@@ -113,15 +116,29 @@ function MemberBody({ m }: { m: MemberDetail }) {
   );
 }
 
-/** "Percurso na tuna": membership steps and positions, oldest first (built by the server). */
-export function Timeline({ items }: { items: TimelineItem[] }) {
+/**
+ * The look of a milestone, from what the server already says (MemberDirectoryService.Timeline): `accent` is the
+ * category (leitao, caloiro, tuno, veterano, tunossauro, fundador, honorario) and `role` / `magister` are the officer
+ * positions, one look for both.
+ */
+const pathVariant = (t: TimelineItem) => (t.accent === 'role' || t.accent === 'magister' ? 'position' : t.accent);
+
+/**
+ * "Percurso na Tuna": the milestones the server built, oldest first, as cards on a thin rail - a row on wide screens
+ * (it scrolls sideways if it must), a column on a phone. The variant colours the card and shapes the marker; `state`
+ * marks the current steps. Shared by /profile and the member details (the same server timeline, the same look).
+ */
+export function TunaPath({ items }: { items: TimelineItem[] }) {
   return (
-    <ol className="member-timeline">
+    <ol className="tuna-path">
       {items.map((t, i) => (
-        <li key={i} className={`member-timeline__item member-timeline__item--${t.accent}${t.state ? ` is-${t.state}` : ''}`}>
-          <span className="member-timeline__label">{t.label}</span>
-          <span className="member-timeline__years">{t.years}</span>
-          {t.notes && <span className="note">{t.notes}</span>}
+        <li key={i} className={`tuna-path__step tuna-path__step--${pathVariant(t)}${t.state ? ` is-${t.state}` : ''}`}>
+          <span className="tuna-path__marker" aria-hidden="true" />
+          <span className="tuna-path__card">
+            <span className="tuna-path__label">{t.label}</span>
+            <span className="tuna-path__years">{t.years}</span>
+            {t.notes && <span className="tuna-path__notes">{t.notes}</span>}
+          </span>
         </li>
       ))}
     </ol>
@@ -197,7 +214,11 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
   const ids = { q: useId(), status: useId() };
 
   useEffect(() => {
-    membersApi.active(status, search.q).then((o) => setList(o.kind === 'ok' ? o.data : null));
+    let live = true; // a slower answer for an older query never replaces the newer one
+    membersApi.active(status, search.q).then((o) => live && setList(o.kind === 'ok' ? o.data : null));
+    return () => {
+      live = false;
+    };
   }, [status, search.q, version]);
 
   return (

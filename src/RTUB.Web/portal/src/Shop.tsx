@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
@@ -23,6 +23,9 @@ type Product = {
   imageUrl: string | null;
   myReservation: Reservation | null;
   canReserve: boolean;
+  availableAllYears: boolean;
+  /** Admin / Owner only (#226 F20): the reservations a delete removes; null for everyone else. */
+  reservationCount: number | null;
 };
 type Detail = {
   id: number;
@@ -34,6 +37,9 @@ type Detail = {
   isPublic: boolean;
   description: string | null;
   imageUrl: string | null;
+  availableAllYears: boolean;
+  /** The fiscal year the product was created in: the only one a year-specific product is shown in. */
+  fiscalYear: string;
 };
 type Shop = {
   fiscalYears: Option[];
@@ -44,7 +50,15 @@ type Shop = {
   canCreate: boolean;
   canManage: boolean;
 };
-type ProductInput = { name: string; type: string; price: number; stock: number; isPublic: boolean; description: string };
+type ProductInput = {
+  name: string;
+  type: string;
+  price: number;
+  stock: number;
+  isPublic: boolean;
+  description: string;
+  availableAllYears: boolean;
+};
 
 const SIZE_LABELS: Record<string, string> = {
   XS: 'XS - Extra Small',
@@ -134,7 +148,8 @@ export default function ShopPage() {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const load = () => api.shop(fiscalYear, q, type).then((o) => setShop(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+  const latest = useLatest();
+  const load = () => latest(api.shop(fiscalYear, q, type), (o) => setShop(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
 
   useEffect(() => {
     setShown(PAGE);
@@ -240,6 +255,7 @@ export default function ShopPage() {
                           <MemberBadge kind="retired">Esgotado</MemberBadge>
                         )}
                         {!p.isPublic && <MemberBadge kind="active">Apenas membros</MemberBadge>}
+                        {data.canManage && p.availableAllYears && <MemberBadge>Todos os anos</MemberBadge>}
                       </span>
                       <span className="shop-card__price">{euros(p.price)}</span>
                       <span className="shop-card__actions">
@@ -310,6 +326,14 @@ export default function ShopPage() {
               <p>
                 Eliminar <strong>{open.product.name}</strong> da loja?
               </p>
+              {(open.product.reservationCount ?? 0) > 0 && (
+                <p className="warning">
+                  <Icon name="warning" />
+                  {open.product.reservationCount === 1
+                    ? 'Este produto tem 1 reserva, que também é apagada.'
+                    : `Este produto tem ${open.product.reservationCount} reservas, que também são apagadas.`}
+                </p>
+              )}
               <p className="warning">
                 <Icon name="warning" />
                 Apaga também a imagem e as reservas deste produto. Não dá para desfazer.
@@ -356,6 +380,7 @@ function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
             {field('Stock', detail.stock > 0 ? detail.stock : 'Esgotado')}
             {field('Disponível', detail.isAvailable ? 'Sim' : 'Não')}
             {!detail.isPublic && field('Visibilidade', 'Apenas membros')}
+            {field('Ano letivo', detail.availableAllYears ? 'Todos os anos letivos' : detail.fiscalYear)}
           </dl>
           {detail.description && <p className="shop-description">{detail.description}</p>}
         </div>
@@ -628,7 +653,7 @@ function Confirm({
   );
 }
 
-const blank = (): ProductInput => ({ name: '', type: '', price: 0, stock: 0, isPublic: true, description: '' });
+const blank = (): ProductInput => ({ name: '', type: '', price: 0, stock: 0, isPublic: true, description: '', availableAllYears: false });
 
 /** "Novo produto" (Mod, Admin, Owner) / "Editar produto" (Admin, Owner), with the square image. */
 function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; canManage: boolean; onClose: () => void; onSaved: () => void }) {
@@ -636,6 +661,8 @@ function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; canMana
   const [priceText, setPriceText] = useState('');
   const [savedId, setSavedId] = useState(id);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  // The fiscal year of the product's creation (edit only): where a year-specific product is shown.
+  const [createdYear, setCreatedYear] = useState<string>();
   const [picked, setPicked] = useState<File | null>(null);
   const [image, setImage] = useState<{ blob: Blob; preview: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -648,9 +675,18 @@ function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; canMana
     api.product(id).then((o) => {
       if (o.kind !== 'ok') return setForm('failed');
       const d = o.data;
-      setForm({ name: d.name, type: d.type, price: d.price, stock: d.stock, isPublic: d.isPublic, description: d.description ?? '' });
+      setForm({
+        name: d.name,
+        type: d.type,
+        price: d.price,
+        stock: d.stock,
+        isPublic: d.isPublic,
+        description: d.description ?? '',
+        availableAllYears: d.availableAllYears,
+      });
       setPriceText(d.price.toFixed(2));
       setCurrentImage(d.imageUrl);
+      setCreatedYear(d.fiscalYear);
     });
   }, [id]);
 
@@ -754,6 +790,25 @@ function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; canMana
             <input id={`${fid}-public`} type="checkbox" checked={form.isPublic} onChange={(e) => set({ isPublic: e.target.checked })} />
             Público (não membros). Sem esta opção, o produto é só para membros e pode ser reservado.
           </label>
+          <div className="form__field">
+            <label className="form__check" htmlFor={`${fid}-all-years`}>
+              <input
+                id={`${fid}-all-years`}
+                type="checkbox"
+                aria-describedby={`${fid}-all-years-hint`}
+                checked={form.availableAllYears}
+                onChange={(e) => set({ availableAllYears: e.target.checked })}
+              />
+              Disponível em todos os anos letivos
+            </label>
+            <p id={`${fid}-all-years-hint`} className="form__hint">
+              {form.availableAllYears
+                ? 'Aparece na loja em qualquer ano letivo (por exemplo, CDs). O stock continua a contar.'
+                : createdYear
+                  ? `Aparece só no ano letivo ${createdYear}, em que foi criado.`
+                  : 'Aparece só no ano letivo em que é criado.'}
+            </p>
+          </div>
           <div className={field('description')}>
             <label htmlFor={`${fid}-description`}>Descrição</label>
             <textarea id={`${fid}-description`} rows={3} maxLength={1000} value={form.description} onChange={(e) => set({ description: e.target.value })} />

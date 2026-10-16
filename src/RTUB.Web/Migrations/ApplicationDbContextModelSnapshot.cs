@@ -2589,6 +2589,9 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("TEXT");
 
@@ -2744,6 +2747,9 @@ namespace RTUB.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AvailableAllYears")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")

@@ -9,6 +9,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -22,6 +23,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class EventAdminService : IEventAdminService
 {
+    private readonly TimeProvider _time;
+
     public const long MaxImageBytes = 5 * 1024 * 1024;
     public const int MaxReasonLength = 1000;
     public const int MaxPushLength = 500;
@@ -45,8 +48,10 @@ public sealed class EventAdminService : IEventAdminService
         IPushNotificationFactory pushFactory,
         IAuditLogService audit,
         ITrophyService trophies,
-        ILogger<EventAdminService> logger)
+        ILogger<EventAdminService> logger,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _events = events;
         _email = email;
@@ -135,7 +140,7 @@ public sealed class EventAdminService : IEventAdminService
             return EventResult<EventNoticeResultDto>.Fail(EventResultStatus.NotFound);
         }
 
-        if (e.IsCancelled || IsPast(e))
+        if (e.IsCancelled || IsPast(e, Today))
         {
             return EventResult<EventNoticeResultDto>.Fail(EventResultStatus.Closed);
         }
@@ -181,7 +186,7 @@ public sealed class EventAdminService : IEventAdminService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
-        if (!e.IsCancelled || IsPast(e))
+        if (!e.IsCancelled || IsPast(e, Today))
         {
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
@@ -229,7 +234,7 @@ public sealed class EventAdminService : IEventAdminService
             return EventResult<EventNoticeResultDto>.Fail(EventResultStatus.NotFound);
         }
 
-        if (e.IsCancelled || IsPast(e))
+        if (e.IsCancelled || IsPast(e, Today))
         {
             return EventResult<EventNoticeResultDto>.Fail(EventResultStatus.Closed);
         }
@@ -324,7 +329,7 @@ public sealed class EventAdminService : IEventAdminService
     /// Where a prize can be added: a festival whose last day has passed. The old page only offered the
     /// prizes button on past festivals; existing prizes stay editable and deletable on any event.
     /// </summary>
-    public static bool TakesPrizes(Event e) => e.Type == EventType.Festival && IsPast(e);
+    public static bool TakesPrizes(Event e, DateTime today) => e.Type == EventType.Festival && IsPast(e, today);
 
     public async Task<EventResult<IReadOnlyList<EventPrizeDto>>> GetPrizesAsync(int id, ClaimsPrincipal user)
     {
@@ -351,7 +356,7 @@ public sealed class EventAdminService : IEventAdminService
             return EventResult<IReadOnlyList<EventPrizeDto>>.Fail(EventResultStatus.NotFound);
         }
 
-        if (!TakesPrizes(e))
+        if (!TakesPrizes(e, Today))
         {
             return EventResult<IReadOnlyList<EventPrizeDto>>.Fail(EventResultStatus.Closed);
         }
@@ -462,7 +467,7 @@ public sealed class EventAdminService : IEventAdminService
         }
 
         // The old page offered uploads only on past events (the videos button of the archive cards).
-        if (!IsPast(e))
+        if (!IsPast(e, Today))
         {
             return EventResult<IReadOnlyList<EventManagedVideoDto>>.Fail(EventResultStatus.Closed);
         }
@@ -623,7 +628,10 @@ public sealed class EventAdminService : IEventAdminService
     }
 
     /// <summary>The same "past" as the agenda: the last day (EndDate, else Date) is before today.</summary>
-    private static bool IsPast(Event e) => (e.EndDate ?? e.Date).Date < DateTime.Today;
+    // Past = its last day is before today in Portugal (#226 F02; was the server's DateTime.Today).
+    private static bool IsPast(Event e, DateTime today) => (e.EndDate ?? e.Date).Date < today;
+
+    private DateTime Today => PortugalTime.Today(_time);
 
     /// <summary>Where the old emails pointed: the agenda.</summary>
     private static string EventsLink(string baseUrl) => $"{baseUrl.TrimEnd('/')}/events";

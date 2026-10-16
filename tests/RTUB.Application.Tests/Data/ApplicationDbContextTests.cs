@@ -1181,9 +1181,9 @@ public class ApplicationDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEntityDisplayName_OnlyUsesLocalCache_NoDbQueries()
+    public async Task GetEntityDisplayName_ResolvesNamesTheTrackerLacks_FromTheBatchLoadedBeforeTheSave()
     {
-        // Arrange - Create entities but don't load them into context
+        // #220 (was: only the Local cache, so the name was null). Arrange - Create entities but don't load them into context
         var song = new Song { Title = "Test Song", AlbumId = 1 };
         _context.Songs.Add(song);
         await _context.SaveChangesAsync();
@@ -1196,16 +1196,15 @@ public class ApplicationDbContextTests : IDisposable
         _context.SongYouTubeUrls.Add(youtubeUrl);
 
         // Act - Save changes which triggers GetEntityDisplayName
-        // Since Song is not in Local cache, EntityDisplayName should be null (not fetch from DB)
+        // Song is not in the Local cache: its title comes from the one batched lookup made before the save
         await _context.SaveChangesAsync();
 
-        // Assert - Audit log should exist but without resolved entity name
+        // Assert
         var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "SongYouTubeUrl").ToListAsync();
         auditLogs.Should().ContainSingle();
 
         var auditLog = auditLogs.First();
-        // EntityDisplayName should be null because Song was not in Local cache
-        auditLog.EntityDisplayName.Should().BeNull();
+        auditLog.EntityDisplayName.Should().Be("Test Song · YouTube");
     }
 
     [Fact]
@@ -1233,7 +1232,7 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().ContainSingle();
 
         var auditLog = auditLogs.First();
-        auditLog.EntityDisplayName.Should().Be("Test Song");
+        auditLog.EntityDisplayName.Should().Be("Test Song · YouTube");
     }
 
     [Fact]

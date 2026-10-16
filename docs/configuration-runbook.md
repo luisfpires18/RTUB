@@ -16,7 +16,7 @@ ever printing or committing a value**. Task 039.
 
 | Source | Holds | Never holds |
 | --- | --- | --- |
-| Committed `appsettings.json` / `appsettings.Production.json` | non-secret defaults: schedulers, rate limits, `WebPush:Enabled`, `Toggles:MapEnabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
+| Committed `appsettings.json` / `appsettings.Production.json` | non-secret defaults: schedulers, rate limits, `WebPush:Enabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
 | **user-secrets** (local, `UserSecretsId` of `src/RTUB.Web/RTUB.csproj`) | local secrets and overrides | — (outside the repo) |
 | **Azure App Settings** (`rtub-dev`, `rtub`) | every DEV / PROD secret and environment value | — (names in docs, values in Azure only) |
 | GitHub environment variables / secrets | deploy identity (`AZURE_*`), `RELEASE_STORAGE_ACCOUNT`, the DEV-refresh secrets | app settings (no workflow sets them) |
@@ -41,7 +41,7 @@ Full list and notes: the manifest. The ones that matter:
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | — | optional: read-only view of production media after a DB refresh (all four or none) | **absent** |
 | `EmailSettings__*` (server, port, SSL, username, password, sender, sender name, recipient) | optional | optional (real mail from DEV reaches real people after a refresh) | **required** for real outgoing email |
 | `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | optional (own pair to test push) | **required**, DEV's own pair | **required**, PROD's own pair |
-| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | defaults | `true` / `false` (defaults) | `true` / `false` (defaults) |
+| `Geocoding__DisabledInTests` | default | `false` (default) | `false` (default) |
 | `DatabaseBackup__Enabled` + `Bucket` (+ optional scoped `AccountId` / `AccessKeyId` / `SecretAccessKey`) | off | **`false`**, nothing else | **`true`**, `Bucket=rtub-db` |
 | `DevelopmentDataReset__*` | opt-in, one run | off (`false` or unset) | **absent** |
 
@@ -68,9 +68,10 @@ Why:
 - **No messaging table drops.** `Conversations`, `Messages`, `MessageReactions` and `ConversationUserSettings` are
   preserved for Messaging v2 (`docs/messages-removal.md`). No setting drops or disables them; the Azure audit flags
   any setting whose name suggests one.
-- Settings marked `unused` in the manifest (`Gallery__MaxVideoSizeMB`, `ImageCaching__*`, `UseSqlServer`,
-  `LoginPopup__*`) are committed but read by no code; the gallery limit the code reads is `GalleryMedia__MaxVideoSize`
-  (bytes).
+- Removed in #226 F17 (no code read them): `Toggles__MapEnabled` (the members map is always on), `LoginPopup__*`,
+  `UseSqlServer`, `ImageCaching__*`, `Gallery__MaxVideoSizeMB` (the gallery limit the code reads is
+  `GalleryMedia__MaxVideoSize`, bytes). They are `deprecatedPatterns` now: both audits flag them for deletion if they
+  reappear. None was set in DEV or PROD App Settings on 2026-10-16.
 
 ## Local user-secrets
 
@@ -167,7 +168,6 @@ $settings = @(
     'WebPush__VapidSubject=mailto:<contact-address>'
     'WebPush__VapidPublicKey=<DEV_VAPID_PUBLIC_KEY>'
     'WebPush__VapidPrivateKey=<DEV_VAPID_PRIVATE_KEY>'
-    'Toggles__MapEnabled=true'
     'Geocoding__DisabledInTests=false'
     'DatabaseBackup__Enabled=false'
 )
@@ -199,7 +199,6 @@ $settings = @(
     'WebPush__VapidSubject=mailto:<contact-address>'
     'WebPush__VapidPublicKey=<PROD_VAPID_PUBLIC_KEY>'
     'WebPush__VapidPrivateKey=<PROD_VAPID_PRIVATE_KEY>'
-    'Toggles__MapEnabled=true'
     'Geocoding__DisabledInTests=false'
     'DatabaseBackup__Enabled=true'
     'DatabaseBackup__Bucket=rtub-db'

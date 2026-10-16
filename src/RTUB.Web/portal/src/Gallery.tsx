@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type GalleryTimeline } from './api';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { EditDialog, UploadDialog } from './GalleryManage';
 import { Icon } from './icons';
 
@@ -63,21 +63,23 @@ export default function Gallery() {
     document.title = 'Galeria · RTUB';
   }, []);
 
+  const latest = useLatest();
   const load = useCallback((page: number, current: GalleryFilters) => {
     setFailed(false);
     if (page > 1) setLoadingMore(true);
-    getGallery(page, current).then(
-      (timeline) => {
+    latest(
+      getGallery(page, current).then(
+        (timeline) => ({ timeline }),
+        () => ({ timeline: null }),
+      ),
+      ({ timeline }) => {
+        setLoadingMore(false);
+        if (!timeline) return setFailed(true);
         setData(timeline);
         setItems((previous) => (page === 1 ? timeline.items : [...previous, ...timeline.items]));
-        setLoadingMore(false);
-      },
-      () => {
-        setFailed(true);
-        setLoadingMore(false);
       },
     );
-  }, []);
+  }, [latest]);
 
   useEffect(() => load(1, filters), [load, filters]);
 
@@ -105,7 +107,7 @@ export default function Gallery() {
 
   return (
     <section className="page wrap gallery-page" aria-labelledby="gallery-title">
-      <header className="page__head gallery-page__head">
+      <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Memórias</p>
           <h1 id="gallery-title" className="page__title">

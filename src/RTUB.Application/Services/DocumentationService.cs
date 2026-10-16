@@ -23,6 +23,9 @@ namespace RTUB.Application.Services;
 /// - delete document / folder (Owner): removed from storage (the folder with everything in it), as before.
 /// Every key is rebuilt from a listed year, folder and name, never from raw input. Audit log rows as before (the
 /// storage service writes them). No notifications, no schema change.
+/// #226 F01: a year's folders, boards and documents all come from ONE storage listing of docs/{environment}/{year}/
+/// (<see cref="DocumentTreeCache"/>, kept 30 s and dropped on every write), instead of the year listing, then the
+/// Logistics listing, then one listing per folder - and the download no longer lists three times before signing.
 /// </summary>
 public sealed class DocumentationService : IDocumentationService
 {
@@ -37,18 +40,22 @@ public sealed class DocumentationService : IDocumentationService
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
     private readonly IHostEnvironment _environment;
     private readonly AuditContext _audit;
+    private readonly DocumentTreeCache _trees;
 
     public DocumentationService(IDocumentStorageService storage, IFiscalYearService fiscalYears, IDbContextFactory<ApplicationDbContext> contexts,
-        IHostEnvironment environment, AuditContext audit)
+        IHostEnvironment environment, AuditContext audit, DocumentTreeCache trees)
     {
         _storage = storage;
         _fiscalYears = fiscalYears;
         _contexts = contexts;
         _environment = environment;
         _audit = audit;
+        _trees = trees;
     }
 
-    private sealed record Viewer(bool IsOwner, IReadOnlyList<string> Years, string FiscalYear, IReadOnlyList<(string Name, string Label)> Folders);
+    /// <summary>The caller, the validated year, the folders of that year they may see, and that year's storage listing.</summary>
+    private sealed record Viewer(bool IsOwner, IReadOnlyList<string> Years, string FiscalYear, IReadOnlyList<(string Name, string Label)> Folders,
+        IReadOnlyList<DocumentMetadata> Tree);
 
     public async Task<EventResult<DocumentationDto>> GetAsync(string? fiscalYear, ClaimsPrincipal user)
     {
@@ -59,9 +66,9 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         var current = FiscalYearHelper.GetCurrentFiscalYearString();
-        var folders = await Task.WhenAll(viewer.Folders.Select(async f =>
-            new DocumentFolderDto(f.Name, f.Label, (await _storage.ListDocumentsInFolderAsync(FolderPath(viewer.FiscalYear, f.Name)))
-                .Select(d => new DocumentFileDto(d.FileName, d.Extension, d.SizeBytes)).ToList())));
+        var folders = viewer.Folders.Select(f =>
+            new DocumentFolderDto(f.Name, f.Label, Documents(viewer.Tree, FolderPath(viewer.FiscalYear, f.Name))
+                .Select(d => new DocumentFileDto(d.FileName, d.Extension, d.SizeBytes)).ToList())).ToList();
 
         return EventResult<DocumentationDto>.Ok(new DocumentationDto(
             viewer.Years.Select(y => new MemberOptionDto(y, y == current ? $"{y} (ATUAL)" : y)).ToList(),
@@ -80,7 +87,7 @@ public sealed class DocumentationService : IDocumentationService
             return new EventResult<DocumentLinkDto>(refusal!.Status, Errors: refusal.Errors);
         }
 
-        if (await DocumentAsync(viewer, folder, name) is not { } path)
+        if (DocumentPath(viewer, folder, name) is not { } path)
         {
             return EventResult<DocumentLinkDto>.Fail(EventResultStatus.NotFound);
         }
@@ -116,13 +123,14 @@ public sealed class DocumentationService : IDocumentationService
                 $"O nome da pasta só pode conter letras, números, espaços e hífens (máx. {MaxFolderName} caracteres).");
         }
 
-        if ((await _storage.ListSubfoldersAsync(YearPath(viewer.FiscalYear))).Contains(name, StringComparer.OrdinalIgnoreCase))
+        if (Subfolders(viewer.Tree, YearPath(viewer.FiscalYear)).Contains(name, StringComparer.OrdinalIgnoreCase))
         {
             return EventResult<DocumentFolderDto>.Invalid("name", "Uma pasta com este nome já existe.");
         }
 
         SetAudit(user);
         await _storage.CreateFolderAsync(FolderPath(viewer.FiscalYear, name));
+        _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<DocumentFolderDto>.Ok(new DocumentFolderDto(name, name, Array.Empty<DocumentFileDto>()));
     }
 
@@ -146,6 +154,7 @@ public sealed class DocumentationService : IDocumentationService
 
         SetAudit(user);
         await _storage.DeleteFolderAsync(FolderPath(viewer.FiscalYear, found));
+        _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<bool>.Ok(true);
     }
 
@@ -176,7 +185,7 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         var path = FolderPath(viewer.FiscalYear, found);
-        if (!viewer.IsOwner && (await _storage.ListDocumentsInFolderAsync(path)).Any(d => d.FileName == name))
+        if (!viewer.IsOwner && Documents(viewer.Tree, path).Any(d => d.FileName == name))
         {
             return EventResult<DocumentFileDto>.Invalid("file", "Já existe um documento com este nome nesta pasta.");
         }
@@ -184,6 +193,7 @@ public sealed class DocumentationService : IDocumentationService
         SetAudit(user);
         await _storage.UploadDocumentAsync(path, name, upload.Content,
             string.IsNullOrWhiteSpace(upload.ContentType) ? "application/octet-stream" : upload.ContentType);
+        _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<DocumentFileDto>.Ok(new DocumentFileDto(name, Path.GetExtension(name), upload.Length));
     }
 
@@ -200,13 +210,14 @@ public sealed class DocumentationService : IDocumentationService
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
 
-        if (await DocumentAsync(viewer, folder, name) is not { } path)
+        if (DocumentPath(viewer, folder, name) is not { } path)
         {
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
         SetAudit(user);
         await _storage.DeleteDocumentAsync(path);
+        _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<bool>.Ok(true);
     }
 
@@ -243,12 +254,15 @@ public sealed class DocumentationService : IDocumentationService
             return (EventResult<bool>.Invalid("fiscalYear", "Ano inválido."), null);
         }
 
+        // One listing for the whole year (shared for 30 s). A storage failure shows no folders and finds no document, as
+        // the per-folder listings did, and is not kept.
+        var tree = await _trees.GetAsync(_storage, YearPath(selected)) ?? [];
         var folders = new List<(string Name, string Label)>();
-        foreach (var folder in await _storage.ListSubfoldersAsync(YearPath(selected)))
+        foreach (var folder in Subfolders(tree, YearPath(selected)))
         {
             if (folder.Equals(Logistics, StringComparison.OrdinalIgnoreCase))
             {
-                folders.AddRange((await _storage.ListSubfoldersAsync($"{YearPath(selected)}{folder}/")).Select(board => ($"{folder}/{board}", board)));
+                folders.AddRange(Subfolders(tree, $"{YearPath(selected)}{folder}/").Select(board => ($"{folder}/{board}", board)));
             }
             else
             {
@@ -257,16 +271,40 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         return (null, new Viewer(isOwner, years, selected,
-            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name)).ToList()));
+            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name)).ToList(), tree));
     }
 
     private static string? Folder(Viewer viewer, string? folder) =>
         viewer.Folders.Select(f => f.Name).FirstOrDefault(f => f == folder);
 
-    private async Task<string?> DocumentAsync(Viewer viewer, string? folder, string? name) =>
+    /// <summary>
+    /// The key of a document the caller may download or delete: the folder must be one of the caller's visible folders and
+    /// the name a document listed directly in it, so the key is always one storage itself listed - never built from input.
+    /// </summary>
+    private string? DocumentPath(Viewer viewer, string? folder, string? name) =>
         Folder(viewer, folder) is { } found
-            ? (await _storage.ListDocumentsInFolderAsync(FolderPath(viewer.FiscalYear, found))).FirstOrDefault(d => d.FileName == name)?.FilePath
+            ? Documents(viewer.Tree, FolderPath(viewer.FiscalYear, found)).FirstOrDefault(d => d.FileName == name)?.FilePath
             : null;
+
+    /// <summary>The direct subfolders of a prefix in the listing, as the delimiter listing named them (key order).</summary>
+    internal static List<string> Subfolders(IReadOnlyList<DocumentMetadata> tree, string prefix) =>
+        tree.Select(o => o.FilePath)
+            .Where(k => k.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(k => k.IndexOf('/', prefix.Length) is var end && end > prefix.Length ? k[prefix.Length..end] : null)
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(f => f + "/")
+            .ToList();
+
+    /// <summary>The documents directly in a folder (no folder marker, nothing in a subfolder), by file name.</summary>
+    internal static List<DocumentMetadata> Documents(IReadOnlyList<DocumentMetadata> tree, string folderPath)
+    {
+        var prefix = folderPath.EndsWith('/') ? folderPath : folderPath + "/";
+        return tree.Where(o => o.FilePath.StartsWith(prefix, StringComparison.Ordinal)
+                && o.FilePath.Length > prefix.Length && o.FilePath.IndexOf('/', prefix.Length) < 0)
+            .OrderBy(o => o.FileName)
+            .ToList();
+    }
 
     private string YearPath(string fiscalYear) => $"docs/{_environment.EnvironmentName}/{fiscalYear}/";
 

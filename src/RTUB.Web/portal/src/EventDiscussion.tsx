@@ -459,10 +459,14 @@ function Lift({ eventId, post, editing, onDone, onChange }: { eventId: number; p
 
   useEffect(() => {
     if (!t.canManage || !query.trim()) return setMembers(undefined);
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      eventsApi.passengerMembers(eventId, post.id, query.trim()).then((o) => setMembers(o.kind === 'ok' ? o.data : []));
+      eventsApi.passengerMembers(eventId, post.id, query.trim()).then((o) => live && setMembers(o.kind === 'ok' ? o.data : []));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [eventId, post.id, query, t.canManage, t.passengers.length]);
 
   const run = async (call: Promise<Outcome<Discussion>>, done?: () => void) => {

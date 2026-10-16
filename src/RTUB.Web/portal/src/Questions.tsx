@@ -235,7 +235,11 @@ function QuestionList({
 
   useEffect(() => setPage(1), [q, recipient]);
   useEffect(() => {
-    api.page(closed, q, recipient, page).then((o) => setData(o.kind === 'ok' ? o.data : null));
+    let live = true; // a slower answer for an older query never replaces the newer one
+    api.page(closed, q, recipient, page).then((o) => live && setData(o.kind === 'ok' ? o.data : null));
+    return () => {
+      live = false;
+    };
   }, [closed, q, recipient, page, version]);
 
   // The closed list only appears once there is something in it, as before.

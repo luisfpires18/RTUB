@@ -94,6 +94,62 @@ public class OwnerOperationsSourceTests
         }
     }
 
+    /// <summary>
+    /// #220: every entity type /owner/tracing can show (each audited table, plus the manual audit types) has a
+    /// Portuguese label; the excluded messaging types do not need one and must stay excluded.
+    /// </summary>
+    [Fact]
+    public void Tracing_LabelsEveryAuditedType()
+    {
+        var tracing = Read(Portal, "OwnerTracing.tsx");
+        var audited = typeof(RTUB.Application.Data.ApplicationDbContext).GetProperties()
+            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Microsoft.EntityFrameworkCore.DbSet<>))
+            .Select(p => p.PropertyType.GetGenericArguments()[0])
+            .Where(t => typeof(RTUB.Core.Entities.BaseEntity).IsAssignableFrom(t))
+            .Select(t => t.Name)
+            .Where(n => !RTUB.Core.Constants.AuditConfiguration.ExcludedEntityTypes.Contains(n))
+            .Concat(["ApplicationUser", "UserRole", "Document", "Folder", "Notification", "MemberActivityStatus"])
+            .ToList();
+
+        audited.Should().HaveCountGreaterThan(40);
+        audited.Where(t => !tracing.Contains($"\n  {t}: '")).Should().BeEmpty("each audited type needs a label in ENTITY_LABELS");
+        RTUB.Core.Constants.AuditConfiguration.ExcludedEntityTypes.Should()
+            .Contain(new[] { "Message", "Conversation", "ConversationUserSettings", "MessageReaction" });
+    }
+
+    /// <summary>
+    /// #220 card: the name first (never "ID: n"), then the friendly type with the action and a written "Crítica", then
+    /// who and when as dd/MM/yyyy HH:mm, then Detalhes and delete. Details keep every raw field; filters submit raw types.
+    /// </summary>
+    [Fact]
+    public void Tracing_CardLeadsWithTheName_AndDetailsKeepTheRawEvidence()
+    {
+        var tracing = Read(Portal, "OwnerTracing.tsx");
+        var card = tracing[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..tracing.IndexOf("<OwnerPager", StringComparison.Ordinal)];
+
+        string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];
+        order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);
+        card.Should().Contain("owner-log--critical").And.NotContain("ID: ");
+        tracing.Should().NotContain("`ID: ${");
+        tracing.Should().Contain("${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}");
+
+        var details = tracing[tracing.IndexOf("function DetailsDialog", StringComparison.Ordinal)..tracing.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
+        foreach (var raw in new[] { "entry.entityType}", "entry.entityId ??", "entry.entityDisplayName ||", "entry.currentDisplayName}", "entry.userName ??",
+                     "entry.action}", "entry.isCritical ?", "pretty(entry.changes)" })
+        {
+            details.Should().Contain(raw);
+        }
+
+        tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={(type) =>", "the type filter shows labels but submits raw types");
+        var css = Read(Web, "portal", "src", "styles.css");
+        css.Should().Contain(".owner-log--critical {\n  border-left-color:");
+        // Phones: at least a 44 x 44 tap area around the compact delete (36px) and Detalhes (40px tall) buttons.
+        // The browser check is the responsive audit's owner-tracing-targets scenario.
+        css.Should().Contain("@media (max-width: 767px), (pointer: coarse) {\n  .owner-log__buttons {\n    gap: 10px;\n  }")
+            .And.Contain("  .owner-log__buttons .btn::after,\n  .owner-log__buttons .icon-btn::after {\n    position: absolute;\n    inset: -3px;")
+            .And.Contain("  .owner-log__buttons .icon-btn::after {\n    inset: -5px;");
+    }
+
     private static string GetProjectRoot()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());

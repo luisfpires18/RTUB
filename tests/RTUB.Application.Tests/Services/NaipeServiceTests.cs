@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
@@ -411,4 +412,41 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         contentStillExists.Should().NotBeNull();
         _mockMediaStorageService.Verify(m => m.DeleteMediaAsync(It.IsAny<string>()), Times.Never);
     }
+
+    /// <summary>
+    /// #226 F16: create, update and delete leave ONE audit entry each - the automatic one, with the fields - instead of
+    /// the automatic entry plus a manual sentence for the same action. "Video Played" stays (plays are not audited
+    /// automatically: NaipePlayCount is excluded).
+    /// </summary>
+    [Fact]
+    public async Task Crud_LeavesOneAuditEntryPerAction_AndPlaysStillLogVideoPlayed()
+    {
+        _mockMediaStorageService.Setup(m => m.UploadVideoAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("https://example.com/videos/f16.mp4");
+
+        var created = await _naipeService.CreateContentAsync(
+            InstrumentType.Guitarra, "F16 Video", null, new MemoryStream(new byte[] { 1 }), "f16.mp4", "video/mp4", true, 1m, _testUser1.Id);
+        (await NaipeAuditAsync(created.Id)).Should().Equal(new[] { "Created" }, "no second, manual \"Video Created\" entry");
+        (await LastNaipeChangesAsync(created.Id)).Should().Contain("F16 Video");
+
+        await _naipeService.UpdateContentAsync(created.Id, "F16 Renamed", null, 2m, _testUser1.Id, false);
+        (await NaipeAuditAsync(created.Id)).Should().Equal("Created", "Modified");
+        (await LastNaipeChangesAsync(created.Id)).Should().Contain("F16 Video").And.Contain("F16 Renamed");
+
+        await _naipeService.IncrementPlayCountAsync(created.Id, _testUser2.Id);
+        (await NaipeAuditAsync(created.Id)).Should().Equal("Created", "Modified", "Video Played");
+
+        await _naipeService.DeleteContentAsync(created.Id, _testUser1.Id, false);
+        (await NaipeAuditAsync(created.Id)).Should().Equal("Created", "Modified", "Video Played", "Deleted");
+        (await _context.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityType == "NaipeContent" && a.EntityId == created.Id && a.Action == "Deleted"))
+            .IsCriticalAction.Should().BeTrue("deletes stay critical (every Deleted entry is)");
+    }
+
+    private Task<List<string>> NaipeAuditAsync(int id) =>
+        _context.AuditLogs.AsNoTracking().Where(a => a.EntityType == "NaipeContent" && a.EntityId == id)
+            .OrderBy(a => a.Id).Select(a => a.Action).ToListAsync();
+
+    private async Task<string?> LastNaipeChangesAsync(int id) =>
+        (await _context.AuditLogs.AsNoTracking().Where(a => a.EntityType == "NaipeContent" && a.EntityId == id)
+            .OrderByDescending(a => a.Id).FirstAsync()).Changes;
 }

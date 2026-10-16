@@ -93,38 +93,6 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     }
 
     [Fact]
-    public async Task GetUserByUsernameAsync_WithValidUsername_ReturnsUser()
-    {
-        // Arrange
-        var username = "testuser";
-        var user = new ApplicationUser { Id = "user-123", UserName = username, Nickname = username };
-        _mockUserManager.Setup(x => x.FindByNameAsync(username)).ReturnsAsync(user);
-
-        // Act
-        var result = await _service.GetUserByUsernameAsync(username);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.UserName.Should().Be(username);
-    }
-
-    [Fact]
-    public async Task GetUserByEmailAsync_WithValidEmail_ReturnsUser()
-    {
-        // Arrange
-        var email = "test@example.com";
-        var user = new ApplicationUser { Id = "user-123", Email = email, Nickname = "TestUser" };
-        _mockUserManager.Setup(x => x.FindByEmailAsync(email)).ReturnsAsync(user);
-
-        // Act
-        var result = await _service.GetUserByEmailAsync(email);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Email.Should().Be(email);
-    }
-
-    [Fact]
     public async Task GetAllUsersAsync_ReturnsAllUsers()
     {
         // Arrange
@@ -236,40 +204,6 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
 
         // Assert
         result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetUserRolesAsync_WithValidUser_ReturnsRoles()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, Nickname = "TestUser" };
-        var roles = new List<string> { "Admin", "Member" };
-
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(roles);
-
-        // Act
-        var result = await _service.GetUserRolesAsync(userId);
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain("Admin");
-        result.Should().Contain("Member");
-    }
-
-    [Fact]
-    public async Task GetUserRolesAsync_WithInvalidUser_ThrowsException()
-    {
-        // Arrange
-        _mockUserManager.Setup(x => x.FindByIdAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
-
-        // Act
-        var act = async () => await _service.GetUserRolesAsync("invalid-id");
-
-        // Assert
-        await act.Should().ThrowAsync<EntityNotFoundException>()
-            .WithMessage("ApplicationUser with ID invalid-id not found");
     }
 
     [Fact]

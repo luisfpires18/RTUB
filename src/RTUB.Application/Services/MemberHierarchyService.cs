@@ -34,7 +34,8 @@ public class MemberHierarchyService : IMemberHierarchyService
         var mentorToAfilhados = new Dictionary<string, List<ApplicationUser>>();
         foreach (var member in effectiveMembers)
         {
-            if (!string.IsNullOrEmpty(member.MentorId))
+            // #223: a member recorded as their own padrinho is shown as a root (the link is not a padrinho relation).
+            if (!string.IsNullOrEmpty(member.MentorId) && member.MentorId != member.Id)
             {
                 // Get the mentor using dictionary lookup (O(1) instead of O(n))
                 membersById.TryGetValue(member.MentorId, out var mentor);
@@ -55,7 +56,7 @@ public class MemberHierarchyService : IMemberHierarchyService
         var rootMembers = effectiveMembers
             .Where(m =>
             {
-                if (string.IsNullOrEmpty(m.MentorId))
+                if (string.IsNullOrEmpty(m.MentorId) || m.MentorId == m.Id)
                     return true;
 
                 // Use dictionary lookup (O(1) instead of O(n))
@@ -68,6 +69,47 @@ public class MemberHierarchyService : IMemberHierarchyService
             .ThenBy(m => m.LastName)
             .ToList();
 
+        BreakLoops(effectiveMembers, rootMembers, mentorToAfilhados);
         return (rootMembers, mentorToAfilhados);
+    }
+
+    /// <summary>
+    /// #223 defensive guard: members in a padrinho loop (A → B → A, all Tunos) have a valid padrinho each, so none is a
+    /// root and the whole loop would silently vanish from the tree. Each loop is cut at its first member by name, who
+    /// becomes a root; the rest stay under their padrinhos. Only the returned tree changes - the stored MentorId does
+    /// not. Valid data (no loops) is untouched. Real data had none (#223 audit).
+    /// </summary>
+    private static void BreakLoops(List<ApplicationUser> members, List<ApplicationUser> roots, Dictionary<string, List<ApplicationUser>> afilhados)
+    {
+        var reached = new HashSet<string>();
+        void Reach(ApplicationUser member)
+        {
+            if (!reached.Add(member.Id))
+                return;
+            foreach (var child in afilhados.GetValueOrDefault(member.Id) ?? [])
+                Reach(child);
+        }
+
+        roots.ForEach(Reach);
+        var cut = false;
+        // members is ordered by name, so each loop is cut at its first member by name.
+        foreach (var lost in members.Where(m => !reached.Contains(m.Id)).ToList())
+        {
+            if (reached.Contains(lost.Id))
+                continue;
+
+            afilhados.GetValueOrDefault(lost.MentorId!)?.Remove(lost);
+            roots.Add(lost);
+            Reach(lost);
+            cut = true;
+        }
+
+        if (cut)
+        {
+            // The same order as the roots above (OrderBy FirstName, then LastName).
+            var ordered = roots.OrderBy(m => m.FirstName).ThenBy(m => m.LastName).ToList();
+            roots.Clear();
+            roots.AddRange(ordered);
+        }
     }
 }

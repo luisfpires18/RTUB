@@ -55,9 +55,13 @@ public sealed record OwnerSyncResult(int Updated, int Changed, int Failed);
 public sealed record OwnerAuditFilter(
     string? User, string? ExcludeUser, string? EntityType, string? Action, bool CriticalOnly, string? Q, int Page, int PageSize);
 
+/// <summary>
+/// One log entry, as stored. <see cref="CurrentDisplayName"/> (#220) is never stored: for an old entry whose stored name
+/// is missing or carries a member id, the name that can be resolved now (current nickname or title); null otherwise.
+/// </summary>
 public sealed record OwnerAuditEntry(
     int Id, DateTime Timestamp, string? UserName, string EntityType, int? EntityId, string? EntityDisplayName,
-    string Action, bool IsCritical, string? Changes);
+    string Action, bool IsCritical, string? Changes, string? CurrentDisplayName = null);
 
 /// <summary>
 /// One page of the log. <see cref="Total"/> is exact without a search; with one it is the old page's estimate

@@ -26,13 +26,6 @@ public interface ISongService
 
     // Play count tracking
     Task IncrementPlayCountAsync(int songId, string? userId = null);
-    Task<int> GetPlayCountBySongIdAsync(int songId);
-    Task<Dictionary<int, int>> GetPlayCountsForSongsAsync(IEnumerable<int> songIds);
-    Task<IEnumerable<(Song Song, int PlayCount)>> GetTopSongsAsync(int count = 10);
-    Task<IEnumerable<(Album Album, int PlayCount)>> GetTopAlbumsAsync(int count = 10);
-    Task<IEnumerable<(UserPlayInfo User, Song Song, Album Album, int PlayCount)>> GetDetailedPlayStatsAsync();
-    Task<IEnumerable<(Song Song, int PlayCount)>> GetAllSongsWithPlayCountAsync();
-    Task<IEnumerable<(Album Album, int PlayCount)>> GetAllAlbumsWithPlayCountAsync();
 }
 
 /// <summary>

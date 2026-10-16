@@ -150,31 +150,4 @@ public class Repository<T> : IRepository<T> where T : class
         using var context = CreateContext();
         return await queryFunc(context.Set<T>().AsNoTracking()).ConfigureAwait(false);
     }
-
-    /// <summary>
-    /// Reloads an entity from the database by re-fetching it with a fresh context
-    /// and copying the current database values onto the provided entity instance.
-    /// </summary>
-    public virtual async Task ReloadAsync(T entity)
-    {
-        using var context = CreateContext();
-        var keyValues = GetPrimaryKeyValues(context, entity);
-        var fresh = await context.Set<T>().FindAsync(keyValues).ConfigureAwait(false);
-        if (fresh != null)
-        {
-            // Copy fresh DB values onto the caller's entity reference
-            context.Entry(fresh).CurrentValues.SetValues(entity);
-            // Now copy the DB values back to the passed-in entity
-            var freshValues = context.Entry(fresh).CurrentValues;
-            var entityType = context.Model.FindEntityType(typeof(T))!;
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.PropertyInfo != null)
-                {
-                    var dbValue = freshValues[property];
-                    property.PropertyInfo.SetValue(entity, dbValue);
-                }
-            }
-        }
-    }
 }

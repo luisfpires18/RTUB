@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
-import { PrizeManager } from './EventManage';
+import { PrizeManager } from './EventManageLazy';
 import { portal } from './content';
 import { dateLabel, eventsApi, timeLabel, yearOf, type EventEnrollment, type EventStats, type EventSummary } from './eventsApi';
 import { Icon } from './icons';

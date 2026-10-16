@@ -53,6 +53,19 @@ public class NewsPortalTests
         }
     }
 
+    [Fact]
+    public void Visibility_ToggleIsOffByDefault_TabsAreForSignedInReadersOnly_AndPrivatePostsAreBadged()
+    {
+        var news = Read("News.tsx");
+
+        news.Should().Contain("useState(post?.membersOnly ?? false)", "a new post is public, an edited one shows its current value");
+        news.Should().Contain("Privado (só membros)").And.Contain("Só membros");
+        news.Should().Contain("{feed.signedIn && (", "visitors get no tabs and no hint that private posts exist");
+        news.Should().Contain("'Todas'").And.Contain("'Públicas'").And.Contain("'Privadas'");
+        Read("Home.tsx").Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
+        Read("api.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
+    }
+
     private static string GetProjectRoot()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());

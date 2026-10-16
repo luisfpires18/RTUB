@@ -21,8 +21,9 @@ public static class NewsEndpoints
         var writes = news.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
         // ?page=1&pageSize=10 (the home preview asks for 3).
-        news.MapGet("/", async (int? page, int? pageSize, HttpContext http, INewsService service) =>
-            ToResult(await service.GetFeedAsync(page ?? 1, pageSize ?? NewsService.DefaultPageSize, http.User)));
+        // &visibility=public|private narrows a signed-in caller's feed (the tabs); visitors always get public posts only (#222).
+        news.MapGet("/", async (int? page, int? pageSize, string? visibility, HttpContext http, INewsService service) =>
+            ToResult(await service.GetFeedAsync(page ?? 1, pageSize ?? NewsService.DefaultPageSize, http.User, visibility)));
 
         writes.MapPost("/", async (NewsPostInput input, HttpContext http, INewsService service) =>
                 ToResult(await service.CreateAsync(input, http.User), created => Results.Created($"/api/news/{created.Id}", created)))

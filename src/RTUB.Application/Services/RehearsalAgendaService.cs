@@ -23,13 +23,16 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class RehearsalAgendaService : IRehearsalAgendaService
 {
+    private readonly TimeProvider _time;
+
     public const int NotesMax = 500;
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
     private readonly IRehearsalAttendanceService _attendance;
 
-    public RehearsalAgendaService(IDbContextFactory<ApplicationDbContext> contexts, IRehearsalAttendanceService attendance)
+    public RehearsalAgendaService(IDbContextFactory<ApplicationDbContext> contexts, IRehearsalAttendanceService attendance, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _attendance = attendance;
     }
@@ -54,12 +57,12 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         RehearsalSummaryDto Summary(Rehearsal r) => ToSummary(r,
             counts.TryGetValue(r.Id, out var c) ? c.Going : 0,
             manage && counts.TryGetValue(r.Id, out var p) ? p.Pending : 0,
-            mine.GetValueOrDefault(r.Id));
+            mine.GetValueOrDefault(r.Id), Today);
 
         return EventResult<RehearsalAgendaDto>.Ok(new RehearsalAgendaDto(
             manage,
-            rehearsals.Where(r => !IsPast(r)).OrderBy(r => r.Date).ThenBy(r => r.Id).Select(Summary).ToList(),
-            rehearsals.Where(IsPast).OrderByDescending(r => r.Date).ThenByDescending(r => r.Id).Select(Summary).ToList()));
+            rehearsals.Where(r => !IsPast(r, Today)).OrderBy(r => r.Date).ThenBy(r => r.Id).Select(Summary).ToList(),
+            rehearsals.Where(r => IsPast(r, Today)).OrderByDescending(r => r.Date).ThenByDescending(r => r.Id).Select(Summary).ToList()));
     }
 
     public async Task<EventResult<RehearsalDetailDto>> GetAsync(int id, ClaimsPrincipal user)
@@ -84,7 +87,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             .ToListAsync();
 
         // The old list: Admin approves or removes once the rehearsal can be approved; anyone removes their own.
-        var approvable = IsApprovable(r);
+        var approvable = IsApprovable(r, Today);
         RehearsalAttendeeDto Row(RehearsalAttendance a) => new(
             a.Id,
             Person(a),
@@ -114,7 +117,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         var mine = rows.FirstOrDefault(a => a.UserId == me)
                    ?? await db.RehearsalAttendances.AsNoTracking().FirstOrDefaultAsync(a => a.RehearsalId == id && a.UserId == me);
         return EventResult<RehearsalDetailDto>.Ok(new RehearsalDetailDto(
-            ToSummary(r, going.Count, manage ? going.Count(a => !a.Attended) : 0, mine),
+            ToSummary(r, going.Count, manage ? going.Count(a => !a.Attended) : 0, mine, Today),
             Blank(r.Notes),
             manage,
             list,
@@ -211,7 +214,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         }
 
         var endExclusive = end.AddDays(1);
-        var today = DateTime.Today;
+        var today = Today;
         await using var db = await _contexts.CreateDbContextAsync();
         var past = await db.Rehearsals.CountAsync(r => r.Date >= start && r.Date < endExclusive && r.Date < today && !r.IsCanceled);
         var rows = await db.RehearsalAttendances.AsNoTracking()
@@ -250,13 +253,16 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     // ---------- rules and mapping (shared with RehearsalAdminService) ----------
 
-    internal static bool IsPast(Rehearsal r) => r.Date.Date < DateTime.Today;
+    // "Today" is Portugal's calendar date (#226 F02; was the server's DateTime.Today).
+    private DateTime Today => PortugalTime.Today(_time);
 
-    internal static bool IsApprovable(Rehearsal r) => IsPast(r) || (r.Date.Date == DateTime.Today && r.StartTime.Hours >= 21);
+    internal static bool IsPast(Rehearsal r, DateTime today) => r.Date.Date < today;
+
+    internal static bool IsApprovable(Rehearsal r, DateTime today) => IsPast(r, today) || (r.Date.Date == today && r.StartTime.Hours >= 21);
 
     internal static string Status(RehearsalAttendance a) => !a.WillAttend ? "notGoing" : a.Attended ? "approved" : "pending";
 
-    internal static RehearsalSummaryDto ToSummary(Rehearsal r, int going, int pending, RehearsalAttendance? mine) => new(
+    internal static RehearsalSummaryDto ToSummary(Rehearsal r, int going, int pending, RehearsalAttendance? mine, DateTime today) => new(
         r.Id,
         DateText(r.Date),
         Time(r.StartTime),
@@ -266,8 +272,8 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         Blank(r.Description),
         r.IsCanceled,
         r.IsCanceled ? Blank(r.CancellationReason) : null,
-        IsPast(r),
-        IsApprovable(r),
+        IsPast(r, today),
+        IsApprovable(r, today),
         Season(r.Date),
         going,
         pending,
@@ -341,7 +347,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             .Select(i => i.InstrumentType)
             .ToListAsync();
         var options = registered.Count > 0 ? registered : isLeitao ? Enum.GetValues<InstrumentType>().ToList() : new List<InstrumentType>();
-        var state = r.IsCanceled ? "cancelled" : IsPast(r) ? "past" : "open";
-        return new Context(ToSummary(r, going, 0, attendance), state, attendance, isLeitao, registered, options);
+        var state = r.IsCanceled ? "cancelled" : IsPast(r, Today) ? "past" : "open";
+        return new Context(ToSummary(r, going, 0, attendance, Today), state, attendance, isLeitao, registered, options);
     }
 }

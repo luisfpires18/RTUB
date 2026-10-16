@@ -263,6 +263,7 @@ function LatestNews() {
                 <time className="news-latest__date" dateTime={p.publishedAt ?? undefined}>
                   {p.publishedAt && newsDate(p.publishedAt)}
                 </time>
+                {p.membersOnly && <span className="tag tag--private news-latest__tag">Só membros</span>}
                 {p.title && <h3 className="news-latest__title">{p.title}</h3>}
                 <p className="news-latest__text">{p.body}</p>
               </a>

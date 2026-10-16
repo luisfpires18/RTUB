@@ -45,34 +45,6 @@ public class ProductService : IProductService
     }
 
     /// <summary>
-    /// Gets all available products (in stock and available)
-    /// </summary>
-    /// <returns>Collection of available products</returns>
-    public async Task<IEnumerable<Product>> GetAvailableAsync()
-    {
-        return await _productRepository.GetAvailableAsync();
-    }
-
-    /// <summary>
-    /// Gets all public products
-    /// </summary>
-    /// <returns>Collection of public products</returns>
-    public async Task<IEnumerable<Product>> GetPublicAsync()
-    {
-        return await _productRepository.GetPublicAsync();
-    }
-
-    /// <summary>
-    /// Gets all products of a specific type
-    /// </summary>
-    /// <param name="type">The product type to filter by</param>
-    /// <returns>Collection of products of the specified type</returns>
-    public async Task<IEnumerable<Product>> GetByTypeAsync(string type)
-    {
-        return await _productRepository.GetByTypeAsync(type);
-    }
-
-    /// <summary>
     /// Creates a new product
     /// </summary>
     /// <param name="product">The product entity to create</param>
@@ -94,6 +66,7 @@ public class ProductService : IProductService
         existingProduct.Update(product.Name, product.Type, product.Price, product.Stock, product.Description);
         existingProduct.SetAvailability(product.IsAvailable);
         existingProduct.SetPublicVisibility(product.IsPublic);
+        existingProduct.AvailableAllYears = product.AvailableAllYears;
 
         // Update image URL if it has changed
         if (existingProduct.ImageUrl != product.ImageUrl)
@@ -121,27 +94,5 @@ public class ProductService : IProductService
 
             await _productRepository.DeleteAsync(id);
         }
-    }
-
-    /// <summary>
-    /// Gets statistics about products grouped by type
-    /// </summary>
-    /// <returns>Dictionary mapping product types to their counts</returns>
-    public async Task<Dictionary<string, int>> GetTypeStatsAsync()
-    {
-        return await _productRepository.QueryAsync(q => q
-            .GroupBy(p => p.Type)
-            .Select(g => new { Type = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Type, x => x.Count));
-    }
-
-    /// <summary>
-    /// Calculates the total inventory value (sum of price * stock for all products)
-    /// </summary>
-    /// <returns>The total inventory value</returns>
-    public async Task<decimal> GetTotalInventoryValueAsync()
-    {
-        return await _productRepository.QueryAsync(q => q
-            .SumAsync(p => p.Price * p.Stock));
     }
 }

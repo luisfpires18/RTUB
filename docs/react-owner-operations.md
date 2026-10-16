@@ -81,6 +81,31 @@ the API is what enforces access.
   wrong after page 1. Changes stored in the log are shown as they were recorded. The log already leaves out password
   hashes and stamps (`AuditLogAppender`).
 
+#### Names and cards (#220)
+
+- **Names when written** (`ApplicationDbContext.EntityDisplay.cs`): every audited type is named after the person or
+  object (Novidade by title or the first words of its text, "Zé · iPhone" for a push subscription, "Zé - Serenata - Vai"
+  for an enrollment, "Zé (ze.pires)" for a user, "Pedido · Serenata · 01/12/2026" for a request - the outside person's
+  name and contacts stay in the changes). Before the save, `LoadAuditNamesAsync` loads what the change tracker lacks
+  (members, events, rehearsals, ...) in **at most one batched query per table, none when nothing needs it**, so a
+  deleted row is named while it still exists. Was: the tracker only, so fresh contexts stored member ids or nothing.
+- **Push keys**: `Endpoint`, `Auth` and `P256dh` are written as `[redacted]` in new log entries
+  (`AuditConfiguration.RedactedProperties`). Older entries still hold them in the database, but since #226 F04 the page
+  (list and Details) and the export show them as `[redacted]` too (`AuditLogAppender.RedactStored`, same property list,
+  read time only): the key stays so the Owner sees it was set or changed. The stored rows are never rewritten. The
+  search still runs over the stored text (Owner only; a match never shows the value). `/owner/db` reads raw tables.
+- **Old entries are never rewritten.** The page adds `currentDisplayName`, at read time only, for an entry whose stored
+  name is missing or carries member ids: ids become today's nicknames (one query per page), and a missing name the
+  entity's current name for a few simple types when it still exists (one query per type on the page). Shown as "nome
+  atual"; Details shows the stored name and the current one; the export is the stored log (redacted properties hidden).
+- **Search** matches the stored changes **or the stored name**, together with the other filters, with an exact total
+  (was: changes only, other filters ignored, an estimated total). A name resolved at read time is not searchable.
+- **Card**: the name (or "{type} #id"), then the Portuguese type (`ENTITY_LABELS` in `OwnerTracing.tsx`, presentation
+  only; the type filter shows "Label (RawType)" and submits the raw type) with the action and a written "Crítica"
+  (plus an accent border), then who and `dd/MM/yyyy HH:mm`, then Detalhes and delete. Details: type, technical type,
+  id, stored name, current name, user, date, action, critical, changes (redacted properties hidden).
+- Messaging stays excluded (`AuditConfiguration.ExcludedEntityTypes`): never listed, searched, filtered or exported.
+
 ### /owner/db (was `Pages/Operations/DatabaseViewer.razor`, Owner)
 - **Old:** a list of tables (a select on phones), each browsed page by page (10/25/50/100, 50 by default). Cell
   display: `[NULL]`, `[Binary: n bytes]`, dates as `yyyy-MM-dd HH:mm:ss`, and text cut at 100 characters. The SELECT

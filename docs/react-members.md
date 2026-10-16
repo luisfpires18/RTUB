@@ -78,10 +78,35 @@ old modal showed any signed-in member. Birthdays send day/month and the age, not
 ## Changed on purpose
 
 - Pagination is "Mostrar mais" (30 / 18 at a time) instead of numbered pages.
-- The hierarchy is an indented list (any depth fits a phone) instead of the horizontal scrolling tree.
+- The hierarchy is a tree again (#223, below), not the horizontal scrolling Blazor one.
 - `/members/manage` (the old page) is Admin/Owner only: its member-facing parts are React now.
 - 29 February birthdays are skipped in common years (the old list threw).
 - Copy is rewritten (portal originality rule); labels and badges keep the old wording.
+
+## Hierarchy tree (#223)
+
+`MembersHierarchy.tsx`: one WAI-ARIA tree (`role="tree"`, nested `treeitem` / `group`, `aria-level` / `setsize` /
+`posinset` / `expanded` / `selected`), drawn with CSS only - **no graph or layout library**. Real data (#223 audit): 94
+members, 30 roots (9 families + 21 with no links), depth 6, at most 8 afilhados.
+
+- **Wide screens (≥ 900 px)**: left to right, one card per family, each member a 160 px card centred on its afilhados
+  with elbow connectors; depth 6 fits 1280 px, a deeper family would scroll inside its own card, never the page. All
+  branches open.
+- **Phones / tablets**: the same DOM indented 16 px a level, connectors on the left, 44 px toggles; the first two
+  levels open.
+- **Members with neither padrinho nor afilhados** are listed together under "Sem ligações de padrinho" (still roots;
+  presentation only).
+- **Interaction**: the card links to `/members?member=` as before; a separate round button opens / folds the afilhados;
+  "Expandir tudo" / "Recolher tudo"; search by nickname or full name (accent-insensitive) opens the way to the member,
+  selects and focuses it; the selected member's path to its root is highlighted and shown in a bar at the bottom
+  (breadcrumbs, "Focar ramo", "Ver membro"); "Focar ramo" shows one branch with a way back.
+- **Keyboard**: one tab stop; Up / Down, Right (open / first afilhado), Left (close / padrinho), Home / End, Enter (the
+  member), type-ahead. Scrolling respects `prefers-reduced-motion` and only happens when the member is outside the view.
+- **Rules unchanged** (`MemberHierarchyService`), plus one defensive guard: a member recorded as their own padrinho is
+  a root, and a padrinho loop (all Tunos) is cut at its first member by name, who becomes a root - before, those members
+  vanished from the tree. The stored `MentorId` is untouched. No loop exists in the data.
+- Tests: `MemberHierarchyServiceTests`, `MembersHierarchySourceTests`, `MembersApiTests`, and the responsive audit's
+  `hierarchy-*` scenarios (layout, search, keyboard, focus) at 320-1280 px.
 
 ## Member admin (018; was `/members/manage`)
 

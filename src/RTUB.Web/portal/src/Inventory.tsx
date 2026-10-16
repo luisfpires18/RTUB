@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { Cropper } from './Cropper';
 import { portal } from './content';
 import { Dialog } from './Dialog';
@@ -128,7 +128,8 @@ export default function Inventory() {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const load = () => api.list(q, category, condition).then((o) => setList(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+  const latest = useLatest();
+  const load = () => latest(api.list(q, category, condition), (o) => setList(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
 
   useEffect(() => {
     setShown(PAGE);

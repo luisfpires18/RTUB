@@ -63,7 +63,9 @@ export default function Naipes() {
     instrument ? url.searchParams.set('instrument', instrument) : url.searchParams.delete('instrument');
     q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
     history.replaceState(null, '', url.pathname + url.search);
+    let live = true; // a slower answer for an older query never replaces the newer one
     naipesApi.board(instrument, q).then((o) => {
+      if (!live) return;
       if (o.kind === 'ok' && reveal.current !== undefined) {
         const index = o.data.items.findIndex((i) => i.id === reveal.current);
         if (index >= 0) setPage(Math.floor(index / pageSize) + 1);
@@ -71,6 +73,9 @@ export default function Naipes() {
       }
       setBoard(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null);
     });
+    return () => {
+      live = false;
+    };
   }, [instrument, q, version]);
 
   const data = board && board !== 'signin' ? board : null;

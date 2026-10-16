@@ -358,6 +358,122 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         (await LogExistsAsync(theirs)).Should().BeTrue();
     }
 
+    /// <summary>
+    /// #220: the search also matches the stored entity name and narrows the other filters (exact total); messaging
+    /// entries stay out of the list, the search, the filters and the export.
+    /// </summary>
+    [Fact]
+    public async Task Tracing_SearchMatchesTheStoredName_WithTheOtherFilters_AndMessagingStaysOut()
+    {
+        var owner = await SignInAsync("Owner");
+        var tag = Tag();
+        var named = await SeedLogAsync(tag, user: $"u{tag}", setup: l => l.EntityDisplayName = $"Arraial {tag}");
+        await SeedLogAsync(tag, user: $"v{tag}", setup: l => l.EntityDisplayName = $"Arraial {tag} (outro)");
+        var hidden = await SeedLogAsync(tag, user: $"u{tag}", setup: l =>
+        {
+            l.EntityType = "Message";
+            l.EntityDisplayName = $"Arraial {tag} privado";
+        });
+
+        var page = await AreaHttp.Json(owner, $"/api/owner/tracing?q=Arraial%20{tag}&user=u{tag}");
+        LogIds(page).Should().Equal(named);
+        page.GetProperty("total").GetInt32().Should().Be(1, "the search total is exact now");
+        (await AreaHttp.Json(owner, $"/api/owner/tracing?q=Arraial%20{tag}")).GetProperty("total").GetInt32().Should().Be(2);
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?q=privado&user=u{tag}")).Should().BeEmpty();
+        (await AreaHttp.Json(owner, "/api/owner/tracing/filters")).GetProperty("entityTypes").EnumerateArray()
+            .Select(t => t.GetString()).Should().NotContain(new[] { "Message", "Conversation", "ConversationUserSettings", "MessageReaction" });
+        (await (await owner.GetAsync($"/api/owner/tracing/export?user=u{tag}")).Content.ReadAsStringAsync()).Should().NotContain("privado");
+        (await LogExistsAsync(hidden)).Should().BeTrue("excluded, not deleted");
+    }
+
+    /// <summary>
+    /// #220 hybrid for old entries: a stored member id becomes today's nickname and a missing name the entity's current
+    /// title - on the page only. The stored row and the export stay exactly as recorded; a deleted entity stays unnamed.
+    /// </summary>
+    [Fact]
+    public async Task Tracing_OldWeakNames_AreResolvedOnTheReadOnly_NeverSaved_NorExported()
+    {
+        var owner = await SignInAsync("Owner");
+        var tag = Tag();
+        var (memberId, postId) = await WithDbAsync(async db =>
+        {
+            var member = new ApplicationUser { UserName = $"m{tag}", Email = $"m{tag}@rtub.test", FirstName = "Zé", LastName = "Pires", Nickname = $"Zé {tag}" };
+            db.Users.Add(member);
+            var post = new NewsPost { Title = $"Novidade {tag}", Body = "Texto" };
+            db.NewsPosts.Add(post);
+            await db.SaveChangesAsync();
+            return (member.Id, post.Id);
+        });
+        var push = await SeedLogAsync(tag, user: $"u{tag}", setup: l =>
+        {
+            l.EntityType = "PushSubscription";
+            l.EntityDisplayName = memberId;
+        });
+        var news = await SeedLogAsync(tag, user: $"u{tag}", setup: l =>
+        {
+            l.EntityType = "NewsPost";
+            l.EntityId = postId;
+        });
+        var gone = await SeedLogAsync(tag, user: $"u{tag}", setup: l =>
+        {
+            l.EntityType = "NewsPost";
+            l.EntityId = 99_999_999;
+        });
+
+        var items = (await AreaHttp.Json(owner, $"/api/owner/tracing?user=u{tag}&pageSize=100")).GetProperty("items").EnumerateArray()
+            .ToDictionary(i => i.GetProperty("id").GetInt32());
+        (items[push].GetProperty("entityDisplayName").GetString(), items[push].GetProperty("currentDisplayName").GetString())
+            .Should().Be((memberId, $"Zé {tag}"), "the stored value is shown as stored, the nickname beside it");
+        items[news].GetProperty("currentDisplayName").GetString().Should().Be($"Novidade {tag}");
+        items[news].GetProperty("entityDisplayName").ValueKind.Should().Be(JsonValueKind.Null);
+        items[gone].GetProperty("currentDisplayName").ValueKind.Should().Be(JsonValueKind.Null, "a deleted entity cannot be named");
+
+        (await WithDbAsync(db => db.AuditLogs.AsNoTracking().Where(a => a.Id == push || a.Id == news).Select(a => a.EntityDisplayName).ToListAsync()))
+            .Should().BeEquivalentTo(new[] { memberId, null }, "nothing is written back");
+        var export = await (await owner.GetAsync($"/api/owner/tracing/export?user=u{tag}")).Content.ReadAsStringAsync();
+        export.Should().Contain(memberId).And.NotContain($"Zé {tag}").And.NotContain("currentDisplayName");
+    }
+
+    /// <summary>
+    /// #226 F04: push-subscription entries written before #220 still hold the endpoint and keys in their changes. The page
+    /// and the export hide them with the same rule as new entries (AuditConfiguration.RedactedProperties); the stored row
+    /// stays byte for byte as recorded, and every other entry and field is untouched.
+    /// </summary>
+    [Fact]
+    public async Task Tracing_OldPushEntries_HideTheEndpointAndKeys_OnThePageAndInTheExport_WithoutRewritingThem()
+    {
+        var owner = await SignInAsync("Owner");
+        var tag = Tag();
+        const string created = "{\"Auth\":\"auth-secret-1\",\"Endpoint\":\"https://fcm.googleapis.com/fcm/send/endpoint-secret\",\"P256dh\":\"p256-secret\",\"UserAgent\":\"Mozilla/5.0 (Android)\",\"UserId\":\"u-1\"}";
+        const string modified = "{\"Auth\":{\"Old\":\"auth-old-secret\",\"New\":\"auth-new-secret\"},\"UserAgent\":{\"Old\":\"a\",\"New\":\"b\"}}";
+        const string recent = "{\"Auth\":\"[redacted]\",\"Endpoint\":\"[redacted]\",\"P256dh\":\"[redacted]\",\"UserAgent\":\"Edge\"}";
+        var old = await SeedLogAsync(tag, user: $"u{tag}", changes: created, setup: l => l.EntityType = "PushSubscription");
+        var changed = await SeedLogAsync(tag, user: $"u{tag}", changes: modified, setup: l => { l.EntityType = "PushSubscription"; l.Action = "Modified"; });
+        var fresh = await SeedLogAsync(tag, user: $"u{tag}", changes: recent, setup: l => l.EntityType = "PushSubscription");
+        var other = await SeedLogAsync(tag, user: $"u{tag}", changes: "{\"Auth\":\"not-a-push-key\",\"Title\":\"Ensaio\"}");
+
+        var items = (await AreaHttp.Json(owner, $"/api/owner/tracing?user=u{tag}&pageSize=100")).GetProperty("items").EnumerateArray()
+            .ToDictionary(i => i.GetProperty("id").GetInt32(), i => i.GetProperty("changes").GetString()!);
+        var oldShown = JsonDocument.Parse(items[old]).RootElement;
+        foreach (var hidden in new[] { "Auth", "Endpoint", "P256dh" })
+        {
+            oldShown.GetProperty(hidden).GetString().Should().Be("[redacted]", "the Owner sees that {0} was set, not its value", hidden);
+        }
+
+        (oldShown.GetProperty("UserAgent").GetString(), oldShown.GetProperty("UserId").GetString()).Should().Be(("Mozilla/5.0 (Android)", "u-1"));
+        items[changed].Should().NotContain("auth-old-secret").And.NotContain("auth-new-secret").And.Contain("\"Auth\":\"[redacted]\"").And.Contain("\"New\":\"b\"");
+        items[fresh].Should().Be(recent, "an entry that holds nothing to hide is shown exactly as stored");
+        items[other].Should().Contain("not-a-push-key", "the rule is per entity type: other entries keep every field");
+
+        var export = await (await owner.GetAsync($"/api/owner/tracing/export?user=u{tag}")).Content.ReadAsStringAsync();
+        export.Should().NotContain("auth-secret-1").And.NotContain("endpoint-secret").And.NotContain("p256-secret").And.NotContain("auth-new-secret")
+            .And.Contain("Mozilla/5.0 (Android)").And.Contain("not-a-push-key");
+
+        (await WithDbAsync(db => db.AuditLogs.AsNoTracking().Where(a => a.Id == old || a.Id == changed || a.Id == fresh)
+                .OrderBy(a => a.Id).Select(a => a.Changes).ToListAsync()))
+            .Should().Equal(new[] { created, modified, recent }, "the stored history is never rewritten");
+    }
+
     [Fact]
     public async Task Tracing_LoginsAndTheAnnouncement()
     {
@@ -474,7 +590,8 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         return user;
     }
 
-    private Task<int> SeedLogAsync(string entity, string? user = "someone", bool critical = false, string? changes = null) => WithDbAsync(async db =>
+    private Task<int> SeedLogAsync(string entity, string? user = "someone", bool critical = false, string? changes = null,
+        Action<AuditLog>? setup = null) => WithDbAsync(async db =>
     {
         var log = new AuditLog
         {
@@ -485,6 +602,7 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
             IsCriticalAction = critical,
             Changes = changes,
         };
+        setup?.Invoke(log);
         db.AuditLogs.Add(log);
         await db.SaveChangesAsync();
         return log.Id;

@@ -60,8 +60,12 @@ export function MemberPicker({ label, exclude = [], onPick }: { label: string; e
 
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
-    const timer = setTimeout(() => logisticsApi.members(query.trim()).then((o) => setFound(o.kind === 'ok' ? o.data : [])), 250);
-    return () => clearTimeout(timer);
+    let live = true; // a slower answer for an older query never replaces the newer one
+    const timer = setTimeout(() => logisticsApi.members(query.trim()).then((o) => live && setFound(o.kind === 'ok' ? o.data : [])), 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [query]);
 
   const shown = found?.filter((m) => !exclude.includes(m.id));

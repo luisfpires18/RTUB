@@ -8,6 +8,7 @@ This document outlines backend development best practices for the RTUB project, 
 - [Entity Framework Core](#entity-framework-core)
 - [Services & Business Logic](#services--business-logic)
 - [Error Handling](#error-handling)
+- [Portugal time](#portugal-time)
 - [Performance](#performance)
 - [Testing](#testing)
 
@@ -208,6 +209,16 @@ catch (Exception ex)
     throw;
 }
 ```
+
+## Portugal time
+
+PROD runs on UTC. Anything that means a **Portuguese** day or clock uses `RTUB.Core.Helpers.PortugalTime` with the
+injected `TimeProvider` (#226 F02): `Today(time)` for "today", past / future, ages, fiscal year
+(`FiscalYearHelper.GetCurrentFiscalYearStartYear`); `Now(time)` for times shown to people ("Gerado em"); and
+`NextUtc(time, localTime, day?)` for a hosted job's next run at a configured Portugal clock time (DST-safe: a time the
+spring change skips runs an hour later, a time the autumn change repeats runs once). Stored technical timestamps
+(audit, `CreatedAt`, tokens, expirations) stay `DateTime.UtcNow`. Never `DateTime.Today` / `DateTime.Now` in new code.
+Services take `TimeProvider? time = null` (DI passes the registered `TimeProvider.System`; tests pass a fixed clock).
 
 ## Performance
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon, type IconName } from './icons';
 

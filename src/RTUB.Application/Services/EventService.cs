@@ -65,26 +65,9 @@ public class EventService : IEventService
         return await _eventRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10, CancellationToken cancellationToken = default)
-    {
-        return await _eventRepository.GetUpcomingEventsAsync(count);
-    }
-
-    public async Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10, CancellationToken cancellationToken = default)
-    {
-        return await _eventRepository.GetPastEventsAsync(count);
-    }
-
     public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetEventsByTypeAsync(type);
-    }
-
-    /// <inheritdoc />
-    public async Task<IEnumerable<Event>> GetActiveEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default)
-    {
-        var events = await _eventRepository.GetEventsByTypeAsync(type);
-        return events.Where(e => !e.IsCancelled).OrderByDescending(e => e.Date);
     }
 
     public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, bool isPublic = true, CancellationToken cancellationToken = default)

@@ -353,10 +353,14 @@ function AddAttendee({ rehearsalId, onAdded }: { rehearsalId: number; onAdded: (
 
   useEffect(() => {
     if (!query.trim()) return setMembers(undefined);
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      rehearsalsApi.members(rehearsalId, query.trim()).then((o) => setMembers(o.kind === 'ok' ? o.data : []));
+      rehearsalsApi.members(rehearsalId, query.trim()).then((o) => live && setMembers(o.kind === 'ok' ? o.data : []));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [rehearsalId, query]);
 
   const add = async (m: MemberOption) => {

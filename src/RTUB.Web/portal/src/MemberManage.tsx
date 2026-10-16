@@ -520,10 +520,14 @@ export function MentorPicker({
 
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
+    let live = true; // a slower answer for an older query never replaces the newer one
     const timer = setTimeout(() => {
-      search(query.trim(), excludeId).then((o) => setFound(o.kind === 'ok' ? o.data : []));
+      search(query.trim(), excludeId).then((o) => live && setFound(o.kind === 'ok' ? o.data : []));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [query, excludeId, search]);
 
   return (

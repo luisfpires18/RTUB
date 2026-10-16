@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -14,6 +15,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class QuestionNotificationBackgroundService : BackgroundService
 {
+    private readonly TimeProvider _time;
+
     private readonly ILogger<QuestionNotificationBackgroundService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly QuestionNotificationOptions _options;
@@ -23,8 +26,10 @@ public class QuestionNotificationBackgroundService : BackgroundService
     public QuestionNotificationBackgroundService(
         ILogger<QuestionNotificationBackgroundService> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<QuestionNotificationOptions> options)
+        IOptions<QuestionNotificationOptions> options,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
@@ -36,14 +41,14 @@ public class QuestionNotificationBackgroundService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(StartupDelaySeconds), stoppingToken);
 
         _logger.LogInformation(
-            "Question notification service started. Check times: {CheckTimes}. Enabled: {Enabled}",
+            "Question notification service started. Check times (Portugal time): {CheckTimes}. Enabled: {Enabled}",
             string.Join(", ", _options.CheckTimes),
             _options.Enabled);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             var nextRun = CalculateNextRunTime();
-            var delay = nextRun - DateTime.UtcNow;
+            var delay = nextRun - _time.GetUtcNow().UtcDateTime;
 
             if (delay.TotalMilliseconds > 0)
             {
@@ -119,7 +124,6 @@ public class QuestionNotificationBackgroundService : BackgroundService
 
     private DateTime CalculateNextRunTime()
     {
-        var now = DateTime.UtcNow;
         var checkTimes = _options.CheckTimes
             .Select(t => TimeSpan.TryParse(t, out var ts) ? ts : (TimeSpan?)null)
             .Where(t => t.HasValue)
@@ -133,17 +137,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
             checkTimes.Add(new TimeSpan(9, 0, 0));
         }
 
-        // Find the next check time today or tomorrow
-        foreach (var time in checkTimes)
-        {
-            var nextRun = now.Date.Add(time);
-            if (nextRun > now)
-            {
-                return nextRun;
-            }
-        }
-
-        // All times have passed today, schedule for tomorrow's first time
-        return now.Date.AddDays(1).Add(checkTimes.First());
+        // The check times are Portugal's clock, summer and winter (#226 F02; was UTC): the soonest of them.
+        return checkTimes.Min(t => PortugalTime.NextUtc(_time, t));
     }
 }

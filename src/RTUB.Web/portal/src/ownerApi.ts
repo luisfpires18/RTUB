@@ -60,6 +60,8 @@ export type AuditEntry = {
   action: string;
   isCritical: boolean;
   changes: string | null;
+  /** #220, never stored: today's name for an old entry whose stored name is missing or carries a member id. */
+  currentDisplayName: string | null;
 };
 export type AuditPage = { items: AuditEntry[]; total: number; page: number; pageSize: number; criticalOnPage: number };
 export type AuditFilters = { users: string[]; entityTypes: string[]; actions: string[] };

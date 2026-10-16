@@ -66,6 +66,27 @@ A folder or document the caller cannot see is `404`, never `403`, so its existen
 Storage keys never leave the server. Every key is rebuilt from a validated fiscal year (current or a listed one), a
 folder from that year's visible listing and a file name from that folder's listing; the uploaded name loses any path.
 
+## Storage round trips (#226 F01)
+
+A fiscal year's folders, Logistics boards and documents all come from **one** R2 listing of `docs/{env}/{year}/`
+(`IDocumentStorageService.ListTreeAsync`, every object at any depth), held 30 s by the singleton `DocumentTreeCache`.
+
+| Request | Before | Now |
+| --- | --- | --- |
+| page load | year subfolders, then Logistics subfolders (in a row), then one listing per folder | 1 listing cold, 0 warm |
+| download | year subfolders, Logistics subfolders, the folder (3 in a row), then the pre-signed URL | 1 cold, 0 warm, then the URL |
+| upload / delete / folder | the same lookups, then the write | 0-1 listing, the write, then the year's listing is dropped |
+
+- The cache holds **storage metadata only**: no user's filtered view, no authorization decision, no pre-signed URL.
+  Every request still resolves the caller, validates the year and keeps only the folders `CanSeeFolder` allows.
+- Download stays safe: the folder must be one of the caller's visible folders and the name a document listed directly
+  in it, so the signed key is always one storage itself listed; `..`, `/` and unknown names are 404.
+- Every writer under `docs/` drops the written year (`DocumentTreeCache.Forget(path)`): Documentation (upload, delete,
+  create / delete folder), Logistics board files, and the Meetings ata PDF. A listing that overlapped a write is returned
+  but not kept (generation check). A failed listing is never kept: the page shows no folders and downloads are 404, as
+  the per-folder listings did. A file written straight to R2, outside the app, appears after at most 30 s.
+- Logistics boards keep their own lean path (board without files, then `/file-list`).
+
 ## Changed on purpose
 
 - Rules are server-side (the old page only hid buttons and filtered in the circuit).
@@ -78,7 +99,9 @@ folder from that year's visible listing and a file name from that folder's listi
 
 `tests/RTUB.Integration.Tests/Api/DocumentationApiTests.cs`: real host, login, antiforgery, SQLite; storage is the
 in-memory `FakeDocumentStorage` (nothing reaches R2). Covers visitors, Leitões, folder visibility per role, order, the
-response shape (no keys), fiscal years, download, upload rules, Owner management and the retired Blazor route.
+response shape (no keys), fiscal years, download, upload rules, Owner management and the retired Blazor route, and
+(#226 F01) the listing counts: one per year, reused across callers without widening what a member sees, dropped by each
+write and per year, not kept on failure (`DocumentTreeCacheTests` for the cache itself).
 
 ## Follow-ups
 

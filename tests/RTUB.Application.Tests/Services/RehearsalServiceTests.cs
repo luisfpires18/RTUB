@@ -125,27 +125,6 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetUpcomingRehearsalsAsync_ReturnsOnlyFutureNonCanceled()
-    {
-        // Arrange
-        _context.Rehearsals.Add(Rehearsal.Create(DateTime.Today.AddDays(-5), "Past")); // Past
-        var upcoming1 = Rehearsal.Create(DateTime.Today.AddDays(5), "Future 1");
-        var upcoming2 = Rehearsal.Create(DateTime.Today.AddDays(10), "Future 2");
-        var canceled = Rehearsal.Create(DateTime.Today.AddDays(7), "Canceled");
-        canceled.Cancel("Test cancellation");
-
-        _context.Rehearsals.AddRange(upcoming1, upcoming2, canceled);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _rehearsalService.GetUpcomingRehearsalsAsync(10);
-
-        // Assert - Now includes cancelled rehearsals (like events)
-        result.Should().HaveCount(3);
-        result.Should().Contain(r => r.IsCanceled); // Cancelled rehearsals are now included
-    }
-
-    [Fact]
     public async Task UpdateRehearsalAsync_WithValidData_UpdatesRehearsal()
     {
         // Arrange

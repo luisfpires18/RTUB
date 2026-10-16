@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
@@ -90,8 +90,9 @@ export default function Requests() {
     return () => clearTimeout(timer);
   }, [text]);
 
+  const latest = useLatest();
   const load = () =>
-    api.list(fiscalYear, q, status).then((o) =>
+    latest(api.list(fiscalYear, q, status), (o) =>
       setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'forbidden' ? 'forbidden' : null),
     );
 

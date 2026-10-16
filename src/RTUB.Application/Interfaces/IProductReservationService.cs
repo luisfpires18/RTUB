@@ -9,6 +9,7 @@ public interface IProductReservationService
 {
     Task<ProductReservation?> GetByIdAsync(int id);
     Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId);
+    Task<Dictionary<int, int>> CountByProductAsync();
     Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId);
     Task<ProductReservation?> GetByProductAndUserAsync(int productId, string userId);
     Task<ProductReservation> CreateAsync(ProductReservation reservation);

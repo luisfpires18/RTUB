@@ -30,7 +30,8 @@ public sealed class MessagingService : IMessagingService
     public const int PreviewLength = 80;
     public const int PageSize = 50;
     public const string SystemTitle = "Sistema RTUB";
-    public const string GroupAvatar = "/images/rtub_logo.webp";
+    // The 352 px WebP (~34 KB) the portal header uses, shown at avatar size; was the 1024 px logo (~146 KB). #226 F09.
+    public const string GroupAvatar = "/icons/rtub-logo-352.webp";
 
     /// <summary>The emoji a member can react with. Older reactions outside the set still show.</summary>
     public static readonly IReadOnlyList<string> ReactionChoices = ["👍", "❤️", "😂", "😮", "😢", "🙏"];

@@ -295,8 +295,8 @@ export function getUpcomingEvents(): Promise<UpcomingEvent[]> {
 // ---------- Novidades (React track 025) ----------
 
 /** One post of GET /api/news. `publishedAt` is UTC ISO, null for a draft; `authorName` only reaches Admin/Owner. */
-export type NewsPost = { id: number; title: string | null; body: string; publishedAt: string | null; authorName: string | null };
-export type NewsFeed = { drafts: NewsPost[]; posts: NewsPost[]; hasMore: boolean; canManage: boolean };
+export type NewsPost = { id: number; title: string | null; body: string; publishedAt: string | null; authorName: string | null; membersOnly: boolean };
+export type NewsFeed = { drafts: NewsPost[]; posts: NewsPost[]; hasMore: boolean; canManage: boolean; signedIn: boolean };
 
 /** The latest published posts, for the home preview (drafts are ignored there). */
 export function getLatestNews(count: number): Promise<NewsPost[]> {

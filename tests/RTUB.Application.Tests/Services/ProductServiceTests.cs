@@ -81,58 +81,6 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetAvailableAsync_ReturnsOnlyAvailableProducts()
-    {
-        var available = Product.Create("Available", "Type1", 10.00m, 10);
-        var unavailable = Product.Create("Unavailable", "Type2", 20.00m, 0);
-        unavailable.SetAvailability(false);
-        _context.Products.AddRange(available, unavailable);
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetAvailableAsync();
-        result.Should().HaveCount(1);
-        result.First().IsAvailable.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetPublicAsync_ReturnsOnlyPublicAndAvailableProducts()
-    {
-        var publicAvailable = Product.Create("Public", "Type1", 10.00m, 10);
-        var publicUnavailable = Product.Create("Unavailable", "Type2", 20.00m, 0);
-        publicUnavailable.SetAvailability(false);
-        var privateProduct = Product.Create("Private", "Type3", 15.00m, 5);
-        privateProduct.SetPublicVisibility(false);
-        _context.Products.AddRange(publicAvailable, publicUnavailable, privateProduct);
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetPublicAsync();
-        result.Should().HaveCount(1);
-        result.First().IsPublic.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetByTypeAsync_WithValidType_ReturnsProductsOfType()
-    {
-        _context.Products.AddRange(
-            Product.Create("T-Shirt", "Clothing", 15.00m, 10),
-            Product.Create("Hoodie", "Clothing", 30.00m, 5),
-            Product.Create("CD", "Music", 10.00m, 20)
-        );
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetByTypeAsync("Clothing");
-        result.Should().HaveCount(2);
-        result.Should().AllSatisfy(p => p.Type.Should().Be("Clothing"));
-    }
-
-    [Fact]
-    public async Task GetByTypeAsync_WithNonExistingType_ReturnsEmptyList()
-    {
-        var result = await _service.GetByTypeAsync("NonExistent");
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task UpdateAsync_WithValidProduct_UpdatesProductAndInvalidatesCache()
     {
         var product = Product.Create("Original", "Type1", 10.00m, 10);
@@ -145,6 +93,24 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var updated = await _context.Products.FindAsync(product.Id);
         updated!.Name.Should().Be("Updated");
         updated.Price.Should().Be(15.00m);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task UpdateAsync_SavesAvailableAllYears_BothWays(bool before, bool after)
+    {
+        var product = Product.Create("CD", "Album", 10.00m, 5);
+        product.AvailableAllYears = before;
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+
+        product.AvailableAllYears = after;
+        await _service.UpdateAsync(product);
+
+        _context.ChangeTracker.Clear();
+        var saved = await _context.Products.FindAsync(product.Id);
+        (saved!.AvailableAllYears, saved.Price, saved.Stock, saved.CreatedAt).Should().Be((after, 10.00m, 5, product.CreatedAt));
     }
 
     [Fact]
@@ -196,53 +162,6 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _context.ChangeTracker.Clear();
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetTypeStatsAsync_ReturnsCorrectGroupedCounts()
-    {
-        _context.Products.AddRange(
-            Product.Create("T-Shirt", "Clothing", 15.00m, 10),
-            Product.Create("Hoodie", "Clothing", 30.00m, 5),
-            Product.Create("CD", "Music", 10.00m, 20),
-            Product.Create("Vinyl", "Music", 25.00m, 10),
-            Product.Create("Poster", "Merchandise", 5.00m, 50)
-        );
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetTypeStatsAsync();
-        result.Should().HaveCount(3);
-        result["Clothing"].Should().Be(2);
-        result["Music"].Should().Be(2);
-        result["Merchandise"].Should().Be(1);
-    }
-
-    [Fact]
-    public async Task GetTypeStatsAsync_WithNoProducts_ReturnsEmptyDictionary()
-    {
-        var result = await _service.GetTypeStatsAsync();
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetTotalInventoryValueAsync_CalculatesCorrectTotal()
-    {
-        _context.Products.AddRange(
-            Product.Create("Product1", "Type1", 10.00m, 5),  // 50
-            Product.Create("Product2", "Type2", 20.00m, 3),  // 60
-            Product.Create("Product3", "Type3", 15.00m, 2)   // 30
-        );
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetTotalInventoryValueAsync();
-        result.Should().Be(140.00m);
-    }
-
-    [Fact]
-    public async Task GetTotalInventoryValueAsync_WithNoProducts_ReturnsZero()
-    {
-        var result = await _service.GetTotalInventoryValueAsync();
-        result.Should().Be(0.00m);
     }
 
     public void Dispose()

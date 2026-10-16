@@ -2,7 +2,7 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 import { getAnnouncement, getCurrentUser, getVersion, wasSignedIn, type Announcement, type CurrentUser } from './api';
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
-import { Icon, type IconName } from './icons';
+import { Icon } from './icons';
 import { MemberCategory, MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 
 export const sections = [
@@ -348,6 +348,29 @@ function VersionTag() {
       {state.version ? `Versão ${state.version}` : 'A obter versão…'}
     </p>
   );
+}
+
+// ---------- latest request wins (#226 F14) ----------
+
+/**
+ * For a page whose search / filters reload a list: `latest(request, apply)` applies an answer only if no newer request
+ * started since, and never after the page is gone - so a slow answer for an old query cannot replace the results of
+ * the new one. The dropped answer is simply ignored (no error shown); every real answer, failures included, is applied.
+ */
+export function useLatest() {
+  const last = useRef(0);
+  useEffect(() => {
+    return () => {
+      last.current = -1; // unmounted: nothing applies any more
+    };
+  }, []);
+  return useCallback(<T,>(request: Promise<T>, apply: (value: T) => void) => {
+    if (last.current < 0) return;
+    const id = ++last.current;
+    request.then((value) => {
+      if (id === last.current) apply(value);
+    });
+  }, []);
 }
 
 // ---------- session ----------

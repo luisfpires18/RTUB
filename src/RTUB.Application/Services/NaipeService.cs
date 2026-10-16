@@ -100,17 +100,8 @@ public class NaipeService : INaipeService
         }
 
         var content = NaipeContent.Create(type, title, url, mimeType, isVideo, sortOrder, userId, description);
+        // The automatic audit entry ("Created", with the fields) is the record; #226 F16 removed the second, manual one.
         var createdContent = await _naipeContentRepository.AddAsync(content);
-
-        // Create audit log
-        await CreateAuditLogAsync(
-            isVideo ? "Video Created" : "Image Created",
-            createdContent.Id,
-            createdContent.Title,
-            $"{(isVideo ? "Video" : "Image")} '{createdContent.Title}' created for {type} by {user.Nickname ?? user.UserName}",
-            user.Id,
-            user.UserName
-        );
 
         // Send push notification to all subscribed users
         await SendNaipeContentPushNotificationAsync(title, type, isVideo);
@@ -128,20 +119,9 @@ public class NaipeService : INaipeService
         if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can update naipe content.");
 
-        var user = await _userManager.FindByIdAsync(userId);
-
+        // The automatic audit entry ("Modified", old -> new) is the record; #226 F16 removed the second, manual one.
         content.Update(title, description, sortOrder);
         await _naipeContentRepository.UpdateAsync(content);
-
-        // Create audit log
-        await CreateAuditLogAsync(
-            content.IsVideo ? "Video Modified" : "Image Modified",
-            content.Id,
-            content.Title,
-            $"{(content.IsVideo ? "Video" : "Image")} '{content.Title}' for {content.InstrumentType} modified by {user?.Nickname ?? user?.UserName ?? "Unknown"}",
-            user?.Id,
-            user?.UserName
-        );
     }
 
     public async Task DeleteContentAsync(int id, string userId, bool isAdmin)
@@ -154,27 +134,11 @@ public class NaipeService : INaipeService
         if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can delete naipe content.");
 
-        var user = await _userManager.FindByIdAsync(userId);
-        var contentType = content.IsVideo ? "Video" : "Image";
-        var contentTitle = content.Title;
-        var instrumentType = content.InstrumentType;
-        var mediaUrl = content.Url;
-
         // Delete media from Cloudflare R2
-        await _naipeMediaStorageService.DeleteMediaAsync(mediaUrl);
+        await _naipeMediaStorageService.DeleteMediaAsync(content.Url);
 
+        // The automatic audit entry ("Deleted", with the fields) is the record; #226 F16 removed the second, manual one.
         await _naipeContentRepository.DeleteAsync(content);
-
-        // Create audit log
-        await CreateAuditLogAsync(
-            content.IsVideo ? "Video Deleted" : "Image Deleted",
-            id,
-            contentTitle,
-            $"{contentType} '{contentTitle}' for {instrumentType} deleted by {user?.Nickname ?? user?.UserName ?? "Unknown"}",
-            user?.Id,
-            user?.UserName,
-            isCritical: true
-        );
     }
 
     public async Task IncrementPlayCountAsync(int contentId, string? userId)

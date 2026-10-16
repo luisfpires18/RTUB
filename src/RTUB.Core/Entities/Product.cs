@@ -30,6 +30,12 @@ public class Product : BaseEntity
 
     public bool IsPublic { get; set; } = true;
 
+    /// <summary>
+    /// #221: shown in every fiscal year (permanent stock, e.g. CDs) instead of only the fiscal year of
+    /// <see cref="BaseEntity.CreatedAt"/>. Stock, availability and visibility rules still apply.
+    /// </summary>
+    public bool AvailableAllYears { get; set; }
+
     // Image
     public string? ImageUrl { get; set; }
 

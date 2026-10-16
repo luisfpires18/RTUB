@@ -6,6 +6,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -16,6 +17,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class EnrollmentService : IEnrollmentService
 {
+    private readonly TimeProvider _time;
+
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
@@ -29,8 +32,10 @@ public class EnrollmentService : IEnrollmentService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _enrollmentRepository = enrollmentRepository;
         _memberStatusService = memberStatusService;
         _pushNotificationFactory = pushNotificationFactory;
@@ -306,9 +311,9 @@ public class EnrollmentService : IEnrollmentService
     /// <summary>
     /// Checks if the event date is in the future (today or later)
     /// </summary>
-    private static bool IsFutureEvent(DateTime eventDate)
+    private bool IsFutureEvent(DateTime eventDate)
     {
-        return eventDate.Date >= DateTime.Today;
+        return eventDate.Date >= PortugalTime.Today(_time);
     }
 
     private string GetBaseUrl()

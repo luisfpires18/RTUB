@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
+using RTUB.Core.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -117,7 +118,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
         var canManage = EventsAuthorization.CanManage(user);
         return new EventDetailDto(extras.IsMember, canManage, ToSummary(e, extras), videos, member,
-            canManage && EventAdminService.TakesPrizes(e), EventsAuthorization.CanTrackContacts(user));
+            canManage && EventAdminService.TakesPrizes(e, Today), EventsAuthorization.CanTrackContacts(user));
     }
 
     public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)

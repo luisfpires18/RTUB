@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './App';
+import { Loading, useLatest } from './App';
 import { portal } from './content';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
@@ -26,7 +26,7 @@ type Entry = {
 };
 type Level = { level: number; name: string; xpThreshold: number };
 type Story = { title: string; content: string; isActive: boolean };
-type Table = { fiscalYears: Option[]; fiscalYear: string; total: number; entries: Entry[]; levels: Level[]; story: Story | null };
+type Table = { fiscalYears: Option[]; fiscalYear: string; total: number; entries: Entry[]; levels: Level[]; story: Story | null; me: Entry | null };
 type Progress = { level: number; rankName: string; xp: number; xpToNextLevel: number; progressPercentage: number; isMaxLevel: boolean; nextRankName: string | null };
 type Breakdown = {
   totalXp: number;
@@ -115,8 +115,9 @@ export default function Leaderboard() {
     return () => clearTimeout(timer);
   }, [text]);
 
+  const latest = useLatest();
   const load = () =>
-    api.table(fiscalYear, q).then((o) => setTable(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
+    latest(api.table(fiscalYear, q), (o) => setTable(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null));
 
   useEffect(() => {
     const url = new URL(location.href);
@@ -160,26 +161,7 @@ export default function Leaderboard() {
         <Loading label="A carregar a classificação…" />
       ) : (
         <>
-          <details className="who__more leaderboard-levels">
-            <summary>Níveis de Alcoolismo</summary>
-            {data.story?.isActive && (
-              <div className="leaderboard-story">
-                <p className="leaderboard-story__title">
-                  <strong>{data.story.title}</strong>
-                </p>
-                <p className="leaderboard-story__text">{data.story.content}</p>
-              </div>
-            )}
-            <ol className="leaderboard-level-list">
-              {data.levels.map((l) => (
-                <li key={l.level} className={l.level === data.levels.length ? 'is-last' : undefined}>
-                  <span className="leaderboard-level-list__n">Nível {l.level}</span>
-                  <strong>{l.name}</strong>
-                  <span className="note">{l.xpThreshold} XP</span>
-                </li>
-              ))}
-            </ol>
-          </details>
+          <Levels levels={data.levels} story={data.story} me={data.me} />
 
           <div className="events-tools" role="search">
             <label className="control" htmlFor={ids.q}>
@@ -241,6 +223,57 @@ export default function Leaderboard() {
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * "Níveis de Alcoolismo" (#225): the explanation and the 12 levels as one section, open by default (it still folds
+ * away, the table is below it). Each level shows its number, name and XP threshold; the reader's own level for the
+ * year shown (`me`, from the server) is marked and the ones below it read as reached. Names and thresholds are the
+ * server's configuration, untouched here.
+ */
+function Levels({ levels, story, me }: { levels: Level[]; story: Story | null; me: Entry | null }) {
+  const titleId = useId();
+  return (
+    <details className="leaderboard-levels" open>
+      <summary className="leaderboard-levels__head">
+        <span className="leaderboard-levels__title" id={titleId}>
+          Níveis de Alcoolismo
+        </span>
+        {me && (
+          <span className="leaderboard-levels__me">
+            O teu nível: <strong>{me.level} – {me.rankName}</strong>
+          </span>
+        )}
+        <Icon name="chevronDown" />
+      </summary>
+      {story?.isActive && (
+        <div className="leaderboard-story">
+          <p className="leaderboard-story__title">
+            <strong>{story.title}</strong>
+          </p>
+          <p className="leaderboard-story__text">{story.content}</p>
+        </div>
+      )}
+      <ol className="leaderboard-level-list" aria-labelledby={titleId}>
+        {levels.map((l) => {
+          const state = !me ? '' : l.level === me.level ? ' is-current' : l.level < me.level ? ' is-reached' : '';
+          return (
+            <li key={l.level} className={`leaderboard-level${state}`} aria-current={state === ' is-current' ? 'true' : undefined}>
+              <span className="leaderboard-level__n" aria-hidden="true">
+                {l.level}
+              </span>
+              <span className="leaderboard-level__text">
+                <span className="sr-only">Nível {l.level}: </span>
+                <strong className="leaderboard-level__name">{l.name}</strong>
+                <span className="leaderboard-level__xp">{l.xpThreshold === 0 ? 'Desde 0 XP' : `${l.xpThreshold} XP`}</span>
+                {state === ' is-current' && <span className="leaderboard-level__you">O teu nível</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </details>
   );
 }
 

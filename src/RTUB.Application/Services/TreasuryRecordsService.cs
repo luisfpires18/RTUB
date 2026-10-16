@@ -8,6 +8,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -25,6 +26,8 @@ namespace RTUB.Application.Services;
 /// </summary>
 public sealed class TreasuryRecordsService : ITreasuryRecordsService
 {
+    private readonly TimeProvider _time;
+
     public const int SearchLimit = 20;
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
@@ -33,8 +36,10 @@ public sealed class TreasuryRecordsService : ITreasuryRecordsService
     private readonly INerbaOrderService _orders;
 
     public TreasuryRecordsService(IDbContextFactory<ApplicationDbContext> contexts, IMemberDebtService debts, IMbwayTransferService transfers,
-        INerbaOrderService orders)
+        INerbaOrderService orders,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _contexts = contexts;
         _debts = debts;
         _transfers = transfers;
@@ -406,7 +411,7 @@ public sealed class TreasuryRecordsService : ITreasuryRecordsService
         await using var db = await _contexts.CreateDbContextAsync();
         var events = await db.Events.AsNoTracking().Where(e => e.Type == EventType.Nerba).ToListAsync();
         var orders = await db.NerbaOrders.AsNoTracking().Select(o => new { o.EventId, o.Stock, o.PricePerUnit }).ToListAsync();
-        var today = DateTime.Today;
+        var today = PortugalTime.Today(_time);
         var items = events.Select(e => new TreasuryNerbaSummaryDto(NerbaEvent(e), orders.Count(o => o.EventId == e.Id),
             orders.Where(o => o.EventId == e.Id).Sum(o => o.Stock * o.PricePerUnit))).ToList();
         return new TreasuryNerbaDto(

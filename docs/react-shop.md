@@ -2,7 +2,8 @@
 
 `/shop` ("Loja RTUB") is React (`portal/src/Shop.tsx`) over `/api/shop` (`Endpoints/ShopEndpoints.cs` →
 `IProductShopService`, over the existing `IProductService` and `IProductReservationService`), replacing the Blazor
-`Pages/Inventory/Shop.razor`. Not the MyTuno in-game shop (`IShopService`, removed with MyTuno in 026). DEV only; **no schema change**.
+`Pages/Inventory/Shop.razor`. Not the MyTuno in-game shop (`IShopService`, removed with MyTuno in 026). No schema change in 021;
+#221 added `Products.AvailableAllYears` (below).
 
 | Route | Owner after 021 |
 | --- | --- |
@@ -70,7 +71,38 @@ Tests use the recording storage fake only; nothing reaches R2. Product images st
 - Images are checked by content (WebP, JPEG or PNG); "Mostrar mais" (12 at a time) instead of numbered pages; a new
   product is saved first and its image right after.
 
+## Products in every fiscal year (#221)
+
+`Products.AvailableAllYears` (migration `AddProductAvailableAllYears`, `INTEGER NOT NULL DEFAULT 0`). A product has no
+fiscal-year column: a **year-specific** product belongs to the fiscal year of its `CreatedAt` (1 September - 31 August),
+unchanged; an **all-years** product (permanent stock, e.g. CDs) is shown in every year. No sentinel year.
+
+- **One rule**: `ProductShopService.InFiscalYear` - "" (Todos os anos) shows every product, a year shows the all-years
+  products and those created in it. Stock, `IsAvailable` (follows the stock), `IsPublic`, permissions, price and
+  ordering are unchanged and apply to both kinds; a sold-out all-years product shows "Esgotado" and is not reservable.
+- **API**: `ShopProductInput.availableAllYears` (`bool?`: absent = year-specific on create, unchanged on edit); cards and
+  details return `availableAllYears`; details also return `fiscalYear`, the creation year a year-specific product is
+  shown in.
+- **UI**: one checkbox "Disponível em todos os anos letivos" (off for a new product); its hint names the year the
+  product falls back to when off ("Aparece só no ano letivo 2025-2026, em que foi criado."). Turning it off always lands
+  on a real year (the creation year is immutable), so there is no invalid "no year" state and no hidden year field.
+  Admin / Owner cards show a "Todos os anos" badge; members see the year in "Detalhes do produto" only.
+- **History**: reservations (the shop's only order record; no cart, checkout, order lines or receipts exist) store the
+  product id, username, size, display name and date, never the year, name or price, so the option cannot change their
+  meaning. Pre-existing: a reservation snapshots no product name or price, and deleting a product deletes its
+  reservations (cascade) - unchanged, out of #221's scope.
+- **Migration / rollback**: existing products and any product N-1 inserts after an app rollback stay year-specific
+  (default 0); nothing else changes. App rollback to N-1: the column is ignored, so all-years products show only in their
+  creation year until the release is back. `Down` drops the column (loses only the flag).
+
 ## Follow-ups
 
 - "Público (não membros)" only decides whether a product can be reserved; visitors still see no shop (unchanged).
 - `ReservationCard` (Shared) has no caller since the page went.
+
+## Delete warning (#226 F20)
+
+The shop list carries `reservationCount` for Admin / Owner (who can delete; one grouped count query) and `null` for
+everyone else - a number only, never who reserved. "Eliminar produto" then adds "Este produto tem 1 reserva, que também
+é apagada." / "Este produto tem N reservas, que também são apagadas." when there are any (nothing extra at zero). The
+delete itself is unchanged: confirmation required, image deleted, reservations removed by cascade.

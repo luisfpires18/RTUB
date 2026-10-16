@@ -72,10 +72,14 @@ export default function Governance() {
   const shown = manage ?? data;
   const years = shown?.fiscalYears ?? [];
   const canManage = !!manage;
+  const showYears = !!shown && years.length > (canManage ? 0 : 1);
+  // The server's own list of start years still missing (the rule POST /api/governance/years enforces): nothing left
+  // to create, no button (#224). The dialog keeps its "all registered" message and the server its validation.
+  const canAddYear = !!manage && manage.availableStartYears.length > 0;
 
   return (
     <section className="page wrap" aria-labelledby="governance-page-title">
-      <header className="page__head governance-page__head">
+      <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Quem conduz a tuna</p>
           <h1 id="governance-page-title" className="page__title">
@@ -86,28 +90,30 @@ export default function Governance() {
             letivo.
           </p>
         </div>
-        <div className="governance-page__tools">
-          {shown && years.length > (canManage ? 0 : 1) && (
-            <label className="governance-page__year" htmlFor={yearId}>
-              Ano letivo
-              <span className="control control--select">
-                <select id={yearId} value={shown.fiscalYear ?? ''} onChange={(e) => choose(e.target.value)}>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </span>
-            </label>
-          )}
-          {canManage && (
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'year' })}>
-              <Icon name="plus" />
-              Adicionar ano letivo
-            </button>
-          )}
-        </div>
+        {(showYears || canAddYear) && (
+          <div className="governance-page__tools">
+            {showYears && (
+              <label className="governance-page__year" htmlFor={yearId}>
+                Ano letivo
+                <span className="control control--select">
+                  <select id={yearId} value={shown?.fiscalYear ?? ''} onChange={(e) => choose(e.target.value)}>
+                    {years.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+            )}
+            {canAddYear && (
+              <button type="button" className="btn btn--primary btn--sm governance-page__add" onClick={() => setOpen({ kind: 'year' })}>
+                <Icon name="plus" />
+                Adicionar ano letivo
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {signedIn && (

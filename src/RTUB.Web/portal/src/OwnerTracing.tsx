@@ -5,10 +5,89 @@ import { Icon } from './icons';
 import { ConfirmDialog } from './MusicUi';
 import { auditQuery, dateTime, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type LoginRecord } from './ownerApi';
 import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from './OwnerUi';
-import { MemberBadge } from './MemberBadge';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, q: '', page: 1, pageSize: 20 };
 const CONFIRMATION = 'DELETE ALL';
+
+/**
+ * #220: the words the page shows for a stored EntityType. Presentation only: filters, export and Details keep the raw
+ * type; an unknown type shows as it is.
+ */
+const ENTITY_LABELS: Record<string, string> = {
+  ApplicationUser: 'Utilizador',
+  UserRole: 'Função de acesso',
+  RoleAssignment: 'Cargo',
+  PushSubscription: 'Subscrição push',
+  RehearsalAttendance: 'Presença em ensaio',
+  Rehearsal: 'Ensaio',
+  Enrollment: 'Inscrição em atuação',
+  Event: 'Atuação',
+  EventRepertoire: 'Repertório',
+  EventVideo: 'Vídeo de atuação',
+  EventContact: 'Contacto de atuação',
+  Song: 'Música',
+  SongVideo: 'Vídeo de música',
+  SongYouTubeUrl: 'Link YouTube',
+  Album: 'Álbum',
+  AlbumAccess: 'Acesso a álbum',
+  NewsPost: 'Novidade',
+  PostMedia: 'Anexo de publicação',
+  CommentImage: 'Imagem de comentário',
+  Meeting: 'Reunião',
+  MeetingRequest: 'Pedido de reunião',
+  MeetingParticipation: 'Presença em reunião',
+  MeetingAta: 'Ata',
+  MeetingAtaAttachment: 'Anexo de ata',
+  Product: 'Produto',
+  ProductReservation: 'Reserva de produto',
+  Transaction: 'Movimento',
+  Report: 'Relatório',
+  Activity: 'Atividade',
+  MemberDebt: 'Calote',
+  MbwayTransfer: 'Transferência MBWay',
+  NerbaOrder: 'Encomenda Nerba',
+  Request: 'Pedido de atuação',
+  Question: 'Pergunta',
+  QuestionReply: 'Resposta',
+  LogisticsBoard: 'Quadro',
+  LogisticsList: 'Lista',
+  LogisticsCard: 'Cartão',
+  LogisticsCardAssignment: 'Atribuição de cartão',
+  LogisticsCardReminder: 'Lembrete',
+  Post: 'Publicação',
+  Comment: 'Comentário',
+  Discussion: 'Discussão',
+  Transportation: 'Boleia',
+  TransportationPassenger: 'Passageiro',
+  LeaderboardComment: 'Comentário na classificação',
+  LeaderboardCommentLike: 'Gosto em comentário',
+  MemberInstrument: 'Instrumento do membro',
+  Instrument: 'Instrumento da tuna',
+  Trophy: 'Troféu',
+  GalleryMedia: 'Média da galeria',
+  NaipeContent: 'Conteúdo de naipe',
+  NaipeComment: 'Comentário de naipe',
+  NaipeTypeConfig: 'Configuração de naipe',
+  FiscalYear: 'Ano letivo',
+  Document: 'Documento',
+  Folder: 'Pasta',
+  Notification: 'Notificação',
+  MemberActivityStatus: 'Estado de atividade',
+  GeocodingCache: 'Cache de localização',
+};
+
+const entityLabel = (type: string) => ENTITY_LABELS[type] ?? type;
+
+/** The card's identity: the stored name, today's name when the stored one is weak, else the type and the id. */
+const primaryName = (e: AuditEntry) =>
+  e.currentDisplayName || e.entityDisplayName || (e.entityId !== null ? `${entityLabel(e.entityType)} #${e.entityId}` : entityLabel(e.entityType));
+
+const two = (n: number) => String(n).padStart(2, '0');
+/** dd/MM/yyyy HH:mm in the reader's time zone. */
+const stamp = (iso: string) => {
+  const d = new Date(iso);
+  return `${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}`;
+};
 
 const actionTone = (action: string) =>
   action === 'Created' ? 'ok' : action === 'Modified' ? 'warn' : action === 'Deleted' || action === 'Role Removed' ? 'danger' : 'info';
@@ -97,11 +176,12 @@ export default function OwnerTracing() {
                 all="Todas as entidades"
                 value={filter.entityType}
                 items={lists.entityTypes}
+                text={(type) => (ENTITY_LABELS[type] ? `${ENTITY_LABELS[type]} (${type})` : type)}
                 onChange={(entityType) => set({ entityType })}
               />
               <Select id={`${id}-action`} label="Ação" all="Todas as ações" value={filter.action} items={lists.actions} onChange={(action) => set({ action })} />
             </div>
-            <SearchBox label="Procurar nas alterações" placeholder="Procurar nas alterações (ignora os outros filtros)" value={q} onChange={setQ} />
+            <SearchBox label="Procurar no nome ou nas alterações" placeholder="Procurar no nome guardado ou nas alterações" value={q} onChange={setQ} />
             <div className="owner-people__bar">
               <label className="form__check" htmlFor={`${id}-critical`}>
                 <input id={`${id}-critical`} type="checkbox" checked={filter.critical} onChange={(e) => set({ critical: e.target.checked })} />
@@ -148,34 +228,36 @@ export default function OwnerTracing() {
           ) : (
             <ul className="owner-logs">
               {page.items.map((entry) => (
-                <li key={entry.id} className="owner-log">
-                  <div className="owner-log__head">
-                    <time dateTime={entry.timestamp}>{dateTime(entry.timestamp)}</time>
-                    <MemberBadge>{entry.userName ?? 'Sistema'}</MemberBadge>
-                    {entry.isCritical && (
-                      <span className="owner-log__critical" title="Ação crítica">
-                        <Icon name="warning" />
-                        <span className="sr-only">Ação crítica</span>
+                <li key={entry.id} className={entry.isCritical ? 'owner-log owner-log--critical' : 'owner-log'}>
+                  <p className="owner-log__name">
+                    {primaryName(entry)}
+                    {entry.currentDisplayName && (
+                      <span className="owner-log__current" title="Nome resolvido agora; o registo guardou outro (ver Detalhes).">
+                        nome atual
                       </span>
                     )}
-                  </div>
-                  <p className="owner-log__entity">
-                    <strong>{entry.entityType}</strong>
-                    {(entry.entityDisplayName || entry.entityId !== null) && (
-                      <span className="note">{entry.entityDisplayName || `ID: ${entry.entityId}`}</span>
+                  </p>
+                  <p className="owner-log__what">
+                    <span className="owner-log__type">{entityLabel(entry.entityType)}</span>
+                    <span className={`owner-action owner-action--${actionTone(entry.action)}`}>{entry.action}</span>
+                    {entry.isCritical && (
+                      <span className="owner-log__critical">
+                        <Icon name="warning" />
+                        Crítica
+                      </span>
                     )}
                   </p>
                   <div className="owner-log__foot">
-                    <span className={`owner-action owner-action--${actionTone(entry.action)}`}>{entry.action}</span>
+                    <p className="owner-log__meta">
+                      <span>{entry.userName ?? 'Sistema'}</span>
+                      <time dateTime={entry.timestamp}>{stamp(entry.timestamp)}</time>
+                    </p>
                     <span className="owner-log__buttons">
-                      {entry.changes ? (
-                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'details', entry })}>
-                          <Icon name="eye" />
-                          Detalhes
-                        </button>
-                      ) : (
-                        <span className="note">Sem detalhes</span>
-                      )}
+                      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'details', entry })}>
+                        <Icon name="eye" />
+                        Detalhes
+                        <span className="sr-only"> de {primaryName(entry)}</span>
+                      </button>
                       <button
                         type="button"
                         className="icon-btn icon-btn--sm icon-btn--danger"
@@ -183,7 +265,7 @@ export default function OwnerTracing() {
                         title="Apagar este registo"
                       >
                         <Icon name="trash" />
-                        <span className="sr-only">Apagar este registo</span>
+                        <span className="sr-only">Apagar o registo de {primaryName(entry)}</span>
                       </button>
                     </span>
                   </div>
@@ -233,7 +315,24 @@ export default function OwnerTracing() {
   );
 }
 
-function Select({ id, label, all, value, items, onChange }: { id: string; label: string; all: string; value: string; items: string[]; onChange: (v: string) => void }) {
+/** A filter list: each option submits the raw value; <c>text</c> only changes the words shown. */
+function Select({
+  id,
+  label,
+  all,
+  value,
+  items,
+  text = (i) => i,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  all: string;
+  value: string;
+  items: string[];
+  text?: (item: string) => string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div className="form__field">
       <label htmlFor={id}>{label}</label>
@@ -242,7 +341,7 @@ function Select({ id, label, all, value, items, onChange }: { id: string; label:
           <option value="">{all}</option>
           {items.map((i) => (
             <option key={i} value={i}>
-              {i}
+              {text(i)}
             </option>
           ))}
         </select>
@@ -301,7 +400,7 @@ function Announcement() {
 function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
   return (
     <Dialog
-      title={`Detalhes · ${entry.entityType}`}
+      title={`Detalhes · ${entityLabel(entry.entityType)}`}
       size="lg"
       onClose={onClose}
       footer={
@@ -310,31 +409,36 @@ function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: () => v
         </button>
       }
     >
+      {/* #220: everything the log stored, raw; the card's prettier name never replaces it here. */}
       <dl className="owner-dl">
         <dt>Data</dt>
-        <dd>{dateTime(entry.timestamp)}</dd>
+        <dd>
+          <time dateTime={entry.timestamp}>{stamp(entry.timestamp)}</time>
+        </dd>
         <dt>Utilizador</dt>
         <dd>{entry.userName ?? 'Sistema'}</dd>
-        <dt>Entidade</dt>
-        <dd>{entry.entityType}</dd>
-        {entry.entityDisplayName && (
-          <>
-            <dt>Nome</dt>
-            <dd>{entry.entityDisplayName}</dd>
-          </>
-        )}
+        <dt>Tipo</dt>
+        <dd>{entityLabel(entry.entityType)}</dd>
+        <dt>Tipo técnico</dt>
+        <dd>
+          <code>{entry.entityType}</code>
+        </dd>
         <dt>ID da entidade</dt>
         <dd>{entry.entityId ?? '—'}</dd>
+        <dt>Nome guardado</dt>
+        <dd>{entry.entityDisplayName || '— (sem nome no registo)'}</dd>
+        {entry.currentDisplayName && entry.currentDisplayName !== entry.entityDisplayName && (
+          <>
+            <dt>Nome atual</dt>
+            <dd>{entry.currentDisplayName} (resolvido agora, não guardado)</dd>
+          </>
+        )}
         <dt>Ação</dt>
         <dd>
           <span className={`owner-action owner-action--${actionTone(entry.action)}`}>{entry.action}</span>
         </dd>
-        {entry.isCritical && (
-          <>
-            <dt>Crítica</dt>
-            <dd>Sim</dd>
-          </>
-        )}
+        <dt>Crítica</dt>
+        <dd>{entry.isCritical ? 'Sim' : 'Não'}</dd>
       </dl>
       <h3 className="owner-detail__heading">Alterações</h3>
       <pre className="owner-code">{pretty(entry.changes)}</pre>
@@ -357,17 +461,16 @@ function DeleteDialog({ entry, onClose, onDone }: { entry: AuditEntry; onClose: 
   return (
     <ConfirmDialog title="Apagar este registo?" confirmLabel="Apagar" busy={busy} error={error} onConfirm={remove} onClose={onClose}>
       <dl className="owner-dl">
-        <dt>Entidade</dt>
+        <dt>Registo</dt>
         <dd>
-          {entry.entityType}
-          {entry.entityDisplayName ? ` · ${entry.entityDisplayName}` : entry.entityId !== null ? ` (ID: ${entry.entityId})` : ''}
+          {primaryName(entry)} · {entityLabel(entry.entityType)}
         </dd>
         <dt>Ação</dt>
         <dd>{entry.action}</dd>
         <dt>Utilizador</dt>
         <dd>{entry.userName ?? 'Sistema'}</dd>
         <dt>Data</dt>
-        <dd>{dateTime(entry.timestamp)}</dd>
+        <dd>{stamp(entry.timestamp)}</dd>
       </dl>
       <p className="owner-danger">
         <Icon name="warning" />

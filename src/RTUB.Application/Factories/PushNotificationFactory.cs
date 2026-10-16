@@ -4,6 +4,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Factories;
 
@@ -14,6 +15,16 @@ namespace RTUB.Application.Factories;
 public class PushNotificationFactory : IPushNotificationFactory
 {
     private static readonly CultureInfo PortugueseCulture = new("pt-PT");
+
+    private readonly TimeProvider _time;
+
+    /// <summary>"hoje" / "amanhã" / "N dias" count Portugal's calendar days (#226 F02; was the server's UTC date).</summary>
+    public PushNotificationFactory(TimeProvider? time = null)
+    {
+        _time = time ?? TimeProvider.System;
+    }
+
+    private DateTime Today => PortugalTime.Today(_time);
 
     /// <summary>
     /// Creates a push notification for an event (new event or reminder).
@@ -106,7 +117,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         var rehearsalUrl = BuildRehearsalUrl(baseUrl);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
-        var whenText = rehearsal.Date.Date == DateTime.UtcNow.Date
+        var whenText = rehearsal.Date.Date == Today
             ? "é hoje"
             : "é amanhã";
 
@@ -197,9 +208,9 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// Returns appropriate text like "1 dia" or "3 dias".
     /// Throws ArgumentException if the event is in the past.
     /// </summary>
-    private static string GetDaysUntilEventText(DateTime eventDate)
+    private string GetDaysUntilEventText(DateTime eventDate)
     {
-        var daysUntil = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
+        var daysUntil = (int)Math.Ceiling((eventDate.Date - Today).TotalDays);
 
         if (daysUntil < 0)
         {
@@ -212,28 +223,6 @@ public class PushNotificationFactory : IPushNotificationFactory
         }
 
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
-    }
-
-    /// <summary>
-    /// Creates a push notification for event repertoire changes.
-    /// </summary>
-    public SendPushNotificationDto CreateEventRepertoireNotification(Event @event, string songTitle, bool isAdded, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(@event);
-        ArgumentException.ThrowIfNullOrWhiteSpace(songTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var eventUrl = BuildEventUrl(baseUrl);
-        var action = isAdded ? "adicionada" : "alterada";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Repertório {action} - {@event.Name}",
-            Body = $"A música \"{songTitle}\" foi {action} no repertório de {@event.Name}.",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = eventUrl,
-            Tag = $"event-repertoire-{@event.Id}"
-        };
     }
 
     /// <summary>
@@ -436,9 +425,9 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Gets the text for days until meeting (similar to GetDaysUntilEventText).
     /// </summary>
-    private static string? GetDaysUntilMeetingText(DateTime meetingDate)
+    private string? GetDaysUntilMeetingText(DateTime meetingDate)
     {
-        var today = DateTime.Today;
+        var today = Today;
         var daysUntil = (meetingDate.Date - today).Days;
 
         return daysUntil switch
@@ -972,27 +961,6 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = url,
             Tag = "weekly-summary"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification for a logistics card reminder.
-    /// </summary>
-    public SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(card);
-        ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{boardId}";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Lembrete: {card.Title}",
-            Body = $"Tarefa no quadro \"{boardName}\": {TruncateContent(card.Description, 100)}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = logisticsUrl,
-            Tag = $"card-reminder-{card.Id}"
         };
     }
 

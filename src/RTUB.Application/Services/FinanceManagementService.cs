@@ -1,4 +1,5 @@
 using RTUB.Application.Interfaces;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -8,6 +9,14 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class FinanceManagementService : IFinanceManagementService
 {
+    private readonly TimeProvider _time;
+
+    /// <summary>The activities it creates are dated today in Portugal (#226 F02).</summary>
+    public FinanceManagementService(TimeProvider? time = null)
+    {
+        _time = time ?? TimeProvider.System;
+    }
+
     /// <summary>
     /// Saves or updates the bank or cash value for a report
     /// Handles creating/updating/deleting transactions based on the value
@@ -37,7 +46,7 @@ public class FinanceManagementService : IFinanceManagementService
             currentActivity = await activityService.CreateActivityAsync(
                 reportId,
                 activityName,
-                DateTime.Today,
+                PortugalTime.Today(_time),
                 null, // description
                 null  // endDate
             );
@@ -63,7 +72,7 @@ public class FinanceManagementService : IFinanceManagementService
                 var amount = Math.Abs(value);
                 await transactionService.UpdateTransactionAsync(
                     existingTransaction.Id,
-                    DateTime.Today,
+                    PortugalTime.Today(_time),
                     activityName,
                     "Saldo",
                     amount,
@@ -94,7 +103,7 @@ public class FinanceManagementService : IFinanceManagementService
                 var amount = Math.Abs(value);
                 await transactionService.UpdateTransactionAsync(
                     transactionToKeep.Id,
-                    DateTime.Today,
+                    PortugalTime.Today(_time),
                     activityName,
                     "Saldo",
                     amount,
@@ -110,7 +119,7 @@ public class FinanceManagementService : IFinanceManagementService
                 var type = value >= 0 ? "Income" : "Expense";
                 var amount = Math.Abs(value);
                 await transactionService.CreateTransactionAsync(
-                    DateTime.Today,
+                    PortugalTime.Today(_time),
                     activityName,
                     "Saldo",
                     amount,

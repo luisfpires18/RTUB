@@ -73,6 +73,11 @@ server; no EF entity is returned.
   R2 credentials) answers "not available" instead of breaking the management endpoints.
 - Copy: "Sem registo" for a vacant position (008 wording), public position titles ("1.º Tesoureiro").
 
+- **#224:** the head is the shared `events-page__head` (intro left, controls at the right edge; stacked on phones), the
+  year select and "Adicionar ano letivo" sit in one compact panel, and the button shows only while the server's
+  `availableStartYears` (the rule `POST /api/governance/years` enforces) is not empty. The dialog keeps its "all
+  registered" message and the server its validation.
+
 ## Follow-ups
 
 - The old page's own styles went with its `.razor.css`; the shared `portal-governing-body-card` stays (Hall of Fame).

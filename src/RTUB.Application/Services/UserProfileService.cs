@@ -54,16 +54,6 @@ public class UserProfileService : IUserProfileService
         return await _userManager.FindByIdAsync(userId);
     }
 
-    public async Task<ApplicationUser?> GetUserByUsernameAsync(string username)
-    {
-        return await _userManager.FindByNameAsync(username);
-    }
-
-    public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
-    {
-        return await _userManager.FindByEmailAsync(email);
-    }
-
     public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
     {
         // Note: Using ToListAsync when the underlying provider supports it (EF Core),
@@ -152,74 +142,6 @@ public class UserProfileService : IUserProfileService
     }
 
     // User Role Management methods
-
-    /// <summary>
-    /// Gets all roles assigned to a user
-    /// </summary>
-    public async Task<List<string>> GetUserRolesAsync(string userId)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
-
-        var roles = await _userManager.GetRolesAsync(user);
-        return roles.ToList();
-    }
-
-    /// <summary>
-    /// Adds a user to a specific role
-    /// </summary>
-    public async Task AddUserToRoleAsync(string userId, string roleName)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
-
-        if (string.IsNullOrWhiteSpace(roleName))
-            throw new ArgumentException("Role name cannot be empty", nameof(roleName));
-
-        var result = await _userManager.AddToRoleAsync(user, roleName);
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to add user to role '{roleName}': {errors}");
-        }
-    }
-
-    /// <summary>
-    /// Removes a user from a specific role
-    /// </summary>
-    public async Task RemoveUserFromRoleAsync(string userId, string roleName)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
-
-        if (string.IsNullOrWhiteSpace(roleName))
-            throw new ArgumentException("Role name cannot be empty", nameof(roleName));
-
-        var result = await _userManager.RemoveFromRoleAsync(user, roleName);
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to remove user from role '{roleName}': {errors}");
-        }
-    }
-
-    /// <summary>
-    /// Checks if a user is in a specific role
-    /// </summary>
-    public async Task<bool> IsUserInRoleAsync(string userId, string roleName)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(roleName))
-            return false;
-
-        return await _userManager.IsInRoleAsync(user, roleName);
-    }
 
     /// <summary>
     /// Deletes a member and all related entities that have FK constraints preventing direct deletion.

@@ -74,6 +74,12 @@ public class MessagingV2SourceTests
         unread.Should().NotContain("SignalR").And.NotContain("WebSocket").And.NotContain("EventSource");
 
         Read(Portal, "Messages.tsx").Should().Contain("publishUnread(o.data)");
+
+        // #226 F12: on /messages the list's own poll feeds the badge, so the shell's 10 s badge poll stands down while the
+        // page is mounted (coming back to the tab or online still asks), and resumes when the page goes.
+        unread.Should().Contain("setInterval(() => providers === 0 && tick(), POLL_MS)")
+            .And.Contain("export function useUnreadProvider()").And.Contain("providers -= 1");
+        Read(Portal, "Messages.tsx").Should().Contain("useUnreadProvider();");
         Read(Web, "Endpoints", "MessagingEndpoints.cs").Should().Contain("MapGet(\"/unread\"");
 
         // Semantics shared with the list: not mine and my id not in ReadBy, summed.

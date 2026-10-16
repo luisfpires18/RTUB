@@ -5,11 +5,11 @@ import { loginToProfile, portal } from './content';
 import { Cropper } from './Cropper';
 import type { Outcome } from './eventsApi';
 import { Icon, type IconName } from './icons';
-import { ActivityList, Field, progressText } from './MemberDialogs';
+import { ActivityList, Field, TunaPath, progressText } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
-import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState, type TimelineItem } from './membersApi';
+import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState } from './membersApi';
 import { SignOutButton } from './MemberShell';
 import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from './push';
 
@@ -450,35 +450,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/**
- * The look of a milestone, from what the server already says (MemberDirectoryService.Timeline): `accent` is the
- * category (leitao, caloiro, tuno, veterano, tunossauro, fundador, honorario) and `role` / `magister` are the officer
- * positions, one look for both.
- */
-const pathVariant = (t: TimelineItem) => (t.accent === 'role' || t.accent === 'magister' ? 'position' : t.accent);
-
-/**
- * "Percurso na Tuna": the milestones the server built, oldest first, as cards on a thin rail - a row on wide screens
- * (it scrolls sideways if it must), a column on a phone. The variant colours the card and shapes the marker; `state`
- * marks the current steps.
- */
-function TunaPath({ items }: { items: TimelineItem[] }) {
-  return (
-    <ol className="tuna-path">
-      {items.map((t, i) => (
-        <li key={i} className={`tuna-path__step tuna-path__step--${pathVariant(t)}${t.state ? ` is-${t.state}` : ''}`}>
-          <span className="tuna-path__marker" aria-hidden="true" />
-          <span className="tuna-path__card">
-            <span className="tuna-path__label">{t.label}</span>
-            <span className="tuna-path__years">{t.years}</span>
-            {t.notes && <span className="tuna-path__notes">{t.notes}</span>}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 /** "Estado na Tuna": the server's status, progress and the last rehearsal / event, as in the old profile. */
 function TunaState({ state }: { state: MemberState }) {
   return (
@@ -506,8 +477,6 @@ function TunaState({ state }: { state: MemberState }) {
 }
 
 const LOCKED_DATE = 'Esta data já não muda aqui. Se estiver errada, fala com o Magister.';
-const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const monthYear = (year: number | null, month: number | null) => (year ? `${month ? `${MONTHS[month - 1]} de ` : ''}${year}` : null);
 
 /** Stable, so the padrinho search does not restart on every render. */
 const myMentorSearch = (q: string) => memberAreaApi.mentors(q);

@@ -15,6 +15,7 @@ namespace RTUB.Application.Services;
 ///   (<c>PublishedAt</c> null) only reach Admin/Owner;
 /// - write: Admin/Owner (<see cref="NewsAuthorization"/>) create (as a draft or published), edit title and text,
 ///   publish (now), unpublish (back to draft) and delete (permanent);
+/// - visibility (#222): a members-only post (<c>IsPublic</c> false) is left out of every read by a visitor, in the query;
 /// - privacy: the public poster is "RTUB"; the author's display name is returned to Admin/Owner only, and no account id
 ///   or username is ever returned.
 /// Nothing is sent (no push, no email).
@@ -31,7 +32,7 @@ public sealed class NewsService : INewsService
         _contexts = contexts;
     }
 
-    public async Task<EventResult<NewsFeedDto>> GetFeedAsync(int page, int pageSize, ClaimsPrincipal user)
+    public async Task<EventResult<NewsFeedDto>> GetFeedAsync(int page, int pageSize, ClaimsPrincipal user, string? visibility = null)
     {
         if (page < 1)
         {
@@ -40,23 +41,25 @@ public sealed class NewsService : INewsService
 
         var size = Math.Clamp(pageSize, 1, MaxPageSize);
         var manage = NewsAuthorization.CanManage(user);
+        var signedIn = NewsAuthorization.UserId(user) is not null;
 
         await using var db = await _contexts.CreateDbContextAsync();
-        var posts = await Posts(db, manage)
+        var posts = await VisibleTo(Posts(db, manage), user, visibility)
             .Where(p => p.PublishedAt != null)
             .OrderByDescending(p => p.PublishedAt).ThenByDescending(p => p.Id)
             .Skip((page - 1) * size).Take(size + 1)
             .ToListAsync();
 
         var drafts = manage && page == 1
-            ? await Posts(db, manage).Where(p => p.PublishedAt == null).OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id).ToListAsync()
+            ? await VisibleTo(Posts(db, manage), user, visibility).Where(p => p.PublishedAt == null).OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id).ToListAsync()
             : new List<NewsPost>();
 
         return EventResult<NewsFeedDto>.Ok(new NewsFeedDto(
             drafts.Select(p => Dto(p, manage)).ToList(),
             posts.Take(size).Select(p => Dto(p, manage)).ToList(),
             posts.Count > size,
-            manage));
+            manage,
+            signedIn));
     }
 
     public async Task<EventResult<NewsPostDto>> CreateAsync(NewsPostInput input, ClaimsPrincipal user)
@@ -77,6 +80,7 @@ public sealed class NewsService : INewsService
             Title = title,
             Body = body,
             AuthorId = NewsAuthorization.UserId(user),
+            IsPublic = input.MembersOnly != true,
             PublishedAt = input.Publish ? DateTime.UtcNow : null,
         };
         db.NewsPosts.Add(post);
@@ -100,6 +104,8 @@ public sealed class NewsService : INewsService
         {
             p.Title = title;
             p.Body = body;
+            // Null keeps the post's visibility (#222): only an explicit choice changes it.
+            p.IsPublic = input.MembersOnly is { } membersOnly ? !membersOnly : p.IsPublic;
         });
     }
 
@@ -132,12 +138,32 @@ public sealed class NewsService : INewsService
     private static IQueryable<NewsPost> Posts(ApplicationDbContext db, bool withAuthor) =>
         withAuthor ? db.NewsPosts.AsNoTracking().Include(p => p.Author) : db.NewsPosts.AsNoTracking();
 
+    /// <summary>
+    /// The one visibility rule (#222): a visitor sees public posts only, whatever <paramref name="visibility"/> asks for;
+    /// a signed-in caller sees everything, or just "public" / "private" when asked.
+    /// </summary>
+    internal static IQueryable<NewsPost> VisibleTo(IQueryable<NewsPost> posts, ClaimsPrincipal user, string? visibility = null)
+    {
+        if (NewsAuthorization.UserId(user) is null)
+        {
+            return posts.Where(p => p.IsPublic);
+        }
+
+        return visibility?.Trim().ToLowerInvariant() switch
+        {
+            "public" => posts.Where(p => p.IsPublic),
+            "private" => posts.Where(p => !p.IsPublic),
+            _ => posts,
+        };
+    }
+
     private static NewsPostDto Dto(NewsPost p, bool manage) => new(
         p.Id,
         p.Title,
         p.Body,
         p.PublishedAt is { } at ? DateTime.SpecifyKind(at, DateTimeKind.Utc) : null,
-        manage ? p.Author?.GetDisplayName() : null);
+        manage ? p.Author?.GetDisplayName() : null,
+        !p.IsPublic);
 
     private async Task<EventResult<NewsPostDto>> ChangeAsync(int id, Action<NewsPost> change)
     {

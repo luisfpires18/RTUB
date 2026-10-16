@@ -12,7 +12,8 @@ namespace RTUB.Application.Services;
 /// through <see cref="IProductService"/> and <see cref="IProductReservationService"/>, now enforced server-side
 /// (<see cref="ShopAuthorization"/>; the old page only hid buttons):
 /// - products: every product for any signed-in member, by type then name; the fiscal year of the product's creation
-///   (the current one by default, or every year), search over name and type, type filter;
+///   (the current one by default, or every year) - or every year for a product available in all years (#221) -, search
+///   over name and type, type filter;
 /// - create (Mod, Admin, Owner) and edit (Admin, Owner): name (≤ 200) and type (≤ 50) required, price above 0, stock 0
 ///   or more, description ≤ 1000, public flag; availability follows the stock; one cropped image (…/products), a new
 ///   one deleting the previous;
@@ -20,7 +21,7 @@ namespace RTUB.Application.Services;
 /// - reservations: members-only products in stock, one per member and product; the member says whether the product
 ///   has sizes (then a size from the old list is required) and an optional display name; reserving never changes the
 ///   stock; a member cancels their own, Admin and Owner see and delete every reservation of a product.
-/// No notifications, no schema change.
+/// No notifications. #221 added Products.AvailableAllYears (docs/react-shop.md).
 /// </summary>
 public sealed class ProductShopService : IProductShopService
 {
@@ -63,6 +64,8 @@ public sealed class ProductShopService : IProductShopService
 
         var all = (await _products.GetAllAsync()).OrderBy(p => p.Type).ThenBy(p => p.Name).ToList();
         var mine = (await _reservations.GetByUserIdAsync(me)).ToDictionary(r => r.ProductId);
+        // Admin / Owner see how many reservations a delete would take with it (one grouped query, managers only).
+        var counts = ShopAuthorization.CanManage(user) ? await _reservations.CountByProductAsync() : null;
         var q = search?.Trim() ?? "";
         var shown = all
             .Where(p => InFiscalYear(p, selected))
@@ -72,7 +75,8 @@ public sealed class ProductShopService : IProductShopService
             {
                 var reservation = mine.GetValueOrDefault(p.Id);
                 return new ShopProductDto(p.Id, p.Name, p.Type, p.Price, p.Stock, p.IsPublic, Image(p.ImageUrl),
-                    reservation is null ? null : Reservation(reservation), reservation is null && Reservable(p));
+                    reservation is null ? null : Reservation(reservation), reservation is null && Reservable(p), p.AvailableAllYears,
+                    counts is null ? null : counts.GetValueOrDefault(p.Id));
             })
             .ToList();
 
@@ -298,8 +302,12 @@ public sealed class ProductShopService : IProductShopService
 
     private static bool Reservable(Product p) => !p.IsPublic && p.Stock > 0;
 
+    /// <summary>
+    /// The one fiscal-year rule of the shop: "" (Todos os anos) shows every product; a year shows the products
+    /// available in all years (#221) and those created in it. Stock, availability and visibility rules are separate.
+    /// </summary>
     private static bool InFiscalYear(Product p, string fiscalYear) =>
-        fiscalYear == "" || fiscalYear.Split('-') is not [var start, _] || !int.TryParse(start, out var year)
+        fiscalYear == "" || p.AvailableAllYears || fiscalYear.Split('-') is not [var start, _] || !int.TryParse(start, out var year)
         || (p.CreatedAt >= new DateTime(year, 9, 1) && p.CreatedAt <= new DateTime(year + 1, 8, 31, 23, 59, 59));
 
     private static Dictionary<string, string[]> Validate(ShopProductInput input)
@@ -350,13 +358,19 @@ public sealed class ProductShopService : IProductShopService
         product.Stock = input.Stock;
         product.IsPublic = input.IsPublic;
         product.Description = string.IsNullOrEmpty(input.Description) ? null : input.Description;
+        // Absent keeps the current value (false on a new product: year-specific, as before #221).
+        product.AvailableAllYears = input.AvailableAllYears ?? product.AvailableAllYears;
         product.SetAvailability(input.Stock > 0);
     }
 
     private static string? Image(string? url) => string.IsNullOrEmpty(url) ? null : url;
 
-    private static ShopProductDetailDto Detail(Product p) =>
-        new(p.Id, p.Name, p.Type, p.Price, p.Stock, p.IsAvailable, p.IsPublic, p.Description, Image(p.ImageUrl));
+    private static ShopProductDetailDto Detail(Product p)
+    {
+        var year = FiscalYearHelper.GetFiscalYearStartYear(p.CreatedAt);
+        return new(p.Id, p.Name, p.Type, p.Price, p.Stock, p.IsAvailable, p.IsPublic, p.Description, Image(p.ImageUrl),
+            p.AvailableAllYears, $"{year}-{year + 1}");
+    }
 
     private static ShopReservationDto Reservation(ProductReservation r) => new(r.Id, r.UserNickname, r.DisplayName, r.Size, r.CreatedAt);
 

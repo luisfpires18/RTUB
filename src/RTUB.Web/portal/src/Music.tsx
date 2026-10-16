@@ -3,7 +3,7 @@ import { Loading } from './App';
 import { Icon } from './icons';
 import { AlbumForm } from './MusicForms';
 import { Badge, ConfirmDialog, Dialog, IconButton, Pager, plays } from './MusicUi';
-import { loginTo, musicApi, type AlbumSummary, type MusicPermissions, type Statistics } from './musicApi';
+import { musicApi, type AlbumSummary, type MusicPermissions, type Statistics } from './musicApi';
 
 /**
  * /music - the discography (React track 006). One grid for every album the caller may see:
@@ -42,7 +42,7 @@ export default function Music() {
 
   return (
     <section className="page wrap music" aria-labelledby="music-title">
-      <header className="page__head music__head">
+      <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Discografia</p>
           <h1 id="music-title" className="page__title">
@@ -120,12 +120,6 @@ export default function Music() {
             </li>
           ))}
         </ul>
-      )}
-
-      {can && !can.isMember && albums && (
-        <p className="note music__members">
-          Há também álbuns reservados a membros. <a href={loginTo('/music')}>Entrar como membro</a>
-        </p>
       )}
 
       {editing !== undefined && can && (

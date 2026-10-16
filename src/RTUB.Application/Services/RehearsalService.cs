@@ -58,25 +58,6 @@ public class RehearsalService : IRehearsalService
     }
 
     /// <summary>
-    /// Gets all rehearsals
-    /// </summary>
-    /// <returns>Collection of all rehearsals</returns>
-    public async Task<IEnumerable<Rehearsal>> GetAllRehearsalsAsync()
-    {
-        return await _rehearsalRepository.GetAllAsync();
-    }
-
-    /// <summary>
-    /// Gets upcoming rehearsals
-    /// </summary>
-    /// <param name="count">The maximum number of upcoming rehearsals to return (default: 10)</param>
-    /// <returns>Collection of upcoming rehearsals, ordered by date</returns>
-    public async Task<IEnumerable<Rehearsal>> GetUpcomingRehearsalsAsync(int count = 10)
-    {
-        return await _rehearsalRepository.GetUpcomingRehearsalsAsync(count);
-    }
-
-    /// <summary>
     /// Creates a new rehearsal
     /// </summary>
     /// <param name="date">The date of the rehearsal</param>
