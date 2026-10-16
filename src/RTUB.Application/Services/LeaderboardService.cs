@@ -236,10 +236,13 @@ public sealed class LeaderboardService : ILeaderboardService
     /// <summary>The old LoadLeaderboard: every user, level then XP descending, positions 1..n.</summary>
     private async Task<List<Row>> TableAsync(string fiscalYear)
     {
-        List<Core.Entities.ApplicationUser> users;
+        // #226 F18: only the five columns the table shows (was every AspNetUsers column, hashes included); same one query.
+        List<TableUser> users;
         await using (var db = await _contexts.CreateDbContextAsync())
         {
-            users = await db.Users.AsNoTracking().ToListAsync();
+            users = await db.Users.AsNoTracking()
+                .Select(u => new TableUser(u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl))
+                .ToListAsync();
         }
 
         var ids = users.Select(u => u.Id).ToList();
@@ -274,6 +277,8 @@ public sealed class LeaderboardService : ILeaderboardService
                 x.User.Nickname ?? "", x.User.FirstName, x.User.LastName);
         }).ToList();
     }
+
+    private sealed record TableUser(string Id, string? Nickname, string? FirstName, string? LastName, string? ImageUrl);
 
     private IReadOnlyList<LeaderboardLevelDto> Levels() =>
         _config.Value.Levels.OrderBy(l => l.Level).Select(l => new LeaderboardLevelDto(l.Level, l.Name, l.XpThreshold)).ToList();

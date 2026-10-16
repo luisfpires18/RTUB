@@ -41,17 +41,4 @@ public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
             .OrderBy(r => r.Date)
             .ToListAsync();
     }
-
-    public async Task<IEnumerable<Rehearsal>> GetUpcomingRehearsalsAsync(int count = 10)
-    {
-        var today = DateTime.Today;
-        using var context = CreateContext();
-        return await context.Set<Rehearsal>()
-            .AsNoTracking()
-            .Include(r => r.Attendances)
-            .Where(r => r.Date >= today)
-            .OrderBy(r => r.Date)
-            .Take(count)
-            .ToListAsync();
-    }
 }

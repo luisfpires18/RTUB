@@ -15,45 +15,6 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
     {
     }
 
-    public async Task<IEnumerable<AuditLog>> GetRecentAsync(int page, int pageSize)
-    {
-        using var context = CreateContext();
-        return await context.Set<AuditLog>()
-            .AsNoTracking()
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
-    }
-
-    public async Task<IEnumerable<AuditLog>> GetCriticalAsync(int page, int pageSize)
-    {
-        using var context = CreateContext();
-        return await context.Set<AuditLog>()
-            .AsNoTracking()
-            .Where(a => a.IsCriticalAction)
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
-    }
-
-    public async Task<IEnumerable<AuditLog>> GetByEntityTypeAsync(string entityType, int page, int pageSize)
-    {
-        using var context = CreateContext();
-        return await context.Set<AuditLog>()
-            .AsNoTracking()
-            .Where(a => a.EntityType == entityType)
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
-    }
-
-    public async Task<IEnumerable<AuditLog>> GetByUserAsync(string userName, int page, int pageSize)
-    {
-        using var context = CreateContext();
-        return await context.Set<AuditLog>()
-            .AsNoTracking()
-            .Where(a => a.UserName != null && a.UserName.Contains(userName))
-            .OrderByDescending(a => a.Timestamp)
-            .PaginateAsync(page, pageSize);
-    }
-
     public async Task DeleteAllAsync()
     {
         using var context = CreateContext();

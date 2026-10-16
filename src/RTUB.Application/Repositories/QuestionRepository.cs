@@ -173,30 +173,6 @@ public class QuestionRepository : IQuestionRepository
             .FirstOrDefaultAsync(q => q.Id == id && !q.IsDeleted);
     }
 
-    public async Task<IEnumerable<Question>> GetByAssignedMemberIdAsync(string memberId)
-    {
-        using var context = CreateContext();
-        return await context.Questions
-            .AsNoTracking()
-            .Include(q => q.Author)
-            .Include(q => q.AssignedMember)
-            .Where(q => q.AssignedMemberId == memberId && !q.IsDeleted)
-            .OrderByDescending(q => q.CreatedAt)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Question>> GetByAuthorIdAsync(string authorId)
-    {
-        using var context = CreateContext();
-        return await context.Questions
-            .AsNoTracking()
-            .Include(q => q.Author)
-            .Include(q => q.AssignedMember)
-            .Where(q => q.AuthorId == authorId && !q.IsDeleted)
-            .OrderByDescending(q => q.CreatedAt)
-            .ToListAsync();
-    }
-
     public async Task<IEnumerable<Question>> GetUnansweredQuestionsForNotificationAsync()
     {
         using var context = CreateContext();

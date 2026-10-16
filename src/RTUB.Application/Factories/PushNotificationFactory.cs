@@ -226,28 +226,6 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
-    /// Creates a push notification for event repertoire changes.
-    /// </summary>
-    public SendPushNotificationDto CreateEventRepertoireNotification(Event @event, string songTitle, bool isAdded, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(@event);
-        ArgumentException.ThrowIfNullOrWhiteSpace(songTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var eventUrl = BuildEventUrl(baseUrl);
-        var action = isAdded ? "adicionada" : "alterada";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Repertório {action} - {@event.Name}",
-            Body = $"A música \"{songTitle}\" foi {action} no repertório de {@event.Name}.",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = eventUrl,
-            Tag = $"event-repertoire-{@event.Id}"
-        };
-    }
-
-    /// <summary>
     /// Creates a push notification for new discussion posts.
     /// </summary>
     public SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle, string baseUrl)
@@ -983,27 +961,6 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = url,
             Tag = "weekly-summary"
-        };
-    }
-
-    /// <summary>
-    /// Creates a push notification for a logistics card reminder.
-    /// </summary>
-    public SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl)
-    {
-        ArgumentNullException.ThrowIfNull(card);
-        ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{boardId}";
-
-        return new SendPushNotificationDto
-        {
-            Title = $"Lembrete: {card.Title}",
-            Body = $"Tarefa no quadro \"{boardName}\": {TruncateContent(card.Description, 100)}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = logisticsUrl,
-            Tag = $"card-reminder-{card.Id}"
         };
     }
 

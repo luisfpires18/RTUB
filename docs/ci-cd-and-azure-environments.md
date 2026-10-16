@@ -225,7 +225,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
 | `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | set (own key pair) | set (own key pair) | required for push since 038 (`/profile` shows "not configured" without them); absence disables push, not startup. Never rotate a live pair casually: existing subscriptions stop working |
 | `EmailSettings__*` | set for real mail | set | required for real outgoing email; absence disables email, not startup |
-| `Toggles__MapEnabled`, `Geocoding__DisabledInTests` | `true` / `false` | `true` / `false` | maps need **no API key** (Leaflet + OpenStreetMap tiles, Nominatim geocoding) |
+| `Geocoding__DisabledInTests` | `false` | `false` | maps need **no API key** (Leaflet + OpenStreetMap tiles, Nominatim geocoding) |
 | `IDrive__*` | absent | **absent** (dead since the move to R2; owner action to delete on `rtub`) | |
 
 **R2 is required, not optional.** Storage-backed API routes (events, music, gallery, governance, naipes,

@@ -19,6 +19,8 @@ public sealed record ShopDto(
 /// <summary>
 /// A product card. <c>CanReserve</c>: members-only, in stock and not yet reserved by the caller.
 /// <c>AvailableAllYears</c> (#221): shown in every fiscal year, not only the year it was created in.
+/// <c>ReservationCount</c> (#226 F20): how many reservations deleting the product removes - for Admin / Owner only
+/// (who can delete), null for everyone else. A number, never who reserved.
 /// </summary>
 public sealed record ShopProductDto(
     int Id,
@@ -30,7 +32,8 @@ public sealed record ShopProductDto(
     string? ImageUrl,
     ShopReservationDto? MyReservation,
     bool CanReserve,
-    bool AvailableAllYears);
+    bool AvailableAllYears,
+    int? ReservationCount);
 
 /// <summary>
 /// "Detalhes do Produto". <c>FiscalYear</c>: the fiscal year of the product's creation ("2025-2026"), the only year a

@@ -6,8 +6,21 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**Now: #226 remediation batch 2 — F07 to F15 + member-details timeline (uncommitted on `dev` @ 2.0.10, for review; #226
-stays open).** F07 vite 6.4.1 → 6.4.4 (lock only; `npm audit` 0). F08 `wwwroot/images/icons/*` removed (6 unreferenced
+**Now: #226 remediation batch 3 — F05 + F17 + F18 + F20 (uncommitted on `dev` @ 2.0.10, for review; #226 stays open).**
+F05: 58 service / repository methods with no production caller removed from interface + implementation (Product
+available / public / by-type / stats / value; 10 `IMeetingAtaService` agenda / attachment / delete / status methods and
+3 participation helpers; 7 `ISongService` play-stat methods; 6 `IUserProfileService` role / lookup helpers and the
+username lookup; 4 question helpers and 3 question repository lookups; event / rehearsal upcoming / past / by-type /
+with-repertoire; 4 audit repository conveniences; 2 push factory methods; `IRepository.ReloadAsync`) with the 21 tests
+that only covered them. About 80 scanner candidates outside those groups are kept for now (mostly storage `*Exists` /
+size / listing contracts and test-covered CRUD helpers). F17: `Toggles` (map always on), `LoginPopupOptions`,
+`UseSqlServer`, `ImageCaching:*`, `Gallery:MaxVideoSizeMB` removed (code, appsettings, manifest); now
+`deprecatedPatterns`, so both config audits flag them if they reappear (none was set in DEV / PROD on 2026-10-16). F18:
+the leaderboard table reads 5 user columns instead of the whole row (directory / hierarchy / Owner users kept: they use
+most columns). F20: Admin / Owner see "Este produto tem N reserva(s)…" before deleting a product (`reservationCount` in
+the shop list, one grouped query, null for everyone else).
+
+**#226 batch 2 committed** (`d40a6a4b`): F07 to F15 + member-details timeline. F07 vite 6.4.1 → 6.4.4 (lock only; `npm audit` 0). F08 `wwwroot/images/icons/*` removed (6 unreferenced
 copies, 402 KB). F09 `icons/rtub-logo-512.png` 427 → 61 KB and `-192.png` 79 → 15 KB (same 512 / 192 px, 256-colour PNG,
 visually identical; maskable untouched); Messages group / system avatar = `/icons/rtub-logo-352.webp` on the server too.
 F10 three dead `.account__*` rules gone, five duplicated selectors merged (the `/messages` app-screen overrides kept on
@@ -313,9 +326,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
-Raised by #226 (final audit; batches 1 and 2 above): still open F03 avatar thumbnails, F05 ~100 service / repository
-methods with no production caller, F06 DEV VAPID settings (Owner action), F17 unread config keys, F18 full-entity reads,
-F20 reservation count in the product delete. Batch 2 leftovers: `icons/rtub-logo-maskable-512.png` (260 KB) left as is
+Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner
+action). F05 leftovers: ~80 interface methods with no production caller outside the batch-3 groups (storage `*ExistsAsync`
+/ `GetFileSizeAsync` / `ListFoldersAsync` / `ListSubfoldersAsync`, Activity / Album / Enrollment / FiscalYear / Report /
+RoleAssignment / Transaction / Song CRUD helpers, most with tests) - a later, per-service pass. Batch 2 leftovers: `icons/rtub-logo-maskable-512.png` (260 KB) left as is
 (palette compression visibly changed it); on `/messages` the badge follows the list's 30 s poll instead of 10 s. Batch 1
 leftovers: the tracing search still matches redacted values in old stored changes (Owner only; the values are never
 shown); Documentation shows a file written straight to R2 (not through the app) after at most 30 s.

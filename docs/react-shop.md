@@ -99,3 +99,10 @@ unchanged; an **all-years** product (permanent stock, e.g. CDs) is shown in ever
 
 - "Público (não membros)" only decides whether a product can be reserved; visitors still see no shop (unchanged).
 - `ReservationCard` (Shared) has no caller since the page went.
+
+## Delete warning (#226 F20)
+
+The shop list carries `reservationCount` for Admin / Owner (who can delete; one grouped count query) and `null` for
+everyone else - a number only, never who reserved. "Eliminar produto" then adds "Este produto tem 1 reserva, que também
+é apagada." / "Este produto tem N reservas, que também são apagadas." when there are any (nothing extra at zero). The
+delete itself is unchanged: confirmation required, image deleted, reservations removed by cascade.

@@ -47,17 +47,6 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal, string baseUrl);
 
     /// <summary>
-    /// Creates a push notification for event repertoire changes.
-    /// Sent to all users enrolled in the event.
-    /// </summary>
-    /// <param name="event">The event whose repertoire changed</param>
-    /// <param name="songTitle">The title of the song that was added or changed</param>
-    /// <param name="isAdded">True if song was added, false if it was changed/updated</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventRepertoireNotification(Event @event, string songTitle, bool isAdded, string baseUrl);
-
-    /// <summary>
     /// Creates a push notification for new discussion posts.
     /// Sent to all users enrolled in the event.
     /// </summary>
@@ -318,17 +307,6 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl);
-
-    /// <summary>
-    /// Creates a push notification for a logistics card reminder.
-    /// Sent to target users at the scheduled frequency.
-    /// </summary>
-    /// <param name="card">The logistics card to remind about</param>
-    /// <param name="boardName">The name of the board containing the card</param>
-    /// <param name="boardId">The ID of the board containing the card</param>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl);
 
     /// <summary>
     /// Creates a push notification when a meeting request is rejected or expired.

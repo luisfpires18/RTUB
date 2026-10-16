@@ -64,6 +64,8 @@ public sealed class ProductShopService : IProductShopService
 
         var all = (await _products.GetAllAsync()).OrderBy(p => p.Type).ThenBy(p => p.Name).ToList();
         var mine = (await _reservations.GetByUserIdAsync(me)).ToDictionary(r => r.ProductId);
+        // Admin / Owner see how many reservations a delete would take with it (one grouped query, managers only).
+        var counts = ShopAuthorization.CanManage(user) ? await _reservations.CountByProductAsync() : null;
         var q = search?.Trim() ?? "";
         var shown = all
             .Where(p => InFiscalYear(p, selected))
@@ -73,7 +75,8 @@ public sealed class ProductShopService : IProductShopService
             {
                 var reservation = mine.GetValueOrDefault(p.Id);
                 return new ShopProductDto(p.Id, p.Name, p.Type, p.Price, p.Stock, p.IsPublic, Image(p.ImageUrl),
-                    reservation is null ? null : Reservation(reservation), reservation is null && Reservable(p), p.AvailableAllYears);
+                    reservation is null ? null : Reservation(reservation), reservation is null && Reservable(p), p.AvailableAllYears,
+                    counts is null ? null : counts.GetValueOrDefault(p.Id));
             })
             .ToList();
 

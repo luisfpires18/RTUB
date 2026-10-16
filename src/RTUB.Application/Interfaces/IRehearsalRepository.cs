@@ -16,9 +16,4 @@ public interface IRehearsalRepository : IRepository<Rehearsal>
     /// Gets rehearsals within a date range
     /// </summary>
     Task<IEnumerable<Rehearsal>> GetRehearsalsAsync(DateTime startDate, DateTime endDate);
-
-    /// <summary>
-    /// Gets upcoming rehearsals ordered by date
-    /// </summary>
-    Task<IEnumerable<Rehearsal>> GetUpcomingRehearsalsAsync(int count = 10);
 }

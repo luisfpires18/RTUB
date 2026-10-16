@@ -25,6 +25,16 @@ public class ProductReservationRepository : Repository<ProductReservation>, IPro
             .ToListAsync();
     }
 
+    public async Task<Dictionary<int, int>> CountByProductAsync()
+    {
+        using var context = CreateContext();
+        return await context.Set<ProductReservation>()
+            .AsNoTracking()
+            .GroupBy(pr => pr.ProductId)
+            .Select(g => new { ProductId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ProductId, x => x.Count);
+    }
+
     public async Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId)
     {
         using var context = CreateContext();

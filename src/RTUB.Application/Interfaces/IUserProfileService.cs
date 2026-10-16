@@ -9,18 +9,10 @@ namespace RTUB.Application.Interfaces;
 public interface IUserProfileService
 {
     Task<ApplicationUser?> GetUserByIdAsync(string userId);
-    Task<ApplicationUser?> GetUserByUsernameAsync(string username);
-    Task<ApplicationUser?> GetUserByEmailAsync(string email);
     Task<IEnumerable<ApplicationUser>> GetAllUsersAsync();
     Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType);
     Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact);
     Task<bool> IsUserActiveAsync(string userId);
-
-    // User Role Management methods
-    Task<List<string>> GetUserRolesAsync(string userId);
-    Task AddUserToRoleAsync(string userId, string roleName);
-    Task RemoveUserFromRoleAsync(string userId, string roleName);
-    Task<bool> IsUserInRoleAsync(string userId, string roleName);
 
     /// <summary>
     /// Deletes a member and all related entities that have FK constraints preventing direct deletion

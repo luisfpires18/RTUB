@@ -34,16 +34,6 @@ public interface IQuestionRepository
     Task<Question?> GetByIdAsync(int id);
 
     /// <summary>
-    /// Gets all questions assigned to a specific member
-    /// </summary>
-    Task<IEnumerable<Question>> GetByAssignedMemberIdAsync(string memberId);
-
-    /// <summary>
-    /// Gets all questions posted by a specific user
-    /// </summary>
-    Task<IEnumerable<Question>> GetByAuthorIdAsync(string authorId);
-
-    /// <summary>
     /// Gets all unanswered questions that are not awaiting user reply
     /// Used for sending notification reminders
     /// </summary>

@@ -7,10 +7,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IQuestionReplyRepository
 {
-    /// <summary>
-    /// Gets all non-deleted replies for a question, ordered by creation date
-    /// </summary>
-    Task<IEnumerable<QuestionReply>> GetByQuestionIdAsync(int questionId);
 
     /// <summary>
     /// Gets a reply by ID

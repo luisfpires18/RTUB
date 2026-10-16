@@ -81,7 +81,6 @@ public class ConfigurationAuditTests
     [InlineData("WEBSITE_RUN_FROM_PACKAGE")]
     [InlineData("ConnectionStrings__SqliteConnection")]
     [InlineData("DatabaseBackup__Enabled")]
-    [InlineData("Toggles__MapEnabled")]
     [InlineData("Geocoding__DisabledInTests")]
     public void Manifest_ListsTheSetting(string name)
     {
@@ -113,6 +112,24 @@ public class ConfigurationAuditTests
         Status(s["WEBSITE_RUN_FROM_PACKAGE"], "dev").Should().Be("optional", "DEV intentionally has no run-from-package (040)");
         Expected(s["WEBSITE_RUN_FROM_PACKAGE"], "dev").Should().BeNull();
         s.Keys.Should().NotContain(k => k.StartsWith("IDrive", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>#226 F17: settings no code reads are gone from the manifest and flagged for deletion if they reappear.</summary>
+    [Theory]
+    [InlineData("Toggles__MapEnabled")]
+    [InlineData("LoginPopup__Enabled")]
+    [InlineData("LoginPopup__Description")]
+    [InlineData("UseSqlServer")]
+    [InlineData("ImageCaching__CacheDurationInSeconds")]
+    [InlineData("Gallery__MaxVideoSizeMB")]
+    public void Manifest_FlagsRemovedSettings_AsDeprecated(string name)
+    {
+        Settings().Should().NotContainKey(name);
+        using var doc = JsonDocument.Parse(File.ReadAllText(ManifestPath));
+        doc.RootElement.GetProperty("deprecatedPatterns").EnumerateArray()
+            .Select(d => d.GetProperty("pattern").GetString()!)
+            .Should().Contain(pattern => Regex.IsMatch(name, pattern), name);
+        Settings().Keys.Should().Contain("GalleryMedia__MaxVideoSize").And.NotContain("Gallery__MaxVideoSizeMB");
     }
 
     [Fact]

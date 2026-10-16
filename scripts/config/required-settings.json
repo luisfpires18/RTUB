@@ -25,6 +25,10 @@
       "reason": "Games were removed in task 026; dead setting."
     },
     {
+      "pattern": "^(Toggles__|LoginPopup__|ImageCaching__)|^UseSqlServer$|^Gallery__MaxVideoSizeMB$",
+      "reason": "Removed in #226 F17: no code reads it (the members map is always on; no login popup since React track 004; SQLite only; the gallery limit is GalleryMedia__MaxVideoSize). Delete the setting."
+    },
+    {
       "pattern": "^MyTunoScaling__",
       "reason": "MyTuno was removed in task 026; dead setting."
     },
@@ -692,25 +696,6 @@
       "notes": "Required for push since 038 (/profile shows \"not configured\" without the three VAPID values). Use one stable key pair per environment: rotating a live pair invalidates every existing subscription. Never sent to a client."
     },
     {
-      "name": "Toggles__MapEnabled",
-      "group": "maps",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings",
-        "Azure App Settings"
-      ],
-      "devProd": "match",
-      "committedDefault": "true",
-      "expected": {
-        "dev": "true",
-        "prod": "true"
-      },
-      "notes": "Members map. No API key: Leaflet + OpenStreetMap standard tiles (tile.openstreetmap.org, since 040), Nominatim (OpenStreetMap) geocoding."
-    },
-    {
       "name": "Geocoding__DisabledInTests",
       "group": "maps",
       "secret": false,
@@ -1197,36 +1182,6 @@
       "notes": "Bytes; the key the gallery code actually reads (default 100 MB)."
     },
     {
-      "name": "Gallery__MaxVideoSizeMB",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "100",
-      "unused": true,
-      "notes": "UNUSED: committed, but no code reads it (the code reads GalleryMedia__MaxVideoSize, in bytes)."
-    },
-    {
-      "name": "ImageCaching__CacheDurationInSeconds",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "86400",
-      "unused": true,
-      "notes": "UNUSED: committed, but no code reads it."
-    },
-    {
       "name": "Storage__UrlExpirationMinutes",
       "group": "other",
       "secret": false,
@@ -1239,111 +1194,6 @@
       "devProd": "any",
       "codeDefault": "60",
       "notes": "Pre-signed URL lifetime (documents, receipts)."
-    },
-    {
-      "name": "UseSqlServer",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "false",
-      "unused": true,
-      "notes": "UNUSED: committed, but no code reads it; SQLite only."
-    },
-    {
-      "name": "LoginPopup__Enabled",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "false",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
-    },
-    {
-      "name": "LoginPopup__ReadOnce",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "false",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
-    },
-    {
-      "name": "LoginPopup__Version",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "v1",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
-    },
-    {
-      "name": "LoginPopup__Title",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "Title",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
-    },
-    {
-      "name": "LoginPopup__Description",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "Description",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
-    },
-    {
-      "name": "LoginPopup__ButtonText",
-      "group": "other",
-      "secret": false,
-      "local": "optional",
-      "dev": "optional",
-      "prod": "optional",
-      "source": [
-        "committed appsettings"
-      ],
-      "devProd": "any",
-      "committedDefault": "Entendi",
-      "unused": true,
-      "notes": "UNUSED since React track 004: LoginPopupOptions is bound but nothing shows the popup."
     }
   ]
 }

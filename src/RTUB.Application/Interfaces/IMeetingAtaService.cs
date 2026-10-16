@@ -39,23 +39,9 @@ public interface IMeetingAtaService
     Task UpdateAtaAsync(MeetingAta ata);
 
     /// <summary>
-    /// Deletes a meeting ata
-    /// </summary>
-    Task DeleteAtaAsync(int id);
-
-    /// <summary>
     /// Checks if an ata exists for a given meeting
     /// </summary>
     Task<bool> ExistsForMeetingAsync(int meetingId);
-
-    /// <summary>
-    /// Gets the status of ATAs for multiple meetings in a single query.
-    /// Returns a dictionary with meeting IDs as keys and nullable MeetingAtaStatus as values.
-    /// If a meeting has no ATA, the value will be null.
-    /// </summary>
-    /// <param name="meetingIds">Collection of meeting IDs to check</param>
-    /// <returns>Dictionary mapping meeting ID to ATA status (null if no ATA exists)</returns>
-    Task<Dictionary<int, MeetingAtaStatus?>> GetAtaStatusForMeetingsAsync(IEnumerable<int> meetingIds);
 
     /// <summary>
     /// Determines if a user can create or edit an ata for a meeting
@@ -67,52 +53,6 @@ public interface IMeetingAtaService
     /// <param name="existingAta">Optional existing ATA to check if user is secretary</param>
     /// <returns>True if user can create/edit, false otherwise</returns>
     bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions, MeetingAta? existingAta = null);
-
-    /// <summary>
-    /// Determines if a user can view an ata
-    /// </summary>
-    /// <param name="userId">User ID to check</param>
-    /// <param name="meeting">Meeting entity</param>
-    /// <param name="userRoles">User's role names</param>
-    /// <returns>True if user can view, false otherwise</returns>
-    bool CanViewAta(string userId, Meeting meeting, IEnumerable<string> userRoles);
-
-    /// <summary>
-    /// Adds an agenda point to an ata
-    /// </summary>
-    Task AddAgendaPointAsync(int ataId, MeetingAtaAgendaPoint point);
-
-    /// <summary>
-    /// Updates an agenda point
-    /// </summary>
-    Task UpdateAgendaPointAsync(MeetingAtaAgendaPoint point);
-
-    /// <summary>
-    /// Deletes an agenda point
-    /// </summary>
-    Task DeleteAgendaPointAsync(int pointId);
-
-    /// <summary>
-    /// Reorders agenda points based on a list of IDs
-    /// </summary>
-    /// <param name="ataId">Meeting Ata ID</param>
-    /// <param name="pointIds">List of point IDs in desired order</param>
-    Task ReorderAgendaPointsAsync(int ataId, List<int> pointIds);
-
-    /// <summary>
-    /// Adds an attachment to an ata
-    /// </summary>
-    Task AddAttachmentAsync(int ataId, MeetingAtaAttachment attachment);
-
-    /// <summary>
-    /// Updates an attachment
-    /// </summary>
-    Task UpdateAttachmentAsync(MeetingAtaAttachment attachment);
-
-    /// <summary>
-    /// Deletes an attachment
-    /// </summary>
-    Task DeleteAttachmentAsync(int attachmentId);
 
     /// <summary>
     /// Publishes an ata, changing its status from Draft to Published.

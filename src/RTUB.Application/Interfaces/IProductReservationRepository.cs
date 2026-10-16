@@ -17,4 +17,7 @@ public interface IProductReservationRepository : IRepository<ProductReservation>
     /// Gets product reservations by product ID with user details
     /// </summary>
     Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId);
+
+    /// <summary>How many reservations each product has (products with none are absent), in one grouped query.</summary>
+    Task<Dictionary<int, int>> CountByProductAsync();
 }

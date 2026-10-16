@@ -21,14 +21,4 @@ public interface IMeetingParticipationRepository : IRepository<MeetingParticipat
     /// Get participation by meeting ID and user ID
     /// </summary>
     Task<MeetingParticipation?> GetByMeetingAndUserAsync(int meetingId, string userId);
-
-    /// <summary>
-    /// Get participations by attendance status
-    /// </summary>
-    Task<IEnumerable<MeetingParticipation>> GetByAttendanceAsync(bool willAttend);
-
-    /// <summary>
-    /// Delete all participations for a specific meeting (batch operation)
-    /// </summary>
-    Task DeleteByMeetingIdAsync(int meetingId);
 }

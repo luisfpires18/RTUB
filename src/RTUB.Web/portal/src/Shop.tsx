@@ -24,6 +24,8 @@ type Product = {
   myReservation: Reservation | null;
   canReserve: boolean;
   availableAllYears: boolean;
+  /** Admin / Owner only (#226 F20): the reservations a delete removes; null for everyone else. */
+  reservationCount: number | null;
 };
 type Detail = {
   id: number;
@@ -324,6 +326,14 @@ export default function ShopPage() {
               <p>
                 Eliminar <strong>{open.product.name}</strong> da loja?
               </p>
+              {(open.product.reservationCount ?? 0) > 0 && (
+                <p className="warning">
+                  <Icon name="warning" />
+                  {open.product.reservationCount === 1
+                    ? 'Este produto tem 1 reserva, que também é apagada.'
+                    : `Este produto tem ${open.product.reservationCount} reservas, que também são apagadas.`}
+                </p>
+              )}
               <p className="warning">
                 <Icon name="warning" />
                 Apaga também a imagem e as reservas deste produto. Não dá para desfazer.

@@ -603,16 +603,12 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.XpSettings>(
             configuration.GetSection(RTUB.Application.Configuration.XpSettings.SectionName));
-        services.Configure<RTUB.Application.Configuration.Toggles>(
-            configuration.GetSection(RTUB.Application.Configuration.Toggles.SectionName));
         services.Configure<RTUB.Application.Configuration.WebPushOptions>(
             configuration.GetSection(RTUB.Application.Configuration.WebPushOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.BirthdayEmailSchedulerOptions>(
             configuration.GetSection(RTUB.Application.Configuration.BirthdayEmailSchedulerOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.MemberStatusUpdateOptions>(
             configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
-        services.Configure<RTUB.Application.Configuration.LoginPopupOptions>(
-            configuration.GetSection(RTUB.Application.Configuration.LoginPopupOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.RehearsalApprovalReminderOptions>(

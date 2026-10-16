@@ -9,7 +9,6 @@ namespace RTUB.Application.Interfaces;
 public interface IMeetingParticipationService
 {
     Task<MeetingParticipation?> GetParticipationByIdAsync(int id);
-    Task<IEnumerable<MeetingParticipation>> GetAllParticipationsAsync();
     Task<IEnumerable<MeetingParticipation>> GetParticipationsByMeetingIdAsync(int meetingId);
     Task<IEnumerable<MeetingParticipation>> GetParticipationsByUserIdAsync(string userId);
     Task<MeetingParticipation?> GetParticipationByMeetingAndUserAsync(int meetingId, string userId);

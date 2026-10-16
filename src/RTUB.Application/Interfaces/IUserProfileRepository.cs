@@ -9,10 +9,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IUserProfileRepository : IRepository<ApplicationUser>
 {
-    /// <summary>
-    /// Gets user by username
-    /// </summary>
-    Task<ApplicationUser?> GetByUsernameAsync(string username);
 
     /// <summary>
     /// Gets all users

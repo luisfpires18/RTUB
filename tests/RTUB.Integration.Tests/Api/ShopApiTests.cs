@@ -85,7 +85,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         products[1].GetProperty("canReserve").GetBoolean().Should().BeFalse("public products are not reserved here");
         products[2].GetProperty("canReserve").GetBoolean().Should().BeFalse("out of stock");
         products[0].EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "name", "type", "price", "stock", "isPublic", "imageUrl",
-            "myReservation", "canReserve", "availableAllYears");
+            "myReservation", "canReserve", "availableAllYears", "reservationCount");
 
         Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Contain($"{tag} Antigo", "Todos os anos");
         Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}&type=Roupa")).Should().Equal($"{tag} Alfa");
@@ -280,6 +280,58 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         (await client.PutAsJsonAsync($"/api/shop/products/{id}", Input("Renomeado", "Pin"))).StatusCode
             .Should().Be(manages ? HttpStatusCode.OK : HttpStatusCode.Forbidden, role);
         (await client.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(manages ? HttpStatusCode.NoContent : HttpStatusCode.Forbidden, role);
+    }
+
+    /// <summary>
+    /// #226 F20: Admin / Owner see how many reservations a delete would remove (0, 1, many) in the list they already
+    /// load; anyone else gets null. Only a number - never who reserved. The delete still takes them (cascade).
+    /// </summary>
+    [Fact]
+    public async Task ReservationCount_IsForManagersOnly_AndCountsWhatADeleteRemoves()
+    {
+        var tag = Tag();
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var created = await admin.PostAsJsonAsync("/api/shop/products", Input($"{tag} Caneca", "Loiça") with { Stock = 5, IsPublic = false });
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        async Task<JsonElement> Card(HttpClient client) =>
+            (await Json(client, $"/api/shop?fiscalYear=&q={Uri.EscapeDataString(tag)}")).GetProperty("products").EnumerateArray().Single();
+
+        (await Card(admin)).GetProperty("reservationCount").GetInt32().Should().Be(0);
+
+        var members = new List<HttpClient>();
+        for (var i = 0; i < 3; i++)
+        {
+            var (member, _) = await SignInAsync("Member");
+            await WithTokenAsync(member);
+            (await member.PostAsJsonAsync($"/api/shop/products/{id}/reservations", new { hasSizes = false })).StatusCode.Should().Be(HttpStatusCode.OK);
+            members.Add(member);
+            (await Card(admin)).GetProperty("reservationCount").GetInt32().Should().Be(i + 1);
+        }
+
+        (await Card(members[0])).GetProperty("reservationCount").ValueKind.Should().Be(JsonValueKind.Null, "a member never sees the count");
+        var (mod, _) = await SignInAsync("Mod");
+        (await Card(mod)).GetProperty("reservationCount").ValueKind.Should().Be(JsonValueKind.Null, "a Mod cannot delete, so no count");
+        var (owner, _) = await SignInAsync("Owner");
+        (await Card(owner)).GetProperty("reservationCount").GetInt32().Should().Be(3);
+
+        (await admin.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        using var scope = _factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().ProductReservations.CountAsync(r => r.ProductId == id))
+            .Should().Be(0, "the delete still takes the reservations (cascade)");
+
+        var shop = File.ReadAllText(Path.Combine(PortalSrc(), "Shop.tsx")).Replace("\r\n", "\n");
+        shop.Should().Contain("(open.product.reservationCount ?? 0) > 0 &&", "no warning line at zero")
+            .And.Contain("'Este produto tem 1 reserva, que também é apagada.'")
+            .And.Contain("`Este produto tem ${open.product.reservationCount} reservas, que também são apagadas.`");
+    }
+
+    private static string PortalSrc()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "RTUB.Web", "portal"))) dir = dir.Parent;
+        return Path.Combine(dir!.FullName, "src", "RTUB.Web", "portal", "src");
     }
 
     [Fact]

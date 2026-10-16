@@ -28,6 +28,11 @@ public class ProductReservationService : IProductReservationService
         return await _productReservationRepository.GetByProductIdAsync(productId);
     }
 
+    public async Task<Dictionary<int, int>> CountByProductAsync()
+    {
+        return await _productReservationRepository.CountByProductAsync();
+    }
+
     public async Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId)
     {
         return await _productReservationRepository.GetByUserIdAsync(userId);

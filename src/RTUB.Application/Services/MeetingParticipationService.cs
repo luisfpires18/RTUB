@@ -25,11 +25,6 @@ public class MeetingParticipationService : IMeetingParticipationService
         return await _participationRepository.GetByIdAsync(id);
     }
 
-    public async Task<IEnumerable<MeetingParticipation>> GetAllParticipationsAsync()
-    {
-        return await _participationRepository.GetAllAsync();
-    }
-
     public async Task<IEnumerable<MeetingParticipation>> GetParticipationsByMeetingIdAsync(int meetingId)
     {
         return await _participationRepository.GetByMeetingIdAsync(meetingId);

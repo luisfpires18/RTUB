@@ -19,17 +19,6 @@ public class QuestionReplyRepository : IQuestionReplyRepository
 
     private ApplicationDbContext CreateContext() => _contextFactory.CreateDbContext();
 
-    public async Task<IEnumerable<QuestionReply>> GetByQuestionIdAsync(int questionId)
-    {
-        using var context = CreateContext();
-        return await context.QuestionReplies
-            .AsNoTracking()
-            .Include(r => r.Author)
-            .Where(r => r.QuestionId == questionId && !r.IsDeleted)
-            .OrderBy(r => r.CreatedAt)
-            .ToListAsync();
-    }
-
     public async Task<QuestionReply?> GetByIdAsync(int id)
     {
         using var context = CreateContext();
