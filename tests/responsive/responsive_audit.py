@@ -179,6 +179,88 @@ def first_link(selector: str) -> Callable[[Page], None]:
     return run
 
 
+def press(name: str) -> Callable[[Page], None]:
+    """Clicks a button that changes the page in place (no dialog)."""
+
+    def run(page: Page) -> None:
+        page.get_by_role("button", name=name, exact=True).first.click(timeout=8000)
+        page.wait_for_timeout(300)
+
+    return run
+
+
+def _selected_in_view(page: Page) -> None:
+    """The selected member is a focused treeitem (or loose-member link) inside the viewport, and the path bar shows."""
+    ok = page.evaluate(
+        """() => {
+          const el = document.activeElement;
+          const card = el?.querySelector?.(':scope > .hnode .hnode__card') ?? el;
+          if (!el || !(el.getAttribute('role') === 'treeitem' || el.classList.contains('hloose__member'))) return 'focus is not on a member';
+          const r = card.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > innerHeight || r.right > document.documentElement.clientWidth + 1 || r.left < -1) return 'selected member off-screen';
+          const bar = document.querySelector('.htree-selected');
+          if (!bar) return 'no selected-path bar';
+          const b = bar.getBoundingClientRect();
+          if (r.bottom > b.top + 1 && r.top < b.bottom - 1) return 'selected member hidden under the path bar';
+          return '';
+        }"""
+    )
+    if ok:
+        raise AssertionError(ok)
+
+
+def hierarchy_search(page: Page) -> None:
+    """#223: search a deep member, choose it: ancestors open, it is focused, in view, with its path."""
+    deepest = page.evaluate(
+        """() => [...document.querySelectorAll('[role=treeitem]')]
+             .sort((a, b) => +b.getAttribute('aria-level') - +a.getAttribute('aria-level'))[0]
+             ?.querySelector(':scope > .hnode strong')?.textContent ?? ''"""
+    )
+    page.get_by_role("button", name="Recolher tudo", exact=True).click()
+    page.get_by_placeholder("Procurar membro").fill(deepest or "a")
+    page.get_by_placeholder("Procurar membro").press("Enter")
+    page.wait_for_timeout(700)
+    _selected_in_view(page)
+
+
+def hierarchy_keyboard(page: Page) -> None:
+    """#223: one tab stop; arrows walk the tree; Right opens / enters, Left closes / goes up; Home, End, type-ahead."""
+    page.locator("[role=tree] [role=treeitem][tabindex='0']").first.focus()
+    stops = page.locator("[role=tree] [tabindex='0']").count()
+    if stops != 1:
+        raise AssertionError(f"{stops} tab stops in the tree")
+    level = lambda: page.evaluate("() => document.activeElement.getAttribute('aria-level')")
+    page.keyboard.press("ArrowRight")  # first root is open: enters its first afilhado
+    if level() != "2":
+        raise AssertionError("ArrowRight did not enter the first afilhado")
+    page.keyboard.press("ArrowLeft")  # an open afilhado closes first; a closed one goes up to the padrinho
+    if level() == "2":
+        if page.evaluate("() => document.activeElement.getAttribute('aria-expanded')") != "false":
+            raise AssertionError("ArrowLeft neither closed the afilhado nor went up")
+        page.keyboard.press("ArrowLeft")
+    if level() != "1":
+        raise AssertionError("ArrowLeft did not go back to the padrinho")
+    page.keyboard.press("End")
+    page.wait_for_timeout(900)  # long smooth scrolls: let each finish, as a person would
+    page.keyboard.press("Home")
+    page.wait_for_timeout(900)
+    page.keyboard.press("ArrowDown")
+    page.wait_for_timeout(900)  # smooth scrolling (no reduced motion here)
+    _selected_in_view(page)
+
+
+def hierarchy_focus_branch(page: Page) -> None:
+    """#223: choose a padrinho, focus their branch, then return to the whole hierarchy."""
+    page.locator("[role=treeitem][aria-level='2'][aria-expanded]").first.focus()
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("ArrowUp")
+    page.get_by_role("button", name="Focar ramo", exact=True).click(timeout=8000)
+    page.wait_for_timeout(400)
+    if page.locator("[role=treeitem][aria-level='1']").count() != 1:
+        raise AssertionError("the focused branch is not shown alone")
+    _selected_in_view(page)
+
+
 SCENARIOS: list[Scenario] = [
     # Public (signed out)
     Scenario("home", "/"),
@@ -201,6 +283,10 @@ SCENARIOS: list[Scenario] = [
     Scenario("members", "/members", auth=True),
     Scenario("members-add", "/members", auth=True, action=click("Adicionar membro"), dialog=True),
     Scenario("members-hierarchy", "/members/hierarchy", auth=True),
+    Scenario("hierarchy-expanded", "/members/hierarchy", auth=True, action=press("Expandir tudo")),
+    Scenario("hierarchy-search", "/members/hierarchy", auth=True, action=hierarchy_search),
+    Scenario("hierarchy-keyboard", "/members/hierarchy", auth=True, action=hierarchy_keyboard),
+    Scenario("hierarchy-focus-branch", "/members/hierarchy", auth=True, action=hierarchy_focus_branch),
     Scenario("members-map", "/members/map", auth=True),
     Scenario("hall-of-fame", "/hall-of-fame", auth=True),
     Scenario("leaderboard", "/leaderboard", auth=True),

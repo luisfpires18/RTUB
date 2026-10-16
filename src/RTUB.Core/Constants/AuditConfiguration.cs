@@ -47,6 +47,8 @@ public static class AuditConfiguration
             ["Message"] = new(StringComparer.Ordinal) { "Body", "ReplyToBody", "ReplyToSenderName", "ReadBy", "Link" },
             ["Conversation"] = new(StringComparer.Ordinal) { "Title", "Participants" },
             ["MessageReaction"] = new(StringComparer.Ordinal) { "Emoji" },
+            // #220: a push subscription's endpoint and keys address and decrypt the member's device; never logged.
+            ["PushSubscription"] = new(StringComparer.Ordinal) { "Endpoint", "Auth", "P256dh" },
         };
 
     public const string RedactedValue = "[redacted]";

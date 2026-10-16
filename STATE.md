@@ -3,9 +3,18 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-15 (#221; #220 / #223 audited)_
+_Last updated: 2026-10-16 (#220 / #223)_
 
 ## Phase
+**#220 tracing names + cards and #223 hierarchy tree (uncommitted on `dev` @ 2.0.10, not pushed, issues stay open):**
+#220: audit rows named after the person / object for every audited type (one batched lookup per table before the save,
+none when not needed; deletes named before they go), push keys redacted in new entries, old entries never rewritten
+(`currentDisplayName` at read time only; export raw), search over stored changes or name with the filters and an exact
+total, Portuguese type labels, new card and Details. #223: CSS-only WAI-ARIA tree (left to right ≥ 900 px, indented
+below), search, path bar, "Focar ramo", keyboard; loop / self-padrinho guard in `MemberHierarchyService`. No schema
+change, no new dependency. Detail: `docs/react-owner-operations.md` → *Names and cards (#220)*, `docs/react-members.md`
+→ *Hierarchy tree (#223)*.
+
 **#221 shop products in every fiscal year (uncommitted on `dev` @ 2.0.10, not pushed, issue stays open):**
 `Products.AvailableAllYears` + migration `AddProductAvailableAllYears` (default 0: existing and N-1 products stay
 year-specific, by `CreatedAt`); one rule `ProductShopService.InFiscalYear`; "Disponível em todos os anos letivos" in the
@@ -329,6 +338,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by #220 / #223: push-subscription log entries written before #220 still hold `Endpoint` / `Auth` / `P256dh` in
+their changes (Owner-only Details and export; redacting them would rewrite history - a decision); names resolved at read
+time are not searchable; `NaipeContent` writes both an automatic and a manual entry per change; the tracing delete
+button is 36 px on phones (existing `icon-btn--sm`); the hierarchy path bar takes two rows at 320 px.
 Raised by #221: a shop reservation snapshots no product name or price and is deleted with its product (cascade);
 `ProductShopService.InFiscalYear` ends a year at 31 Aug 23:59:59 (sub-second gap) and compares UTC `CreatedAt` with
 local-calendar bounds.

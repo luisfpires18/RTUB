@@ -127,7 +127,7 @@ public class AuditLogAppender : IAuditLogAppender
             Timestamp = DateTime.UtcNow,
             Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = IsCriticalAction(entityType, action),
-            EntityDisplayName = getEntityDisplayName(entry)
+            EntityDisplayName = Fit(getEntityDisplayName(entry))
         };
     }
 
@@ -211,7 +211,10 @@ public class AuditLogAppender : IAuditLogAppender
             Timestamp = DateTime.UtcNow,
             Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCriticalChange,
-            EntityDisplayName = modifiedUser.UserName
+            // #220: the nickname members know, with the username that identifies the account.
+            EntityDisplayName = Fit(string.IsNullOrWhiteSpace(modifiedUser.Nickname) || modifiedUser.Nickname == modifiedUser.UserName
+                ? modifiedUser.UserName
+                : $"{modifiedUser.Nickname} ({modifiedUser.UserName})")
         };
     }
 
@@ -236,6 +239,9 @@ public class AuditLogAppender : IAuditLogAppender
     }
 
     // --- Private helpers ---
+
+    /// <summary>AuditLog.EntityDisplayName holds at most 500 characters.</summary>
+    private static string? Fit(string? name) => name is { Length: > 500 } ? name[..499] + "…" : name;
 
     /// <summary>
     /// Builds a ChangeEntry for a modified property, with special handling for binary data.

@@ -36,7 +36,8 @@ public class AuditLogService : IAuditLogService
         string? action = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
-        bool? criticalOnly = null)
+        bool? criticalOnly = null,
+        string? search = null)
     {
         query = ExcludeHiddenEntities(query);
 
@@ -54,8 +55,13 @@ public class AuditLogService : IAuditLogService
             .WhereIf(toDate.HasValue,
                 a => a.Timestamp <= toDate!.Value)
             .WhereIf(criticalOnly.HasValue && criticalOnly.Value,
-                a => a.IsCriticalAction);
+                a => a.IsCriticalAction)
+            .WhereIf(!string.IsNullOrWhiteSpace(search), Matches(search!));
     }
+
+    /// <summary>#220: the stored changes or the stored entity name (what the card shows when it was recorded).</summary>
+    private static System.Linq.Expressions.Expression<Func<AuditLog, bool>> Matches(string search) =>
+        a => (a.Changes != null && a.Changes.Contains(search)) || (a.EntityDisplayName != null && a.EntityDisplayName.Contains(search));
 
     public async Task<IEnumerable<AuditLog>> GetAllAsync(
         string? userName = null,
@@ -106,7 +112,7 @@ public class AuditLogService : IAuditLogService
 
         return await _auditLogRepository.QueryAsync(q =>
             ExcludeHiddenEntities(q)
-                .Where(a => a.Changes != null && a.Changes.Contains(searchTerm))
+                .Where(Matches(searchTerm))
                 .OrderByDescending(a => a.Timestamp)
                 .PaginateAsync(page, pageSize));
     }
@@ -188,11 +194,12 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null,
         int page = 1,
-        int pageSize = 100)
+        int pageSize = 100,
+        string? search = null)
     {
         return await _auditLogRepository.QueryAsync(async q =>
         {
-            var filtered = ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly);
+            var filtered = ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly, search?.Trim());
             var totalCount = await filtered.CountAsync();
             var logs = await filtered
                 .OrderByDescending(a => a.Timestamp)

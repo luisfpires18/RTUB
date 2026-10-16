@@ -33,7 +33,9 @@ Without the two variables only the signed-out scenarios run. On Git Bash for Win
 Append a `Scenario(name, path, auth=..., action=..., dialog=...)` to `SCENARIOS`. `click("Label")` opens a dialog by
 its button's accessible name; `click_css(selector)` by a selector. `optional=True` when the control may rightly be
 absent (`roles-add-year`: no academic year left to add); otherwise a missing control fails. Keep scenarios to route
-families and shared primitives, not every page variant.
+families and shared primitives, not every page variant. `press("Label")` clicks a button that changes the page in place;
+an action may also be a function that raises when a behaviour is wrong (the `hierarchy-*` scenarios check search,
+keyboard and "Focar ramo" on `/members/hierarchy`, #223).
 
 ## Intentional local horizontal scroll
 
@@ -42,3 +44,4 @@ Allowed only when reflow is worse, inside the component, with a visible scrollba
 | Where | Why |
 | --- | --- |
 | `/profile` → "Percurso na Tuna" (`.tuna-path`, ≥ 700 px) | a horizontal timeline; a long career does not fit a tablet row. Phones get the vertical timeline. |
+| `/members/hierarchy` → a family card (`.hnode-item--root`, ≥ 900 px) | only a family deeper than 6 levels; today none scrolls at 1280 px. Phones get the indented tree. |

@@ -172,6 +172,10 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Collect IDs during change tracking, then resolve names asynchronously after save
         var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
 
+        // #220: names the audited rows need (members, events, ...) and the tracker lacks, in at most one batched query
+        // per table and only when needed; before the save, so deleted rows are still there to be named.
+        await LoadAuditNamesAsync(ChangeTracker.Entries<BaseEntity>().Where(WillBeAudited).ToList(), cancellationToken);
+
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             // Skip audit logging for excluded entities (high-frequency, low-value changes)
@@ -354,6 +358,23 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Whether the entry will become an audit row in this save: added or deleted, or modified with a real change, and
+    /// not of an excluded type. Only these may trigger the name lookup.
+    /// </summary>
+    private static bool WillBeAudited(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry)
+    {
+        var type = entry.Entity.GetType().Name;
+        return !AuditConfiguration.ExcludedEntityTypes.Contains(type) && entry.State switch
+        {
+            EntityState.Added or EntityState.Deleted => true,
+            EntityState.Modified => !AuditConfiguration.ModifiedExcludedEntityTypes.Contains(type)
+                && entry.Properties.Any(p => p.IsModified && !Equals(p.OriginalValue, p.CurrentValue)
+                    && p.Metadata.Name is not ("UpdatedAt" or "UpdatedBy")),
+            _ => false,
+        };
     }
 
     /// <summary>

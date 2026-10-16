@@ -6508,8 +6508,7 @@ video.tile__media {
   background: var(--bg-raise);
 }
 
-.member-row .who__avatar,
-.family__person .who__avatar {
+.member-row .who__avatar {
   flex: none;
   width: 48px;
   height: 48px;
@@ -6560,32 +6559,268 @@ video.tile__media {
   margin-top: 4px;
 }
 
-.family,
-.family__children {
-  display: grid;
+/* ---------- /members/hierarchy (#223): a CSS-only padrinho → afilhado tree ----------
+   One semantic tree (role="tree"). Phones: indented (16px a level) and collapsible, connectors on the left.
+   Wide screens: left to right, each family in its own card, parents centred on their afilhados with elbow lines.
+   No canvas, no pan or zoom: the page scrolls as usual; a very deep family scrolls inside its own card. */
+
+.htree-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.htree-search {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.htree-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.htree-actions .btn {
+  min-height: 44px;
+}
+
+.htree-results {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-card);
+  list-style: none;
+}
+
+.htree-results > .note {
+  padding: 10px 12px;
+}
+
+.htree-results button {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.htree-results button:hover,
+.htree-results button:focus-visible {
+  background: rgba(111, 66, 193, 0.22);
+}
+
+.htree-results small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.htree-summary {
+  margin: 12px 0 0;
+}
+
+.htree-focus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  background: rgba(111, 66, 193, 0.14);
+}
+
+.htree,
+.hnode__children {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.family__children {
-  margin-top: 8px;
-  padding-left: 14px;
+.htree {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.hnode-item--root {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.hnode-item:focus {
+  outline: none;
+}
+
+.hnode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hnode__card {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hnode__card .who__avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.hnode__who {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.hnode__who strong {
+  overflow-wrap: anywhere;
+}
+
+.hnode__who small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hnode__card:hover {
+  border-color: var(--purple-ink);
+}
+
+.hnode-item:focus-visible > .hnode .hnode__card {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.is-path > .hnode .hnode__card {
+  border-color: var(--purple);
+}
+
+.is-selected > .hnode .hnode__card {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.24);
+  box-shadow: inset 0 0 0 1px var(--purple-ink);
+}
+
+.hnode__toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hnode__toggle:hover {
+  border-color: var(--purple-ink);
+  color: var(--ink);
+}
+
+.hnode__toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.is-open > .hnode .hnode__toggle svg {
+  transform: rotate(90deg);
+}
+
+/* Phones and tablets: indented, 16px a level, the spine on the left and a stub to each afilhado. */
+.hnode__children {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 6px;
+  padding-left: 10px;
   border-left: 2px solid var(--line-strong);
 }
 
-@media (min-width: 640px) {
-  .family__children {
-    padding-left: 28px;
-  }
+.hnode__children > li {
+  position: relative;
 }
 
-.family__person {
+.hnode__children > li::before {
+  position: absolute;
+  top: 24px;
+  left: -10px;
+  width: 8px;
+  border-top: 2px solid var(--line-strong);
+  content: '';
+}
+
+.hnode__children > li.is-path::before,
+.hnode__children > li.is-selected::before {
+  border-color: var(--purple-ink);
+}
+
+/* Members with neither padrinho nor afilhados: one compact list, not 21 empty trees. */
+.hloose {
+  margin-top: 24px;
+}
+
+.hloose__title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.hloose__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hloose__member {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--bg-raise);
@@ -6593,9 +6828,213 @@ video.tile__media {
   text-decoration: none;
 }
 
-.family__person:hover,
-.family__person:focus-visible {
+.hloose__member .who__avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.hloose__member span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.hloose__member strong {
+  overflow-wrap: anywhere;
+}
+
+.hloose__member small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hloose__member:hover,
+.hloose__member.is-selected {
   border-color: var(--purple-ink);
+}
+
+.hloose__member.is-selected {
+  background: rgba(111, 66, 193, 0.24);
+}
+
+/* The selected member and the path to their root: sticks to the bottom while the tree scrolls past. */
+.htree-selected {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--purple);
+  border-radius: 14px;
+  background: rgba(27, 24, 32, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.htree-crumbs {
+  min-width: 0;
+}
+
+.htree-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.htree-crumbs li + li::before {
+  margin-right: 4px;
+  color: var(--muted);
+  content: '›';
+}
+
+.htree-crumbs button {
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--purple-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.htree-selected__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Wide screens: left to right. Each member is a fixed-width card; its afilhados sit to its right in a column, the
+   card centred on them; elbows: parent → spine → each afilhado. Depth 6 fits a 1280px screen; deeper scrolls inside the card. */
+@media (min-width: 900px) {
+  .hnode-item--root {
+    overflow-x: auto;
+    padding: 14px 12px;
+  }
+
+  .hnode-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .hnode {
+    flex: none;
+    width: 160px;
+  }
+
+  .hnode__card {
+    padding-right: 18px;
+  }
+
+  /* The afilhados count is a round button on the card's right edge, where the connector starts. */
+  .hnode__toggle {
+    position: absolute;
+    top: 50%;
+    right: -13px;
+    z-index: 1;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0 6px;
+    border-radius: 999px;
+    transform: translateY(-50%);
+  }
+
+  .is-open > .hnode .hnode__toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .hnode__children {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding-left: 24px;
+    border-left: 0;
+  }
+
+  /* parent → spine */
+  .hnode__children::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 16px;
+    border-top: 2px solid var(--line-strong);
+    content: '';
+  }
+
+  .hnode__children > li {
+    padding: 4px 0 4px 12px;
+  }
+
+  /* the spine: from the first afilhado's middle to the last one's */
+  .hnode__children > li::before {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    border-top: 0;
+    border-left: 2px solid var(--line-strong);
+  }
+
+  .hnode__children > li:first-child::before {
+    top: 50%;
+  }
+
+  .hnode__children > li:last-child::before {
+    bottom: 50%;
+  }
+
+  .hnode__children > li:only-child::before {
+    display: none;
+  }
+
+  /* spine → afilhado */
+  .hnode__children > li::after {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    border-top: 2px solid var(--line-strong);
+    content: '';
+  }
+
+  .hnode__children > li.is-path::after,
+  .hnode__children > li.is-selected::after,
+  .is-path > .hnode__children::before,
+  .is-path.is-open > .hnode__children::before {
+    border-color: var(--purple-ink);
+  }
+}
+
+@media (min-width: 900px) and (pointer: coarse) {
+  .hnode__toggle {
+    min-width: 36px;
+    min-height: 36px;
+    right: -18px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hnode__toggle svg {
+    transition: transform 0.15s ease;
+  }
 }
 
 /* ---------- member admin (React track 018) ---------- */
@@ -11571,10 +12010,12 @@ label.owner-person {
   font-size: 1.75rem;
 }
 
+/* #220: the person or object first, then the type and action, then who and when; Details and delete at the end.
+   Dense on desktop (several per row), one per row on phones. */
 .owner-logs {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -11582,47 +12023,91 @@ label.owner-person {
 
 .owner-log {
   display: grid;
-  align-content: space-between;
-  gap: 10px;
+  align-content: start;
+  gap: 6px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
+  border-left-width: 4px;
   border-radius: var(--radius);
   background: var(--bg-raise);
 }
 
-.owner-log__head,
+.owner-log--critical {
+  border-left-color: #ff8f86;
+}
+
+.owner-log__name {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.owner-log__current {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: 1px;
+}
+
+.owner-log__what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0;
+}
+
+.owner-log__type {
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+}
+
+.owner-log__critical {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffb3ad;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
 .owner-log__foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px 8px;
+  margin-top: 2px;
 }
 
-.owner-log__head time {
+.owner-log__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+  margin: 0;
   color: var(--muted);
   font-size: 0.8125rem;
 }
 
-.owner-log__critical {
-  color: #ffb3ad;
-}
-
-.owner-log__entity {
-  display: grid;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.owner-log__entity strong {
+.owner-log__meta span {
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .owner-log__buttons {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .owner-action {
