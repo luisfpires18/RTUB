@@ -16,7 +16,7 @@ using Xunit;
 namespace RTUB.Integration.Tests.Api;
 
 /// <summary>
-/// The shop on /api/shop (React track 021, was the Blazor /shop) through the real host: real login, antiforgery,
+/// The shop on /api/shop (React track 021, was the Blazor /shop) through the real host: public and authenticated reads, real login, antiforgery,
 /// SQLite and the old ProductService / ProductReservationService. Image storage is the recording fake of
 /// <see cref="EventsApiFactory"/>: nothing reaches R2; the shop sends no notifications. Every test scopes its own
 /// products with a unique tag, since the class shares one database.
@@ -34,22 +34,42 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Visitors_GetNothing_AndThePageIsReact()
+    public async Task Visitors_GetSafePublicCatalogue_AndCannotAccessMemberActions()
     {
-        var id = await AddAsync($"{Tag()} Visita", "Pin");
+        var tag = Tag();
+        var id = await AddAsync($"{tag} Visita", "Pin");
+        var soldOut = await AddAsync($"{tag} Esgotado", "Pin", stock: 0);
+        var memberOnly = await AddAsync($"{tag} Privado", "Roupa", isPublic: false);
         var anonymous = Anonymous();
         await WithTokenAsync(anonymous);
-        foreach (var path in new[] { "/api/shop", $"/api/shop/products/{id}", $"/api/shop/products/{id}/reservations" })
-        {
-            (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
-        }
+        var catalogue = await Json(anonymous, $"/api/shop?q={tag}");
+        Names(catalogue).Should().Equal($"{tag} Esgotado", $"{tag} Visita");
+        var products = catalogue.GetProperty("products").EnumerateArray().ToList();
+        var card = products.Single(p => p.GetProperty("id").GetInt32() == id);
+        products.Single(p => p.GetProperty("id").GetInt32() == soldOut).GetProperty("stock").GetInt32().Should().Be(0);
+        (await ProductAsync(soldOut))!.IsAvailable.Should().BeFalse("public listing keeps the current sold-out state");
+        card.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
+            "id", "name", "type", "price", "stock", "imageUrl", "description", "availableAllYears");
+        catalogue.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("fiscalYears", "fiscalYear", "types", "products");
+        var json = catalogue.GetRawText();
+        json.Should().NotContain("myReservation").And.NotContain("canReserve").And.NotContain("reservationCount")
+            .And.NotContain("canCreate").And.NotContain("canManage").And.NotContain("username");
+        products.Select(p => p.GetProperty("id").GetInt32()).Should().NotContain(memberOnly);
+        json.Should().NotContain($"{tag} Privado");
+
+        (await anonymous.GetAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.GetAsync($"/api/shop/products/{id}/reservations")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         (await anonymous.PostAsJsonAsync($"/api/shop/products/{id}/reservations", new { hasSizes = false })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsJsonAsync("/api/shop/products", Input("x", "Pin"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.PutAsJsonAsync($"/api/shop/products/{id}", Input("x", "Pin"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.DeleteAsync("/api/shop/reservations/1")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         var page = await anonymous.GetAsync("/shop");
-        page.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        page.Headers.Location!.ToString().Should().Be("/login?returnUrl=%2Fshop");
+        page.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await page.Content.ReadAsStringAsync()).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
 
         var (member, _) = await SignInAsync("Member");
         (await member.GetStringAsync("/shop")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
@@ -109,9 +129,10 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         await WithTokenAsync(admin);
 
         var yearly = await CreateAsync(admin, Input($"{tag} Sweat 2025", "Roupa"));
+        var publicCd = await CreateAsync(admin, Input($"{tag} CD público", "Album") with { AvailableAllYears = true, IsPublic = true, Stock = 4 });
         var cd = await CreateAsync(admin, Input($"{tag} CD", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 4 });
         var soldOut = await CreateAsync(admin, Input($"{tag} CD antigo", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 0 });
-        foreach (var id in new[] { yearly, cd, soldOut })
+        foreach (var id in new[] { yearly, publicCd, cd, soldOut })
         {
             await SetCreatedAsync(id, new DateTime(current - 1, 10, 1, 12, 0, 0, DateTimeKind.Utc));
         }
@@ -120,9 +141,16 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         (await ProductAsync(cd))!.AvailableAllYears.Should().BeTrue();
 
         var (member, _) = await SignInAsync("Member");
-        Names(await Json(member, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo");
-        Names(await Json(member, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} Sweat 2025");
-        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} Sweat 2025");
+        Names(await Json(member, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público");
+        Names(await Json(member, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
+        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
+
+        var anonymous = Anonymous();
+        Names(await Json(anonymous, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD público");
+        Names(await Json(anonymous, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
+        Names(await Json(anonymous, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
+        (await Json(anonymous, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().Single()
+            .GetProperty("availableAllYears").GetBoolean().Should().BeTrue();
 
         var cards = (await Json(member, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().ToList();
         cards.Select(c => c.GetProperty("availableAllYears").GetBoolean()).Should().AllBeEquivalentTo(true);

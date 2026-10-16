@@ -287,7 +287,7 @@ public class ConfigurationAuditTests
             var tracked = RunScript(shell, "audit-azure-app-settings.ps1",
                 "-DevSettingsFile", empty, "-ProdSettingsFile", empty, "-OutputDirectory", "docs/config-audit-test");
             tracked.ExitCode.Should().NotBe(0);
-            tracked.Output.Should().Contain("must be under .local/");
+            Regex.IsMatch(tracked.Output, @"must be.*under \.local/", RegexOptions.Singleline).Should().BeTrue();
             Directory.Exists(Path.Combine(Root, "docs", "config-audit-test")).Should().BeFalse();
         }
         finally

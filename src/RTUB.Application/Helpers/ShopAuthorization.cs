@@ -7,7 +7,8 @@ namespace RTUB.Application.Helpers;
 /// Blazor /shop ([Authorize]; "Adicionar Produto" shown to "Admin,Mod", edit/delete/reservations to "Admin"), with Owner
 /// inheriting Admin:
 ///
-/// - Visitors: nothing (401); the page sends them to sign in.
+/// - Visitors: the public product catalogue only; member detail, reservation and management queries still require a
+///   signed-in member.
 /// - Any signed-in member: every product, its details; reserve members-only products in stock; cancel their own.
 /// - Mod: also add products (with their first image).
 /// - Admin, Owner: also edit and delete products, change images, see and delete every reservation.

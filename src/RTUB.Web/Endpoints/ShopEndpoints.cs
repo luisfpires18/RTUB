@@ -7,8 +7,9 @@ namespace RTUB.Web.Endpoints;
 
 /// <summary>
 /// The React /shop ("Loja RTUB", React track 021, docs/react-shop.md; was the Blazor page). Thin: every rule lives in
-/// <see cref="IProductShopService"/>, decided from the session. Signed-in members only, as before. Every write needs
-/// the antiforgery token in the X-CSRF-TOKEN header.
+/// <see cref="IProductShopService"/>, decided from the session. The catalogue is public and returns a public-only DTO
+/// to visitors; reservation and management reads and every write remain service-authorized. Every write needs the
+/// antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class ShopEndpoints
 {
@@ -21,8 +22,10 @@ public static class ShopEndpoints
         shop.MapGet("/", async (HttpContext http, IProductShopService service) =>
         {
             var query = http.Request.Query;
-            return ToResult(await service.GetAsync(query.ContainsKey("fiscalYear") ? query["fiscalYear"].ToString() : null,
-                query["q"].ToString(), query["type"].ToString(), http.User));
+            var fiscalYear = query.ContainsKey("fiscalYear") ? query["fiscalYear"].ToString() : null;
+            return http.User.Identity?.IsAuthenticated == true
+                ? ToResult(await service.GetAsync(fiscalYear, query["q"].ToString(), query["type"].ToString(), http.User))
+                : ToResult(await service.GetPublicAsync(fiscalYear, query["q"].ToString(), query["type"].ToString()));
         });
 
         shop.MapGet("/products/{id:int}", async (int id, HttpContext http, IProductShopService service) =>

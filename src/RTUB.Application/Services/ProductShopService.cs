@@ -8,8 +8,9 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /shop ("Loja RTUB") behind the React /shop (React track 021, docs/react-shop.md). Same data and rules,
-/// through <see cref="IProductService"/> and <see cref="IProductReservationService"/>, now enforced server-side
+/// The old Blazor /shop ("Loja RTUB") behind the React /shop (React track 021, docs/react-shop.md). Public reads use a
+/// restricted catalogue DTO; signed-in data and actions retain the same rules through <see cref="IProductService"/> and
+/// <see cref="IProductReservationService"/>, enforced server-side
 /// (<see cref="ShopAuthorization"/>; the old page only hid buttons):
 /// - products: every product for any signed-in member, by type then name; the fiscal year of the product's creation
 ///   (the current one by default, or every year) - or every year for a product available in all years (#221) -, search
@@ -88,6 +89,38 @@ public sealed class ProductShopService : IProductShopService
             Sizes,
             ShopAuthorization.CanCreate(user),
             ShopAuthorization.CanManage(user)));
+    }
+
+    public async Task<EventResult<PublicShopDto>> GetPublicAsync(string? fiscalYear, string? search, string? type)
+    {
+        var current = FiscalYearHelper.GetCurrentFiscalYearString();
+        var years = (await _fiscalYears.GetAllFiscalYearsAsync())
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
+        var selected = fiscalYear ?? current;
+        if (selected != "" && selected != current && !years.Contains(selected))
+        {
+            return EventResult<PublicShopDto>.Invalid("fiscalYear", "Ano inválido.");
+        }
+
+        // Public users see only products explicitly intended for non-members. Keep sold-out products visible,
+        // as the authenticated catalogue does, and apply the same fiscal-year/search/type ordering rules.
+        var all = (await _products.GetAllAsync()).Where(p => p.IsPublic).OrderBy(p => p.Type).ThenBy(p => p.Name).ToList();
+        var q = search?.Trim() ?? "";
+        var shown = all
+            .Where(p => InFiscalYear(p, selected))
+            .Where(p => q == "" || p.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || p.Type.Contains(q, StringComparison.OrdinalIgnoreCase))
+            .Where(p => string.IsNullOrEmpty(type) || p.Type == type)
+            .Select(p => new PublicShopProductDto(p.Id, p.Name, p.Type, p.Price, p.Stock, Image(p.ImageUrl), p.Description, p.AvailableAllYears))
+            .ToList();
+
+        return EventResult<PublicShopDto>.Ok(new PublicShopDto(
+            years.Select(y => new MemberOptionDto(y, y == current ? $"{y} (ATUAL)" : y)).ToList(),
+            selected,
+            all.Select(p => p.Type).Distinct().OrderBy(t => t).ToList(),
+            shown));
     }
 
     public async Task<EventResult<ShopProductDetailDto>> GetProductAsync(int id, ClaimsPrincipal user)

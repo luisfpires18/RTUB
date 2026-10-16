@@ -8,8 +8,7 @@ import { Icon } from './icons';
 import { loginTo } from './musicApi';
 import { MemberBadge } from './MemberBadge';
 
-// /api/shop (Endpoints/ShopEndpoints.cs, React track 021). Signed-in members only; Mod adds products, Admin and Owner
-// manage them and every reservation. The server decides every rule (ProductShopService).
+// /api/shop: visitors receive a public-only catalogue; members retain their existing actions.
 
 type Option = { value: string; label: string };
 type Reservation = { id: number; username: string; displayName: string | null; size: string | null; createdAt: string };
@@ -26,6 +25,16 @@ type Product = {
   availableAllYears: boolean;
   /** Admin / Owner only (#226 F20): the reservations a delete removes; null for everyone else. */
   reservationCount: number | null;
+};
+type PublicProduct = {
+  id: number;
+  name: string;
+  type: string;
+  price: number;
+  stock: number;
+  imageUrl: string | null;
+  description: string | null;
+  availableAllYears: boolean;
 };
 type Detail = {
   id: number;
@@ -50,6 +59,8 @@ type Shop = {
   canCreate: boolean;
   canManage: boolean;
 };
+type PublicShop = { fiscalYears: Option[]; fiscalYear: string; types: string[]; products: PublicProduct[] };
+type Catalogue = Shop | PublicShop;
 type ProductInput = {
   name: string;
   type: string;
@@ -78,7 +89,7 @@ const api = {
     if (q) p.set('q', q);
     if (type) p.set('type', type);
     const s = p.toString();
-    return call<Shop>('GET', `/api/shop${s ? `?${s}` : ''}`);
+    return call<Catalogue>('GET', `/api/shop${s ? `?${s}` : ''}`);
   },
   product: (id: number) => call<Detail>('GET', `/api/shop/products/${id}`),
   create: (input: ProductInput) => call<{ id: number }>('POST', '/api/shop/products', input),
@@ -125,12 +136,12 @@ type Open =
   | { kind: 'form'; id?: number };
 
 /**
- * /shop - Loja RTUB (React track 021; was the Blazor page). Signed-in members only. The products of the fiscal year
+ * /shop - Loja RTUB. Visitors browse the public catalogue; members retain their existing actions. The products of the fiscal year
  * (this one by default), by type then name, with stock and price; members reserve members-only products in stock and
  * cancel their own reservation. Mod adds products; Admin and Owner edit, delete and see every reservation.
  */
 export default function ShopPage() {
-  const [shop, setShop] = useState<Shop | 'signin' | null>();
+  const [shop, setShop] = useState<Catalogue | 'signin' | null>();
   const [fiscalYear, setFiscalYear] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
@@ -157,19 +168,20 @@ export default function ShopPage() {
   }, [fiscalYear, q, type]);
 
   const data = shop && shop !== 'signin' ? shop : null;
+  const memberShop = data && 'canManage' in data ? data : null;
   const close = () => setOpen(undefined);
 
   return (
     <section className="page wrap events-page shop-page" aria-labelledby="shop-title">
       <header className="page__head events-page__head">
         <div>
-          <p className="eyebrow">Área de membros</p>
+          {memberShop && <p className="eyebrow">Área de membros</p>}
           <h1 id="shop-title" className="page__title">
             Loja RTUB
           </h1>
           <p className="page__lead">Os produtos da tuna, com o preço e o que ainda há em stock.</p>
         </div>
-        {data?.canCreate && (
+        {memberShop?.canCreate && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'form' })}>
               <Icon name="plus" />
@@ -236,7 +248,9 @@ export default function ShopPage() {
           ) : (
             <>
               <ul className="shop-grid">
-                {data.products.slice(0, shown).map((p) => (
+                {data.products.slice(0, shown).map((p) => {
+                  const memberProduct = 'myReservation' in p;
+                  return (
                   <li key={p.id} className="shop-card">
                     {p.imageUrl ? (
                       <img className="shop-card__image" src={p.imageUrl} alt="" loading="lazy" />
@@ -254,11 +268,12 @@ export default function ShopPage() {
                         ) : (
                           <MemberBadge kind="retired">Esgotado</MemberBadge>
                         )}
-                        {!p.isPublic && <MemberBadge kind="active">Apenas membros</MemberBadge>}
-                        {data.canManage && p.availableAllYears && <MemberBadge>Todos os anos</MemberBadge>}
+                        {memberProduct && !p.isPublic && <MemberBadge kind="active">Apenas membros</MemberBadge>}
+                        {p.availableAllYears && (!memberProduct || memberShop?.canManage) && <MemberBadge>Todos os anos</MemberBadge>}
                       </span>
+                      {!memberProduct && p.description && <span className="shop-description">{p.description}</span>}
                       <span className="shop-card__price">{euros(p.price)}</span>
-                      <span className="shop-card__actions">
+                      {memberProduct && <span className="shop-card__actions">
                         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'detail', product: p })}>
                           <Icon name="search" />
                           Ver detalhes
@@ -278,8 +293,8 @@ export default function ShopPage() {
                             </button>
                           )
                         )}
-                      </span>
-                      {data.canManage && (
+                      </span>}
+                      {memberShop?.canManage && memberProduct && (
                         <span className="shop-card__actions">
                           {!p.isPublic && (
                             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reservations', product: p })}>
@@ -299,7 +314,8 @@ export default function ShopPage() {
                       )}
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
               {data.products.length > shown && (
                 <button type="button" className="btn btn--ghost btn--sm members-more" onClick={() => setShown(shown + PAGE)}>
@@ -309,13 +325,13 @@ export default function ShopPage() {
             </>
           )}
 
-          {open?.kind === 'detail' && <DetailDialog id={open.product.id} onClose={close} />}
-          {open?.kind === 'reserve' && <ReserveDialog product={open.product} sizes={data.sizes} onClose={close} onDone={load} />}
-          {open?.kind === 'mine' && open.product.myReservation && (
+          {memberShop && open?.kind === 'detail' && <DetailDialog id={open.product.id} onClose={close} />}
+          {memberShop && open?.kind === 'reserve' && <ReserveDialog product={open.product} sizes={memberShop.sizes} onClose={close} onDone={load} />}
+          {memberShop && open?.kind === 'mine' && open.product.myReservation && (
             <MineDialog product={open.product} reservation={open.product.myReservation} onClose={close} onDone={load} />
           )}
-          {open?.kind === 'reservations' && <ReservationsDialog product={open.product} onClose={close} onChanged={load} />}
-          {open?.kind === 'delete' && (
+          {memberShop && open?.kind === 'reservations' && <ReservationsDialog product={open.product} onClose={close} onChanged={load} />}
+          {memberShop && open?.kind === 'delete' && (
             <Confirm
               title="Eliminar produto"
               label="Eliminar"
@@ -340,7 +356,7 @@ export default function ShopPage() {
               </p>
             </Confirm>
           )}
-          {open?.kind === 'form' && <ProductForm id={open.id} canManage={data.canManage} onClose={close} onSaved={load} />}
+          {memberShop && open?.kind === 'form' && <ProductForm id={open.id} canManage={memberShop.canManage} onClose={close} onSaved={load} />}
         </>
       )}
     </section>

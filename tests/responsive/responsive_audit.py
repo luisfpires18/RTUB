@@ -320,6 +320,7 @@ SCENARIOS: list[Scenario] = [
     Scenario("leaderboard-detail", "/leaderboard", auth=True, action=click_css(".leaderboard-row"), dialog=True),
     Scenario("profile", "/profile", auth=True),
     Scenario("messages", "/messages", auth=True),
+    Scenario("shop-public", "/shop"),
     Scenario("shop", "/shop", auth=True),
     Scenario("shop-add", "/shop", auth=True, action=click("Adicionar produto"), dialog=True),
     Scenario("inventory", "/inventory", auth=True),

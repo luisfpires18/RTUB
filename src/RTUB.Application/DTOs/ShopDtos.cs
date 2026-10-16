@@ -16,6 +16,24 @@ public sealed record ShopDto(
     bool CanCreate,
     bool CanManage);
 
+/// <summary>Read-only fields intended for the public Shop catalogue.</summary>
+public sealed record PublicShopDto(
+    IReadOnlyList<MemberOptionDto> FiscalYears,
+    string FiscalYear,
+    IReadOnlyList<string> Types,
+    IReadOnlyList<PublicShopProductDto> Products);
+
+/// <summary>Public product information only; contains no reservation or management data.</summary>
+public sealed record PublicShopProductDto(
+    int Id,
+    string Name,
+    string Type,
+    decimal Price,
+    int Stock,
+    string? ImageUrl,
+    string? Description,
+    bool AvailableAllYears);
+
 /// <summary>
 /// A product card. <c>CanReserve</c>: members-only, in stock and not yet reserved by the caller.
 /// <c>AvailableAllYears</c> (#221): shown in every fiscal year, not only the year it was created in.
