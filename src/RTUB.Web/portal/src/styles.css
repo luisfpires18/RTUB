@@ -7624,12 +7624,73 @@ video.tile__media {
   padding-left: 1.1em;
 }
 
+.promo-label {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
 .promo-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px auto;
-  gap: 8px;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.promo-row__pick {
+  display: flex;
   align-items: center;
-  margin: 0 0 8px;
+  gap: 8px;
+}
+
+.promo-row__pick .control {
+  flex: 1;
+  min-width: 0;
+}
+
+.promo-row__pick select {
+  text-overflow: ellipsis;
+}
+
+.promo-row__qty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.promo-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.promo-stepper .icon-btn {
+  width: 36px;
+  height: 36px;
+}
+
+.promo-stepper__value {
+  min-width: 2.5ch;
+  font-weight: 600;
+  text-align: center;
+}
+
+.promo-row__sum {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.promo-row__sum strong {
+  color: var(--ink);
+}
+
+.promo-add {
+  margin-top: 10px;
 }
 
 .shop-detail__image {
