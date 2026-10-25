@@ -6,7 +6,7 @@ namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// <c>FiscalYear</c>: the year shown (the current one by default, as the old page). <c>Folders</c>: only those the caller
-/// may see, in storage order, Logistics boards in place of the Logistics folder. <c>CanManage</c>: Owner.
+/// may see, in storage order, Logistics boards in place of the Logistics folder. <c>CanManage</c>: Owner, Admin or Mod.
 /// </summary>
 public sealed record DocumentationDto(
     IReadOnlyList<MemberOptionDto> FiscalYears,

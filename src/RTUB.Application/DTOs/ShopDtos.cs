@@ -82,3 +82,19 @@ public sealed record ShopCreatedDto(int Id);
 
 /// <summary>The cropped product image as the browser sends it.</summary>
 public sealed record ShopImageUpload(Stream Content, string FileName, string ContentType, long Length);
+
+/// <summary>One product of a promotion: how many, at its current price.</summary>
+public sealed record ShopPromotionItemDto(int ProductId, string Name, string Type, int Quantity, decimal UnitPrice, string? ImageUrl);
+
+/// <summary>
+/// A bundle offer. <c>NormalPrice</c> is the sum of the products' current prices; <c>InStock</c> is false when any
+/// product has less stock than the bundle needs.
+/// </summary>
+public sealed record ShopPromotionDto(int Id, string Name, decimal Price, decimal NormalPrice, bool InStock, IReadOnlyList<ShopPromotionItemDto> Items);
+
+/// <summary><c>CanManage</c>: Mod, Admin, Owner (create, edit, delete). Visitors only get promotions made of public products.</summary>
+public sealed record ShopPromotionsDto(IReadOnlyList<ShopPromotionDto> Promotions, bool CanManage);
+
+public sealed record ShopPromotionItemInput(int ProductId, int Quantity);
+
+public sealed record ShopPromotionInput(string? Name, decimal Price, IReadOnlyList<ShopPromotionItemInput>? Items);

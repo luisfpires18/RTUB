@@ -46,10 +46,11 @@ folder and file names); "Mostrar mais"-style paging was not needed (folders coll
 | --- | --- | --- | --- | --- |
 | Visitor | `401` (page: 302 to sign in) | `401` | `401` | `401` |
 | Leitão (not Owner) | `403` | `403` | `403` | `403` |
-| Member, Mod, Admin | yes (`Atas CV` only for Veterano, Tunossauro, Magister) | yes | `400` | `403` |
+| Member | yes (`Atas CV` only for Veterano, Tunossauro, Magister) | yes | `400` | `403` |
+| Admin, Mod | as a member (`Atas CV` only for Veterano, Tunossauro, Magister) | yes | yes | yes |
 | Owner | yes, every folder | yes | yes | yes |
 
-Owner-only management is the old rule (Admin never managed documentation); Owner does not need to inherit Admin here.
+Management (folders, delete, replace) is Owner, Admin or Mod; their folder visibility is a member's.
 A folder or document the caller cannot see is `404`, never `403`, so its existence does not leak.
 
 ## API (GET `no-store`; writes need `X-CSRF-TOKEN`)

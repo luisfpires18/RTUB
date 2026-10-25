@@ -7,6 +7,7 @@ import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
 import { MemberBadge } from './MemberBadge';
+import { PromotionsSection } from './ShopPromotions';
 
 // /api/shop: visitors receive a public-only catalogue; members retain their existing actions.
 
@@ -210,6 +211,7 @@ export default function ShopPage() {
         <Loading label="A carregar os produtos…" />
       ) : (
         <>
+          <PromotionsSection />
           <div className="events-tools" role="search">
             <label className="control" htmlFor={ids.q}>
               <span className="sr-only">Procurar produto</span>

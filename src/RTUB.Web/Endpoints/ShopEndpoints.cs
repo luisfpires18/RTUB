@@ -28,6 +28,20 @@ public static class ShopEndpoints
                 : ToResult(await service.GetPublicAsync(fiscalYear, query["q"].ToString(), query["type"].ToString()));
         });
 
+        // Bundle offers: public ones for visitors, all for members; Mod, Admin, Owner write.
+        shop.MapGet("/promotions", async (HttpContext http, IShopPromotionService promotions) => Results.Ok(await promotions.GetAsync(http.User)));
+
+        writes.MapPost("/promotions", async (ShopPromotionInput input, HttpContext http, IShopPromotionService promotions) =>
+                ToResult(await promotions.CreateAsync(input, http.User), created => Results.Created($"/api/shop/promotions/{created.Id}", created)))
+            .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
+
+        writes.MapPut("/promotions/{id:int}", async (int id, ShopPromotionInput input, HttpContext http, IShopPromotionService promotions) =>
+                ToResult(await promotions.UpdateAsync(id, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
+
+        writes.MapDelete("/promotions/{id:int}", async (int id, HttpContext http, IShopPromotionService promotions) =>
+            ToResult(await promotions.DeleteAsync(id, http.User), _ => Results.NoContent()));
+
         shop.MapGet("/products/{id:int}", async (int id, HttpContext http, IProductShopService service) =>
             ToResult(await service.GetProductAsync(id, http.User)));
 

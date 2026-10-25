@@ -54,7 +54,7 @@ public sealed class DocumentationService : IDocumentationService
     }
 
     /// <summary>The caller, the validated year, the folders of that year they may see, and that year's storage listing.</summary>
-    private sealed record Viewer(bool IsOwner, IReadOnlyList<string> Years, string FiscalYear, IReadOnlyList<(string Name, string Label)> Folders,
+    private sealed record Viewer(bool IsOwner, bool CanManage, IReadOnlyList<string> Years, string FiscalYear, IReadOnlyList<(string Name, string Label)> Folders,
         IReadOnlyList<DocumentMetadata> Tree);
 
     public async Task<EventResult<DocumentationDto>> GetAsync(string? fiscalYear, ClaimsPrincipal user)
@@ -76,7 +76,7 @@ public sealed class DocumentationService : IDocumentationService
             folders,
             Extensions,
             MaxFileBytes,
-            viewer.IsOwner));
+            viewer.CanManage));
     }
 
     public async Task<EventResult<DocumentLinkDto>> GetDownloadAsync(string? fiscalYear, string? folder, string? name, ClaimsPrincipal user)
@@ -106,7 +106,7 @@ public sealed class DocumentationService : IDocumentationService
             return new EventResult<DocumentFolderDto>(refusal!.Status, Errors: refusal.Errors);
         }
 
-        if (!viewer.IsOwner)
+        if (!viewer.CanManage)
         {
             return EventResult<DocumentFolderDto>.Fail(EventResultStatus.Forbidden);
         }
@@ -142,7 +142,7 @@ public sealed class DocumentationService : IDocumentationService
             return new EventResult<bool>(refusal!.Status, Errors: refusal.Errors);
         }
 
-        if (!viewer.IsOwner)
+        if (!viewer.CanManage)
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
@@ -185,7 +185,7 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         var path = FolderPath(viewer.FiscalYear, found);
-        if (!viewer.IsOwner && Documents(viewer.Tree, path).Any(d => d.FileName == name))
+        if (!viewer.CanManage && Documents(viewer.Tree, path).Any(d => d.FileName == name))
         {
             return EventResult<DocumentFileDto>.Invalid("file", "Já existe um documento com este nome nesta pasta.");
         }
@@ -205,7 +205,7 @@ public sealed class DocumentationService : IDocumentationService
             return new EventResult<bool>(refusal!.Status, Errors: refusal.Errors);
         }
 
-        if (!viewer.IsOwner)
+        if (!viewer.CanManage)
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
@@ -270,7 +270,7 @@ public sealed class DocumentationService : IDocumentationService
             }
         }
 
-        return (null, new Viewer(isOwner, years, selected,
+        return (null, new Viewer(isOwner, DocumentationAuthorization.CanManage(user), years, selected,
             folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name)).ToList(), tree));
     }
 
