@@ -1,4 +1,7 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
@@ -13,6 +16,7 @@ namespace RTUB.Application.Services;
 /// The old Blazor /inventory ("Instrumentos") behind the React /inventory (React track 020, docs/react-inventory.md).
 /// Same data and rules, through <see cref="IInstrumentService"/>, now enforced server-side
 /// (<see cref="InventoryAuthorization"/>; the old page only hid buttons):
+/// - who manages: Mod, Admin, Owner and every Leitão; everyone else reads;
 /// - the list: every instrument by name; search over name, type (as stored) and brand, case-insensitive; type and
 ///   condition filters; the counters over every instrument (total, then the first three conditions present);
 /// - create: name (≤ 100) and type (an <see cref="InstrumentType"/>) required, brand and serial number ≤ 100, location
@@ -31,10 +35,13 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
     private readonly IInstrumentService _instruments;
     private readonly IImageStorageService _storage;
 
-    public InstrumentInventoryService(IInstrumentService instruments, IImageStorageService storage)
+    private readonly IDbContextFactory<ApplicationDbContext> _contexts;
+
+    public InstrumentInventoryService(IInstrumentService instruments, IImageStorageService storage, IDbContextFactory<ApplicationDbContext> contexts)
     {
         _instruments = instruments;
         _storage = storage;
+        _contexts = contexts;
     }
 
     public async Task<EventResult<InstrumentListDto>> GetAsync(InstrumentQuery query, ClaimsPrincipal user)
@@ -79,7 +86,7 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
             all.Count, stats, shown,
             Enum.GetValues<InstrumentType>().Select(t => new MemberOptionDto(t.ToString(), StatusHelper.GetInstrumentDisplay(t))).ToList(),
             Enum.GetValues<InstrumentCondition>().Select(c => new MemberOptionDto(c.ToString(), InstrumentConditionHelper.GetDisplayName(c))).ToList(),
-            InventoryAuthorization.CanManage(user)));
+            await CanManageAsync(user)));
     }
 
     public async Task<EventResult<InstrumentDetailDto>> GetByIdAsync(int id, ClaimsPrincipal user)
@@ -96,7 +103,7 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
 
     public async Task<EventResult<InstrumentCreatedDto>> CreateAsync(InstrumentInput input, ClaimsPrincipal user)
     {
-        if (Refusal<InstrumentCreatedDto>(user) is { } refused)
+        if (await RefusalAsync<InstrumentCreatedDto>(user) is { } refused)
         {
             return refused;
         }
@@ -116,7 +123,7 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
 
     public async Task<EventResult<InstrumentDetailDto>> UpdateAsync(int id, InstrumentInput input, ClaimsPrincipal user)
     {
-        if (Refusal<InstrumentDetailDto>(user) is { } refused)
+        if (await RefusalAsync<InstrumentDetailDto>(user) is { } refused)
         {
             return refused;
         }
@@ -139,7 +146,7 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
 
     public async Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user)
     {
-        if (Refusal<bool>(user) is { } refused)
+        if (await RefusalAsync<bool>(user) is { } refused)
         {
             return refused;
         }
@@ -155,7 +162,7 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
 
     public async Task<EventResult<InstrumentDetailDto>> SetImageAsync(int id, InstrumentImageUpload image, InstrumentImageUpload thumbnail, ClaimsPrincipal user)
     {
-        if (Refusal<InstrumentDetailDto>(user) is { } refused)
+        if (await RefusalAsync<InstrumentDetailDto>(user) is { } refused)
         {
             return refused;
         }
@@ -199,10 +206,27 @@ public sealed class InstrumentInventoryService : IInstrumentInventoryService
 
     // ---------- helpers ----------
 
-    private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
+    private async Task<EventResult<T>?> RefusalAsync<T>(ClaimsPrincipal user) =>
         !InventoryAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
-        : !InventoryAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
+        : !await CanManageAsync(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
+
+    /// <summary>Mod, Admin and Owner by role; a Leitão by category (keeping the inventory up to date is their job).</summary>
+    private async Task<bool> CanManageAsync(ClaimsPrincipal user)
+    {
+        if (InventoryAuthorization.CanManage(user))
+        {
+            return true;
+        }
+
+        if (InventoryAuthorization.UserId(user) is not { } id)
+        {
+            return false;
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id) is { } member && member.IsLeitao();
+    }
 
     private static bool Contains(string? field, string search) =>
         !string.IsNullOrEmpty(field) && field.Contains(search, StringComparison.OrdinalIgnoreCase);

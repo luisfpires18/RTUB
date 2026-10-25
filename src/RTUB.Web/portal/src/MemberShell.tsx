@@ -42,6 +42,7 @@ export const memberMenu: MenuGroup[] = [
       { href: portal.leaderboard, label: 'Classificação', icon: 'trophy' },
       { href: portal.hallOfFame, label: 'Hall of Fame', icon: 'star' },
       { href: portal.naipes, label: 'Naipes', icon: 'naipes' },
+      { href: portal.inventory, label: 'Instrumentos', icon: 'music' },
     ],
   },
   {
@@ -50,7 +51,6 @@ export const memberMenu: MenuGroup[] = [
     links: [
       { href: portal.meetings, label: 'Reuniões', icon: 'journal', when: 'management' },
       { href: portal.documentation, label: 'Documentação', icon: 'folder', when: 'management' },
-      { href: portal.inventory, label: 'Instrumentos da Tuna', icon: 'music' },
       { href: portal.questions, label: 'Questões', icon: 'question', when: 'management' },
       { href: portal.logistics, label: 'Logística', icon: 'kanban', when: 'logisticsAndTreasury' },
       { href: portal.treasury, label: 'Tesouraria', icon: 'cash', when: 'logisticsAndTreasury' },

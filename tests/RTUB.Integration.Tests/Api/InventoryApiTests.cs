@@ -132,6 +132,25 @@ public class InventoryApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
+    public async Task ALeitao_Manages_BecauseKeepingTheInventoryUpToDateIsTheirJob()
+    {
+        var id = await AddAsync($"{Tag()} Leitao", InstrumentType.Pandeireta);
+        var (client, user) = await SignInAsync("Member");
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == user.Id)).Categories = new List<MemberCategory> { MemberCategory.Leitao };
+            await db.SaveChangesAsync();
+        }
+
+        await WithTokenAsync(client);
+        (await Json(client, "/api/inventory?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().BeTrue();
+        (await client.PostAsJsonAsync("/api/inventory", Input($"{Tag()} Novo", "Guitarra"))).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await client.PutAsJsonAsync($"/api/inventory/{id}", Input("Renomeado", "Guitarra"))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.DeleteAsync($"/api/inventory/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task Create_Validates_AsTheEntity_AndEditNeverChangesTheType()
     {
         var (mod, _) = await SignInAsync("Mod");

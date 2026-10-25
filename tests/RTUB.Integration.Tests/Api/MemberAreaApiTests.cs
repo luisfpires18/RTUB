@@ -866,11 +866,13 @@ public class MemberAreaRetirementTests
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         string R(string f) => File.ReadAllText(Path.Combine(src, f));
 
-        // Menu: no "Recursos" group, no "As minhas inscrições"; Documentação and Instrumentos da Tuna once, under Gestão.
+        // Menu: no "Recursos" group, no "As minhas inscrições"; Documentação once under Gestão; Instrumentos once under Tuna.
         var shell = R("MemberShell.tsx");
         shell.Should().NotContain("'Recursos'").And.NotContain("As minhas inscrições").And.NotContain("key: 'resources'");
         var management = shell[shell.IndexOf("key: 'management'", StringComparison.Ordinal)..shell.IndexOf("key: 'owner'", StringComparison.Ordinal)];
-        management.Should().Contain("portal.documentation").And.Contain("Instrumentos da Tuna");
+        management.Should().Contain("portal.documentation").And.NotContain("portal.inventory");
+        var tuna = shell[shell.IndexOf("key: 'tuna'", StringComparison.Ordinal)..shell.IndexOf("key: 'management'", StringComparison.Ordinal)];
+        tuna.Should().Contain("portal.inventory").And.Contain("label: 'Instrumentos'");
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.documentation,").Count.Should().Be(1);
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.inventory,").Count.Should().Be(1);
 

@@ -48,6 +48,7 @@ The "Inventário" menu has two pages:
 | Visitor | `401` (page: 302 to sign in) | `401` |
 | Member | yes | `403` |
 | Mod, Admin, Owner | yes | yes (Owner inherits Admin) |
+| Leitão (any role) | yes | yes (by category; keeping the inventory up to date is their job) |
 
 ## API (GET `no-store`; writes need `X-CSRF-TOKEN`)
 
