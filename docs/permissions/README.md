@@ -40,7 +40,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/news` | read published | read | read | read | W D + drafts | W D + drafts | [news](news.md) |
 | `/leaderboard` | - | R + comment | R | as Member | + delete comments | + delete comments | [leaderboard](leaderboard.md) |
 | `/inventory` | - | R | R | W D | W D | W D | [inventory](inventory.md) |
-| `/shop` | - | R + reserve | R | + add products | W D + reservations | W D + reservations | [shop](shop.md) |
+| `/shop` | public catalogue (R) | R + reserve | R | + add products | W D + reservations | W D + reservations | [shop](shop.md) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](naipes.md) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](member-area.md) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](owner-tools.md) |
