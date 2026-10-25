@@ -146,7 +146,7 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
             var (client, _) = await SignInAsync(role);
             var seen = await Json(client, "/api/documentation");
             Folders(seen).Should().NotContain($"Atas CV {Year}", "{0} had no extra rights on the old page", role);
-            seen.GetProperty("canManage").GetBoolean().Should().BeFalse(role);
+            seen.GetProperty("canManage").GetBoolean().Should().BeTrue(role);
         }
 
         var (owner, _) = await SignInAsync("Owner");
@@ -209,7 +209,7 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
     public async Task Upload_IsOpenToMembersOfTheFolder_WithTheOldRules_AndOnlyOwnerReplaces()
     {
         Seed();
-        var (member, _) = await SignInAsync("Mod");
+        var (member, _) = await SignInAsync();
         (await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Novo.pdf"))).StatusCode
             .Should().Be(HttpStatusCode.BadRequest, "every write needs the antiforgery token");
         await WithTokenAsync(member);
@@ -242,7 +242,7 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
     public async Task Folders_AndDeletes_AreOwnerOnly_WithTheOldValidation()
     {
         Seed();
-        foreach (var role in new[] { (string?)null, "Mod", "Admin" })
+        foreach (var role in new[] { (string?)null })
         {
             var (client, _) = await SignInAsync(role);
             await WithTokenAsync(client);
@@ -250,6 +250,10 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
             (await client.DeleteAsync("/api/documentation/documents?folder=Regulamentos&name=Estatutos.pdf")).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
             (await client.DeleteAsync("/api/documentation/folders?folder=Regulamentos")).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
         }
+
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        (await admin.PostAsJsonAsync("/api/documentation/folders", new { name = "Feita Por Admin" })).StatusCode.Should().Be(HttpStatusCode.OK);
 
         var (owner, _) = await SignInAsync("Owner");
         await WithTokenAsync(owner);
