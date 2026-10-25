@@ -170,6 +170,8 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
 
   const price = (id: number) => (Array.isArray(products) ? (products.find((p) => p.id === id)?.price ?? 0) : 0);
   const normal = rows.reduce((sum, r) => sum + price(r.productId) * r.quantity, 0);
+  const typed = Number(priceText.replace(',', '.')) || 0;
+  const saving = typed > 0 && typed < normal ? normal - typed : 0;
   const setRow = (index: number, change: Partial<{ productId: number; quantity: number }>) =>
     setRows((all) => all.map((r, i) => (i === index ? { ...r, ...change } : r)));
 
@@ -230,56 +232,73 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
           {error('name')}
         </div>
 
-        <fieldset className={field('items')}>
-          <legend>Produtos do pacote</legend>
+        <div className={field('items')} role="group" aria-labelledby={`${fid}-items`}>
+          <span id={`${fid}-items`} className="promo-label">
+            Produtos do pacote
+          </span>
           {rows.map((r, i) => (
             <div key={i} className="promo-row">
-              <label className="sr-only" htmlFor={`${fid}-p${i}`}>
-                Produto {i + 1}
-              </label>
-              <select id={`${fid}-p${i}`} value={r.productId} onChange={(e) => setRow(i, { productId: Number(e.target.value) })}>
-                <option value={0}>Escolher produto…</option>
-                {Array.isArray(products) &&
-                  products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.type}) - {euros(p.price)}
-                    </option>
-                  ))}
-              </select>
-              <label className="sr-only" htmlFor={`${fid}-q${i}`}>
-                Quantidade do produto {i + 1}
-              </label>
-              <input
-                id={`${fid}-q${i}`}
-                type="number"
-                min={1}
-                max={99}
-                step={1}
-                value={r.quantity}
-                onChange={(e) => setRow(i, { quantity: Math.trunc(Number(e.target.value) || 1) })}
-              />
-              <button
-                type="button"
-                className="icon-btn icon-btn--danger"
-                disabled={rows.length === 1}
-                onClick={() => setRows((all) => all.filter((_, j) => j !== i))}
-              >
-                <Icon name="trash" />
-                <span className="sr-only">Remover produto {i + 1}</span>
-              </button>
+              <div className="promo-row__pick">
+                <label className="sr-only" htmlFor={`${fid}-p${i}`}>
+                  Produto {i + 1}
+                </label>
+                <span className="control control--select">
+                  <select id={`${fid}-p${i}`} value={r.productId} onChange={(e) => setRow(i, { productId: Number(e.target.value) })}>
+                    <option value={0}>Escolher produto…</option>
+                    {Array.isArray(products) &&
+                      products.map((p) => (
+                        <option key={p.id} value={p.id} disabled={rows.some((o, j) => j !== i && o.productId === p.id)}>
+                          {p.name} ({p.type}) - {euros(p.price)}
+                        </option>
+                      ))}
+                  </select>
+                </span>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn--danger"
+                  disabled={rows.length === 1}
+                  onClick={() => setRows((all) => all.filter((_, j) => j !== i))}
+                >
+                  <Icon name="trash" />
+                  <span className="sr-only">Remover produto {i + 1}</span>
+                </button>
+              </div>
+              <div className="promo-row__qty">
+                <span className="promo-stepper" role="group" aria-label={`Quantidade do produto ${i + 1}`}>
+                  <button type="button" className="icon-btn" disabled={r.quantity <= 1} onClick={() => setRow(i, { quantity: r.quantity - 1 })}>
+                    <Icon name="minus" />
+                    <span className="sr-only">Menos um</span>
+                  </button>
+                  <output className="promo-stepper__value" aria-live="polite">
+                    {r.quantity}
+                  </output>
+                  <button type="button" className="icon-btn" disabled={r.quantity >= 99} onClick={() => setRow(i, { quantity: r.quantity + 1 })}>
+                    <Icon name="plus" />
+                    <span className="sr-only">Mais um</span>
+                  </button>
+                </span>
+                {r.productId > 0 && (
+                  <span className="promo-row__sum">
+                    {r.quantity} × {euros(price(r.productId))} = <strong>{euros(price(r.productId) * r.quantity)}</strong>
+                  </span>
+                )}
+              </div>
             </div>
           ))}
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setRows((all) => [...all, { productId: 0, quantity: 1 }])}>
+          <button type="button" className="btn btn--ghost btn--sm promo-add" disabled={rows.length >= 10} onClick={() => setRows((all) => [...all, { productId: 0, quantity: 1 }])}>
             <Icon name="plus" />
             Adicionar produto
           </button>
           {error('items')}
-        </fieldset>
+        </div>
 
         <div className={field('price')}>
           <label htmlFor={`${fid}-price`}>Preço da promoção (€)</label>
           <input id={`${fid}-price`} type="text" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
-          <p className="form__hint">Preço normal: {euros(normal)}. A promoção tem de ser mais barata.</p>
+          <p className="form__hint">
+            Preço normal: {euros(normal)}.{' '}
+            {saving > 0 ? `Poupa ${euros(saving)} (${Math.round((saving / normal) * 100)} %).` : 'A promoção tem de ser mais barata.'}
+          </p>
           {error('price')}
         </div>
       </form>
