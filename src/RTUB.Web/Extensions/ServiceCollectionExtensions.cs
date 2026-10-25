@@ -145,6 +145,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IInstrumentInventoryService, InstrumentInventoryService>();
         services.AddScoped<IProductShopService, ProductShopService>();
+        services.AddScoped<IShopPromotionService, ShopPromotionService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IDocumentationService, DocumentationService>();
         services.AddSingleton<DocumentTreeCache>();

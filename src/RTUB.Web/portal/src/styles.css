@@ -7589,6 +7589,49 @@ video.tile__media {
   gap: 6px;
 }
 
+.shop-promos {
+  margin: 0 0 20px;
+}
+
+.shop-promos__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.shop-promos__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.shop-card--promo {
+  grid-template-rows: 1fr;
+  border-color: var(--accent, var(--line));
+}
+
+.shop-card__was {
+  margin-right: 8px;
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: line-through;
+}
+
+.promo-items {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.promo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px auto;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 8px;
+}
+
 .shop-detail__image {
   width: min(100%, 280px);
   aspect-ratio: 1;

@@ -40,6 +40,8 @@ const ENTITY_LABELS: Record<string, string> = {
   MeetingAtaAttachment: 'Anexo de ata',
   Product: 'Produto',
   ProductReservation: 'Reserva de produto',
+  ShopPromotion: 'Promoção da loja',
+  ShopPromotionItem: 'Produto de promoção',
   Transaction: 'Movimento',
   Report: 'Relatório',
   Activity: 'Atividade',

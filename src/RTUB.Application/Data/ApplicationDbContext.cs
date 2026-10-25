@@ -57,6 +57,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Instrument> Instruments { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductReservation> ProductReservations { get; set; }
+    public DbSet<ShopPromotion> ShopPromotions { get; set; }
+    public DbSet<ShopPromotionItem> ShopPromotionItems { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
 
     // Logistics Board DbSets

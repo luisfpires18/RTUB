@@ -310,6 +310,89 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         (await client.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(manages ? HttpStatusCode.NoContent : HttpStatusCode.Forbidden, role);
     }
 
+    [Theory]
+    [InlineData("Member", false)]
+    [InlineData("Mod", true)]
+    [InlineData("Admin", true)]
+    [InlineData("Owner", true)]
+    public async Task Promotions_ModAdminAndOwnerWrite_AMemberOnlyReads(string role, bool writes)
+    {
+        var cd = await AddAsync($"{Tag()} CD", "Álbum", stock: 5);
+        var (client, _) = await SignInAsync(role);
+        await WithTokenAsync(client);
+        var body = new { name = "3 CDs", price = 20m, items = new[] { new { productId = cd, quantity = 3 } } };
+
+        (await Json(client, "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().Be(writes);
+        var created = await client.PostAsJsonAsync("/api/shop/promotions", body);
+        created.StatusCode.Should().Be(writes ? HttpStatusCode.Created : HttpStatusCode.Forbidden, role);
+        if (!writes)
+        {
+            return;
+        }
+
+        var promo = await created.Content.ReadFromJsonAsync<JsonElement>();
+        (promo.GetProperty("normalPrice").GetDecimal(), promo.GetProperty("price").GetDecimal(), promo.GetProperty("inStock").GetBoolean())
+            .Should().Be((30m, 20m, true));
+        var id = promo.GetProperty("id").GetInt32();
+        (await client.PutAsJsonAsync($"/api/shop/promotions/{id}", new { name = "Pack", price = 25m, items = body.items })).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.DeleteAsync($"/api/shop/promotions/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await client.DeleteAsync($"/api/shop/promotions/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Promotions_AreValidated_AndVisitorsOnlySeeThePublicOnes()
+    {
+        var pub = await AddAsync($"{Tag()} Pub", "Álbum", stock: 3);
+        var members = await AddAsync($"{Tag()} Membros", "Álbum", stock: 1, isPublic: false);
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var items = new[] { new { productId = pub, quantity = 3 } };
+
+        foreach (var bad in new object[]
+        {
+            new { name = "", price = 20m, items },
+            new { name = "x", price = 0m, items },
+            new { name = "x", price = 30m, items },
+            new { name = "x", price = 20m, items = new object[0] },
+            new { name = "x", price = 20m, items = new[] { new { productId = pub, quantity = 0 } } },
+            new { name = "x", price = 20m, items = new[] { new { productId = 0, quantity = 1 } } },
+            new { name = "x", price = 20m, items = new[] { new { productId = pub, quantity = 3 }, new { productId = pub, quantity = 1 } } },
+        })
+        {
+            (await mod.PostAsJsonAsync("/api/shop/promotions", bad)).StatusCode.Should().Be(HttpStatusCode.BadRequest, JsonSerializer.Serialize(bad));
+        }
+
+        var publicName = $"{Tag()} Publica";
+        var memberName = $"{Tag()} Interna";
+        (await mod.PostAsJsonAsync("/api/shop/promotions", new { name = publicName, price = 20m, items })).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await mod.PostAsJsonAsync("/api/shop/promotions", new { name = memberName, price = 5m, items = new[] { new { productId = members, quantity = 1 } } }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+
+        string[] Names(JsonElement j) => j.GetProperty("promotions").EnumerateArray().Select(p => p.GetProperty("name").GetString()!).ToArray();
+        Names(await Json(Anonymous(), "/api/shop/promotions")).Should().Contain(publicName).And.NotContain(memberName);
+        Names(await Json(mod, "/api/shop/promotions")).Should().Contain(new[] { publicName, memberName });
+        (await Json(Anonymous(), "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+        (await Anonymous().PostAsJsonAsync("/api/shop/promotions", new { name = "x", price = 1m, items })).StatusCode.Should().NotBe(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task Promotions_ShowSoldOut_AndLeaveWithTheirProduct()
+    {
+        var cd = await AddAsync($"{Tag()} CD", "Álbum", stock: 2);
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(admin);
+        var name = $"{Tag()} Pack";
+        (await admin.PostAsJsonAsync("/api/shop/promotions", new { name, price = 20m, items = new[] { new { productId = cd, quantity = 3 } } }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+
+        JsonElement Mine(JsonElement j) => j.GetProperty("promotions").EnumerateArray().Single(p => p.GetProperty("name").GetString() == name);
+        Mine(await Json(admin, "/api/shop/promotions")).GetProperty("inStock").GetBoolean().Should().BeFalse("it needs 3 and only 2 are left");
+
+        (await admin.DeleteAsync($"/api/shop/products/{cd}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Json(admin, "/api/shop/promotions")).GetProperty("promotions").EnumerateArray()
+            .Should().NotContain(p => p.GetProperty("name").GetString() == name, "a bundle with no product left is not shown");
+    }
+
     /// <summary>
     /// #226 F20: Admin / Owner see how many reservations a delete would remove (0, 1, many) in the list they already
     /// load; anyone else gets null. Only a number - never who reserved. The delete still takes them (cascade).

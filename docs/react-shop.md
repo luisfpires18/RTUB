@@ -106,3 +106,23 @@ The shop list carries `reservationCount` for Admin / Owner (who can delete; one 
 everyone else - a number only, never who reserved. "Eliminar produto" then adds "Este produto tem 1 reserva, que também
 é apagada." / "Este produto tem N reservas, que também são apagadas." when there are any (nothing extra at zero). The
 delete itself is unchanged: confirmation required, image deleted, reservations removed by cascade.
+
+## Promoções (bundle offers)
+
+A "Promoções" grid above the catalogue: a bundle of products, each in a quantity, sold for less than the sum of their
+prices ("3 CDs por 20 € em vez de 30 €", badge PROMOÇÃO, the normal price struck through, "Poupa 10,00 €").
+Mod, Admin and Owner create, edit and delete; the section is hidden while there are none and the viewer cannot add one.
+
+- **Schema** (migration `AddShopPromotions`, additive, N-1 safe): `ShopPromotions` (`Name` ≤ 100, `Price`) and
+  `ShopPromotionItems` (`PromotionId`, `ProductId`, `Quantity`; unique per promotion and product; both foreign keys
+  cascade, so deleting a product removes it from every bundle and a bundle left without products is not shown).
+- **The normal price is never stored**: it is the sum of the products' current prices at read time, so a price change
+  updates the saving by itself.
+- **Rules** (`ShopPromotionService`, server-side): 1 to 10 distinct products, quantity 1 to 99, price above 0 and
+  **below** the normal price, name required. `inStock` is false when any product has less stock than the bundle needs
+  (shown "Esgotado"; still listed).
+- **Visibility**: members see every bundle; visitors only bundles made entirely of public products.
+- **No reservation**: a bundle is information, like the catalogue; reservations stay per members-only product.
+- **API**: `GET /api/shop/promotions` -> `{ promotions: [{ id, name, price, normalPrice, inStock, items: [{ productId, name, type, quantity, unitPrice, imageUrl }] }], canManage }`;
+  `POST` (201) / `PUT /{id}` / `DELETE /{id}` (204) with `{ name, price, items: [{ productId, quantity }] }`, antiforgery token required.
+- **UI**: `portal/src/ShopPromotions.tsx` (grid, form with product rows, delete confirmation).
