@@ -75,6 +75,8 @@ public class DatabaseFixture : IDisposable
         context.Posts.RemoveRange(context.Posts);
         context.Discussions.RemoveRange(context.Discussions);
         context.ProductReservations.RemoveRange(context.ProductReservations);
+        context.ShopPromotionItems.RemoveRange(context.ShopPromotionItems);
+        context.ShopPromotions.RemoveRange(context.ShopPromotions);
         context.Products.RemoveRange(context.Products);
         context.Transactions.RemoveRange(context.Transactions);
         context.Activities.RemoveRange(context.Activities);

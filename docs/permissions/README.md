@@ -39,11 +39,13 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/gallery` | public items | R + upload | R | own items | W D all | W D all | [gallery](gallery.md) |
 | `/news` | read published | read | read | read | W D + drafts | W D + drafts | [news](news.md) |
 | `/leaderboard` | - | R + comment | R | as Member | + delete comments | + delete comments | [leaderboard](leaderboard.md) |
-| `/inventory` | - | R | R | W D | W D | W D | [inventory](inventory.md) |
-| `/shop` | public catalogue (R) | R + reserve | R | + add products | W D + reservations | W D + reservations | [shop](shop.md) |
+| `/inventory` | - | R | W D | W D | W D | W D | [inventory](inventory.md) |
+| `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions | W D + reservations | W D + reservations | [shop](shop.md) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](naipes.md) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](member-area.md) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](owner-tools.md) |
+
+Leitões also manage `/inventory` (checked by category, not role): keeping the instruments up to date is their job.
 
 The menu groups (Gestão, Logística e Tesouraria, Pedidos, Owner) only decide which *links* show
 (`MemberMenuAccess`); every page and API still enforces its own rule.

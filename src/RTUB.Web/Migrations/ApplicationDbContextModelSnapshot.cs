@@ -3313,6 +3313,74 @@ namespace RTUB.Migrations
                     b.ToTable("RoleAssignments");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.ShopPromotion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShopPromotions");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.ShopPromotionItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PromotionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("PromotionId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("ShopPromotionItems");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
                 {
                     b.Property<int>("Id")
@@ -4476,6 +4544,25 @@ namespace RTUB.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.ShopPromotionItem", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ShopPromotion", "Promotion")
+                        .WithMany("Items")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Promotion");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Album", "Album")
@@ -4707,6 +4794,11 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.Report", b =>
                 {
                     b.Navigation("Activities");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.ShopPromotion", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
