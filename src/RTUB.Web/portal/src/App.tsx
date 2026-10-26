@@ -137,9 +137,10 @@ let revealed = false;
 
 /**
  * The splash is static markup in index.html, so it covers the only real wait - the bundle
- * loading - and costs nothing extra. Once React has committed, it lifts like a stage curtain on
- * the first load of a session (every PWA launch is a new session) and is removed instantly on
- * later loads or when reduced motion is requested. No timers: nothing waits on purpose.
+ * loading - and costs nothing extra. Once React has committed, the first load of a session (every
+ * PWA launch is a new session) plays the opening on the home page (styles.css, "opening") and lifts
+ * like a stage curtain anywhere else; later loads, or reduced motion, remove it instantly. A click,
+ * tap or key skips the opening. No timers: the splash goes when its last animation ends.
  */
 function revealApp() {
   const splash = document.getElementById('splash');
@@ -159,8 +160,23 @@ function revealApp() {
     return;
   }
 
-  splash.classList.add('splash--exit');
-  Promise.allSettled(splash.getAnimations({ subtree: true }).map((a) => a.finished)).then(() => splash.remove());
+  const root = document.documentElement;
+  // Skipping also drops .intro, so the hero shows at once instead of waiting for a curtain that never wipes.
+  const skip = () => {
+    root.classList.remove('intro');
+    splash.remove();
+  };
+  if (location.pathname === '/') {
+    root.classList.add('intro');
+    splash.addEventListener('pointerdown', skip, { once: true });
+    window.addEventListener('keydown', skip, { once: true });
+  } else {
+    splash.classList.add('splash--exit');
+  }
+  Promise.allSettled(splash.getAnimations({ subtree: true }).map((a) => a.finished)).then(() => {
+    window.removeEventListener('keydown', skip);
+    splash.remove();
+  });
 }
 
 // ---------- chrome ----------

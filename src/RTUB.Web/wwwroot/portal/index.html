@@ -17,14 +17,44 @@
     <meta name="format-detection" content="telephone=no" />
     <!-- The existing, single service-worker registration path. -->
     <script src="/js/sw-register.js" defer></script>
-    <script type="module" crossorigin src="/portal/assets/index-BuHzfmlB.js"></script>
+    <script type="module" crossorigin src="/portal/assets/index-DdU_XINx.js"></script>
     <link rel="modulepreload" crossorigin href="/portal/assets/vendor-react-CRpCRhFI.js">
-    <link rel="stylesheet" crossorigin href="/portal/assets/index-DPq11bxD.css">
+    <link rel="stylesheet" crossorigin href="/portal/assets/index-D3ym7ySo.css">
   </head>
   <body>
-    <!-- Launch splash: visible from first paint, lifted by React once the app has rendered. -->
+    <!-- Launch splash: the logo from first paint, lifted by React once the app has rendered. Strings, guitars, name
+         and edge stay invisible until the home page's opening plays them (revealApp in App.tsx). -->
     <div id="splash" class="splash" aria-hidden="true">
+      <div class="splash__strings"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <svg class="splash__guitar splash__guitar--viola" viewBox="0 0 100 300">
+        <defs>
+          <linearGradient id="splash-wood" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#8f68d8" />
+            <stop offset="1" stop-color="#3f2a86" />
+          </linearGradient>
+        </defs>
+        <rect class="splash__neck" x="38" y="2" width="24" height="32" rx="4" />
+        <path class="splash__hole" d="M43 8h4v20h-4zM53 8h4v20h-4z" />
+        <path class="splash__body" d="M50 128C68 128 82 136 82 156C82 172 72 178 72 188C72 198 92 206 92 232C92 258 74 274 50 274C26 274 8 258 8 232C8 206 28 198 28 188C28 178 18 172 18 156C18 136 32 128 50 128Z" />
+        <rect class="splash__neck" x="44" y="30" width="12" height="130" />
+        <circle class="splash__ring" cx="50" cy="172" r="13" />
+        <circle class="splash__hole" cx="50" cy="172" r="10" />
+        <rect class="splash__hole" x="37" y="236" width="26" height="6" rx="2" />
+        <path class="splash__gstrings" d="M45 30V239M47 30V239M49 30V239M51 30V239M53 30V239M55 30V239" />
+      </svg>
+      <svg class="splash__guitar splash__guitar--guitarra" viewBox="0 0 100 300">
+        <path class="splash__neck" d="M50 46L28 16Q50-4 72 16Z" />
+        <path class="splash__peg" d="M31 14h.01M38 9h.01M45 6.5h.01M55 6.5h.01M62 9h.01M69 14h.01" />
+        <path class="splash__body" d="M50 140C66 140 78 152 86 170C96 190 98 206 98 222C98 252 76 272 50 272C24 272 2 252 2 222C2 206 4 190 14 170C22 152 34 140 50 140Z" />
+        <rect class="splash__neck" x="44" y="40" width="12" height="140" />
+        <circle class="splash__ring" cx="50" cy="196" r="14" />
+        <circle class="splash__hole" cx="50" cy="196" r="10" />
+        <rect class="splash__hole" x="38" y="240" width="24" height="5" rx="2" />
+        <path class="splash__gstrings" d="M45 40V242M47 40V242M49 40V242M51 40V242M53 40V242M55 40V242" />
+      </svg>
       <img class="splash__logo" src="/icons/rtub-logo-352.webp" alt="" width="176" height="176" />
+      <p class="splash__name"><span>Boémios <em>e</em> Trovadores</span></p>
+      <i class="splash__edge"></i>
     </div>
     <div id="root">
       <p class="boot">

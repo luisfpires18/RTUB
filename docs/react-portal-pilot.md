@@ -79,6 +79,23 @@ closes the page.
   "Nova versão disponível! · Atualizar · Depois" prompt are retired. Updates are silent; see
   Layout below.
 
+## Launch splash and home opening (047)
+
+The splash is static markup in `portal/index.html`: from first paint only the logo shows, on black, while the bundle
+loads. Once React has committed, `revealApp` (`App.tsx`) decides, on the first load of a browser session (so every
+PWA launch, which starts at `/`):
+
+- **`/`** plays the opening (`styles.css`, *opening*), adapted from the nextvision intro: six strings draw out from
+  the logo and are strummed, the emblem's viola and guitarra portuguesa swing in, "Boémios e Trovadores" rises,
+  a purple edge stands at the right and the curtain wipes left onto the hero, which rises in behind it. About 3 s.
+  `.intro` on `<html>` drives it; timings are the `--intro-*` properties.
+- **Any other route** keeps the short curtain lift (a deep link never waits for the opening).
+- **Later loads in the session, or `prefers-reduced-motion: reduce`:** the splash is removed at once.
+
+A click, tap or key skips the opening (and drops `.intro`, so the hero shows at once). The splash is removed when its
+last animation ends, so nothing in it may loop. Transform and opacity only; no new request (the guitars are inline SVG,
+the logo is the cached 352px WebP). Under CSP: no inline style or script, SVG presentation attributes only.
+
 ## Public content coverage (task 005)
 
 Every public section of the old Blazor site and app, and where it lives now. Pinned by
