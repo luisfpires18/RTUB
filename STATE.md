@@ -6,8 +6,9 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**Released to PROD: 2.1.1 = 047 home opening** (merged straight into `master` @ `143f7e0a`, owner's call; `dev` synced
-and on 2.1.2; installed-PWA check on a real phone still open): a nextvision-style
+**Released to PROD: 2.1.2 = 048 brown (wood) intro instruments (`607216f2`); 2.1.1 = 047 home opening** (`143f7e0a`;
+both merged straight into `master`, owner's call; `dev` synced and on 2.1.3; installed-PWA check on a real phone still
+open): a nextvision-style
 opening on `/` for the first load of a session (so every PWA launch): the logo, then strings drawn and strummed, the
 emblem's viola and guitarra portuguesa, "Boémios e Trovadores", a purple edge and a curtain wipe onto the hero, which
 rises in. Skippable; other routes keep the curtain lift; reduced motion and later loads skip it. Portal rebuilt. Detail:
