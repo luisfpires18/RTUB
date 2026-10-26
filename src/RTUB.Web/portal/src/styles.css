@@ -305,15 +305,142 @@ main {
   z-index: 300;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background: #000;
   /* Failsafe only: if the app never mounts, uncover the static fallback text after 10 s. */
   animation: splash-failsafe 0s 10s forwards;
 }
 
+/* Everything shares the one centred cell. Only the logo is visible until the opening plays. */
+.splash > *,
+.splash::before {
+  grid-area: 1 / 1;
+}
+
 .splash__logo {
+  position: relative;
   width: 176px;
   height: 176px;
   border-radius: 38px;
+}
+
+.splash::before {
+  content: '';
+  width: min(560px, 100vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(111, 66, 193, 0.5), transparent);
+  opacity: 0;
+  scale: 0.6;
+}
+
+/* Six strings behind the logo: three plain, three wound. */
+.splash__strings {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  display: grid;
+  gap: 12px;
+  translate: 0 -50%;
+}
+
+.splash__strings i {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.55;
+  scale: 0 1;
+}
+
+.splash__strings i:nth-child(2) { --i: 1; }
+.splash__strings i:nth-child(3) { --i: 2; height: 1.5px; }
+.splash__strings i:nth-child(4) { --i: 3; height: 2px; background: var(--purple-ink); }
+.splash__strings i:nth-child(5) { --i: 4; height: 2.5px; background: var(--purple-ink); }
+.splash__strings i:nth-child(6) { --i: 5; height: 3px; background: var(--purple-ink); }
+
+/* The emblem's viola and guitarra portuguesa, leaning in over the logo. */
+.splash__guitar {
+  width: clamp(84px, 22vw, 124px);
+  height: auto;
+  opacity: 0;
+  transform: translate(var(--x), -6%) rotate(var(--r));
+}
+
+.splash__guitar--viola {
+  --x: calc(-1 * clamp(118px, 33vw, 230px));
+  --r: 14deg;
+  --sway: -5deg;
+}
+
+.splash__guitar--guitarra {
+  --x: clamp(118px, 33vw, 230px);
+  --r: -14deg;
+  --sway: 5deg;
+}
+
+.splash__body {
+  fill: url(#splash-wood);
+}
+
+.splash__neck {
+  fill: var(--line-strong);
+}
+
+.splash__hole {
+  fill: var(--bg-deep);
+}
+
+.splash__ring {
+  fill: none;
+  stroke: var(--purple-ink);
+  stroke-width: 1.5;
+}
+
+.splash__gstrings {
+  stroke: var(--ink);
+  stroke-width: 0.6;
+  opacity: 0.75;
+}
+
+.splash__peg {
+  stroke: var(--ink);
+  stroke-width: 4.4;
+  stroke-linecap: round;
+}
+
+.splash__name {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw + 0.5rem, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  translate: 0 calc(108px + 0.625em);
+}
+
+.splash__name em {
+  color: var(--purple-ink);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.splash__name span {
+  display: inline-block;
+  translate: 0 110%;
+}
+
+.splash__edge {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 6px;
+  background: var(--purple);
+  box-shadow: 0 0 32px 4px rgba(111, 66, 193, 0.7);
+  scale: 1 0;
+  transform-origin: bottom;
 }
 
 .splash--exit {
@@ -341,6 +468,155 @@ main {
 @keyframes splash-failsafe {
   to {
     visibility: hidden;
+  }
+}
+
+/* ---------- opening ----------
+   The home page's first load of a session (so every PWA launch): revealApp puts .intro on <html>. The strings draw
+   out from the logo and are strummed, the guitars swing in, the name rises, a purple edge stands at the right and the
+   curtain wipes left onto the hero, which rises in behind it. Transform and opacity only, nothing loops (revealApp
+   waits for every animation to finish), and a click, tap or key skips it. */
+
+:root.intro {
+  --intro-strum: 750ms;
+  --intro-name: 1050ms;
+  --intro-out: 1950ms;
+  --intro-wipe: 2250ms;
+}
+
+:root.intro .splash {
+  animation: splash-wipe 850ms cubic-bezier(0.65, 0, 0.35, 1) var(--intro-wipe) forwards;
+}
+
+:root.intro .splash::before {
+  animation: splash-glow 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--intro-strum) forwards;
+}
+
+:root.intro .splash__strings i {
+  animation:
+    splash-string 700ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i, 0) * 45ms) forwards,
+    splash-strum 560ms linear calc(var(--intro-strum) + var(--i, 0) * 35ms);
+}
+
+:root.intro .splash__guitar {
+  animation:
+    splash-guitar 900ms cubic-bezier(0.34, 1.36, 0.64, 1) 250ms forwards,
+    splash-sway 700ms ease-out calc(var(--intro-strum) + 60ms);
+}
+
+:root.intro .splash__guitar--guitarra {
+  animation-delay: 330ms, calc(var(--intro-strum) + 100ms);
+}
+
+:root.intro .splash__logo {
+  animation: splash-pulse 520ms cubic-bezier(0.16, 1, 0.3, 1) var(--intro-strum);
+}
+
+:root.intro .splash__name span {
+  animation:
+    splash-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--intro-name) forwards,
+    splash-sink 320ms cubic-bezier(0.65, 0, 0.35, 1) var(--intro-out) forwards;
+}
+
+:root.intro .splash__edge {
+  animation: splash-edge 380ms cubic-bezier(0.65, 0, 0.35, 1) calc(var(--intro-wipe) - 380ms) forwards;
+}
+
+:root.intro .hero__copy > *,
+:root.intro .hero .facts {
+  animation: hero-rise 760ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--intro-wipe) + 260ms + var(--rise, 0) * 80ms) backwards;
+}
+
+:root.intro .hero__copy > :nth-child(2) { --rise: 1; }
+:root.intro .hero__copy > :nth-child(3) { --rise: 2; }
+:root.intro .hero__copy > :nth-child(4) { --rise: 3; }
+:root.intro .hero .facts { --rise: 4; }
+
+:root.intro .hero__art {
+  animation: hero-art 1000ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--intro-wipe) + 120ms) backwards;
+}
+
+@keyframes splash-wipe {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes splash-glow {
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes splash-string {
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes splash-strum {
+  12% { translate: 0 -3px; }
+  28% { translate: 0 2.4px; }
+  44% { translate: 0 -1.6px; }
+  60% { translate: 0 1px; }
+  78% { translate: 0 -0.5px; }
+}
+
+@keyframes splash-guitar {
+  from {
+    opacity: 0;
+    transform: translate(var(--x), 60vh) rotate(calc(var(--r) * -4));
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--x), -6%) rotate(var(--r));
+  }
+}
+
+@keyframes splash-sway {
+  30% { rotate: var(--sway); }
+  65% { rotate: calc(var(--sway) * -0.4); }
+}
+
+@keyframes splash-pulse {
+  35% {
+    scale: 1.05;
+  }
+}
+
+@keyframes splash-rise {
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes splash-sink {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 110%;
+  }
+}
+
+@keyframes splash-edge {
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+@keyframes hero-art {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
   }
 }
 

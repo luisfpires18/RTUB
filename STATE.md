@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**Now: #226 remediation batch 3 — F05 + F17 + F18 + F20 (uncommitted on `dev` @ 2.0.10, for review; #226 stays open).**
+**047 home opening (uncommitted on `feat/047/animated-intro`, from `dev` @ 2.1.1, for review):** a nextvision-style
+opening on `/` for the first load of a session (so every PWA launch): the logo, then strings drawn and strummed, the
+emblem's viola and guitarra portuguesa, "Boémios e Trovadores", a purple edge and a curtain wipe onto the hero, which
+rises in. Skippable; other routes keep the curtain lift; reduced motion and later loads skip it. Portal rebuilt. Detail:
+`docs/react-portal-pilot.md` → *Launch splash and home opening (047)*.
+
+**Before: #226 remediation batch 3 — F05 + F17 + F18 + F20 (uncommitted on `dev` @ 2.0.10, for review; #226 stays open).**
 F05: 58 service / repository methods with no production caller removed from interface + implementation (Product
 available / public / by-type / stats / value; 10 `IMeetingAtaService` agenda / attachment / delete / status methods and
 3 participation helpers; 7 `ISongService` play-stat methods; 6 `IUserProfileService` role / lookup helpers and the
@@ -326,6 +332,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 047: `icons.tsx` `apple` lists the same path twice, so React warns about a duplicate `key` (dev build only).
 Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner
 action). F05 leftovers: ~80 interface methods with no production caller outside the batch-3 groups (storage `*ExistsAsync`
 / `GetFileSizeAsync` / `ListFoldersAsync` / `ListSubfoldersAsync`, Activity / Album / Enrollment / FiscalYear / Report /
