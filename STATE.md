@@ -6,7 +6,8 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-16 (#226 remediation batch 1)_
 
 ## Phase
-**047 home opening (uncommitted on `feat/047/animated-intro`, from `dev` @ 2.1.1, for review):** a nextvision-style
+**Released to PROD: 2.1.1 = 047 home opening** (merged straight into `master` @ `143f7e0a`, owner's call; `dev` synced
+and on 2.1.2; installed-PWA check on a real phone still open): a nextvision-style
 opening on `/` for the first load of a session (so every PWA launch): the logo, then strings drawn and strummed, the
 emblem's viola and guitarra portuguesa, "Boémios e Trovadores", a purple edge and a curtain wipe onto the hero, which
 rises in. Skippable; other routes keep the curtain lift; reduced motion and later loads skip it. Portal rebuilt. Detail:
