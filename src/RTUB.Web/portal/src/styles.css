@@ -381,8 +381,9 @@ main {
   fill: url(#splash-wood);
 }
 
+/* Wood, like the emblem's instruments: the only browns in the portal. */
 .splash__neck {
-  fill: var(--line-strong);
+  fill: #3d2516;
 }
 
 .splash__hole {
@@ -391,7 +392,7 @@ main {
 
 .splash__ring {
   fill: none;
-  stroke: var(--purple-ink);
+  stroke: #e8c08a;
   stroke-width: 1.5;
 }
 
