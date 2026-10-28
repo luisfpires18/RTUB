@@ -258,6 +258,21 @@ public class EventDiscussionApiTests : IClassFixture<EventsApiFactory>
         list.GetProperty("notContacted").EnumerateArray().Should().Contain(r => r.GetProperty("phone").GetString() == "912 345 678");
     }
 
+    [Fact]
+    public async Task Contacts_AreOpenToAnyLeitao_ReadAndWrite()
+    {
+        var eventId = await AddEventAsync("Contactos leitão");
+        var (leitao, leitaoUser) = await SignInAsync();
+        var (_, called) = await SignInAsync();
+        await SetCategoriesAsync(leitaoUser.Id, MemberCategory.Leitao);
+        await WithTokenAsync(leitao);
+
+        (await leitao.GetAsync($"/api/events/{eventId}/contacts")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await leitao.PutAsJsonAsync($"/api/events/{eventId}/contacts/{called.Id}", new { willAttend = true, notes = "" }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await EnrollmentAsync(eventId, called.Id))!.WillAttend.Should().BeTrue();
+    }
+
     [Theory]
     [InlineData("Mod")]
     [InlineData("Admin")]
@@ -350,6 +365,14 @@ public class EventDiscussionApiTests : IClassFixture<EventsApiFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         (await db.Users.SingleAsync(u => u.Id == userId)).PhoneNumber = phone;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetCategoriesAsync(string userId, params MemberCategory[] categories)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.Users.SingleAsync(u => u.Id == userId)).Categories = categories.ToList();
         await db.SaveChangesAsync();
     }
 

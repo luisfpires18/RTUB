@@ -3,9 +3,13 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-16 (#226 remediation batch 1)_
+_Last updated: 2026-10-28 (049 Leitão event contacts)_
 
 ## Phase
+**Released to PROD: 2.1.3 = 049 Leitão event contacts:** any member whose categories include Leitão can open
+`/events/{id}/contacts` and record / reset calls, besides Mod and above (`EventsAuthorization.CanTrackContactsAsync`,
+category read from the database). Detail: `docs/permissions/events.md`, `docs/react-events.md` → *Contacts*.
+
 **Released to PROD: 2.1.2 = 048 brown (wood) intro instruments (`607216f2`); 2.1.1 = 047 home opening** (`143f7e0a`;
 both merged straight into `master`, owner's call; `dev` synced and on 2.1.3; installed-PWA check on a real phone still
 open): a nextvision-style

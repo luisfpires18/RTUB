@@ -386,6 +386,17 @@ public class EventAgendaServiceTests
     }
 
     [Fact]
+    public async Task ALeitao_GetsTheContactsLink_ATunoDoesNot()
+    {
+        var id = AddEvent("Serenata", _today.AddDays(5));
+        var leitao = AddUser("Leitão", categories: MemberCategory.Leitao);
+        var tuno = AddUser("Tuno", categories: MemberCategory.Tuno);
+
+        (await _service.GetEventAsync(id, SignedIn(leitao)))!.CanTrackContacts.Should().BeTrue();
+        (await _service.GetEventAsync(id, SignedIn(tuno)))!.CanTrackContacts.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task AnOwner_GetsTheManageLink_ARegularMemberDoesNot()
     {
         AddEvent("Serenata", _today.AddDays(5));

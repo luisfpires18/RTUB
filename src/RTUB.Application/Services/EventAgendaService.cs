@@ -118,7 +118,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
         var canManage = EventsAuthorization.CanManage(user);
         return new EventDetailDto(extras.IsMember, canManage, ToSummary(e, extras), videos, member,
-            canManage && EventAdminService.TakesPrizes(e, Today), EventsAuthorization.CanTrackContacts(user));
+            canManage && EventAdminService.TakesPrizes(e, Today), await EventsAuthorization.CanTrackContactsAsync(db, user));
     }
 
     public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)
