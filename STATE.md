@@ -3,9 +3,14 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-28 (050 Owner dashboard)_
+_Last updated: 2026-10-28 (2.1.5 profile design pass)_
 
 ## Phase
+**Release 2.1.5 = profile design pass** (`/profile`): Pessoal tiles, instruments with their Naipes pictures, padrinho →
+member avatars, dated activity feed, a lone Percurso step no longer stretches; Atribuir cargo search box single border.
+`/api/me/profile` adds `instrumentPictures` + `tuna.mentorAvatarUrl` (read-only, no migration; rollback is a plain
+redeploy). Detail: `docs/react-member-area.md` → *Profile design pass*.
+
 **Release 2.1.4 = 050 Owner dashboard** (merged into `master`; PROD deploys when `master` is pushed): `/owner/dashboard`
 ("Estatísticas"): sign-ins, active members, movements, uploads, plays, enrollments per Portugal day with previous-period
 change, busiest hours, top 10 lists. New table `LoginEvents` (migration `AddLoginEvents`, additive); the tracing

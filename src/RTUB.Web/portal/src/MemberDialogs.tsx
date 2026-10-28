@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -130,7 +130,7 @@ const pathVariant = (t: TimelineItem) => (t.accent === 'role' || t.accent === 'm
  */
 export function TunaPath({ items }: { items: TimelineItem[] }) {
   return (
-    <ol className="tuna-path">
+    <ol className="tuna-path" style={{ '--steps': items.length } as CSSProperties}>
       {items.map((t, i) => (
         <li key={i} className={`tuna-path__step tuna-path__step--${pathVariant(t)}${t.state ? ` is-${t.state}` : ''}`}>
           <span className="tuna-path__marker" aria-hidden="true" />
@@ -177,19 +177,28 @@ export function ActivityList({ activities }: { activities: MemberState['activiti
       {activities.length === 0 ? (
         <p className="note">Nenhuma atividade registada</p>
       ) : (
-        <ul className="member-activities">
-          {activities.map((a, i) => (
-            <li key={i}>
-              <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
-              <span>
-                <strong>{a.name}</strong>
-                <small>
-                  {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
-                </small>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ol className="activity-feed">
+          {activities.map((a, i) => {
+            const d = new Date(a.date);
+            return (
+              <li key={i} className={a.isRehearsal ? 'activity-feed__item' : 'activity-feed__item activity-feed__item--event'}>
+                <time className="activity-feed__date" dateTime={a.date}>
+                  <strong>{d.getDate()}</strong>
+                  <small>
+                    {d.toLocaleDateString('pt-PT', { month: 'short' }).replace('.', '')} {d.getFullYear()}
+                  </small>
+                </time>
+                <span className="activity-feed__body">
+                  <strong>{a.name}</strong>
+                  <small>
+                    <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
+                    {a.type}
+                  </small>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </details>
   );

@@ -5,7 +5,7 @@ import { loginToProfile, portal } from './content';
 import { Cropper } from './Cropper';
 import type { Outcome } from './eventsApi';
 import { Icon, type IconName } from './icons';
-import { ActivityList, Field, TunaPath, progressText } from './MemberDialogs';
+import { ActivityList, TunaPath, progressText } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
@@ -281,19 +281,41 @@ function PersonalSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p
         />
       ) : (
         <>
-          <dl className="member-fields">
-            <Field label="Nome">{[p.firstName, p.lastName].filter(Boolean).join(' ') || null}</Field>
-            <Field label="Nome de tuna">{p.nickname}</Field>
-            <Field label="Email">{p.email}</Field>
-            <Field label="Contacto">{p.phoneNumber}</Field>
-            <Field label="Data de nascimento">{m.birthDate && `${m.birthDate}${m.age !== null ? ` (${m.age} anos)` : ''}`}</Field>
-            <Field label="Cidade">{p.city}</Field>
-            <Field label="Curso">{p.degree}</Field>
+          <dl className="profile-facts">
+            <Fact icon="person" label="Nome">{[p.firstName, p.lastName].filter(Boolean).join(' ') || null}</Fact>
+            <Fact icon="star" label="Nome de tuna" accent>
+              {p.nickname}
+            </Fact>
+            <Fact icon="envelope" label="Email">{p.email}</Fact>
+            <Fact icon="phone" label="Contacto">{p.phoneNumber}</Fact>
+            <Fact icon="calendar" label="Data de nascimento">
+              {m.birthDate && (
+                <>
+                  {m.birthDate}
+                  {m.age !== null && <span className="profile-fact__tag">{m.age} anos</span>}
+                </>
+              )}
+            </Fact>
+            <Fact icon="geo" label="Cidade">{p.city}</Fact>
+            <Fact icon="journal" label="Curso">{p.degree}</Fact>
           </dl>
           <SavedNote show={saved} />
         </>
       )}
     </Section>
+  );
+}
+
+/** One "Pessoal" value as a small tile: an icon, the label and the value. */
+function Fact({ icon, label, accent, children }: { icon: IconName; label: string; accent?: boolean; children: ReactNode }) {
+  return (
+    <div className={accent ? 'profile-fact profile-fact--accent' : 'profile-fact'}>
+      <span className="profile-fact__icon" aria-hidden="true">
+        <Icon name={icon} />
+      </span>
+      <dt>{label}</dt>
+      <dd>{children ?? <span className="note">Não definido</span>}</dd>
+    </div>
   );
 }
 
@@ -419,17 +441,56 @@ const tunaOf = (p: MyProfile): TunaInput => ({
   monthTuno: p.tuna.monthTuno,
 });
 
-/** Informação da Tuna, read-only: the old profile's flat layout over today's member data (instrumentos, padrinho, percurso, estado). */
+/** Informação da Tuna, read-only: instrumentos (with their Naipes pictures), padrinho → afilhado, percurso, estado. */
 function TunaInfo({ profile }: { profile: MyProfile }) {
   const { tuna: t, member: m, instruments } = profile;
   return (
     <div className="tuna-info">
-      <dl className="tuna-rows">
-        <Row label="Instrumentos">
-          {instruments.length > 0 ? instruments.map((i) => (i.primary ? `${i.label} (Principal)` : i.label)).join(', ') : null}
-        </Row>
-        {t.showMentor && <Row label="Padrinho">{t.mentorName}</Row>}
-      </dl>
+      <div className="tuna-info__top">
+        <section className="tuna-info__cell" aria-labelledby="tuna-instruments-title">
+          <h3 id="tuna-instruments-title" className="tuna-info__title">
+            Instrumentos
+          </h3>
+          {instruments.length > 0 ? (
+            <ul className="instrument-chips">
+              {[...instruments]
+                .sort((a, b) => Number(b.primary) - Number(a.primary))
+                .map((i) => (
+                  <li key={i.id} className={i.primary ? 'instrument-chip is-primary' : 'instrument-chip'}>
+                    <InstrumentPic url={profile.instrumentPictures[i.instrument]} />
+                    <span>
+                      {i.label}
+                      {i.primary && <small>Principal</small>}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="note">Não definido</p>
+          )}
+        </section>
+        {t.showMentor && (
+          <section className="tuna-info__cell" aria-labelledby="tuna-mentor-title">
+            <h3 id="tuna-mentor-title" className="tuna-info__title">
+              Padrinho
+            </h3>
+            {t.mentorName ? (
+              <ol className="lineage" aria-label="Padrinho e afilhado">
+                <li className="lineage__node">
+                  <img src={t.mentorAvatarUrl ?? DEFAULT_AVATAR} alt="" width="64" height="64" loading="lazy" />
+                  <span>{t.mentorName}</span>
+                </li>
+                <li className="lineage__node lineage__node--me">
+                  <img src={m.avatarUrl ?? DEFAULT_AVATAR} alt="" width="64" height="64" loading="lazy" />
+                  <span>{m.displayName}</span>
+                </li>
+              </ol>
+            ) : (
+              <p className="note">Não definido</p>
+            )}
+          </section>
+        )}
+      </div>
       <section className="tuna-info__block" aria-labelledby="tuna-path-title">
         <h3 id="tuna-path-title" className="tuna-info__title">
           Percurso na Tuna
@@ -441,12 +502,12 @@ function TunaInfo({ profile }: { profile: MyProfile }) {
   );
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+/** An instrument's Naipes picture in a circle; the naipes icon when the instrument has none. */
+function InstrumentPic({ url, large }: { url?: string; large?: boolean }) {
   return (
-    <div className="tuna-row">
-      <dt>{label}</dt>
-      <dd>{children ?? <span className="note">Não definido</span>}</dd>
-    </div>
+    <span className={large ? 'instrument-pic instrument-pic--lg' : 'instrument-pic'} aria-hidden="true">
+      {url ? <img src={url} alt="" loading="lazy" /> : <Icon name="naipes" />}
+    </span>
   );
 }
 
@@ -467,9 +528,17 @@ function TunaState({ state }: { state: MemberState }) {
           {state.encourage && <p className="note">Falta pouco: com uma atividade ainda este mês, regressas ao ativo.</p>}
         </div>
       )}
-      <dl className="tuna-rows">
-        <Row label="Último ensaio">{shortDate(state.lastRehearsal)}</Row>
-        <Row label="Última atuação">{shortDate(state.lastEvent)}</Row>
+      <dl className="tuna-stats">
+        <div className="tuna-stat">
+          <Icon name="music" />
+          <dt>Último ensaio</dt>
+          <dd>{shortDate(state.lastRehearsal) ?? '—'}</dd>
+        </div>
+        <div className="tuna-stat tuna-stat--event">
+          <Icon name="calendar" />
+          <dt>Última atuação</dt>
+          <dd>{shortDate(state.lastEvent) ?? '—'}</dd>
+        </div>
       </dl>
       <ActivityList activities={state.activities} />
     </section>
@@ -609,10 +678,10 @@ function TunaForm({ profile, onCancel, onSaved }: { profile: MyProfile; onCancel
 
 function InstrumentsSection({ profile, onChange }: { profile: MyProfile; onChange: (list: MemberInstrument[]) => void }) {
   const id = useId();
-  const [picked, setPicked] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const list = profile.instruments;
+  const pictures = profile.instrumentPictures;
   const available = profile.instrumentOptions.filter((o) => !list.some((i) => i.instrument === o.value));
 
   const run = async (action: () => Promise<Outcome<MemberInstrument[]>>) => {
@@ -627,59 +696,60 @@ function InstrumentsSection({ profile, onChange }: { profile: MyProfile; onChang
 
   return (
     <Section id="instruments" title="Instrumentos" icon="music">
-      <div className={error ? 'form__field form__field--error' : 'form__field'}>
-        <label htmlFor={id}>Juntar um instrumento</label>
-        <span className="member-form__pair">
-          <span className="control control--select">
-            <select id={id} value={picked} onChange={(e) => setPicked(e.target.value)} disabled={busy}>
-              <option value="">Escolher instrumento…</option>
-              {available.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </span>
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            onClick={() => {
-              if (picked) run(() => memberAreaApi.addInstrument(picked));
-              setPicked('');
-            }}
-            disabled={!picked || busy}
-          >
-            <Icon name="plus" />
-            Adicionar
-          </button>
-        </span>
-        {list.length > 0 ? (
-          <ul className="member-rows member-instruments" aria-label="Os teus instrumentos">
-            {list.map((i) => (
-              <li key={i.id} className="member-row">
-                <label className="form__check">
-                  <input
-                    type="radio"
-                    name={`${id}-primary`}
-                    checked={i.primary}
-                    onChange={() => run(() => memberAreaApi.primaryInstrument(i.id))}
-                    disabled={busy}
-                  />
-                  {i.label}
-                  {i.primary && <MemberBadge kind="active">Principal</MemberBadge>}
-                </label>
-                <button type="button" className="icon-btn icon-btn--danger" onClick={() => run(() => memberAreaApi.removeInstrument(i.id))} disabled={busy}>
-                  <Icon name="trash" />
-                  <span className="sr-only">Remover {i.label}</span>
+      {list.length > 0 ? (
+        <ul className="instrument-cards" aria-label="Os teus instrumentos">
+          {list.map((i) => (
+            <li key={i.id} className={i.primary ? 'instrument-card is-primary' : 'instrument-card'}>
+              <InstrumentPic url={pictures[i.instrument]} large />
+              <span className="instrument-card__name">{i.label}</span>
+              <label className="instrument-card__primary">
+                <input
+                  type="radio"
+                  name={`${id}-primary`}
+                  checked={i.primary}
+                  onChange={() => run(() => memberAreaApi.primaryInstrument(i.id))}
+                  disabled={busy}
+                />
+                {i.primary ? 'Principal' : 'Tornar principal'}
+              </label>
+              <button
+                type="button"
+                className="icon-btn icon-btn--danger instrument-card__remove"
+                onClick={() => run(() => memberAreaApi.removeInstrument(i.id))}
+                disabled={busy}
+              >
+                <Icon name="trash" />
+                <span className="sr-only">Remover {i.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="note">Ainda não juntaste nenhum instrumento. O primeiro fica como principal.</p>
+      )}
+      {available.length > 0 && (
+        <div className="instrument-add">
+          <h3 id={`${id}-add`} className="tuna-info__title">
+            Juntar um instrumento
+          </h3>
+          <ul aria-labelledby={`${id}-add`}>
+            {available.map((o) => (
+              <li key={o.value}>
+                <button type="button" onClick={() => run(() => memberAreaApi.addInstrument(o.value))} disabled={busy}>
+                  <InstrumentPic url={pictures[o.value]} />
+                  <span>{o.label}</span>
+                  <Icon name="plus" />
                 </button>
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="note">Ainda não juntaste nenhum instrumento. O primeiro fica como principal.</p>
-        )}
-        {error && <p className="form__error">{error}</p>}
-      </div>
+        </div>
+      )}
+      {error && (
+        <p className="form__error" role="alert">
+          {error}
+        </p>
+      )}
     </Section>
   );
 }

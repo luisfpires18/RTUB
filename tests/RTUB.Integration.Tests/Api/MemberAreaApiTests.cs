@@ -71,6 +71,7 @@ public class ProfileApiTests : IClassFixture<EventsApiFactory>
         profile.GetProperty("personal").GetProperty("email").GetString().Should().Be(user.Email);
         profile.GetProperty("personal").GetProperty("nicknameLocked").GetBoolean().Should().BeFalse();
         profile.GetProperty("instrumentOptions").GetArrayLength().Should().BeGreaterThan(5);
+        profile.GetProperty("instrumentPictures").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Object);
         profile.GetProperty("rank").GetProperty("level").GetInt32().Should().BeGreaterThan(0);
 
         var saved = await AreaHttp.Json(await me.PutAsJsonAsync("/api/me/profile/personal",
@@ -165,6 +166,7 @@ public class ProfileApiTests : IClassFixture<EventsApiFactory>
         var withMentor = await AreaHttp.Json(await me.PutAsJsonAsync("/api/me/profile/tuna", Tuna(2015, 10, 2016, 3, mentorId: tuno.Id)));
         withMentor.GetProperty("tuna").GetProperty("mentorId").GetString().Should().Be(tuno.Id);
         withMentor.GetProperty("tuna").GetProperty("mentorName").GetString().Should().NotBeNullOrEmpty();
+        withMentor.GetProperty("tuna").TryGetProperty("mentorAvatarUrl", out _).Should().BeTrue();
 
         var found = (await AreaHttp.Json(me, $"/api/me/mentors?q={Uri.EscapeDataString(user.Nickname!)}")).EnumerateArray()
             .Select(m => m.GetProperty("id").GetString()).ToList();
@@ -771,7 +773,8 @@ public class MemberAreaRetirementTests
         profile.Should().NotContain("<PhotoSection", "the photo lives in the header, not in a card of its own")
             .And.Contain("<ProfilePhoto").And.Contain("memberAreaApi.photo(");
         profile.Should().Contain("title=\"Informação da Tuna\"").And.Contain("Percurso na Tuna").And.Contain("Estado na Tuna")
-            .And.Contain("label=\"Instrumentos\"").And.Contain("label=\"Padrinho\"");
+            .And.Contain("id=\"tuna-instruments-title\"").And.Contain("id=\"tuna-mentor-title\"")
+            .And.Contain("profile.instrumentPictures[i.instrument]").And.Contain("t.mentorAvatarUrl");
         profile.Should().Contain("<TunaPath items={m.timeline} />", "the timeline is the server's real member data, never hardcoded")
             .And.Contain("Último ensaio").And.Contain("Última atuação");
         profile.Should().NotContain("portal.myEnrollments").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");

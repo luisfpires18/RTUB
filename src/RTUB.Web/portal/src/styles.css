@@ -3024,6 +3024,18 @@ input::-webkit-date-and-time-value {
   appearance: none;
 }
 
+/* A search control inside a dialog form: the `.form__field input` box rules must not draw a second box inside it. */
+.form__field .control input,
+.form__field .control input:focus-visible {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+
 .control input::placeholder {
   color: var(--muted);
 }
@@ -10208,6 +10220,196 @@ video.tile__media {
   color: #9ee0b5;
 }
 
+/* Pessoal: one tile per value, an icon chip on the left. */
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.profile-fact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.profile-fact__icon {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(111, 66, 193, 0.18);
+  color: var(--purple-ink);
+}
+
+.profile-fact dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profile-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-fact--accent {
+  border-color: rgba(111, 66, 193, 0.6);
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.25), var(--bg-card) 70%);
+}
+
+.profile-fact--accent dd {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.profile-fact--accent .profile-fact__icon {
+  background: var(--purple);
+  color: #fff;
+}
+
+.profile-fact__tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(111, 66, 193, 0.22);
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Instrumentos (editor): a card per instrument; the ones still free to add as picture buttons. */
+.instrument-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instrument-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-card);
+  text-align: center;
+}
+
+.instrument-card.is-primary {
+  border-color: var(--purple);
+  background: linear-gradient(180deg, rgba(111, 66, 193, 0.28), var(--bg-card) 75%);
+}
+
+.instrument-card.is-primary .instrument-pic {
+  border-color: var(--purple-ink);
+  box-shadow: 0 0 0 3px rgba(185, 160, 238, 0.25);
+}
+
+.instrument-card__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.instrument-card__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.instrument-card.is-primary .instrument-card__primary {
+  color: var(--purple-ink);
+  font-weight: 700;
+}
+
+.instrument-card__primary input {
+  accent-color: var(--purple);
+}
+
+.instrument-card__remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.instrument-add {
+  display: grid;
+  gap: 10px;
+}
+
+.instrument-add ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 172px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instrument-add button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 4px 12px 4px 4px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.instrument-add button > span:not(.instrument-pic) {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.instrument-add button > .icon {
+  color: var(--purple-ink);
+}
+
+@media (hover: hover) {
+  .instrument-add button:hover:not(:disabled) {
+    border-style: solid;
+    border-color: var(--purple-ink);
+    background: rgba(111, 66, 193, 0.12);
+  }
+}
+
+.instrument-add button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* Informação da Tuna: flat rows and ruled blocks (the old profile's density); the timeline is the focus. */
 .tuna-info {
   display: grid;
@@ -10232,31 +10434,288 @@ video.tile__media {
   text-transform: uppercase;
 }
 
-.tuna-rows {
+/* Informação da Tuna, top: instruments and the padrinho side by side when there is room. */
+.tuna-info__top {
   display: grid;
-  gap: 6px;
-  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 18px 28px;
+  min-width: 0;
 }
 
-.tuna-row {
+.tuna-info__cell {
   display: grid;
-  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
-  gap: 4px 16px;
-  align-items: baseline;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
 }
 
-.tuna-row dt {
-  color: var(--muted);
-  font-size: 0.875rem;
+/* An instrument's Naipes picture (or the naipes icon) in a circle. */
+.instrument-pic {
+  --size: 40px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, rgba(185, 160, 238, 0.28), rgba(63, 42, 134, 0.35));
+  color: var(--purple-ink);
 }
 
-.tuna-row dd {
+.instrument-pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.instrument-pic--lg {
+  --size: 64px;
+}
+
+.instrument-pic--lg .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.instrument-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instrument-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 14px 4px 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-card);
+}
+
+.instrument-chip > span:last-child {
+  display: grid;
+  line-height: 1.2;
   overflow-wrap: anywhere;
+}
+
+.instrument-chip small {
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.instrument-chip.is-primary {
+  border-color: var(--purple);
+  background: linear-gradient(90deg, rgba(111, 66, 193, 0.28), rgba(111, 66, 193, 0.08));
+}
+
+.instrument-chip.is-primary .instrument-pic {
+  border-color: var(--purple-ink);
+  box-shadow: 0 0 0 2px rgba(185, 160, 238, 0.25);
+}
+
+/* Padrinho → me: avatar rows aligned with the heading, the rail and its arrow under the avatars, as on the hierarchy. */
+.lineage {
+  --avatar: 56px;
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lineage__node {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--avatar) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.lineage__node img {
+  width: var(--avatar);
+  height: var(--avatar);
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--bg-card);
+  object-fit: cover;
+}
+
+.lineage__node span {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.lineage__node--me img {
+  border-color: var(--purple-ink);
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.35);
+}
+
+.lineage__node--me::before,
+.lineage__node--me::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--avatar) / 2);
+  translate: -50% 0;
+}
+
+.lineage__node--me::before {
+  bottom: calc(100% + 3px);
+  width: 2px;
+  height: 18px;
+  background: var(--line-strong);
+}
+
+.lineage__node--me::after {
+  bottom: calc(100% + 4px);
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--line-strong);
+  border-bottom: 2px solid var(--line-strong);
+  rotate: 45deg;
+}
+
+/* Último ensaio / Última atuação: two small stat tiles. */
+.tuna-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.tuna-stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.tuna-stat > .icon {
+  grid-row: span 2;
+  width: 20px;
+  height: 20px;
+  color: var(--purple-ink);
+}
+
+.tuna-stat--event > .icon {
+  color: #f0c46a;
+}
+
+.tuna-stat dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.tuna-stat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
 }
 
 .tuna-info__block .who__more {
   margin: 0;
+}
+
+/* "Ver atuações e ensaios detalhados": a date chip per activity on a rail; events gold, rehearsals purple. */
+.activity-feed {
+  --accent: var(--purple-ink);
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.activity-feed__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.activity-feed__item--event {
+  --accent: #f0c46a;
+}
+
+/* The rail between the date chips. */
+.activity-feed__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 52px;
+  left: 25px;
+  width: 2px;
+  height: calc(100% - 42px);
+  background: var(--line);
+}
+
+.activity-feed__date {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--bg-card);
+  line-height: 1;
+}
+
+.activity-feed__date strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.activity-feed__date small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.activity-feed__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-feed__body strong {
+  overflow-wrap: anywhere;
+}
+
+.activity-feed__body small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.activity-feed__body small .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
 }
 
 /* Percurso na Tuna: cards on a thin neutral rail, one marker each. The card colours follow the legacy milestones:
@@ -10412,9 +10871,11 @@ video.tile__media {
 
 /* ... a row from 700px, the markers on the rail above the cards (it scrolls sideways if it must). */
 @media (min-width: 700px) {
+  /* --steps (set by TunaPath) caps the row at about 240px a step, so one or two steps never stretch across it. */
   .tuna-path {
     grid-auto-columns: minmax(140px, 1fr);
     grid-auto-flow: column;
+    max-width: calc(var(--steps, 6) * 240px);
     overflow-x: auto;
   }
 
