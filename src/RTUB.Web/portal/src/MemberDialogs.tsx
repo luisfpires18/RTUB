@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -130,7 +130,7 @@ const pathVariant = (t: TimelineItem) => (t.accent === 'role' || t.accent === 'm
  */
 export function TunaPath({ items }: { items: TimelineItem[] }) {
   return (
-    <ol className="tuna-path">
+    <ol className="tuna-path" style={{ '--steps': items.length } as CSSProperties}>
       {items.map((t, i) => (
         <li key={i} className={`tuna-path__step tuna-path__step--${pathVariant(t)}${t.state ? ` is-${t.state}` : ''}`}>
           <span className="tuna-path__marker" aria-hidden="true" />

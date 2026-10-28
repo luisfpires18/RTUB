@@ -10523,13 +10523,11 @@ video.tile__media {
   box-shadow: 0 0 0 2px rgba(185, 160, 238, 0.25);
 }
 
-/* Padrinho → me: two avatars on a line with an arrow down to the member, as on the hierarchy tree. */
+/* Padrinho → me: avatar rows aligned with the heading, the rail and its arrow under the avatars, as on the hierarchy. */
 .lineage {
+  --avatar: 56px;
   display: grid;
-  justify-items: center;
-  gap: 30px;
-  width: fit-content;
-  max-width: 100%;
+  gap: 24px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -10538,15 +10536,14 @@ video.tile__media {
 .lineage__node {
   position: relative;
   display: grid;
-  justify-items: center;
-  gap: 6px;
-  max-width: 16rem;
-  text-align: center;
+  grid-template-columns: var(--avatar) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
 }
 
 .lineage__node img {
-  width: 64px;
-  height: 64px;
+  width: var(--avatar);
+  height: var(--avatar);
   border: 2px solid var(--line-strong);
   border-radius: 50%;
   background: var(--bg-card);
@@ -10555,9 +10552,9 @@ video.tile__media {
 
 .lineage__node span {
   font-family: var(--font-display);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .lineage__node--me img {
@@ -10565,20 +10562,19 @@ video.tile__media {
   box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.35);
 }
 
-/* The line from the padrinho's name and its arrowhead, pointing at the member. */
 .lineage__node--me::before,
 .lineage__node--me::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: calc(var(--avatar) / 2);
+  translate: -50% 0;
 }
 
 .lineage__node--me::before {
-  bottom: calc(100% + 4px);
+  bottom: calc(100% + 3px);
   width: 2px;
-  height: 22px;
+  height: 18px;
   background: var(--line-strong);
-  translate: -50% 0;
 }
 
 .lineage__node--me::after {
@@ -10587,7 +10583,6 @@ video.tile__media {
   height: 8px;
   border-right: 2px solid var(--line-strong);
   border-bottom: 2px solid var(--line-strong);
-  translate: -50% 0;
   rotate: 45deg;
 }
 
@@ -10876,9 +10871,11 @@ video.tile__media {
 
 /* ... a row from 700px, the markers on the rail above the cards (it scrolls sideways if it must). */
 @media (min-width: 700px) {
+  /* --steps (set by TunaPath) caps the row at about 240px a step, so one or two steps never stretch across it. */
   .tuna-path {
     grid-auto-columns: minmax(140px, 1fr);
     grid-auto-flow: column;
+    max-width: calc(var(--steps, 6) * 240px);
     overflow-x: auto;
   }
 
