@@ -437,9 +437,18 @@ public sealed class MyProfileService : IMyProfileService
         }
 
         string? mentorName = null;
+        string? mentorAvatar = null;
         if (!string.IsNullOrEmpty(me.MentorId) && await _users.FindByIdAsync(me.MentorId) is { } mentor)
         {
             mentorName = mentor.GetDisplayName();
+            mentorAvatar = GovernanceService.ToMember(mentor.Nickname, mentor.FirstName, mentor.LastName, mentor.ImageUrl).AvatarUrl;
+        }
+
+        Dictionary<string, string> pictures;
+        await using (var db = await _contexts.CreateDbContextAsync())
+        {
+            pictures = (await db.NaipeTypeConfigs.AsNoTracking().Where(c => c.PictureUrl != null).ToListAsync())
+                .DistinctBy(c => c.InstrumentType).ToDictionary(c => c.InstrumentType.ToString(), c => c.PictureUrl!);
         }
 
         var rules = Rules(me);
@@ -451,12 +460,13 @@ public sealed class MyProfileService : IMyProfileService
             detail.Value,
             new MyPersonalDto(me.FirstName, me.LastName, me.Nickname, me.IsOnlyLeitao(), me.Email, me.PhoneNumber,
                 me.DateOfBirth?.ToString("yyyy-MM-dd"), me.City, me.Degree),
-            new MyTunaDto(rules.ShowMentor, me.MentorId, mentorName, rules.ShowLeitao, rules.ShowCaloiro, rules.ShowTuno,
+            new MyTunaDto(rules.ShowMentor, me.MentorId, mentorName, mentorAvatar, rules.ShowLeitao, rules.ShowCaloiro, rules.ShowTuno,
                 me.YearLeitao, me.MonthLeitao, me.YearCaloiro, me.MonthCaloiro, me.YearTuno, me.MonthTuno,
                 new MemberLockedDatesDto(Complete(me.YearLeitao, me.MonthLeitao), Complete(me.YearCaloiro, me.MonthCaloiro),
                     Complete(me.YearTuno, me.MonthTuno))),
             await InstrumentsAsync(me.Id),
             options,
+            pictures,
             me.Subscribed,
             me.RequirePasswordChange,
             await RankAsync(me.Id)));

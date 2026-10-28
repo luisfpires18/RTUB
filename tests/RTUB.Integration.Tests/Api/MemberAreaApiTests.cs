@@ -71,6 +71,7 @@ public class ProfileApiTests : IClassFixture<EventsApiFactory>
         profile.GetProperty("personal").GetProperty("email").GetString().Should().Be(user.Email);
         profile.GetProperty("personal").GetProperty("nicknameLocked").GetBoolean().Should().BeFalse();
         profile.GetProperty("instrumentOptions").GetArrayLength().Should().BeGreaterThan(5);
+        profile.GetProperty("instrumentPictures").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Object);
         profile.GetProperty("rank").GetProperty("level").GetInt32().Should().BeGreaterThan(0);
 
         var saved = await AreaHttp.Json(await me.PutAsJsonAsync("/api/me/profile/personal",
@@ -165,6 +166,7 @@ public class ProfileApiTests : IClassFixture<EventsApiFactory>
         var withMentor = await AreaHttp.Json(await me.PutAsJsonAsync("/api/me/profile/tuna", Tuna(2015, 10, 2016, 3, mentorId: tuno.Id)));
         withMentor.GetProperty("tuna").GetProperty("mentorId").GetString().Should().Be(tuno.Id);
         withMentor.GetProperty("tuna").GetProperty("mentorName").GetString().Should().NotBeNullOrEmpty();
+        withMentor.GetProperty("tuna").TryGetProperty("mentorAvatarUrl", out _).Should().BeTrue();
 
         var found = (await AreaHttp.Json(me, $"/api/me/mentors?q={Uri.EscapeDataString(user.Nickname!)}")).EnumerateArray()
             .Select(m => m.GetProperty("id").GetString()).ToList();

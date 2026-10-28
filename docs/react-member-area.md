@@ -176,3 +176,13 @@ React only, no API / schema change: everything comes from `GET /api/profile` (`M
   purple with a star marker, tuno black, veterano / tunossauro dark with a purple outline; thin neutral rail, markers on it; a
   row from 700px (six milestones fit at 1440px), a column with a vertical rail on phones.
 - Informação da Tuna is flat: label / value rows, ruled blocks (Percurso, Estado), no nested cards.
+
+## Profile design pass (2026-10-28)
+
+- `GET /api/me/profile` adds `instrumentPictures` (instrument value → Naipes picture URL, from `NaipeTypeConfigs`; only
+  instruments with a picture) and `tuna.mentorAvatarUrl` (the padrinho's safe avatar URL or null). Read-only, no schema change.
+- Pessoal: one tile per value. Informação da Tuna: instrument chips with their Naipes picture (primary first), padrinho →
+  member avatars with an arrow, Último ensaio / Última atuação as tiles. Instrumentos: a card per instrument (pick
+  principal, remove) and the free ones as picture buttons to add (no select).
+- The shared `ActivityList` (profile + member details) is a dated feed: date chip per item, events gold, rehearsals purple,
+  scrolls inside past ~560px.

@@ -177,19 +177,28 @@ export function ActivityList({ activities }: { activities: MemberState['activiti
       {activities.length === 0 ? (
         <p className="note">Nenhuma atividade registada</p>
       ) : (
-        <ul className="member-activities">
-          {activities.map((a, i) => (
-            <li key={i}>
-              <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
-              <span>
-                <strong>{a.name}</strong>
-                <small>
-                  {new Date(a.date).toLocaleDateString('pt-PT')} · {a.type}
-                </small>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ol className="activity-feed">
+          {activities.map((a, i) => {
+            const d = new Date(a.date);
+            return (
+              <li key={i} className={a.isRehearsal ? 'activity-feed__item' : 'activity-feed__item activity-feed__item--event'}>
+                <time className="activity-feed__date" dateTime={a.date}>
+                  <strong>{d.getDate()}</strong>
+                  <small>
+                    {d.toLocaleDateString('pt-PT', { month: 'short' }).replace('.', '')} {d.getFullYear()}
+                  </small>
+                </time>
+                <span className="activity-feed__body">
+                  <strong>{a.name}</strong>
+                  <small>
+                    <Icon name={a.isRehearsal ? 'music' : 'calendar'} />
+                    {a.type}
+                  </small>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </details>
   );

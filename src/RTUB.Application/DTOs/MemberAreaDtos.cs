@@ -33,7 +33,8 @@ public sealed record MemberMapCityDto(string Name, double Latitude, double Longi
 
 /// <summary>
 /// Everything /profile shows and edits for the signed-in member: the same read-only view the members directory shows
-/// (<see cref="MemberDetailDto"/>), plus the editable values and the rules that lock them.
+/// (<see cref="MemberDetailDto"/>), plus the editable values and the rules that lock them. <c>InstrumentPictures</c>:
+/// the Naipes picture of each instrument that has one (instrument value → URL), so the profile can show it.
 /// </summary>
 public sealed record MyProfileDto(
     MemberDetailDto Member,
@@ -41,6 +42,7 @@ public sealed record MyProfileDto(
     MyTunaDto Tuna,
     IReadOnlyList<MemberInstrumentDto> Instruments,
     IReadOnlyList<MemberOptionDto> InstrumentOptions,
+    IReadOnlyDictionary<string, string> InstrumentPictures,
     bool Subscribed,
     bool RequirePasswordChange,
     MyRankDto Rank);
@@ -65,6 +67,7 @@ public sealed record MyTunaDto(
     bool ShowMentor,
     string? MentorId,
     string? MentorName,
+    string? MentorAvatarUrl,
     bool ShowLeitao,
     bool ShowCaloiro,
     bool ShowTuno,

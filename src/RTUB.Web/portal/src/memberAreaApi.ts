@@ -33,6 +33,7 @@ export type Tuna = {
   showMentor: boolean;
   mentorId: string | null;
   mentorName: string | null;
+  mentorAvatarUrl: string | null;
   showLeitao: boolean;
   showCaloiro: boolean;
   showTuno: boolean;
@@ -61,12 +62,14 @@ export type MyProfile = {
   tuna: Tuna;
   instruments: MemberInstrument[];
   instrumentOptions: Option[];
+  /** The Naipes picture of each instrument that has one (instrument value → URL). */
+  instrumentPictures: Record<string, string>;
   subscribed: boolean;
   requirePasswordChange: boolean;
   rank: Rank;
 };
 export type PersonalInput = Omit<Personal, 'nicknameLocked'>;
-export type TunaInput = Omit<Tuna, 'showMentor' | 'mentorName' | 'showLeitao' | 'showCaloiro' | 'showTuno' | 'lockedDates'>;
+export type TunaInput = Omit<Tuna, 'showMentor' | 'mentorName' | 'mentorAvatarUrl' | 'showLeitao' | 'showCaloiro' | 'showTuno' | 'lockedDates'>;
 
 export const memberAreaApi = {
   hallOfFame: () => call<HallOfFame>('GET', '/api/hall-of-fame'),
