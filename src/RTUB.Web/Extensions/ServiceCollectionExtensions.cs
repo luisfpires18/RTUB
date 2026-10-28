@@ -801,10 +801,17 @@ public static class ServiceCollectionExtensions
                         {
                             try
                             {
+                                // Task 050: also one LoginEvents "seen" row per member per hour (Owner dashboard:
+                                // active members and busy hours). Portugal is a whole-hour offset from UTC, so a
+                                // UTC hour is a Portugal hour.
+                                var hour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);
                                 await db.Database.ExecuteSqlInterpolatedAsync($@"
                                     UPDATE AspNetUsers
                                     SET LastLoginDate = {now}
-                                    WHERE Id = {userId};");
+                                    WHERE Id = {userId};
+                                    INSERT INTO LoginEvents (UserId, At, IsSignIn)
+                                    SELECT {userId}, {now}, 0
+                                    WHERE NOT EXISTS (SELECT 1 FROM LoginEvents WHERE UserId = {userId} AND At >= {hour});");
                                 break;
                             }
                             // 6 is SQLITE_LOCKED, not SQLITE_BUSY (5). SQLITE_BUSY is already

@@ -3,9 +3,15 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-28 (049 Leitão event contacts)_
+_Last updated: 2026-10-28 (050 Owner dashboard)_
 
 ## Phase
+**In progress on `feat/050/owner-dashboard` (uncommitted, not released):** 050 Owner dashboard `/owner/dashboard`
+("Estatísticas"): sign-ins, active members, movements, uploads, plays, enrollments per Portugal day with previous-period
+change, busiest hours, top 10 lists. New table `LoginEvents` (migration `AddLoginEvents`, additive); the tracing
+"Logins" dialog reads it too (every sign-in of the range, not only each account's latest). Detail:
+`docs/react-owner-operations.md` → */owner/dashboard (task 050)*.
+
 **Released to PROD: 2.1.3 = 049 Leitão event contacts:** any member whose categories include Leitão can open
 `/events/{id}/contacts` and record / reset calls, besides Mod and above (`EventsAuthorization.CanTrackContactsAsync`,
 category read from the database). Detail: `docs/permissions/events.md`, `docs/react-events.md` → *Contacts*.

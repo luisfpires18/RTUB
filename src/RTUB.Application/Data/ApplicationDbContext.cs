@@ -132,6 +132,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NaipePlayCount> NaipePlayCounts { get; set; } = null!;
     public DbSet<NaipeTypeConfig> NaipeTypeConfigs { get; set; } = null!;
 
+    // Owner dashboard (task 050): sign-ins and hours seen
+    public DbSet<LoginEvent> LoginEvents { get; set; } = null!;
+
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }
 

@@ -21,7 +21,7 @@ namespace RTUB.Application.Services;
 /// database viewer, member status sync); what was only checked in the browser before (lengths, required fields, the SQL
 /// rules, the "DELETE ALL" confirmation) is checked here. Owner only: the endpoints refuse everyone else first.
 /// </summary>
-public class OwnerOperationsService : IOwnerOperationsService
+public partial class OwnerOperationsService : IOwnerOperationsService
 {
     private readonly TimeProvider _time;
 
@@ -535,28 +535,61 @@ public class OwnerOperationsService : IOwnerOperationsService
         return JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true });
     }
 
-    /// <summary>Who last signed in between two days (yyyy-MM-dd, both included; today when missing), newest first.</summary>
-    public async Task<EventResult<IReadOnlyList<OwnerLoginRecord>>> GetLoginsAsync(string? from, string? to)
+    public const int LoginTimesMax = 50;
+
+    /// <summary>
+    /// Who signed in or was seen between two Portugal days (yyyy-MM-dd, both included; today when missing), most recent
+    /// first, from LoginEvents (task 050): sign-ins, active days, first and last time, and the sign-in times (newest
+    /// first, at most <see cref="LoginTimesMax"/>). A member with no LoginEvents row in the range whose LastLoginDate
+    /// falls in it is still listed (<c>FromHistory = false</c>, latest only), as before 050.
+    /// </summary>
+    public async Task<EventResult<OwnerLogins>> GetLoginsAsync(string? from, string? to)
     {
         var today = PortugalTime.Today(_time);
-        if (!TryDay(from, today, out var start) || !TryDay(to, today, out var end))
+        if (!TryDay(from, today, out var start) || !TryDay(to, today, out var end) || start > end)
         {
-            return EventResult<IReadOnlyList<OwnerLoginRecord>>.Invalid("from", "Escolha datas válidas.");
+            return EventResult<OwnerLogins>.Invalid("from", "Escolha datas válidas.");
         }
 
-        var users = await _profiles.GetUsersWithLoginBetweenAsync(start, end.AddDays(1).AddTicks(-1));
+        var since = PortugalTime.ToUtc(start);
+        var until = PortugalTime.ToUtc(end.AddDays(1));
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var historySince = await db.LoginEvents.MinAsync(e => (DateTime?)e.At);
+        var events = await db.LoginEvents.AsNoTracking()
+            .Where(e => e.At >= since && e.At < until)
+            .Select(e => new { e.UserId, e.At, e.IsSignIn })
+            .ToListAsync();
+        var byUser = events.GroupBy(e => e.UserId).ToDictionary(g => g.Key, g => g.ToList());
+        var latestOnly = await db.Users.AsNoTracking()
+            .Where(u => u.LastLoginDate >= since && u.LastLoginDate < until)
+            .Select(u => u.Id)
+            .ToListAsync();
+        var ids = byUser.Keys.Union(latestOnly).ToList();
+        var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync();
+
         IReadOnlyList<OwnerLoginRecord> records = users
-            .Where(u => u.LastLoginDate.HasValue)
             .Select(u =>
             {
                 var nickname = string.IsNullOrWhiteSpace(u.Nickname) ? u.UserName ?? "" : u.Nickname;
                 var fullName = FullName(u);
-                return new OwnerLoginRecord(u.Id, u.UserName ?? "", nickname, string.IsNullOrWhiteSpace(fullName) ? nickname : fullName,
-                    u.ProfilePictureSrc, DateTime.SpecifyKind(u.LastLoginDate!.Value, DateTimeKind.Utc));
+                var name = string.IsNullOrWhiteSpace(fullName) ? nickname : fullName;
+                if (!byUser.TryGetValue(u.Id, out var rows))
+                {
+                    var last = Utc(u.LastLoginDate)!.Value;
+                    return new OwnerLoginRecord(u.Id, u.UserName ?? "", nickname, name, u.ProfilePictureSrc, last,
+                        0, 1, last, [], false);
+                }
+
+                var signIns = rows.Where(r => r.IsSignIn).Select(r => Utc(r.At)!.Value).OrderDescending().ToList();
+                return new OwnerLoginRecord(u.Id, u.UserName ?? "", nickname, name, u.ProfilePictureSrc,
+                    Utc(rows.Max(r => r.At))!.Value, signIns.Count,
+                    rows.Select(r => PortugalTime.FromUtc(r.At).Date).Distinct().Count(),
+                    Utc(rows.Min(r => r.At))!.Value, signIns.Take(LoginTimesMax).ToList(), true);
             })
             .OrderByDescending(r => r.LastLoginAt)
             .ToList();
-        return EventResult<IReadOnlyList<OwnerLoginRecord>>.Ok(records);
+        return EventResult<OwnerLogins>.Ok(new OwnerLogins(records, Utc(historySince)));
     }
 
     private static bool TryDay(string? value, DateTime today, out DateTime day)

@@ -12068,6 +12068,52 @@ label.owner-person {
   color: var(--ink);
 }
 
+/* Rows grow when "Ver sessões" opens (the shared grid list squeezed them under max-height). */
+.owner-logins {
+  display: flex;
+  flex-direction: column;
+  /* The modal body is a fixed-height grid: without a floor it squeezes this scroll box to a row on phones. */
+  min-height: min(300px, 50vh);
+}
+
+.owner-logins > .owner-person {
+  flex: none;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+@media (max-width: 480px) {
+  .owner-logins .owner-login__when {
+    flex-basis: 100%;
+    padding: 0 0 0 42px;
+    text-align: left;
+  }
+
+  .owner-logins .owner-login__when br {
+    display: none;
+  }
+}
+
+.owner-login__times summary {
+  color: var(--purple-ink);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.owner-login__times ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.owner-login__when {
+  flex: none;
+  align-self: start;
+  padding-top: 4px;
+  text-align: right;
+}
+
 .owner-preview {
   display: grid;
   gap: 12px;
@@ -12326,6 +12372,298 @@ label.owner-person {
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 1.75rem;
+}
+
+/* Task 050: /owner/dashboard. One series at a time in --purple-ink (no categorical palette needed); the heatmap and
+   the rank bars are the same hue at varying strength. */
+.owner-dash {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.owner-dash__now {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.owner-dash__now > div {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-dash__now dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__now dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.owner-dash__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
+  gap: 8px;
+}
+
+.owner-dash__tile {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-top: 3px solid transparent;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.owner-dash__tile:hover {
+  border-color: var(--line-strong);
+}
+
+.owner-dash__tile[aria-selected='true'] {
+  border-color: var(--line-strong);
+  border-top-color: var(--purple-ink);
+  background: var(--bg-card);
+}
+
+.owner-dash__tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__tile-label .icon {
+  flex: none;
+  color: var(--purple-ink);
+}
+
+.owner-dash__tile-value {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  line-height: 1.1;
+}
+
+.owner-dash__tile-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.owner-dash__chart {
+  position: relative;
+  min-width: 0;
+  border-radius: 8px;
+  touch-action: pan-y;
+}
+
+.owner-dash__chart:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.owner-dash__chart svg {
+  display: block;
+}
+
+.owner-dash__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.owner-dash__axis {
+  fill: var(--muted);
+  font: 0.6875rem var(--font-body);
+}
+
+.owner-dash__line {
+  fill: none;
+  stroke: var(--purple-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.owner-dash__area {
+  fill: var(--purple-ink);
+  opacity: 0.12;
+}
+
+.owner-dash__cross {
+  stroke: var(--line-strong);
+  stroke-dasharray: 3 3;
+}
+
+.owner-dash__dot {
+  fill: var(--purple-ink);
+  stroke: var(--bg-raise);
+  stroke-width: 2;
+}
+
+.owner-dash__tip {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.owner-dash__tip strong {
+  color: var(--ink);
+  font-size: 0.9375rem;
+}
+
+.owner-dash__tip strong span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.owner-dash__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__table summary {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.owner-dash__scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.owner-dash__table table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.owner-dash__table th,
+.owner-dash__table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.owner-dash__table th:first-child {
+  text-align: left;
+}
+
+.owner-dash__table thead th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.owner-dash__heat {
+  display: grid;
+  gap: 3px;
+  min-width: 300px;
+}
+
+.owner-dash__heat-row {
+  display: grid;
+  grid-template-columns: 32px repeat(24, minmax(8px, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.owner-dash__heat-hour,
+.owner-dash__heat-day {
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.owner-dash__heat-cell {
+  aspect-ratio: 4 / 3;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--purple-ink) calc(var(--heat) * 100%), var(--bg));
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+
+.owner-dash__ranks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.owner-page .segmented button {
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.owner-dash__rank {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-dash__rank li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  font-size: 0.875rem;
+}
+
+.owner-dash__rank-label {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-dash__rank-count {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.owner-dash__rank-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  min-width: 4px;
+  border-radius: 999px;
+  background: var(--purple-ink);
+  opacity: 0.7;
+}
+
+@media (max-width: 480px) {
+  .owner-dash__now dd {
+    font-size: 1.25rem;
+  }
 }
 
 /* #220: the person or object first, then the type and action, then who and when; Details and delete at the end.

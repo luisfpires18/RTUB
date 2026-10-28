@@ -32,7 +32,10 @@ public interface IOwnerOperationsService
     Task<EventResult<bool>> DeleteAuditLogAsync(int id);
     Task<EventResult<bool>> TruncateAuditLogsAsync(OwnerTruncateInput input);
     Task<string> ExportAuditLogsAsync(OwnerAuditFilter filter);
-    Task<EventResult<IReadOnlyList<OwnerLoginRecord>>> GetLoginsAsync(string? from, string? to);
+    Task<EventResult<OwnerLogins>> GetLoginsAsync(string? from, string? to);
+
+    // ---------- /owner/dashboard ----------
+    Task<EventResult<OwnerDashboard>> GetDashboardAsync(string? from, string? to);
 
     // ---------- /owner/db ----------
     Task<IReadOnlyList<string>> GetTablesAsync();
