@@ -151,7 +151,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
 | `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
 | `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
-| `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
+| `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above, and Leitões since 049); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
 | `/roles` | **React canonical** (008, 016) | Órgãos Sociais; `?fy=` picks a mandate. RGI for members, fiscal years and assignments for Mod/Admin/Owner (016). `docs/react-governance.md`. |
 | `/member/roles` | **Redirect** → `/roles` (016) | `302`, query kept, GET/HEAD only. The Blazor bridge (008-015) is retired. |
 | `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |

@@ -30,7 +30,7 @@ create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 | `/events/{id}/enrollment` | 302 → `/events/{id}?respond=1` |
 | `/events/{id}/enrollments` | 302 → `/events/{id}#who-title` |
 | `/member/events` | 302 → `/events` (query kept) |
-| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod and above) | React (013); a visitor gets a 302 to `/login?returnUrl=…` |
+| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod and above, and Leitões since 049) | React (013); a visitor gets a 302 to `/login?returnUrl=…` |
 
 ## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
 
@@ -52,7 +52,7 @@ create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
 | `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
 | `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day; managed by Admin/Owner on the event page (012D) | members | no |
 | `Discussions` / `Posts` | per event | - | 9 discussions | member count + page | member count + link | members | no |
-| `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | `/events/{id}/contacts` (013) | Mod and above | no |
+| `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | `/events/{id}/contacts` (013) | Mod and above, Leitões (049) | no |
 
 **Verdict: no schema change, no migration.** Nothing persisted was added, renamed or removed.
 
@@ -90,7 +90,8 @@ told about a members-only event; emails go to members only, as before.
 - **Management:** Admin or Owner (was `IsInRole("Admin")` only) - the React create/edit/delete, image,
   cancel / reactivate and notices, prizes, videos, repertoire and other members' answers, and the remaining
   `/member/events` tools. Mod and Member get 403 from the API. Contact tracking (`/events/{id}/contacts`): Mod
-  and above (was Admin or Mod), linked from the React event page's member panel since 012E. The agenda shows
+  and above (was Admin or Mod), plus any member whose categories include Leitão (049; read from the database),
+  linked from the React event page's member panel since 012E. The agenda shows
   the controls only when the API says `canManage`; the server enforces it on every write. Statistics
   (`GET /api/events/stats`, 012F): any signed-in member, as before.
 
@@ -200,7 +201,7 @@ use *enrollment* / *inscrição*; *attendance* / *presença* stays with rehearsa
 | "Minhas Inscrições" | `/member/events` modal: the last 10 (or all) past, not cancelled events, Foi / Não foi (no answer = Não foi), participation share, search | the "Onde estiveste" modal on `/events` (044; was the page `/events/my-enrollments`): the last 10 (or all) past, not cancelled events, Foste / Não foste, the share; built on `GET /api/events` (own answers only). The "Próximas datas" answers and the search of the old page went with it (answering stays on the agenda and the event page) |
 
 The picker sends user ids and display fields to Admin/Owner only; no email or phone anywhere. No
-notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above) lost its
+notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above; Leitões too since 049) lost its
 only link with the Blazor participants page and is linked from the event page's member panel instead.
 
 ## Retiring `/member/events` (012F) - audit of what it still had
@@ -217,7 +218,7 @@ only link with the Blazor participants page and is linked from the event page's 
 | "Prémios" statistics (prizes per festival) | header button, mobile nav | yes, the agenda's Prémios modal (011) | deleted (`IEventStatisticsService`, `TrophyStatsByEvent`) |
 | "Estatísticas de inscrições" (members) | header button (`EnrollmentStatisticsButton`) | no | **moved**: agenda "Estatísticas" modal (members), `GET /api/events/stats` |
 | Discussion link | cards → `/events/{id}/discussion` | yes, event page member panel | deleted (bridge kept) |
-| Contacts | not on this page | event page (Mod+, 012E) | bridge kept |
+| Contacts | not on this page | event page (Mod+ and Leitões, 012E / 049) | bridge kept |
 | "Área de membros" (agenda header), "Abrir a área de membros" (`/profile`) | React links to it | - | replaced: agenda → **Estatísticas**; profile → **Agenda de atuações**, plus **Terminar sessão** |
 
 Statistics, as the old modal: any signed-in member; the range defaults to the current season (1 Sep - 31 Aug)
@@ -269,15 +270,15 @@ passenger chips; comments threaded under each post with an inline reply box; act
 and deletes confirm inline. Empty state: "Ainda não há mensagens nesta atuação. Deixa uma nota, combina
 detalhes ou partilha uma dúvida." Every write answers the whole conversation (no optimistic append needed).
 
-## Contacts (Mod and above, 013) - audited against the old Blazor page
+## Contacts (Mod and above, 013; Leitões, 049) - audited against the old Blazor page
 
 `EventContacts`: `EventId`, `UserId` (a member, not an outside contact), `IsContacted`, `WillAttend` (bool?),
 `Notes` ≤500, `ContactedAt`, `ContactedBy`. 0 rows today. The phone shown is the member's `PhoneNumber`. Never public.
 
 | | Old Blazor `/events/{id}/contacts` | React now |
 | --- | --- | --- |
-| Read | **any signed-in member** (every user's phone number) | **Mod and above only** (`CanTrackContacts`, as the event page's link already was) - changed on purpose |
-| Write | Mod and above (UI only) | Mod and above, server-side; antiforgery |
+| Read | **any signed-in member** (every user's phone number) | **Mod and above only** (`CanTrackContacts`, as the event page's link already was) - changed on purpose; since 049 also any Leitão (`CanTrackContactsAsync`, category from the database) |
+| Write | Mod and above (UI only) | Mod and above and Leitões (049), server-side; antiforgery |
 | Listed | every user | every member who is not expelled - changed on purpose |
 | Record a call | Vai / Não vai / Indeciso + notes; an answer creates the member's enrollment (primary instrument, no notification) or flips an existing one | same calls (`IEventContactService`, `IEnrollmentService`) |
 | Repor | clears the call **and deletes the member's enrollment** | same, and the confirm says so |
@@ -296,7 +297,7 @@ detalhes ou partilha uma dúvida." Every write answers the whole conversation (n
 | `POST …/posts/{postId}/comments`, `PUT`/`DELETE …/discussion/comments/{commentId}` | member (author; delete also Owner) | `{ body }`; 400 on a locked post. |
 | `POST /api/events/{id}/discussion/transport`, `PUT …/posts/{postId}/transport` | member (edit: the driver) | `{ vehicle, seats, notes }`; seats 2-20 and not below the passengers. |
 | `GET …/posts/{postId}/passengers/members?q=`, `POST …/passengers`, `DELETE …/passengers/{passengerId}` | the driver or Admin/Owner (a passenger may remove themselves) | user ids only to those who may seat people. |
-| `GET /api/events/{id}/contacts`, `PUT`/`DELETE /api/events/{id}/contacts/{userId}` | Mod and above | `{ contacted, notContacted }` rows with phone; `PUT { willAttend, notes }` (≤500) records the call and syncs the enrollment; `DELETE` resets (and removes the enrollment). |
+| `GET /api/events/{id}/contacts`, `PUT`/`DELETE /api/events/{id}/contacts/{userId}` | Mod and above, Leitões (049) | `{ contacted, notContacted }` rows with phone; `PUT { willAttend, notes }` (≤500) records the call and syncs the enrollment; `DELETE` resets (and removes the enrollment). |
 | `GET /api/events/{id}` | anyone | One event + videos; `member` section (reason, repertoire, Quem vai) for members; 404 if missing. |
 | `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
 | `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |

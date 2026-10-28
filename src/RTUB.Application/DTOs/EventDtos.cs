@@ -88,7 +88,7 @@ public sealed record EventMemberSummaryDto(
 
 /// <summary>
 /// One event page. <c>Member</c> is null for visitors. <c>CanManagePrizes</c>: the caller is Admin/Owner
-/// and the event is a past festival, where prizes are added (012B). <c>CanTrackContacts</c>: Mod and above,
+/// and the event is a past festival, where prizes are added (012B). <c>CanTrackContacts</c>: Mod and above or a Leitão,
 /// who get the link to the Blazor /events/{id}/contacts (012E; it was linked from the retired participants page).
 /// </summary>
 public sealed record EventDetailDto(
