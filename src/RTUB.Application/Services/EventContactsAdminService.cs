@@ -11,10 +11,10 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// The old Blazor /events/{id}/contacts behind the React page (React track 013, docs/react-events.md).
-/// Same behaviour, rules now server-side: Mod and above record a call (Vai / Não vai / Indeciso, notes ≤500)
+/// Same behaviour, rules now server-side: Mod and above (and any Leitão, since 049) record a call (Vai / Não vai / Indeciso, notes ≤500)
 /// through <see cref="IEventContactService"/>; an answer creates the member's enrollment (primary instrument,
 /// no notification) or flips an existing one, and "repor" clears the call and removes the enrollment, exactly
-/// as the old page did. Changed on purpose: reading the list (every member's phone) is Mod and above too
+/// as the old page did. Changed on purpose: reading the list (every member's phone) is Mod and above too (plus Leitões, 049)
 /// (any signed-in member could open the old page), and expelled members are not listed. No schema change.
 /// </summary>
 public sealed class EventContactsAdminService : IEventContactsAdminService
@@ -125,12 +125,12 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
             return EventResult<EventContactsDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        if (!EventsAuthorization.CanTrackContacts(user))
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (!await EventsAuthorization.CanTrackContactsAsync(db, user))
         {
             return EventResult<EventContactsDto>.Fail(EventResultStatus.Forbidden);
         }
 
-        await using var db = await _contexts.CreateDbContextAsync();
         return await db.Events.AnyAsync(e => e.Id == eventId) ? null : EventResult<EventContactsDto>.Fail(EventResultStatus.NotFound);
     }
 

@@ -310,7 +310,7 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
         </li>
         {detail.canTrackContacts && (
           <li>
-            {/* Mod and above (the server refuses anyone else). */}
+            {/* Mod and above, or a Leitão (the server refuses anyone else). */}
             <a href={portal.eventContacts(event.id)}>
               <span className="member-panel__icon">
                 <Icon name="contactsFill" />
