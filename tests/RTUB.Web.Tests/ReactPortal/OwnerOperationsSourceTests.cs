@@ -47,7 +47,7 @@ public class OwnerOperationsSourceTests
     }
 
     [Fact]
-    public void TheReactPortal_MapsTheFiveOwnerPages()
+    public void TheReactPortal_MapsTheOwnerPages()
     {
         var main = Read(Portal, "main.tsx");
         var program = Read(Web, "Program.cs");
@@ -55,7 +55,7 @@ public class OwnerOperationsSourceTests
         foreach (var (route, page) in new[]
                  {
                      ("/emails", "OwnerEmails"), ("/notifications", "OwnerNotifications"), ("/users", "OwnerUsers"),
-                     ("/owner/tracing", "OwnerTracing"), ("/owner/db", "OwnerDatabase"),
+                     ("/owner/tracing", "OwnerTracing"), ("/owner/dashboard", "OwnerDashboard"), ("/owner/db", "OwnerDatabase"),
                  })
         {
             main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
@@ -63,7 +63,7 @@ public class OwnerOperationsSourceTests
         }
 
         program.Should().Contain("app.MapOwnerEndpoints();")
-            .And.Contain("new[] { \"/emails\", \"/notifications\", \"/users\", \"/owner/tracing\", \"/owner/db\" }");
+            .And.Contain("new[] { \"/emails\", \"/notifications\", \"/users\", \"/owner/tracing\", \"/owner/dashboard\", \"/owner/db\" }");
     }
 
     [Fact]
@@ -101,7 +101,8 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void Tracing_LabelsEveryAuditedType()
     {
-        var tracing = Read(Portal, "OwnerTracing.tsx");
+        // Task 050: ENTITY_LABELS lives in ownerApi.ts, shared by /owner/tracing and /owner/dashboard.
+        var tracing = Read(Portal, "ownerApi.ts");
         var audited = typeof(RTUB.Application.Data.ApplicationDbContext).GetProperties()
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Microsoft.EntityFrameworkCore.DbSet<>))
             .Select(p => p.PropertyType.GetGenericArguments()[0])

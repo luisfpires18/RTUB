@@ -13,6 +13,7 @@ using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
@@ -26,7 +27,7 @@ namespace RTUB.Integration.Tests.Api;
 /// </summary>
 public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
 {
-    private static readonly string[] Pages = ["/emails", "/notifications", "/users", "/owner/tracing", "/owner/db"];
+    private static readonly string[] Pages = ["/emails", "/notifications", "/users", "/owner/tracing", "/owner/dashboard", "/owner/db"];
 
     /// <summary>The title of every refused send; no test sends it for real.</summary>
     private const string Refused = "Nunca enviado";
@@ -480,7 +481,7 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         var owner = await SignInAsync("Owner");
         var today = DateTime.Today.ToString("yyyy-MM-dd");
 
-        (await AreaHttp.Json(owner, $"/api/owner/tracing/logins?from={today}&to={today}")).ValueKind.Should().Be(JsonValueKind.Array);
+        (await AreaHttp.Json(owner, $"/api/owner/tracing/logins?from={today}&to={today}")).GetProperty("records").ValueKind.Should().Be(JsonValueKind.Array);
         (await AreaHttp.Errors(await owner.GetAsync("/api/owner/tracing/logins?from=ontem"))).Keys.Should().Equal("from");
 
         (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/owner/tracing/announcement", new { message = " " }))).Keys.Should().Equal("message");
@@ -495,6 +496,111 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         var body = JsonDocument.Parse(await shown.Content.ReadAsStringAsync()).RootElement;
         body.GetProperty("message").GetString().Should().Be("O servidor vai reiniciar.");
         body.GetProperty("id").GetInt64().Should().BePositive();
+    }
+
+    [Fact]
+    public async Task Tracing_Logins_ListEverySignInOfTheRange_NotOnlyTheLatest()
+    {
+        var owner = await SignInAsync("Owner");
+        var tracked = await SeedUserAsync(subscribed: false);
+        var latestOnly = await SeedUserAsync(subscribed: false);
+        var today = PortugalTime.Today(TimeProvider.System);
+        DateTime At(DateTime day, int hour) => PortugalTime.ToUtc(day.AddHours(hour));
+        await WithDbAsync(async db =>
+        {
+            db.LoginEvents.AddRange(
+                new LoginEvent { UserId = tracked.Id, At = At(today.AddDays(-1), 9), IsSignIn = true },
+                new LoginEvent { UserId = tracked.Id, At = At(today.AddDays(-1), 21), IsSignIn = false },
+                new LoginEvent { UserId = tracked.Id, At = At(today, 10), IsSignIn = true },
+                new LoginEvent { UserId = tracked.Id, At = At(today.AddDays(-5), 10), IsSignIn = true });
+            var stored = await db.Users.SingleAsync(u => u.Id == latestOnly.Id);
+            stored.LastLoginDate = At(today.AddDays(-1), 8);
+            return await db.SaveChangesAsync();
+        });
+
+        var day = (DateTime d) => d.ToString("yyyy-MM-dd");
+        var body = await AreaHttp.Json(owner, $"/api/owner/tracing/logins?from={day(today.AddDays(-1))}&to={day(today)}");
+        body.GetProperty("historySince").ValueKind.Should().Be(JsonValueKind.String);
+        var records = body.GetProperty("records").EnumerateArray().ToDictionary(r => r.GetProperty("userId").GetString()!);
+
+        var t = records[tracked.Id];
+        t.GetProperty("fromHistory").GetBoolean().Should().BeTrue();
+        t.GetProperty("signIns").GetInt32().Should().Be(2, "the one 5 days ago is outside the range");
+        t.GetProperty("activeDays").GetInt32().Should().Be(2);
+        t.GetProperty("signInTimes").GetArrayLength().Should().Be(2);
+        t.GetProperty("firstAt").GetDateTime().Should().Be(At(today.AddDays(-1), 9));
+        t.GetProperty("lastLoginAt").GetDateTime().Should().Be(At(today, 10));
+
+        var l = records[latestOnly.Id];
+        l.GetProperty("fromHistory").GetBoolean().Should().BeFalse("listed only by LastLoginDate, as before 050");
+        l.GetProperty("signIns").GetInt32().Should().Be(0);
+        l.GetProperty("signInTimes").GetArrayLength().Should().Be(0);
+
+        (await AreaHttp.Errors(await owner.GetAsync($"/api/owner/tracing/logins?from={day(today)}&to={day(today.AddDays(-1))}")))
+            .Keys.Should().Equal("from");
+    }
+
+    // ---------- /owner/dashboard (task 050) ----------
+
+    [Fact]
+    public async Task Dashboard_RecordsSignInsAndSeenHours_AndCountsThemPerPortugalDay()
+    {
+        var n = Interlocked.Increment(ref _ip);
+        var (owner, user) = await CookieTestSession.SignInAsync(_factory, $"own{Guid.NewGuid():N}"[..20], $"10.72.{n / 250}.{n % 250 + 1}", "Owner");
+        var signedIn = await WithDbAsync(db => db.LoginEvents.Where(e => e.UserId == user.Id).ToListAsync());
+        signedIn.Should().ContainSingle("the real sign-in wrote one row").Which.IsSignIn.Should().BeTrue();
+
+        // That row already counts as "seen this hour"; drop it and the activity throttle so the next request is seen.
+        // The one 40 days ago is outside the default 30 days, inside the 30 before them.
+        await WithDbAsync(db =>
+        {
+            db.LoginEvents.RemoveRange(signedIn);
+            db.LoginEvents.Add(new LoginEvent { UserId = user.Id, At = DateTime.UtcNow.AddDays(-40), IsSignIn = true });
+            return db.SaveChangesAsync();
+        });
+        _factory.Services.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()
+            .Remove(RTUB.Web.Extensions.ServiceCollectionExtensions.ActivityWriteCachePrefix + user.Id);
+        var member = $"dash{Tag()}";
+        await SeedLogAsync("Dashboard", user: member);
+        await SeedLogAsync("Dashboard", user: member, setup: l => l.Action = "Played");
+
+        var body = await AreaHttp.Json(owner, "/api/owner/dashboard");
+        await AreaHttp.Json(owner, "/api/owner/dashboard");
+
+        var rows = await WithDbAsync(db => db.LoginEvents.AsNoTracking().Where(e => e.UserId == user.Id && !e.IsSignIn).ToListAsync());
+        rows.Should().ContainSingle("an authenticated request marks the member seen, once per hour");
+
+        var today = PortugalTime.Today(TimeProvider.System);
+        body.GetProperty("to").GetString().Should().Be(today.ToString("yyyy-MM-dd"));
+        body.GetProperty("from").GetString().Should().Be(today.AddDays(-29).ToString("yyyy-MM-dd"));
+        body.GetProperty("days").GetArrayLength().Should().Be(30);
+
+        var series = body.GetProperty("series").EnumerateArray().ToDictionary(s => s.GetProperty("key").GetString()!);
+        series.Keys.Should().Equal("signIns", "activeMembers", "movements", "uploads", "songPlays", "naipePlays", "enrollments");
+        series.Values.Should().OnlyContain(s => s.GetProperty("values").GetArrayLength() == 30);
+        series["signIns"].GetProperty("previousTotal").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        series["activeMembers"].GetProperty("total").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+
+        var top = body.GetProperty("topMembers").EnumerateArray()
+            .ToDictionary(r => r.GetProperty("label").GetString()!, r => r.GetProperty("count").GetInt32());
+        top.Should().Contain(member, 1, "a play is a song play, not a movement");
+
+        var hours = body.GetProperty("hours");
+        hours.GetArrayLength().Should().Be(7);
+        hours.EnumerateArray().Should().OnlyContain(h => h.GetArrayLength() == 24);
+        hours.EnumerateArray().SelectMany(h => h.EnumerateArray()).Sum(c => c.GetInt32()).Should().BeGreaterThanOrEqualTo(1);
+        body.GetProperty("now").GetProperty("online").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task Dashboard_RefusesBadRanges()
+    {
+        var owner = await SignInAsync("Owner");
+
+        (await AreaHttp.Errors(await owner.GetAsync("/api/owner/dashboard?from=ontem"))).Keys.Should().Equal("from");
+        (await AreaHttp.Errors(await owner.GetAsync("/api/owner/dashboard?from=2026-01-10&to=2026-01-01"))).Keys.Should().Equal("from");
+        (await AreaHttp.Errors(await owner.GetAsync("/api/owner/dashboard?from=2024-01-01&to=2026-01-01"))).Keys.Should().Equal("from");
+        (await AreaHttp.Json(owner, "/api/owner/dashboard?from=2025-01-01&to=2025-12-31")).GetProperty("days").GetArrayLength().Should().Be(365);
     }
 
     // ---------- /owner/db ----------
@@ -645,7 +751,7 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
                  {
                      "/api/owner/emails", "/api/owner/notifications", "/api/owner/users", "/api/owner/users?q=a&page=2&pageSize=40",
                      "/api/owner/tracing/filters", "/api/owner/tracing", "/api/owner/tracing?critical=true&q=x", "/api/owner/tracing/export",
-                     "/api/owner/tracing/logins", "/api/owner/db/tables", "/api/owner/db/tables/AuditLogs",
+                     "/api/owner/tracing/logins", "/api/owner/dashboard", "/api/owner/db/tables", "/api/owner/db/tables/AuditLogs",
                  })
         {
             var response = await client.GetAsync(path);

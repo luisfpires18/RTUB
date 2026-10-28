@@ -348,6 +348,7 @@ SCENARIOS: list[Scenario] = [
     Scenario("owner-users", "/users", auth=True),
     Scenario("owner-tracing", "/owner/tracing", auth=True),
     Scenario("owner-tracing-targets", "/owner/tracing", auth=True, action=tracing_targets),
+    Scenario("owner-dashboard", "/owner/dashboard", auth=True),
     Scenario("owner-db", "/owner/db", auth=True),
     Scenario("owner-emails", "/emails", auth=True),
     Scenario("owner-notifications", "/notifications", auth=True),

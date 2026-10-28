@@ -445,6 +445,10 @@ public class Program
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
 
+                // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
+
             }
             catch (Exception ex)
             {
@@ -621,7 +625,8 @@ public class Program
         // Task 035: the Owner tools, Owner only (/users, /owner/tracing and /owner/db were Owner pages; /emails and
         // /notifications were Admin pages and are Owner only now). A visitor goes to sign in; any other member gets the
         // shell with 403, and the page shows the refusal. The API refuses them every call (OwnerEndpoints).
-        foreach (var route in new[] { "/emails", "/notifications", "/users", "/owner/tracing", "/owner/db" })
+        // Task 050 adds /owner/dashboard on the same terms.
+        foreach (var route in new[] { "/emails", "/notifications", "/users", "/owner/tracing", "/owner/dashboard", "/owner/db" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {

@@ -72,6 +72,7 @@ public static class AuditConfiguration
         "GalleryMediaPersonTag",
         "SongPlayCount",
         "NaipePlayCount",
+        "LoginEvent",
         "MemberStatus",
         "MeetingAtaAgendaPoint",
         "MeetingAtaConfirmation",

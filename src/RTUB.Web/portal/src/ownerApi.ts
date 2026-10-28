@@ -65,7 +65,24 @@ export type AuditEntry = {
 };
 export type AuditPage = { items: AuditEntry[]; total: number; page: number; pageSize: number; criticalOnPage: number };
 export type AuditFilters = { users: string[]; entityTypes: string[]; actions: string[] };
-export type LoginRecord = { userId: string; userName: string; nickname: string; fullName: string; avatarUrl: string; lastLoginAt: string };
+/**
+ * Task 050: from LoginEvents. lastLoginAt / firstAt are the latest / earliest sign-in or activity in the range;
+ * fromHistory false = listed only by the account's last access (no LoginEvents row in the range).
+ */
+export type LoginRecord = {
+  userId: string;
+  userName: string;
+  nickname: string;
+  fullName: string;
+  avatarUrl: string;
+  lastLoginAt: string;
+  signIns: number;
+  activeDays: number;
+  firstAt: string;
+  signInTimes: string[];
+  fromHistory: boolean;
+};
+export type Logins = { records: LoginRecord[]; historySince: string | null };
 
 export type DbGrid = { columns: string[]; rows: string[][]; total: number; page: number; pageSize: number };
 
@@ -83,6 +100,95 @@ export function auditQuery(f: Partial<AuditFilter>): string {
   const s = p.toString();
   return s ? `?${s}` : '';
 }
+
+/**
+ * #220: the words the page shows for a stored EntityType. Presentation only (/owner/tracing and /owner/dashboard): filters, export and Details keep the raw
+ * type; an unknown type shows as it is.
+ */
+export const ENTITY_LABELS: Record<string, string> = {
+  ApplicationUser: 'Utilizador',
+  UserRole: 'Função de acesso',
+  RoleAssignment: 'Cargo',
+  PushSubscription: 'Subscrição push',
+  RehearsalAttendance: 'Presença em ensaio',
+  Rehearsal: 'Ensaio',
+  Enrollment: 'Inscrição em atuação',
+  Event: 'Atuação',
+  EventRepertoire: 'Repertório',
+  EventVideo: 'Vídeo de atuação',
+  EventContact: 'Contacto de atuação',
+  Song: 'Música',
+  SongVideo: 'Vídeo de música',
+  SongYouTubeUrl: 'Link YouTube',
+  Album: 'Álbum',
+  AlbumAccess: 'Acesso a álbum',
+  NewsPost: 'Novidade',
+  PostMedia: 'Anexo de publicação',
+  CommentImage: 'Imagem de comentário',
+  Meeting: 'Reunião',
+  MeetingRequest: 'Pedido de reunião',
+  MeetingParticipation: 'Presença em reunião',
+  MeetingAta: 'Ata',
+  MeetingAtaAttachment: 'Anexo de ata',
+  Product: 'Produto',
+  ProductReservation: 'Reserva de produto',
+  ShopPromotion: 'Promoção da loja',
+  ShopPromotionItem: 'Produto de promoção',
+  Transaction: 'Movimento',
+  Report: 'Relatório',
+  Activity: 'Atividade',
+  MemberDebt: 'Calote',
+  MbwayTransfer: 'Transferência MBWay',
+  NerbaOrder: 'Encomenda Nerba',
+  Request: 'Pedido de atuação',
+  Question: 'Pergunta',
+  QuestionReply: 'Resposta',
+  LogisticsBoard: 'Quadro',
+  LogisticsList: 'Lista',
+  LogisticsCard: 'Cartão',
+  LogisticsCardAssignment: 'Atribuição de cartão',
+  LogisticsCardReminder: 'Lembrete',
+  Post: 'Publicação',
+  Comment: 'Comentário',
+  Discussion: 'Discussão',
+  Transportation: 'Boleia',
+  TransportationPassenger: 'Passageiro',
+  LeaderboardComment: 'Comentário na classificação',
+  LeaderboardCommentLike: 'Gosto em comentário',
+  MemberInstrument: 'Instrumento do membro',
+  Instrument: 'Instrumento da tuna',
+  Trophy: 'Troféu',
+  GalleryMedia: 'Média da galeria',
+  NaipeContent: 'Conteúdo de naipe',
+  NaipeComment: 'Comentário de naipe',
+  NaipeTypeConfig: 'Configuração de naipe',
+  FiscalYear: 'Ano letivo',
+  Document: 'Documento',
+  Folder: 'Pasta',
+  Notification: 'Notificação',
+  MemberActivityStatus: 'Estado de atividade',
+  GeocodingCache: 'Cache de localização',
+};
+
+export const entityLabel = (type: string) => ENTITY_LABELS[type] ?? type;
+
+/** /owner/dashboard (task 050): one value per Portugal day; see OwnerOperationsService.Dashboard.cs. */
+export type DashboardSeries = { key: string; label: string; values: number[]; total: number; previousTotal: number };
+export type DashboardRank = { label: string; count: number };
+export type Dashboard = {
+  from: string;
+  to: string;
+  days: string[];
+  series: DashboardSeries[];
+  topSongs: DashboardRank[];
+  topNaipes: DashboardRank[];
+  topMembers: DashboardRank[];
+  areas: DashboardRank[];
+  actions: DashboardRank[];
+  /** 7 rows (Monday first) × 24 Portugal hours. */
+  hours: number[][];
+  now: { accounts: number; online: number; pushMembers: number };
+};
 
 export const ownerApi = {
   emailRecipients: () => call<EmailRecipients>('GET', '/api/owner/emails'),
@@ -104,7 +210,8 @@ export const ownerApi = {
   audit: (f: AuditFilter) => call<AuditPage>('GET', `/api/owner/tracing${auditQuery(f)}`),
   deleteAudit: (id: number) => call<void>('DELETE', `/api/owner/tracing/${id}`),
   truncateAudit: (user: string, confirmation: string) => call<void>('POST', '/api/owner/tracing/truncate', { user, confirmation }),
-  logins: (from: string, to: string) => call<LoginRecord[]>('GET', `/api/owner/tracing/logins?${new URLSearchParams({ from, to })}`),
+  logins: (from: string, to: string) => call<Logins>('GET', `/api/owner/tracing/logins?${new URLSearchParams({ from, to })}`),
+  dashboard: (from: string, to: string) => call<Dashboard>('GET', `/api/owner/dashboard?${new URLSearchParams({ from, to })}`),
   announce: (message: string) => call<void>('POST', '/api/owner/tracing/announcement', { message }),
 
   tables: () => call<string[]>('GET', '/api/owner/db/tables'),

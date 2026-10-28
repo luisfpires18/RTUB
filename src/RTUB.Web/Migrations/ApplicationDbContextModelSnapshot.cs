@@ -1349,6 +1349,32 @@ namespace RTUB.Migrations
                     b.ToTable("LeaderboardCommentLikes");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LoginEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSignIn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("UserId", "At");
+
+                    b.ToTable("LoginEvents");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
                 {
                     b.Property<int>("Id")
