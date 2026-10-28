@@ -41,6 +41,7 @@ export const portal = {
   messages: '/messages',
   users: '/users',
   ownerTracing: '/owner/tracing',
+  ownerDashboard: '/owner/dashboard',
   ownerDb: '/owner/db',
   emails: '/emails',
   notifications: '/notifications',

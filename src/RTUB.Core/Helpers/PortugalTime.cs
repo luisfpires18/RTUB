@@ -44,7 +44,7 @@ public static class PortugalTime
     }
 
     /// <summary>A Portugal wall-clock time as UTC (see <see cref="NextUtc"/> for the two DST edge cases).</summary>
-    private static DateTime ToUtc(DateTime local)
+    public static DateTime ToUtc(DateTime local)
     {
         local = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
         if (Zone.IsInvalidTime(local))
@@ -60,4 +60,8 @@ public static class PortugalTime
 
         return TimeZoneInfo.ConvertTimeToUtc(local, Zone);
     }
+
+    /// <summary>A stored UTC timestamp on Portugal's clock (Kind Unspecified); task 050 buckets by Portugal day.</summary>
+    public static DateTime FromUtc(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zone);
 }

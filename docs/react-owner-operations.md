@@ -7,7 +7,7 @@ pages, and the product decision for this task removed Admin access to them.
 Code: `src/RTUB.Web/Endpoints/OwnerEndpoints.cs` (thin, with the Owner gate),
 `src/RTUB.Application/Services/OwnerOperationsService.cs` (the work, over the services the old pages used),
 `src/RTUB.Application/DTOs/OwnerOperationsDtos.cs`, and `portal/src/Owner*.tsx` + `ownerApi.ts` + `OwnerUi.tsx`.
-There is no schema change and no migration.
+Task 035 had no schema change and no migration; task 050 (`/owner/dashboard`, below) adds the `LoginEvents` table.
 
 ## Permission matrix
 
@@ -117,6 +117,42 @@ the API is what enforces access.
   the server refuses a change sent without `confirmed: true`. SELECT results are paged in the browser; before, every
   row was shown at once. A query that fails shows the database's error as a 400 message, as before.
 
+## /owner/dashboard (task 050)
+
+"Estatísticas" in the Owner menu, after Auditoria. Owner only on the same terms as the other tools (page: visitor →
+sign in, other members → 403 shell; API: 401 / 403). Read only, `no-store`.
+
+- **Tiles** (one per series, click to chart it, with the change against the same number of days just before):
+  sign-ins, active members (distinct members seen that day; the tile is distinct over the range), movements (audit rows
+  except `Played`), uploads (`GalleryMedia`, `NaipeContents`, `PostMedia`, `MeetingAtaAttachments`, `CommentImages`
+  rows), song plays (`SongPlayCounts`), naipe plays (`NaipePlayCounts`), enrollments (`Enrollments.EnrolledAt`).
+- **Now**: accounts, signed in within the last hour (as `/users`), members with a push subscription.
+- **Busiest hours**: `LoginEvents` by Portugal weekday × hour. **Rankings** (top 10): songs, naipes, members by
+  movements, areas (entity types, `ENTITY_LABELS`, now exported from `ownerApi.ts`) and actions.
+- Every count is bucketed by **Portugal day** (`PortugalTime.FromUtc`); stored stamps stay UTC. Messaging is never
+  counted. Bucketing is in memory over one narrow column per source (`ponytail:` note in the service).
+- Line chart, heatmap and bars are plain SVG / CSS (no chart dependency), one series at a time in `--purple-ink`, with a
+  crosshair tooltip (pointer and arrow keys) and a "Ver como tabela" view.
+
+**`LoginEvents`** (migration `AddLoginEvents`, additive: an N-1 app ignores it): `UserId`, `At` (UTC), `IsSignIn`.
+Written with raw SQL, never audited (`AuditConfiguration.ExcludedEntityTypes`), no foreign key (history outlives an
+account):
+- `POST /auth/login` adds an `IsSignIn = 1` row after `LastLoginDate` (a failure is logged and never fails the sign-in);
+- the cookie validation's throttled `LastLoginDate` write (once per 5 minutes per member) adds an `IsSignIn = 0` row
+  only when the member has no row yet in this UTC hour (Portugal is a whole-hour offset, so that is a Portugal hour).
+History starts with the deploy of 050; before it only `LastLoginDate` (latest only) exists, as the page says.
+
+**Tracing "Logins" dialog (050):** was "accounts whose `LastLoginDate` falls in the days", so anyone who came back later
+vanished from earlier days (and the days were compared as UTC). Now one line per member with a `LoginEvents` row in the
+range: sign-ins, active Portugal days, first → last time, and "Ver sessões" (sign-in times, newest first, ≤50). A
+member with no row in the range but a `LastLoginDate` in it is still listed as "Só o último acesso". When the range
+starts before the first `LoginEvents` row, the dialog says so. `IUserProfileService.GetUsersWithLoginBetweenAsync`
+(its only caller) is gone.
+Unbounded growth is about one row per member per active hour; prune if it ever matters.
+
+Code: `OwnerOperationsService.Dashboard.cs`, `portal/src/OwnerDashboard.tsx`. Tests: `OwnerOperationsApiTests`
+(`Dashboard_*`, plus the page / read lists of the gate tests).
+
 ## API (`/api/owner`, Owner only)
 
 | Method | Path | Notes |
@@ -134,10 +170,11 @@ the API is what enforces access.
 | GET | `/tracing/filters` | Users, entity types, actions |
 | GET | `/tracing?user=&excludeUser=&entityType=&action=&critical=&q=&page=&pageSize=` | One page of the log |
 | GET | `/tracing/export?…filters` | JSON file |
-| GET | `/tracing/logins?from=&to=` | `yyyy-MM-dd`, both days included |
+| GET | `/tracing/logins?from=&to=` | `yyyy-MM-dd` Portugal days, both included → `{records, historySince}` (050: from `LoginEvents`) |
 | DELETE | `/tracing/{id}` | 204, or 404 |
 | POST | `/tracing/truncate` | `{user?, confirmation: "DELETE ALL"}` |
 | POST | `/tracing/announcement` | `{message}` (≤500) |
+| GET | `/dashboard?from=&to=` | `yyyy-MM-dd` Portugal days, both included, ≤366; the last 30 days when missing |
 | GET | `/db/tables` | Table names (EF model) |
 | GET | `/db/tables/{table}?page=&pageSize=` | One page as display strings; unknown table → 404 |
 | POST | `/db/select` | `{query}`; SELECT only |

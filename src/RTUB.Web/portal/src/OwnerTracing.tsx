@@ -3,82 +3,11 @@ import { portal } from './content';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { ConfirmDialog } from './MusicUi';
-import { auditQuery, dateTime, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type LoginRecord } from './ownerApi';
+import { auditQuery, dateTime, ENTITY_LABELS, entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type Logins } from './ownerApi';
 import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from './OwnerUi';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, q: '', page: 1, pageSize: 20 };
 const CONFIRMATION = 'DELETE ALL';
-
-/**
- * #220: the words the page shows for a stored EntityType. Presentation only: filters, export and Details keep the raw
- * type; an unknown type shows as it is.
- */
-const ENTITY_LABELS: Record<string, string> = {
-  ApplicationUser: 'Utilizador',
-  UserRole: 'Função de acesso',
-  RoleAssignment: 'Cargo',
-  PushSubscription: 'Subscrição push',
-  RehearsalAttendance: 'Presença em ensaio',
-  Rehearsal: 'Ensaio',
-  Enrollment: 'Inscrição em atuação',
-  Event: 'Atuação',
-  EventRepertoire: 'Repertório',
-  EventVideo: 'Vídeo de atuação',
-  EventContact: 'Contacto de atuação',
-  Song: 'Música',
-  SongVideo: 'Vídeo de música',
-  SongYouTubeUrl: 'Link YouTube',
-  Album: 'Álbum',
-  AlbumAccess: 'Acesso a álbum',
-  NewsPost: 'Novidade',
-  PostMedia: 'Anexo de publicação',
-  CommentImage: 'Imagem de comentário',
-  Meeting: 'Reunião',
-  MeetingRequest: 'Pedido de reunião',
-  MeetingParticipation: 'Presença em reunião',
-  MeetingAta: 'Ata',
-  MeetingAtaAttachment: 'Anexo de ata',
-  Product: 'Produto',
-  ProductReservation: 'Reserva de produto',
-  ShopPromotion: 'Promoção da loja',
-  ShopPromotionItem: 'Produto de promoção',
-  Transaction: 'Movimento',
-  Report: 'Relatório',
-  Activity: 'Atividade',
-  MemberDebt: 'Calote',
-  MbwayTransfer: 'Transferência MBWay',
-  NerbaOrder: 'Encomenda Nerba',
-  Request: 'Pedido de atuação',
-  Question: 'Pergunta',
-  QuestionReply: 'Resposta',
-  LogisticsBoard: 'Quadro',
-  LogisticsList: 'Lista',
-  LogisticsCard: 'Cartão',
-  LogisticsCardAssignment: 'Atribuição de cartão',
-  LogisticsCardReminder: 'Lembrete',
-  Post: 'Publicação',
-  Comment: 'Comentário',
-  Discussion: 'Discussão',
-  Transportation: 'Boleia',
-  TransportationPassenger: 'Passageiro',
-  LeaderboardComment: 'Comentário na classificação',
-  LeaderboardCommentLike: 'Gosto em comentário',
-  MemberInstrument: 'Instrumento do membro',
-  Instrument: 'Instrumento da tuna',
-  Trophy: 'Troféu',
-  GalleryMedia: 'Média da galeria',
-  NaipeContent: 'Conteúdo de naipe',
-  NaipeComment: 'Comentário de naipe',
-  NaipeTypeConfig: 'Configuração de naipe',
-  FiscalYear: 'Ano letivo',
-  Document: 'Documento',
-  Folder: 'Pasta',
-  Notification: 'Notificação',
-  MemberActivityStatus: 'Estado de atividade',
-  GeocodingCache: 'Cache de localização',
-};
-
-const entityLabel = (type: string) => ENTITY_LABELS[type] ?? type;
 
 /** The card's identity: the stored name, today's name when the stored one is weak, else the type and the id. */
 const primaryName = (e: AuditEntry) =>
@@ -551,20 +480,22 @@ function TruncateDialog({
 }
 
 const today = () => new Date().toLocaleDateString('sv-SE');
+/** The Portugal day (yyyy-MM-dd) of a UTC stamp, as the server buckets LoginEvents. */
+const dayOf = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date(iso));
 
 function LoginsDialog({ onClose }: { onClose: () => void }) {
   const id = useId();
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
-  const [records, setRecords] = useState<LoginRecord[] | string>();
+  const [logins, setLogins] = useState<Logins | string>();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
   const load = async () => {
-    setRecords(undefined);
+    setLogins(undefined);
     const o = await ownerApi.logins(from, to);
-    setRecords(o.kind === 'ok' ? o.data : ownerProblem(o, 'carregar os logins'));
+    setLogins(o.kind === 'ok' ? o.data : ownerProblem(o, 'carregar os logins'));
     setPage(1);
   };
 
@@ -573,7 +504,11 @@ function LoginsDialog({ onClose }: { onClose: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const records = typeof logins === 'object' ? logins.records : logins;
   const filtered = Array.isArray(records) ? records.filter((r) => matches(q, r.nickname, r.fullName, r.userName)) : [];
+  // Task 050: sign-in history (LoginEvents) starts with its deploy; earlier days only know each account's last access.
+  const historyDay = typeof logins === 'object' && logins.historySince ? dayOf(logins.historySince) : null;
+  const partial = typeof logins === 'object' && (historyDay === null || from < historyDay);
 
   return (
     <Dialog
@@ -601,6 +536,13 @@ function LoginsDialog({ onClose }: { onClose: () => void }) {
           Carregar
         </button>
       </div>
+      {partial && (
+        <p className="note">
+          {historyDay
+            ? `O histórico de sessões começa a ${historyDay.split('-').reverse().join('/')}; antes disso só existe o último acesso de cada conta.`
+            : 'Ainda não há histórico de sessões; só existe o último acesso de cada conta.'}
+        </p>
+      )}
       {records === undefined ? (
         <p className="note" role="status">
           A carregar…
@@ -622,15 +564,40 @@ function LoginsDialog({ onClose }: { onClose: () => void }) {
               setPage(1);
             }}
           />
-          <ul className="owner-people__list">
+          <ul className="owner-people__list owner-logins">
             {filtered.slice((page - 1) * pageSize, page * pageSize).map((r) => (
               <li key={r.userId} className="owner-person">
                 <img className="owner-person__avatar" src={r.avatarUrl} alt="" width="32" height="32" loading="lazy" />
                 <span className="owner-person__name">
                   <strong>{r.nickname}</strong>
                   <span className="note">{r.fullName}</span>
+                  {r.fromHistory ? (
+                    <span className="note">
+                      {r.signIns} {r.signIns === 1 ? 'início de sessão' : 'inícios de sessão'} · {r.activeDays}{' '}
+                      {r.activeDays === 1 ? 'dia ativo' : 'dias ativos'}
+                    </span>
+                  ) : (
+                    <span className="note">Só o último acesso</span>
+                  )}
+                  {r.signInTimes.length > 0 && (
+                    <details className="owner-login__times">
+                      <summary>Ver sessões</summary>
+                      <ul>
+                        {r.signInTimes.map((t) => (
+                          <li key={t}>{dateTime(t)}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </span>
-                <span className="note">{dateTime(r.lastLoginAt)}</span>
+                <span className="note owner-login__when">
+                  {r.fromHistory && r.firstAt !== r.lastLoginAt && (
+                    <>
+                      {dateTime(r.firstAt)} →<br />
+                    </>
+                  )}
+                  {dateTime(r.lastLoginAt)}
+                </span>
               </li>
             ))}
           </ul>

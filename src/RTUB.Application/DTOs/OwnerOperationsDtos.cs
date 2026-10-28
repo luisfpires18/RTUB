@@ -74,7 +74,40 @@ public sealed record OwnerAuditFilters(IReadOnlyList<string> Users, IReadOnlyLis
 /// <summary>Deletes every log, or one user's: <see cref="Confirmation"/> must be "DELETE ALL", as the old dialog asked.</summary>
 public sealed record OwnerTruncateInput(string? User, string? Confirmation);
 
-public sealed record OwnerLoginRecord(string UserId, string UserName, string Nickname, string FullName, string AvatarUrl, DateTime LastLoginAt);
+/// <summary>
+/// /owner/dashboard (task 050): one value per Portugal day of the range. <see cref="Total"/> is the sum, except for
+/// active members, where it is the distinct members of the whole range; <see cref="PreviousTotal"/> is the same figure
+/// for the same number of days just before.
+/// </summary>
+public sealed record OwnerDashboardSeries(string Key, string Label, IReadOnlyList<int> Values, int Total, int PreviousTotal);
+
+public sealed record OwnerDashboardRank(string Label, int Count);
+
+/// <summary>Right now, whatever the range: accounts, signed in within the last hour, members with push on.</summary>
+public sealed record OwnerDashboardNow(int Accounts, int Online, int PushMembers);
+
+/// <summary>
+/// The whole dashboard for From..To (yyyy-MM-dd, both included). <see cref="Hours"/> is 7 rows (Monday first) of 24
+/// Portugal hours: sign-ins plus hours members were seen.
+/// </summary>
+public sealed record OwnerDashboard(
+    string From, string To, IReadOnlyList<string> Days, IReadOnlyList<OwnerDashboardSeries> Series,
+    IReadOnlyList<OwnerDashboardRank> TopSongs, IReadOnlyList<OwnerDashboardRank> TopNaipes,
+    IReadOnlyList<OwnerDashboardRank> TopMembers, IReadOnlyList<OwnerDashboardRank> Areas,
+    IReadOnlyList<OwnerDashboardRank> Actions, IReadOnlyList<IReadOnlyList<int>> Hours, OwnerDashboardNow Now);
+
+/// <summary>
+/// One member in the tracing "Logins" dialog (task 050: from LoginEvents). <see cref="LastLoginAt"/> and
+/// <see cref="FirstAt"/> are the latest and earliest sign-in or activity in the range; <see cref="ActiveDays"/> counts
+/// Portugal days. <see cref="FromHistory"/> is false for a member listed only by LastLoginDate (no LoginEvents row in
+/// the range): then the counts are 0 / 1 and <see cref="SignInTimes"/> is empty.
+/// </summary>
+public sealed record OwnerLoginRecord(
+    string UserId, string UserName, string Nickname, string FullName, string AvatarUrl, DateTime LastLoginAt,
+    int SignIns, int ActiveDays, DateTime FirstAt, IReadOnlyList<DateTime> SignInTimes, bool FromHistory);
+
+/// <summary>The dialog's list, and when LoginEvents history starts (null: no row yet); days before it are latest-only.</summary>
+public sealed record OwnerLogins(IReadOnlyList<OwnerLoginRecord> Records, DateTime? HistorySince);
 
 /// <summary>The system announcement, shown by every open React page that polls /api/announcement (≤500; task 037).</summary>
 public sealed record OwnerAnnouncementInput(string? Message);

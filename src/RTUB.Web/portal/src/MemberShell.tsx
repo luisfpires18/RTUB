@@ -63,6 +63,7 @@ export const memberMenu: MenuGroup[] = [
     links: [
       { href: portal.users, label: 'Utilizadores', icon: 'personGear', when: 'owner' },
       { href: portal.ownerTracing, label: 'Auditoria', icon: 'shield', when: 'owner' },
+      { href: portal.ownerDashboard, label: 'Estatísticas', icon: 'chart', when: 'owner' },
       { href: portal.ownerDb, label: 'Base de dados', icon: 'database', when: 'owner' },
       { href: portal.emails, label: 'Emails', icon: 'envelope', when: 'owner' },
       { href: portal.notifications, label: 'Notificações', icon: 'bell', when: 'owner' },

@@ -74,6 +74,12 @@ public static class OwnerEndpoints
         owner.MapGet("/tracing/logins", async (string? from, string? to, IOwnerOperationsService service) =>
             ToResult(await service.GetLoginsAsync(from, to)));
 
+        // ---------- /owner/dashboard (task 050) ----------
+
+        // ?from=yyyy-MM-dd &to=yyyy-MM-dd (Portugal days, both included; the last 30 days when missing)
+        owner.MapGet("/dashboard", async (string? from, string? to, IOwnerOperationsService service) =>
+            ToResult(await service.GetDashboardAsync(from, to)));
+
         writes.MapDelete("/tracing/{id:int}", async (int id, IOwnerOperationsService service) =>
             ToResult(await service.DeleteAuditLogAsync(id), _ => Results.NoContent()));
 
