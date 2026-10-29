@@ -45,8 +45,8 @@ public static class OwnerEndpoints
         // ---------- /users ----------
 
         // ?q= &page= &pageSize=20|40|60|80|100
-        owner.MapGet("/users", async (string? q, int? page, int? pageSize, IOwnerOperationsService service) =>
-            Results.Ok(await service.GetUsersAsync(q, page, pageSize)));
+        owner.MapGet("/users", async (string? q, int? page, int? pageSize, bool? staff, IOwnerOperationsService service) =>
+            Results.Ok(await service.GetUsersAsync(q, page, pageSize, staff == true)));
 
         owner.MapGet("/users/{id}", async (string id, IOwnerOperationsService service) => ToResult(await service.GetUserAsync(id)));
 

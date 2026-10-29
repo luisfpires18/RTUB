@@ -26,7 +26,8 @@ export default function OwnerUsers() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [users, reload] = useOwnerLoad(() => ownerApi.users(search, page, pageSize), [search, page, pageSize]);
+  const [staff, setStaff] = useState(false);
+  const [users, reload] = useOwnerLoad(() => ownerApi.users(search, page, pageSize, staff), [search, page, pageSize, staff]);
   const [message, setMessage] = useState<Message>();
   const [details, setDetails] = useState<string>();
   const [editing, setEditing] = useState<OwnerUserCard>();
@@ -74,6 +75,20 @@ export default function OwnerUsers() {
           <Flash message={message} onDismiss={() => setMessage(undefined)} />
           <div className="events-tools" role="search">
             <SearchBox label="Procurar utilizador" placeholder="Procurar por nome, username, email, alcunha ou ID" value={q} onChange={setQ} />
+            <div className="trace-toggles" role="group" aria-label="Filtros rápidos">
+              <button
+                type="button"
+                className="trace-toggle"
+                aria-pressed={staff}
+                onClick={() => {
+                  setStaff(!staff);
+                  setPage(1);
+                }}
+              >
+                <Icon name="personGear" />
+                Só Mod, Admin e Owner
+              </button>
+            </div>
           </div>
           {data.items.length === 0 ? (
             <div className="state" role="status">
