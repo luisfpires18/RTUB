@@ -160,6 +160,17 @@ public class Program
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
 
+                    // Positions and Admin / Mod follow the current mandate (a new fiscal year's elections leave
+                    // last year's holders behind otherwise). Idempotent; never fails startup.
+                    try
+                    {
+                        await sp.GetRequiredService<IGovernanceManagementService>().SyncCurrentMandateAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to sync positions and roles with the current mandate on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update

@@ -160,8 +160,61 @@ public sealed class GovernanceManagementService : IGovernanceManagementService
 
         await _assignments.CreateRoleAssignmentAsync(member.Id, position, start, start + 1, null, GovernanceAuthorization.UserId(user));
         await _roles.PromoteUserForPositionAsync(member, position, start, FiscalYearHelper.GetCurrentFiscalYearStartYear());
+        if (start == FiscalYearHelper.GetCurrentFiscalYearStartYear())
+        {
+            await SyncCurrentMandateAsync();
+        }
 
         return EventResult<GovernanceManageDto>.Ok(await BuildAsync(label));
+    }
+
+    public async Task<int> SyncCurrentMandateAsync()
+    {
+        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        await using var db = await _contexts.CreateDbContextAsync();
+        var held = (await db.RoleAssignments.AsNoTracking()
+                .Where(a => a.StartYear == current && a.EndYear == current + 1)
+                .Select(a => new { a.UserId, a.Position })
+                .ToListAsync())
+            .ToLookup(a => a.UserId, a => a.Position);
+        if (held.Count == 0)
+        {
+            // A new fiscal year before its first assignment: the previous mandate stays in office.
+            return 0;
+        }
+
+        // Positions is a JSON column: compared in memory (~100 members).
+        var changed = (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Positions }).ToListAsync())
+            .Where(u => !(u.Positions ?? []).ToHashSet().SetEquals(held[u.Id]))
+            .Select(u => u.Id)
+            .ToList();
+
+        foreach (var id in changed)
+        {
+            if (await _users.FindByIdAsync(id) is not { } member)
+            {
+                continue;
+            }
+
+            // Promote first, so a member re-elected to another seat keeps the role while the old seat goes.
+            foreach (var position in held[id].Except(member.Positions).ToList())
+            {
+                await _roles.PromoteUserForPositionAsync(member, position, current, current);
+            }
+
+            foreach (var position in member.Positions.Except(held[id]).ToList())
+            {
+                await _roles.DemoteUserForPositionAsync(member, position, current, current);
+            }
+        }
+
+        if (changed.Count > 0)
+        {
+            _logger.LogInformation("Mandate {FiscalYear}: positions and roles synced for {Count} member(s)",
+                GovernanceService.Label(current), changed.Count);
+        }
+
+        return changed.Count;
     }
 
     public async Task<EventResult<GovernanceManageDto>> RemoveAsync(int assignmentId, ClaimsPrincipal user)

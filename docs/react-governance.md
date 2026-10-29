@@ -29,6 +29,12 @@ years and assign or remove positions in modals on the same page (`GovernanceMana
   confirmation) → delete + `DemoteUserForPositionAsync`. Both change the member's role and `Positions` only for
   the current fiscal year (Direção: Admin, Mod for a Caloiro; the three Presidents and Ensaiador: Admin; secretaries
   and relators: none; Owner never demoted; demotion forces a sign-out via the security stamp).
+- **New mandate (2.1.7):** once the current fiscal year has a holder, `SyncCurrentMandateAsync` makes every member's
+  `Positions` (and Admin / Mod, same promote / demote rules) follow that year only: last year's holders lose their
+  seats, re-elected members keep the role. Runs after each current-year assignment and once at startup; a new fiscal
+  year with no holders yet keeps the previous mandate. Sessions: a dropped Admin is signed out at once (security stamp
+  + role probe); a new Admin / Mod gets the role on the next principal refresh (Identity's 30 min
+  `ValidationInterval`) or at the next sign-in, no forced logout.
 - **RGI:** `docs/rtub_rgi.pdf` in R2, a pre-signed URL in an iframe; "not available" on any storage error.
   Shown to `Member`, `Mod`, `Admin`. No text in the app or database: nothing to rewrite.
 - **Access:** page `[Authorize]`; management `AuthorizeView Roles="Mod,Admin"`, UI only (the circuit handlers
