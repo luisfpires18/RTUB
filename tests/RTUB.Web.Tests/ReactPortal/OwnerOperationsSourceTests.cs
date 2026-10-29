@@ -141,7 +141,7 @@ public class OwnerOperationsSourceTests
             details.Should().Contain(raw);
         }
 
-        tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={(type) =>", "the type filter shows labels but submits raw types");
+        tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={entityText}", "the type filter shows labels but submits raw types");
         var css = Read(Web, "portal", "src", "styles.css");
         css.Should().Contain(".owner-log--critical {\n  border-left-color:");
         // Phones: at least a 44 x 44 tap area around the compact delete (36px) and Detalhes (40px tall) buttons.

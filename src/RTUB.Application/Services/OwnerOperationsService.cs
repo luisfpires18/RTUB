@@ -384,7 +384,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
         // #220: the search (stored changes or entity name) narrows the other filters, with an exact total.
         var (paged, total) = await _audit.GetPagedWithCountAsync(
             Blank(filter.User), Blank(filter.ExcludeUser), Blank(filter.EntityType), Blank(filter.Action), null, null,
-            filter.CriticalOnly ? true : null, page, size, Blank(filter.Q));
+            filter.CriticalOnly ? true : null, page, size, Blank(filter.Q), filter.HideSystem);
         var logs = paged.ToList();
         var current = await CurrentNamesAsync(logs);
 
@@ -526,7 +526,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
     {
         var logs = (await _audit.GetAllForExportAsync(
             Blank(filter.User), Blank(filter.ExcludeUser), Blank(filter.EntityType), Blank(filter.Action), null, null,
-            filter.CriticalOnly ? true : null)).ToList();
+            filter.CriticalOnly ? true : null, filter.HideSystem)).ToList();
         foreach (var log in logs)
         {
             log.Changes = AuditLogAppender.RedactStored(log.EntityType, log.Changes);

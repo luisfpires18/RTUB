@@ -286,8 +286,6 @@ function PersonalSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p
             <Fact icon="star" label="Nome de tuna" accent>
               {p.nickname}
             </Fact>
-            <Fact icon="envelope" label="Email">{p.email}</Fact>
-            <Fact icon="phone" label="Contacto">{p.phoneNumber}</Fact>
             <Fact icon="calendar" label="Data de nascimento">
               {m.birthDate && (
                 <>
@@ -297,6 +295,10 @@ function PersonalSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p
               )}
             </Fact>
             <Fact icon="geo" label="Cidade">{p.city}</Fact>
+            <Fact icon="envelope" label="Email" wide>
+              {p.email && <span className="profile-fact__email">{breakableEmail(p.email)}</span>}
+            </Fact>
+            <Fact icon="phone" label="Contacto">{p.phoneNumber}</Fact>
             <Fact icon="journal" label="Curso">{p.degree}</Fact>
           </dl>
           <SavedNote show={saved} />
@@ -306,10 +308,19 @@ function PersonalSection({ profile, onSaved }: { profile: MyProfile; onSaved: (p
   );
 }
 
-/** One "Pessoal" value as a small tile: an icon, the label and the value. */
-function Fact({ icon, label, accent, children }: { icon: IconName; label: string; accent?: boolean; children: ReactNode }) {
+/** An email that may wrap only after the "@" and before each dot, never mid-word (<wbr> copies as nothing). */
+const breakableEmail = (email: string) =>
+  email.split(/(?=\.)|(?<=@)/).map((part, i) => (
+    <span key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </span>
+  ));
+
+/** One "Pessoal" value as a small tile: an icon, the label and the value. `wide` takes two columns when there are two. */
+function Fact({ icon, label, accent, wide, children }: { icon: IconName; label: string; accent?: boolean; wide?: boolean; children: ReactNode }) {
   return (
-    <div className={accent ? 'profile-fact profile-fact--accent' : 'profile-fact'}>
+    <div className={`profile-fact${accent ? ' profile-fact--accent' : ''}${wide ? ' profile-fact--wide' : ''}`}>
       <span className="profile-fact__icon" aria-hidden="true">
         <Icon name={icon} />
       </span>

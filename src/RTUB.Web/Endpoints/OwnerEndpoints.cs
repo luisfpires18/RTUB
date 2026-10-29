@@ -62,7 +62,7 @@ public static class OwnerEndpoints
 
         owner.MapGet("/tracing/filters", async (IOwnerOperationsService service) => Results.Ok(await service.GetAuditFiltersAsync()));
 
-        // ?user= &excludeUser= &entityType= &action= &critical=true &q= &page= &pageSize=20|40|60|80|100
+        // ?user= &excludeUser= &entityType= &action= &critical=true &system=hide &q= &page= &pageSize=20|40|60|80|100
         owner.MapGet("/tracing", async (HttpContext http, IOwnerOperationsService service) =>
             Results.Ok(await service.GetAuditLogsAsync(Filter(http.Request.Query))));
 
@@ -142,7 +142,8 @@ public static class OwnerEndpoints
     private static OwnerAuditFilter Filter(IQueryCollection query) => new(
         query["user"], query["excludeUser"], query["entityType"], query["action"],
         string.Equals(query["critical"], "true", StringComparison.OrdinalIgnoreCase), query["q"],
-        int.TryParse(query["page"], out var page) ? page : 1, int.TryParse(query["pageSize"], out var size) ? size : 20);
+        int.TryParse(query["page"], out var page) ? page : 1, int.TryParse(query["pageSize"], out var size) ? size : 20,
+        string.Equals(query["system"], "hide", StringComparison.OrdinalIgnoreCase));
 
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
     {

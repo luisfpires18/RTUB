@@ -83,7 +83,8 @@ public interface IAuditLogService
         string? action = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
-        bool? criticalOnly = null);
+        bool? criticalOnly = null,
+        bool hideSystem = false);
 
     /// <summary>
     /// Gets paged audit logs with total count in a single call (avoids double query). <paramref name="search"/>
@@ -99,7 +100,8 @@ public interface IAuditLogService
         bool? criticalOnly = null,
         int page = 1,
         int pageSize = 100,
-        string? search = null);
+        string? search = null,
+        bool hideSystem = false);
 
     /// <summary>
     /// Adds a new audit log entry.

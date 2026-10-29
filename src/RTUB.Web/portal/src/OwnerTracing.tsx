@@ -6,7 +6,8 @@ import { ConfirmDialog } from './MusicUi';
 import { auditQuery, dateTime, ENTITY_LABELS, entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type Logins } from './ownerApi';
 import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from './OwnerUi';
 
-const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, q: '', page: 1, pageSize: 20 };
+const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, hideSystem: false, q: '', page: 1, pageSize: 20 };
+const NO_TEXT = { q: '', user: '', excludeUser: '' };
 const CONFIRMATION = 'DELETE ALL';
 
 /** The card's identity: the stored name, today's name when the stored one is weak, else the type and the id. */
@@ -40,21 +41,50 @@ const pretty = (changes: string | null) => {
  */
 export default function OwnerTracing() {
   const [filter, setFilter] = useState(EMPTY);
-  const [q, setQ] = useState('');
+  // What is typed (search and the two member fields), applied 300 ms after the last key.
+  const [text, setText] = useState(NO_TEXT);
   const [filters, reloadFilters] = useOwnerLoad(() => ownerApi.auditFilters(), []);
   const [logs, reloadLogs] = useOwnerLoad(() => ownerApi.audit(filter), [filter]);
   const [open, setOpen] = useState<{ kind: 'details' | 'delete'; entry: AuditEntry } | { kind: 'truncate' | 'logins' }>();
   const [message, setMessage] = useState<{ text: string; error?: boolean }>();
   const id = useId();
 
+  const lists = filters && typeof filters === 'object' ? filters : { users: [], entityTypes: [], actions: [] };
+
   useEffect(() => {
-    const timer = setTimeout(() => setFilter((f) => (f.q === q.trim() ? f : { ...f, q: q.trim(), page: 1 })), 300);
+    const timer = setTimeout(
+      () =>
+        setFilter((f) => {
+          const q = text.q.trim();
+          const user = text.user.trim();
+          // "Excluir" is an exact username: it applies once the typed name is one of the list (or is cleared).
+          const typed = text.excludeUser.trim();
+          const excludeUser = typed === '' || lists.users.includes(typed) ? typed : f.excludeUser;
+          return f.q === q && f.user === user && f.excludeUser === excludeUser ? f : { ...f, q, user, excludeUser, page: 1 };
+        }),
+      300,
+    );
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [text, lists.users]);
 
   const set = (patch: Partial<AuditFilter>) => setFilter((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
+  const type = (patch: Partial<typeof NO_TEXT>) => setText((t) => ({ ...t, ...patch }));
+  const clear = () => {
+    setText(NO_TEXT);
+    setFilter({ ...EMPTY, pageSize: filter.pageSize });
+  };
   const state = filters && typeof filters === 'object' ? logs : filters;
-  const lists = filters && typeof filters === 'object' ? filters : { users: [], entityTypes: [], actions: [] };
+  const entityText = (type: string) => (ENTITY_LABELS[type] ? `${ENTITY_LABELS[type]} (${type})` : type);
+  // The filters in force, each removable on its own.
+  const active: { key: string; label: string; remove: () => void }[] = [
+    filter.q && { key: 'q', label: `“${filter.q}”`, remove: () => type({ q: '' }) },
+    filter.user && { key: 'user', label: `Utilizador: ${filter.user}`, remove: () => (type({ user: '' }), set({ user: '' })) },
+    filter.excludeUser && { key: 'ex', label: `Sem ${filter.excludeUser}`, remove: () => (type({ excludeUser: '' }), set({ excludeUser: '' })) },
+    filter.entityType && { key: 'entity', label: entityText(filter.entityType), remove: () => set({ entityType: '' }) },
+    filter.action && { key: 'action', label: `Ação: ${filter.action}`, remove: () => set({ action: '' }) },
+    filter.hideSystem && { key: 'system', label: 'Sem ações do sistema', remove: () => set({ hideSystem: false }) },
+    filter.critical && { key: 'critical', label: 'Só críticas', remove: () => set({ critical: false }) },
+  ].filter((c): c is { key: string; label: string; remove: () => void } => !!c);
 
   return (
     <OwnerPage
@@ -86,51 +116,65 @@ export default function OwnerTracing() {
           <Flash message={message} onDismiss={() => setMessage(undefined)} />
           <Announcement />
 
-          <details className="owner-card owner-filters" open>
-            <summary className="owner-card__title">
-              <Icon name="search" />
-              Filtros
-            </summary>
-            <div className="owner-filters__grid">
-              <Select id={`${id}-user`} label="Utilizador" all="Todos os utilizadores" value={filter.user} items={lists.users} onChange={(user) => set({ user })} />
-              <Select
+          <section className="owner-card trace-filters" aria-labelledby={`${id}-filters`}>
+            <div className="trace-filters__head">
+              <h2 id={`${id}-filters`} className="owner-card__title">
+                <Icon name="search" />
+                Filtros
+              </h2>
+              <div className="trace-toggles" role="group" aria-label="Filtros rápidos">
+                <button type="button" className="trace-toggle" aria-pressed={filter.hideSystem} onClick={() => set({ hideSystem: !filter.hideSystem })}>
+                  <Icon name="personGear" />
+                  Esconder sistema
+                </button>
+                <button type="button" className="trace-toggle trace-toggle--critical" aria-pressed={filter.critical} onClick={() => set({ critical: !filter.critical })}>
+                  <Icon name="warning" />
+                  Só críticas
+                </button>
+              </div>
+            </div>
+            <SearchBox label="Procurar no nome ou nas alterações" placeholder="Procurar no nome guardado ou nas alterações" value={text.q} onChange={(q) => type({ q })} />
+            <div className="trace-filters__grid">
+              <UserField id={`${id}-user`} label="Utilizador" placeholder="Todos" value={text.user} users={lists.users} onChange={(user) => type({ user })} />
+              <UserField
                 id={`${id}-exclude`}
                 label="Excluir utilizador"
-                all="Ninguém excluído"
-                value={filter.excludeUser}
-                items={lists.users}
-                onChange={(excludeUser) => set({ excludeUser })}
+                placeholder="Ninguém"
+                value={text.excludeUser}
+                users={lists.users}
+                onChange={(excludeUser) => type({ excludeUser })}
               />
               <Select
                 id={`${id}-entity`}
                 label="Entidade"
-                all="Todas as entidades"
+                all="Todas"
                 value={filter.entityType}
                 items={lists.entityTypes}
-                text={(type) => (ENTITY_LABELS[type] ? `${ENTITY_LABELS[type]} (${type})` : type)}
+                text={entityText}
                 onChange={(entityType) => set({ entityType })}
               />
-              <Select id={`${id}-action`} label="Ação" all="Todas as ações" value={filter.action} items={lists.actions} onChange={(action) => set({ action })} />
+              <Select id={`${id}-action`} label="Ação" all="Todas" value={filter.action} items={lists.actions} onChange={(action) => set({ action })} />
             </div>
-            <SearchBox label="Procurar no nome ou nas alterações" placeholder="Procurar no nome guardado ou nas alterações" value={q} onChange={setQ} />
-            <div className="owner-people__bar">
-              <label className="form__check" htmlFor={`${id}-critical`}>
-                <input id={`${id}-critical`} type="checkbox" checked={filter.critical} onChange={(e) => set({ critical: e.target.checked })} />
-                Só ações críticas
-              </label>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => {
-                  setQ('');
-                  setFilter({ ...EMPTY, pageSize: filter.pageSize });
-                }}
-              >
-                <Icon name="xCircle" />
-                Limpar filtros
-              </button>
-            </div>
-          </details>
+            {active.length > 0 && (
+              <div className="trace-chips">
+                <ul aria-label="Filtros ativos">
+                  {active.map((c) => (
+                    <li key={c.key}>
+                      <button type="button" className="trace-chip" onClick={c.remove}>
+                        {c.label}
+                        <Icon name="close" />
+                        <span className="sr-only">Remover filtro</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
+                  <Icon name="xCircle" />
+                  Limpar filtros
+                </button>
+              </div>
+            )}
+          </section>
 
           <dl className="owner-stats">
             <div>
@@ -233,8 +277,7 @@ export default function OwnerTracing() {
               onDone={(user) => {
                 setOpen(undefined);
                 setMessage({ text: user ? `Registos de ${user} apagados.` : 'Todos os registos foram apagados.' });
-                setFilter({ ...EMPTY, pageSize: filter.pageSize });
-                setQ('');
+                clear();
                 reloadFilters();
               }}
             />
@@ -247,6 +290,38 @@ export default function OwnerTracing() {
 }
 
 /** A filter list: each option submits the raw value; <c>text</c> only changes the words shown. */
+/** A member field that suggests usernames as you type (native datalist: no list of 100 options to scroll). */
+function UserField({
+  id,
+  label,
+  placeholder,
+  value,
+  users,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  users: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="form__field">
+      <label htmlFor={id}>{label}</label>
+      <span className="control control--sm">
+        <Icon name="person" />
+        <input id={id} type="search" list={`${id}-list`} autoComplete="off" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      </span>
+      <datalist id={`${id}-list`}>
+        {users.map((u) => (
+          <option key={u} value={u} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
+
 function Select({
   id,
   label,
@@ -267,7 +342,7 @@ function Select({
   return (
     <div className="form__field">
       <label htmlFor={id}>{label}</label>
-      <span className="control control--select">
+      <span className="control control--sm control--select">
         <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="">{all}</option>
           {items.map((i) => (

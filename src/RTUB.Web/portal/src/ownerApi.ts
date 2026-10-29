@@ -46,6 +46,8 @@ export type AuditFilter = {
   entityType: string;
   action: string;
   critical: boolean;
+  /** Hide what the application wrote by itself (status reconciliation, background jobs, no signed-in member). */
+  hideSystem: boolean;
   q: string;
   page: number;
   pageSize: number;
@@ -94,6 +96,7 @@ export function auditQuery(f: Partial<AuditFilter>): string {
   if (f.entityType) p.set('entityType', f.entityType);
   if (f.action) p.set('action', f.action);
   if (f.critical) p.set('critical', 'true');
+  if (f.hideSystem) p.set('system', 'hide');
   if (f.q) p.set('q', f.q);
   if (f.page) p.set('page', String(f.page));
   if (f.pageSize) p.set('pageSize', String(f.pageSize));

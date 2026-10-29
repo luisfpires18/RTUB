@@ -227,3 +227,15 @@ Code: `OwnerOperationsService.Dashboard.cs`, `portal/src/OwnerDashboard.tsx`. Te
   `9-overrides/dynamic-style-classes.css` (asserted by `InlineStylePolicyTests`) and the 32px `.member-avatar-small`
   in `4-pages/meetings.css`.
 - Comments in `TransactionService` still mention `AuditLog.razor`.
+
+## System actions (2026-10-28)
+
+A *system action* is an audit entry the application wrote by itself: the daily activity reconciliation
+(`MemberActivityStatus`), the old per-member recalculation (`MemberStatus`, already hidden from tracing) and any entry
+with no signed-in member (`UserName` null or `System`: background jobs, cleanups, geocoding).
+`AuditLogService.IsMemberAction` is the one rule.
+
+- `/owner/dashboard`: movements, their previous period, top members, areas and action types count members' actions only.
+- `/owner/tracing`: the **Esconder sistema** toggle (`?system=hide`, also applied to the JSON export). Filters are now
+  a search, typeahead member fields (`datalist`: "Excluir" applies once the name is an exact username), entity / action
+  selects, quick toggles and removable chips for the filters in force.

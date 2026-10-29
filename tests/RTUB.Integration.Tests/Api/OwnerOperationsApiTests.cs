@@ -327,6 +327,15 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         critical.GetProperty("criticalOnPage").GetInt32().Should().Be(1);
         LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?q={tag}-one")).Should().Equal(first);
 
+        // "Esconder sistema": the status reconciliation (even when stamped with the member) and entries with no member go.
+        var system = await SeedLogAsync(tag, user: $"s{tag}", setup: l => l.EntityType = "MemberActivityStatus");
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?user=s{tag}")).Should().Equal(system);
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?user=s{tag}&system=hide")).Should().BeEmpty();
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?user=u{tag}&system=hide")).Should().BeEquivalentTo([first, second]);
+        var noMember = await SeedLogAsync(tag, user: null, changes: $"{{\"Name\":\"{tag}-job\"}}");
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?q={tag}-job")).Should().Equal(noMember);
+        LogIds(await AreaHttp.Json(owner, $"/api/owner/tracing?q={tag}-job&system=hide")).Should().BeEmpty();
+
         var export = await owner.GetAsync($"/api/owner/tracing/export?user=u{tag}");
         export.StatusCode.Should().Be(HttpStatusCode.OK);
         export.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
@@ -563,6 +572,8 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         var member = $"dash{Tag()}";
         await SeedLogAsync("Dashboard", user: member);
         await SeedLogAsync("Dashboard", user: member, setup: l => l.Action = "Played");
+        await SeedLogAsync("Dashboard", user: member, setup: l => l.EntityType = "MemberStatus");
+        await SeedLogAsync("Dashboard", user: member, setup: l => l.EntityType = "MemberActivityStatus");
 
         var body = await AreaHttp.Json(owner, "/api/owner/dashboard");
         await AreaHttp.Json(owner, "/api/owner/dashboard");
@@ -583,7 +594,9 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
 
         var top = body.GetProperty("topMembers").EnumerateArray()
             .ToDictionary(r => r.GetProperty("label").GetString()!, r => r.GetProperty("count").GetInt32());
-        top.Should().Contain(member, 1, "a play is a song play, not a movement");
+        top.Should().Contain(member, 1, "a play is a song play and a status update is a system action, not a movement");
+        body.GetProperty("areas").EnumerateArray().Select(r => r.GetProperty("label").GetString())
+            .Should().NotContain(["MemberStatus", "MemberActivityStatus"]);
 
         var hours = body.GetProperty("hours");
         hours.GetArrayLength().Should().Be(7);

@@ -10220,12 +10220,33 @@ video.tile__media {
   color: #9ee0b5;
 }
 
-/* Pessoal: one tile per value, an icon chip on the left. */
+/* Pessoal: one tile per value, an icon chip on the left. Columns follow the section's own width (1, 2, then 4); the
+   email takes two, so the seven tiles always fill whole rows and a long address has room. */
+.profile-section:has(> .profile-facts) {
+  container-type: inline-size;
+}
+
 .profile-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   margin: 0;
+}
+
+@container (min-width: 520px) {
+  .profile-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-fact--wide {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 960px) {
+  .profile-facts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .profile-fact {
@@ -10264,7 +10285,13 @@ video.tile__media {
   align-items: center;
   gap: 4px 8px;
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* Breaks only at the <wbr>s (after "@", before dots); break-word is the last resort for one endless part. */
+.profile-fact__email {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .profile-fact--accent {
@@ -12807,6 +12834,167 @@ label.owner-person {
   .owner-filters__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Tracing filters: title and quick toggles, the search, then four compact fields, then the filters in force as chips. */
+.trace-filters {
+  gap: 14px;
+}
+
+.trace-filters__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.trace-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 0.8125rem/1 var(--font-body);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.trace-toggle .icon {
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  .trace-toggle:hover {
+    border-color: var(--purple-ink);
+  }
+}
+
+.trace-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.trace-toggle[aria-pressed='true'] {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+}
+
+.trace-toggle[aria-pressed='true'] .icon {
+  color: #fff;
+}
+
+.trace-toggle--critical[aria-pressed='true'] {
+  border-color: #b4423c;
+  background: #b4423c;
+}
+
+.trace-filters__grid {
+  display: grid;
+  gap: 12px;
+}
+
+.trace-filters__grid .form__field {
+  gap: 6px;
+}
+
+.trace-filters__grid label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.trace-filters__grid .control--sm {
+  min-height: 42px;
+}
+
+.trace-filters__grid .control input,
+.trace-filters__grid .control select {
+  font-size: 0.9375rem;
+}
+
+/* The member fields: the chips clear them, so the browser's own clear cross and datalist arrow stay hidden. */
+.trace-filters__grid input::-webkit-search-cancel-button,
+.trace-filters__grid input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+@media (min-width: 640px) {
+  .trace-filters__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .trace-filters__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.trace-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.trace-chips ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgba(185, 160, 238, 0.4);
+  border-radius: 999px;
+  background: rgba(111, 66, 193, 0.16);
+  color: var(--ink);
+  font: 500 0.8125rem/1.2 var(--font-body);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.trace-chip .icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--purple-ink);
+}
+
+@media (hover: hover) {
+  .trace-chip:hover {
+    border-color: var(--purple-ink);
+    background: rgba(111, 66, 193, 0.28);
+  }
+}
+
+.trace-chip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .owner-stats {

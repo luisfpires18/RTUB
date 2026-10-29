@@ -20,6 +20,17 @@ public class AuditLogService : IAuditLogService
         _auditLogRepository = auditLogRepository;
     }
 
+    /// <summary>
+    /// Entries the application wrote by itself, not a member: the daily activity reconciliation
+    /// (<see cref="MemberStatusService.AuditEntityType"/>), the old per-member status recalculation ("MemberStatus") and
+    /// anything recorded with no signed-in member (background jobs, cleanups, the "System" user).
+    /// </summary>
+    public static readonly string[] SystemEntityTypes = ["MemberStatus", MemberStatusService.AuditEntityType];
+
+    /// <summary>The members' own actions: every entry that is not a system action (see <see cref="SystemEntityTypes"/>).</summary>
+    public static readonly System.Linq.Expressions.Expression<Func<AuditLog, bool>> IsMemberAction = a =>
+        a.UserName != null && a.UserName != "System" && (a.EntityType == null || !SystemEntityTypes.Contains(a.EntityType));
+
     private static IQueryable<AuditLog> ExcludeHiddenEntities(IQueryable<AuditLog> query)
     {
         return query.Where(a => a.EntityType == null || !AuditConfiguration.ExcludedEntityTypes.Contains(a.EntityType));
@@ -37,11 +48,13 @@ public class AuditLogService : IAuditLogService
         DateTime? fromDate = null,
         DateTime? toDate = null,
         bool? criticalOnly = null,
-        string? search = null)
+        string? search = null,
+        bool hideSystem = false)
     {
         query = ExcludeHiddenEntities(query);
 
         return query
+            .WhereIf(hideSystem, IsMemberAction)
             .WhereIf(!string.IsNullOrWhiteSpace(userName),
                 a => a.UserName != null && a.UserName.Contains(userName!))
             .WhereIf(!string.IsNullOrWhiteSpace(excludeUserName),
@@ -177,10 +190,11 @@ public class AuditLogService : IAuditLogService
         string? action = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
-        bool? criticalOnly = null)
+        bool? criticalOnly = null,
+        bool hideSystem = false)
     {
         return await _auditLogRepository.QueryAsync(q =>
-            ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly)
+            ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly, hideSystem: hideSystem)
                 .OrderByDescending(a => a.Timestamp)
                 .ToListAsync());
     }
@@ -195,11 +209,12 @@ public class AuditLogService : IAuditLogService
         bool? criticalOnly = null,
         int page = 1,
         int pageSize = 100,
-        string? search = null)
+        string? search = null,
+        bool hideSystem = false)
     {
         return await _auditLogRepository.QueryAsync(async q =>
         {
-            var filtered = ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly, search?.Trim());
+            var filtered = ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly, search?.Trim(), hideSystem);
             var totalCount = await filtered.CountAsync();
             var logs = await filtered
                 .OrderByDescending(a => a.Timestamp)
