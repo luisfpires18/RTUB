@@ -6,6 +6,11 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-29 (2.1.6 owner stats + tracing filters)_
 
 ## Phase
+**On `dev` @ 2.1.7 (uncommitted): new mandate sync.** Assigning 2026-2027 holders left 2025-2026 holders with their
+`Positions` and Admin / Mod (no rollover existed). `GovernanceManagementService.SyncCurrentMandateAsync` (after each
+current-year assignment + once at startup, idempotent, no migration) fixes it; PROD data fixes itself on deploy.
+Detail: `docs/react-governance.md` → *New mandate*.
+
 **Release 2.1.6 = owner stats without system actions + tracing filters**: one rule `AuditLogService.IsMemberAction`
 (not `MemberActivityStatus` / `MemberStatus`, not entries with no signed-in member) drives the `/owner/dashboard`
 movement numbers and the `/owner/tracing` "Esconder sistema" toggle (`?system=hide`); tracing filters redesigned;
@@ -355,6 +360,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+- `RoleManagementService.PromoteUserForPositionAsync` keeps an existing Mod as Mod when the member (no longer a Caloiro) takes an Admin seat; fix by hand or rework the rule.
 Raised by 047: `icons.tsx` `apple` lists the same path twice, so React warns about a duplicate `key` (dev build only).
 Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner
 action). F05 leftovers: ~80 interface methods with no production caller outside the batch-3 groups (storage `*ExistsAsync`

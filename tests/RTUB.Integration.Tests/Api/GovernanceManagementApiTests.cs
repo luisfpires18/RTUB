@@ -186,6 +186,40 @@ public class GovernanceManagementApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
+    public async Task ANewMandate_ReplacesLastYearsHolders_PositionsAndRoles()
+    {
+        var start = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        await EnsureFiscalYearAsync(start);
+        var (owner, _) = await SignInAsync("Owner");
+        await WithTokenAsync(owner);
+        var leaving = await AddMemberAsync(MemberCategory.Tuno);
+        var reElected = await AddMemberAsync(MemberCategory.Tuno);
+        var newcomer = await AddMemberAsync(MemberCategory.Tuno);
+        await HoldFromLastYearAsync(leaving.Id, Position.Magister);
+        await HoldFromLastYearAsync(reElected.Id, Position.ViceMagister);
+        await ClearPositionAsync(start, Position.PrimeiroTesoureiro);
+        await ClearPositionAsync(start, Position.Secretario);
+
+        (await owner.PostAsJsonAsync("/api/governance/assignments",
+            new { fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString(), position = "Secretario", userId = reElected.Id }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await owner.PostAsJsonAsync("/api/governance/assignments",
+            new { fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString(), position = "PrimeiroTesoureiro", userId = newcomer.Id }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await RolesAsync(leaving.Id)).Should().BeEquivalentTo(new[] { "Member" }, "last year's seat is gone");
+        (await PositionsAsync(leaving.Id)).Should().BeEmpty();
+        (await RolesAsync(reElected.Id)).Should().BeEquivalentTo("Admin");
+        (await PositionsAsync(reElected.Id)).Should().Equal(Position.Secretario);
+        (await RolesAsync(newcomer.Id)).Should().BeEquivalentTo("Admin");
+        (await PositionsAsync(newcomer.Id)).Should().Equal(Position.PrimeiroTesoureiro);
+
+        using var scope = _factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IGovernanceManagementService>().SyncCurrentMandateAsync())
+            .Should().Be(0, "idempotent");
+    }
+
+    [Fact]
     public async Task Writes_NeedTheAntiforgeryHeader()
     {
         const int start = 1994;
@@ -284,6 +318,17 @@ public class GovernanceManagementApiTests : IClassFixture<EventsApiFactory>
         using var scope = _factory.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RoleAssignments
             .Where(a => a.StartYear == start && a.Position == position).ExecuteDeleteAsync();
+    }
+
+    private async Task HoldFromLastYearAsync(string userId, Position position)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = (await users.FindByIdAsync(userId))!;
+        user.Positions = new List<Position> { position };
+        (await users.UpdateAsync(user)).Succeeded.Should().BeTrue();
+        (await users.RemoveFromRoleAsync(user, "Member")).Succeeded.Should().BeTrue();
+        (await users.AddToRoleAsync(user, "Admin")).Succeeded.Should().BeTrue();
     }
 
     private async Task<int> FiscalYearCountAsync(int start)
