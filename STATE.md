@@ -3,10 +3,10 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-29 (2.1.6 owner stats + tracing filters)_
+_Last updated: 2026-10-29 (2.1.7 new mandate sync)_
 
 ## Phase
-**On `dev` @ 2.1.7 (uncommitted): new mandate sync.** Assigning 2026-2027 holders left 2025-2026 holders with their
+**Release 2.1.7 = 051 new mandate sync** (merged into `master`; PROD deploys when `master` is pushed). Assigning 2026-2027 holders left 2025-2026 holders with their
 `Positions` and Admin / Mod (no rollover existed). `GovernanceManagementService.SyncCurrentMandateAsync` (after each
 current-year assignment + once at startup, idempotent, no migration) fixes it; PROD data fixes itself on deploy.
 Detail: `docs/react-governance.md` → *New mandate*.
