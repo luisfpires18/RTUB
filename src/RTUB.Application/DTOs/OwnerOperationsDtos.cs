@@ -53,7 +53,8 @@ public sealed record OwnerSyncResult(int Updated, int Changed, int Failed);
 // ---------- /owner/tracing ----------
 
 public sealed record OwnerAuditFilter(
-    string? User, string? ExcludeUser, string? EntityType, string? Action, bool CriticalOnly, string? Q, int Page, int PageSize);
+    string? User, string? ExcludeUser, string? EntityType, string? Action, bool CriticalOnly, string? Q, int Page, int PageSize,
+    bool HideSystem = false);
 
 /// <summary>
 /// One log entry, as stored. <see cref="CurrentDisplayName"/> (#220) is never stored: for an old entry whose stored name

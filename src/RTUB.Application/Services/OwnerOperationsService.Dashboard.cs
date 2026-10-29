@@ -46,8 +46,10 @@ public partial class OwnerOperationsService
             .Where(e => e.At >= since && e.At < until)
             .Select(e => new { e.At, e.UserId, e.IsSignIn })
             .ToListAsync();
+        // Members' movements only: system actions (status reconciliation, background jobs) are not activity.
         var audit = await db.AuditLogs.AsNoTracking()
             .Where(a => a.Timestamp >= since && a.Timestamp < until && a.Action != "Played")
+            .Where(AuditLogService.IsMemberAction)
             .Select(a => new { a.Timestamp, a.UserName, a.EntityType, a.Action })
             .ToListAsync();
         var songPlays = await db.SongPlayCounts.AsNoTracking()
@@ -161,7 +163,7 @@ public partial class OwnerOperationsService
             series,
             topSongRows.Select(r => new OwnerDashboardRank(r.Label, r.Count)).ToList(),
             topNaipeRows.Select(r => new OwnerDashboardRank(r.Label, r.Count)).ToList(),
-            Rank(current.Select(a => a.UserName == "System" ? null : a.UserName)),
+            Rank(current.Select(a => a.UserName)),
             Rank(current.Select(a => a.EntityType)),
             Rank(current.Select(a => a.Action)),
             hours, now));
