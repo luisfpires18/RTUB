@@ -66,6 +66,7 @@ the API is what enforces access.
   "Sincronizar Estado da Tuna" button calls `MemberStatusService.ReconcileAllMemberStatusesAsync`.
 - **Now:** the same features, with the search and paging done on the server. A role change now asks for
   **confirmation** (a new safeguard). An unknown role gets 400 and an unknown account 404.
+  "Só Mod, Admin e Owner" (`?staff=true`) lists only accounts whose role is Owner, Admin or Mod, with the search.
 
 ### /owner/tracing (was `Pages/Operations/AuditLog.razor`, Owner)
 - **Old:** filters for user, excluded user, entity type, action and "critical only". The search looks inside
@@ -162,7 +163,7 @@ Code: `OwnerOperationsService.Dashboard.cs`, `portal/src/OwnerDashboard.tsx`. Te
 | POST | `/emails` | `{title, content}` → `{success, sent, total, message}` |
 | GET | `/notifications` | Accounts with a push subscription |
 | POST | `/notifications` | `{title, body, userIds[]}` → `{recipients, sent, failed}`; audited |
-| GET | `/users?q=&page=&pageSize=` | Cards, sorted as before |
+| GET | `/users?q=&page=&pageSize=&staff=` | Cards, sorted as before; `staff=true`: Owner / Admin / Mod only |
 | GET | `/users/{id}` | Details (no secrets) |
 | PUT | `/users/{id}/role` | `{role}` (Member / Mod / Admin / Owner) |
 | POST | `/users/{id}/unlock` | Clears the lockout and resets the failed-attempt count |

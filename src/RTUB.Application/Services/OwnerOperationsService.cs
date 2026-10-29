@@ -231,7 +231,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
 
     // ---------- /users ----------
 
-    public async Task<OwnerUserPage> GetUsersAsync(string? q, int? page, int? pageSize)
+    public async Task<OwnerUserPage> GetUsersAsync(string? q, int? page, int? pageSize, bool staff = false)
     {
         var size = UserPageSizes.Contains(pageSize ?? 0) ? pageSize!.Value : UserPageSizes[0];
         List<ApplicationUser> users;
@@ -245,6 +245,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
         var search = new SearchHelper<ApplicationUser> { SearchTerm = q?.Trim() ?? string.Empty };
         var filtered = search.FilterMultiple(users,
             [u => u.Id ?? "", u => u.FirstName ?? "", u => u.LastName ?? "", u => u.Nickname ?? "", u => u.UserName ?? "", u => u.Email ?? ""])
+            .Where(u => !staff || roles.GetValueOrDefault(u.Id) is "Owner" or "Admin" or "Mod")
             .OrderByDescending(IsOnline)
             .ThenByDescending(u => u.LastLoginDate ?? DateTime.MinValue)
             .ThenBy(u => u.FirstName)

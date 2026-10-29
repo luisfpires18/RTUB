@@ -256,6 +256,9 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         card.GetProperty("role").GetString().Should().Be("Sem Função");
         page.GetProperty("pageSize").GetInt32().Should().Be(20);
         (await AreaHttp.Json(owner, "/api/owner/users?pageSize=7")).GetProperty("pageSize").GetInt32().Should().Be(20, "only the offered sizes");
+        (await AreaHttp.Json(owner, $"/api/owner/users?q={target.UserName}&staff=true")).GetProperty("total").GetInt32().Should().Be(0, "no role is not staff");
+        (await AreaHttp.Json(owner, "/api/owner/users?staff=true&pageSize=100")).GetProperty("items").EnumerateArray()
+            .Select(c => c.GetProperty("role").GetString()).Should().NotBeEmpty().And.OnlyContain(r => r == "Owner" || r == "Admin" || r == "Mod");
 
         var detail = await AreaHttp.Json(owner, $"/api/owner/users/{target.Id}");
         detail.GetProperty("subscribed").GetBoolean().Should().BeTrue();

@@ -20,7 +20,8 @@ public interface IOwnerOperationsService
     Task<EventResult<OwnerPushResult>> SendPushAsync(OwnerPushInput input, ClaimsPrincipal actor, string baseUrl);
 
     // ---------- /users ----------
-    Task<OwnerUserPage> GetUsersAsync(string? q, int? page, int? pageSize);
+    /// <summary><paramref name="staff"/>: only accounts whose role is Owner, Admin or Mod.</summary>
+    Task<OwnerUserPage> GetUsersAsync(string? q, int? page, int? pageSize, bool staff = false);
     Task<EventResult<OwnerUserDetail>> GetUserAsync(string id);
     Task<EventResult<OwnerUserDetail>> ChangeRoleAsync(string id, OwnerRoleInput input);
     Task<EventResult<OwnerUserDetail>> UnlockAsync(string id);

@@ -202,8 +202,8 @@ export const ownerApi = {
   pushRecipients: () => call<PushRecipients>('GET', '/api/owner/notifications'),
   sendPush: (title: string, body: string, userIds: string[]) => call<PushResult>('POST', '/api/owner/notifications', { title, body, userIds }),
 
-  users: (q: string, page: number, pageSize: number) =>
-    call<OwnerUserPage>('GET', `/api/owner/users?${new URLSearchParams({ q, page: String(page), pageSize: String(pageSize) })}`),
+  users: (q: string, page: number, pageSize: number, staff = false) =>
+    call<OwnerUserPage>('GET', `/api/owner/users?${new URLSearchParams({ q, page: String(page), pageSize: String(pageSize), ...(staff && { staff: 'true' }) })}`),
   user: (id: string) => call<OwnerUserDetail>('GET', `/api/owner/users/${encodeURIComponent(id)}`),
   changeRole: (id: string, role: string) => call<OwnerUserDetail>('PUT', `/api/owner/users/${encodeURIComponent(id)}/role`, { role }),
   unlock: (id: string) => call<OwnerUserDetail>('POST', `/api/owner/users/${encodeURIComponent(id)}/unlock`),
