@@ -3,9 +3,14 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-28 (2.1.5 profile design pass)_
+_Last updated: 2026-10-29 (2.1.6 owner stats + tracing filters)_
 
 ## Phase
+**Release 2.1.6 = owner stats without system actions + tracing filters**: one rule `AuditLogService.IsMemberAction`
+(not `MemberActivityStatus` / `MemberStatus`, not entries with no signed-in member) drives the `/owner/dashboard`
+movement numbers and the `/owner/tracing` "Esconder sistema" toggle (`?system=hide`); tracing filters redesigned;
+`/profile` long emails wrap at "@" / dots. No migration. Detail: `docs/react-owner-operations.md` → *System actions*.
+
 **Release 2.1.5 = profile design pass** (`/profile`): Pessoal tiles, instruments with their Naipes pictures, padrinho →
 member avatars, dated activity feed, a lone Percurso step no longer stretches; Atribuir cargo search box single border.
 `/api/me/profile` adds `instrumentPictures` + `tuna.mentorAvatarUrl` (read-only, no migration; rollback is a plain
