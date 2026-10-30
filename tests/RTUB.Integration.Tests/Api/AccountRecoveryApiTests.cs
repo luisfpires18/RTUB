@@ -203,25 +203,40 @@ public class AccountRecoveryApiTests : IClassFixture<AccountRecoveryFactory>
             .And.NotContain("abc123").And.NotContain("Exception").And.NotContain("<script").And.NotContain("blazor.web.js");
     }
 
+    /// <summary>053: /share is the React Web Share Target page, public, GET/HEAD only (the share_target method is GET).</summary>
     [Theory]
-    [InlineData("GET", "/share")]
-    [InlineData("GET", "/share?title=x&text=y&url=z")]
-    [InlineData("POST", "/share")]
-    public async Task Share_IsGone(string method, string path)
+    [InlineData("/share")]
+    [InlineData("/share?title=x&text=y&url=z")]
+    public async Task Share_IsThePublicReactShell(string path)
     {
         var client = AreaHttp.Anonymous(_factory, NextIp());
 
-        (await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var response = await client.GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("text/html");
+        response.Headers.CacheControl!.NoCache.Should().BeTrue("the shell must point at the current deploy's assets");
+        (await response.Content.ReadAsStringAsync()).Should().Contain("id=\"root\"").And.NotContain("x&text=y", "the shell never echoes the query");
     }
 
     [Fact]
-    public async Task TheInstalledApp_IsNoLongerAShareTarget()
+    public async Task Share_RefusesPost()
+    {
+        var client = AreaHttp.Anonymous(_factory, NextIp());
+
+        (await client.PostAsync("/share", content: null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+    }
+
+    [Fact]
+    public async Task TheInstalledApp_IsAShareTarget()
     {
         var client = AreaHttp.Anonymous(_factory, NextIp());
 
         using var manifest = JsonDocument.Parse(await client.GetStringAsync("/manifest.webmanifest"));
-        manifest.RootElement.TryGetProperty("share_target", out _).Should().BeFalse();
-        (await client.GetStringAsync("/service-worker.js")).Should().NotContain("share", "no share-target handling is left");
+        var share = manifest.RootElement.GetProperty("share_target");
+        share.GetProperty("action").GetString().Should().Be("/share");
+        share.GetProperty("method").GetString().Should().Be("GET");
+        (await client.GetStringAsync("/service-worker.js")).Should().NotContain("share", "a GET share target needs no worker handling");
     }
 
     // ---------- helpers ----------

@@ -15,6 +15,18 @@
   "categories": ["music", "education", "lifestyle", "entertainment"],
   "dir": "ltr",
   "lang": "pt",
+  "display_override": ["standalone", "minimal-ui"],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=ipb.pt.rtub.app",
+      "id": "ipb.pt.rtub.app"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 420
+  },
   "icons": [
     {
       "src": "/icons/rtub-logo-192.png",
@@ -88,5 +100,15 @@
         }
       ]
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

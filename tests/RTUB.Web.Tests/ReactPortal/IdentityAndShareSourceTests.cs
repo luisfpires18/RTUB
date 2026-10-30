@@ -7,8 +7,8 @@ namespace RTUB.Web.Tests.ReactPortal;
 
 /// <summary>
 /// Task 036 (docs/react-identity.md): /forgot-password, /reset-password and /confirm-email are React pages over
-/// /api/account/*; /Error is a fixed server page on purpose; /share and the PWA share target are gone; no Blazor page is
-/// left. The flows themselves are covered by AccountRecoveryApiTests.
+/// /api/account/*; /Error is a fixed server page on purpose; no Blazor page is left. Task 053 brought /share back as the
+/// React Web Share Target (manifest share_target, GET). The flows themselves are covered by AccountRecoveryApiTests.
 /// </summary>
 public class IdentityAndShareSourceTests
 {
@@ -28,12 +28,12 @@ public class IdentityAndShareSourceTests
     }
 
     [Fact]
-    public void TheIdentityPages_AreReact_AndErrorAndShareAreServerOwned()
+    public void TheIdentityAndSharePages_AreReact_AndErrorIsServerOwned()
     {
         var main = Read(Portal, "main.tsx");
         var program = Read(Web, "Program.cs");
 
-        foreach (var (route, page) in new[] { ("/forgot-password", "ForgotPassword"), ("/reset-password", "ResetPassword"), ("/confirm-email", "ConfirmEmail") })
+        foreach (var (route, page) in new[] { ("/forgot-password", "ForgotPassword"), ("/reset-password", "ResetPassword"), ("/confirm-email", "ConfirmEmail"), ("/share", "Share") })
         {
             main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
         }
@@ -42,8 +42,9 @@ public class IdentityAndShareSourceTests
             .And.Contain("app.MapAccountRecoveryEndpoints();")
             .And.Contain("app.Map(\"/Error\",")
             .And.Contain("app.UseExceptionHandler(\"/Error\");")
-            .And.Contain("app.MapMethods(\"/share\", [\"GET\", \"HEAD\", \"POST\"], () => Results.NotFound());");
-        main.Should().NotContain("'/Error'").And.NotContain("'/share'");
+            .And.Contain("\"/news\", \"/share\" }", "/share is a public React route (GET/HEAD shell), not a 404 and not a /portal redirect")
+            .And.NotContain("app.MapMethods(\"/share\"", "the 036 explicit 404 is gone");
+        main.Should().NotContain("'/Error'");
         File.Exists(Path.Combine(Web, "wwwroot", "error.html")).Should().BeTrue();
         Read(Web, "wwwroot", "error.html").Should().NotContain("<script").And.NotContain("style=");
     }
@@ -60,7 +61,7 @@ public class IdentityAndShareSourceTests
     [Fact]
     public void TheTokenPages_KeepTokensOutOfStorageTheAddressBarAndTheLogs()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts" })
+        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" })
         {
             var source = Read(Portal, file);
             source.Should().NotContain("localStorage").And.NotContain("sessionStorage").And.NotContain("console.");
@@ -76,23 +77,34 @@ public class IdentityAndShareSourceTests
         Regex.Matches(service, @"_logger\.Log\w+\([^;]*\b(token|callbackUrl|Code)\b", RegexOptions.Singleline).Should().BeEmpty("no token is logged");
     }
 
+    /// <summary>
+    /// 053: the installed app is a Web Share Target again. The manifest sends a GET to /share with title, text and url
+    /// (the pre-036 contract), the React page shows them and stores nothing; the worker needs no share handling.
+    /// </summary>
     [Fact]
-    public void TheShareTarget_IsGone()
+    public void TheShareTarget_IsTheReactSharePage()
     {
         using var manifest = JsonDocument.Parse(Read(Web, "wwwroot", "manifest.webmanifest"));
-        manifest.RootElement.TryGetProperty("share_target", out _).Should().BeFalse();
+        var share = manifest.RootElement.GetProperty("share_target");
+        share.GetProperty("action").GetString().Should().Be("/share");
+        share.GetProperty("method").GetString().Should().Be("GET");
+        share.GetProperty("params").EnumerateObject().Select(p => (p.Name, p.Value.GetString()))
+            .Should().BeEquivalentTo([("title", "title"), ("text", "text"), ("url", "url")]);
+
+        var page = Read(Portal, "Share.tsx");
+        page.Should().Contain("new URLSearchParams(location.search)", "the shared values come from the share_target query")
+            .And.NotContain("takeLinkQuery", "the query stays, so a reload keeps the shared content")
+            .And.NotContain("fetch(", "nothing shared is sent anywhere");
+        Read(Portal, "content.ts").Should().Contain("share: '/share',");
+
         Read(Web, "wwwroot", "service-worker.js").Should().NotContain("share");
         File.Exists(Path.Combine(Web, "Pages", "Share.razor")).Should().BeFalse();
-        foreach (var file in Directory.GetFiles(Portal))
-        {
-            File.ReadAllText(file).Should().NotContain("'/share'").And.NotContain("\"/share\"");
-        }
     }
 
     [Fact]
     public void TheNewPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts" }.Select(f => Path.Combine(Portal, f))
+        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" }.Select(f => Path.Combine(Portal, f))
                      .Append(Path.Combine(Web, "wwwroot", "error.html")))
         {
             var text = File.ReadAllText(file);

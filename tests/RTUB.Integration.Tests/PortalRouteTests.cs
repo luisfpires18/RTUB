@@ -37,6 +37,8 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/events?season=2025-2026&type=Festival")]
     [InlineData("/events/1")]
     [InlineData("/news")]
+    [InlineData("/share")]
+    [InlineData("/share?title=x&text=y&url=z")]
     public async Task ReactRoutes_ServeTheUncachedPortalShellUnderTheEnforcedCsp(string path)
     {
         var client = Factory.CreateClient();

@@ -3,9 +3,19 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-29 (2.1.8 /users staff filter)_
+_Last updated: 2026-10-29 (053 PWABuilder manifest + Web Share Target)_
 
 ## Phase
+**On `feat/053/pwa-manifest-share-target` (not merged): 053 PWABuilder report card.** The manifest gains the members
+that are true for RTUB: `display_override` `[standalone, minimal-ui]`, `prefer_related_applications: false`,
+`related_applications` = the Play Store TWA `ipb.pt.rtub.app` (checked against `assetlinks.json`), `edge_side_panel`
+(420 px), and **`share_target` is back** (owner's decision, reverses 036): GET `/share?title&text&url` → React
+`portal/src/Share.tsx` (read-only fields, "Copiar", "Voltar"; public, GET/HEAD, stores nothing). Skipped on purpose
+with reasons in `docs/pwa-practices.md` → *PWABuilder report card (053)*: IARC id (Owner action), scope_extensions,
+window-controls-overlay / tabbed, file / protocol handlers, widgets, note_taking, periodic / background sync stubs.
+No schema change, no migration, no `CACHE_VERSION` bump (the worker is untouched); portal rebuilt. Real-device check
+still open: share a link from Android to the installed app → `/share`. Detail: `docs/react-identity.md` → */share*.
+
 **Release 2.1.8 = 052 `/users` staff filter**: "Só Mod, Admin e Owner" (`GET /api/owner/users?staff=true`, server-side
 with search and paging). No migration. Detail: `docs/react-owner-operations.md` → */users*.
 
@@ -363,6 +373,10 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 053: `www.rtub.pt` serves the whole app as a second origin with no redirect to `rtub.pt` (a second
+installed-app identity and duplicate content; decide a 301 to the apex); `iarc_rating_id` needs the IARC certificate
+from Play Console (App content → Content rating) - one manifest line once the Owner has it; `portal/index.html`
+`theme-color` is `#000000` while the manifest says `#3F2A86` (pre-existing, untouched).
 - `RoleManagementService.PromoteUserForPositionAsync` keeps an existing Mod as Mod when the member (no longer a Caloiro) takes an Admin seat; fix by hand or rework the rule.
 Raised by 047: `icons.tsx` `apple` lists the same path twice, so React warns about a duplicate `key` (dev build only).
 Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner
