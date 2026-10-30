@@ -65,10 +65,8 @@ public class NominatimGeocodingService : IGeocodingService
             return (38.7223, -9.1393); // Default to Lisbon coordinates
         }
 
-        // Check database cache first
-        // Note: Not using 'using' because test infrastructure shares a single context instance
-        // that would be disposed prematurely. The context will be GC'd after use.
-        var cacheCtx = _contextFactory.CreateDbContext();
+        // Check database cache first (one context per operation, disposed here; the tests hand out a fresh context per call)
+        await using var cacheCtx = _contextFactory.CreateDbContext();
         var cached = await cacheCtx.GeocodingCaches
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
@@ -107,7 +105,7 @@ public class NominatimGeocodingService : IGeocodingService
     {
         try
         {
-            var context = _contextFactory.CreateDbContext();
+            await using var context = _contextFactory.CreateDbContext();
             // Check if already exists (race condition protection)
             var existing = await context.GeocodingCaches
                 .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == countryCode);

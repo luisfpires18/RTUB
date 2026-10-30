@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { ErrorBoundary, Layout, Loading } from './App';
 import { Home } from './Home';
 import './styles.css';
+import { getCurrentUser } from './api';
+
+// The session request leaves with the bundle's first bytes instead of after React's first commit (task 054);
+// getCurrentUser caches its promise, so the shell's own call joins this one.
+getCurrentUser();
 
 // The server maps exactly these paths here (Program.cs), so choosing the page once at boot is all
 // the routing the portal needs. Links between them are ordinary full navigations; a client router

@@ -31,7 +31,8 @@ public class AccountEndpointTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.CacheControl!.NoStore.Should().BeTrue();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        json.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("authenticated");
+        json.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("authenticated", "version");
+        json.RootElement.GetProperty("version").GetString().Should().NotBeNullOrWhiteSpace("the footer reads the build from here (task 054)");
         json.RootElement.GetProperty("authenticated").GetBoolean().Should().BeFalse();
     }
 
@@ -47,7 +48,7 @@ public class AccountEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
         using var json = JsonDocument.Parse(body);
         json.RootElement.EnumerateObject().Select(p => p.Name)
-            .Should().BeEquivalentTo("authenticated", "displayName", "fullName", "avatarUrl", "categories", "menu");
+            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu");
         json.RootElement.GetProperty("authenticated").GetBoolean().Should().BeTrue();
         json.RootElement.GetProperty("displayName").GetString().Should().NotBeNullOrWhiteSpace();
         body.Should().NotContain("testadmin@test.com", "no contact details leave this endpoint");

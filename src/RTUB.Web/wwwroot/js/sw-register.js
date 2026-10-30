@@ -46,9 +46,7 @@
         }
     });
 
-    // Register service worker immediately (not waiting for load event)
-    // This ensures PWABuilder and other tools can detect it
-    // Also register on load as fallback for older browsers
+    // Registers the worker, once; see the call at the bottom for when.
     function registerServiceWorker() {
         if (registrationStarted) return;
         registrationStarted = true;
@@ -92,8 +90,12 @@
         }
     }
 
-    // Register immediately for PWABuilder detection. registerServiceWorker() is
-    // single-shot, so the load-event fallback below is a no-op once this has run.
-    registerServiceWorker();
-    window.addEventListener('load', registerServiceWorker);
+    // Registered once the page has loaded (task 054): installing the worker precaches ~150 KB and claims the page,
+    // and doing that while the bundle and fonts were still arriving took bandwidth off the first paint. A page that
+    // is already complete (the script ran late) registers at once. registerServiceWorker() is single-shot.
+    if (document.readyState === 'complete') {
+        registerServiceWorker();
+    } else {
+        window.addEventListener('load', registerServiceWorker);
+    }
 })();

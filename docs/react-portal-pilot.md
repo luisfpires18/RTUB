@@ -213,7 +213,7 @@ be accepted by the owner, or replaced, before that release.**
 | --- | --- |
 | `src/RTUB.Web/portal/` | Source: `index.html` (shell + launch splash), `src/*.tsx`, `styles.css`, `vite.config.ts`, `tsconfig.json`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
 | `src/RTUB.Web/wwwroot/portal/` | **Committed** build output, published as-is. |
-| `src/RTUB.Web/package.json` | `build:portal`, `check:portal`; React 19, `@fontsource-variable/fraunces` as devDependencies (bundled at build time). |
+| `src/RTUB.Web/package.json` | `build:portal`, `check:portal`; React 19, the Fraunces woff2 files are plain static files in `wwwroot/fonts/` since task 054 (preloaded from `index.html`; no font package). |
 
 Stack choices, all deliberately minimal: React 19 + Vite 6 with esbuild's
 JSX runtime (no `@vitejs/plugin-react`), no router (the server maps two paths; `main.tsx` picks the

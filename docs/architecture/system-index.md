@@ -31,7 +31,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
 | `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
 | `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
-| `src/RTUB.Web/Controllers/` | Image/media serving, React session state (`AccountController`). Push subscriptions are `Endpoints/PushEndpoints.cs` since 038. |
+| `src/RTUB.Web/Controllers/` | React session state (`AccountController`, which also carries the build version since 054). `/images/*` is a plain static file since 054 (`ImagesController` retired); push subscriptions are `Endpoints/PushEndpoints.cs` since 038. |
 | `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell (037). |
 
 ## PWA / service worker

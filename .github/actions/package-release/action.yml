@@ -53,7 +53,8 @@ runs:
         echo "Building $version from $GITHUB_SHA"
 
     # RID-specific but framework-dependent: App Service supplies .NET 10, we supply only the
-    # linux-x64 assets. Natives land at the publish root, there is no 22-RID runtimes/ tree,
+    # linux-x64 assets. ReadyToRun (task 054): the assemblies ship precompiled for linux-x64, so
+    # a cold start on the one-core B1 no longer JIT-compiles the whole app before the first answer. Natives land at the publish root, there is no 22-RID runtimes/ tree,
     # and the payload is ~64 MB smaller than a portable publish. Scoped to this step: no
     # RuntimeIdentifier anywhere in the build, so Windows development and tests are untouched.
     - name: Publish (linux-x64, framework-dependent)
@@ -66,6 +67,7 @@ runs:
           --configuration Release \
           -r linux-x64 \
           --self-contained false \
+          -p:PublishReadyToRun=true \
           --output "$RUNNER_TEMP/publish" \
           ${SUFFIX:+-p:VersionSuffix=$SUFFIX}
 

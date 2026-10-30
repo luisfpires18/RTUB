@@ -32,13 +32,15 @@ public class AccountController : ControllerBase
         // Session state must never be served from a cache: not after sign-out, not to another user.
         Response.Headers.CacheControl = "no-store";
 
+        // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load (task 054).
+        var version = RTUB.Web.Services.BuildInfo.Current.Version;
         var user = User.Identity?.IsAuthenticated == true ? await _userManager.GetUserAsync(User) : null;
 
         // Expelled or deleted members arrive here anonymous: the cookie validator
         // (AddCookieAuthenticationServices) rejects their session on every request.
         if (user is null)
         {
-            return Ok(new { authenticated = false });
+            return Ok(new { authenticated = false, version });
         }
 
         var fullName = $"{user.FirstName} {user.LastName}".Trim();
@@ -46,6 +48,7 @@ public class AccountController : ControllerBase
         return Ok(new
         {
             authenticated = true,
+            version,
             displayName = FirstNonBlank(user.Nickname, user.FirstName, user.UserName),
             fullName = fullName.Length > 0 ? fullName : null,
             avatarUrl = user.ProfilePictureSrc,

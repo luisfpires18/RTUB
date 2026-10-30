@@ -1,12 +1,13 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { call } from './eventsApi';
+import { call } from './api';
 
 // The header's unread badge (task 044). One authoritative number: GET /api/conversations/unread, the sum of the
 // list's per-conversation unreadCount (unread MESSAGES, not conversations). Messaging v2 has no push channel to the
 // page (no hub since 037), so the shell polls while the tab is visible and again on coming back; /messages
 // publishes the sum it already loaded, so the badge follows the list without a second request. A page load starts
 // from the server's number, so a reload or a reconnect always reconciles.
-const POLL_MS = 10_000;
+// 30 s since task 054 (was 10): every poll also pays the cookie validation's database check on the server.
+const POLL_MS = 30_000;
 
 let count = 0;
 const listeners = new Set<() => void>();

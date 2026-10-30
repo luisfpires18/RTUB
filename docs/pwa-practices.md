@@ -75,7 +75,9 @@ This document outlines Progressive Web App (PWA) development best practices for 
 ### Registration
 
 ✅ **Always:**
-- Register service worker immediately (not waiting for load)
+- Register the service worker once the page has loaded (`load`; at once if the page is already complete). Installing it
+  precaches ~150 KB and claims the page, which used to compete with the bundle and fonts for the first paint (task 054;
+  the earlier immediate registration served PWABuilder's one-time detection)
 - Register with explicit scope
 - Handle registration errors gracefully
 - Check for updates periodically
@@ -95,8 +97,9 @@ function registerServiceWorker() {
     }
 }
 
-// Register immediately for PWABuilder detection
-registerServiceWorker();
+// Once the page has loaded (or at once, if it already has)
+if (document.readyState === 'complete') registerServiceWorker();
+else window.addEventListener('load', registerServiceWorker);
 ```
 
 In RTUB this is `wwwroot/js/sw-register.js`, the **only** registration (`ServiceWorkerReliabilityTests` counts it).
@@ -169,10 +172,18 @@ Images are cache-first in the service worker and never revalidated: replacing an
 logo, no reference anywhere) was removed in #226. Also #226: the 512 and 192 PNGs are 256-colour PNGs (same size and
 picture, 427 → 61 KB and 79 → 15 KB; the maskable 512 is untouched), with the `CACHE_VERSION` bump to `rtub-v2.10.0`.
 
-Hashed portal assets (`/portal/assets/<Name>-<hash>.js|css`) are stale-while-revalidate in the dynamic cache. Since
+Hashed portal assets (`/portal/assets/<Name>-<hash>.js|css`) are cache-first in the dynamic cache since task 054
+(`rtub-v2.11.0`): a content-hashed file never changes under its name, so a cached copy is served with no revalidation
+fetch and no cache write per page load (they were stale-while-revalidate before, which re-fetched and re-wrote ~0.5 MB
+per navigation); the host also serves them `immutable`. Other scripts and stylesheets stay stale-while-revalidate. Since
 #226 F15, the first time a build of a chunk is stored, the worker deletes the other builds of the same chunk (same name
 and type), so a release no longer leaves the old copies until the next `CACHE_VERSION`. A Vite build never has two
 chunks with one name and type (guarded by `FrontendRemediation226SourceTests`).
+
+Also since task 054: navigations use navigation preload (enabled on activate; the document branch takes
+`event.preloadResponse` and fetches only when there is none), and the never-cached paths (`/api/`, `/auth/`, `/hubs/`,
+`/health`), non-GET requests, non-http schemes and everything the last branch used to pass through (fonts, the manifest,
+cross-origin scripts) are left to the browser without `respondWith`, so the worker is out of their path entirely.
 
 ### Touch Icons
 

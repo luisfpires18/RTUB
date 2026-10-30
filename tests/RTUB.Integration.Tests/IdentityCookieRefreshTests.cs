@@ -184,12 +184,13 @@ public class IdentityCookieRefreshTests : IClassFixture<RefreshingCookieFactory>
             (await client.GetAsync("/Events")).StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
-        // Inside the interval this request costs 1 and 1 (CookieValidationTests pins that). The
-        // refresh adds CreateUserPrincipalAsync's own reads: one role join and one user-claims
-        // SELECT — two commands, once per user per ValidationInterval.
-        _factory.Sql.Count(RoleLookup).Should().Be(2,
-            "RTUB's Admin probe, plus the role join CreateUserPrincipalAsync runs");
-        _factory.Sql.Count(UserRoleLookup).Should().Be(2);
+        // Inside the interval this request costs no role read (CookieValidationTests pins that: since task 054
+        // RTUB's Admin probe runs only for a cookie that claims Admin). The refresh adds
+        // CreateUserPrincipalAsync's own reads: one role join and one user-claims SELECT — two
+        // commands, once per user per ValidationInterval.
+        _factory.Sql.Count(RoleLookup).Should().Be(1,
+            "the role join CreateUserPrincipalAsync runs; RTUB's Admin probe is skipped for a cookie without the claim");
+        _factory.Sql.Count(UserRoleLookup).Should().Be(1);
         _factory.Sql.Count(UserClaimLookup).Should().Be(1,
             "the rebuilt principal also picks up the user's own claims");
 

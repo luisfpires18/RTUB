@@ -165,7 +165,7 @@ public class PwaManifestTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task ServiceWorker_HandlesAllFetchEventsWithRespondWith()
+    public async Task ServiceWorker_RespondsOnlyWhereItHasACache()
     {
         // Arrange & Act
         var response = await _client.GetAsync("/service-worker.js");
@@ -178,14 +178,17 @@ public class PwaManifestTests : IntegrationTestBase
         content.Should().Contain("addEventListener('fetch'",
             "service worker must have fetch event listener for PWABuilder detection");
 
-        // Verify event.respondWith is used (PWABuilder requirement)
-        content.Should().Contain("event.respondWith",
-            "service worker must use event.respondWith for all fetch events (PWABuilder requirement)");
-
-        // Count event.respondWith occurrences to ensure all paths are covered
+        // event.respondWith only where the worker has something to add (task 054): images (cache-first), scripts and
+        // stylesheets (cache-first for hashed portal assets, stale-while-revalidate otherwise) and documents (network,
+        // offline.html as the fallback). Everything else - /api, /auth, /hubs, /health, non-GET, non-http and the final
+        // pass-through - returns without respondWith, so the browser fetches it as if no worker were installed and
+        // the worker's start-up stays out of those requests. PWABuilder only needs respondWith to be present.
         var respondWithCount = System.Text.RegularExpressions.Regex.Matches(content, @"event\.respondWith").Count;
-        respondWithCount.Should().BeGreaterThanOrEqualTo(5,
-            "service worker should handle multiple fetch scenarios with event.respondWith");
+        respondWithCount.Should().Be(3, "images, scripts/styles and documents are the three branches that answer");
+        content.Should().NotContain("event.respondWith(fetch(request))",
+            "a bare pass-through through the worker only adds its start-up to the request");
+        System.Text.RegularExpressions.Regex.IsMatch(content, @"isNeverCached\(url\.pathname\)\)\)\s*\{\s*return;")
+            .Should().BeTrue("the never-cached guard must return without answering");
 
         // Verify cache version is present
         content.Should().Contain("CACHE_VERSION", "service worker should have cache versioning");

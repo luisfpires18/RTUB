@@ -10,6 +10,10 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" type="image/png" />
+    <!-- The display face (headings, the splash name): preloaded so both files leave with the HTML instead of after the
+         stylesheet is parsed (task 054). Plain static files under /fonts, 30-day cached. -->
+    <link rel="preload" href="/fonts/fraunces-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fraunces-latin-opsz-italic.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="apple-mobile-web-app-title" content="RTUB" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -17,9 +21,9 @@
     <meta name="format-detection" content="telephone=no" />
     <!-- The existing, single service-worker registration path. -->
     <script src="/js/sw-register.js" defer></script>
-    <script type="module" crossorigin src="/portal/assets/index-MUBoYVs5.js"></script>
-    <link rel="modulepreload" crossorigin href="/portal/assets/vendor-react-CRpCRhFI.js">
-    <link rel="stylesheet" crossorigin href="/portal/assets/index-CHe65kBw.css">
+    <script type="module" crossorigin src="/portal/assets/index-BnmtITxz.js"></script>
+    <link rel="modulepreload" crossorigin href="/portal/assets/vendor-react-DI41Mul8.js">
+    <link rel="stylesheet" crossorigin href="/portal/assets/index-B4TgG8MW.css">
   </head>
   <body>
     <!-- Launch splash: the logo from first paint, lifted by React once the app has rendered. Strings, guitars, name

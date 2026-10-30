@@ -39,7 +39,7 @@ public class MeetingService : IMeetingService
 
     public async Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var query = ctx.Meetings
             .AsNoTracking()
             .AsQueryable();
@@ -67,7 +67,7 @@ public class MeetingService : IMeetingService
 
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var meeting = await ctx.Meetings
             .AsNoTracking()
             .Include(m => m.Organizer)
@@ -218,7 +218,7 @@ public class MeetingService : IMeetingService
 
     public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var query = ctx.Meetings
             .AsNoTracking()
             .AsQueryable();
@@ -319,7 +319,7 @@ public class MeetingService : IMeetingService
         // Special case: ConselhoVeteranos uses client-side filtering
         if (meetingType == MeetingType.ConselhoVeteranos)
         {
-            var ctx = _contextFactory.CreateDbContext();
+            await using var ctx = _contextFactory.CreateDbContext();
             // Load from DB asynchronously with AsNoTracking to prevent accumulating tracked entities
             // which can cause issues during subsequent SaveChangesAsync calls
             var users = await ctx.Users.AsNoTracking().ToListAsync();
@@ -337,7 +337,7 @@ public class MeetingService : IMeetingService
         // Special case: ReuniaoDirecao - only Direção members + Admin with Tuno category
         if (meetingType == MeetingType.ReuniaoDirecao)
         {
-            var ctx = _contextFactory.CreateDbContext();
+            await using var ctx = _contextFactory.CreateDbContext();
             var users = await ctx.Users.AsNoTracking().ToListAsync();
 
             // Get Admin role user IDs
@@ -368,7 +368,7 @@ public class MeetingService : IMeetingService
         }
 
         // All other meeting types can stay as EF queries
-        var ctx2 = _contextFactory.CreateDbContext();
+        await using var ctx2 = _contextFactory.CreateDbContext();
         IQueryable<ApplicationUser> query = ctx2.Users;
 
         switch (meetingType)

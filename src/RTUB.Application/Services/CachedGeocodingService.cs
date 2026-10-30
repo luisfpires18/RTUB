@@ -37,7 +37,7 @@ public class CachedGeocodingService : IGeocodingService
         var normalizedCountryCode = countryCode?.ToUpperInvariant() ?? "PT";
 
         // Check database cache only (no HTTP calls)
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var cached = await ctx.GeocodingCaches
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);

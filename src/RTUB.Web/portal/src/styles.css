@@ -1,12 +1,14 @@
 /* RTUB public-portal pilot. Black stage, one confident purple, ivory type.
    Tokens reuse the live palette (#6f42c1 primary, #3F2A86 theme, #a88ee5 link) - no new hues. */
 
+/* Fraunces: plain static files under wwwroot/fonts (30-day cache) and preloaded from index.html, so they leave with
+   the HTML instead of after the stylesheet is parsed (task 054). Same two faces as before. */
 @font-face {
   font-family: 'Fraunces';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-normal.woff2') format('woff2-variations');
+  src: url('/fonts/fraunces-latin-opsz-normal.woff2') format('woff2-variations');
 }
 
 @font-face {
@@ -14,7 +16,7 @@
   font-style: italic;
   font-weight: 100 900;
   font-display: swap;
-  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-italic.woff2') format('woff2-variations');
+  src: url('/fonts/fraunces-latin-opsz-italic.woff2') format('woff2-variations');
 }
 
 :root {
@@ -5086,6 +5088,7 @@ video.tile__media {
 
 .event-hero__image {
   width: 100%;
+  aspect-ratio: 3 / 2; /* the upload is cropped to 3:2 (EventManage): the hero keeps its height before the image arrives */
   max-height: 420px;
   object-fit: cover;
   border: 1px solid var(--line);

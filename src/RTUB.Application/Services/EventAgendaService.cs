@@ -77,8 +77,15 @@ public sealed class EventAgendaService : IEventAgendaService
     {
         // Anonymous and cacheable: public events only, whoever asks.
         await using var db = await _contexts.CreateDbContextAsync();
-        var events = await db.Events.AsNoTracking().Where(e => e.IsPublic).ToListAsync();
-        return Upcoming(events).Take(count).Select(UpcomingEventDto.From).ToList();
+        // Upcoming = not past (its last day is today or later), soonest first - decided by SQL, so only `count` rows
+        // leave the database (task 054). The agenda keeps its in-memory Upcoming: the member view needs every event.
+        var today = Today;
+        var events = await db.Events.AsNoTracking()
+            .Where(e => e.IsPublic && (e.EndDate ?? e.Date) >= today)
+            .OrderBy(e => e.Date).ThenBy(e => e.Id)
+            .Take(count)
+            .ToListAsync();
+        return events.Select(UpcomingEventDto.From).ToList();
     }
 
     public async Task<EventDetailDto?> GetEventAsync(int id, ClaimsPrincipal user)
@@ -101,7 +108,9 @@ public sealed class EventAgendaService : IEventAgendaService
         EventMemberDetailDto? member = null;
         if (extras.IsMember)
         {
-            var notGoing = await db.Enrollments.CountAsync(x => x.EventId == id && !x.WillAttend);
+            // The same rows "Quem vai" shows give the not-going count: one query fewer (task 054).
+            var people = await PeopleAsync(db, id);
+            var notGoing = people.Count(p => !p.WillAttend);
             var repertoire = (await db.EventRepertoires.AsNoTracking()
                     .Where(r => r.EventId == id)
                     .Select(r => new { r.RepertoireDate, r.DisplayOrder, r.Id, Title = r.Song!.Title })
@@ -113,7 +122,7 @@ public sealed class EventAgendaService : IEventAgendaService
                     g.OrderBy(r => r.DisplayOrder).ThenBy(r => r.Id).Select(r => r.Title).ToList()))
                 .ToList();
             member = new EventMemberDetailDto(e.IsCancelled ? e.CancellationReason : null, notGoing, repertoire,
-                await ParticipantsAsync(db, id));
+                Participants(people));
         }
 
         var canManage = EventsAuthorization.CanManage(user);
@@ -489,14 +498,11 @@ public sealed class EventAgendaService : IEventAgendaService
         return true;
     }
 
-    private static async Task<EventParticipantsDto> ParticipantsAsync(ApplicationDbContext db, int eventId)
-    {
-        var people = await PeopleAsync(db, eventId);
-        return new EventParticipantsDto(
+    private static EventParticipantsDto Participants(List<Person> people) =>
+        new(
             people.Where(p => p.WillAttend && !p.Leitao).Select(p => p.Dto).ToList(),
             people.Where(p => p.WillAttend && p.Leitao).Select(p => p.Dto).ToList(),
             people.Where(p => !p.WillAttend).Select(p => p.Dto).ToList());
-    }
 
     /// <summary>One answer as "Quem vai" shows it, with its row id (only the Admin/Owner manager sends that, 012E).</summary>
     internal sealed record Person(int EnrollmentId, bool WillAttend, bool Leitao, EventParticipantDto Dto);
@@ -603,8 +609,9 @@ public sealed class EventAgendaService : IEventAgendaService
         return new Extras(true, trophies, videos, going, repertoire, discussion, mine);
     }
 
+    /// <summary>Rows per event, counted by SQL (<c>GROUP BY</c>): only the ids and their counts travel (task 054).</summary>
     private static async Task<IReadOnlyDictionary<int, int>> CountAsync(IQueryable<int> eventIds) =>
-        (await eventIds.ToListAsync()).GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
+        await eventIds.GroupBy(id => id).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count);
 
     private EventSummaryDto ToSummary(Event e, Extras extras) => new(
         e.Id,

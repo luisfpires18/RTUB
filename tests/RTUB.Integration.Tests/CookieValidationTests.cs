@@ -51,7 +51,7 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
     // ---------------------------------------------------------------- database cost (unit 019)
 
     [Fact]
-    public async Task ValidCookie_IsAccepted_AndFirstRequestCostsOneWritePlusTwoRoleReads()
+    public async Task ValidCookie_IsAccepted_AndFirstRequestCostsOneWrite_AndNoRoleReadWithoutTheAdminClaim()
     {
         var (client, _) = await SignInNewUserAsync("cost-single", "10.30.0.1");
 
@@ -64,10 +64,10 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
 
         _factory.Sql.Count(LastLoginWrite).Should().Be(1,
             "the first request of a session writes LastLoginDate and arms the throttle");
-        _factory.Sql.Count(RoleLookup).Should().Be(1,
-            "UserManager.IsInRoleAsync resolves the Admin role by normalized name");
-        _factory.Sql.Count(UserRoleLookup).Should().Be(1,
-            "UserManager.IsInRoleAsync then probes the join table");
+        _factory.Sql.Count(RoleLookup).Should().Be(0,
+            "since task 054 the Admin probe (role by normalized name, then the join table) runs only for a cookie " +
+            "that claims Admin; this one does not, so the stamp check is the only read");
+        _factory.Sql.Count(UserRoleLookup).Should().Be(0);
     }
 
     [Fact]
@@ -107,12 +107,34 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
 
         _factory.Sql.Count(LastLoginWrite).Should().Be(1,
             "the first request writes and arms the throttle; the other four skip the UPDATE");
-        _factory.Sql.Count(RoleLookup).Should().Be(5,
-            "the throttle covers the activity write only — security runs on every request");
-        _factory.Sql.Count(UserRoleLookup).Should().Be(5);
+        _factory.Sql.Count(RoleLookup).Should().Be(0,
+            "the throttle covers the activity write only — the stamp check still runs on every request, and the " +
+            "Admin probe only for a cookie that claims Admin (task 054), which this one does not");
+        _factory.Sql.Count(UserRoleLookup).Should().Be(0);
 
         // The value still moved: activity semantics are preserved, just written less often.
         (await ReadLastLoginDateAsync(user.Id)).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task AdminCookie_StillProbesTheRole_OnEveryRequest()
+    {
+        var (client, _) = await SignInNewUserAsync("cost-admin", "10.30.0.12", role: "Admin");
+
+        using (_factory.Sql.Recording())
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                (await client.GetAsync("/Events")).StatusCode.Should().Be(HttpStatusCode.OK);
+            }
+        }
+
+        // A cookie that claims Admin is the one a revoked Admin would still hold, so it is checked against the
+        // database on every request, as before task 054: the role by normalized name, then the join table.
+        _factory.Sql.Count(RoleLookup).Should().Be(5,
+            "UserManager.IsInRoleAsync resolves the Admin role by normalized name on every request");
+        _factory.Sql.Count(UserRoleLookup).Should().Be(5,
+            "UserManager.IsInRoleAsync then probes the join table on every request");
     }
 
     [Fact]
@@ -150,6 +172,9 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
         using (_factory.Sql.Recording())
         {
             (await client.GetAsync("/service-worker.js")).StatusCode.Should().Be(HttpStatusCode.OK);
+            // /images/* is an ordinary static file since task 054 (the ImagesController that served it after
+            // authentication is gone).
+            (await client.GetAsync("/images/default-avatar.webp")).StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
         _factory.Sql.Count(LastLoginWrite).Should().Be(0,
@@ -157,20 +182,21 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
     }
 
     [Fact]
-    public async Task ImageControllerRequest_CostsAFullCookieValidation_EvenWhenTheImageIsMissing()
+    public async Task MissingImageRequest_StillReachesCookieValidation()
     {
         var (client, _) = await SignInNewUserAsync("cost-image", "10.30.0.4");
 
         using (_factory.Sql.Recording())
         {
-            // /images/* is deliberately excluded from UseStaticFiles (ImagesController adds ETags),
-            // so it runs the full pipeline — authentication included.
+            // A missing /images/* file is nothing for UseStaticFiles to answer, so the request runs the rest of the
+            // pipeline — authentication included — and 404s at the end of it. (An existing one is answered before
+            // authentication: StaticFileRequest_SkipsCookieValidation.)
             (await client.GetAsync("/images/does-not-exist.png")).StatusCode
                 .Should().Be(HttpStatusCode.NotFound);
         }
 
         _factory.Sql.Count(LastLoginWrite).Should().Be(1,
-            "every image request, even a 404, pays for a cookie validation");
+            "a request that reaches the endpoint pipeline, even a 404, pays for a cookie validation");
     }
 
     // ------------------------------------------------------------------------ security checks

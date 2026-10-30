@@ -6,11 +6,15 @@
  */
 export type MemberMenu = { management: boolean; logisticsAndTreasury: boolean; admin: boolean; owner: boolean };
 
-/** GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. */
+/**
+ * GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. `version` is the build, as
+ * /api/version reports it: the footer reads it from here, so a page load makes one request fewer (task 054).
+ */
 export type CurrentUser =
-  | { authenticated: false }
+  | { authenticated: false; version: string }
   | {
       authenticated: true;
+      version: string;
       displayName: string;
       fullName: string | null;
       avatarUrl: string;
@@ -58,18 +62,6 @@ function rememberMemberShell(signedIn: boolean) {
   } catch {
     // Storage blocked: the shell simply waits for the session on each load.
   }
-}
-
-let version: Promise<string> | null = null;
-
-/** GET /api/version, once per page load: the footer shows it, and it tells test builds apart. */
-export function getVersion(): Promise<string> {
-  version ??= fetch('/api/version', { headers: { Accept: 'application/json' } })
-    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-    .then((body: { version?: unknown }) =>
-      typeof body.version === 'string' ? body.version : Promise.reject(new Error('no version')),
-    );
-  return version;
 }
 
 /** GET /api/announcement (task 037): the Owner's system announcement while it is fresh, or null (204). */
@@ -307,3 +299,70 @@ export function getLatestNews(count: number): Promise<NewsPost[]> {
 
 /** "5 de outubro de 2026" for a post's UTC publication time, in the reader's time zone. */
 export const newsDate = (iso: string) => new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long' }).format(new Date(iso));
+
+// ---------- the shared request helper (every answer maps onto an Outcome; nothing throws) ----------
+// Moved here from eventsApi.ts in task 054: the shell mounts the unread badge on every member page, and the badge
+// importing `call` from the events client pulled that whole client into the entry chunk.
+
+/** Every answer maps onto one of these; nothing throws. */
+export type Outcome<T> =
+  | { kind: 'ok'; data: T }
+  | { kind: 'invalid'; errors: Record<string, string> }
+  | { kind: 'signin' }
+  | { kind: 'closed' }
+  | { kind: 'notfound' }
+  | { kind: 'forbidden' }
+  | { kind: 'inuse' }
+  | { kind: 'failed' };
+
+let token: Promise<string> | null = null;
+
+/** One antiforgery token per page load (it is bound to the session). */
+export function antiforgeryToken(refresh = false): Promise<string> {
+  if (!token || refresh) {
+    token = fetch('/api/public/antiforgery-token', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((t: { token: string }) => t.token)
+      .catch((e) => {
+        token = null;
+        throw e;
+      });
+  }
+  return token;
+}
+
+export async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
+  try {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (method !== 'GET') headers['X-CSRF-TOKEN'] = await antiforgeryToken();
+    if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+
+    const r = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
+      credentials: 'same-origin',
+    });
+    if (r.status === 204) return { kind: 'ok', data: undefined as T };
+    if (r.ok) return { kind: 'ok', data: (await r.json()) as T };
+
+    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]>; type?: string };
+    if (r.status === 400 && problem.errors) {
+      const errors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(problem.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
+      return { kind: 'invalid', errors };
+    }
+    // A refused antiforgery token (expired page, new session): fetch a fresh one and try once more.
+    if (r.status === 400 && method !== 'GET' && !retried) {
+      await antiforgeryToken(true);
+      return call<T>(method, url, body, true);
+    }
+    if (r.status === 401) return { kind: 'signin' };
+    if (r.status === 404) return { kind: 'notfound' };
+    if (r.status === 403) return { kind: 'forbidden' };
+    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : 'closed' };
+    return { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
+  }
+}

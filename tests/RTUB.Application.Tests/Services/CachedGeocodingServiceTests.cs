@@ -56,7 +56,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Lisboa", "PT");
@@ -76,7 +76,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Porto", "PT");
@@ -94,7 +94,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("", "PT");
@@ -112,7 +112,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("   ", "PT");
@@ -143,7 +143,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with uppercase
         var result = await service.GetCoordinatesAsync("PORTO", "PT");
@@ -172,7 +172,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with lowercase country code
         var result = await service.GetCoordinatesAsync("Madrid", "es");
@@ -188,7 +188,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Braga");
@@ -219,7 +219,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(dbContext), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with same city name but different country
         var resultPT = await service.GetCoordinatesAsync("Braga", "PT");
@@ -233,10 +233,15 @@ public class CachedGeocodingServiceTests
         _mockQueue.Verify(q => q.EnqueueCityAsync("braga", "ES"), Times.Once);
     }
 
-    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(ApplicationDbContext dbContext)
+    /// <summary>A fresh context per call on the test's in-memory database: the service disposes each one (task 054).</summary>
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(IServiceProvider scope)
     {
         var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
-        mock.Setup(f => f.CreateDbContext()).Returns(dbContext);
+        mock.Setup(f => f.CreateDbContext()).Returns(() => new ApplicationDbContext(
+            scope.GetRequiredService<DbContextOptions<ApplicationDbContext>>(),
+            scope.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+            new RTUB.Application.Services.AuditContext(),
+            new RTUB.Application.Services.AuditLogAppender()));
         return mock.Object;
     }
 }

@@ -214,10 +214,11 @@ public class MemberStatusService : IMemberStatusService
         var rehearsals = await RehearsalActivityAsync(db, ids, now);
         var performances = await PerformanceActivityAsync(db, ids, now);
 
-        return rehearsals.Select(r => r.UserId).Concat(performances.Select(e => e.UserId)).Distinct()
-            .ToDictionary(id => id, id => new Activity(
-                rehearsals.Where(r => r.UserId == id).Select(r => r.Date).ToList(),
-                performances.Where(e => e.UserId == id).Select(e => e.Date).ToList()));
+        // Grouped once (task 054): the Where-per-member version walked every row again for each member.
+        var byRehearsal = rehearsals.ToLookup(r => r.UserId, r => r.Date);
+        var byPerformance = performances.ToLookup(e => e.UserId, e => e.Date);
+        return byRehearsal.Select(g => g.Key).Concat(byPerformance.Select(g => g.Key)).Distinct()
+            .ToDictionary(id => id, id => new Activity(byRehearsal[id].ToList(), byPerformance[id].ToList()));
     }
 
     /// <summary>Ensaio: a presença confirmed by Admin (<c>Attended</c>) at a past, not cancelled rehearsal.</summary>

@@ -487,6 +487,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPushNotificationServices(this IServiceCollection services)
     {
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        // One pooled HttpClient for every push send: WebPushClient otherwise news up its own client (its own handler
+        // and connection pool) per request scope and nothing ever disposes it (task 054).
+        services.AddHttpClient(PushNotificationService.HttpClientName);
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
 
@@ -721,9 +724,11 @@ public static class ServiceCollectionExtensions
                         return;
                     }
 
+                    // The database is asked only when the cookie claims Admin: the probe exists to catch a revoked
+                    // Admin, and a cookie without the claim has nothing to revoke. Every other request skips its two
+                    // SELECTs (the role by name, the user-role row) - task 054.
                     var hasAdminClaim = context.Principal?.IsInRole("Admin") ?? false;
-                    var isAdminInDatabase = await userManager.IsInRoleAsync(validatedUser, "Admin");
-                    if (hasAdminClaim && !isAdminInDatabase)
+                    if (hasAdminClaim && !await userManager.IsInRoleAsync(validatedUser, "Admin"))
                     {
                         await signInManager.SignOutAsync();
                         context.RejectPrincipal();
@@ -942,6 +947,15 @@ public static class ServiceCollectionExtensions
                 options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
                 options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
             });
+
+            // Fastest (the providers' default) left ~30 KB per cold load on the table: the portal's critical path is
+            // 161 KB at gzip-1 and 131 KB at gzip-9. Optimal is brotli quality 4 / zlib level 6, a few ms of CPU on a
+            // cold load and nothing on a warm one (task 054). Build-time precompression is the next step if this
+            // ever shows on the B1's CPU.
+            services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(o =>
+                o.Level = System.IO.Compression.CompressionLevel.Optimal);
+            services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(o =>
+                o.Level = System.IO.Compression.CompressionLevel.Optimal);
         }
 
         services.AddResponseCaching();
