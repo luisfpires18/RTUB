@@ -6,7 +6,7 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-10-29 (053 PWABuilder manifest + Web Share Target)_
 
 ## Phase
-**On `feat/053/pwa-manifest-share-target` (not merged): 053 PWABuilder report card.** The manifest gains the members
+**053 merged to `dev`** (@ `c7b576da`, Deploy • DEV; not released). **053 PWABuilder report card.** The manifest gains the members
 that are true for RTUB: `display_override` `[standalone, minimal-ui]`, `prefer_related_applications: false`,
 `related_applications` = the Play Store TWA `ipb.pt.rtub.app` (checked against `assetlinks.json`), `edge_side_panel`
 (420 px), and **`share_target` is back** (owner's decision, reverses 036): GET `/share?title&text&url` → React
