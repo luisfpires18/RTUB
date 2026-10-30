@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-30 (054 performance quick wins, in review)_
+_Last updated: 2026-10-30 (054 performance quick wins, in review; 053 merged into `dev` before it)_
 
 ## Phase
 **Task 054 = performance quick wins** (`chore/054/perf-quick-wins`, from the 2026-10-29 audit; findings, numbers and the
@@ -19,8 +19,18 @@ untouched, owner decision); the 512 px hero logo for 1x (59 KB) with the 1024 px
 "Quem vai" rows, gallery facets only on page 1, `ToLookup` in the member-status read path, 20 `CreateDbContext()`
 sites now `await using`, one pooled `HttpClient` for WebPush, the member-status reconcile skips the boot run while the
 table has rows. Build: `PublishReadyToRun` on the linux-x64 publish; EF / Identity 10.0.14, AWSSDK 4.0.102 / 4.0.104,
-react 19.3.1, vite 6.4.5. No migration. Branch number 053 is the concurrent `/share` task. Next: 055 hot paths, 056
+react 19.3.1, vite 6.4.5. No migration. 053 (`/share`) merged into `dev` first. Next: 055 hot paths, 056
 media variants.
+
+**053 merged to `dev`** (@ `c7b576da`, Deploy • DEV; not released). **053 PWABuilder report card.** The manifest gains the members
+that are true for RTUB: `display_override` `[standalone, minimal-ui]`, `prefer_related_applications: false`,
+`related_applications` = the Play Store TWA `ipb.pt.rtub.app` (checked against `assetlinks.json`), `edge_side_panel`
+(420 px), and **`share_target` is back** (owner's decision, reverses 036): GET `/share?title&text&url` → React
+`portal/src/Share.tsx` (read-only fields, "Copiar", "Voltar"; public, GET/HEAD, stores nothing). Skipped on purpose
+with reasons in `docs/pwa-practices.md` → *PWABuilder report card (053)*: IARC id (Owner action), scope_extensions,
+window-controls-overlay / tabbed, file / protocol handlers, widgets, note_taking, periodic / background sync stubs.
+No schema change, no migration, no `CACHE_VERSION` bump (the worker is untouched); portal rebuilt. Real-device check
+still open: share a link from Android to the installed app → `/share`. Detail: `docs/react-identity.md` → */share*.
 
 **Release 2.1.8 = 052 `/users` staff filter**: "Só Mod, Admin e Owner" (`GET /api/owner/users?staff=true`, server-side
 with search and paging). No migration. Detail: `docs/react-owner-operations.md` → */users*.
@@ -389,6 +399,10 @@ CSS split per area; route-chunk preload; `MapStaticAssets` / build-time precompr
 first); cached cookie validation (owner: declined); `.Date.Date` range compares and the `AuditLogs.Action` /
 `PushSubscriptions.Endpoint` indexes; `IMemoryCache` `SizeLimit` for the cached PDFs; a metric-matched font fallback
 (no measured metrics). Owner actions: Always On on PROD (cold start after idle); HTTP/2 check on both App Services.
+Raised by 053: `www.rtub.pt` serves the whole app as a second origin with no redirect to `rtub.pt` (a second
+installed-app identity and duplicate content; decide a 301 to the apex); `iarc_rating_id` needs the IARC certificate
+from Play Console (App content → Content rating) - one manifest line once the Owner has it; `portal/index.html`
+`theme-color` is `#000000` while the manifest says `#3F2A86` (pre-existing, untouched).
 - `RoleManagementService.PromoteUserForPositionAsync` keeps an existing Mod as Mod when the member (no longer a Caloiro) takes an Admin seat; fix by hand or rework the rule.
 Raised by 047: `icons.tsx` `apple` lists the same path twice, so React warns about a duplicate `key` (dev build only).
 Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner

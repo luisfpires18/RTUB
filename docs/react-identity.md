@@ -8,7 +8,7 @@ Task 036 handled the last five routes the app still served as Blazor pages:
 | `/reset-password` | Blazor (static SSR form) | **React**, public |
 | `/confirm-email` | Blazor (static SSR) | **React**, public |
 | `/Error` | Blazor (`Error.razor`, English text) | **Server-owned static page** (`wwwroot/error.html`), on purpose |
-| `/share` | Blazor (Web Share Target page) | **Removed**, plain 404; the manifest has no `share_target` |
+| `/share` | Blazor (Web Share Target page) | **Removed** in 036 (404); **React again since 053** (`portal/src/Share.tsx`, manifest `share_target`) |
 
 **No Blazor page is left** (`@page` count: 0). The Blazor host itself (`App.razor`, `MainLayout`,
 `MapRazorComponents`, `/_blazor`, `RTUB.Shared`) was retired by task 037. There was no schema change and no migration. Identity options, password rules and token providers are unchanged.
@@ -16,7 +16,7 @@ Task 036 handled the last five routes the app still served as Blazor pages:
 Code:
 - `src/RTUB.Application/Services/AccountRecoveryService.cs`
 - `src/RTUB.Web/Endpoints/AccountRecoveryEndpoints.cs`
-- `portal/src/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx` and `accountApi.ts`
+- `portal/src/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx` and `accountApi.ts`; `Share.tsx` (053)
 - `Program.cs` (page routes, `/Error`, `/share`)
 - `wwwroot/error.html` and `wwwroot/css/error.css`
 
@@ -70,9 +70,18 @@ Code:
 - **Before:** `Share.razor` was the Web Share Target (`manifest.webmanifest` → `share_target`, GET `/share?title&text&url`).
   It showed the shared values read-only with a "Copiar" button. Nothing linked to it; only the installed app received
   shares there.
-- **Now:** removed with no replacement. `share_target` is gone from the manifest, and `/share` is an explicit 404 for
-  GET, HEAD and POST. The service worker had no share handling, so nothing changed there. Other install, offline,
-  shortcut and push behaviour is untouched.
+- **036:** removed with no replacement. `share_target` left the manifest, and `/share` was an explicit 404 for GET,
+  HEAD and POST. The service worker had no share handling, so nothing changed there.
+- **Now (053, owner's decision while filling the PWABuilder report card):** the installed app is a share target again,
+  with the pre-036 contract: `share_target` → `action: "/share"`, `method: "GET"`, params `title`, `text`, `url`. The
+  React `portal/src/Share.tsx` reads the three values from the query (kept in the address bar, so a reload keeps the
+  content), shows them read-only (Título, Texto, URL when present), "Copiar" writes `title\n\ntext\n\nurl` to the
+  clipboard (a refused clipboard is swallowed, as before), "Voltar" goes home; with nothing shared it says "Nenhum
+  conteúdo para partilhar." with a link home. Nothing is stored, logged or sent anywhere. Public like the Blazor page
+  (no `[Authorize]`), served as the ordinary React shell (`Program.cs` public route list, GET/HEAD only, so POST → 405).
+  The service worker still has no share handling (a GET target needs none). Other install, offline, shortcut and push
+  behaviour is untouched; the other manifest members added in 053 are in `docs/pwa-practices.md` → *PWABuilder report
+  card (053)*.
 
 ## API (`/api/account`, public)
 
@@ -107,11 +116,15 @@ every answer is `no-store`. `GET /api/account/me` is unchanged and lives in `Acc
   - confirm-email: a valid token (with the second decode) confirms the address and signs nobody in; missing, unknown
     and bad links are handled.
   - All three require antiforgery.
-  - `/Error` is the fixed page for GET, POST and PUT with no details; `/share` is 404; the manifest and the service
-    worker have no share target.
-- `RTUB.Web.Tests/ReactPortal/IdentityAndShareSourceTests.cs`: no `@page` is left; route ownership; POST only, with
-  antiforgery and no-store; no storage, no logs, the query cleared; the share target gone; no move wording; no removed
+  - `/Error` is the fixed page for GET, POST and PUT with no details; `/share` is the public React shell for GET (with
+    or without a query, never echoed) and 405 for POST; the manifest's `share_target` is GET `/share`; the service worker
+    has no share handling (053).
+- `RTUB.Web.Tests/ReactPortal/IdentityAndShareSourceTests.cs`: no `@page` is left; route ownership (`/share` in the
+  public React list, the 036 explicit 404 gone); POST only, with antiforgery and no-store; no storage, no logs, the query
+  cleared (the share page keeps its query and sends nothing); the share target contract; no move wording; no removed
   module.
+- `RTUB.Integration.Tests/Pages/PwaManifestTests.Manifest_DeclaresTheInstallExtras_Task053`: the 053 manifest members,
+  `related_applications` against `assetlinks.json`, the skipped members absent.
 - Updated:
   - `IdentityPagesTests` and `ReactLoginTests`: the pages are React, no-store and no-referrer.
   - `PortalRouteTests`.
@@ -122,7 +135,7 @@ every answer is `no-store`. `GET /api/account/me` is unchanged and lives in `Acc
 ## Deferred (recorded, not fixed)
 
 - (resolved in 037) The Blazor host is retired (`BlazorHostRetirementTests`); the system announcement is a React
-  listener (`react-portal-pilot.md` → *System announcement*). `/Error` stays the static page, `/share` stays 404.
+  listener (`react-portal-pilot.md` → *System announcement*). `/Error` stays the static page; `/share` is React since 053.
 - No rate limit on forgot-password and reset-password (as before): anyone can trigger reset emails to an address, one
   per request. Consider the per-IP login limiter.
 - `/confirm-email` has no link generator in the app. Decide: keep it for old links, or drop it in the host cleanup.

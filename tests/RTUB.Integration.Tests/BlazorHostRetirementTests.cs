@@ -79,6 +79,7 @@ public class BlazorHostRetirementTests : IntegrationTestBase
     [InlineData("/privacy")]
     [InlineData("/events")]
     [InlineData("/news")]
+    [InlineData("/share")]
     public async Task PublicPages_AreTheReactShell(string url)
     {
         var response = await Anonymous().GetAsync(url);
@@ -123,7 +124,6 @@ public class BlazorHostRetirementTests : IntegrationTestBase
     }
 
     [Theory]
-    [InlineData("/share")]
     [InlineData("/games")]
     [InlineData("/bets")]
     [InlineData("/my-tuno")]
@@ -136,11 +136,12 @@ public class BlazorHostRetirementTests : IntegrationTestBase
         (await Anonymous().GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} must not come back", url);
     }
 
+    /// <summary>053: /share is the React Web Share Target again (GET); nothing is ever posted to it.</summary>
     [Fact]
-    public async Task Share_PostIsNotFound_AndTheManifestOffersNoShareTarget()
+    public async Task Share_PostIsNotAllowed_AndTheManifestOffersTheShareTarget()
     {
-        (await Anonymous().PostAsync("/share", content: null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await Anonymous().GetStringAsync("/manifest.webmanifest")).Should().NotContain("share_target");
+        (await Anonymous().PostAsync("/share", content: null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await Anonymous().GetStringAsync("/manifest.webmanifest")).Should().Contain("\"share_target\"");
     }
 
     [Fact]

@@ -31,7 +31,7 @@ _Last updated: 2026-10-13 (042 cleanup audit)_
 | 033 | Naipes (instrument videos / images, comments) and their settings | `/naipes`, `/naipes/config` | `react-naipes.md` |
 | 034 | Reuniões (meetings, participation, atas, meeting requests) | `/meetings` | `react-meetings.md` |
 | 035 | Owner tools (Owner only; Admin lost Emails / Notificações): announcement emails, custom push, users and roles, audit log, database | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | `react-owner-operations.md` |
-| 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
+| 036 | Password recovery and email confirmation (public); `/Error` server-owned static page; `/share` removed (back as React in 053) | `/forgot-password`, `/reset-password`, `/confirm-email` | `react-identity.md` |
 | 037 | Blazor host retired (`App.razor`, `MainLayout`, `/_blazor`, `blazor.web.js`, `RTUB.Shared`, Blazor CSS / JS); system announcement now a React listener (`GET /api/announcement`) | none new | `react-portal-pilot.md` → *System announcement* |
 | 038 | Push v2: "Notificações push" in `/profile` (opt-in / opt-out per device, repair states), `/api/push` rebuilt (own subscriptions only, validated, antiforgery), old push client removed, worker push handlers cleaned | `/profile` (section) | `react-push-v2.md` |
 | 041 | Messaging v2 on the preserved v1 tables: conversation list + chat, replies, fixed-set reactions, mute, unread / read, push without the text; text only; no schema change | `/messages` | `react-messages.md` |
@@ -52,8 +52,9 @@ per-post pages with share previews) are separate tasks. Next React task: pick fr
 Nothing. 036 left no Blazor page (5 before 036, 10 before 035, 11 before 034, 13 before 033, 16 before 032) and 037
 retired the host: no Razor component is compiled, `/_blazor` and `blazor.web.js` are 404, `RTUB.Shared` (and its bUnit
 tests) is gone, and the service worker precaches no Blazor asset. Every page is the React shell; `/Error` is a
-server-owned static page on purpose; `/share` stays removed. Push v2 (React opt-in / opt-out in `/profile`, the old
-push client removed) is task 038.
+server-owned static page on purpose; `/share` was removed in 036 and is a React page again since 053 (the PWA Web Share
+Target, `react-identity.md` → */share*). Push v2 (React opt-in / opt-out in `/profile`, the old push client removed) is
+task 038.
 
 **Members' navigation (030).** Signed-in members get around with the React member shell (a rail on wide screens, a
 drawer on phones and in the installed app), which links only React pages since 035. `/profile` is

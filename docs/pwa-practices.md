@@ -27,6 +27,30 @@ This document outlines Progressive Web App (PWA) development best practices for 
   to `start_url`) gives a different identity, which the manifest spec treats as a distinct
   application rather than a replacement for the RTUB already installed. Pinned by `PwaManifestTests`.
 
+### PWABuilder report card (053)
+
+`https://www.pwabuilder.com/reportcard?site=https://rtub.pt/` lists manifest members RTUB could add. Task 053 added
+the ones that are true for RTUB (pinned by `PwaManifestTests.Manifest_DeclaresTheInstallExtras_Task053`):
+
+| Member | Value | Why |
+|---|---|---|
+| `display_override` | `["standalone", "minimal-ui"]` | The same intent as `display`, with the fallback order stated. |
+| `prefer_related_applications` | `false` | The installed PWA is the product; the store app is a TWA of it. |
+| `related_applications` | Play Store `ipb.pt.rtub.app` | The real listing; the id must equal `.well-known/assetlinks.json` → `package_name` (the test reads both). |
+| `edge_side_panel` | `preferred_width: 420` | Edge can pin RTUB to its side panel; the portal is laid out for 320 px and up (#229). |
+| `share_target` | GET `/share` with `title`, `text`, `url` | The installed app receives shares again (React `/share`, `docs/react-identity.md`). Removed in 036, back by the owner's decision. |
+
+Skipped on purpose, so the report card is not chased again. Add one only with a real value and a decision:
+
+- `iarc_rating_id`: needs the IARC certificate from Play Console (App content → Content rating). Owner action, one line.
+- `scope_extensions`: no second origin we want inside the app (`www.rtub.pt` serves the same app with no redirect to
+  `rtub.pt`: a deferred finding, not a scope extension).
+- `window-controls-overlay` / `tabbed` in `display_override`: desktop title-bar work with no value for a phone-first app.
+- `file_handlers`, `protocol_handlers`, `widgets`, `note_taking`: RTUB opens no files, handles no protocol, has no
+  Windows widget and is not a notes app. A stub would lie to the OS.
+- Periodic background sync / background sync in the service worker: an empty listener only games the score; `/api/*`
+  is never cached by design and nothing queues writes offline.
+
 ```json
 {
   "id": "/",
@@ -327,7 +351,7 @@ Home Screen routing behaviour.
 - [ ] Offline page displays correctly
 - [ ] Icons display properly
 - [ ] Shortcuts work
-- [ ] Share target works (if implemented)
+- [ ] Share target works: share a link from another Android app to the installed RTUB → `/share` shows it, "Copiar" copies it (053)
 - [ ] Push notifications work: `/profile` → "Notificações push" turns this device on, a test push arrives, turning it
   off sticks after a reload (`docs/react-push-v2.md`; check Android installed app and iPhone / iPad Home Screen app too)
 - [ ] App works in standalone mode

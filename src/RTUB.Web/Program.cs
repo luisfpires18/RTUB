@@ -596,8 +596,10 @@ public class Program
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
         // are the "Onde estiveste" modal on /events. The discussion and contact tracking are
         // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
+        // Task 053: /share is the PWA Web Share Target again (React page, public; manifest share_target, GET only, so
+        // a POST answers 405 like /request). Removed in 036, back by the owner's decision.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery", "/shop",
-                     "/events", "/events/{id:int}", "/news" })
+                     "/events", "/events/{id:int}", "/news", "/share" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
@@ -681,10 +683,6 @@ public class Program
             var page = await File.ReadAllTextAsync(env.WebRootFileProvider.GetFileInfo("error.html").PhysicalPath!);
             return Results.Content(page, "text/html", System.Text.Encoding.UTF8);
         });
-
-        // Task 036: the Blazor /share (the PWA's share target) is removed with no replacement; the manifest no longer
-        // offers it. An explicit 404, so it can never fall to another route.
-        app.MapMethods("/share", ["GET", "HEAD", "POST"], () => Results.NotFound());
 
         app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
             Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));

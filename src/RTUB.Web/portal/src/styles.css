@@ -14378,3 +14378,10 @@ html.app-screen .footer {
   margin-left: 8px;
   vertical-align: middle;
 }
+
+/* /share (053): the Web Share Target page, copy and back side by side. */
+.share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

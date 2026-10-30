@@ -126,6 +126,41 @@ public class PwaManifestTests : IntegrationTestBase
         startUrl.AbsolutePath.Should().StartWith(scope.AbsolutePath, "start_url must be inside scope");
     }
 
+    /// <summary>
+    /// Task 053 (PWABuilder report card): the install members that are true for RTUB. related_applications names
+    /// the Play Store TWA, so it must agree with the Digital Asset Links file; the share target is the React /share
+    /// page (GET). The members left out were skipped on purpose (docs/pwa-practices.md → PWABuilder) and stay out
+    /// until a real value and a decision exist.
+    /// </summary>
+    [Fact]
+    public async Task Manifest_DeclaresTheInstallExtras_Task053()
+    {
+        using var manifest = JsonDocument.Parse(await _client.GetStringAsync("/manifest.webmanifest"));
+        using var assetLinks = JsonDocument.Parse(await _client.GetStringAsync("/.well-known/assetlinks.json"));
+        var json = manifest.RootElement;
+        var packageName = assetLinks.RootElement[0].GetProperty("target").GetProperty("package_name").GetString();
+
+        json.GetProperty("display_override").EnumerateArray().Select(e => e.GetString()).Should().Equal("standalone", "minimal-ui");
+        json.GetProperty("prefer_related_applications").GetBoolean().Should().BeFalse("the installed PWA is the product; the Play Store app is a TWA of it");
+
+        var related = json.GetProperty("related_applications").EnumerateArray().Should().ContainSingle().Which;
+        related.GetProperty("platform").GetString().Should().Be("play");
+        related.GetProperty("id").GetString().Should().Be(packageName, "the manifest and assetlinks.json name the same Android app");
+        related.GetProperty("url").GetString().Should().Be($"https://play.google.com/store/apps/details?id={packageName}");
+
+        json.GetProperty("edge_side_panel").GetProperty("preferred_width").GetInt32().Should().BeGreaterThanOrEqualTo(320, "the portal is laid out for 320 px and up");
+
+        var share = json.GetProperty("share_target");
+        share.GetProperty("action").GetString().Should().Be("/share");
+        share.GetProperty("method").GetString().Should().Be("GET");
+        share.GetProperty("params").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("title", "text", "url");
+
+        foreach (var skipped in new[] { "iarc_rating_id", "scope_extensions", "file_handlers", "protocol_handlers", "widgets", "note_taking" })
+        {
+            json.TryGetProperty(skipped, out _).Should().BeFalse("{0} was skipped on purpose (docs/pwa-practices.md); add it only with a real value and a decision", skipped);
+        }
+    }
+
     [Fact]
     public async Task ServiceWorker_IsAccessible()
     {

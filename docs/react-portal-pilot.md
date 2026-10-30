@@ -124,7 +124,7 @@ Every public section of the old Blazor site and app, and where it lives now. Pin
 | Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
 | Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
 | Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: static copy kept; the `/labels` admin was removed in 029A; tables go in 043 |
-| Partilhar | `/share` (manifest `share_target`) | received shares from the OS | not linked | exclude/defer: removed in 036 (404, no `share_target`) |
+| Partilhar | `/share` (manifest `share_target`) | received shares from the OS | not linked | exclude/defer from navigation: React `/share` since 053 (removed in 036, back by the owner's decision), reached only by sharing to the installed app |
 | Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
 
 ## Route ownership
@@ -176,7 +176,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/forgot-password`, `/reset-password`, `/confirm-email` | **React** (036) | Password recovery and email confirmation, public, over `POST /api/account/*`; the pages are no-store and no-referrer and clear the token from the URL. `docs/react-identity.md`. |
 | `/Error` | **Server** (036, on purpose) | The exception handler's page: fixed static HTML (`wwwroot/error.html`) for any method, no script, no details. |
 | `/messages` | **React** (041) | Mensagens (Messaging v2): conversation list + chat (`?c=<id>`), replies, reactions, mute, read state, text only, over the preserved v1 tables; members only (visitors get a 302 to sign in). `/messages/{id}` and `/hubs/messages` (the 027 inbox) stay 404. `docs/react-messages.md` |
-| `/share` | **Removed** (036) | 404; the manifest has no `share_target`. (`/images` and `/labels` were removed in 029A, plain 404s.) No Blazor page is left. |
+| `/share` | **React** (053) | The PWA Web Share Target again (removed in 036): `manifest.webmanifest` → `share_target` sends a GET with `title`, `text`, `url`; `portal/src/Share.tsx` shows them read-only with "Copiar" and "Voltar", stores nothing. Public, GET/HEAD only (POST → 405). `docs/react-identity.md` → */share*. (`/images` and `/labels` were removed in 029A, plain 404s.) No Blazor page is left. |
 | `GET /api/announcement` | **API** (037) | The Owner's system announcement while fresh, or 204; polled by the shell. |
 | `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
 | `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
@@ -428,7 +428,9 @@ existing `PlayStorePrompt.razor`; its package matches `wwwroot/.well-known/asset
 app is a TWA of this site). iPhone/iPad: Safari → Partilhar → Adicionar ao ecrã principal. Android
 browser: Chrome menu → Instalar app / Adicionar ao ecrã principal, when offered. Computer: the
 install icon in Chrome/Edge, when offered. No promise about notifications. Manifest, service worker
-and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`).
+and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`). Since 053 the installed
+app is a share target: sharing a link or text to RTUB from another app opens `/share` with it (manifest members and
+the PWABuilder decisions in `docs/pwa-practices.md` → *PWABuilder report card (053)*).
 
 ## News / "Novidades" (025)
 
