@@ -2265,7 +2265,18 @@ main {
 
 .form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
+}
+
+/* A long button label ("Entrar com Face ID / impressão digital") wraps instead of widening the form. */
+.form .btn {
+  max-width: 100%;
+  height: auto;
+  padding-block: 12px;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: center;
 }
 
 .form__row {
