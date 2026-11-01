@@ -3,9 +3,14 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-01 (057 passkey sign-in merged into `dev`; 054 before it)_
+_Last updated: 2026-11-01 (release 2.2.0 = 053 + 054 + 057 + /members badge fix)_
 
 ## Phase
+**Release 2.2.0** (MINOR: features) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
+badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasskeys` (additive, N-1 safe; the app takes
+its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
+Real-device passkey check (iPhone, Android, TWA) still open.
+
 **Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
 perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /
 impressão digital" on `/login`; password login unchanged. Migration `AddUserPasskeys` (additive table
