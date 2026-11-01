@@ -6603,6 +6603,21 @@ video.tile__media {
   color: #fff;
 }
 
+/* Long cargo names ("Presidente Mesa Assembleia") wrap inside the card instead of widening the page. */
+.members-grid > li {
+  min-width: 0;
+}
+
+.members-grid .member-badges {
+  max-width: 100%;
+}
+
+.members-grid .member-badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .members-more {
   margin-top: 12px;
 }
