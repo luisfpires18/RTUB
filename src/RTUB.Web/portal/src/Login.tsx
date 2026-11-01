@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { signIn, type SignInFailure } from './api';
 import { portal } from './content';
 import { Icon } from './icons';
+import { passkeysSupported, signInWithPasskey } from './passkey';
 
 type Banner = SignInFailure;
 type Errors = { username?: string; password?: string };
@@ -13,6 +14,7 @@ const messages: Record<Banner, string> = {
   throttled: 'Demasiadas tentativas seguidas a partir deste dispositivo. Espera uns minutos e tenta de novo.',
   expired: 'O formulário expirou. Tenta entrar de novo.',
   failed: 'Não foi possível entrar agora. Tenta de novo daqui a pouco.',
+  passkey: 'Este dispositivo não tem uma entrada ativa na RTUB. Entra com a palavra-passe e ativa-a de novo no perfil.',
 };
 
 // Older links and the plain form fallback still land here as /login?error=Invalid|Locked|Expelled.
@@ -69,6 +71,25 @@ export default function Login() {
 
     setSubmitting(false);
     setPassword('');
+    setBanner(outcome.kind);
+    requestAnimationFrame(() => bannerRef.current?.focus());
+  };
+
+  // Face ID / fingerprint (task 057): no username or password, the device offers its RTUB passkey.
+  const onPasskey = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setBanner(null);
+    setErrors({});
+    const outcome = await signInWithPasskey(rememberMe, queryValue('returnurl'));
+
+    if (outcome.kind === 'signedIn') {
+      location.assign(outcome.redirect);
+      return;
+    }
+
+    setSubmitting(false);
+    if (outcome.kind === 'cancelled') return;
     setBanner(outcome.kind);
     requestAnimationFrame(() => bannerRef.current?.focus());
   };
@@ -151,6 +172,13 @@ export default function Login() {
                 </>
               )}
             </button>
+
+            {passkeysSupported() && (
+              <button type="button" className="btn btn--ghost btn--lg form__submit" onClick={onPasskey} disabled={submitting}>
+                <Icon name="shield" />
+                Entrar com Face ID / impressão digital
+              </button>
+            )}
 
             <p className="note">
               <a href={portal.forgotPassword}>Esqueceste a palavra-passe?</a>

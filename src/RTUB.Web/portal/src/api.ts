@@ -131,7 +131,8 @@ export async function submitRequest(form: RequestForm): Promise<SubmitOutcome> {
   }
 }
 
-export type SignInFailure = 'invalid' | 'locked' | 'expelled' | 'throttled' | 'expired' | 'failed';
+/** 'passkey': the device's passkey is unknown here (removed in /profile, or made on another site) - task 057. */
+export type SignInFailure = 'invalid' | 'locked' | 'expelled' | 'throttled' | 'expired' | 'failed' | 'passkey';
 export type SignInOutcome = { kind: 'signedIn'; redirect: string } | { kind: SignInFailure };
 
 const signInErrors: Record<string, SignInFailure> = { Invalid: 'invalid', Locked: 'locked', Expelled: 'expelled' };

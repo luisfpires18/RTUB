@@ -3,10 +3,15 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-10-30 (054 performance quick wins, in review; 053 merged into `dev` before it)_
+_Last updated: 2026-11-01 (057 passkey sign-in merged into `dev`; 054 before it)_
 
 ## Phase
-**Task 054 = performance quick wins** (`chore/054/perf-quick-wins`, from the 2026-10-29 audit; findings, numbers and the
+**Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
+perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /
+impressão digital" on `/login`; password login unchanged. Migration `AddUserPasskeys` (additive table
+`AspNetUserPasskeys`). Real-device check on DEV still open. Detail: `docs/react-identity.md` → *Passkeys*.
+
+**054 merged to `dev`. Task 054 = performance quick wins** (`chore/054/perf-quick-wins`, from the 2026-10-29 audit; findings, numbers and the
 next two tasks in `docs/performance-gate.md` → *Task 054*). Per request: the cookie validator asks the database about the
 Admin role only when the cookie claims it (3 → 1 SELECT per signed-in request); the unread badge polls every 30 s (was
 10); `/api/account/me` carries the build version (no `/api/version` call per page) and is requested before React mounts;

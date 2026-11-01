@@ -105,6 +105,50 @@ every answer is `no-store`. `GET /api/account/me` is unchanged and lives in `Acc
   only log line is a failed send, which names the account, not the link.
 - No flow signs anyone in, and token generation and validation are Identity's own, unchanged.
 
+## Passkeys: Face ID / fingerprint sign-in (task 057)
+
+A member signs in once with the password, turns it on in `/profile` → *Face ID / impressão digital* ("Ativar neste
+dispositivo"), and from then on `/login` → "Entrar com Face ID / impressão digital" signs in with the device's unlock
+(Face ID, Touch ID, Android fingerprint, Windows Hello). The password keeps working; nothing about it changes.
+
+- **Implementation:** ASP.NET Core Identity's own WebAuthn (no extra package). `IdentityOptions.Stores.SchemaVersion =
+  Version3` adds the table `AspNetUserPasskeys` (migration `AddUserPasskeys`, additive; the N-1 app ignores it, so a
+  rollback is a plain redeploy). Identity reads that option from the app's service provider when it builds the model:
+  a context made without it (unit tests' InMemory contexts) has no passkey table, and `MigrationChainTests` builds its
+  context with the host's `AddIdentityServices` for that reason. Version3 also configures `PhoneNumber` at 256;
+  `ApplicationUserConfiguration` restates the entity's 80. Discoverable credentials: no username is asked.
+- **Host binding:** a passkey belongs to the host it was made on (RP ID = request host, origin checked against the
+  browser's `Origin` header). DEV and PROD keep separate passkeys; a passkey made on DEV does nothing on PROD. Needs
+  HTTPS (or `localhost`).
+- **API** (`src/RTUB.Web/Endpoints/PasskeyEndpoints.cs`; every POST/DELETE needs `X-CSRF-TOKEN`, every answer no-store):
+
+  | Route | Who | What |
+  | --- | --- | --- |
+  | `POST /auth/passkey/options` | anyone | WebAuthn request options (challenge kept in Identity's cookie) |
+  | `POST /auth/passkey/login` `{ credential, rememberMe, returnUrl }` | anyone, login rate limit | verify → same checks (unconfirmed, locked → `Locked`, expelled → `Expelled`) and the same tail as `/auth/login` (`LastLoginDate`, `LoginEvents`, cookie); `{ redirect }` or 401 `{ error }` |
+  | `GET /api/me/passkeys` | member | own passkeys `[{ id (base64url), name, createdAt }]` |
+  | `POST /api/me/passkeys/options` `{ currentPassword }` | member | the current password (wrong ones count towards the lockout), then creation options; 409 at 10 passkeys |
+  | `POST /api/me/passkeys` `{ credential }` | member | verify + store, named from the User-Agent ("iPhone · Safari") |
+  | `DELETE /api/me/passkeys/{id}` | member | own passkey only; anyone else's id is 404 |
+
+- **Security rules:** enrolment needs the current password, so an open session alone (a borrowed phone, a stolen
+  cookie) cannot plant a passkey; the challenge issued after that check is what the store call verifies against. A
+  password reset through `/reset-password` removes every passkey of the account (`AccountRecoveryService.ResetAsync`),
+  so taking an account back also evicts passkeys made before.
+- **Shared sign-in:** `Program.SignInBlockAsync` (unconfirmed / locked / expelled) and `Program.CompleteSignInAsync`
+  (reset failed count, last login, `LoginEvents`, cookie, landing) serve both sign-ins, so the rules cannot drift.
+  The signature counter is stored after each passkey sign-in.
+- **Client:** `portal/src/passkey.ts` converts WebAuthn JSON natively (`parse*OptionsFromJSON`, `toJSON`) with a
+  small base64url fallback for older Safari. The buttons show only where WebAuthn exists (secure context). A closed
+  prompt is silent; a removed passkey answers "Este dispositivo não tem uma entrada ativa…".
+- **Tests:** `RTUB.Integration.Tests/Api/PasskeyApiTests.cs`: visitors manage nothing and need the token; members see
+  and remove only their own; a software ES256 "device" signs the server's real challenge and signs in without a
+  password (counter stored), and the same passkey is refused with `Expelled` once the member is expelled; enrolment
+  without the right current password is a `currentPassword` error. `AccountRecoveryApiTests` checks a reset clears the
+  account's passkeys.
+- **Not done:** autofill (conditional mediation) on the username field; a real-device check (iPhone Face ID,
+  Android fingerprint, the Play Store TWA) on DEV.
+
 ## Tests
 
 - `RTUB.Integration.Tests/Api/AccountRecoveryApiTests.cs`, through the real host and real tokens with a recording

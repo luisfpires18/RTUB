@@ -413,21 +413,14 @@ public class Program
                 user = await userManager.FindByEmailAsync(username);
             }
 
-            if (user is null || !await userManager.IsEmailConfirmedAsync(user))
+            if (user is null)
             {
                 return Fail("Invalid");
             }
 
-            // Check if account is locked out before any other checks
-            if (await userManager.IsLockedOutAsync(user))
+            if (await SignInBlockAsync(user, userManager) is { } blocked)
             {
-                return Fail("Locked");
-            }
-
-            // Check if member has been expelled
-            if (user.IsExpelled)
-            {
-                return Fail("Expelled");
+                return Fail(blocked);
             }
 
             // Check password is valid BEFORE updating last login date to avoid race condition
@@ -441,67 +434,12 @@ public class Program
                 return Fail("Invalid");
             }
 
-            // Password is valid - reset access failed count
-            await userManager.ResetAccessFailedCountAsync(user);
-
-            // Password verified - update last login date BEFORE signing in
-            // This ensures the timestamp is set before the authentication cookie is issued
-            // This fixes the race condition where users could make requests before LastLoginDate was set
-            try
-            {
-                // Set audit context so the audit log shows the correct user instead of "System"
-                auditContext.SetUser(user.UserName, user.Id);
-
-                user.LastLoginDate = DateTime.UtcNow;
-                var updateResult = await userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
-                        user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
-                }
-
-                // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
-                await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
-
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't fail login
-                logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
-            }
-            finally
-            {
-                // Always clear the audit context to prevent leaking to other requests
-                auditContext.Clear();
-            }
-
-            // Sign in the user using SignInAsync (password already validated above)
-            // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
-            // All security checks (lockout, password validation, failed attempt tracking) are handled above
-            await signInManager.SignInAsync(user, remember);
-
-            // Log successful login (use cache to prevent duplicate logs from concurrent requests)
-            var loginLogCacheKey = $"login-success:{user.Id}";
-            if (!cache.TryGetValue(loginLogCacheKey, out _))
-            {
-                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                    user.UserName,
-                    DateTime.UtcNow);
-
-                // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
-                cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
-                });
-            }
-
-            // A local return URL is honoured; anything else (missing, external, malformed) lands on
-            // the members' landing page.
-            var target = MemberLanding(returnUrl);
-            return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
+            return await CompleteSignInAsync(user, remember, returnUrl, wantsJson, signInManager, userManager, db, logger, auditContext, cache);
         })
         .RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);
+
+        // Face ID / fingerprint sign-in (task 057): POST /auth/passkey/options + /auth/passkey/login.
+        app.MapPasskeyEndpoints();
 
         // LOGOUT (HTTP POST)
         // The unused IFormCollection parameter is what enables antiforgery validation — see the
@@ -770,4 +708,94 @@ public class Program
     /// <summary>Where a signed-in member goes: a local return URL, otherwise the (React) events page.</summary>
     internal static string MemberLanding(string? returnUrl) =>
         RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
+
+    /// <summary>
+    /// Why an account may not sign in, whatever the method (password or passkey): <c>Invalid</c> for an
+    /// unconfirmed account, <c>Locked</c>, <c>Expelled</c>; null when it may.
+    /// </summary>
+    internal static async Task<string?> SignInBlockAsync(ApplicationUser user, UserManager<ApplicationUser> userManager)
+    {
+        if (!await userManager.IsEmailConfirmedAsync(user))
+        {
+            return "Invalid";
+        }
+
+        // Check if account is locked out before any other checks
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return "Locked";
+        }
+
+        // Check if member has been expelled
+        return user.IsExpelled ? "Expelled" : null;
+    }
+
+    /// <summary>
+    /// The shared end of every sign-in once the credential (password or passkey) is verified: reset the failed
+    /// count, record the login, issue the cookie, answer { redirect } (JSON) or redirect.
+    /// </summary>
+    internal static async Task<IResult> CompleteSignInAsync(ApplicationUser user, bool remember, string? returnUrl, bool wantsJson,
+        SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext db,
+        ILogger logger, AuditContext auditContext, IMemoryCache cache)
+    {
+        // Credential is valid - reset access failed count
+        await userManager.ResetAccessFailedCountAsync(user);
+
+        // Credential verified - update last login date BEFORE signing in
+        // This ensures the timestamp is set before the authentication cookie is issued
+        // This fixes the race condition where users could make requests before LastLoginDate was set
+        try
+        {
+            // Set audit context so the audit log shows the correct user instead of "System"
+            auditContext.SetUser(user.UserName, user.Id);
+
+            user.LastLoginDate = DateTime.UtcNow;
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
+                    user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
+
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail login
+            logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
+        }
+        finally
+        {
+            // Always clear the audit context to prevent leaking to other requests
+            auditContext.Clear();
+        }
+
+        // Sign in the user using SignInAsync (credential already validated by the caller)
+        // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
+        // All security checks (lockout, password validation, failed attempt tracking) are handled above
+        await signInManager.SignInAsync(user, remember);
+
+        // Log successful login (use cache to prevent duplicate logs from concurrent requests)
+        var loginLogCacheKey = $"login-success:{user.Id}";
+        if (!cache.TryGetValue(loginLogCacheKey, out _))
+        {
+            logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                user.UserName,
+                DateTime.UtcNow);
+
+            // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
+            cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+            });
+        }
+
+        // A local return URL is honoured; anything else (missing, external, malformed) lands on
+        // the members' landing page.
+        var target = MemberLanding(returnUrl);
+        return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
+    }
 }

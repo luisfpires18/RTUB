@@ -672,6 +672,8 @@ public static class ServiceCollectionExtensions
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.AllowedForNewUsers = true;
+            // Version3 adds AspNetUserPasskeys: Face ID / fingerprint sign-in (task 057).
+            options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();

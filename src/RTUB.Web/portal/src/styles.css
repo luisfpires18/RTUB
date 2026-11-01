@@ -10994,6 +10994,24 @@ video.tile__media {
   gap: 10px;
 }
 
+/* Face ID / fingerprint devices in /profile (task 057) */
+.passkey-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- Naipes (/naipes) and their settings (/naipes/config), task 033 ---------- */
 
 .naipe-picker {

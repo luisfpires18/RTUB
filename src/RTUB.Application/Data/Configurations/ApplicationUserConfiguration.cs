@@ -22,8 +22,11 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
 
         // Explicitly configure PhoneNumber as nullable to override the [Required] attribute
         // The [Required] attribute is for model validation, not database constraints
+        // HasMaxLength(80) restates the [MaxLength(80)] attribute: Identity schema Version3 (task 057) configures
+        // PhoneNumber at 256 fluently, which would otherwise win over the attribute.
         builder.Property(u => u.PhoneNumber)
-            .IsRequired(false);
+            .IsRequired(false)
+            .HasMaxLength(80);
 
         // Configure Positions as a primitive collection stored in a single column
         // EF Core 10 handles the conversion to/from comma-separated integers

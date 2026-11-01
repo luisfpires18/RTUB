@@ -92,6 +92,7 @@ public class AccountRecoveryApiTests : IClassFixture<AccountRecoveryFactory>
         await client.PostAsJsonAsync("/api/account/forgot-password", new { email = user.Email });
         var (code, email) = ResetLink(_factory.Sent.Single(m => m.To == user.Email).Html);
         var password = TestSecret.NewPassword();
+        await PasskeyApiTests.RegisterAsync(_factory.Services, user, new PasskeyApiTests.Device());
 
         var response = await client.PostAsJsonAsync("/api/account/reset-password", new { email, code, password, confirmPassword = password });
         var result = await AreaHttp.Json(response);
@@ -100,6 +101,12 @@ public class AccountRecoveryApiTests : IClassFixture<AccountRecoveryFactory>
         response.Headers.CacheControl!.NoStore.Should().BeTrue();
         SetCookies(response).Should().NotContain(c => c.StartsWith(".AspNetCore.Identity.Application"), "a reset never signs in");
         (await CheckPasswordAsync(user.Id, password)).Should().BeTrue();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            (await users.GetPasskeysAsync((await users.FindByIdAsync(user.Id))!)).Should().BeEmpty(
+                "a reset takes the account back, so passkeys made before it go (task 057)");
+        }
 
         var again = TestSecret.NewPassword();
         (await AreaHttp.Errors(await client.PostAsJsonAsync("/api/account/reset-password", new { email, code, password = again, confirmPassword = again })))
