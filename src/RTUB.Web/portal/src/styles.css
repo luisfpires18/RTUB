@@ -2210,6 +2210,7 @@ main {
 .request {
   display: grid;
   gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
@@ -2429,7 +2430,7 @@ input::-webkit-date-and-time-value {
 
 @media (min-width: 900px) {
   .request {
-    grid-template-columns: 1.3fr 1fr;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   }
 
   .request__go {
