@@ -48,6 +48,7 @@ export const portal = {
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
   confirmEmail: '/confirm-email',
+  share: '/share',
 } as const;
 
 /** Sign in, then come back to the React profile. */

@@ -30,7 +30,7 @@ public class MemberStatisticsService : IMemberStatisticsService
     /// </summary>
     public async Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime beforeDate)
     {
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var attendanceCounts = await (
             from attendance in ctx.RehearsalAttendances
             join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
@@ -53,7 +53,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var endDateOnly = endDate.Date;
         var nowDate = DateTime.UtcNow.Date;
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var attendanceCounts = await (
             from attendance in ctx.RehearsalAttendances
             join rehearsal in ctx.Rehearsals on attendance.RehearsalId equals rehearsal.Id
@@ -73,7 +73,7 @@ public class MemberStatisticsService : IMemberStatisticsService
     {
         var beforeDateOnly = beforeDate.Date;
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var enrollmentsWithTypes = await (
             from enrollment in ctx.Enrollments
             join evt in ctx.Events on enrollment.EventId equals evt.Id
@@ -100,7 +100,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var endDateOnly = endDate.Date;
         var nowDate = DateTime.UtcNow.Date;
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var enrollmentsWithTypes = await (
             from enrollment in ctx.Enrollments
             join evt in ctx.Events on enrollment.EventId equals evt.Id
@@ -126,7 +126,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var beforeDateOnly = beforeDate.Date;
         var xpConfig = _xpSettings.Value;
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         // Get rehearsal count
         var rehearsalCount = await (
             from attendance in ctx.RehearsalAttendances
@@ -186,7 +186,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var xpConfig = _xpSettings.Value;
         var activities = new List<AttendedActivityDto>();
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         // Get attended rehearsals
         // Must match filters in MemberStatusService.HasActivityInPeriodAsync for consistency
         var rehearsals = await (

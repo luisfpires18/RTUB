@@ -26,12 +26,26 @@ public class PushNotificationService : IPushNotificationService
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
 
+    /// <summary>The named <see cref="HttpClient"/> every send goes through; the host registers it (task 054).</summary>
+    public const string HttpClientName = "WebPush";
+
     public PushNotificationService(
         IPushSubscriptionRepository subscriptionRepository,
         IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
-        : this(subscriptionRepository, userProfileRepository, options, logger, null)
+        : this(subscriptionRepository, userProfileRepository, options, logger, (HttpClient?)null)
+    {
+    }
+
+    /// <summary>The host's constructor: the pooled client from <see cref="IHttpClientFactory"/> (task 054).</summary>
+    public PushNotificationService(
+        IPushSubscriptionRepository subscriptionRepository,
+        IUserProfileRepository userProfileRepository,
+        IOptions<WebPushOptions> options,
+        ILogger<PushNotificationService> logger,
+        IHttpClientFactory httpClientFactory)
+        : this(subscriptionRepository, userProfileRepository, options, logger, httpClientFactory.CreateClient(HttpClientName))
     {
     }
 

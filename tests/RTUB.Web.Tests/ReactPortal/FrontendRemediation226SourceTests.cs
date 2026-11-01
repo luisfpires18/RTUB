@@ -54,7 +54,7 @@ public class FrontendRemediation226SourceTests
     public void ServiceWorker_PrunesOlderBuildsOfAChunk_AndOnlyOnAFirstStore()
     {
         var worker = File.ReadAllText(Path.Combine(Web, "wwwroot", "service-worker.js")).Replace("\r\n", "\n");
-        worker.Should().Contain("const CACHE_VERSION = 'rtub-v2.10.0';");
+        worker.Should().Contain("const CACHE_VERSION = 'rtub-v2.11.0';");
         worker.Should().Contain(@"const HASHED_PORTAL_ASSET = /^\/portal\/assets\/(.+)-[A-Za-z0-9_-]{8}\.(js|css)$/;");
         worker.Should().Contain("if (!cached) {").And.Contain("stored.then(() => pruneOlderBuilds(cache, url))");
         worker.Should().Contain("match[1] === current[1] && match[2] === current[2]", "only the same chunk name and type is pruned");

@@ -11,6 +11,7 @@ import { MentorPicker, MonthYear } from './MemberManage';
 import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } from './memberAreaApi';
 import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState } from './membersApi';
 import { SignOutButton } from './MemberShell';
+import { passkeyApi, passkeysSupported, type MyPasskey } from './passkey';
 import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from './push';
 
 /**
@@ -154,6 +155,7 @@ function MyProfilePage() {
       <InstrumentsSection profile={profile} onChange={(instruments) => setProfile({ ...profile, instruments })} />
       <SubscriptionSection profile={profile} onChange={(subscribed) => setProfile({ ...profile, subscribed })} />
       <PushSection />
+      <PasskeySection />
       <SecuritySection ref={security} onChanged={() => setProfile({ ...profile, requirePasswordChange: false })} />
     </div>
   );
@@ -1015,6 +1017,129 @@ function PushSection() {
         )}
       </div>
       {actions && <div className="push-actions">{actions}</div>}
+      {message && (
+        <p className="note" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="form__error" role="alert">
+          {error}
+        </p>
+      )}
+    </Section>
+  );
+}
+
+// ---------- Face ID / impressão digital (task 057) ----------
+
+function PasskeySection() {
+  const [list, setList] = useState<MyPasskey[] | 'failed'>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const [message, setMessage] = useState<string>();
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string>();
+  const id = useId();
+  const supported = passkeysSupported();
+
+  useEffect(() => {
+    passkeyApi.list().then((o) => setList(o.kind === 'ok' ? o.data : 'failed'));
+  }, []);
+
+  const add = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(undefined);
+    setMessage(undefined);
+    setPasswordError(undefined);
+    if (!password) {
+      setPasswordError('Indica a palavra-passe atual.');
+      return;
+    }
+    setBusy(true);
+    const o = await passkeyApi.add(password);
+    setBusy(false);
+    if (o.kind === 'invalid') setPasswordError(Object.values(o.errors)[0]);
+    else if (o.kind === 'ok') {
+      setPassword('');
+      setList((l) => [...(Array.isArray(l) ? l : []), o.data]);
+      setMessage('Ativado. Da próxima vez, entra com "Entrar com Face ID / impressão digital".');
+    } else if (o.kind === 'exists') setError('Este dispositivo já está ativado.');
+    else if (o.kind === 'full') setError('Já tens o máximo de dispositivos. Remove um antes de juntar outro.');
+    else if (o.kind === 'signin') setError('A sessão terminou. Entra outra vez.');
+    else if (o.kind === 'failed') setError('Não foi possível ativar neste dispositivo. Tenta outra vez.');
+  };
+
+  const remove = async (passkey: MyPasskey) => {
+    setBusy(true);
+    setError(undefined);
+    setMessage(undefined);
+    const o = await passkeyApi.remove(passkey.id);
+    setBusy(false);
+    if (o.kind === 'ok' || o.kind === 'notfound') setList((l) => (Array.isArray(l) ? l.filter((p) => p.id !== passkey.id) : l));
+    else setError(problem(o, 'remover'));
+  };
+
+  let body: ReactNode;
+  if (!list) body = <Loading label="A carregar os dispositivos…" />;
+  else if (list === 'failed') body = <p>Não foi possível ver os dispositivos ativados.</p>;
+  else if (list.length === 0) body = <p>Ainda sem dispositivos ativados.</p>;
+  else
+    body = (
+      <ul className="passkey-list">
+        {list.map((p) => (
+          <li key={p.id}>
+            <span>
+              <strong>{p.name}</strong>
+              <span className="note"> · ativado a {shortDate(p.createdAt)}</span>
+            </span>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => remove(p)} disabled={busy}>
+              <Icon name="trash" />
+              Remover
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+
+  return (
+    <Section id="passkeys" title="Face ID / impressão digital" icon="shield">
+      <p className="note">
+        Entra sem palavra-passe, com o desbloqueio do telemóvel ou do computador (Face ID, impressão digital, Windows
+        Hello). Ativa-se em cada dispositivo; a palavra-passe continua a funcionar.
+      </p>
+      <div className="push-state" role="status" aria-live="polite">
+        {body}
+      </div>
+      {supported ? (
+        <form className="form profile-form" onSubmit={add} noValidate>
+          <div className={passwordError ? 'form__field form__field--error' : 'form__field'}>
+            <label htmlFor={`${id}-password`}>Palavra-passe atual</label>
+            <input
+              id={`${id}-password`}
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={passwordError ? true : undefined}
+            />
+            {passwordError && (
+              <p className="form__error" role="alert">
+                {passwordError}
+              </p>
+            )}
+          </div>
+          <p className="form__hint">Pedida só para ativar, para que ninguém o faça com a tua sessão aberta.</p>
+          <div className="push-actions">
+            <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>
+              <Icon name="shield" />
+              Ativar neste dispositivo
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="note">Este navegador não permite entrar com Face ID ou impressão digital.</p>
+      )}
       {message && (
         <p className="note" role="status">
           {message}

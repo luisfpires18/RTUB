@@ -221,68 +221,10 @@ export type EventEnrollment = {
 
 export type EnrollmentInput = { willAttend: boolean; instrument: string | null; notes: string | null };
 
-/** Every answer maps onto one of these; nothing throws. */
-export type Outcome<T> =
-  | { kind: 'ok'; data: T }
-  | { kind: 'invalid'; errors: Record<string, string> }
-  | { kind: 'signin' }
-  | { kind: 'closed' }
-  | { kind: 'notfound' }
-  | { kind: 'forbidden' }
-  | { kind: 'inuse' }
-  | { kind: 'failed' };
-
-let token: Promise<string> | null = null;
-
-/** One antiforgery token per page load (it is bound to the session). */
-export function antiforgeryToken(refresh = false): Promise<string> {
-  if (!token || refresh) {
-    token = fetch('/api/public/antiforgery-token', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((t: { token: string }) => t.token)
-      .catch((e) => {
-        token = null;
-        throw e;
-      });
-  }
-  return token;
-}
-
-export async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
-  try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (method !== 'GET') headers['X-CSRF-TOKEN'] = await antiforgeryToken();
-    if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
-
-    const r = await fetch(url, {
-      method,
-      headers,
-      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
-      credentials: 'same-origin',
-    });
-    if (r.status === 204) return { kind: 'ok', data: undefined as T };
-    if (r.ok) return { kind: 'ok', data: (await r.json()) as T };
-
-    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]>; type?: string };
-    if (r.status === 400 && problem.errors) {
-      const errors: Record<string, string> = {};
-      for (const [k, v] of Object.entries(problem.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
-      return { kind: 'invalid', errors };
-    }
-    // A refused antiforgery token (expired page, new session): fetch a fresh one and try once more.
-    if (r.status === 400 && method !== 'GET' && !retried) {
-      await antiforgeryToken(true);
-      return call<T>(method, url, body, true);
-    }
-    if (r.status === 401) return { kind: 'signin' };
-    if (r.status === 404) return { kind: 'notfound' };
-    if (r.status === 403) return { kind: 'forbidden' };
-    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : 'closed' };
-    return { kind: 'failed' };
-  } catch {
-    return { kind: 'failed' };
-  }
-}
+// The shared request helper lives in api.ts since task 054 (the shell's unread badge needs it on every page, and
+// importing it from here pulled this whole client into the entry chunk); re-exported for the pages that import it here.
+export { antiforgeryToken, call, type Outcome } from './api';
+import { call } from './api';
 
 export const eventsApi = {
   agenda: () => call<EventAgenda>('GET', '/api/events'),

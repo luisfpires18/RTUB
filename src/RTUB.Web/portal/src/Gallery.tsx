@@ -75,7 +75,10 @@ export default function Gallery() {
       ({ timeline }) => {
         setLoadingMore(false);
         if (!timeline) return setFailed(true);
-        setData(timeline);
+        // The facets (years, people) come with the first page only; later pages keep the ones in hand (task 054).
+        setData((previous) =>
+          page === 1 || !previous ? timeline : { ...timeline, years: previous.years, people: previous.people },
+        );
         setItems((previous) => (page === 1 ? timeline.items : [...previous, ...timeline.items]));
       },
     );

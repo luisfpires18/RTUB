@@ -117,12 +117,14 @@ export default function Events() {
         }
       : undefined;
 
-  const update = (next: Partial<Filters>) =>
-    setFilters((f) => {
-      const merged = { ...f, ...next };
-      filtersToUrl(merged);
-      return merged;
-    });
+  const update = (next: Partial<Filters>) => setFilters((f) => ({ ...f, ...next }));
+
+  // The address follows the filters after a pause: history.replaceState on every keystroke is what Safari throttles
+  // (100 calls per 30 s), and a state updater is no place for it anyway (task 054).
+  useEffect(() => {
+    const timer = setTimeout(() => filtersToUrl(filters), 250);
+    return () => clearTimeout(timer);
+  }, [filters]);
 
   const past = useMemo(() => (agenda ? filterPast(agenda.past, filters) : []), [agenda, filters]);
   const seasons = useMemo(() => groupBySeason(past), [past]);

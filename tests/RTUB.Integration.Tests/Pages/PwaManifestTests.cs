@@ -126,6 +126,41 @@ public class PwaManifestTests : IntegrationTestBase
         startUrl.AbsolutePath.Should().StartWith(scope.AbsolutePath, "start_url must be inside scope");
     }
 
+    /// <summary>
+    /// Task 053 (PWABuilder report card): the install members that are true for RTUB. related_applications names
+    /// the Play Store TWA, so it must agree with the Digital Asset Links file; the share target is the React /share
+    /// page (GET). The members left out were skipped on purpose (docs/pwa-practices.md → PWABuilder) and stay out
+    /// until a real value and a decision exist.
+    /// </summary>
+    [Fact]
+    public async Task Manifest_DeclaresTheInstallExtras_Task053()
+    {
+        using var manifest = JsonDocument.Parse(await _client.GetStringAsync("/manifest.webmanifest"));
+        using var assetLinks = JsonDocument.Parse(await _client.GetStringAsync("/.well-known/assetlinks.json"));
+        var json = manifest.RootElement;
+        var packageName = assetLinks.RootElement[0].GetProperty("target").GetProperty("package_name").GetString();
+
+        json.GetProperty("display_override").EnumerateArray().Select(e => e.GetString()).Should().Equal("standalone", "minimal-ui");
+        json.GetProperty("prefer_related_applications").GetBoolean().Should().BeFalse("the installed PWA is the product; the Play Store app is a TWA of it");
+
+        var related = json.GetProperty("related_applications").EnumerateArray().Should().ContainSingle().Which;
+        related.GetProperty("platform").GetString().Should().Be("play");
+        related.GetProperty("id").GetString().Should().Be(packageName, "the manifest and assetlinks.json name the same Android app");
+        related.GetProperty("url").GetString().Should().Be($"https://play.google.com/store/apps/details?id={packageName}");
+
+        json.GetProperty("edge_side_panel").GetProperty("preferred_width").GetInt32().Should().BeGreaterThanOrEqualTo(320, "the portal is laid out for 320 px and up");
+
+        var share = json.GetProperty("share_target");
+        share.GetProperty("action").GetString().Should().Be("/share");
+        share.GetProperty("method").GetString().Should().Be("GET");
+        share.GetProperty("params").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("title", "text", "url");
+
+        foreach (var skipped in new[] { "iarc_rating_id", "scope_extensions", "file_handlers", "protocol_handlers", "widgets", "note_taking" })
+        {
+            json.TryGetProperty(skipped, out _).Should().BeFalse("{0} was skipped on purpose (docs/pwa-practices.md); add it only with a real value and a decision", skipped);
+        }
+    }
+
     [Fact]
     public async Task ServiceWorker_IsAccessible()
     {
@@ -165,7 +200,7 @@ public class PwaManifestTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task ServiceWorker_HandlesAllFetchEventsWithRespondWith()
+    public async Task ServiceWorker_RespondsOnlyWhereItHasACache()
     {
         // Arrange & Act
         var response = await _client.GetAsync("/service-worker.js");
@@ -178,14 +213,17 @@ public class PwaManifestTests : IntegrationTestBase
         content.Should().Contain("addEventListener('fetch'",
             "service worker must have fetch event listener for PWABuilder detection");
 
-        // Verify event.respondWith is used (PWABuilder requirement)
-        content.Should().Contain("event.respondWith",
-            "service worker must use event.respondWith for all fetch events (PWABuilder requirement)");
-
-        // Count event.respondWith occurrences to ensure all paths are covered
+        // event.respondWith only where the worker has something to add (task 054): images (cache-first), scripts and
+        // stylesheets (cache-first for hashed portal assets, stale-while-revalidate otherwise) and documents (network,
+        // offline.html as the fallback). Everything else - /api, /auth, /hubs, /health, non-GET, non-http and the final
+        // pass-through - returns without respondWith, so the browser fetches it as if no worker were installed and
+        // the worker's start-up stays out of those requests. PWABuilder only needs respondWith to be present.
         var respondWithCount = System.Text.RegularExpressions.Regex.Matches(content, @"event\.respondWith").Count;
-        respondWithCount.Should().BeGreaterThanOrEqualTo(5,
-            "service worker should handle multiple fetch scenarios with event.respondWith");
+        respondWithCount.Should().Be(3, "images, scripts/styles and documents are the three branches that answer");
+        content.Should().NotContain("event.respondWith(fetch(request))",
+            "a bare pass-through through the worker only adds its start-up to the request");
+        System.Text.RegularExpressions.Regex.IsMatch(content, @"isNeverCached\(url\.pathname\)\)\)\s*\{\s*return;")
+            .Should().BeTrue("the never-cached guard must return without answering");
 
         // Verify cache version is present
         content.Should().Contain("CACHE_VERSION", "service worker should have cache versioning");

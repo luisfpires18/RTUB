@@ -99,7 +99,9 @@ function Hero() {
           <picture>
             <source media="(max-width: 599px)" srcSet="/icons/rtub-logo-352.webp" />
             <img
-              src="/images/rtub_logo.webp"
+              src="/images/rtub_logo-512.webp"
+              srcSet="/images/rtub_logo-512.webp 1x, /images/rtub_logo.webp 2x"
+              fetchPriority="high"
               width="512"
               height="512"
               alt="Emblema da RTUB: o Castelo de Bragança sob a lua, com guitarra e bandolim"

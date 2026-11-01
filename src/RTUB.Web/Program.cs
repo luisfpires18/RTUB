@@ -298,51 +298,55 @@ public class Program
         // credential or token work is done.
         app.UseRateLimiter();
 
-        // Serve static files EXCEPT /images/* (handled by ImagesController for E-Tag support)
-        // We'll serve /images through the controller, all other static content through middleware
-        app.UseWhen(
-            context => !context.Request.Path.StartsWithSegments("/images"),
-            appBuilder =>
+        // Static files, /images/* included: ETag, Last-Modified and 304 come from the middleware itself. The
+        // ImagesController that re-implemented them for /images left in task 054, and with it the cookie validation
+        // (three SELECTs) every image request paid by running after UseAuthentication.
+        // Configure content type provider to serve .webmanifest and .well-known files with correct MIME types
+        var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+        provider.Mappings[".webmanifest"] = "application/manifest+json";
+        // Ensure .well-known/assetlinks.json is served as application/json for Android Digital Asset Links
+        provider.Mappings[".json"] = "application/json";
+
+        app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+        {
+            ContentTypeProvider = provider,
+            OnPrepareResponse = ctx =>
             {
-                // Configure content type provider to serve .webmanifest and .well-known files with correct MIME types
-                var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
-                provider.Mappings[".webmanifest"] = "application/manifest+json";
-                // Ensure .well-known/assetlinks.json is served as application/json for Android Digital Asset Links
-                provider.Mappings[".json"] = "application/json";
+                var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-                appBuilder.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+                // Digital Asset Links for Android TWA - minimal caching for verification
+                // FileExtensionContentTypeProvider handles Content-Type automatically
+                if (path.Equals("/.well-known/assetlinks.json"))
                 {
-                    ContentTypeProvider = provider,
-                    OnPrepareResponse = ctx =>
-                    {
-                        var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
-
-                        // Digital Asset Links for Android TWA - minimal caching for verification
-                        // FileExtensionContentTypeProvider handles Content-Type automatically
-                        if (path.Equals("/.well-known/assetlinks.json"))
-                        {
-                            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
-                        }
-                        // Service Worker must always be revalidated so browsers detect updates immediately
-                        // Without this, the SW file gets the 30-day cache and users see stale UI
-                        else if (path.EndsWith("service-worker.js"))
-                        {
-                            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
-                        }
-                        // PWA icons and manifest should have shorter cache to allow updates
-                        else if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
-                        {
-                            // Cache for 1 hour with must-revalidate to ensure updates are picked up
-                            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
-                        }
-                        // Cache other static files for 30 days in production
-                        else if (!app.Environment.IsDevelopment())
-                        {
-                            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
-                        }
-                    }
-                });
-            });
+                    ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
+                }
+                // Service Worker must always be revalidated so browsers detect updates immediately
+                // Without this, the SW file gets the 30-day cache and users see stale UI
+                else if (path.EndsWith("service-worker.js"))
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
+                }
+                // PWA icons and manifest should have shorter cache to allow updates
+                else if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
+                {
+                    // Cache for 1 hour with must-revalidate to ensure updates are picked up
+                    ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
+                }
+                // /images/* (brand assets, the default avatar): revalidated through the middleware's ETag, as the
+                // retired ImagesController answered (task 054). The service worker keeps its own cache-first copy.
+                else if (path.StartsWith("/images/"))
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
+                }
+                // Cache other static files for 30 days in production. The React build's content-hashed
+                // /portal/assets/* never change under their names, so browsers may skip revalidating them (task 054).
+                else if (!app.Environment.IsDevelopment())
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control",
+                        path.StartsWith("/portal/assets/") ? "public,max-age=2592000,immutable" : "public,max-age=2592000");
+                }
+            }
+        });
 
         app.UseAuthentication();
         app.UseAuthorization();
@@ -409,21 +413,14 @@ public class Program
                 user = await userManager.FindByEmailAsync(username);
             }
 
-            if (user is null || !await userManager.IsEmailConfirmedAsync(user))
+            if (user is null)
             {
                 return Fail("Invalid");
             }
 
-            // Check if account is locked out before any other checks
-            if (await userManager.IsLockedOutAsync(user))
+            if (await SignInBlockAsync(user, userManager) is { } blocked)
             {
-                return Fail("Locked");
-            }
-
-            // Check if member has been expelled
-            if (user.IsExpelled)
-            {
-                return Fail("Expelled");
+                return Fail(blocked);
             }
 
             // Check password is valid BEFORE updating last login date to avoid race condition
@@ -437,67 +434,12 @@ public class Program
                 return Fail("Invalid");
             }
 
-            // Password is valid - reset access failed count
-            await userManager.ResetAccessFailedCountAsync(user);
-
-            // Password verified - update last login date BEFORE signing in
-            // This ensures the timestamp is set before the authentication cookie is issued
-            // This fixes the race condition where users could make requests before LastLoginDate was set
-            try
-            {
-                // Set audit context so the audit log shows the correct user instead of "System"
-                auditContext.SetUser(user.UserName, user.Id);
-
-                user.LastLoginDate = DateTime.UtcNow;
-                var updateResult = await userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
-                        user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
-                }
-
-                // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
-                await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
-
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't fail login
-                logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
-            }
-            finally
-            {
-                // Always clear the audit context to prevent leaking to other requests
-                auditContext.Clear();
-            }
-
-            // Sign in the user using SignInAsync (password already validated above)
-            // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
-            // All security checks (lockout, password validation, failed attempt tracking) are handled above
-            await signInManager.SignInAsync(user, remember);
-
-            // Log successful login (use cache to prevent duplicate logs from concurrent requests)
-            var loginLogCacheKey = $"login-success:{user.Id}";
-            if (!cache.TryGetValue(loginLogCacheKey, out _))
-            {
-                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                    user.UserName,
-                    DateTime.UtcNow);
-
-                // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
-                cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
-                });
-            }
-
-            // A local return URL is honoured; anything else (missing, external, malformed) lands on
-            // the members' landing page.
-            var target = MemberLanding(returnUrl);
-            return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
+            return await CompleteSignInAsync(user, remember, returnUrl, wantsJson, signInManager, userManager, db, logger, auditContext, cache);
         })
         .RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);
+
+        // Face ID / fingerprint sign-in (task 057): POST /auth/passkey/options + /auth/passkey/login.
+        app.MapPasskeyEndpoints();
 
         // LOGOUT (HTTP POST)
         // The unused IFormCollection parameter is what enables antiforgery validation — see the
@@ -592,8 +534,10 @@ public class Program
         // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
         // are the "Onde estiveste" modal on /events. The discussion and contact tracking are
         // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
+        // Task 053: /share is the PWA Web Share Target again (React page, public; manifest share_target, GET only, so
+        // a POST answers 405 like /request). Removed in 036, back by the owner's decision.
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery", "/shop",
-                     "/events", "/events/{id:int}", "/news" })
+                     "/events", "/events/{id:int}", "/news", "/share" })
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
@@ -678,10 +622,6 @@ public class Program
             return Results.Content(page, "text/html", System.Text.Encoding.UTF8);
         });
 
-        // Task 036: the Blazor /share (the PWA's share target) is removed with no replacement; the manifest no longer
-        // offers it. An explicit 404, so it can never fall to another route.
-        app.MapMethods("/share", ["GET", "HEAD", "POST"], () => Results.NotFound());
-
         app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
             Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));
 
@@ -740,9 +680,8 @@ public class Program
 
         app.MapMethods("/nerba/event/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/nerba/{id}"));
 
-        // The Blazor /images admin (homepage slideshows) was retired in 029A with no replacement. Without this the bare
-        // URL would fall to ImagesController's catch-all "images/{**imagePath}" (empty path → 400); a literal route is
-        // more specific, so /images is a plain 404 like /labels, and /images/<file> is still served by the controller.
+        // The Blazor /images admin (homepage slideshows) was retired in 029A with no replacement: the bare URL is a plain
+        // 404 like /labels. /images/<file> is a static file (task 054 retired the ImagesController that served it).
         app.MapMethods("/images", ["GET", "HEAD"], () => Results.NotFound());
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
@@ -769,4 +708,94 @@ public class Program
     /// <summary>Where a signed-in member goes: a local return URL, otherwise the (React) events page.</summary>
     internal static string MemberLanding(string? returnUrl) =>
         RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
+
+    /// <summary>
+    /// Why an account may not sign in, whatever the method (password or passkey): <c>Invalid</c> for an
+    /// unconfirmed account, <c>Locked</c>, <c>Expelled</c>; null when it may.
+    /// </summary>
+    internal static async Task<string?> SignInBlockAsync(ApplicationUser user, UserManager<ApplicationUser> userManager)
+    {
+        if (!await userManager.IsEmailConfirmedAsync(user))
+        {
+            return "Invalid";
+        }
+
+        // Check if account is locked out before any other checks
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return "Locked";
+        }
+
+        // Check if member has been expelled
+        return user.IsExpelled ? "Expelled" : null;
+    }
+
+    /// <summary>
+    /// The shared end of every sign-in once the credential (password or passkey) is verified: reset the failed
+    /// count, record the login, issue the cookie, answer { redirect } (JSON) or redirect.
+    /// </summary>
+    internal static async Task<IResult> CompleteSignInAsync(ApplicationUser user, bool remember, string? returnUrl, bool wantsJson,
+        SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext db,
+        ILogger logger, AuditContext auditContext, IMemoryCache cache)
+    {
+        // Credential is valid - reset access failed count
+        await userManager.ResetAccessFailedCountAsync(user);
+
+        // Credential verified - update last login date BEFORE signing in
+        // This ensures the timestamp is set before the authentication cookie is issued
+        // This fixes the race condition where users could make requests before LastLoginDate was set
+        try
+        {
+            // Set audit context so the audit log shows the correct user instead of "System"
+            auditContext.SetUser(user.UserName, user.Id);
+
+            user.LastLoginDate = DateTime.UtcNow;
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
+                    user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
+
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail login
+            logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
+        }
+        finally
+        {
+            // Always clear the audit context to prevent leaking to other requests
+            auditContext.Clear();
+        }
+
+        // Sign in the user using SignInAsync (credential already validated by the caller)
+        // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
+        // All security checks (lockout, password validation, failed attempt tracking) are handled above
+        await signInManager.SignInAsync(user, remember);
+
+        // Log successful login (use cache to prevent duplicate logs from concurrent requests)
+        var loginLogCacheKey = $"login-success:{user.Id}";
+        if (!cache.TryGetValue(loginLogCacheKey, out _))
+        {
+            logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                user.UserName,
+                DateTime.UtcNow);
+
+            // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
+            cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+            });
+        }
+
+        // A local return URL is honoured; anything else (missing, external, malformed) lands on
+        // the members' landing page.
+        var target = MemberLanding(returnUrl);
+        return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
+    }
 }

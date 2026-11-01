@@ -145,7 +145,7 @@ public class UserProfileService : IUserProfileService
             // (prevents FK violations in cascade chains)
             // ===================================================================
 
-            var ctx = _contextFactory.CreateDbContext();
+            await using var ctx = _contextFactory.CreateDbContext();
 
             // Delete GalleryMediaPersonTags for media uploaded by this user (before GalleryMedia)
             var uploadedMediaIds = await ctx.GalleryMedia
@@ -361,7 +361,7 @@ public class UserProfileService : IUserProfileService
         if (string.IsNullOrWhiteSpace(userId))
             return Enumerable.Empty<MemberCategory>();
 
-        var ctx = _contextFactory.CreateDbContext();
+        await using var ctx = _contextFactory.CreateDbContext();
         var user = await ctx.Users
             .AsNoTracking()
             .Where(u => u.Id == userId)

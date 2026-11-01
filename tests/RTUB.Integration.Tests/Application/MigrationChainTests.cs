@@ -2,9 +2,11 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Web.Extensions;
 using Xunit;
 
 namespace RTUB.Integration.Tests;
@@ -41,10 +43,19 @@ public class MigrationChainTests : IDisposable
         _keepAlive.Open();
     }
 
+    /// <summary>
+    /// The host's own Identity registration. Identity shapes its tables from <c>IdentityOptions.Stores</c> in the
+    /// application service provider (schema Version3 adds AspNetUserPasskeys, task 057), so a context built without it
+    /// would compare a Version1 model against the snapshot.
+    /// </summary>
+    private static readonly IServiceProvider IdentityHost =
+        new ServiceCollection().AddLogging().AddIdentityServices().BuildServiceProvider();
+
     private ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(_connectionString, b => b.MigrationsAssembly("RTUB"))
+            .UseApplicationServiceProvider(IdentityHost)
             .Options;
 
         return new ApplicationDbContext(

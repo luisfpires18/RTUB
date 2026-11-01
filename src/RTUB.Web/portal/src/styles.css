@@ -1,12 +1,14 @@
 /* RTUB public-portal pilot. Black stage, one confident purple, ivory type.
    Tokens reuse the live palette (#6f42c1 primary, #3F2A86 theme, #a88ee5 link) - no new hues. */
 
+/* Fraunces: plain static files under wwwroot/fonts (30-day cache) and preloaded from index.html, so they leave with
+   the HTML instead of after the stylesheet is parsed (task 054). Same two faces as before. */
 @font-face {
   font-family: 'Fraunces';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-normal.woff2') format('woff2-variations');
+  src: url('/fonts/fraunces-latin-opsz-normal.woff2') format('woff2-variations');
 }
 
 @font-face {
@@ -14,7 +16,7 @@
   font-style: italic;
   font-weight: 100 900;
   font-display: swap;
-  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-italic.woff2') format('woff2-variations');
+  src: url('/fonts/fraunces-latin-opsz-italic.woff2') format('woff2-variations');
 }
 
 :root {
@@ -5086,6 +5088,7 @@ video.tile__media {
 
 .event-hero__image {
   width: 100%;
+  aspect-ratio: 3 / 2; /* the upload is cropped to 3:2 (EventManage): the hero keeps its height before the image arrives */
   max-height: 420px;
   object-fit: cover;
   border: 1px solid var(--line);
@@ -6598,6 +6601,21 @@ video.tile__media {
 .member-badge--position {
   background: var(--purple);
   color: #fff;
+}
+
+/* Long cargo names ("Presidente Mesa Assembleia") wrap inside the card instead of widening the page. */
+.members-grid > li {
+  min-width: 0;
+}
+
+.members-grid .member-badges {
+  max-width: 100%;
+}
+
+.members-grid .member-badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .members-more {
@@ -10976,6 +10994,24 @@ video.tile__media {
   gap: 10px;
 }
 
+/* Face ID / fingerprint devices in /profile (task 057) */
+.passkey-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- Naipes (/naipes) and their settings (/naipes/config), task 033 ---------- */
 
 .naipe-picker {
@@ -14374,4 +14410,11 @@ html.app-screen .footer {
 .talk__name .tag--private {
   margin-left: 8px;
   vertical-align: middle;
+}
+
+/* /share (053): the Web Share Target page, copy and back side by side. */
+.share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }

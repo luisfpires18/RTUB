@@ -58,7 +58,7 @@ public class NominatimGeocodingServiceTests
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
         var cityName = "TestCity";
 
         // Act
@@ -95,7 +95,7 @@ public class NominatimGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
 
         // Act
         var result = await service.GetCoordinatesAsync("Lisboa", "PT");
@@ -113,7 +113,7 @@ public class NominatimGeocodingServiceTests
         var config = new ConfigurationBuilder().Build();
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
         var cityName = "";
 
         // Act
@@ -130,7 +130,7 @@ public class NominatimGeocodingServiceTests
         var config = new ConfigurationBuilder().Build();
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
         var cityName = "   ";
 
         // Act
@@ -147,7 +147,7 @@ public class NominatimGeocodingServiceTests
         var config = new ConfigurationBuilder().Build();
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
         string? cityName = null;
 
         // Act
@@ -170,7 +170,7 @@ public class NominatimGeocodingServiceTests
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
 
         // Act
         var result = await service.GetCoordinatesAsync("Bragança", "PT");
@@ -194,7 +194,7 @@ public class NominatimGeocodingServiceTests
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
 
         // Act - Test case insensitivity
         var result = await service.GetCoordinatesAsync("BRAGANÇA", "PT");
@@ -218,7 +218,7 @@ public class NominatimGeocodingServiceTests
 
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(dbContext), config);
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, WrapInFactory(scope.ServiceProvider), config);
 
         // Act - First call should use fallback and store in cache
         var result1 = await service.GetCoordinatesAsync("Bragança", "PT");
@@ -245,10 +245,15 @@ public class NominatimGeocodingServiceTests
         result2.Value.Longitude.Should().Be(-6.75719);
     }
 
-    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(ApplicationDbContext dbContext)
+    /// <summary>A fresh context per call on the test's in-memory database: the service disposes each one (task 054).</summary>
+    private static IDbContextFactory<ApplicationDbContext> WrapInFactory(IServiceProvider scope)
     {
         var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
-        mock.Setup(f => f.CreateDbContext()).Returns(dbContext);
+        mock.Setup(f => f.CreateDbContext()).Returns(() => new ApplicationDbContext(
+            scope.GetRequiredService<DbContextOptions<ApplicationDbContext>>(),
+            scope.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+            new RTUB.Application.Services.AuditContext(),
+            new RTUB.Application.Services.AuditLogAppender()));
         return mock.Object;
     }
 }

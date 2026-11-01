@@ -1,8 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Helpers;
@@ -10,8 +12,9 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Schedules the member status reconciliation (<see cref="IMemberStatusService.ReconcileAllMemberStatusesAsync"/>): once on
-/// startup, then daily at MemberStatusUpdate:ScheduledTime (local time from the injected <see cref="TimeProvider"/>).
+/// Schedules the member status reconciliation (<see cref="IMemberStatusService.ReconcileAllMemberStatusesAsync"/>): on
+/// startup only while the MemberStatus table is empty (task 054), then daily at MemberStatusUpdate:ScheduledTime (local
+/// time from the injected <see cref="TimeProvider"/>).
 /// Orchestration only - the rules live in <see cref="MemberActivityStatusEvaluator"/>.
 /// </summary>
 public class MemberStatusUpdateBackgroundService : BackgroundService
@@ -43,9 +46,13 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
 
         _logger.LogInformation("Member Status Update Background Service is starting. Scheduled time: {ScheduledTime}", _options.ScheduledTime);
 
-        // Run initial update on startup to ensure data is available immediately
-        // This is especially important after deployment or migration
-        await RunUpdateAsync();
+        // The first run on startup only while the table is empty (a fresh database, or the first boot after the
+        // MemberStatus migration): otherwise yesterday's reconciliation is in place and the daily run is enough. A boot
+        // used to pay about two commands per member here, on the cold-start path (task 054).
+        if (await MemberStatusesAreEmptyAsync(stoppingToken))
+        {
+            await RunUpdateAsync();
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -80,6 +87,24 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         }
 
         _logger.LogInformation("Member Status Update Background Service is stopping");
+    }
+
+    /// <summary>Whether the table has no row yet; a failed check answers true, so a boot never skips the run by mistake.</summary>
+    private async Task<bool> MemberStatusesAreEmptyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            await using var db = await scope.ServiceProvider
+                .GetRequiredService<IDbContextFactory<ApplicationDbContext>>()
+                .CreateDbContextAsync(cancellationToken);
+            return !await db.MemberStatuses.AnyAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not check the MemberStatus table on startup; running the initial update");
+            return true;
+        }
     }
 
     /// <summary>One reconciliation run in its own scope; never throws (the scheduler goes on). Internal for the tests.</summary>

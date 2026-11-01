@@ -1,5 +1,5 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { getAnnouncement, getCurrentUser, getVersion, wasSignedIn, type Announcement, type CurrentUser } from './api';
+import { getAnnouncement, getCurrentUser, wasSignedIn, type Announcement, type CurrentUser } from './api';
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
 import { Icon } from './icons';
@@ -340,30 +340,14 @@ function Footer() {
   );
 }
 
-function useVersion() {
-  const [state, setState] = useState<{ version?: string; failed?: boolean }>({});
-
-  useEffect(() => {
-    let live = true;
-    getVersion().then(
-      (version) => live && setState({ version }),
-      () => live && setState({ failed: true }),
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-
-  return state;
-}
-
+/** The build the footer shows. It rides on /api/account/me (task 054), so a page load asks nothing extra for it. */
 function VersionTag() {
-  const state = useVersion();
+  const { user, failed } = useCurrentUser();
 
-  if (state.failed) return <p className="version">Versão indisponível</p>;
+  if (failed) return <p className="version">Versão indisponível</p>;
   return (
-    <p className="version" aria-busy={!state.version}>
-      {state.version ? `Versão ${state.version}` : 'A obter versão…'}
+    <p className="version" aria-busy={!user}>
+      {user ? `Versão ${user.version}` : 'A obter versão…'}
     </p>
   );
 }

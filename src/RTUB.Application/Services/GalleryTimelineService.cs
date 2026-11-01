@@ -36,7 +36,11 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         await using var db = await _contexts.CreateDbContextAsync();
         var visible = Visible(db, isMember);
 
-        var years = await visible.Select(m => m.Year).Distinct().OrderByDescending(y => y).ToListAsync();
+        // The facets (years, tagged people) come with the first page only; the client keeps them while it loads more
+        // (task 054: three queries fewer per "Mostrar mais").
+        var years = page == 1
+            ? await visible.Select(m => m.Year).Distinct().OrderByDescending(y => y).ToListAsync()
+            : new List<int>();
 
         var filtered = visible;
         if (query.Year is { } year)
@@ -71,7 +75,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
             .ToListAsync();
 
         var tags = isMember ? await TagsAsync(db, rows.Select(m => m.Id).ToList()) : null;
-        var people = isMember ? await TaggedPeopleAsync(db) : Array.Empty<GalleryPersonDto>();
+        var people = isMember && page == 1 ? await TaggedPeopleAsync(db) : Array.Empty<GalleryPersonDto>();
 
         return new GalleryTimelineDto(
             isMember,

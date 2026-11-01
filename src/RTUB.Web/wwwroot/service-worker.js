@@ -18,7 +18,10 @@
 // so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
 // v2.10.0 (#226 F09 / F15): the 192 / 512 icons were recompressed (same picture, ~85% smaller) and hashed portal assets
 // are now pruned per chunk (see pruneOlderBuilds), so the dynamic cache no longer grows with every release.
-const CACHE_VERSION = 'rtub-v2.10.0';
+// v2.11.0 (task 054): hashed portal assets are cache-first (never revalidated), navigations use navigation preload, and
+// /api, /auth, /hubs, /health and non-http requests are left to the browser (no respondWith), so the worker is out of
+// their path. New names, so installed clients drop the stale-while-revalidate copies.
+const CACHE_VERSION = 'rtub-v2.11.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -116,6 +119,11 @@ self.addEventListener('activate', (event) => {
                 );
             })
             .then(() => {
+                // Navigation preload (task 054): the browser starts the navigation request while this worker boots,
+                // and the document branch of the fetch handler takes it (event.preloadResponse) instead of fetching again.
+                return self.registration.navigationPreload ? self.registration.navigationPreload.enable() : undefined;
+            })
+            .then(() => {
                 // Claim clients immediately for better offline support
                 return clients.claim();
             })
@@ -136,10 +144,8 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
     
     // Skip non-HTTP(S) requests (e.g., chrome-extension://, moz-extension://)
-    // Cache API only supports http and https schemes
-    // Pass through to network without caching
+    // Cache API only supports http and https schemes; the browser handles them on its own (no respondWith, task 054)
     if (!url.protocol.startsWith('http')) {
-        event.respondWith(fetch(request));
         return;
     }
     
@@ -150,8 +156,9 @@ self.addEventListener('fetch', (event) => {
     //  - our own /api, /auth, /hubs and /health paths
     // The prefix test is scoped to same-origin so a third-party URL that happens to
     // carry an '/api/...' path is judged on its own merits further down.
+    // No respondWith (task 054): the browser fetches these as if no worker were installed, so the shell's polls and
+    // every API call stop waiting for the worker to wake and relay them.
     if (request.method !== 'GET' || (isSameOrigin && isNeverCached(url.pathname))) {
-        event.respondWith(fetch(request));
         return;
     }
     
@@ -187,7 +194,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Cache strategy for static assets (CSS, JS): Stale While Revalidate
+    // Cache strategy for static assets (CSS, JS): the content-hashed portal assets are cache-first, everything else
+    // stale-while-revalidate.
     if (request.destination === 'style' || request.destination === 'script' ||
         url.pathname.match(/\.(css|js)$/i)) {
         event.respondWith(
@@ -195,6 +203,12 @@ self.addEventListener('fetch', (event) => {
                 .then((cache) => {
                     return cache.match(request)
                         .then((cached) => {
+                            // A hashed portal asset never changes under its name: the cached copy is the answer, with
+                            // no revalidation fetch and no cache write per page load (task 054).
+                            if (cached && HASHED_PORTAL_ASSET.test(url.pathname)) {
+                                return cached;
+                            }
+
                             const fetchPromise = fetch(request)
                                 .then((response) => {
                                     if (response && response.status === 200) {
@@ -231,8 +245,11 @@ self.addEventListener('fetch', (event) => {
     if (isSameOrigin &&
         (request.destination === 'document' || url.pathname === '/' ||
          !url.pathname.includes('.'))) {
+        // Navigation preload (enabled on activate): the browser's own request for this navigation, already in flight
+        // while the worker was starting; a fresh fetch only where there is none (task 054).
+        const preloaded = event.preloadResponse ? event.preloadResponse.then((response) => response || fetch(request)) : fetch(request);
         event.respondWith(
-            fetch(request).catch(() => {
+            preloaded.catch(() => {
                 return caches.match('/offline.html').then((offline) => {
                     return offline || new Response(
                         'Sem ligacao.',
@@ -248,9 +265,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Fallback for any other requests: pass through to network
-    // This ensures all fetch events are handled with respondWith
-    event.respondWith(fetch(request));
+    // Fallback for any other requests (fonts, the manifest, cross-origin scripts): the browser's own fetch, untouched.
+    // Nothing to add, so no respondWith (task 054).
 });
 
 // ---------- Web Push (task 038, docs/react-push-v2.md) ----------

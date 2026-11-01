@@ -133,6 +133,16 @@ public class AccountRecoveryService
         }
 
         var result = await _users.ResetPasswordAsync(user, input.Code, input.Password!);
+        if (result.Succeeded)
+        {
+            // A reset is how a member takes back a lost or taken-over account: the Face ID / fingerprint passkeys go
+            // with the old password, so none planted by someone else survives it (task 057).
+            foreach (var passkey in await _users.GetPasskeysAsync(user))
+            {
+                await _users.RemovePasskeyAsync(user, passkey.CredentialId);
+            }
+        }
+
         return result.Succeeded
             ? EventResult<AccountRecoveryResult>.Ok(new AccountRecoveryResult(true,
                 "A sua palavra-passe foi redefinida com sucesso. Pode agora fazer login com a nova palavra-passe."))
