@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-01 (2.2.0 released to PROD; `dev` on 2.2.1)_
+_Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
 **Released to PROD: 2.2.0** (MINOR: features; merge `44abad0c`, tag `v2.2.0`, `/api/version` verified; `master` merged back, `dev` on 2.2.1) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
@@ -11,7 +11,9 @@ badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasske
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
 Real-device passkey check (iPhone, Android, TWA) still open.
 
-**Task 058 = push deep links** (`feat/058/push-deep-links`, not merged). A tapped push opens the item, not a list or
+**Released to PROD: 2.3.0** (MINOR; PR #237, merge commit; `master` merged back, `dev` on 2.3.1) = task 058.
+
+**Task 058 = push deep links** (`feat/058/push-deep-links`, merged into `dev` and released in 2.3.0). A tapped push opens the item, not a list or
 the home page: `PushNotificationFactory` builds **relative** links to `/events/{id}`, `/events/{id}/discussion`,
 `/rehearsals/{id}`, `/meetings?meeting={id}` (new: opens the details), `/music/albums/{id}`, `/gallery?item={id}`,
 `/naipes?instrument=` (no base URL anywhere: Host-built absolute links failed the worker's same-origin check from
