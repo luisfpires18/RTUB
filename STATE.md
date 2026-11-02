@@ -27,7 +27,7 @@ Also in 058: "Novo 1º Lugar" now sends (Mondays, all-time leader vs the last on
 (`MemberStatusUpdate:PushNotificationsEnabled=true`) and sent only by the scheduled daily run, never by triggers, the
 Owner sync or a member's first evaluation.
 
-**Task 059 = Mod create / edit (in progress, `feat/059/mod-create-edit-permissions`, not merged).** A Mod now creates and edits events (fields + image),
+**Task 059 = Mod create / edit (`feat/059/mod-create-edit-permissions`, merged into `dev`, not released).** A Mod now creates and edits events (fields + image),
 rehearsals (one, a range, edit) and news (write, publish, unpublish), shop products (edit, images) and shop reservations (see, delete). Delete (news, products), cancel,
 notices, publish and the rest stay Admin / Owner. New flags `canEdit` (events, rehearsals), `canWrite` (news), `canManageReservations` (shop);
 docs: `docs/permissions/*`, `docs/react-{events,rehearsals,news,shop}.md`. No schema change, no migration. Shop: there is still no "add a reservation for
