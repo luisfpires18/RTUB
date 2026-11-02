@@ -1,5 +1,4 @@
 using System;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -29,7 +28,6 @@ public class SongService : ISongService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public SongService(
         ISongRepository songRepository,
@@ -40,7 +38,6 @@ public class SongService : ISongService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor,
         ILogger<SongService>? logger = null)
     {
         _songRepository = songRepository;
@@ -52,7 +49,6 @@ public class SongService : ISongService
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Song?> GetSongByIdAsync(int id)
@@ -246,12 +242,9 @@ public class SongService : ISongService
         {
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
             var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
-            var baseUrl = GetBaseUrl();
-
             var notification = _pushNotificationFactory.CreateSongVideoUploadNotification(
                 song,
-                uploaderName,
-                baseUrl);
+                uploaderName);
 
             // Get the album to check if it's exclusive
             var album = await _albumRepository.GetByIdAsync(song.AlbumId);
@@ -332,15 +325,5 @@ public class SongService : ISongService
         using var context = _contextFactory.CreateDbContext();
         context.SongPlayCounts.Add(playCount);
         await context.SaveChangesAsync();
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

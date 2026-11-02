@@ -21,7 +21,6 @@ public class MeetingRequestServiceTests
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<ILogger<MeetingRequestService>> _mockLogger;
     private readonly MeetingRequestService _service;
 
@@ -30,7 +29,6 @@ public class MeetingRequestServiceTests
         _repositoryMock = new Mock<IMeetingRequestRepository>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
-        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
         _mockLogger = new Mock<ILogger<MeetingRequestService>>();
 
@@ -39,7 +37,6 @@ public class MeetingRequestServiceTests
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
             _mockUserManager.Object,
-            _mockHttpContextAccessor.Object,
             _mockLogger.Object);
     }
 

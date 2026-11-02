@@ -556,7 +556,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             PushTunoOptions(meeting, users).Select(TunoOption).ToList()));
     }
 
-    public async Task<EventResult<MeetingNoticeResultDto>> SendPushAsync(int id, MeetingPushInput input, ClaimsPrincipal user, string baseUrl)
+    public async Task<EventResult<MeetingNoticeResultDto>> SendPushAsync(int id, MeetingPushInput input, ClaimsPrincipal user)
     {
         var (access, refusal) = await AccessAsync(user);
         if (access is null)
@@ -604,7 +604,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             recipients.Add(tuno);
         }
 
-        var notification = _pushFactory.CreateMeetingCustomNotification(meeting, message, baseUrl);
+        var notification = _pushFactory.CreateMeetingCustomNotification(meeting, message);
         var sentCount = 0;
         foreach (var recipient in recipients)
         {
@@ -1302,7 +1302,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
         return EventResult<bool>.Ok(true);
     }
 
-    public async Task<EventResult<bool>> RemindRequestAsync(int requestId, ClaimsPrincipal user, string baseUrl)
+    public async Task<EventResult<bool>> RemindRequestAsync(int requestId, ClaimsPrincipal user)
     {
         var (request, refusal) = await OwnRequestAsync(requestId, user);
         if (request is null)
@@ -1315,7 +1315,7 @@ public sealed class MeetingBoardService : IMeetingBoardService
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
 
-        return await _requests.SendReminderNotificationAsync(request.Id, baseUrl)
+        return await _requests.SendReminderNotificationAsync(request.Id)
             ? EventResult<bool>.Ok(true)
             : EventResult<bool>.Invalid("notice", "Não foi possível enviar o lembrete.");
     }

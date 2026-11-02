@@ -50,7 +50,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         // Mock dependencies for EventService and SongService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -64,7 +63,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         _albumService = new AlbumService(new AlbumRepository(_fixture.CreateContextFactory()), _mockImageStorageService.Object);
@@ -79,8 +77,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
             _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockUserManager.Object,
-            mockHttpContextAccessor.Object);
+            mockUserManager.Object);
     }
 
     [Fact]

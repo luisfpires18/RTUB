@@ -153,7 +153,6 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                     .ToHashSet()
                 : new HashSet<string>();
 
-            var baseUrl = "/";
             var sentCount = 0;
 
             foreach (var user in allUsers)
@@ -169,7 +168,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
                     // Create personalized notification with user-specific meeting count
                     var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
-                        eventCount, rehearsalCount, userMeetingCount, baseUrl);
+                        eventCount, rehearsalCount, userMeetingCount);
 
                     await pushNotificationService.SendToUserAsync(user.Id, notification);
                     sentCount++;

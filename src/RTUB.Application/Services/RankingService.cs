@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -23,7 +22,6 @@ public class RankingService : IRankingService
     private readonly IOptions<RankingConfiguration> _rankingConfig;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<RankingService> _logger;
 
     public RankingService(
@@ -33,7 +31,6 @@ public class RankingService : IRankingService
         IOptions<RankingConfiguration> config,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor,
         ILogger<RankingService> logger)
     {
         _attendanceRepository = attendanceRepository;
@@ -42,7 +39,6 @@ public class RankingService : IRankingService
         _rankingConfig = config;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -156,12 +152,10 @@ public class RankingService : IRankingService
             // This user has surpassed the previous 1st place
             try
             {
-                var baseUrl = GetBaseUrl();
                 var userNickname = user.Nickname ?? user.FirstName ?? "Utilizador";
                 var notification = _pushNotificationFactory.CreateLeaderboardFirstPlaceNotification(
                     userNickname,
-                    level,
-                    baseUrl);
+                    level);
 
                 // Broadcast to all users
                 await _pushNotificationService.BroadcastAsync(notification);
@@ -313,15 +307,5 @@ public class RankingService : IRankingService
             ProgressPercentage = Math.Min(100, Math.Max(0, progressPercentage)),
             IsMaxLevel = isMaxLevel
         };
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

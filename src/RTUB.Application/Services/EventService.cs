@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -28,7 +27,6 @@ public class EventService : IEventService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     public EventService(
@@ -40,7 +38,6 @@ public class EventService : IEventService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor,
         IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _eventRepository = eventRepository;
@@ -51,7 +48,6 @@ public class EventService : IEventService
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor;
         _contextFactory = contextFactory;
     }
 
@@ -247,12 +243,9 @@ public class EventService : IEventService
         {
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
             var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
-            var baseUrl = GetBaseUrl();
-
             var notification = _pushNotificationFactory.CreateEventVideoUploadNotification(
                 eventEntity,
-                uploaderName,
-                baseUrl);
+                uploaderName);
 
             // Get all users (excluding the uploader)
             var allUserIds = await _userManager.Users
@@ -340,15 +333,5 @@ public class EventService : IEventService
     public async Task<int> GetVideoCountByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

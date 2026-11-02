@@ -242,7 +242,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
             all.Count(u => u.Subscribed), all.Count, few.Count(u => u.Subscribed), few.Count));
     }
 
-    public async Task<EventResult<RehearsalNoticeResultDto>> SendNoticeAsync(int id, RehearsalNoticeInput input, ClaimsPrincipal user, string baseUrl)
+    public async Task<EventResult<RehearsalNoticeResultDto>> SendNoticeAsync(int id, RehearsalNoticeInput input, ClaimsPrincipal user)
     {
         if (await RefusalAsync<RehearsalNoticeResultDto>(id, user) is { } refused)
         {
@@ -268,7 +268,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
             return EventResult<RehearsalNoticeResultDto>.Invalid("message", "Ninguém deste grupo tem as notificações ativas.");
         }
 
-        var notification = _pushFactory.CreateRehearsalNotification(r, message, baseUrl);
+        var notification = _pushFactory.CreateRehearsalNotification(r, message);
         var (sent, failed) = await _push.SendToSelectedUsersAsync(recipients, notification);
 
         try

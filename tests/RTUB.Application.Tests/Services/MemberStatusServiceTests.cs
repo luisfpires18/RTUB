@@ -32,8 +32,8 @@ public sealed class MemberStatusServiceTests : IDisposable
 
     public MemberStatusServiceTests()
     {
-        _pushFactory.Setup(f => f.CreateMemberReactivatedNotification(It.IsAny<string>(), It.IsAny<string>())).Returns(new SendPushNotificationDto());
-        _pushFactory.Setup(f => f.CreateMemberRetirementWarningNotification(It.IsAny<string>(), It.IsAny<string>())).Returns(new SendPushNotificationDto());
+        _pushFactory.Setup(f => f.CreateMemberReactivatedNotification(It.IsAny<string>())).Returns(new SendPushNotificationDto());
+        _pushFactory.Setup(f => f.CreateMemberRetirementWarningNotification(It.IsAny<string>())).Returns(new SendPushNotificationDto());
     }
 
     private MemberStatusService Service()

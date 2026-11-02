@@ -27,8 +27,8 @@ public interface IEventAgendaService
     /// <summary>One event for the Admin/Owner edit form.</summary>
     Task<EventResult<EventEditDto>> GetEventForEditAsync(int id, ClaimsPrincipal user);
 
-    /// <summary>Creates an event (Admin/Owner) and announces it by push, as the old form did; <paramref name="baseUrl"/> builds the push link.</summary>
-    Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user, string baseUrl);
+    /// <summary>Creates an event (Admin/Owner) and announces it by push, as the old form did; the push opens the new event.</summary>
+    Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user);
 
     /// <summary>Updates an event's details (Admin/Owner); image, cancellation and answers are kept.</summary>
     Task<EventResult<EventSummaryDto>> UpdateEventAsync(int id, EventInput input, ClaimsPrincipal user);

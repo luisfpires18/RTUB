@@ -242,7 +242,7 @@ public sealed class EventAdminService : IEventAdminService
         return input.Channel switch
         {
             "email" => await SendEmailNoticeAsync(e, input, baseUrl),
-            "push" => await SendPushNoticeAsync(e, input, user, baseUrl),
+            "push" => await SendPushNoticeAsync(e, input, user),
             _ => EventResult<EventNoticeResultDto>.Invalid("channel", "Escolha email ou push."),
         };
     }
@@ -271,7 +271,7 @@ public sealed class EventAdminService : IEventAdminService
             : EventResult<EventNoticeResultDto>.Invalid("notice", sent.Error);
     }
 
-    private async Task<EventResult<EventNoticeResultDto>> SendPushNoticeAsync(Event e, EventNoticeInput input, ClaimsPrincipal user, string baseUrl)
+    private async Task<EventResult<EventNoticeResultDto>> SendPushNoticeAsync(Event e, EventNoticeInput input, ClaimsPrincipal user)
     {
         var message = input.Message?.Trim();
         if (string.IsNullOrEmpty(message))
@@ -294,7 +294,7 @@ public sealed class EventAdminService : IEventAdminService
             return EventResult<EventNoticeResultDto>.Invalid("notice", "Nenhum membro deste público tem as notificações push ativas.");
         }
 
-        var (sent, failed) = await _push.SendToSelectedUsersAsync(recipients, _pushFactory.CreateEventCustomNotification(e, message, baseUrl));
+        var (sent, failed) = await _push.SendToSelectedUsersAsync(recipients, _pushFactory.CreateEventCustomNotification(e, message));
 
         // Audited as the old page did; an audit failure never turns a sent notice into an error.
         try

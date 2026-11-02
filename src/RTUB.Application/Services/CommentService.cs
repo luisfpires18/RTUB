@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -24,7 +23,6 @@ public class CommentService : ICommentService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IUserProfileService _userProfileService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CommentService(
         ICommentRepository commentRepository,
@@ -36,8 +34,7 @@ public class CommentService : ICommentService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IEnrollmentRepository enrollmentRepository,
-        IUserProfileService userProfileService,
-        IHttpContextAccessor httpContextAccessor)
+        IUserProfileService userProfileService)
     {
         _commentRepository = commentRepository;
         _commentImageRepository = commentImageRepository;
@@ -49,7 +46,6 @@ public class CommentService : ICommentService
         _pushNotificationService = pushNotificationService;
         _enrollmentRepository = enrollmentRepository;
         _userProfileService = userProfileService;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Comment?> GetByIdAsync(int id)
@@ -97,14 +93,13 @@ public class CommentService : ICommentService
                     var authorUser = await _userProfileService.GetUserByIdAsync(authorId);
                     if (authorUser != null)
                     {
-                        var baseUrl = GetBaseUrl();
                         var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
 
                         // Send comment notification to post owner + previous commenters (only for future events)
                         if (discussion.Event.Date >= DateTime.UtcNow)
                         {
                             var notification = _pushNotificationFactory.CreateDiscussionCommentNotification(
-                                discussion.Event, authorNickname, post.Title, baseUrl);
+                                discussion.Event, authorNickname, post.Title);
 
                             var previousCommenterIds = await _commentRepository.QueryAsync(q => q
                                 .Where(c => c.PostId == postId && !c.IsDeleted && c.AuthorId != authorId)
@@ -129,7 +124,7 @@ public class CommentService : ICommentService
                             if (mentions != null)
                             {
                                 var mentionNotification = _pushNotificationFactory.CreateMentionNotification(
-                                    discussion.Event, authorNickname, post.Title, isComment: true, baseUrl);
+                                    discussion.Event, authorNickname, post.Title, isComment: true);
                                 foreach (var mentionedUserId in mentions.Values.Where(id => id != authorId))
                                 {
                                     await _pushNotificationService.SendToUserAsync(mentionedUserId, mentionNotification);
@@ -148,15 +143,6 @@ public class CommentService : ICommentService
         return createdComment;
     }
 
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
-    }
 
     public async Task UpdateAsync(int id, string body, string? mentionsJson = null)
     {

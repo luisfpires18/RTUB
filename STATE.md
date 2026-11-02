@@ -11,6 +11,16 @@ badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasske
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
 Real-device passkey check (iPhone, Android, TWA) still open.
 
+**Task 058 = push deep links** (`feat/058/push-deep-links`, not merged). A tapped push opens the item, not a list or
+the home page: `PushNotificationFactory` builds **relative** links to `/events/{id}`, `/events/{id}/discussion`,
+`/rehearsals/{id}`, `/meetings?meeting={id}` (new: opens the details), `/music/albums/{id}`, `/gallery?item={id}`,
+`/naipes?instrument=` (no base URL anywhere: Host-built absolute links failed the worker's same-origin check from
+`www.rtub.pt` / `azurewebsites.net` and opened `/`; also closes the 034 forged-Host push-link finding; the dead
+`GetBaseUrl` / `IHttpContextAccessor` in 11 services went with it). Worker `rtub-v2.12.0` stores the tap's target for
+60 s and `sw-register.js` follows it on load / resume (iOS Home Screen, TWA cold start). Catalogue of every push +
+the designed per-category opt-out (next task, needs a migration): `docs/push-notifications.md`. No schema change.
+Real-device tap check (iPhone Home Screen, Android TWA) open.
+
 **Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
 perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /
 impressão digital" on `/login`; password login unchanged. Migration `AddUserPasskeys` (additive table

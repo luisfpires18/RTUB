@@ -67,7 +67,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(_config);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -79,7 +78,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             _mockLogger.Object);
     }
 
@@ -851,7 +849,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(_config);
@@ -864,11 +861,10 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             mockLogger.Object);
 
         mockPushNotificationFactory
-            .Setup(x => x.CreateLeaderboardFirstPlaceNotification(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Setup(x => x.CreateLeaderboardFirstPlaceNotification(It.IsAny<string>(), It.IsAny<int>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         // Act
@@ -881,7 +877,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Verify notification was sent
         mockPushNotificationFactory.Verify(
-            x => x.CreateLeaderboardFirstPlaceNotification("New Leader", 2, It.IsAny<string>()),
+            x => x.CreateLeaderboardFirstPlaceNotification("New Leader", 2),
             Times.Once);
         mockPushNotificationService.Verify(
             x => x.BroadcastAsync(It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
@@ -912,7 +908,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockUserManager = MockHelpers.CreateMockUserManager();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(emptyConfig);
@@ -925,7 +920,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             mockLogger.Object);
 
         // Act
@@ -949,7 +943,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockUserManager = MockHelpers.CreateMockUserManager();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(nullConfig);
@@ -962,7 +955,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             mockLogger.Object);
 
         // Act

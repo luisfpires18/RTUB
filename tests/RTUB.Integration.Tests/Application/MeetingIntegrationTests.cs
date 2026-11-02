@@ -36,14 +36,12 @@ public class MeetingIntegrationTests : IDisposable
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _meetingService = new MeetingService(
             new MeetingRepository(factory),
             factory,
             mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockPushNotificationService.Object);
     }
 
     #region Meeting Lifecycle Tests

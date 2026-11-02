@@ -65,7 +65,7 @@ public static class MeetingEndpoints
             ToResult(await service.GetPushDraftAsync(id, http.User)));
 
         writes.MapPost("/{id:int}/push", async (int id, MeetingPushInput input, HttpContext http, IMeetingBoardService service) =>
-                ToResult(await service.SendPushAsync(id, input, http.User, BaseUrl(http))))
+                ToResult(await service.SendPushAsync(id, input, http.User)))
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
         // ---------- participations ----------
@@ -129,10 +129,8 @@ public static class MeetingEndpoints
             ToResult(await service.DeleteRequestAsync(requestId, http.User), _ => Results.NoContent()));
 
         writes.MapPost("/requests/{requestId:int}/reminder", async (int requestId, HttpContext http, IMeetingBoardService service) =>
-            ToResult(await service.RemindRequestAsync(requestId, http.User, BaseUrl(http)), _ => Results.NoContent()));
+            ToResult(await service.RemindRequestAsync(requestId, http.User), _ => Results.NoContent()));
     }
-
-    private static string BaseUrl(HttpContext http) => $"{http.Request.Scheme}://{http.Request.Host}";
 
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
     {

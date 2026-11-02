@@ -352,14 +352,14 @@ public class MemberStatusService : IMemberStatusService
             var nickname = user.Nickname ?? user.UserName ?? "Membro";
             if (evaluation is { Changed: true, IsRetired: false })
             {
-                await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname, "/"));
+                await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname));
             }
 
             // The warning once, when an active member enters the last month - not on every run while in it. A stored 0
             // is the old countdown's final partial month (now 1), already warned when it passed 1: no second warning.
             if (!result.IsRetired && result.ProgressMonths == 1 && previousProgressMonths is not (1 or 0))
             {
-                await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname, "/"));
+                await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname));
             }
         }
         catch (Exception ex)

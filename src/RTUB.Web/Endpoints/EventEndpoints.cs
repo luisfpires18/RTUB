@@ -50,7 +50,7 @@ public static class EventEndpoints
         var writes = events.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
 
         writes.MapPost("/", async (EventInput input, HttpContext http, IEventAgendaService service) =>
-                ToResult(await service.CreateEventAsync(input, http.User, BaseUrl(http)),
+                ToResult(await service.CreateEventAsync(input, http.User),
                     created => Results.Created($"/api/events/{created.Id}", created)))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 

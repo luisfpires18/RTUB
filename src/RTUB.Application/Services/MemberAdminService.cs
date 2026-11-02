@@ -418,7 +418,7 @@ public sealed class MemberAdminService : IMemberAdminService
         return EventResult<bool>.Ok(true);
     }
 
-    public async Task<EventResult<bool>> SendReminderAsync(string id, string baseUrl, ClaimsPrincipal user)
+    public async Task<EventResult<bool>> SendReminderAsync(string id, ClaimsPrincipal user)
     {
         var (member, refused) = await MemberAsync<bool>(id, user);
         if (refused is not null)
@@ -432,7 +432,7 @@ public sealed class MemberAdminService : IMemberAdminService
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
 
-        await _push.SendToUserAsync(id, _pushFactory.CreateMemberActivityReminderNotification(member.UserName, id, baseUrl));
+        await _push.SendToUserAsync(id, _pushFactory.CreateMemberActivityReminderNotification(member.UserName, id));
         _logger.LogInformation("Sent a reminder push to member {UserName}", member.UserName);
         return EventResult<bool>.Ok(true);
     }

@@ -121,7 +121,6 @@ public class CalotesNotificationBackgroundService : BackgroundService
 
             // 3. Send notifications to each user with debt
             var notificationsSent = 0;
-            var baseUrl = "/";
             foreach (var (userId, amount) in usersWithDebts)
             {
                 if (cancellationToken.IsCancellationRequested) break;
@@ -132,7 +131,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
                     continue;
                 }
 
-                var notification = pushNotificationFactory.CreateCalotesReminderNotification(amount, baseUrl);
+                var notification = pushNotificationFactory.CreateCalotesReminderNotification(amount);
                 await pushNotificationService.SendToUserAsync(userId, notification);
                 notificationsSent++;
 

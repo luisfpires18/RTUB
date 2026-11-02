@@ -162,7 +162,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
     public async Task<OwnerPushRecipients> GetPushRecipientsAsync() =>
         new((await PushAccountsAsync()).Select(Person).ToList());
 
-    public async Task<EventResult<OwnerPushResult>> SendPushAsync(OwnerPushInput input, ClaimsPrincipal actor, string baseUrl)
+    public async Task<EventResult<OwnerPushResult>> SendPushAsync(OwnerPushInput input, ClaimsPrincipal actor)
     {
         var errors = new Dictionary<string, string[]>();
         Require(errors, "title", input.Title, PushTitleMax, "O título é obrigatório.");
@@ -185,7 +185,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
             Title = input.Title!,
             Body = input.Body!,
             Icon = "/icons/rtub-logo-192.png",
-            Url = baseUrl.TrimEnd('/'),
+            Url = "/",
             Tag = $"announcement-{DateTime.UtcNow.Ticks}",
         };
         var (sent, failed) = await _push.SendToSelectedUsersAsync(userIds, notification);

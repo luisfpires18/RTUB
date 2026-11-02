@@ -39,7 +39,7 @@ public static class OwnerEndpoints
         owner.MapGet("/notifications", async (IOwnerOperationsService service) => Results.Ok(await service.GetPushRecipientsAsync()));
 
         writes.MapPost("/notifications", async (OwnerPushInput input, HttpContext http, IOwnerOperationsService service) =>
-                ToResult(await service.SendPushAsync(input, http.User, $"{http.Request.Scheme}://{http.Request.Host}")))
+                ToResult(await service.SendPushAsync(input, http.User)))
             .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
 
         // ---------- /users ----------

@@ -269,7 +269,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Body = "Test Body"
         };
         _mockPushNotificationFactory.Setup(f => f.CreateNaipeContentNotification(
-            title, It.IsAny<string>(), true, It.IsAny<string>()))
+            title, type, true))
             .Returns(notificationDto);
 
         // Act
@@ -278,7 +278,7 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Assert
         _mockPushNotificationFactory.Verify(f => f.CreateNaipeContentNotification(
-            title, It.IsAny<string>(), true, It.IsAny<string>()), Times.Once);
+            title, type, true), Times.Once);
         _mockPushNotificationService.Verify(s => s.BroadcastAsync(It.IsAny<SendPushNotificationDto>()), Times.Once);
     }
 

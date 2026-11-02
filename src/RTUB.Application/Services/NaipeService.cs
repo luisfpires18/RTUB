@@ -416,14 +416,10 @@ public class NaipeService : INaipeService
     {
         try
         {
-            var instrumentTypeName = StatusHelper.GetInstrumentDisplay(instrumentType);
-            var baseUrl = GetBaseUrl();
-
             var notification = _pushNotificationFactory.CreateNaipeContentNotification(
                 contentTitle,
-                instrumentTypeName,
-                isVideo,
-                baseUrl
+                instrumentType,
+                isVideo
             );
 
             await _pushNotificationService.BroadcastAsync(notification);
@@ -432,18 +428,5 @@ public class NaipeService : INaipeService
         {
             // Silently fail - push notifications should not break content creation
         }
-    }
-
-    /// <summary>
-    /// Gets the base URL from the current HTTP context.
-    /// </summary>
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }
