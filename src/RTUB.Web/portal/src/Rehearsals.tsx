@@ -78,7 +78,7 @@ export default function Rehearsals() {
         </div>
         {data && (
           <div className="events-page__actions">
-            {data.canManage && (
+            {data.canEdit && (
               <>
                 <button type="button" className="btn btn--primary btn--sm" onClick={() => setDialog('new')}>
                   <Icon name="plus" />

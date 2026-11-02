@@ -14,7 +14,8 @@ namespace RTUB.Application.Services;
 /// the v1 rules (git: a121f3f1^ MessagingService) and no schema change:
 /// - a member sees only the conversations they take part in (<see cref="Conversation.HasParticipant"/>); archived ones
 ///   stay hidden; there is no Admin / Owner reading of other people's chats;
-/// - "Sistema RTUB" conversations are read-only; announcement-only groups take messages from the Owner and the current
+/// - "Notificações RTUB" (was "Sistema RTUB"; one per member, every push is kept there since task 058,
+///   <see cref="NotificationInbox"/>) conversations are read-only; announcement-only groups take messages from the Owner and the current
 ///   Magister, Vice-Magister, Presidents of the CF / MAG / CV and the Ensaiador only (v1's list);
 /// - text only (1-2000), a reply quotes a message of the same conversation (snippet ≤200 + sender, denormalized as v1
 ///   did), one reaction per member per message from a fixed emoji set, mute per member (no push while muted);
@@ -31,7 +32,7 @@ public sealed class MessagingService : IMessagingService
     public const int PageSize = 50;
     public const int MaxTitleLength = 200; // the Conversations.Title column
     public const int MaxGroupMembers = 100;
-    public const string SystemTitle = "Sistema RTUB";
+    public const string SystemTitle = "Notificações RTUB";
     // The 352 px WebP (~34 KB) the portal header uses, shown at avatar size; was the 1024 px logo (~146 KB). #226 F09.
     public const string GroupAvatar = "/icons/rtub-logo-352.webp";
 
@@ -604,9 +605,10 @@ public sealed class MessagingService : IMessagingService
     private static (string Kind, string Title, string Avatar) Heading(Conversation c, string me,
         IReadOnlyDictionary<string, (MessagingPerson Person, bool Expelled)> people)
     {
+        // Always the current name: older rows still say "Sistema RTUB" (task 058 renamed it).
         if (c.IsSystemConversation)
         {
-            return ("system", string.IsNullOrWhiteSpace(c.Title) ? SystemTitle : c.Title!, GroupAvatar);
+            return ("system", SystemTitle, GroupAvatar);
         }
 
         if (c.IsGroup)

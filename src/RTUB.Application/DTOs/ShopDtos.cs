@@ -5,7 +5,8 @@ namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// <c>FiscalYear</c>: the year shown ("" = every year; the current one by default, as the old page), by the product's
-/// creation date. <c>CanCreate</c>: Mod, Admin, Owner; <c>CanManage</c>: Admin, Owner (edit, delete, reservations).
+/// creation date. <c>CanCreate</c>: Mod, Admin, Owner; <c>CanManage</c>: Admin, Owner (edit, delete products);
+/// <c>CanManageReservations</c>: Mod, Admin, Owner (see and delete every reservation).
 /// </summary>
 public sealed record ShopDto(
     IReadOnlyList<MemberOptionDto> FiscalYears,
@@ -14,7 +15,8 @@ public sealed record ShopDto(
     IReadOnlyList<ShopProductDto> Products,
     IReadOnlyList<string> Sizes,
     bool CanCreate,
-    bool CanManage);
+    bool CanManage,
+    bool CanManageReservations = false);
 
 /// <summary>Read-only fields intended for the public Shop catalogue.</summary>
 public sealed record PublicShopDto(

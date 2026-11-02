@@ -437,12 +437,25 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task AMod_CannotManageEvents()
+    public async Task AMod_CreatesAndEditsEvents_ButCannotDeleteThem()
     {
         var (mod, _) = await SignInAsync("Mod");
         await WithTokenAsync(mod);
 
-        (await mod.PostAsJsonAsync("/api/events", NewEvent("Do Mod"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var agenda = await mod.GetFromJsonAsync<JsonElement>("/api/events");
+        (agenda.GetProperty("canEdit").GetBoolean(), agenda.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
+        agenda.GetProperty("types").ValueKind.Should().Be(JsonValueKind.Array, "the form needs the type list");
+
+        var created = await mod.PostAsJsonAsync("/api/events", NewEvent("Do Mod"));
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        (await mod.GetAsync($"/api/events/{id}/edit")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await mod.PutAsJsonAsync($"/api/events/{id}", NewEvent("Do Mod (editado)"))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await EventNamedAsync("Do Mod (editado)")).Should().NotBeNull();
+
+        (await mod.DeleteAsync($"/api/events/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await EventByIdAsync(id)).Should().NotBeNull();
     }
 
     // ---------- image, cancel / reactivate, notices (Admin/Owner, 012A) ----------
@@ -461,10 +474,15 @@ public class EventsApiTests : IClassFixture<EventsApiFactory>
         _factory.Email.Invocations.Clear();
         _factory.Storage.Invocations.Clear();
 
-        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        // The image belongs to editing the event (Mod and above); a Mod is refused the rest.
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden) })
         {
             (await client.PostAsync($"/api/events/{id}/image", ImageForm())).StatusCode.Should().Be(expected);
             (await client.DeleteAsync($"/api/events/{id}/image")).StatusCode.Should().Be(expected);
+        }
+
+        foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
+        {
             (await client.PostAsJsonAsync($"/api/events/{id}/cancel", new { reason = "x", notifyByEmail = true })).StatusCode.Should().Be(expected);
             (await client.PostAsync($"/api/events/{id}/reactivate", null)).StatusCode.Should().Be(expected);
             (await client.GetAsync($"/api/events/{id}/notices")).StatusCode.Should().Be(expected);

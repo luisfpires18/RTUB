@@ -1007,7 +1007,9 @@ public class PushNotificationFactory : IPushNotificationFactory
                 : $"{senderName} escreveu em {groupTitle}.",
             Icon = "/icons/rtub-logo-192.png",
             Url = $"/messages?c={conversationId}",
-            Tag = $"message-{conversationId}"
+            Tag = $"message-{conversationId}",
+            // The message itself is in that conversation; no second copy in Notificações RTUB.
+            KeepInInbox = false
         };
     }
 

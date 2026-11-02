@@ -104,7 +104,20 @@ public class MemberStatusService : IMemberStatusService
             return MemberStatusReconciliationResult.Empty;
         }
 
-        return (await ReconcileAsync(null, notify)).Counts;
+        var counts = (await ReconcileAsync(null, notify)).Counts;
+
+        // The premade /messages groups follow the members (NO ATIVO follows the flag just reconciled) - task 058.
+        try
+        {
+            await using var db = await _contextFactory.CreateDbContextAsync();
+            await MessagingGroups.SyncAsync(db, _time.GetUtcNow().UtcDateTime);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Syncing the premade message groups failed");
+        }
+
+        return counts;
     }
 
     private static void RequireId(string userId)

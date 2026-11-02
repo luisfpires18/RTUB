@@ -70,7 +70,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
 
     public async Task<EventResult<RehearsalSummaryDto>> CreateAsync(RehearsalInput input, ClaimsPrincipal user)
     {
-        if (Refusal<RehearsalSummaryDto>(user) is { } refused)
+        if (EditRefusal<RehearsalSummaryDto>(user) is { } refused)
         {
             return refused;
         }
@@ -102,7 +102,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
 
     public async Task<EventResult<RehearsalRangeResultDto>> CreateRangeAsync(RehearsalRangeInput input, ClaimsPrincipal user)
     {
-        if (Refusal<RehearsalRangeResultDto>(user) is { } refused)
+        if (EditRefusal<RehearsalRangeResultDto>(user) is { } refused)
         {
             return refused;
         }
@@ -165,7 +165,7 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
 
     public async Task<EventResult<RehearsalSummaryDto>> UpdateAsync(int id, RehearsalInput input, ClaimsPrincipal user)
     {
-        if (await RefusalAsync<RehearsalSummaryDto>(id, user) is { } refused)
+        if (await RefusalAsync<RehearsalSummaryDto>(id, user, edit: true) is { } refused)
         {
             return refused;
         }
@@ -408,8 +408,15 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         : !RehearsalsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
-    private async Task<EventResult<T>?> RefusalAsync<T>(int id, ClaimsPrincipal user) =>
-        Refusal<T>(user) ?? (await FindAsync(id) is null ? EventResult<T>.Fail(EventResultStatus.NotFound) : null);
+    /// <summary>Create and edit: Mod and above. Everything else stays <see cref="Refusal{T}"/> (Admin / Owner).</summary>
+    private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
+        !RehearsalsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        : !RehearsalsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
+        : null;
+
+    private async Task<EventResult<T>?> RefusalAsync<T>(int id, ClaimsPrincipal user, bool edit = false) =>
+        (edit ? EditRefusal<T>(user) : Refusal<T>(user))
+        ?? (await FindAsync(id) is null ? EventResult<T>.Fail(EventResultStatus.NotFound) : null);
 
     private async Task<Rehearsal?> FindAsync(int id)
     {

@@ -1,6 +1,6 @@
 ---
 name: rtub-push
-description: RTUB-specific Web Push facts — the WebPushOptions/VAPID contract and its Owner-vs-Enabled gate, the server-side opt-out flag, push-only delivery (no inbox copy since 027) and 404/410 subscription cleanup, base64url key normalization, the single service-worker registration, and the React /profile push client (task 038). Load this whenever the task touches Web Push, VAPID keys or WebPush config, push subscription storage or the /api/push endpoints (PushEndpoints), the notification opt-in/permission UI, push delivery or fan-out from a service or background job, the service worker's push/notificationclick/pushsubscriptionchange handlers, or iOS/Android push behavior. Do not load it for service-worker caching, offline fallback, manifest/install-prompt work, or ordinary frontend changes.
+description: RTUB-specific Web Push facts — the WebPushOptions/VAPID contract and its Owner-vs-Enabled gate, the server-side opt-out flag, the "Notificações RTUB" inbox copy of every push (task 061) and 404/410 subscription cleanup, base64url key normalization, the single service-worker registration, and the React /profile push client (task 038). Load this whenever the task touches Web Push, VAPID keys or WebPush config, push subscription storage or the /api/push endpoints (PushEndpoints), the notification opt-in/permission UI, push delivery or fan-out from a service or background job, the service worker's push/notificationclick/pushsubscriptionchange handlers, or iOS/Android push behavior. Do not load it for service-worker caching, offline fallback, manifest/install-prompt work, or ordinary frontend changes.
 ---
 
 # RTUB Web Push
@@ -54,12 +54,13 @@ without a click, so the old `rtub-push-*` localStorage keys and the 30-minute he
 
 ## Delivery semantics
 
-- **Push only, no in-app copy (since 027).** Messages / Conversas was removed (`docs/messages-removal.md`):
-  `SendToUserAsync`, `BroadcastAsync` and `SendToSelectedUsersAsync` no longer write the old "Sistema RTUB"
-  inbox message, and `SendPushOnlyAsync` is gone. With push unconfigured a send does nothing; a member without
-  push sees the notification nowhere in the app. Do not reintroduce a write into the message tables: they are
-  preserved (never dropped) for Messaging v2, which will audit and evolve them; until then nothing reads or writes
-  them, and `MessagesRollbackSafetyTests` fails if anything touches them.
+- **Every push is also kept in /messages (task 061; 027 had stopped it).** `SendToUserAsync`,
+  `SendToSelectedUsersAsync` and `BroadcastAsync` first call `NotificationInbox.KeepAsync`: title + body + link as a
+  system message in each recipient's "Notificações RTUB" conversation (renamed from "Sistema RTUB"), saved as read
+  (no unread badge), for every recipient whether or not they have push or VAPID is configured; a broadcast goes to
+  every non-expelled account. Not copied: chat-message pushes (`SendPushNotificationDto.KeepInInbox = false`) and the
+  `/profile` test push (`SendTestAsync`). The inbox is given only by the host constructor (`IHttpClientFactory`
+  overload); the test constructors have none. A failed copy is logged and never fails the push.
 - `404 NotFound` / `410 Gone` from the push service ⇒ subscription is deleted immediately
   (`SendNotificationWithResultAsync`). This is why the client re-syncs on every health check: the server
   may have dropped a record the browser still holds.

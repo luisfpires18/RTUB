@@ -66,7 +66,7 @@ public sealed class EventAdminService : IEventAdminService
 
     public async Task<EventResult<bool>> SetImageAsync(int id, EventImageUpload image, ClaimsPrincipal user)
     {
-        if (Refusal<bool>(user) is { } refused)
+        if (EditRefusal<bool>(user) is { } refused)
         {
             return refused;
         }
@@ -94,7 +94,7 @@ public sealed class EventAdminService : IEventAdminService
 
     public async Task<EventResult<bool>> RemoveImageAsync(int id, ClaimsPrincipal user)
     {
-        if (Refusal<bool>(user) is { } refused)
+        if (EditRefusal<bool>(user) is { } refused)
         {
             return refused;
         }
@@ -635,6 +635,12 @@ public sealed class EventAdminService : IEventAdminService
 
     /// <summary>Where the old emails pointed: the agenda.</summary>
     private static string EventsLink(string baseUrl) => $"{baseUrl.TrimEnd('/')}/events";
+
+    /// <summary>The event image belongs to editing the event: Mod and above.</summary>
+    private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
+        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        : !EventsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
+        : null;
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
         !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
