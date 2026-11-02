@@ -21,7 +21,8 @@ The feature is gone from the running app; the schema is untouched (no migration,
   (`SendToUserAsync`, `BroadcastAsync`, `SendToSelectedUsersAsync`) also wrote the text into the recipient's pinned
   "Sistema RTUB" conversation - about 99% of the `Messages` rows. A member without push (opted out, unsupported
   browser, iOS without the installed app) now sees those notifications nowhere in the app. `SendPushOnlyAsync`,
-  the direct/group message notifications and the payload's `unreadCount` went with it.
+  the direct/group message notifications and the payload's `unreadCount` went with it. (Task 061 brought the copy
+  back as "Notificações RTUB", saved as read, chat-message pushes excluded: `docs/push-notifications.md`.)
 - The service worker no longer sets the app-icon badge (it showed the unread-message count); tapping a
   notification still clears a badge an older worker left. `window.appBadge` in `pwa-helper.js` is now unused.
 - (037) The Blazor host and its SignalR circuit are gone too; no SignalR hub or client package is left (039 removed

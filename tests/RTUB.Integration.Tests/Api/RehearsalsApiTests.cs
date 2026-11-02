@@ -148,8 +148,13 @@ public class RehearsalsApiTests : IClassFixture<EventsApiFactory>
         var row = await AddAttendanceAsync(id, other.Id, willAttend: true, attended: false);
         await WithTokenAsync(client);
 
-        (await client.PostAsJsonAsync("/api/rehearsals", Input(DateText(NextDay(past: false))))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await client.PutAsJsonAsync($"/api/rehearsals/{id}", Input(null))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        // Create and edit are Mod and above (see AMod_CreatesAndEditsRehearsals_ButCannotDoTheRest).
+        if (role is null)
+        {
+            (await client.PostAsJsonAsync("/api/rehearsals", Input(DateText(NextDay(past: false))))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await client.PutAsJsonAsync($"/api/rehearsals/{id}", Input(null))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         (await client.PostAsJsonAsync($"/api/rehearsals/{id}/cancel", new { reason = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.PostAsync($"/api/rehearsals/{id}/attendances/{row}/approve", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.DeleteAsync($"/api/rehearsals/{id}/attendances/{row}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -196,6 +201,35 @@ public class RehearsalsApiTests : IClassFixture<EventsApiFactory>
 
         (await admin.DeleteAsync($"/api/rehearsals/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await RehearsalAsync(id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AMod_CreatesAndEditsRehearsals_ButCannotDoTheRest()
+    {
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+
+        var agenda = await mod.GetFromJsonAsync<JsonElement>("/api/rehearsals");
+        (agenda.GetProperty("canEdit").GetBoolean(), agenda.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
+
+        var created = await mod.PostAsJsonAsync("/api/rehearsals",
+            new { date = DateText(NextDay(past: false)), location = "Centro Académico", theme = "", description = "", notes = "" });
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        (await mod.PutAsJsonAsync($"/api/rehearsals/{id}", new { date = (string?)null, location = "Nómada", theme = "", description = "", notes = "" }))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RehearsalAsync(id))!.Location.Should().Be("Nómada");
+
+        var monday = DateTime.Today.AddDays(7000 + ((8 - (int)DateTime.Today.AddDays(7000).DayOfWeek) % 7));
+        var range = await mod.PostAsJsonAsync("/api/rehearsals/range",
+            new { from = DateText(monday), to = DateText(monday.AddDays(6)), location = "Centro Académico", theme = "", description = "" });
+        range.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await range.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("created").GetInt32().Should().Be(2);
+
+        (await mod.PostAsJsonAsync($"/api/rehearsals/{id}/cancel", new { reason = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.GetAsync($"/api/rehearsals/{id}/notice")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.DeleteAsync($"/api/rehearsals/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await RehearsalAsync(id)).Should().NotBeNull();
     }
 
     [Fact]

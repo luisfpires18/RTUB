@@ -3,7 +3,7 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-01 (2.2.0 released to PROD; `dev` on 2.2.1)_
+_Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
 **Released to PROD: 2.2.0** (MINOR: features; merge `44abad0c`, tag `v2.2.0`, `/api/version` verified; `master` merged back, `dev` on 2.2.1) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
@@ -11,7 +11,17 @@ badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasske
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
 Real-device passkey check (iPhone, Android, TWA) still open.
 
-**Task 058 = push deep links** (`feat/058/push-deep-links`, not merged). A tapped push opens the item, not a list or
+**Task 061 = Notificações RTUB + premade groups** (`feat/061/notificacoes-rtub-groups`, not merged). Every push is
+also kept in the recipient's "Notificações RTUB" conversation (renamed from "Sistema RTUB"; `NotificationInbox`, saved
+as read, link kept, push on or off; chat-message and test pushes excluded). The premade /messages groups are synced with
+every reconcile-all (midnight job, `/users` "Sincronizar estado da Tuna"): GERAL, NO ATIVO, TUNOS, LEITÕES & CALOIROS;
+every other system-made group (VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) archived; expelled in
+none. No schema change. The DEV `/api/conversations*` 500 (2026-11-02, Trevor, after the DEV refresh) did not reproduce
+locally on the same code: needs the DEV log line.
+
+**Released to PROD: 2.3.0** (MINOR; PR #237, merge commit; `master` merged back, `dev` on 2.3.1) = task 058.
+
+**Task 058 = push deep links** (`feat/058/push-deep-links`, merged into `dev` and released in 2.3.0). A tapped push opens the item, not a list or
 the home page: `PushNotificationFactory` builds **relative** links to `/events/{id}`, `/events/{id}/discussion`,
 `/rehearsals/{id}`, `/meetings?meeting={id}` (new: opens the details), `/music/albums/{id}`, `/gallery?item={id}`,
 `/naipes?instrument=` (no base URL anywhere: Host-built absolute links failed the worker's same-origin check from
@@ -24,6 +34,12 @@ Also in 058: "Novo 1º Lugar" now sends (Mondays, all-time leader vs the last on
 `RankingService.UpdateUserRankingAsync` removed); "Membro Reativado" / "1 mês até reforma" turned on
 (`MemberStatusUpdate:PushNotificationsEnabled=true`) and sent only by the scheduled daily run, never by triggers, the
 Owner sync or a member's first evaluation.
+
+**Task 059 = Mod create / edit (`feat/059/mod-create-edit-permissions`, merged into `dev`, not released).** A Mod now creates and edits events (fields + image),
+rehearsals (one, a range, edit) and news (write, publish, unpublish), shop products (edit, images) and shop reservations (see, delete). Delete (news, products), cancel,
+notices, publish and the rest stay Admin / Owner. New flags `canEdit` (events, rehearsals), `canWrite` (news), `canManageReservations` (shop);
+docs: `docs/permissions/*`, `docs/react-{events,rehearsals,news,shop}.md`. No schema change, no migration. Shop: there is still no "add a reservation for
+someone else" path (a Mod reserves for self like any member).
 
 **Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
 perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /

@@ -43,8 +43,8 @@ const problem = (o: Outcome<unknown>, what: string) =>
 
 /**
  * /news - Novidades (React track 025): the RTUB's public wall of text posts, newest first, signed "RTUB". Admin and
- * Owner write posts (as a draft or published straight away), edit, publish / unpublish and delete them; their drafts
- * sit above the feed, seen by no one else. A shared /news#post-12 link scrolls to that post.
+ * Owner write posts (as a draft or published straight away), edit, publish / unpublish and delete them; a Mod does the same
+ * except delete. Drafts sit above the feed, seen by Mod and above. A shared /news#post-12 link scrolls to that post.
  */
 export default function News() {
   const [feed, setFeed] = useState<NewsFeed | null>();
@@ -95,7 +95,14 @@ export default function News() {
 
   const post = (p: NewsPost) => (
     <li key={p.id}>
-      <Post post={p} manage={feed?.canManage === true} onEdit={() => setEditing(p)} onDelete={() => setDeleting(p)} onChange={() => load()} />
+      <Post
+        post={p}
+        canWrite={feed?.canWrite === true}
+        canManage={feed?.canManage === true}
+        onEdit={() => setEditing(p)}
+        onDelete={() => setDeleting(p)}
+        onChange={() => load()}
+      />
     </li>
   );
 
@@ -109,7 +116,7 @@ export default function News() {
           </h1>
           <p className="page__lead">Anúncios e crónicas do que a tuna anda a fazer, contados pela própria RTUB.</p>
         </div>
-        {feed?.canManage && (
+        {feed?.canWrite && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
               <Icon name="plus" />
@@ -143,7 +150,7 @@ export default function News() {
           {feed.drafts.length > 0 && (
             <section className="news-drafts" aria-labelledby={draftsTitle}>
               <h2 id={draftsTitle} className="news-drafts__title">
-                Rascunhos <span className="note">· só Admin e Owner os veem</span>
+                Rascunhos <span className="note">· só Mod, Admin e Owner os veem</span>
               </h2>
               <ol className="talk__feed">{feed.drafts.map(post)}</ol>
             </section>
@@ -183,13 +190,15 @@ export default function News() {
 
 function Post({
   post,
-  manage,
+  canWrite,
+  canManage,
   onEdit,
   onDelete,
   onChange,
 }: {
   post: NewsPost;
-  manage: boolean;
+  canWrite: boolean;
+  canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onChange: () => void;
@@ -219,7 +228,7 @@ function Post({
           </p>
           <p className="talk__time">
             {post.publishedAt ? <time dateTime={post.publishedAt}>{newsDate(post.publishedAt)}</time> : 'Ainda não publicado'}
-            {manage && ` · escrito por ${post.authorName ?? 'uma conta eliminada'}`}
+            {canWrite && ` · escrito por ${post.authorName ?? 'uma conta eliminada'}`}
           </p>
         </div>
       </header>
@@ -229,7 +238,7 @@ function Post({
         <p className="talk__text">{post.body}</p>
       </div>
 
-      {manage && (
+      {canWrite && (
         <div className="talk__actions">
           <button type="button" className="link-btn" onClick={onEdit} disabled={busy}>
             <Icon name="pencil" />
@@ -239,10 +248,12 @@ function Post({
             <Icon name={draft ? 'send' : 'restore'} />
             {draft ? 'Publicar' : 'Despublicar'}
           </button>
-          <button type="button" className="link-btn link-btn--danger" onClick={onDelete} disabled={busy}>
-            <Icon name="trash" />
-            Eliminar
-          </button>
+          {canManage && (
+            <button type="button" className="link-btn link-btn--danger" onClick={onDelete} disabled={busy}>
+              <Icon name="trash" />
+              Eliminar
+            </button>
+          )}
         </div>
       )}
       {error && (

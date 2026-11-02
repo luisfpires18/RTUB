@@ -3,8 +3,11 @@ namespace RTUB.Application.DTOs;
 // Rehearsals (React track 014). Rehearsals use attendance / presença; events use enrollment / inscrição.
 // Dates are local "yyyy-MM-dd", times "HH:mm". Outcomes reuse EventResult<T> (a generic result + status).
 
-/// <summary>GET /api/rehearsals: every rehearsal, upcoming soonest first, past newest first.</summary>
-public sealed record RehearsalAgendaDto(bool CanManage, IReadOnlyList<RehearsalSummaryDto> Upcoming, IReadOnlyList<RehearsalSummaryDto> Past);
+/// <summary>
+/// GET /api/rehearsals: every rehearsal, upcoming soonest first, past newest first. <c>CanEdit</c>: Mod and above
+/// (create, mass create, edit); <c>CanManage</c>: Admin / Owner (the rest, delete included).
+/// </summary>
+public sealed record RehearsalAgendaDto(bool CanManage, IReadOnlyList<RehearsalSummaryDto> Upcoming, IReadOnlyList<RehearsalSummaryDto> Past, bool CanEdit = false);
 
 /// <summary>
 /// One rehearsal. <c>Past</c>: its day is over (the old page's rule: before today). <c>Approvable</c>: presenças can
@@ -37,7 +40,8 @@ public sealed record RehearsalDetailDto(
     bool CanManage,
     RehearsalAttendanceListDto Attendance,
     IReadOnlyList<RehearsalInstrumentCountDto> Instruments,
-    IReadOnlyList<RehearsalInstrumentCountDto> OtherInstruments);
+    IReadOnlyList<RehearsalInstrumentCountDto> OtherInstruments,
+    bool CanEdit = false);
 
 /// <summary>Presenças grouped as the old modal did: members going, Leitões going, then not going.</summary>
 public sealed record RehearsalAttendanceListDto(

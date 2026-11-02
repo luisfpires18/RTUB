@@ -48,6 +48,29 @@ public class MessagingV2SourceTests
     }
 
     [Fact]
+    public void Nova_PicksMembersWithoutCreatingAnything_AndTheFirstMessageStartsTheChatOrGroup()
+    {
+        var page = Read(Portal, "Messages.tsx");
+        var dialog = page[page.IndexOf("function StartDialog(", StringComparison.Ordinal)..];
+        dialog.Should().NotContain("api.start(", "picking members stores nothing")
+            .And.Contain("aria-pressed=").And.Contain("Nome do grupo").And.Contain("Criar grupo");
+        page.Should().Contain("api.direct(people[0].id)", "one member: their existing chat opens")
+            .And.Contain("function DraftThread(");
+        var draft = page[page.IndexOf("function DraftThread(", StringComparison.Ordinal)..page.IndexOf("function Composer(", StringComparison.Ordinal)];
+        draft.Should().Contain("api.start(", "the conversation is created with its first message");
+        page.Should().Contain("call<Detail>('POST', '/api/conversations', { userIds, title, body })");
+    }
+
+    [Fact]
+    public void RetiredPremadeGroups_AreArchivedOnStartup_AndOnlyNotificacoesWearsTheLogo()
+    {
+        // VETERANOS, TUNOSSAUROS... leave the inboxes on deploy, not only at the daily job (062).
+        Read(Web, "Program.cs").Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
+        var page = Read(Portal, "Messages.tsx");
+        page.Should().Contain("kind === 'system' ? RTUB_LOGO : avatarUrl").And.Contain("className=\"chat-face\"");
+    }
+
+    [Fact]
     public void MessagingIsTextOnly_NoAttachmentOrMediaPath()
     {
         var page = Read(Portal, "Messages.tsx");

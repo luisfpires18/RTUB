@@ -31,10 +31,11 @@ export type EventSummary = {
 
 export type EventTypeOption = { value: string; label: string };
 
-/** `types` only for Admin/Owner (the create and edit form); null for everyone else. */
+/** `types` only for Mod and above (the create and edit form); null for everyone else. `canEdit`: create / edit. */
 export type EventAgenda = {
   isMember: boolean;
   canManage: boolean;
+  canEdit: boolean;
   upcoming: EventSummary[];
   past: EventSummary[];
   types: EventTypeOption[] | null;

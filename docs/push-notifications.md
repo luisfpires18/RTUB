@@ -19,7 +19,10 @@ Every Web Push RTUB sends, grouped by area, with the page a tap opens. Delivery,
    (iPhone / iPad Home Screen, the Play Store TWA) or miss the worker's navigation. Same-origin only.
 4. **Tags** group a notification for the browser's own replacement rules; the worker makes each shown tag unique and
    keeps the original in `data.baseTag`.
-5. **Every push belongs to a category** (table headings below). Today the category is documentation only; the
+5. **Every push is kept in /messages** (task 061): `NotificationInbox` saves title + body + link in each recipient's
+   "Notificações RTUB" conversation, as read, push on or off. Not kept: chat-message pushes (`KeepInInbox = false`,
+   the message is already in its chat) and the `/profile` test push.
+6. **Every push belongs to a category** (table headings below). Today the category is documentation only; the
    per-category opt-out below makes it data.
 
 Deep links the React pages accept: `/events/{id}`, `/events/{id}/discussion`, `/rehearsals/{id}`,

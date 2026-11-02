@@ -39,7 +39,7 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
         }
 
-        (await anonymous.PostAsJsonAsync("/api/conversations", new { userId = "x" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.PostAsJsonAsync("/api/conversations", new { userIds = new[] { "x" }, body = "olá" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsJsonAsync("/api/conversations/1/messages", new { body = "olá" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsync("/api/conversations/1/read", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsync("/api/conversations/1/mute", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -53,7 +53,7 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         var (a, _) = await SignInAsync(token: false);
         var (_, b) = await SignInAsync();
 
-        (await a.PostAsJsonAsync("/api/conversations", new { userId = b.Id })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { b.Id }, body = "olá" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await a.PostAsJsonAsync("/api/conversations/1/messages", new { body = "olá" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await a.PostAsJsonAsync("/api/messages/1/reactions", new { emoji = "👍" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await a.DeleteAsync("/api/messages/1/reactions")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -66,11 +66,10 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         var (b, bUser) = await SignInAsync();
         var (stranger, _) = await SignInAsync();
 
-        var id = await StartAsync(a, bUser.Id);
-        (await StartAsync(b, aUser.Id)).Should().Be(id, "one one-to-one conversation per pair, whoever starts it");
-
-        var sent = await Json(await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "  Olá, tudo bem?  " }));
-        sent.GetProperty("body").GetString().Should().Be("Olá, tudo bem?", "the text is trimmed");
+        var started = await Json(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id }, body = "  Olá, tudo bem?  " }));
+        var id = started.GetProperty("conversation").GetProperty("id").GetInt32();
+        var sent = Messages(started).Single();
+        sent.GetProperty("body").GetString().Should().Be("Olá, tudo bem?", "the first message is sent with the start, trimmed");
         sent.GetProperty("isMine").GetBoolean().Should().BeTrue();
 
         var row = Row(await Json(b, "/api/conversations"), id);
@@ -90,6 +89,8 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         (await stranger.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "intruso" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await stranger.PostAsync($"/api/conversations/{id}/read", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await stranger.PostAsync($"/api/conversations/{id}/mute", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        (await StartAsync(b, aUser.Id)).Should().Be(id, "one one-to-one conversation per pair, whoever starts it");
     }
 
     [Fact]
@@ -102,8 +103,7 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         async Task<int> Unread(HttpClient client) => (await Json(client, "/api/conversations/unread")).GetProperty("unreadCount").GetInt32();
 
         (await Unread(b)).Should().Be(0);
-        var id = await StartAsync(a, bUser.Id);
-        await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "um" });
+        var id = await StartAsync(a, bUser.Id, "um");
         await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "dois" });
 
         (await Unread(b)).Should().Be(2, "messages, not conversations");
@@ -149,9 +149,67 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         (await Errors(await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = new string('x', 2001) }))).Should().ContainKey("body");
         (await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = new string('x', 2000) })).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userId = aUser.Id }))).Should().ContainKey("userId", "not with yourself");
-        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userId = "nobody" }))).Should().ContainKey("userId");
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { aUser.Id }, body = "olá" }))).Should().ContainKey("userIds", "not with yourself");
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { "nobody" }, body = "olá" }))).Should().ContainKey("userIds");
         (await a.GetAsync("/api/conversations/999999")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task NothingIsStored_UntilTheFirstMessage_AndAnExistingChatIsFoundInstead()
+    {
+        var (a, aUser) = await SignInAsync();
+        var (b, bUser) = await SignInAsync();
+
+        (await Json(a, $"/api/conversations/direct/{bUser.Id}")).GetProperty("id").ValueKind.Should().Be(JsonValueKind.Null);
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id } }))).Should().ContainKey("body");
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id }, body = "  " }))).Should().ContainKey("body");
+        (await a.PostAsJsonAsync("/api/conversations", new { userId = bUser.Id })).StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "the old pick-a-member call no longer creates an empty conversation");
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Conversations.AsNoTracking().ToListAsync()).Should().NotContain(c => c.HasParticipant(aUser.Id) && c.HasParticipant(bUser.Id));
+        }
+
+        var id = await StartAsync(a, bUser.Id);
+        (await Json(a, $"/api/conversations/direct/{bUser.Id}")).GetProperty("id").GetInt32().Should().Be(id);
+        (await Json(b, $"/api/conversations/direct/{aUser.Id}")).GetProperty("id").GetInt32().Should().Be(id);
+        Messages(await Json(b, $"/api/conversations/{id}")).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task AGroup_StartsWithSeveralMembersAndAName_AndReachesThemAll()
+    {
+        var (a, aUser) = await SignInAsync();
+        var (b, bUser) = await SignInAsync();
+        var (c, cUser) = await SignInAsync();
+        var (stranger, _) = await SignInAsync();
+
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id, cUser.Id }, body = "olá" })))
+            .Should().ContainKey("title", "a group needs a name");
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id, cUser.Id }, title = new string('x', 201), body = "olá" })))
+            .Should().ContainKey("title");
+        (await Errors(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id, "nobody" }, title = "Naipe", body = "olá" })))
+            .Should().ContainKey("userIds");
+
+        var started = await Json(await a.PostAsJsonAsync("/api/conversations",
+            new { userIds = new[] { bUser.Id, cUser.Id, bUser.Id, aUser.Id }, title = "  Naipe de bandolins  ", body = "Ensaio extra?" }));
+        var id = started.GetProperty("conversation").GetProperty("id").GetInt32();
+        started.GetProperty("conversation").GetProperty("kind").GetString().Should().Be("group");
+        started.GetProperty("conversation").GetProperty("title").GetString().Should().Be("Naipe de bandolins");
+        started.GetProperty("participants").GetArrayLength().Should().Be(2, "the other members, each once");
+
+        foreach (var member in new[] { b, c })
+        {
+            var row = Row(await Json(member, "/api/conversations"), id);
+            row.GetProperty("unreadCount").GetInt32().Should().Be(1);
+            row.GetProperty("canSend").GetBoolean().Should().BeTrue();
+        }
+
+        (await c.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "Sim" })).EnsureSuccessStatusCode();
+        Pushes(id).SelectMany(p => p.Recipients).Should().BeEquivalentTo(new[] { bUser.Id, cUser.Id, aUser.Id, bUser.Id });
+        Ids(await Json(stranger, "/api/conversations")).Should().NotContain(id);
+        (await Json(a, $"/api/conversations/direct/{bUser.Id}")).GetProperty("id").ValueKind.Should().Be(JsonValueKind.Null, "a group is not a one-to-one chat");
     }
 
     [Fact]
@@ -184,8 +242,9 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
         var (a, _) = await SignInAsync();
         var (b, bUser) = await SignInAsync();
         var (stranger, _) = await SignInAsync();
-        var id = await StartAsync(a, bUser.Id);
-        var messageId = (await Json(await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "Vamos?" }))).GetProperty("id").GetInt32();
+        var started = await Json(await a.PostAsJsonAsync("/api/conversations", new { userIds = new[] { bUser.Id }, body = "Vamos?" }));
+        var id = started.GetProperty("conversation").GetProperty("id").GetInt32();
+        var messageId = Messages(started).Single().GetProperty("id").GetInt32();
 
         var liked = await Json(await b.PostAsJsonAsync($"/api/messages/{messageId}/reactions", new { emoji = "👍" }));
         Reactions(liked).Should().Equal(("👍", 1, true));
@@ -209,9 +268,8 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
     {
         var (a, aUser) = await SignInAsync();
         var (b, bUser) = await SignInAsync();
-        var id = await StartAsync(a, bUser.Id);
+        var id = await StartAsync(a, bUser.Id, Secret);
 
-        (await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = Secret })).EnsureSuccessStatusCode();
         var pushes = Pushes(id);
         pushes.Should().ContainSingle();
         pushes[0].Recipients.Should().Equal(bUser.Id);
@@ -338,8 +396,10 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
 
     // ---------- helpers ----------
 
-    private async Task<int> StartAsync(HttpClient client, string userId) =>
-        (await Json(await client.PostAsJsonAsync("/api/conversations", new { userId }))).GetProperty("conversation").GetProperty("id").GetInt32();
+    // A conversation starts with its first message (nothing is stored before it).
+    private async Task<int> StartAsync(HttpClient client, string userId, string body = "Olá") =>
+        (await Json(await client.PostAsJsonAsync("/api/conversations", new { userIds = new[] { userId }, body })))
+            .GetProperty("conversation").GetProperty("id").GetInt32();
 
     private async Task<int> SeedAsync(Conversation conversation, params Message[] messages)
     {

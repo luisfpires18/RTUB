@@ -77,34 +77,36 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
     <section className="page wrap event-page rehearsal-page" aria-labelledby="rehearsal-title">
       <div className="event-topbar">
         {back}
-        {detail.canManage && (
+        {detail.canEdit && (
           <span className="event-topbar__actions">
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('edit')}>
               <Icon name="pencil" />
               Editar
             </button>
-            {open && (
+            {detail.canManage && open && (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('notice')}>
                 <Icon name="bell" />
                 Notificar
               </button>
             )}
-            {!r.cancelled && (
+            {detail.canManage && !r.cancelled && (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('cancel')}>
                 <Icon name="ban" />
                 Cancelar ensaio
               </button>
             )}
-            {r.cancelled && !r.past && (
+            {detail.canManage && r.cancelled && !r.past && (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirm('reactivate')}>
                 <Icon name="restore" />
                 Reativar
               </button>
             )}
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirm('delete')}>
-              <Icon name="trash" />
-              Apagar
-            </button>
+            {detail.canManage && (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirm('delete')}>
+                <Icon name="trash" />
+                Apagar
+              </button>
+            )}
           </span>
         )}
       </div>

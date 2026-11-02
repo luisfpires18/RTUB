@@ -62,7 +62,8 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         return EventResult<RehearsalAgendaDto>.Ok(new RehearsalAgendaDto(
             manage,
             rehearsals.Where(r => !IsPast(r, Today)).OrderBy(r => r.Date).ThenBy(r => r.Id).Select(Summary).ToList(),
-            rehearsals.Where(r => IsPast(r, Today)).OrderByDescending(r => r.Date).ThenByDescending(r => r.Id).Select(Summary).ToList()));
+            rehearsals.Where(r => IsPast(r, Today)).OrderByDescending(r => r.Date).ThenByDescending(r => r.Id).Select(Summary).ToList(),
+            RehearsalsAuthorization.CanEdit(user)));
     }
 
     public async Task<EventResult<RehearsalDetailDto>> GetAsync(int id, ClaimsPrincipal user)
@@ -122,7 +123,8 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             manage,
             list,
             Counts(primary),
-            Counts(others)));
+            Counts(others),
+            RehearsalsAuthorization.CanEdit(user)));
     }
 
     public async Task<EventResult<RehearsalAttendanceDto>> GetMyAttendanceAsync(int id, ClaimsPrincipal user)

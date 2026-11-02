@@ -43,7 +43,7 @@ delete, image. The Blazor page is retired; no bridge.
 | --- | --- | --- | --- |
 | Visitor | `401` (page: 302 to sign in) | `401` | `401` |
 | Member | yes | `403` | `403` |
-| Mod | yes | yes | `403` |
+| Mod | yes | yes | edit, change image, every reservation (list + delete) yes; delete product `403` |
 | Admin, Owner | yes | yes | yes (Owner inherits Admin) |
 
 Reserving is refused server-side on public or sold-out products, without a size when sizes are ticked, with a size off
@@ -55,11 +55,11 @@ the list, a display name over 200 characters, or a second reservation.
 | --- | --- |
 | `GET /api/shop?fiscalYear=&q=&type=` | `{ fiscalYears, fiscalYear, types, products, sizes, canCreate, canManage }`; no `fiscalYear` = the current year, empty = every year |
 | `GET /api/shop/products/{id}` | details |
-| `POST /api/shop/products` / `PUT` / `DELETE /api/shop/products/{id}` | create (Mod+) / edit, delete (Admin, Owner) |
+| `POST /api/shop/products` / `PUT` / `DELETE /api/shop/products/{id}` | create, edit (Mod+) / delete (Admin, Owner) |
 | `POST /api/shop/products/{id}/image` | multipart `image` (WebP, JPEG or PNG, ≤ 5 MB, cropped square) |
 | `POST /api/shop/products/{id}/reservations` | `{ hasSizes, size, displayName }` → the reservation |
-| `GET /api/shop/products/{id}/reservations` | every reservation of the product (Admin, Owner); username, never the member id |
-| `DELETE /api/shop/reservations/{id}` | own, or any for Admin / Owner |
+| `GET /api/shop/products/{id}/reservations` | every reservation of the product (Mod and above, 059); username, never the member id |
+| `DELETE /api/shop/reservations/{id}` | own, or any for Mod / Admin / Owner (059) |
 
 Tests use the recording storage fake only; nothing reaches R2. Product images stay in the public R2 bucket, as before.
 
@@ -67,7 +67,7 @@ Tests use the recording storage fake only; nothing reaches R2. Product images st
 
 - The member's own reservation stays visible and cancellable when the product sells out (the old page hid both
   buttons at stock 0).
-- A Mod can give the product they add its first image, but not change images afterwards (editing was Admin only).
+- A Mod edits products and changes images (059; before, only a new product's first image). Delete stays Admin / Owner.
 - Images are checked by content (WebP, JPEG or PNG); "Mostrar mais" (12 at a time) instead of numbered pages; a new
   product is saved first and its image right after.
 

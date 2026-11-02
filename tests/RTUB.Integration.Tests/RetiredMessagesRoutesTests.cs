@@ -78,8 +78,9 @@ public class RetiredMessagesRoutesTests : IntegrationTestBase
 /// <summary>
 /// Written for a contract task that would have dropped the message tables (cancelled: they are preserved and Messaging v2
 /// uses them since 041). Kept because it still proves something useful: outside /api/conversations and /api/messages,
-/// nothing touches the messaging tables - the session call, every push fan-out and a member deletion run without a single
-/// SQL statement naming them (no inbox copy per push since 027, no unread badge on every page).
+/// nothing touches the messaging tables - the session call, a push that is not kept in /messages and a member deletion run
+/// without a single SQL statement naming them (no unread badge on every page). Since task 061 an ordinary push is kept in
+/// "Notificações RTUB" on purpose (NotificationInboxTests); the push here opts out, as a chat-message push does.
 /// </summary>
 public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory>
 {
@@ -111,7 +112,7 @@ public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory
 
             using var scope = _factory.Services.CreateScope();
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
-            var notification = new SendPushNotificationDto { Title = "Teste", Body = "Sem caixa de entrada" };
+            var notification = new SendPushNotificationDto { Title = "Teste", Body = "Sem caixa de entrada", KeepInInbox = false };
             await push.SendToUserAsync(user.Id, notification);
             await push.BroadcastAsync(notification);
             await push.SendToSelectedUsersAsync([user.Id], notification);
@@ -122,7 +123,7 @@ public class MessagesRollbackSafetyTests : IClassFixture<CookieValidationFactory
 
         foreach (var table in MessageTables)
         {
-            _factory.Sql.Count(table).Should().Be(0, "nothing in a 027 build may read or write {0}", table);
+            _factory.Sql.Count(table).Should().Be(0, "nothing outside /messages and the kept pushes may read or write {0}", table);
         }
     }
 }

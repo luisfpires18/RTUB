@@ -13,12 +13,16 @@ namespace RTUB.Application.Helpers;
 /// - Visitors: the public agenda only (no descriptions, counts, repertoire or enrollments).
 /// - Any signed-in member: the member view, who is going, and their own enrollment (expelled
 ///   members arrive anonymous: the cookie validator drops their session).
-/// - Managing events (the React agenda and event page tools, adding or removing others' enrollments):
-///   Admin or Owner. Tracking who was contacted (/events/{id}/contacts): Mod and above, and any Leitão (by category).
+/// - Creating and editing an event (its fields and image, <see cref="CanEdit"/>): Mod and above.
+/// - Managing events (delete, cancel / reactivate, notices, prizes, videos, repertoire, adding or removing others'
+///   enrollments, <see cref="CanManage"/>): Admin or Owner. Tracking who was contacted (/events/{id}/contacts): Mod and
+///   above, and any Leitão (by category).
 /// </summary>
 public static class EventsAuthorization
 {
     public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+
+    public static bool CanEdit(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Mod"));
 
     public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 

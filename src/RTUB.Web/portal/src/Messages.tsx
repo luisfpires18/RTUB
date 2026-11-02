@@ -52,7 +52,9 @@ const api = {
   list: () => call<ConversationItem[]>('GET', '/api/conversations'),
   recipients: () => call<Person[]>('GET', '/api/conversations/recipients'),
   detail: (id: number, before?: number) => call<Detail>('GET', `/api/conversations/${id}${before ? `?before=${before}` : ''}`),
-  start: (userId: string) => call<Detail>('POST', '/api/conversations', { userId }),
+  direct: (userId: string) => call<{ id: number | null }>('GET', `/api/conversations/direct/${encodeURIComponent(userId)}`),
+  // Nothing is stored before the first message: the conversation and that message are created together.
+  start: (userIds: string[], title: string, body: string) => call<Detail>('POST', '/api/conversations', { userIds, title, body }),
   send: (id: number, body: string, replyToMessageId: number | null) =>
     call<MessageItem>('POST', `/api/conversations/${id}/messages`, { body, replyToMessageId }),
   read: (id: number) => call<void>('POST', `/api/conversations/${id}/read`),
@@ -92,13 +94,23 @@ const problem = (o: Outcome<unknown>, what: string) =>
           ? 'A sessão terminou. Entra outra vez.'
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
-/** "Sistema RTUB" and the groups wear the logo the portal header uses (the server sends the same file since #226 F09). */
+/** Only "Notificações RTUB" wears the app logo (the one the portal header uses); groups a plain chat icon, people their photo. */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
-const chatAvatar = (c: { kind: string; avatarUrl: string }) => (c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO);
+function ChatFace({ kind, avatarUrl, size }: { kind: string; avatarUrl: string; size: number }) {
+  if (kind !== 'group') return <MemberFace avatarUrl={kind === 'system' ? RTUB_LOGO : avatarUrl} size={size} />;
+  return (
+    <span className="chat-face" style={{ width: size, height: size }} aria-hidden="true">
+      <Icon name="people" />
+    </span>
+  );
+}
 
 /** Sistema RTUB first, then the groups, then the people; inside each the server's order (pinned, then latest activity). */
 const TIER: Record<string, number> = { system: 0, group: 1, direct: 2 };
 const byTier = (list: ConversationItem[]) => [...list].sort((a, b) => TIER[a.kind] - TIER[b.kind]);
+
+/** A chat being started in "Nova": shown like a conversation, but stored only when its first message is sent. */
+type Draft = { people: Person[]; title: string };
 
 const conversationFromUrl = () => Number(new URLSearchParams(location.search).get('c')) || undefined;
 
@@ -112,6 +124,7 @@ export default function Messages() {
   const [list, setList] = useState<ConversationItem[] | 'signin' | 'failed'>();
   const [selected, setSelected] = useState<number | undefined>(conversationFromUrl);
   const [starting, setStarting] = useState(false);
+  const [draft, setDraft] = useState<Draft>();
 
   const loadList = useCallback(
     () =>
@@ -131,7 +144,10 @@ export default function Messages() {
     document.title = 'Mensagens · RTUB';
     loadList();
     const timer = setInterval(() => document.visibilityState === 'visible' && loadList(), LIST_POLL_MS);
-    const onPop = () => setSelected(conversationFromUrl());
+    const onPop = () => {
+      setDraft(undefined);
+      setSelected(conversationFromUrl());
+    };
     addEventListener('popstate', onPop);
     return () => {
       clearInterval(timer);
@@ -140,12 +156,13 @@ export default function Messages() {
   }, [loadList]);
 
   const open = (id?: number) => {
+    setDraft(undefined);
     setSelected(id);
     history.pushState(null, '', id ? `${portal.messages}?c=${id}` : portal.messages);
   };
 
   return (
-    <section className={`page wrap chat-page${selected ? ' chat-page--open' : ''}`} aria-labelledby="chat-title">
+    <section className={`page wrap chat-page${selected || draft ? ' chat-page--open' : ''}`} aria-labelledby="chat-title">
       <header className="page__head chat-page__head">
         <p className="eyebrow">Área de membros</p>
         <h1 id="chat-title" className="page__title">
@@ -189,7 +206,7 @@ export default function Messages() {
                       aria-current={c.id === selected ? 'true' : undefined}
                       onClick={() => open(c.id)}
                     >
-                      <MemberFace avatarUrl={chatAvatar(c)} size={44} />
+                      <ChatFace kind={c.kind} avatarUrl={c.avatarUrl} size={44} />
                       <span className="chat-row__main">
                         <span className="chat-row__top">
                           <span className="chat-row__title">{c.title}</span>
@@ -222,7 +239,16 @@ export default function Messages() {
             )}
           </aside>
 
-          {selected ? (
+          {draft ? (
+            <DraftThread
+              draft={draft}
+              onBack={() => setDraft(undefined)}
+              onStarted={(id) => {
+                loadList();
+                open(id);
+              }}
+            />
+          ) : selected ? (
             <Thread key={selected} id={selected} onBack={() => open(undefined)} onChanged={loadList} />
           ) : (
             <div className="chat-thread chat-thread--empty">
@@ -236,10 +262,12 @@ export default function Messages() {
       {starting && (
         <StartDialog
           onClose={() => setStarting(false)}
-          onStarted={(id) => {
+          onPicked={async (people, title) => {
+            // One member: their existing chat opens; otherwise nothing is created until the first message.
+            const found = people.length === 1 ? await api.direct(people[0].id) : undefined;
             setStarting(false);
-            loadList();
-            open(id);
+            if (found?.kind === 'ok' && found.data.id) open(found.data.id);
+            else setDraft({ people, title });
           }}
         />
       )}
@@ -380,7 +408,7 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
           <Icon name="arrowLeft" />
           <span className="sr-only">Voltar às conversas</span>
         </button>
-        <MemberFace avatarUrl={chatAvatar(c)} size={40} />
+        <ChatFace kind={c.kind} avatarUrl={c.avatarUrl} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{c.title}</h2>
           {subtitle && <p className="chat-thread__subtitle">{subtitle}</p>}
@@ -525,6 +553,55 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
   );
 }
 
+function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () => void; onStarted: (id: number) => void }) {
+  const [error, setError] = useState<string>();
+  const group = draft.people.length > 1;
+  const title = group ? draft.title : draft.people[0].displayName;
+
+  const send = async (body: string) => {
+    const o = await api.start(
+      draft.people.map((p) => p.id),
+      draft.title,
+      body,
+    );
+    if (o.kind !== 'ok') {
+      setError(problem(o, 'enviar a mensagem'));
+      return false;
+    }
+    onStarted(o.data.conversation.id);
+    return true;
+  };
+
+  return (
+    <div className="chat-thread">
+      <header className="chat-thread__head">
+        <button type="button" className="icon-btn chat-thread__back" onClick={onBack}>
+          <Icon name="arrowLeft" />
+          <span className="sr-only">Voltar às conversas</span>
+        </button>
+        <ChatFace kind={group ? 'group' : 'direct'} avatarUrl={draft.people[0].avatarUrl} size={40} />
+        <div className="chat-thread__who">
+          <h2 className="chat-thread__title">{title}</h2>
+          <p className="chat-thread__subtitle">
+            {group ? draft.people.map((p) => p.displayName).join(', ') : (draft.people[0].fullName ?? 'Nova conversa')}
+          </p>
+        </div>
+      </header>
+      <div className="chat-thread__scroll">
+        <p className="note chat-thread__none">
+          {group ? 'O grupo é criado quando enviares a primeira mensagem.' : 'A conversa começa quando enviares a primeira mensagem.'}
+        </p>
+      </div>
+      {error && (
+        <p className="chat-thread__error" role="alert">
+          {error}
+        </p>
+      )}
+      <Composer onCancelReply={() => undefined} onSend={send} />
+    </div>
+  );
+}
+
 function Composer({
   replyTo,
   onCancelReply,
@@ -612,11 +689,15 @@ function Composer({
   );
 }
 
-function StartDialog({ onClose, onStarted }: { onClose: () => void; onStarted: (id: number) => void }) {
+/** Pick one member (their chat) or several plus a name (a new group). Nothing is stored here. */
+function StartDialog({ onClose, onPicked }: { onClose: () => void; onPicked: (people: Person[], title: string) => Promise<void> }) {
   const [people, setPeople] = useState<Person[] | 'failed'>();
   const [q, setQ] = useState('');
-  const [error, setError] = useState<string>();
+  const [chosen, setChosen] = useState<Person[]>([]);
+  const [title, setTitle] = useState('');
+  const [busy, setBusy] = useState(false);
   const searchId = useId();
+  const titleId = useId();
 
   useEffect(() => {
     api.recipients().then((o) => setPeople(o.kind === 'ok' ? o.data : 'failed'));
@@ -629,10 +710,17 @@ function StartDialog({ onClose, onStarted }: { onClose: () => void; onStarted: (
     return people.filter((p) => !term || fold(`${p.displayName} ${p.fullName ?? ''}`).includes(term));
   }, [people, q]);
 
-  const start = async (p: Person) => {
-    const o = await api.start(p.id);
-    if (o.kind === 'ok') onStarted(o.data.conversation.id);
-    else setError(problem(o, 'abrir a conversa'));
+  const toggle = (p: Person) =>
+    setChosen((cur) => (cur.some((c) => c.id === p.id) ? cur.filter((c) => c.id !== p.id) : [...cur, p]));
+  const group = chosen.length > 1;
+  const ready = chosen.length > 0 && (!group || title.trim().length > 0);
+
+  const go = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    await onPicked(chosen, title.trim());
+    setBusy(false);
   };
 
   return (
@@ -642,21 +730,21 @@ function StartDialog({ onClose, onStarted }: { onClose: () => void; onStarted: (
       ) : people === 'failed' ? (
         <p className="note">Não foi possível carregar os membros. Tenta outra vez daqui a pouco.</p>
       ) : (
-        <div className="chat-start">
+        <form className="chat-start" onSubmit={go}>
           <label className="control" htmlFor={searchId}>
             <span className="sr-only">Procurar membros</span>
             <Icon name="search" />
             <input id={searchId} type="search" placeholder="Procurar membros…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
           </label>
-          {error && (
-            <p className="chat-thread__error" role="alert">
-              {error}
-            </p>
-          )}
           <ul className="chat-start__list">
             {shown.map((p) => (
               <li key={p.id}>
-                <button type="button" className="chat-start__person" onClick={() => start(p)}>
+                <button
+                  type="button"
+                  className="chat-start__person"
+                  aria-pressed={chosen.some((c) => c.id === p.id)}
+                  onClick={() => toggle(p)}
+                >
                   <MemberFace avatarUrl={p.avatarUrl} size={36} />
                   <span>
                     <strong>{p.displayName}</strong>
@@ -667,7 +755,16 @@ function StartDialog({ onClose, onStarted }: { onClose: () => void; onStarted: (
             ))}
           </ul>
           {shown.length === 0 && <p className="note">Ninguém com esse nome.</p>}
-        </div>
+          {group && (
+            <div className="form__field">
+              <label htmlFor={titleId}>Nome do grupo</label>
+              <input id={titleId} type="text" maxLength={200} required value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+          )}
+          <button type="submit" className="btn btn--primary btn--sm" disabled={!ready || busy}>
+            {chosen.length === 0 ? 'Escolhe membros' : group ? `Criar grupo (${chosen.length})` : `Conversar com ${chosen[0].displayName}`}
+          </button>
+        </form>
       )}
     </Dialog>
   );

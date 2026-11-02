@@ -20,7 +20,8 @@ public interface IMemberStatusService
 
     /// <summary>
     /// Reconcile every member, active and Reformado alike (startup/daily job, Owner sync). Per-member failures are logged
-    /// and counted. Only the scheduled daily job passes <paramref name="notify"/>: the "Membro Reativado" and
+    /// and counted; then the premade /messages groups are synced (<see cref="Services.MessagingGroups"/>). Only the
+    /// scheduled daily job passes <paramref name="notify"/>: the "Membro Reativado" and
     /// "1 mês até reforma" pushes never come from a manual run, a trigger or a member's first evaluation.
     /// </summary>
     Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync(bool notify = false);

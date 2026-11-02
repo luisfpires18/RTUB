@@ -25,6 +25,7 @@ public class PushNotificationService : IPushNotificationService
     private readonly WebPushOptions _options;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
+    private readonly NotificationInbox? _inbox;
 
     /// <summary>The named <see cref="HttpClient"/> every send goes through; the host registers it (task 054).</summary>
     public const string HttpClientName = "WebPush";
@@ -44,8 +45,9 @@ public class PushNotificationService : IPushNotificationService
         IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger,
-        IHttpClientFactory httpClientFactory)
-        : this(subscriptionRepository, userProfileRepository, options, logger, httpClientFactory.CreateClient(HttpClientName))
+        IHttpClientFactory httpClientFactory,
+        NotificationInbox inbox)
+        : this(subscriptionRepository, userProfileRepository, options, logger, httpClientFactory.CreateClient(HttpClientName), inbox)
     {
     }
 
@@ -55,8 +57,10 @@ public class PushNotificationService : IPushNotificationService
         IUserProfileRepository userProfileRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger,
-        HttpClient? httpClient)
+        HttpClient? httpClient,
+        NotificationInbox? inbox = null)
     {
+        _inbox = inbox;
         _subscriptionRepository = subscriptionRepository;
         _userProfileRepository = userProfileRepository;
         _options = options.Value;
@@ -150,6 +154,7 @@ public class PushNotificationService : IPushNotificationService
 
     public async Task SendToUserAsync(string userId, SendPushNotificationDto notification)
     {
+        await KeepAsync(new[] { userId }, notification);
         if (!_options.IsConfigured())
         {
             return;
@@ -166,6 +171,7 @@ public class PushNotificationService : IPushNotificationService
 
     public async Task BroadcastAsync(SendPushNotificationDto notification)
     {
+        await KeepAsync(null, notification);
         if (!_options.IsConfigured())
         {
             return;
@@ -193,6 +199,11 @@ public class PushNotificationService : IPushNotificationService
 
     public async Task<(int Sent, int Failed)> SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification)
     {
+        if (userIds?.Any() == true)
+        {
+            await KeepAsync(userIds, notification);
+        }
+
         if (!_options.IsConfigured())
         {
             _logger.LogWarning("Cannot send push notification to selected users: WebPush is not configured");
@@ -232,6 +243,13 @@ public class PushNotificationService : IPushNotificationService
 
         return (sent, failed);
     }
+
+    /// <summary>
+    /// Every push is also kept in the recipients' "Notificações RTUB" (task 058), before the push itself and whether or
+    /// not push is configured: a member without push still finds it in /messages.
+    /// </summary>
+    private Task KeepAsync(IEnumerable<string>? userIds, SendPushNotificationDto notification) =>
+        _inbox?.KeepAsync(userIds, notification) ?? Task.CompletedTask;
 
     public string GetVapidPublicKey()
     {

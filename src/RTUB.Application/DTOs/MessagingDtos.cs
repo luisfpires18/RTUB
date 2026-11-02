@@ -59,7 +59,13 @@ public sealed record SendMessageRequest(string? Body, int? ReplyToMessageId);
 /// <summary>One of <see cref="ConversationDetail.ReactionChoices"/>.</summary>
 public sealed record ReactionRequest(string? Emoji);
 
-/// <summary>Opens (or reopens) the one-to-one conversation with another member.</summary>
-public sealed record StartConversationRequest(string? UserId);
+/// <summary>
+/// Starts a conversation with its first message (nothing is stored before it): one member = the one-to-one chat (reused
+/// if it exists), two or more = a new group named <c>Title</c>.
+/// </summary>
+public sealed record StartConversationRequest(IReadOnlyList<string?>? UserIds, string? Title, string? Body);
+
+/// <summary>The existing one-to-one chat with a member, or <c>null</c> (then the chat starts with the first message).</summary>
+public sealed record DirectConversation(int? Id);
 
 public sealed record ConversationSettings(bool Muted);

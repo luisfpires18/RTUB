@@ -63,14 +63,15 @@ public sealed class EventAgendaService : IEventAgendaService
         var events = await VisibleTo(db.Events.AsNoTracking(), user).ToListAsync();
         var extras = await LoadExtrasAsync(db, events.Select(e => e.Id).ToList(), EventsAuthorization.UserId(user));
 
-        var canManage = EventsAuthorization.CanManage(user);
+        var canEdit = EventsAuthorization.CanEdit(user);
         return new EventAgendaDto(
             extras.IsMember,
-            canManage,
+            EventsAuthorization.CanManage(user),
             Upcoming(events).Select(e => ToSummary(e, extras)).ToList(),
             events.Where(IsPast).OrderByDescending(e => e.Date).ThenByDescending(e => e.Id)
                 .Select(e => ToSummary(e, extras)).ToList(),
-            canManage ? TypeOptions : null);
+            canEdit ? TypeOptions : null,
+            canEdit);
     }
 
     public async Task<IReadOnlyList<UpcomingEventDto>> GetUpcomingPreviewAsync(int count)
@@ -231,7 +232,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventEditDto>> GetEventForEditAsync(int id, ClaimsPrincipal user)
     {
-        if (ManageRefusal<EventEditDto>(user) is { } refused)
+        if (EditRefusal<EventEditDto>(user) is { } refused)
         {
             return refused;
         }
@@ -260,7 +261,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user)
     {
-        if (ManageRefusal<EventSummaryDto>(user) is { } refused)
+        if (EditRefusal<EventSummaryDto>(user) is { } refused)
         {
             return refused;
         }
@@ -291,7 +292,7 @@ public sealed class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventSummaryDto>> UpdateEventAsync(int id, EventInput input, ClaimsPrincipal user)
     {
-        if (ManageRefusal<EventSummaryDto>(user) is { } refused)
+        if (EditRefusal<EventSummaryDto>(user) is { } refused)
         {
             return refused;
         }
@@ -336,6 +337,12 @@ public sealed class EventAgendaService : IEventAgendaService
         await _events.DeleteEventAsync(id);
         return EventResult<bool>.Ok(true);
     }
+
+    /// <summary>Create and edit: Mod and above. Delete stays <see cref="ManageRefusal{T}"/> (Admin / Owner).</summary>
+    private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
+        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        : !EventsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
+        : null;
 
     private static EventResult<T>? ManageRefusal<T>(ClaimsPrincipal user) =>
         !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)

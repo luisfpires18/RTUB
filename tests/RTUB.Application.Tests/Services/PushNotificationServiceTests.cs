@@ -357,8 +357,8 @@ public class PushNotificationServiceTests
         _mockRepository.Verify(r => r.GetAllActiveAsync(), Times.Never);
     }
 
-    // 027 retired Messages: a push no longer writes an inbox copy ("Sistema RTUB" conversation).
-    // The constructor no longer takes any messaging repository, so a push cannot reach those tables.
+    // 027 stopped the inbox copy; task 058 brought it back as "Notificações RTUB" through NotificationInbox, given only
+    // by the host's constructor (NotificationInboxTests). The test constructors here have none, so these sends write nothing.
 
     [Fact]
     public async Task SendToUserAsync_WhenConfigured_LooksUpThatUsersSubscriptionsOnly()
@@ -374,7 +374,7 @@ public class PushNotificationServiceTests
     [Fact]
     public async Task SendToUserAsync_WhenPushIsNotConfigured_DoesNothing()
     {
-        // Before 027 this still wrote the inbox copy; now there is nothing left to do.
+        // Without an inbox (test constructor) and without VAPID keys there is nothing left to do.
         var service = new PushNotificationService(
             _mockRepository.Object,
             _mockUserProfileRepository.Object,

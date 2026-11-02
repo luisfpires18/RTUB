@@ -40,7 +40,8 @@ public sealed class NewsService : INewsService
         }
 
         var size = Math.Clamp(pageSize, 1, MaxPageSize);
-        var manage = NewsAuthorization.CanManage(user);
+        // `manage` = whoever sees drafts and authors (Mod and above); Admin / Owner act on them (`CanManage` below).
+        var manage = NewsAuthorization.CanWrite(user);
         var signedIn = NewsAuthorization.UserId(user) is not null;
 
         await using var db = await _contexts.CreateDbContextAsync();
@@ -58,13 +59,14 @@ public sealed class NewsService : INewsService
             drafts.Select(p => Dto(p, manage)).ToList(),
             posts.Take(size).Select(p => Dto(p, manage)).ToList(),
             posts.Count > size,
-            manage,
-            signedIn));
+            NewsAuthorization.CanManage(user),
+            signedIn,
+            manage));
     }
 
     public async Task<EventResult<NewsPostDto>> CreateAsync(NewsPostInput input, ClaimsPrincipal user)
     {
-        if (Refusal<NewsPostDto>(user) is { } refused)
+        if (WriteRefusal<NewsPostDto>(user) is { } refused)
         {
             return refused;
         }
@@ -90,7 +92,7 @@ public sealed class NewsService : INewsService
 
     public async Task<EventResult<NewsPostDto>> UpdateAsync(int id, NewsPostInput input, ClaimsPrincipal user)
     {
-        if (Refusal<NewsPostDto>(user) is { } refused)
+        if (WriteRefusal<NewsPostDto>(user) is { } refused)
         {
             return refused;
         }
@@ -99,6 +101,7 @@ public sealed class NewsService : INewsService
         {
             return invalid;
         }
+
 
         return await ChangeAsync(id, p =>
         {
@@ -110,10 +113,10 @@ public sealed class NewsService : INewsService
     }
 
     public async Task<EventResult<NewsPostDto>> PublishAsync(int id, ClaimsPrincipal user) =>
-        Refusal<NewsPostDto>(user) ?? await ChangeAsync(id, p => p.PublishedAt ??= DateTime.UtcNow);
+        WriteRefusal<NewsPostDto>(user) ?? await ChangeAsync(id, p => p.PublishedAt ??= DateTime.UtcNow);
 
     public async Task<EventResult<NewsPostDto>> UnpublishAsync(int id, ClaimsPrincipal user) =>
-        Refusal<NewsPostDto>(user) ?? await ChangeAsync(id, p => p.PublishedAt = null);
+        WriteRefusal<NewsPostDto>(user) ?? await ChangeAsync(id, p => p.PublishedAt = null);
 
     public async Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user)
     {
@@ -190,7 +193,13 @@ public sealed class NewsService : INewsService
             : EventResult<NewsPostDto>.Fail(EventResultStatus.NotFound);
     }
 
-    /// <summary>401 for visitors, 403 for anyone who is not Admin/Owner.</summary>
+    /// <summary>401 for visitors, 403 for anyone who is not Mod, Admin or Owner (create, edit, publish, unpublish).</summary>
+    private static EventResult<T>? WriteRefusal<T>(ClaimsPrincipal user) =>
+        NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        : NewsAuthorization.CanWrite(user) ? null
+        : EventResult<T>.Fail(EventResultStatus.Forbidden);
+
+    /// <summary>401 for visitors, 403 for anyone who is not Admin/Owner (delete).</summary>
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
         NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : NewsAuthorization.CanManage(user) ? null

@@ -59,6 +59,7 @@ type Shop = {
   sizes: string[];
   canCreate: boolean;
   canManage: boolean;
+  canManageReservations: boolean;
 };
 type PublicShop = { fiscalYears: Option[]; fiscalYear: string; types: string[]; products: PublicProduct[] };
 type Catalogue = Shop | PublicShop;
@@ -296,22 +297,28 @@ export default function ShopPage() {
                           )
                         )}
                       </span>}
-                      {memberShop?.canManage && memberProduct && (
+                      {(memberShop?.canCreate || memberShop?.canManageReservations) && memberProduct && (
                         <span className="shop-card__actions">
-                          {!p.isPublic && (
+                          {memberShop.canManageReservations && !p.isPublic && (
                             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reservations', product: p })}>
                               <Icon name="person" />
                               Ver reservas
                             </button>
                           )}
-                          <button type="button" className="icon-btn" onClick={() => setOpen({ kind: 'form', id: p.id })}>
-                            <Icon name="pencil" />
-                            <span className="sr-only">Editar {p.name}</span>
-                          </button>
-                          <button type="button" className="icon-btn icon-btn--danger" onClick={() => setOpen({ kind: 'delete', product: p })}>
-                            <Icon name="trash" />
-                            <span className="sr-only">Eliminar {p.name}</span>
-                          </button>
+                          {memberShop.canCreate && (
+                            <button type="button" className="icon-btn" onClick={() => setOpen({ kind: 'form', id: p.id })}>
+                              <Icon name="pencil" />
+                              <span className="sr-only">Editar {p.name}</span>
+                            </button>
+                          )}
+                          {memberShop.canManage && (
+                            <>
+                              <button type="button" className="icon-btn icon-btn--danger" onClick={() => setOpen({ kind: 'delete', product: p })}>
+                                <Icon name="trash" />
+                                <span className="sr-only">Eliminar {p.name}</span>
+                              </button>
+                            </>
+                          )}
                         </span>
                       )}
                     </div>
@@ -358,7 +365,7 @@ export default function ShopPage() {
               </p>
             </Confirm>
           )}
-          {memberShop && open?.kind === 'form' && <ProductForm id={open.id} canManage={memberShop.canManage} onClose={close} onSaved={load} />}
+          {memberShop && open?.kind === 'form' && <ProductForm id={open.id} canManage={memberShop.canCreate} onClose={close} onSaved={load} />}
         </>
       )}
     </section>
@@ -560,7 +567,7 @@ function MineDialog({ product, reservation, onClose, onDone }: { product: Produc
   );
 }
 
-/** "Reservas do Produto" (Admin and Owner): every reservation, newest first, each deletable. */
+/** "Reservas do Produto" (Mod, Admin and Owner): every reservation, newest first, each deletable. */
 function ReservationsDialog({ product, onClose, onChanged }: { product: Product; onClose: () => void; onChanged: () => void }) {
   const [list, setList] = useState<Reservation[] | null>();
   const [deleting, setDeleting] = useState<Reservation>();

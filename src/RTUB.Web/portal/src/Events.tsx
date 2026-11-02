@@ -101,19 +101,23 @@ export default function Events() {
   useEffect(() => {
     if (!prefill || !agenda) return;
     pendingPrefill = undefined;
-    if (agenda.canManage) setEditing('new');
+    if (agenda.canEdit) setEditing('new');
     else setPrefill(undefined);
   }, [agenda, prefill]);
   const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
-  // Admin/Owner only: the server sends canManage, and refuses the writes for anyone else.
-  // Notices and cancel / reactivate only for upcoming dates, as the old page.
+  // The server sends canEdit (Mod and above: create, edit) and canManage (Admin/Owner: the rest) and refuses the
+  // writes for anyone else. Notices and cancel / reactivate only for upcoming dates, as the old page.
   const manage = (e: EventSummary): Manage =>
-    agenda?.canManage
+    agenda?.canEdit
       ? {
           onEdit: () => setEditing(e.id),
-          onDelete: () => setDeleting(e),
-          onNotice: e.past || e.cancelled ? undefined : () => setActing({ action: 'notice', event: e }),
-          onCancel: e.past ? undefined : () => setActing({ action: e.cancelled ? 'reactivate' : 'cancel', event: e }),
+          ...(agenda.canManage
+            ? {
+                onDelete: () => setDeleting(e),
+                onNotice: e.past || e.cancelled ? undefined : () => setActing({ action: 'notice', event: e }),
+                onCancel: e.past ? undefined : () => setActing({ action: e.cancelled ? 'reactivate' : 'cancel', event: e }),
+              }
+            : {}),
         }
       : undefined;
 
@@ -144,7 +148,7 @@ export default function Events() {
         </div>
         {(hasPrizes || agenda?.isMember) && (
           <div className="events-page__actions">
-            {agenda?.canManage && (
+            {agenda?.canEdit && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
                 <Icon name="plus" />
                 Adicionar atuação
@@ -358,10 +362,10 @@ export function MyStatus({ event }: { event: EventSummary }) {
  * quick reply that opens the answer modal without leaving the agenda.
  */
 type Manage =
-  | { onEdit: () => void; onDelete: () => void; onNotice?: () => void; onCancel?: () => void }
+  | { onEdit: () => void; onDelete?: () => void; onNotice?: () => void; onCancel?: () => void }
   | undefined;
 
-/** Edit, notice, cancel / reactivate and delete, over the card's stretched link; Admin/Owner only. */
+/** Edit (Mod and above), notice, cancel / reactivate and delete (Admin/Owner), over the card's stretched link. */
 function ManageButtons({ event, manage }: { event: EventSummary; manage: Manage }) {
   if (!manage) return null;
   return (
@@ -384,10 +388,12 @@ function ManageButtons({ event, manage }: { event: EventSummary; manage: Manage 
           </span>
         </button>
       )}
-      <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete} title="Apagar">
-        <Icon name="trash" />
-        <span className="sr-only">Apagar {event.name}</span>
-      </button>
+      {manage.onDelete && (
+        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete} title="Apagar">
+          <Icon name="trash" />
+          <span className="sr-only">Apagar {event.name}</span>
+        </button>
+      )}
     </span>
   );
 }
