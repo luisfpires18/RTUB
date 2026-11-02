@@ -39,8 +39,8 @@ public class EventManagementTests
         _service = new EventAgendaService(new Contexts(_db), Mock.Of<IEnrollmentService>(), _events.Object, _pushFactory.Object,
             _push.Object, Mock.Of<IAuditLogService>(), NullLogger<EventAgendaService>.Instance);
         FakeEventWrites();
-        _pushFactory.Setup(f => f.CreateEventNotification(It.IsAny<Event>(), false, It.IsAny<string>()))
-            .Returns((Event e, bool _, string url) => new SendPushNotificationDto { Title = e.Name, Url = url });
+        _pushFactory.Setup(f => f.CreateEventNotification(It.IsAny<Event>(), false))
+            .Returns((Event e, bool _) => new SendPushNotificationDto { Title = e.Name, Url = $"/events/{e.Id}" });
     }
 
     // ---------- who may manage ----------
@@ -59,7 +59,7 @@ public class EventManagementTests
         var user = who switch { "visitor" => Visitor, "member" => Member, _ => Mod };
         var id = AddEvent("Serenata", _future);
 
-        (await _service.CreateEventAsync(Input(), user, "https://rtub.test")).Status.Should().Be(expected);
+        (await _service.CreateEventAsync(Input(), user)).Status.Should().Be(expected);
         (await _service.UpdateEventAsync(id, Input(name: "Outro nome"), user)).Status.Should().Be(expected);
         (await _service.DeleteEventAsync(id, user)).Status.Should().Be(expected);
         (await _service.GetEventForEditAsync(id, user)).Status.Should().Be(expected);
@@ -71,8 +71,8 @@ public class EventManagementTests
     [Fact]
     public async Task AnOwner_InheritsAdmin_AndBothGetTheTypesForTheForm()
     {
-        (await _service.CreateEventAsync(Input(name: "Do Owner"), Owner, "https://rtub.test")).Status.Should().Be(EventResultStatus.Ok);
-        (await _service.CreateEventAsync(Input(name: "Do Admin"), Admin, "https://rtub.test")).Status.Should().Be(EventResultStatus.Ok);
+        (await _service.CreateEventAsync(Input(name: "Do Owner"), Owner)).Status.Should().Be(EventResultStatus.Ok);
+        (await _service.CreateEventAsync(Input(name: "Do Admin"), Admin)).Status.Should().Be(EventResultStatus.Ok);
 
         (await _service.GetAgendaAsync(Owner)).Types.Should().HaveCount(Enum.GetValues<EventType>().Length);
         (await _service.GetAgendaAsync(Admin)).Types.Should().NotBeNull();
@@ -87,7 +87,7 @@ public class EventManagementTests
     {
         var result = await _service.CreateEventAsync(
             Input(name: "  Serenata nova  ", date: "2031-05-03", time: "21:30", location: "Sé", type: "Serenata", description: "Levar capa"),
-            Admin, "https://rtub.test");
+            Admin);
 
         result.Status.Should().Be(EventResultStatus.Ok);
         result.Value!.Should().Match<EventSummaryDto>(e =>
@@ -95,13 +95,13 @@ public class EventManagementTests
             && e.Location == "Sé" && e.Type == "Serenata" && !e.Past);
         _events.Verify(s => s.CreateEventAsync("Serenata nova", new DateTime(2031, 5, 3, 21, 30, 0), "Sé", EventType.Serenata,
             "Levar capa", null, null, true, default), Times.Once);
-        _push.Verify(p => p.BroadcastAsync(It.Is<SendPushNotificationDto>(n => n.Title == "Serenata nova" && n.Url == "https://rtub.test")), Times.Once);
+        _push.Verify(p => p.BroadcastAsync(It.Is<SendPushNotificationDto>(n => n.Title == "Serenata nova" && n.Url!.StartsWith("/events/"))), Times.Once);
     }
 
     [Fact]
     public async Task Create_MembersOnly_StoresItPrivate_AndTheAdminSeesItMarked()
     {
-        var result = await _service.CreateEventAsync(Input(name: "Surpresa") with { MembersOnly = true }, Admin, "https://rtub.test");
+        var result = await _service.CreateEventAsync(Input(name: "Surpresa") with { MembersOnly = true }, Admin);
 
         result.Value!.MembersOnly.Should().BeTrue();
         _events.Verify(s => s.CreateEventAsync("Surpresa", It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<EventType>(),
@@ -135,7 +135,7 @@ public class EventManagementTests
     [Fact]
     public async Task Create_ForSeveralDays_StartsAtMidnight_WithoutATime()
     {
-        var result = await _service.CreateEventAsync(Input(date: "2031-05-03", time: "21:30", endDate: "2031-05-05"), Admin, "https://rtub.test");
+        var result = await _service.CreateEventAsync(Input(date: "2031-05-03", time: "21:30", endDate: "2031-05-05"), Admin);
 
         result.Value!.Time.Should().BeNull("a multi-day event has no time, as on the old form");
         result.Value.EndDate.Should().Be("2031-05-05");
@@ -148,7 +148,7 @@ public class EventManagementTests
     {
         _push.Setup(p => p.BroadcastAsync(It.IsAny<SendPushNotificationDto>())).ThrowsAsync(new InvalidOperationException("push down"));
 
-        (await _service.CreateEventAsync(Input(), Admin, "https://rtub.test")).Status.Should().Be(EventResultStatus.Ok);
+        (await _service.CreateEventAsync(Input(), Admin)).Status.Should().Be(EventResultStatus.Ok);
     }
 
     [Theory]
@@ -160,7 +160,7 @@ public class EventManagementTests
     [InlineData("type", "Serenata", "2031-05-03", null, "Sé", "99")]
     public async Task Create_RefusesWhatTheOldFormRefused(string field, string name, string date, string? endDate, string location, string type)
     {
-        var result = await _service.CreateEventAsync(Input(name: name, date: date, endDate: endDate, location: location, type: type), Admin, "x");
+        var result = await _service.CreateEventAsync(Input(name: name, date: date, endDate: endDate, location: location, type: type), Admin);
 
         result.Status.Should().Be(EventResultStatus.Invalid);
         result.Errors!.Keys.Should().Contain(field);
@@ -172,7 +172,7 @@ public class EventManagementTests
     public async Task Create_RefusesTooLongTextAndABadTime()
     {
         var result = await _service.CreateEventAsync(
-            Input(name: new string('n', 201), time: "25:00", description: new string('d', 2001)), Admin, "x");
+            Input(name: new string('n', 201), time: "25:00", description: new string('d', 2001)), Admin);
 
         result.Errors!.Keys.Should().Contain(new[] { "name", "time", "description" });
     }

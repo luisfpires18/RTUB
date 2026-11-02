@@ -26,17 +26,16 @@ public class PushNotificationFactoryTests
             Location = "Centro Cultural",
             Date = eventDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
+        var notification = _factory.CreateEventNotification(testEvent, isReminder: false);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Atuação de Natal", notification.Title);
         Assert.Equal("Novo evento do tipo \"Festival\" - Atuação de Natal. Confirma a tua presença.", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events/123", notification.Url);
         Assert.Equal("event-123", notification.Tag);
     }
 
@@ -52,10 +51,9 @@ public class PushNotificationFactoryTests
             Location = "Sala de Ensaios",
             Date = eventDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl);
+        var notification = _factory.CreateEventNotification(testEvent, isReminder: true);
 
         // Assert
         Assert.NotNull(notification);
@@ -64,7 +62,7 @@ public class PushNotificationFactoryTests
         Assert.Contains("no Sala de Ensaios", notification.Body);
         Assert.Contains("Não te esqueças de confirmar a tua presença!", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events/456", notification.Url);
         Assert.StartsWith("event-reminder-456-", notification.Tag);
     }
 
@@ -80,35 +78,15 @@ public class PushNotificationFactoryTests
             Location = "Teatro Municipal",
             Date = eventDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl);
+        var notification = _factory.CreateEventNotification(testEvent, isReminder: true);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Contains("A atuação é em 1 dia", notification.Body);
     }
 
-    [Fact]
-    public void CreateEventNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
-    {
-        // Arrange
-        var testEvent = new Event
-        {
-            Id = 1,
-            Name = "Test Event",
-            Location = "Test Location",
-            Date = DateTime.UtcNow.Date.AddDays(1)
-        };
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
-
-        // Assert
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
-    }
 
     [Fact]
     public void CreateEventNotification_PastEventReminder_ThrowsArgumentException()
@@ -122,11 +100,10 @@ public class PushNotificationFactoryTests
             Location = "Some Location",
             Date = pastDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl));
+            _factory.CreateEventNotification(testEvent, isReminder: true));
         Assert.Contains("Cannot create reminder for past events", exception.Message);
     }
 
@@ -135,48 +112,13 @@ public class PushNotificationFactoryTests
     {
         // Arrange
         Event? nullEvent = null;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateEventNotification(nullEvent!, isReminder: false, baseUrl));
+            _factory.CreateEventNotification(nullEvent!, isReminder: false));
     }
 
-    [Fact]
-    public void CreateEventNotification_NullBaseUrl_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var testEvent = new Event
-        {
-            Id = 1,
-            Name = "Test Event",
-            Location = "Test Location",
-            Date = DateTime.UtcNow.Date.AddDays(1)
-        };
-        string? nullBaseUrl = null;
 
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateEventNotification(testEvent, isReminder: false, nullBaseUrl!));
-    }
-
-    [Fact]
-    public void CreateEventNotification_EmptyBaseUrl_ThrowsArgumentException()
-    {
-        // Arrange
-        var testEvent = new Event
-        {
-            Id = 1,
-            Name = "Test Event",
-            Location = "Test Location",
-            Date = DateTime.UtcNow.Date.AddDays(1)
-        };
-        var emptyBaseUrl = string.Empty;
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
-            _factory.CreateEventNotification(testEvent, isReminder: false, emptyBaseUrl));
-    }
 
     [Fact]
     public void CreateEventNotification_DateFormattingPortuguese_IsCorrect()
@@ -191,10 +133,9 @@ public class PushNotificationFactoryTests
             Location = "Test Location",
             Date = eventDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
+        var notification = _factory.CreateEventNotification(testEvent, isReminder: false);
 
         // Assert
         Assert.Contains("Novo evento do tipo", notification.Body);
@@ -205,16 +146,15 @@ public class PushNotificationFactoryTests
     public void CreatePendingRehearsalApprovalsReminderNotification_SinglePending_ReusesSingularBody()
     {
         // Arrange
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(1, baseUrl);
+        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(1);
 
         // Assert
         Assert.Equal("Lembrete: Ensaios Pendentes", notification.Title);
         Assert.Equal("Existe 1 ensaio passado com presenças pendentes para aprovar.", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("/rehearsals", notification.Url);
         Assert.Equal("pending-rehearsal-approvals-reminder", notification.Tag);
     }
 
@@ -222,14 +162,13 @@ public class PushNotificationFactoryTests
     public void CreatePendingRehearsalApprovalsReminderNotification_MultiplePending_UsesPluralBody()
     {
         // Arrange
-        var baseUrl = "https://rtub.example.com/";
 
         // Act
-        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(3, baseUrl);
+        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(3);
 
         // Assert
         Assert.Equal("Existem 3 ensaios passados com presenças pendentes para aprovar.", notification.Body);
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("/rehearsals", notification.Url);
     }
 
     [Fact]
@@ -244,10 +183,9 @@ public class PushNotificationFactoryTests
             Location = "Test Location",
             Date = today
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl);
+        var notification = _factory.CreateEventNotification(testEvent, isReminder: true);
 
         // Assert
         // Since the event is today (0 days difference), it should say "hoje"
@@ -262,11 +200,10 @@ public class PushNotificationFactoryTests
         var eventDate = DateTime.UtcNow.Date.AddDays(2);
         var event1 = new Event { Id = 100, Name = "Event 1", Location = "Location 1", Date = eventDate };
         var event2 = new Event { Id = 200, Name = "Event 2", Location = "Location 2", Date = eventDate };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification1 = _factory.CreateEventNotification(event1, isReminder: false, baseUrl);
-        var notification2 = _factory.CreateEventNotification(event2, isReminder: false, baseUrl);
+        var notification1 = _factory.CreateEventNotification(event1, isReminder: false);
+        var notification2 = _factory.CreateEventNotification(event2, isReminder: false);
 
         // Assert
         Assert.NotEqual(notification1.Tag, notification2.Tag);
@@ -286,11 +223,10 @@ public class PushNotificationFactoryTests
             Location = "Test Location",
             Date = eventDate
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var newNotification = _factory.CreateEventNotification(testEvent, isReminder: false, baseUrl);
-        var reminderNotification = _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl);
+        var newNotification = _factory.CreateEventNotification(testEvent, isReminder: false);
+        var reminderNotification = _factory.CreateEventNotification(testEvent, isReminder: true);
 
         // Assert
         Assert.NotEqual(newNotification.Tag, reminderNotification.Tag);
@@ -308,10 +244,9 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(rehearsalDate, "Centro Académico");
         rehearsal.Id = 789;
         var customBody = "Ensaio importante! Vamos preparar o repertório de Natal.";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateRehearsalNotification(rehearsal, customBody, baseUrl);
+        var notification = _factory.CreateRehearsalNotification(rehearsal, customBody);
 
         // Assert
         Assert.NotNull(notification);
@@ -321,7 +256,7 @@ public class PushNotificationFactoryTests
         Assert.Contains("terça", notification.Title.ToLower()); // Day of week
         Assert.Equal(customBody, notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("/rehearsals/789", notification.Url);
         Assert.Equal("rehearsal-789", notification.Tag);
     }
 
@@ -333,10 +268,9 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(rehearsalDate, "Centro Académico");
         rehearsal.Id = 999;
         var customBody = "Ensaio de quinta-feira.";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateRehearsalNotification(rehearsal, customBody, baseUrl);
+        var notification = _factory.CreateRehearsalNotification(rehearsal, customBody);
 
         // Assert
         Assert.Contains("Ensaio - ", notification.Title);
@@ -350,11 +284,10 @@ public class PushNotificationFactoryTests
         // Arrange
         Rehearsal? nullRehearsal = null;
         var customBody = "Test body";
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateRehearsalNotification(nullRehearsal!, customBody, baseUrl));
+            _factory.CreateRehearsalNotification(nullRehearsal!, customBody));
     }
 
     [Fact]
@@ -364,11 +297,10 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
         rehearsal.Id = 1;
         string? nullBody = null;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateRehearsalNotification(rehearsal, nullBody!, baseUrl));
+            _factory.CreateRehearsalNotification(rehearsal, nullBody!));
     }
 
     [Fact]
@@ -378,28 +310,12 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
         rehearsal.Id = 1;
         var emptyBody = string.Empty;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            _factory.CreateRehearsalNotification(rehearsal, emptyBody, baseUrl));
+            _factory.CreateRehearsalNotification(rehearsal, emptyBody));
     }
 
-    [Fact]
-    public void CreateRehearsalNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
-        rehearsal.Id = 1;
-        var customBody = "Test body";
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateRehearsalNotification(rehearsal, customBody, baseUrl);
-
-        // Assert
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
-    }
 
     // Event custom notification tests
 
@@ -410,17 +326,16 @@ public class PushNotificationFactoryTests
         var testEvent = Event.Create("Test Event", DateTime.UtcNow.AddDays(5), "Test Location", EventType.Atuacao, "Desc");
         testEvent.Id = 123;
         var customBody = "Mensagem personalizada para a atuação.";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventCustomNotification(testEvent, customBody, baseUrl);
+        var notification = _factory.CreateEventCustomNotification(testEvent, customBody);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal(testEvent.Name, notification.Title);
         Assert.Equal(customBody, notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events/123", notification.Url);
         Assert.Equal("event-custom-123", notification.Tag);
     }
 
@@ -430,10 +345,9 @@ public class PushNotificationFactoryTests
         var testEvent = Event.Create("Test Event", DateTime.UtcNow.AddDays(5), "Test Location", EventType.Atuacao, "Desc");
         testEvent.Id = 1;
 
-        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(null!, "body", "https://rtub.example.com"));
-        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(testEvent, null!, "https://rtub.example.com"));
-        Assert.Throws<ArgumentException>(() => _factory.CreateEventCustomNotification(testEvent, string.Empty, "https://rtub.example.com"));
-        Assert.Throws<ArgumentException>(() => _factory.CreateEventCustomNotification(testEvent, "body", ""));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(null!, "body"));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(testEvent, null!));
+        Assert.Throws<ArgumentException>(() => _factory.CreateEventCustomNotification(testEvent, string.Empty));
     }
 
     // Meeting custom notification tests
@@ -450,17 +364,16 @@ public class PushNotificationFactoryTests
             Type = MeetingType.AssembleiaGeralOrdinaria
         };
         var customBody = "Mensagem personalizada para a reunião.";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateMeetingCustomNotification(meeting, customBody, baseUrl);
+        var notification = _factory.CreateMeetingCustomNotification(meeting, customBody);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Contains("Reunião - ", notification.Title);
         Assert.Equal(customBody, notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("/meetings?meeting=42", notification.Url);
         Assert.Equal("meeting-custom-42", notification.Tag);
     }
 
@@ -475,10 +388,9 @@ public class PushNotificationFactoryTests
             Type = MeetingType.AssembleiaGeralOrdinaria
         };
 
-        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(null!, "body", "https://rtub.example.com"));
-        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(meeting, null!, "https://rtub.example.com"));
-        Assert.Throws<ArgumentException>(() => _factory.CreateMeetingCustomNotification(meeting, string.Empty, "https://rtub.example.com"));
-        Assert.Throws<ArgumentException>(() => _factory.CreateMeetingCustomNotification(meeting, "body", ""));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(null!, "body"));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(meeting, null!));
+        Assert.Throws<ArgumentException>(() => _factory.CreateMeetingCustomNotification(meeting, string.Empty));
     }
 
     // Rehearsal Non-Attendance Notification Tests
@@ -491,10 +403,9 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(rehearsalDate, "Centro Académico");
         rehearsal.Id = 123;
         var userDisplayName = "João Silva";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateRehearsalNonAttendanceNotification(rehearsal, userDisplayName, baseUrl);
+        var notification = _factory.CreateRehearsalNonAttendanceNotification(rehearsal, userDisplayName);
 
         // Assert
         Assert.NotNull(notification);
@@ -502,7 +413,7 @@ public class PushNotificationFactoryTests
         Assert.Contains("João Silva não vai ao", notification.Body);
         Assert.Contains("Ensaio - ", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("/rehearsals/123", notification.Url);
         Assert.Equal("rehearsal-non-attendance-123", notification.Tag);
     }
 
@@ -512,11 +423,10 @@ public class PushNotificationFactoryTests
         // Arrange
         Rehearsal? nullRehearsal = null;
         var userDisplayName = "Test User";
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateRehearsalNonAttendanceNotification(nullRehearsal!, userDisplayName, baseUrl));
+            _factory.CreateRehearsalNonAttendanceNotification(nullRehearsal!, userDisplayName));
     }
 
     [Fact]
@@ -526,11 +436,10 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
         rehearsal.Id = 1;
         string? nullUserDisplayName = null;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, nullUserDisplayName!, baseUrl));
+            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, nullUserDisplayName!));
     }
 
     [Fact]
@@ -540,28 +449,12 @@ public class PushNotificationFactoryTests
         var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
         rehearsal.Id = 1;
         var emptyUserDisplayName = string.Empty;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, emptyUserDisplayName, baseUrl));
+            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, emptyUserDisplayName));
     }
 
-    [Fact]
-    public void CreateRehearsalNonAttendanceNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
-        rehearsal.Id = 1;
-        var userDisplayName = "Test User";
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateRehearsalNonAttendanceNotification(rehearsal, userDisplayName, baseUrl);
-
-        // Assert
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
-    }
 
     // Event Non-Enrollment Notification Tests
 
@@ -579,10 +472,9 @@ public class PushNotificationFactoryTests
             Type = Core.Enums.EventType.Atuacao
         };
         var userDisplayName = "João Silva";
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateEventNonEnrollmentNotification(testEvent, userDisplayName, baseUrl);
+        var notification = _factory.CreateEventNonEnrollmentNotification(testEvent, userDisplayName);
 
         // Assert
         Assert.NotNull(notification);
@@ -590,7 +482,7 @@ public class PushNotificationFactoryTests
         Assert.Contains("João Silva não vai a", notification.Body);
         Assert.Contains("Atuação de Natal", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events/123", notification.Url);
         Assert.Equal("event-non-enrollment-123", notification.Tag);
     }
 
@@ -600,11 +492,10 @@ public class PushNotificationFactoryTests
         // Arrange
         Event? nullEvent = null;
         var userDisplayName = "Test User";
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateEventNonEnrollmentNotification(nullEvent!, userDisplayName, baseUrl));
+            _factory.CreateEventNonEnrollmentNotification(nullEvent!, userDisplayName));
     }
 
     [Fact]
@@ -620,11 +511,10 @@ public class PushNotificationFactoryTests
             Type = Core.Enums.EventType.Festival
         };
         string? nullUserDisplayName = null;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _factory.CreateEventNonEnrollmentNotification(testEvent, nullUserDisplayName!, baseUrl));
+            _factory.CreateEventNonEnrollmentNotification(testEvent, nullUserDisplayName!));
     }
 
     [Fact]
@@ -640,34 +530,12 @@ public class PushNotificationFactoryTests
             Type = Core.Enums.EventType.Festival
         };
         var emptyUserDisplayName = string.Empty;
-        var baseUrl = "https://rtub.example.com";
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            _factory.CreateEventNonEnrollmentNotification(testEvent, emptyUserDisplayName, baseUrl));
+            _factory.CreateEventNonEnrollmentNotification(testEvent, emptyUserDisplayName));
     }
 
-    [Fact]
-    public void CreateEventNonEnrollmentNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
-    {
-        // Arrange
-        var testEvent = new Event
-        {
-            Id = 1,
-            Name = "Test Event",
-            Location = "Test Location",
-            Date = DateTime.UtcNow.Date.AddDays(1),
-            Type = Core.Enums.EventType.Festival
-        };
-        var userDisplayName = "Test User";
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateEventNonEnrollmentNotification(testEvent, userDisplayName, baseUrl);
-
-        // Assert
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
-    }
 
     [Fact]
     public void CreateWeeklySummaryNotification_WithAllActivities_ReturnsCorrectNotification()
@@ -676,17 +544,16 @@ public class PushNotificationFactoryTests
         var eventCount = 2;
         var rehearsalCount = 3;
         var meetingCount = 1;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Resumo Semanal", notification.Title);
         Assert.Equal("Esta semana tens: 2 atuações, 3 ensaios, 1 reunião", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events", notification.Url);
         Assert.Equal("weekly-summary", notification.Tag);
     }
 
@@ -697,16 +564,15 @@ public class PushNotificationFactoryTests
         var eventCount = 1;
         var rehearsalCount = 0;
         var meetingCount = 0;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Resumo Semanal", notification.Title);
         Assert.Equal("Esta semana tens: 1 atuação", notification.Body);
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("/events", notification.Url);
     }
 
     [Fact]
@@ -716,16 +582,15 @@ public class PushNotificationFactoryTests
         var eventCount = 0;
         var rehearsalCount = 2;
         var meetingCount = 0;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Resumo Semanal", notification.Title);
         Assert.Equal("Esta semana tens: 2 ensaios", notification.Body);
-        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("/rehearsals", notification.Url);
     }
 
     [Fact]
@@ -735,16 +600,15 @@ public class PushNotificationFactoryTests
         var eventCount = 0;
         var rehearsalCount = 0;
         var meetingCount = 2;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Resumo Semanal", notification.Title);
         Assert.Equal("Esta semana tens: 2 reuniões", notification.Body);
-        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("/meetings", notification.Url);
     }
 
     [Fact]
@@ -754,16 +618,15 @@ public class PushNotificationFactoryTests
         var eventCount = 0;
         var rehearsalCount = 0;
         var meetingCount = 0;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Resumo Semanal", notification.Title);
         Assert.Equal("Não há atividades agendadas para esta semana.", notification.Body);
-        Assert.Equal("https://rtub.example.com", notification.Url);
+        Assert.Equal("/", notification.Url);
     }
 
     [Fact]
@@ -773,31 +636,15 @@ public class PushNotificationFactoryTests
         var eventCount = 1;
         var rehearsalCount = 1;
         var meetingCount = 1;
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount);
 
         // Assert
         Assert.NotNull(notification);
         Assert.Equal("Esta semana tens: 1 atuação, 1 ensaio, 1 reunião", notification.Body);
     }
 
-    [Fact]
-    public void CreateWeeklySummaryNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
-    {
-        // Arrange
-        var eventCount = 1;
-        var rehearsalCount = 0;
-        var meetingCount = 0;
-        var baseUrl = "https://rtub.example.com/";
-
-        // Act
-        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
-
-        // Assert
-        Assert.Equal("https://rtub.example.com/events", notification.Url);
-    }
 
     [Fact]
     public void CreateMeetingRequestRejectedNotification_Expired_ReturnsExpirationMessage()
@@ -809,15 +656,14 @@ public class PushNotificationFactoryTests
             Title = "Reunião extraordinária",
             ProposedDateTime = DateTime.UtcNow.AddDays(-2)
         };
-        var baseUrl = "https://rtub.example.com";
 
         // Act
-        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: true, baseUrl);
+        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: true);
 
         // Assert
         Assert.Equal("Pedido de reunião rejeitado", notification.Title);
         Assert.Contains("expirou porque a data proposta já passou", notification.Body);
-        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("/meetings", notification.Url);
         Assert.Equal("meeting-request-rejected-15", notification.Tag);
     }
 
@@ -831,24 +677,49 @@ public class PushNotificationFactoryTests
             Title = "Reunião de Direção",
             ProposedDateTime = DateTime.UtcNow.AddDays(5)
         };
-        var baseUrl = "https://rtub.example.com/";
 
         // Act
-        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: false, baseUrl);
+        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: false);
 
         // Assert
         Assert.Equal("Pedido de reunião rejeitado", notification.Title);
         Assert.Contains("foi rejeitado", notification.Body);
-        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("/meetings", notification.Url);
         Assert.Equal("meeting-request-rejected-21", notification.Tag);
     }
 
     [Fact]
     public void CreateCalotesReminderNotification_OpensTheReactCalotesPage()
     {
-        var notification = _factory.CreateCalotesReminderNotification(12.5m, "/");
+        var notification = _factory.CreateCalotesReminderNotification(12.5m);
 
         Assert.Equal("/treasury/calotes", notification.Url);
         Assert.Equal("calotes-reminder", notification.Tag);
+    }
+
+    [Fact]
+    public void ItemNotifications_OpenTheItemItself_WithARelativeLink()
+    {
+        // Task 058: a tap lands on the event / rehearsal / meeting / album / gallery item, never on a list or another host.
+        var e = new Event { Id = 7, Name = "Serenata", Location = "Sé", Date = DateTime.Today.AddDays(3) };
+        var r = new Rehearsal { Id = 3, Date = DateTime.Today.AddDays(1), Location = "Sala" };
+        var m = new Meeting { Id = 5, Title = "AG", Type = MeetingType.AssembleiaGeralOrdinaria, Date = DateTime.Today.AddDays(2) };
+
+        Assert.Equal("/events/7", _factory.CreateEventNotification(e, isReminder: false).Url);
+        Assert.Equal("/events/7", _factory.CreateEventNotification(e, isReminder: true).Url);
+        Assert.Equal("/events/7", _factory.CreateEventEnrollmentNotification(e, "Zé").Url);
+        Assert.Equal("/events/7", _factory.CreateEventVideoUploadNotification(e, "Zé").Url);
+        Assert.Equal("/events/7/discussion", _factory.CreateDiscussionPostNotification(e, "Zé", "Post").Url);
+        Assert.Equal("/events/7/discussion", _factory.CreateDiscussionCommentNotification(e, "Zé", "Post").Url);
+        Assert.Equal("/events/7/discussion", _factory.CreateMentionNotification(e, "Zé", "Post", isComment: true).Url);
+        Assert.Equal("/rehearsals/3", _factory.CreateRehearsalReminderNotification(r).Url);
+        Assert.Equal("/rehearsals/3", _factory.CreateRehearsalAttendanceApprovalNotification(r, "Zé").Url);
+        Assert.Equal("/meetings?meeting=5", _factory.CreateMeetingNotification(m, isReminder: false).Url);
+        Assert.Equal("/meetings?meeting=5", _factory.CreateMeetingNotification(m, isReminder: true).Url);
+        Assert.Equal("/meetings", _factory.CreateMeetingNotification(new Meeting { Title = "Pedido", Date = m.Date }, isReminder: false).Url);
+        Assert.Equal("/music/albums/9", _factory.CreateSongVideoUploadNotification(new Song { Id = 1, AlbumId = 9, Title = "Fado" }, "Zé").Url);
+        Assert.Equal("/naipes?instrument=Bandolim", _factory.CreateNaipeContentNotification("Solo", InstrumentType.Bandolim, isVideo: true).Url);
+        Assert.Equal("/gallery?item=11", _factory.CreateGalleryTagNotification(11).Url);
+        Assert.Equal("/messages?c=4", _factory.CreateConversationMessageNotification("Zé", null, 4).Url);
     }
 }

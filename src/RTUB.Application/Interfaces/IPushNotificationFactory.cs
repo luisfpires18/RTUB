@@ -15,9 +15,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event to notify about</param>
     /// <param name="isReminder">True if this is a reminder notification, false for new event notification</param>
-    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder, string baseUrl);
+    SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder);
 
     /// <summary>
     /// Creates a custom push notification for an event, similar to rehearsal custom notifications.
@@ -25,26 +24,23 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event to notify about.</param>
     /// <param name="customBody">Custom message body provided by the user.</param>
-    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com").</param>
     /// <returns>A SendPushNotificationDto ready to be sent.</returns>
-    SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody, string baseUrl);
+    SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody);
 
     /// <summary>
     /// Creates a custom push notification for a rehearsal.
     /// </summary>
     /// <param name="rehearsal">The rehearsal to notify about</param>
     /// <param name="customBody">Custom message body provided by the user</param>
-    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody, string baseUrl);
+    SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody);
 
     /// <summary>
     /// Creates a reminder push notification for a rehearsal (used by background schedulers).
     /// </summary>
     /// <param name="rehearsal">The rehearsal to remind about.</param>
-    /// <param name="baseUrl">The base URL of the application.</param>
     /// <returns>A SendPushNotificationDto ready to be sent.</returns>
-    SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal, string baseUrl);
+    SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal);
 
     /// <summary>
     /// Creates a push notification for new discussion posts.
@@ -53,15 +49,14 @@ public interface IPushNotificationFactory
     /// <param name="event">The event with the new discussion post</param>
     /// <param name="authorNickname">The nickname of the post author</param>
     /// <param name="postTitle">The title of the post</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle, string baseUrl);
+    SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle);
 
     /// <summary>
     /// Creates a push notification for new discussion comments.
     /// Sent to the post owner and any previous commenters.
     /// </summary>
-    SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle, string baseUrl);
+    SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle);
 
     /// <summary>
     /// Creates a push notification when someone enrolls in an event.
@@ -69,9 +64,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event being enrolled in</param>
     /// <param name="userDisplayName">The display name of the user who enrolled</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification for when a user cancels their event enrollment.
@@ -79,9 +73,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event enrollment is being cancelled for</param>
     /// <param name="userDisplayName">The display name of the user who cancelled</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification when someone marks that they won't attend an event.
@@ -89,9 +82,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event being marked as not attending</param>
     /// <param name="userDisplayName">The display name of the user who won't attend</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
@@ -99,9 +91,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="userNickname">The nickname of the user who reached 1st place</param>
     /// <param name="level">The level the user is at</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level, string baseUrl);
+    SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level);
 
     /// <summary>
     /// Creates a push notification for new meetings.
@@ -109,9 +100,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="meeting">The meeting to notify about</param>
     /// <param name="isReminder">True if this is a reminder notification, false for new meeting notification</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder, string baseUrl);
+    SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder);
 
     /// <summary>
     /// Creates a custom push notification for a meeting, mirroring the rehearsal custom notification pattern.
@@ -119,18 +109,16 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="meeting">The meeting to notify about.</param>
     /// <param name="customBody">Custom message body provided by the user.</param>
-    /// <param name="baseUrl">The base URL of the application.</param>
     /// <returns>A SendPushNotificationDto ready to be sent.</returns>
-    SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody, string baseUrl);
+    SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody);
 
     /// <summary>
     /// Creates a push notification for new performance requests.
     /// Sent only to admins.
     /// </summary>
     /// <param name="request">The request to notify about</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRequestNotification(Request request, string baseUrl);
+    SendPushNotificationDto CreateRequestNotification(Request request);
 
     /// <summary>
     /// Creates a push notification when someone marks attendance for a rehearsal.
@@ -138,9 +126,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="rehearsal">The rehearsal being attended</param>
     /// <param name="userDisplayName">The display name of the user who marked attendance</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification when a user cancels their rehearsal attendance.
@@ -148,9 +135,8 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="rehearsal">The rehearsal attendance is being cancelled for</param>
     /// <param name="userDisplayName">The display name of the user who cancelled</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification when someone marks that they won't attend a rehearsal.
@@ -158,86 +144,76 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="rehearsal">The rehearsal being marked as not attending</param>
     /// <param name="userDisplayName">The display name of the user who won't attend</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+    SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName);
 
     /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.
     /// </summary>
     /// <param name="rehearsal">The rehearsal</param>
     /// <param name="approverName">The name of the admin who approved</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName, string baseUrl);
+    SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName);
 
     /// <summary>
     /// Creates a push notification when admin rejects a user's rehearsal attendance.
     /// </summary>
     /// <param name="rehearsal">The rehearsal</param>
     /// <param name="rejectorName">The name of the admin who rejected</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName, string baseUrl);
+    SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName);
 
     /// <summary>
     /// Creates a push notification when someone comments on a user's leaderboard profile.
     /// </summary>
     /// <param name="authorName">The name of the comment author</param>
     /// <param name="targetUserName">The name of the user being commented on</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName, string baseUrl);
+    SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName);
 
     /// <summary>
     /// Creates a push notification when someone likes a user's comment.
     /// </summary>
     /// <param name="likerName">The name of the user who liked the comment</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName, string baseUrl);
+    SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName);
 
     /// <summary>
     /// Creates a push notification when someone uploads a video to an event.
     /// </summary>
     /// <param name="event">The event the video was uploaded to</param>
     /// <param name="uploaderName">The name of the user who uploaded the video</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName, string baseUrl);
+    SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName);
 
     /// <summary>
     /// Creates a push notification when someone uploads a video to a song.
     /// </summary>
     /// <param name="song">The song the video was uploaded to</param>
     /// <param name="uploaderName">The name of the user who uploaded the video</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName, string baseUrl);
+    SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName);
 
     /// <summary>
     /// Creates a push notification for pending public request reminders (sent to admins daily).
     /// </summary>
     /// <param name="pendingCount">Number of pending public requests</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount, string baseUrl);
+    SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount);
 
     /// <summary>
     /// Creates a push notification for pending meeting request reminders.
     /// </summary>
     /// <param name="meetingRequest">The pending meeting request</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl);
+    SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest);
 
     /// <summary>
     /// Creates a push notification for pending rehearsal approvals.
     /// </summary>
     /// <param name="pendingRehearsalCount">Number of rehearsals with pending attendance approvals</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount, string baseUrl);
+    SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount);
 
     /// <summary>
     /// Creates a push notification for a new question.
@@ -245,27 +221,24 @@ public interface IPushNotificationFactory
     /// <param name="questionTitle">Title of the question</param>
     /// <param name="authorName">Name of the user who asked the question</param>
     /// <param name="questionId">ID of the question</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId, string baseUrl);
+    SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId);
 
     /// <summary>
     /// Creates a push notification for a question reply.
     /// </summary>
     /// <param name="replyPreview">Preview of the reply content</param>
     /// <param name="replyId">ID of the reply</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateQuestionReplyNotification(string replyPreview, int replyId, string baseUrl);
+    SendPushNotificationDto CreateQuestionReplyNotification(string replyPreview, int replyId);
 
     /// <summary>
     /// Creates a push notification for a question reply from the assigned member.
     /// </summary>
     /// <param name="replyPreview">Preview of the reply content</param>
     /// <param name="replyId">ID of the reply</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateQuestionAnsweredNotification(string replyPreview, int replyId, string baseUrl);
+    SendPushNotificationDto CreateQuestionAnsweredNotification(string replyPreview, int replyId);
 
     /// <summary>
     /// Creates a push notification for a question reminder.
@@ -273,29 +246,26 @@ public interface IPushNotificationFactory
     /// <param name="questionTitle">Title of the question</param>
     /// <param name="authorName">Name of the user who asked the question</param>
     /// <param name="questionId">ID of the question</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateQuestionReminderNotification(string questionTitle, string authorName, int questionId, string baseUrl);
+    SendPushNotificationDto CreateQuestionReminderNotification(string questionTitle, string authorName, int questionId);
 
     /// <summary>
     /// Creates a push notification for pending questions (background service).
     /// </summary>
     /// <param name="questionCount">Number of pending questions</param>
     /// <param name="firstAuthorNickname">Nickname of the first question's author</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname, string baseUrl);
+    SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname);
 
     /// <summary>
     /// Creates a push notification when new naipe content (video or image) is published.
     /// Sent to all subscribed users.
     /// </summary>
     /// <param name="contentTitle">The title of the content</param>
-    /// <param name="instrumentTypeName">The display name of the instrument type</param>
+    /// <param name="instrumentType">The instrument; its display name is the title, its value the /naipes filter</param>
     /// <param name="isVideo">True if the content is a video, false if it's an image</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, string instrumentTypeName, bool isVideo, string baseUrl);
+    SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, InstrumentType instrumentType, bool isVideo);
 
     /// <summary>
     /// Creates a push notification for weekly summary of events, rehearsals, and meetings.
@@ -304,9 +274,8 @@ public interface IPushNotificationFactory
     /// <param name="eventCount">Number of events this week</param>
     /// <param name="rehearsalCount">Number of rehearsals this week</param>
     /// <param name="meetingCount">Number of meetings this week</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl);
+    SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount);
 
     /// <summary>
     /// Creates a push notification when a meeting request is rejected or expired.
@@ -314,53 +283,48 @@ public interface IPushNotificationFactory
     /// </summary>
     /// <param name="meetingRequest">The meeting request that was rejected</param>
     /// <param name="isExpired">Whether the request expired due to date</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMeetingRequestRejectedNotification(MeetingRequest meetingRequest, bool isExpired, string baseUrl);
+    SendPushNotificationDto CreateMeetingRequestRejectedNotification(MeetingRequest meetingRequest, bool isExpired);
 
     /// <summary>
     /// Creates a push notification for calotes (debt) reminder.
     /// Sent to users who owe money to the tuna.
     /// </summary>
     /// <param name="amountOwed">The amount the user owes</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed, string baseUrl);
+    SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed);
 
     /// <summary>
     /// Creates a reminder push notification for a member to participate in activities.
     /// </summary>
     /// <param name="userDisplayName">Display name of the member receiving the reminder</param>
     /// <param name="userId">The member's user ID</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl);
+    SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId);
 
     /// <summary>
     /// Creates a push notification when a member is reactivated.
     /// Sent to all users.
     /// </summary>
     /// <param name="userNickname">The nickname of the member being reactivated</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMemberReactivatedNotification(string userNickname, string baseUrl);
+    SendPushNotificationDto CreateMemberReactivatedNotification(string userNickname);
 
     /// <summary>
     /// Creates a push notification warning a member that retirement is approaching (1 month away).
     /// Sent to the specific member.
     /// </summary>
     /// <param name="userNickname">The nickname of the member approaching retirement</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname, string baseUrl);
+    SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname);
 
     /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// Sent to the tagged user.
     /// </summary>
-    /// <param name="baseUrl">The base URL of the application</param>
+    /// <param name="mediaId">The gallery item; the link opens it (/gallery?item=)</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateGalleryTagNotification(string baseUrl);
+    SendPushNotificationDto CreateGalleryTagNotification(int mediaId);
 
     /// <summary>Messaging v2: a new chat message, without its text; links to /messages?c={id}.</summary>
     SendPushNotificationDto CreateConversationMessageNotification(string senderName, string? groupTitle, int conversationId);
@@ -373,9 +337,8 @@ public interface IPushNotificationFactory
     /// <param name="mentionerNickname">The nickname of the user who wrote the mention</param>
     /// <param name="postTitle">The title of the post where the mention occurred</param>
     /// <param name="isComment">True if the mention is in a comment; false if in a post body</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment, string baseUrl);
+    SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment);
 
     /// <summary>The /profile test push (#230): fixed text, opens the push section of /profile.</summary>
     SendPushNotificationDto CreatePushTestNotification();

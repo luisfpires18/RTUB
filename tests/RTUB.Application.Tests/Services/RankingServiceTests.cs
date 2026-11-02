@@ -22,8 +22,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<ILogger<RankingService>> _mockLogger;
     private readonly RankingConfiguration _config;
     private readonly RankingService _service;
 
@@ -37,12 +35,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _mockUserManager = MockHelpers.CreateMockUserManager();
-        _mockLogger = new Mock<ILogger<RankingService>>();
-
-        // Default empty Users queryable for async operations (FirstOrDefaultAsync in UpdateUserRankingAsync)
-        var emptyUsers = new List<ApplicationUser>().BuildMockDbSet();
-        _mockUserManager.Setup(x => x.Users).Returns(emptyUsers.Object);
 
         // Setup test configuration
         _config = new RankingConfiguration
@@ -64,10 +56,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             }
         };
 
-        // Create mocks for new dependencies
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var configOptions = Options.Create(_config);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -75,12 +63,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _service = new RankingService(
             attendanceRepo,
             enrollmentRepo,
-            _mockUserManager.Object,
-            configOptions,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
-            _mockLogger.Object);
+            configOptions);
     }
 
     [Fact]
@@ -419,10 +402,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
 
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
         var attendance = RehearsalAttendance.Create(1, userId);
         attendance.Attended = true;
@@ -449,10 +430,8 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
 
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
 
         // Add enough attendances to reach max level (1000 XP)
@@ -477,39 +456,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.ProgressPercentage.Should().Be(100);
     }
 
-    [Fact]
-    public async Task UpdateUserRankingAsync_UpdatesUserXpAndLevel()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser
-        {
-            Id = userId,
-            UserName = "testuser",
-            Nickname = "Test",
-            ExperiencePoints = 0,
-            Level = 1
-        };
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
-
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
-
-        await _context.Rehearsals.AddAsync(rehearsal);
-        var attendance = RehearsalAttendance.Create(1, userId);
-        attendance.Attended = true;
-        await _context.RehearsalAttendances.AddAsync(attendance);
-        await _context.SaveChangesAsync();
-
-        // Act
-        await _service.UpdateUserRankingAsync(userId);
-
-        // Assert
-        user.ExperiencePoints.Should().Be(10);
-        user.Level.Should().Be(1);
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-    }
 
     [Fact]
     public async Task CalculateTotalXpAsync_WithEventTypeSpecificXp_UseConfiguredValue()
@@ -789,104 +735,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result[userId2].CurrentXp.Should().Be(10); // 1 rehearsal (10) = 10
     }
 
-    [Fact]
-    public async Task UpdateUserRankingAsync_WhenUserIsNull_DoesNotThrow()
-    {
-        // Arrange
-        var userId = "non-existent-user";
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync((ApplicationUser?)null);
 
-        // Act
-        var act = async () => await _service.UpdateUserRankingAsync(userId);
-
-        // Assert - Should not throw, should return gracefully
-        await act.Should().NotThrowAsync();
-        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task UpdateUserRankingAsync_WhenUserBecomesFirstPlace_SendsNotification()
-    {
-        // Arrange
-        var userId = "new-leader";
-        var previousLeaderId = "previous-leader";
-
-        var previousLeader = new ApplicationUser
-        {
-            Id = previousLeaderId,
-            UserName = "previous",
-            ExperiencePoints = 100,
-            Level = 2
-        };
-
-        var newLeader = new ApplicationUser
-        {
-            Id = userId,
-            UserName = "newleader",
-            Nickname = "New Leader",
-            ExperiencePoints = 50,
-            Level = 1
-        };
-
-        // Setup UserManager.Users to return previous leader as first place
-        var usersDbSet = new List<ApplicationUser> { previousLeader, newLeader }.BuildMockDbSet();
-        var mockUserManager = MockHelpers.CreateMockUserManager();
-        mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(newLeader);
-        mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
-        mockUserManager.Setup(x => x.Users).Returns(usersDbSet.Object);
-
-        // Create enough attendances to surpass previous leader (need 11 rehearsals = 110 XP > 100)
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
-        await _context.Rehearsals.AddAsync(rehearsal);
-
-        // Add 11 rehearsals to get 110 XP (surpassing previous leader's 100)
-        for (int i = 1; i <= 11; i++)
-        {
-            var attendance = RehearsalAttendance.Create(1, userId);
-            attendance.Attended = true;
-            await _context.RehearsalAttendances.AddAsync(attendance);
-        }
-        await _context.SaveChangesAsync();
-
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockLogger = new Mock<ILogger<RankingService>>();
-
-        var configOptions = Options.Create(_config);
-        var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
-        var enrollmentRepo = new EnrollmentRepository(_fixture.CreateContextFactory());
-        var serviceWithNotifications = new RankingService(
-            attendanceRepo,
-            enrollmentRepo,
-            mockUserManager.Object,
-            configOptions,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
-            mockLogger.Object);
-
-        mockPushNotificationFactory
-            .Setup(x => x.CreateLeaderboardFirstPlaceNotification(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
-            .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
-
-        // Act
-        await serviceWithNotifications.UpdateUserRankingAsync(userId);
-
-        // Assert
-        newLeader.ExperiencePoints.Should().Be(110); // 11 rehearsals * 10 XP
-        newLeader.Level.Should().Be(2); // 110 XP qualifies for level 2 (threshold 100)
-        mockUserManager.Verify(x => x.UpdateAsync(newLeader), Times.Once);
-
-        // Verify notification was sent
-        mockPushNotificationFactory.Verify(
-            x => x.CreateLeaderboardFirstPlaceNotification("New Leader", 2, It.IsAny<string>()),
-            Times.Once);
-        mockPushNotificationService.Verify(
-            x => x.BroadcastAsync(It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
-            Times.Once);
-    }
 
     [Fact]
     public void GetXpForCurrentLevel_WithInvalidLevel_ReturnsZero()
@@ -909,11 +758,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Levels = new List<LevelDefinition>() // Empty levels
         };
 
-        var mockUserManager = MockHelpers.CreateMockUserManager();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(emptyConfig);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -921,12 +765,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var serviceWithEmptyConfig = new RankingService(
             attendanceRepo,
             enrollmentRepo,
-            mockUserManager.Object,
-            configOptions,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
-            mockLogger.Object);
+            configOptions);
 
         // Act
         var result = serviceWithEmptyConfig.GetLevelFromXp(1000);
@@ -946,11 +785,6 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Levels = null! // Null levels
         };
 
-        var mockUserManager = MockHelpers.CreateMockUserManager();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockLogger = new Mock<ILogger<RankingService>>();
 
         var configOptions = Options.Create(nullConfig);
         var attendanceRepo = new RehearsalAttendanceRepository(_fixture.CreateContextFactory());
@@ -958,12 +792,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var serviceWithNullConfig = new RankingService(
             attendanceRepo,
             enrollmentRepo,
-            mockUserManager.Object,
-            configOptions,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
-            mockLogger.Object);
+            configOptions);
 
         // Act
         var result = serviceWithNullConfig.GetLevelFromXp(1000);

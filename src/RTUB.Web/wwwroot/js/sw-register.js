@@ -46,6 +46,40 @@
         }
     });
 
+    // A tapped push whose page this window is not on (task 058): the worker stored it for a minute before opening
+    // the app (service-worker.js rememberPushTarget). An installed app may have started on its start_url instead, or
+    // been resumed without the worker's navigation reaching it. Read once, deleted, same-origin only.
+    var PUSH_NAV_CACHE = 'rtub-notification-target';
+    var PUSH_NAV_KEY = '/__push-target';
+    var PUSH_NAV_MAX_AGE_MS = 60 * 1000;
+
+    function followPushTarget() {
+        if (!('caches' in window)) return;
+        caches.match(PUSH_NAV_KEY, { cacheName: PUSH_NAV_CACHE })
+            .then(function(response) {
+                if (!response) return;
+                return response.json().then(function(pending) {
+                    return caches.open(PUSH_NAV_CACHE)
+                        .then(function(cache) { return cache.delete(PUSH_NAV_KEY); })
+                        .then(function() {
+                            if (!pending || typeof pending.url !== 'string' || Date.now() - pending.at > PUSH_NAV_MAX_AGE_MS) return;
+                            var target = new URL(pending.url, window.location.origin);
+                            if (target.origin === window.location.origin && target.href !== window.location.href) {
+                                window.location.replace(target.href);
+                            }
+                        });
+                });
+            })
+            .catch(function() { /* no pending push target */ });
+    }
+
+    followPushTarget();
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            followPushTarget();
+        }
+    });
+
     // Registers the worker, once; see the call at the bottom for when.
     function registerServiceWorker() {
         if (registrationStarted) return;

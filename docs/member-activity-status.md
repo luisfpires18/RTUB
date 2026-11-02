@@ -60,9 +60,14 @@ Clock: one injected `TimeProvider` (`TimeProvider.System` in DI); no `DateTime.N
 - Audit: `AuditLog` `EntityType = "MemberActivityStatus"`, `Action = Reformed | Activated`, `UserId`/`UserName` = the
   member, `Changes` JSON with `Reason`, `LastActivity`, `Threshold` (reformed) or `Months` (activated). Visible in
   `/owner/tracing` (the `ApplicationUser` change is also audited by the context).
-- Push (only with `MemberStatusUpdate:PushNotificationsEnabled`): reactivation broadcast on an actual Reformado → active
-  change; the retirement warning once, when an active member's months left become 1. Repeated runs send nothing new.
-  A stored `ProgressMonths = 0` (the pre-hotfix final partial month, already warned at 1) does not trigger it again.
+- Push (only with `MemberStatusUpdate:PushNotificationsEnabled`, `true` in `appsettings.json` since 058), **only from
+  the scheduled daily run** (`ReconcileAllMemberStatusesAsync(notify: true)`): never from the rehearsal / enrollment
+  triggers, the Owner sync, the startup population, or a member seen for the first time (no `MemberStatus` row yet: a
+  new or just-digitised account). "Membro Reativado" is broadcast when the run itself turns a Reformado active at 3/3
+  (a presença approval that reactivates first does so silently, owner's choice). "1 mês até reforma" goes only to that
+  member, once, when their months left become 1; if a trigger stored the 1 earlier that same day (the countdown was
+  still 2+ a day before the run), the run still warns. Repeated runs send nothing new. A stored `ProgressMonths = 0`
+  (the pre-hotfix final partial month, already warned at 1) does not trigger it again.
 - Idempotent: same data + same `now` → no state change, no audit, no push, no projection write.
 - A member whose evaluation throws is logged with its id and counted as `Failed`; the run continues.
   `ReconcileAllMemberStatusesAsync` returns `MemberStatusReconciliationResult` (evaluated / activated / reformed /

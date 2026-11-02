@@ -29,7 +29,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
     private readonly Mock<IMemberStatusService> _mockRetirementStatusService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
-    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public RehearsalAttendanceServiceTests(DatabaseFixture fixture)
@@ -45,7 +44,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         _mockRetirementStatusService = new Mock<IMemberStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _attendanceService = new RehearsalAttendanceService(
@@ -53,7 +51,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             _mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
     }
@@ -718,7 +715,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
-            .Setup(x => x.CreateRehearsalNonAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateRehearsalNonAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         // Act - New user marks non-attendance
@@ -808,7 +805,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
-            .Setup(x => x.CreateRehearsalAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateRehearsalAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         // Act - New user marks attendance
@@ -901,7 +898,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
-            .Setup(x => x.CreateRehearsalCancellationNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateRehearsalCancellationNotification(It.IsAny<Rehearsal>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         // Act - User changes from attending to not attending
@@ -946,7 +943,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
 
@@ -985,7 +981,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
 
@@ -1012,7 +1007,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
 

@@ -50,14 +50,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         _eventRepository = new EventRepository(_fixture.CreateContextFactory());
@@ -78,7 +76,6 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
     }
 
@@ -440,17 +437,14 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
-            .Setup(x => x.CreateEventNonEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateEventNonEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
-
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - New user enrolls with willAttend = false
@@ -542,17 +536,14 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
-            .Setup(x => x.CreateEventEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateEventEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
-
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - New user enrolls with willAttend = true
@@ -647,17 +638,14 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
-            .Setup(x => x.CreateEventCancellationNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateEventCancellationNotification(It.IsAny<Event>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
-
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - User changes from attending to not attending
@@ -728,10 +716,9 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
-            .Setup(x => x.CreateEventEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateEventEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var mockRetirementStatusService = new Mock<IMemberStatusService>();
 
         var enrollmentService = new EnrollmentService(
@@ -739,7 +726,6 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - User changes from not attending to attending
@@ -813,17 +799,14 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
-            .Setup(x => x.CreateEventCancellationNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.CreateEventCancellationNotification(It.IsAny<Event>(), It.IsAny<string>()))
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
-
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - Delete enrollment for attending user
@@ -852,14 +835,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act
@@ -885,14 +866,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - Create enrollment with skipNotification = true
@@ -917,14 +896,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - Create enrollment for past event
@@ -949,14 +926,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - Update enrollment but keep willAttend = true
@@ -988,14 +963,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             CreateMockUserManager().Object);
 
         // Act - Update enrollment but keep willAttend = false
@@ -1036,14 +1009,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var service = new EnrollmentService(
             new EnrollmentRepository(_fixture.CreateContextFactory()),
             _mockRetirementStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object,
             mockUserManager.Object);
 
         var eventEntity = await _eventService.CreateEventAsync(
@@ -1085,7 +1056,6 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             new Mock<IPushNotificationFactory>().Object,
             new Mock<IPushNotificationService>().Object,
-            new Mock<IHttpContextAccessor>().Object,
             mockUserManager.Object);
 
         var eventEntity = await _eventService.CreateEventAsync(
@@ -1107,7 +1077,6 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object,
             new Mock<IPushNotificationFactory>().Object,
             new Mock<IPushNotificationService>().Object,
-            new Mock<IHttpContextAccessor>().Object,
             mockUserManager.Object);
 
         var eventEntity = await _eventService.CreateEventAsync(

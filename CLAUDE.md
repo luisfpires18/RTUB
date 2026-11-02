@@ -76,6 +76,7 @@ Run only what the change can break.
 | React password recovery / email confirmation, `/Error`, `/share` (Web Share Target, 053) | `docs/react-identity.md` |
 | PWA manifest members and the PWABuilder decisions (053) | `docs/pwa-practices.md` → *PWABuilder report card* |
 | React Push v2 (`/profile` push opt-in / opt-out, `/api/push`, service-worker push handlers) | `docs/react-push-v2.md` |
+| Push catalogue (every push by area, the page a tap opens, deep-link rules, planned per-category opt-out) | `docs/push-notifications.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
 | Games / Bets / MyTuno removal (retained schema, contract task) | `docs/games-bets-mytuno-removal.md` |
 | React Mensagens (`/messages`: Messaging v2 on the preserved v1 tables, privacy, tracing redaction) | `docs/react-messages.md` |

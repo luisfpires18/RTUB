@@ -34,11 +34,6 @@ public interface IRankingService
     int GetXpForCurrentLevel(int currentLevel);
 
     /// <summary>
-    /// Updates user's XP and level in the database
-    /// </summary>
-    Task UpdateUserRankingAsync(string userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets the rank progress information for a user
     /// </summary>
     Task<RankProgressInfo> GetRankProgressAsync(string userId, CancellationToken cancellationToken = default);

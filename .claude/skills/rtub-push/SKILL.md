@@ -14,7 +14,7 @@ Read the linked file when you need the detail.
 | --- | --- |
 | Config/VAPID options | `src/RTUB.Application/Configuration/WebPushOptions.cs` |
 | Send + subscribe logic | `src/RTUB.Application/Services/PushNotificationService.cs` |
-| Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy) |
+| Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy; relative links to the item, no base URL, task 058). Catalogue: `docs/push-notifications.md` |
 | Persistence | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` |
 | HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` (`/api/push/{status,check,subscribe,unsubscribe,test}`, task 038 / #230; own subscriptions only, X-CSRF-TOKEN, no-store) + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths) |
 | Browser client | `src/RTUB.Web/portal/src/push.ts` + `Profile.tsx` `PushSection` (React `/profile`, task 038) |

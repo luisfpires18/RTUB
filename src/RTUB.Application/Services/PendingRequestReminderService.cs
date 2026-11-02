@@ -97,14 +97,11 @@ public class PendingRequestReminderService : BackgroundService
         try
         {
             // 1. Send reminders for pending public requests to admins
-            var baseUrl = "/";
-
             await SendPublicRequestRemindersAsync(
                 requestRepository,
                 pushNotificationService,
                 pushNotificationFactory,
                 userManager,
-                baseUrl,
                 cancellationToken);
 
             // 2. Send reminders for pending meeting requests
@@ -113,7 +110,6 @@ public class PendingRequestReminderService : BackgroundService
                 pushNotificationService,
                 pushNotificationFactory,
                 userManager,
-                baseUrl,
                 cancellationToken);
 
             _lastRunDate = today;
@@ -129,7 +125,6 @@ public class PendingRequestReminderService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
-        string baseUrl,
         CancellationToken cancellationToken)
     {
         var pendingCount = await requestRepository.GetPendingCountAsync();
@@ -142,7 +137,7 @@ public class PendingRequestReminderService : BackgroundService
 
         _logger.LogInformation("Found {Count} pending public requests", pendingCount);
 
-        var notification = pushNotificationFactory.CreatePendingPublicRequestsReminderNotification(pendingCount, baseUrl);
+        var notification = pushNotificationFactory.CreatePendingPublicRequestsReminderNotification(pendingCount);
 
         // Get admin and owner user IDs
         var adminUsers = await userManager.GetUsersInRoleAsync("Admin");
@@ -163,7 +158,6 @@ public class PendingRequestReminderService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
-        string baseUrl,
         CancellationToken cancellationToken)
     {
         var pendingRequests = (await meetingRequestRepository.GetPendingWithAuthorAsync()).ToList();
@@ -205,8 +199,7 @@ public class PendingRequestReminderService : BackgroundService
                     {
                         var notification = pushNotificationFactory.CreateMeetingRequestRejectedNotification(
                             request,
-                            isExpired: true,
-                            baseUrl);
+                            isExpired: true);
                         await pushNotificationService.SendToUserAsync(request.AuthorUserId, notification);
                     }
                     catch (Exception ex)
@@ -245,7 +238,7 @@ public class PendingRequestReminderService : BackgroundService
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var notification = pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
+            var notification = pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request);
 
             // Determine recipients based on meeting type
             IEnumerable<string> positionRecipientIds = Enumerable.Empty<string>();

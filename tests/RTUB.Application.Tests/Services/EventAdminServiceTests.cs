@@ -45,8 +45,8 @@ public class EventAdminServiceTests
         _service = new EventAdminService(new Contexts(_db), _events.Object, _email.Object, _push.Object, _pushFactory.Object,
             _audit.Object, _trophies.Object, NullLogger<EventAdminService>.Instance);
         FakeEventWrites();
-        _pushFactory.Setup(f => f.CreateEventCustomNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((Event e, string body, string url) => new SendPushNotificationDto { Title = e.Name, Body = body, Url = url + "/events" });
+        _pushFactory.Setup(f => f.CreateEventCustomNotification(It.IsAny<Event>(), It.IsAny<string>()))
+            .Returns((Event e, string body) => new SendPushNotificationDto { Title = e.Name, Body = body, Url = $"/events/{e.Id}" });
         _push.Setup(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<SendPushNotificationDto>()))
             .ReturnsAsync((IEnumerable<string> ids, SendPushNotificationDto _) => (ids.Count(), 0));
         EmailSucceeds();

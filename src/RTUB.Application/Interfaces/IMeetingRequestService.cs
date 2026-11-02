@@ -64,7 +64,6 @@ public interface IMeetingRequestService
     /// Sends a push notification reminder for a pending meeting request.
     /// </summary>
     /// <param name="id">The meeting request ID</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> SendReminderNotificationAsync(int id, string baseUrl);
+    Task<bool> SendReminderNotificationAsync(int id);
 }

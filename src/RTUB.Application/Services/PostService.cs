@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -21,7 +20,6 @@ public class PostService : IPostService
     private readonly IEventMediaStorageService _eventMediaStorageService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IUserProfileService _userProfileService;
 
     public PostService(
@@ -32,7 +30,6 @@ public class PostService : IPostService
         IEventMediaStorageService eventMediaStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor,
         IUserProfileService userProfileService)
     {
         _postRepository = postRepository;
@@ -42,7 +39,6 @@ public class PostService : IPostService
         _eventMediaStorageService = eventMediaStorageService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _httpContextAccessor = httpContextAccessor;
         _userProfileService = userProfileService;
     }
 
@@ -82,7 +78,6 @@ public class PostService : IPostService
 
                 if (authorUser != null)
                 {
-                    var baseUrl = GetBaseUrl();
                     var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
 
                     // Send post notification to enrolled users (only for future events)
@@ -91,8 +86,7 @@ public class PostService : IPostService
                         var notification = _pushNotificationFactory.CreateDiscussionPostNotification(
                             discussion.Event,
                             authorNickname,
-                            title,
-                            baseUrl);
+                            title);
 
                         var enrolledUserIds = await _enrollmentRepository.QueryAsync(q => q
                             .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId && e.WillAttend)
@@ -112,7 +106,7 @@ public class PostService : IPostService
                         if (mentions != null)
                         {
                             var mentionNotification = _pushNotificationFactory.CreateMentionNotification(
-                                discussion.Event, authorNickname, title, isComment: false, baseUrl);
+                                discussion.Event, authorNickname, title, isComment: false);
                             foreach (var mentionedUserId in mentions.Values.Where(id => id != authorId))
                             {
                                 await _pushNotificationService.SendToUserAsync(mentionedUserId, mentionNotification);
@@ -210,15 +204,5 @@ public class PostService : IPostService
 
         post.UpdateLastActivity();
         await _postRepository.UpdateAsync(post);
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

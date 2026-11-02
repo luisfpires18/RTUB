@@ -45,7 +45,6 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Mock dependencies for SongService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -58,8 +57,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockUserManager.Object,
-            mockHttpContextAccessor.Object);
+            mockUserManager.Object);
 
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_fixture.CreateContextFactory()), _mockImageStorageService.Object);

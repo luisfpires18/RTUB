@@ -86,6 +86,9 @@ removes their **own** subscriptions.
 - `notificationclick`: `notificationTarget()` opens the notification's own same-origin URL (anything else opens `/`);
   an open RTUB window is navigated (`client.navigate`, or the `rtub:navigate` message `sw-register.js` handles, also
   same-origin only) and focused, otherwise a window opens. The app-badge clearing left from Messages (027) is gone.
+  Since 058 the target is first stored for 60 s (`rtub-notification-target` cache) and `sw-register.js` follows it on load / on
+  return to the app, so an installed app that starts on `start_url` still lands on the push's page; a window already
+  on that page is only focused. What each push opens: `docs/push-notifications.md`.
 - `pushsubscriptionchange`: re-sends the browser's new subscription with `replaces` = the old endpoint and the
   antiforgery token; when the browser gives none, subscribes again with the server's key unless the member opted out.
   Failures are logged; `/profile` then shows the device as off. The `rtub:subscription-lost` message is gone.

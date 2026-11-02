@@ -121,7 +121,9 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
                 var memberStatusService = scope.ServiceProvider
                     .GetRequiredService<IMemberStatusService>();
 
-                var run = await memberStatusService.ReconcileAllMemberStatusesAsync();
+                // The scheduled run is the only one that sends the member status pushes (the startup run fills an empty
+                // table, so every member is a first evaluation there and nobody is notified).
+                var run = await memberStatusService.ReconcileAllMemberStatusesAsync(notify: true);
 
                 _logger.LogInformation("========================================");
                 _logger.LogInformation(

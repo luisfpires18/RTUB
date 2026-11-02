@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
@@ -23,7 +22,6 @@ public class EnrollmentService : IEnrollmentService
     private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public EnrollmentService(
@@ -31,7 +29,6 @@ public class EnrollmentService : IEnrollmentService
         IMemberStatusService memberStatusService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager,
         TimeProvider? time = null)
     {
@@ -40,7 +37,6 @@ public class EnrollmentService : IEnrollmentService
         _memberStatusService = memberStatusService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _httpContextAccessor = httpContextAccessor;
         _userManager = userManager;
     }
 
@@ -172,15 +168,13 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateEventEnrollmentNotification(
                 detailedEnrollment.Event,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
@@ -224,15 +218,13 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateEventCancellationNotification(
                 detailedEnrollment.Event,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
@@ -276,15 +268,13 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateEventNonEnrollmentNotification(
                 detailedEnrollment.Event,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _enrollmentRepository.QueryAsync(q => q
                 .Where(e => e.EventId == detailedEnrollment.EventId
@@ -316,15 +306,6 @@ public class EnrollmentService : IEnrollmentService
         return eventDate.Date >= PortugalTime.Today(_time);
     }
 
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
-    }
 
     private async Task<MemberCategory?> ResolveUserPrimaryCategoryAsync(string userId)
     {

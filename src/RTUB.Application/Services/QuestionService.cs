@@ -79,7 +79,7 @@ public class QuestionService : IQuestionService
         await _questionRepository.AddAsync(question);
 
         // Send notification to assigned member
-        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, "/");
+        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id);
         await _pushNotificationService.SendToUserAsync(assignedMemberId, notification);
         question.UpdateLastNotificationSent();
         await _questionRepository.UpdateAsync(question);
@@ -133,7 +133,7 @@ public class QuestionService : IQuestionService
                 question.Title, memberName);
 
             // Notify the question author
-            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, "/");
+            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id);
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
         }
         else if (authorId == question.AuthorId)
@@ -149,7 +149,7 @@ public class QuestionService : IQuestionService
                 question.Title, authorName);
 
             // Notify assigned member
-            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(content, reply.Id, "/");
+            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(content, reply.Id);
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
@@ -206,7 +206,7 @@ public class QuestionService : IQuestionService
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
         // Send notification
-        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, "/");
+        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId);
         await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         question.UpdateLastNotificationSent();
         await _questionRepository.UpdateAsync(question);

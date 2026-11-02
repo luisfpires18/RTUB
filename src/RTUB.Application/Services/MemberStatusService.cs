@@ -19,8 +19,9 @@ namespace RTUB.Application.Services;
 /// No database write, no audit, no notification.</item>
 /// <item><b>Reconcile</b> (<see cref="ReconcileMemberStatusAsync"/>, <see cref="ReconcileAllMemberStatusesAsync"/>):
 /// calculate, then in one SaveChanges per member write the flag, its <see cref="MemberStatus"/> projection and, on a
-/// transition, a "MemberActivityStatus" audit entry; then notify. Callers: the background service, the rehearsal
-/// attendance and event enrollment triggers, the Owner sync. Idempotent.</item>
+/// transition, a "MemberActivityStatus" audit entry. Callers: the background service, the rehearsal attendance and
+/// event enrollment triggers, the Owner sync. Idempotent. Only the scheduled background run notifies, and never for a
+/// member seen for the first time (no MemberStatus row yet: a new account, the first population).</item>
 /// </list>
 /// </summary>
 public class MemberStatusService : IMemberStatusService
@@ -87,7 +88,7 @@ public class MemberStatusService : IMemberStatusService
     public async Task<MemberStatusResult> ReconcileMemberStatusAsync(string userId)
     {
         RequireId(userId);
-        var results = (await ReconcileAsync(new[] { userId })).Results;
+        var results = (await ReconcileAsync(new[] { userId }, notify: false)).Results;
         if (!results.TryGetValue(userId, out var result))
         {
             throw new InvalidOperationException($"User '{userId}' not found");
@@ -96,14 +97,14 @@ public class MemberStatusService : IMemberStatusService
         return result ?? throw new InvalidOperationException($"Could not evaluate the status of member '{userId}'");
     }
 
-    public async Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync()
+    public async Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync(bool notify = false)
     {
         if (!_options.Enabled)
         {
             return MemberStatusReconciliationResult.Empty;
         }
 
-        return (await ReconcileAsync(null)).Counts;
+        return (await ReconcileAsync(null, notify)).Counts;
     }
 
     private static void RequireId(string userId)
@@ -121,7 +122,7 @@ public class MemberStatusService : IMemberStatusService
 
     /// <summary>Null <paramref name="ids"/> = every user. Failed members map to null and are counted, never stop the run.</summary>
     private async Task<(Dictionary<string, MemberStatusResult?> Results, MemberStatusReconciliationResult Counts)> ReconcileAsync(
-        IReadOnlyCollection<string>? ids)
+        IReadOnlyCollection<string>? ids, bool notify)
     {
         var now = _time.GetUtcNow().UtcDateTime;
         List<string> userIds;
@@ -141,7 +142,7 @@ public class MemberStatusService : IMemberStatusService
         {
             try
             {
-                var (result, outcome) = await ReconcileMemberAsync(userId, activity.GetValueOrDefault(userId) ?? Activity.None, now);
+                var (result, outcome) = await ReconcileMemberAsync(userId, activity.GetValueOrDefault(userId) ?? Activity.None, now, notify);
                 results[userId] = result;
                 switch (outcome)
                 {
@@ -162,7 +163,7 @@ public class MemberStatusService : IMemberStatusService
         return (results, new MemberStatusReconciliationResult(evaluated, activated, reformed, unchanged, excluded, failed));
     }
 
-    private async Task<(MemberStatusResult Result, Outcome Outcome)> ReconcileMemberAsync(string userId, Activity activity, DateTime now)
+    private async Task<(MemberStatusResult Result, Outcome Outcome)> ReconcileMemberAsync(string userId, Activity activity, DateTime now, bool notify)
     {
         await using var db = await _contextFactory.CreateDbContextAsync();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId)
@@ -173,6 +174,7 @@ public class MemberStatusService : IMemberStatusService
         var evaluation = Evaluate(user, activity, now);
         var result = ToResult(evaluation?.IsRetired ?? user.IsRetired, evaluation, activity, now);
         var previousProgressMonths = projection?.IsRetired == false ? projection.ProgressMonths : null;
+        var firstEvaluation = projection is null;
 
         if (evaluation is { Changed: true })
         {
@@ -197,7 +199,10 @@ public class MemberStatusService : IMemberStatusService
                 user.UserName, evaluation.IsRetired ? "Reformado" : "active", evaluation.Reason);
         }
 
-        await NotifyAsync(user, evaluation, result, previousProgressMonths);
+        if (notify && !firstEvaluation)
+        {
+            await NotifyAsync(user, evaluation, result, previousProgressMonths, now);
+        }
 
         return (result, evaluation switch
         {
@@ -340,7 +345,7 @@ public class MemberStatusService : IMemberStatusService
         }),
     };
 
-    private async Task NotifyAsync(ApplicationUser user, MemberActivityEvaluation? evaluation, MemberStatusResult result, int? previousProgressMonths)
+    private async Task NotifyAsync(ApplicationUser user, MemberActivityEvaluation? evaluation, MemberStatusResult result, int? previousProgressMonths, DateTime now)
     {
         if (!_options.PushNotificationsEnabled || evaluation is null)
         {
@@ -352,14 +357,17 @@ public class MemberStatusService : IMemberStatusService
             var nickname = user.Nickname ?? user.UserName ?? "Membro";
             if (evaluation is { Changed: true, IsRetired: false })
             {
-                await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname, "/"));
+                await _pushNotificationService.BroadcastAsync(_pushNotificationFactory.CreateMemberReactivatedNotification(nickname));
             }
 
-            // The warning once, when an active member enters the last month - not on every run while in it. A stored 0
-            // is the old countdown's final partial month (now 1), already warned when it passed 1: no second warning.
-            if (!result.IsRetired && result.ProgressMonths == 1 && previousProgressMonths is not (1 or 0))
+            // Only to the member about to lose the active status, once, when they enter the last month - not on every
+            // run while in it. A stored 0 is the old countdown's final partial month (now 1), already warned when it
+            // passed 1: no second warning. A trigger (an answer to an event) can store the 1 first on the day it starts;
+            // a countdown that was still 2+ a day ago is that day, so the daily run warns all the same.
+            if (!result.IsRetired && result.ProgressMonths == 1
+                && (previousProgressMonths is not (1 or 0) || EnteredLastMonthSince(evaluation, now.AddDays(-1))))
             {
-                await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname, "/"));
+                await _pushNotificationService.SendToUserAsync(user.Id, _pushNotificationFactory.CreateMemberRetirementWarningNotification(nickname));
             }
         }
         catch (Exception ex)
@@ -367,6 +375,10 @@ public class MemberStatusService : IMemberStatusService
             _logger.LogWarning(ex, "Member status notification failed for {UserName}", user.UserName);
         }
     }
+
+    /// <summary>Whether the countdown still showed 2 or more months at <paramref name="since"/> (MonthsUntil &gt;= 2).</summary>
+    private static bool EnteredLastMonthSince(MemberActivityEvaluation evaluation, DateTime since) =>
+        evaluation.RetirementThreshold is { } threshold && since.AddMonths(2) <= threshold;
 
     private enum Outcome { Excluded, Unchanged, Activated, Reformed }
 

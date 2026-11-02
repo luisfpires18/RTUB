@@ -21,10 +21,13 @@
 // v2.11.0 (task 054): hashed portal assets are cache-first (never revalidated), navigations use navigation preload, and
 // /api, /auth, /hubs, /health and non-http requests are left to the browser (no respondWith), so the worker is out of
 // their path. New names, so installed clients drop the stale-while-revalidate copies.
-const CACHE_VERSION = 'rtub-v2.11.0';
+const CACHE_VERSION = 'rtub-v2.12.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
+// The page a tapped push must open (task 058), kept across worker versions: sw-register.js reads it on load.
+const PUSH_NAV_CACHE = 'rtub-notification-target';
+const PUSH_NAV_KEY = '/__push-target';
 
 // Paths that must never reach a cache, in either direction.
 // Matched as prefixes against url.pathname, case-insensitively.
@@ -101,7 +104,7 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
     console.log('[Service Worker] Activating...');
-    const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE];
+    const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE, PUSH_NAV_CACHE];
     
     event.waitUntil(
         caches.keys()
@@ -360,18 +363,33 @@ function notificationTarget(data) {
     }
 }
 
+// Remembers the tapped notification's page for a minute (task 058). An installed app launched from the tap may
+// still open its start_url (iOS Home Screen apps, the Play Store TWA), or lose the rtub:navigate message before the
+// page listens: sw-register.js reads this on load and on return to the app, and goes there.
+function rememberPushTarget(url) {
+    return caches.open(PUSH_NAV_CACHE)
+        .then((cache) => cache.put(PUSH_NAV_KEY, new Response(JSON.stringify({ url: url, at: Date.now() }), {
+            headers: { 'Content-Type': 'application/json' }
+        })))
+        .catch(() => undefined);
+}
+
 // Notification click - open (or focus and navigate) an RTUB window on the notification's page.
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const urlToOpen = notificationTarget(event.notification.data);
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
-            for (const client of clientList) {
-                if (!client.url.startsWith(self.location.origin)) {
-                    continue;
-                }
+        rememberPushTarget(urlToOpen).then(() => clients.matchAll({ type: 'window', includeUncontrolled: true })).then(async (clientList) => {
+            const sameOrigin = clientList.filter((client) => client.url.startsWith(self.location.origin));
 
+            // A window already on that page only needs focus.
+            const already = sameOrigin.find((client) => client.url === urlToOpen);
+            if (already && 'focus' in already) {
+                return already.focus();
+            }
+
+            for (const client of sameOrigin) {
                 // An installed app may not support client.navigate(): sw-register.js navigates on this message.
                 if ('navigate' in client) {
                     try {

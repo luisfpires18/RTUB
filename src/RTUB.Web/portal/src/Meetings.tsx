@@ -120,6 +120,19 @@ export default function Meetings() {
     return () => clearTimeout(timer);
   }, [flash]);
 
+  // ?meeting={id} (a push, task 058): open that meeting's details once the board has it, then drop the parameter.
+  // A meeting the member cannot see, or not on this board, just leaves the list.
+  useEffect(() => {
+    if (!board || typeof board !== 'object') return;
+    const url = new URL(location.href);
+    const id = Number(url.searchParams.get('meeting'));
+    if (!id) return;
+    const card = [...board.upcoming, ...board.past].find((c) => c.id === id);
+    if (card) setOpen({ kind: 'details', card });
+    url.searchParams.delete('meeting');
+    history.replaceState(null, '', url.pathname + url.search);
+  }, [board]);
+
   const reload = () => setVersion((v) => v + 1);
   const close = () => setOpen(undefined);
   const data = board && typeof board === 'object' ? board : null;
