@@ -21,7 +21,7 @@ public sealed record MemberDirectoryDto(
 /// <summary>
 /// One card. <c>Badges</c> are display labels ("TUNO", "LEITÃO"); <c>Position</c> the current fiscal year's;
 /// <c>Online</c> = signed in within the last hour (the old "Online / Offline"); <c>Inactive</c> = a Leitão with no
-/// activity this month ("Não tem participado"); <c>Expelled</c> greys a Leitão's card, as the old grid did (regular
+/// activity in the last 15 days ("Não tem participado"); <c>Expelled</c> greys a Leitão's card, as the old grid did (regular
 /// cards never carried it).
 /// </summary>
 public sealed record MemberCardDto(
