@@ -29,6 +29,8 @@ public sealed class MessagingService : IMessagingService
     public const int ReplySenderNameLength = 100;
     public const int PreviewLength = 80;
     public const int PageSize = 50;
+    public const int MaxTitleLength = 200; // the Conversations.Title column
+    public const int MaxGroupMembers = 100;
     public const string SystemTitle = "Sistema RTUB";
     // The 352 px WebP (~34 KB) the portal header uses, shown at avatar size; was the 1024 px logo (~146 KB). #226 F09.
     public const string GroupAvatar = "/icons/rtub-logo-352.webp";
@@ -136,6 +138,23 @@ public sealed class MessagingService : IMessagingService
 
     // ---------- writes ----------
 
+    public async Task<EventResult<DirectConversation>> FindDirectAsync(string userId, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<DirectConversation>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var conversation = await DirectWithAsync(db, me, userId.Trim());
+        // An archived chat stays hidden until a message brings it back (StartConversationAsync).
+        return EventResult<DirectConversation>.Ok(new DirectConversation(conversation is { IsArchived: false } ? conversation.Id : null));
+    }
+
+    /// <summary>
+    /// Nothing is stored until the first message: the conversation and that message are written together. One other
+    /// member = the one-to-one chat (an existing one, even archived, is reused); two or more = a new group with a title.
+    /// </summary>
     public async Task<EventResult<ConversationDetail>> StartConversationAsync(StartConversationRequest input, ClaimsPrincipal user)
     {
         if (UserId(user) is not { } me)
@@ -143,35 +162,82 @@ public sealed class MessagingService : IMessagingService
             return EventResult<ConversationDetail>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var other = input.UserId?.Trim();
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (string.IsNullOrEmpty(other) || other == me || !await db.Users.AnyAsync(u => u.Id == other && !u.IsExpelled))
+        var others = (input.UserIds ?? []).Select(id => id?.Trim()).OfType<string>()
+            .Where(id => id.Length > 0 && id != me).Distinct(StringComparer.Ordinal).ToList();
+        if (others.Count == 0 || others.Count > MaxGroupMembers)
         {
-            return EventResult<ConversationDetail>.Invalid("userId", "Escolhe um membro.");
+            return EventResult<ConversationDetail>.Invalid("userIds", "Escolhe pelo menos um membro.");
         }
 
-        // v1 stored the pair sorted; both orders are looked up so either sort order finds the existing chat.
-        var pair = new[] { me, other }.OrderBy(x => x, StringComparer.Ordinal).ToArray();
-        var forward = $"{pair[0]};{pair[1]}";
-        var backward = $"{pair[1]};{pair[0]}";
-        var conversation = await db.Conversations
-            .FirstOrDefaultAsync(c => !c.IsGroup && !c.IsSystemConversation && (c.Participants == forward || c.Participants == backward));
+        var title = input.Title?.Trim() ?? "";
+        if (others.Count > 1 && title.Length == 0)
+        {
+            return EventResult<ConversationDetail>.Invalid("title", "Dá um nome ao grupo.");
+        }
+
+        if (title.Length > MaxTitleLength)
+        {
+            return EventResult<ConversationDetail>.Invalid("title", $"O nome tem no máximo {MaxTitleLength} caracteres.");
+        }
+
+        if (BodyProblem(input.Body) is { } bodyProblem)
+        {
+            return EventResult<ConversationDetail>.Invalid("body", bodyProblem);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await db.Users.CountAsync(u => others.Contains(u.Id) && !u.IsExpelled) != others.Count)
+        {
+            return EventResult<ConversationDetail>.Invalid("userIds", "Escolhe pelo menos um membro.");
+        }
+
+        Conversation? conversation = null;
+        if (others.Count == 1)
+        {
+            conversation = await DirectWithAsync(db, me, others[0]);
+            if (conversation is { IsArchived: true })
+            {
+                // v1 "deleted" a chat by archiving it for both; writing to the person again brings it back.
+                conversation.IsArchived = false;
+                await db.SaveChangesAsync();
+            }
+        }
 
         if (conversation is null)
         {
-            conversation = new Conversation { Participants = forward, LastMessageAt = DateTime.UtcNow, IsGroup = false };
+            var participants = string.Join(';', others.Append(me).OrderBy(x => x, StringComparer.Ordinal));
+            conversation = others.Count == 1
+                ? new Conversation { Participants = participants, LastMessageAt = DateTime.UtcNow, IsGroup = false }
+                : new Conversation { Participants = participants, LastMessageAt = DateTime.UtcNow, IsGroup = true, Title = title, CreatedByUserId = me };
             db.Conversations.Add(conversation);
             await db.SaveChangesAsync();
         }
-        else if (conversation.IsArchived)
+
+        var sent = await SendAsync(conversation.Id, new SendMessageRequest(input.Body, null), user);
+        if (sent.Status != EventResultStatus.Ok)
         {
-            // v1 "deleted" a chat by archiving it for both; writing to the person again brings it back.
-            conversation.IsArchived = false;
-            await db.SaveChangesAsync();
+            return EventResult<ConversationDetail>.Fail(sent.Status);
         }
 
+        await db.Entry(conversation).ReloadAsync();
         return EventResult<ConversationDetail>.Ok(await DetailAsync(db, conversation, null, user, me));
     }
+
+    // v1 stored the pair sorted; both orders are looked up so either sort order finds the existing chat. Archived included.
+    private static Task<Conversation?> DirectWithAsync(ApplicationDbContext db, string me, string other)
+    {
+        var forward = $"{me};{other}";
+        var backward = $"{other};{me}";
+        return db.Conversations
+            .FirstOrDefaultAsync(c => !c.IsGroup && !c.IsSystemConversation && (c.Participants == forward || c.Participants == backward));
+    }
+
+    private static string? BodyProblem(string? body) => (body?.Trim() ?? "").Length switch
+    {
+        0 => "Escreve uma mensagem.",
+        > MaxBodyLength => $"A mensagem tem no máximo {MaxBodyLength} caracteres.",
+        _ => null,
+    };
 
     public async Task<EventResult<MessageItem>> SendAsync(int conversationId, SendMessageRequest input, ClaimsPrincipal user)
     {
@@ -180,16 +246,12 @@ public sealed class MessagingService : IMessagingService
             return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
         }
 
-        var body = input.Body?.Trim() ?? "";
-        if (body.Length == 0)
+        if (BodyProblem(input.Body) is { } bodyProblem)
         {
-            return EventResult<MessageItem>.Invalid("body", "Escreve uma mensagem.");
+            return EventResult<MessageItem>.Invalid("body", bodyProblem);
         }
 
-        if (body.Length > MaxBodyLength)
-        {
-            return EventResult<MessageItem>.Invalid("body", $"A mensagem tem no máximo {MaxBodyLength} caracteres.");
-        }
+        var body = input.Body!.Trim();
 
         await using var db = await _contexts.CreateDbContextAsync();
         if (await FindMineAsync(db, conversationId, me, tracked: true) is not { } conversation)

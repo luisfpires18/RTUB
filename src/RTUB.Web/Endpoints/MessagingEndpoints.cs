@@ -27,13 +27,17 @@ public static class MessagingEndpoints
         conversations.MapGet("/recipients", async (HttpContext http, IMessagingService service) =>
             ToResult(await service.GetRecipientsAsync(http.User)));
 
+        // The existing one-to-one chat with a member ({ id: null } when none): "Nova" opens it instead of starting one.
+        conversations.MapGet("/direct/{userId}", async (string userId, HttpContext http, IMessagingService service) =>
+            ToResult(await service.FindDirectAsync(userId, http.User)));
+
         // ?before=<message id>: the page of messages older than that one.
         conversations.MapGet("/{id:int}", async (int id, int? before, HttpContext http, IMessagingService service) =>
             ToResult(await service.GetConversationAsync(id, before, http.User)));
 
         conversationWrites.MapPost("/", async (StartConversationRequest input, HttpContext http, IMessagingService service) =>
                 ToResult(await service.StartConversationAsync(input, http.User)))
-            .WithMetadata(new RequestSizeLimitAttribute(1024));
+            .WithMetadata(new RequestSizeLimitAttribute(32 * 1024)); // the first message + up to 100 member ids
 
         conversationWrites.MapPost("/{id:int}/messages", async (int id, SendMessageRequest input, HttpContext http, IMessagingService service) =>
                 ToResult(await service.SendAsync(id, input, http.User)))
