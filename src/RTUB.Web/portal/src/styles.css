@@ -14261,6 +14261,12 @@ label.owner-person {
   color: var(--muted);
 }
 
+/* "Nova": the members picked so far (several = a group). */
+.chat-start__person[aria-pressed='true'] {
+  background: var(--bg-card);
+  box-shadow: inset 3px 0 0 var(--accent, currentColor);
+}
+
 /* /messages is an app screen at every width (the page sets html.app-screen, see Messages.tsx): the document does not
    scroll and there is no site footer. The RTUB header, a compact heading, then the chat filling what is left, so the
    list and the message area are the only scroll regions and the composer stays at the bottom. dvh follows the browser

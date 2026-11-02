@@ -10,6 +10,7 @@ public interface IMessagingService
     Task<EventResult<UnreadSummary>> GetUnreadAsync(ClaimsPrincipal user);
     Task<EventResult<IReadOnlyList<MessagingPerson>>> GetRecipientsAsync(ClaimsPrincipal user);
     Task<EventResult<ConversationDetail>> GetConversationAsync(int id, int? beforeMessageId, ClaimsPrincipal user);
+    Task<EventResult<DirectConversation>> FindDirectAsync(string userId, ClaimsPrincipal user);
     Task<EventResult<ConversationDetail>> StartConversationAsync(StartConversationRequest input, ClaimsPrincipal user);
     Task<EventResult<MessageItem>> SendAsync(int conversationId, SendMessageRequest input, ClaimsPrincipal user);
     Task<EventResult<bool>> MarkReadAsync(int conversationId, ClaimsPrincipal user);

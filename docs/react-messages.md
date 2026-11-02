@@ -35,7 +35,8 @@ part in, or an archived one, is a **404** (its existence is not revealed).
 | GET | `/api/conversations/unread` | `{ unreadCount }`: unread **messages** summed over my conversations (task 044, the header badge); same rule and rows as the list's `unreadCount` |
 | GET | `/api/conversations/recipients` | members I can start a chat with (not me, not expelled) |
 | GET | `/api/conversations/{id}?before=<messageId>` | one conversation: the other participants and 50 messages (oldest first), `hasMore`, the reaction choices |
-| POST | `/api/conversations` `{ userId }` | opens (or reopens, un-archiving) the one-to-one conversation with that member |
+| GET | `/api/conversations/direct/{userId}` | `{ id }`: my one-to-one chat with that member, `null` if none (or archived) |
+| POST | `/api/conversations` `{ userIds, title?, body }` | starts a conversation **with its first message** (fix 060): one member = the one-to-one chat (an existing one is reused, un-archived); two or more + `title` (1-200) = a new group I create. Nothing is stored before a message |
 | POST | `/api/conversations/{id}/messages` `{ body, replyToMessageId? }` | text 1-2000 after trimming; a reply must quote a message of the same conversation |
 | POST | `/api/conversations/{id}/read` | marks everything not sent by me as read by me |
 | POST | `/api/conversations/{id}/mute`, `/unmute` | my mute flag (`ConversationUserSettings`) |
@@ -73,9 +74,16 @@ part in, or an archived one, is a **404** (its existence is not revealed).
 
 Conversation list + chat; one pane at a time below 900px (the back button returns to the list), side by side above.
 Bubbles (mine right), sender names in groups, day separators, reply quote, reaction chips + picker, "Vista" on my
-messages someone has read, mute toggle in the chat header, "Nova" to start a chat, read-only notice where `canSend` is
+messages someone has read, mute toggle in the chat header, "Nova" to start a chat or a group, read-only notice where `canSend` is
 false, "Mensagens anteriores" for older pages. Polls the open chat every 10 s and the list every 30 s while the tab is
 visible; opening a chat marks it read. Entry: the inbox button in the member header (not the menu, task 044).
+
+### "Nova" (fix 060)
+
+The dialog picks members (toggle buttons, `aria-pressed`); two or more ask for "Nome do grupo". Picking stores nothing:
+one member whose chat exists (`/direct/{userId}`) opens it; otherwise a draft chat opens with the composer, and the
+first message `POST`s `/api/conversations`, which creates the conversation and that message together. Before 060 a pick
+created an empty one-to-one row at once (they piled up as "Sem mensagens"), and there was no way to start a group.
 
 ### Header unread badge (task 044, `portal/src/unread.ts`, `MemberShell.tsx` `MemberInbox`)
 
@@ -105,7 +113,8 @@ read state, system / announcement / group / archived / expelled rules, paging, t
   the midnight job and `/users` "Sincronizar estado da Tuna"): GERAL (every non-expelled account), NO ATIVO (not
   Reformado), TUNOS (Tuno, no Tuno Honorário), LEITÕES & CALOIROS; created if missing. Every other group RTUB made
   (`CreatedByUserId = "system"`: VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) is archived, messages
-  kept. Expelled accounts are in none. Members' own groups are untouched; no group creation UI yet.
+  kept. Expelled accounts are in none. Members' own groups are untouched; members create their own groups in "Nova" (060).
+- Members can create groups (060); no member management (add / leave / rename) in v2 yet.
 - No live push (polling, 10 s for the badge); no pin / archive UI.
 - Push fan-out is inline and sequential: move to a background queue if large groups make sending slow.
 - `/owner/db` can read private messages: decide whether to block the messaging tables there.
