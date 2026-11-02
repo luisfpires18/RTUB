@@ -95,7 +95,7 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 ### Classificação
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
-| `CreateLeaderboardFirstPlaceNotification` | new 1st place (`RankingService`) | all | "Novo 1º Lugar no Ranking!" | `/leaderboard` | `leaderboard-first-place` |
+| `CreateLeaderboardFirstPlaceNotification` | new all-time leader, checked Mondays (`WeeklyNotificationBackgroundService`) | all | "Novo 1º Lugar no Ranking!" | `/leaderboard` | `leaderboard-first-place` |
 | `CreateLeaderboardCommentNotification` | comment on a member's profile (`LeaderboardCommentService`) | one | "Novo comentário no teu perfil" | `/leaderboard` | `leaderboard-comment` |
 | `CreateLeaderboardCommentLikeNotification` | like on a comment | one | "Novo like no teu comentário" | `/leaderboard` | `leaderboard-comment-like` |
 
@@ -103,8 +103,8 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
 | `CreateMemberActivityReminderNotification` | manager's reminder (`MemberAdminService`) | one | "Lembrete: Participa numa Atividade!" | `/events` | `member-reminder-{userId}-{ticks}` |
-| `CreateMemberReactivatedNotification` | member back to active (`MemberStatusService`) | all | "Membro Reativado" | `/leaderboard` | `member-reactivated-{nick}` |
-| `CreateMemberRetirementWarningNotification` | one month to Reformado (`MemberStatusService`) | one | "1 mês até reforma" | `/leaderboard` | `member-retirement-{nick}` |
+| `CreateMemberReactivatedNotification` | Reformado back to active at 3/3, scheduled run only (`MemberStatusService`) | all | "Membro Reativado" | `/leaderboard` | `member-reactivated-{nick}` |
+| `CreateMemberRetirementWarningNotification` | one month to Reformado, scheduled run only (`MemberStatusService`) | one (that member) | "1 mês até reforma" | `/leaderboard` | `member-retirement-{nick}` |
 
 ### Música, Naipes, Galeria
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
@@ -128,6 +128,59 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 |---|---|---|---|---|---|
 | `CreatePushTestNotification` | `/profile` → "Enviar notificação de teste" (`PushEndpoints`) | this device | "RTUB: notificação de teste" | `/profile#push` | `push-test` |
 | `OwnerOperationsService.SendPushAsync` | Owner's `/notifications` | some | Owner's text | `/` | `announcement-{ticks}` |
+
+## Does it send? (code audit, 2026-11-02)
+
+Traced from each factory call to a live endpoint or a registered hosted job (`AddBackgroundServices`), with its
+conditions. "Sends" means the code path runs in production; it reaches only members with push on in `/profile`, and
+nothing reaches DEV (no VAPID keys there). Jobs run once a day at their `ScheduledTime` (Portugal time), all
+`Enabled: true` in `appsettings.json`.
+
+Reformado column: `PushNotificationService` and `PushSubscriptionRepository.GetAllActiveAsync` never look at
+`IsRetired` ("active" there means every stored subscription). Only `ActivityReminderBackgroundService` (event,
+rehearsal and meeting reminders) loads `Where(u => !u.IsRetired)`. Every other push reaches a Reformado whenever the
+sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetired`).
+
+| Push | Verdict | Reformado (`IsRetired = true`) gets it? | Path / condition |
+|---|---|---|---|
+| Novo evento | ✅ Sends | Yes | `POST /api/events` → `EventAgendaService.CreateEventAsync` → all (members-only events too) |
+| Lembrete evento | ✅ Sends | **No** (`!IsRetired` filter) | `ActivityReminderBackgroundService` (11:30): Festival 15/7/1/0 days before, others 1/0; every non-retired member, enrolled or not |
+| Event custom push | ✅ Sends | Yes, if chosen | `POST /api/events/{id}/notice` (kind push) → chosen recipients |
+| Nova inscrição / Inscrição cancelada / Não vai | ✅ Sends | Yes, if they said "vou" | member answers on `/events/{id}` (`EventAgendaService` → `EnrollmentService`); only future events, only to members who said "vou". Manager-added participants and contact calls skip it (`skipNotification`); a manager *removing* a member sends "Inscrição cancelada" |
+| Novo vídeo (evento) | ✅ Sends | Yes | `POST /api/events/{id}/videos` → every account but the uploader |
+| Novo post / comentário (discussão) | ⚠️ Narrow | Yes, if they said "vou" / took part | `/events/{id}/discussion`; only while `Event.Date >= DateTime.UtcNow` (stops at the event's start time, UTC) and only to members who said "vou" (comment: post author + earlier commenters); a transport offer is a post, so it pushes too |
+| Menção | ✅ Sends | Yes | @mention in a post / comment, any event date |
+| Ensaio custom push | ✅ Sends | Yes, if chosen | `POST /api/rehearsals/{id}/notice` |
+| Lembrete ensaio | ✅ Sends | **No** (`!IsRetired` filter) | `ActivityReminderBackgroundService`: day before and same day, every non-retired member |
+| Nova presença / Presença cancelada / Não vai ao ensaio | ✅ Sends | Yes, if they said "vou" | member answers on `/rehearsals/{id}` (`RehearsalAgendaService.MarkAttendanceAsync`) to members who said "vou". A manager removing a presença sends "Presença cancelada" to the others |
+| Presença aprovada | ✅ Sends | Yes (own presença) | `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` (`RehearsalAdminService`) → the member |
+| **Presença recusada** | ❌ **Never** | — (never sent) | only `RehearsalAttendanceService.CancelAttendanceAsync(rejectorUserId)` sends it and nothing calls that; the React "remove" uses `DeleteAttendanceAsync` |
+| Lembrete: Ensaios Pendentes | ✅ Sends | Yes (the Ensaiador, any status) | `RehearsalApprovalReminderBackgroundService` (15:00) → approvers, when past rehearsals have pending presenças |
+| Nova Reunião Convocada | ✅ Sends | Yes, if in the type's audience | `POST /api/meetings` → `MeetingService.CreateMeetingAsync` → the type's audience |
+| Pedido de reunião (proposal) | ✅ Sends | Yes (Owners / president) | `/meetings` proposal → `MeetingRequestService.CreateAsync` → Owners + the type's president |
+| Lembrete reunião | ✅ Sends | **No** (`!IsRetired` filter) | `ActivityReminderBackgroundService`: day before and same day, members who can see the meeting |
+| Reunião custom push | ✅ Sends | Yes, if chosen | `POST /api/meetings/{id}/push` |
+| Lembrete: Pedido de reunião | ✅ Sends | Yes (approvers) | manual reminder (`/meetings` requests) + `PendingRequestReminderService` (10:00) |
+| Pedido de reunião rejeitado | ✅ Sends | Yes (own request) | reject on `/meetings`, or expired by the daily job |
+| Novo Pedido de Atuação | ✅ Sends | Yes (Admin / Owner) | public `/request` (`PublicRequestEndpoints`) → Admin + Owner |
+| Lembrete: Pedidos Pendentes | ✅ Sends | Yes (Admin / Owner) | `PendingRequestReminderService` (10:00) → Admin + Owner, when any pending |
+| Nova Pergunta / Respondida / Resposta / Lembrete | ✅ Sends | Yes (asked member / author) | `/questions` (`QuestionBoardService`) |
+| Perguntas Pendentes | ✅ Sends | Yes | `QuestionNotificationBackgroundService` (09:00 by default) |
+| Nova mensagem | ✅ Sends | Yes (participant) | `/messages`; not while the chat is muted |
+| Novo 1º Lugar no Ranking | ✅ Sends (058) | Yes (all) | Mondays with the weekly summary (`WeeklyNotificationBackgroundService.NotifyNewLeaderAsync`): the all-time leaderboard's first row (level, XP; ties in users order) vs the leader recorded last week (`AuditLog` `LeaderboardFirstPlace`, user "System"); new leader → broadcast + record; first run only records; nobody with XP → nothing. Was never sent before 058 (`RankingService.UpdateUserRankingAsync`, no caller, removed) |
+| Comentário no teu perfil / Like no teu comentário | ✅ Sends | Yes | `/leaderboard` comment / like, only from someone else; a failure is swallowed with no log |
+| Lembrete: Participa numa Atividade | ✅ Sends | Yes (aimed at them) | manager's button on `/members` (`POST /api/members/{id}/reminder`) |
+| Membro Reativado / 1 mês até reforma | ✅ Sends (058) | Reativado: yes (all); reforma warning: no (only the member losing the status) | daily member status run (`MemberStatusUpdate:ScheduledTime`, 00:00) only; `PushNotificationsEnabled` is `true` in `appsettings.json` since 058 (an App Setting can still turn it off). Never from triggers, the Owner sync or a member's first evaluation; an approval that reactivates first stays silent. Detail: `docs/member-activity-status.md` → *Transitions* |
+| Novo vídeo (música) | ✅ Sends | Yes | `/music` song video → every account (exclusive album: its members) but the uploader |
+| Novo conteúdo Naipes | ✅ Sends | Yes | `/naipes` upload → all |
+| Nova media na Galeria | ✅ Sends | Yes, if tagged | `/gallery` upload with people tagged → the tagged |
+| Calote Pendente | ✅ Sends | Yes, if they owe | `CalotesNotificationBackgroundService` (10:30) → members who owe |
+| Resumo Semanal | ✅ Sends | Yes (every account) | `WeeklyNotificationBackgroundService`, Mondays |
+| Teste (`/profile`) | ✅ Sends | Yes (own device) | own device, 30 s cooldown |
+| Owner custom (`/notifications`) | ✅ Sends | Yes, if chosen | Owner only |
+
+Not checked here: Azure App Settings that may override an `Enabled` flag (run
+`scripts/config/audit-azure-app-settings.ps1`), and delivery on real devices.
 
 ## Adding a push
 
