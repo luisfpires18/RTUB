@@ -28,14 +28,12 @@ public class RequestServiceTests
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             Mock.Of<IUserStore<ApplicationUser>>(), null!, null!, null!, null!, null!, null!, null!, null!);
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _requestService = new RequestService(
             _mockRequestRepository.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockUserManager.Object,
-            mockHttpContextAccessor.Object);
+            mockUserManager.Object);
     }
 
     [Fact]

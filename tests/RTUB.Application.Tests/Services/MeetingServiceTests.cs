@@ -43,14 +43,12 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         _meetingService = new MeetingService(
             new MeetingRepository(_fixture.CreateContextFactory()),
             _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            mockPushNotificationService.Object);
 
         // Disable auditing for test setup
         _context.DisableAuditing();

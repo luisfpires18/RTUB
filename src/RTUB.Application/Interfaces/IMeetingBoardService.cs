@@ -40,7 +40,7 @@ public interface IMeetingBoardService
 
     Task<EventResult<MeetingPushDraftDto>> GetPushDraftAsync(int id, ClaimsPrincipal user);
 
-    Task<EventResult<MeetingNoticeResultDto>> SendPushAsync(int id, MeetingPushInput input, ClaimsPrincipal user, string baseUrl);
+    Task<EventResult<MeetingNoticeResultDto>> SendPushAsync(int id, MeetingPushInput input, ClaimsPrincipal user);
 
     // ---------- participations ----------
 
@@ -82,5 +82,5 @@ public interface IMeetingBoardService
 
     Task<EventResult<bool>> DeleteRequestAsync(int requestId, ClaimsPrincipal user);
 
-    Task<EventResult<bool>> RemindRequestAsync(int requestId, ClaimsPrincipal user, string baseUrl);
+    Task<EventResult<bool>> RemindRequestAsync(int requestId, ClaimsPrincipal user);
 }

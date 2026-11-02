@@ -27,7 +27,7 @@ public interface IMemberAdminService
     Task<EventResult<bool>> SetExpelledAsync(string id, bool expelled, ClaimsPrincipal user);
 
     /// <summary>The push reminder to a retired member one activity away from coming back.</summary>
-    Task<EventResult<bool>> SendReminderAsync(string id, string baseUrl, ClaimsPrincipal user);
+    Task<EventResult<bool>> SendReminderAsync(string id, ClaimsPrincipal user);
 
     /// <summary>The old hard delete with related data: Owner any member, Admin Leitões only.</summary>
     Task<EventResult<bool>> DeleteAsync(string id, ClaimsPrincipal user);

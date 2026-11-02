@@ -48,7 +48,7 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
         (saved.Year, saved.Month, saved.Day).Should().Be((2024, (byte?)5, (byte?)17));
         saved.MediaUrl.Should().StartWith("https://pub-test.r2.dev/", "the storage fake answered, nothing reached R2");
         _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { tagged.Id })),
-            It.Is<SendPushNotificationDto>(n => n.Url == "/gallery")), Times.Once);
+            It.Is<SendPushNotificationDto>(n => n.Url!.StartsWith("/gallery?item="))), Times.Once);
     }
 
     [Theory]

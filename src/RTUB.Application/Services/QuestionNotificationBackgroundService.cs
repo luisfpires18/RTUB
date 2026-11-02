@@ -101,7 +101,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
                 var questionCount = memberGroup.Count();
                 var firstAuthorNickname = memberGroup.First().Author?.Nickname ?? "um membro";
 
-                var notification = pushNotificationFactory.CreatePendingQuestionsNotification(questionCount, firstAuthorNickname, "/");
+                var notification = pushNotificationFactory.CreatePendingQuestionsNotification(questionCount, firstAuthorNickname);
                 await pushNotificationService.SendToUserAsync(memberId, notification);
 
                 // Update last notification timestamp for each question

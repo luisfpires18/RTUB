@@ -112,6 +112,22 @@ public class PushV2SourceTests
     }
 
     [Fact]
+    public void Tap_IsRemembered_SoAnAppThatStartsOnItsStartUrl_StillOpensThePushPage()
+    {
+        // Task 058: the worker stores the target before it opens anything; sw-register.js follows it once, fresh only.
+        var click = Section(Worker, "addEventListener('notificationclick'", "async function antiforgeryToken");
+        click.Should().Contain("rememberPushTarget(urlToOpen).then(");
+        Worker.Should().Contain("const PUSH_NAV_CACHE = 'rtub-notification-target';")
+            .And.Contain("const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE, PUSH_NAV_CACHE];");
+
+        var register = Read(Root, "src", "RTUB.Web", "wwwroot", "js", "sw-register.js");
+        register.Should().Contain("caches.match(PUSH_NAV_KEY, { cacheName: PUSH_NAV_CACHE })")
+            .And.Contain("cache.delete(PUSH_NAV_KEY)")
+            .And.Contain("Date.now() - pending.at > PUSH_NAV_MAX_AGE_MS")
+            .And.Contain("window.location.replace(target.href)");
+    }
+
+    [Fact]
     public void Worker_KeepsARotatedSubscription_WithTheToken_AndNeverOptsOut()
     {
         var change = Section(Worker, "addEventListener('pushsubscriptionchange'", "function urlBase64ToUint8Array");

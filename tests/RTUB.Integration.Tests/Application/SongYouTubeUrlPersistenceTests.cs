@@ -36,7 +36,6 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         // Mock dependencies for SongService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -49,8 +48,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             factory,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockUserManager.Object,
-            mockHttpContextAccessor.Object);
+            mockUserManager.Object);
 
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(factory), _mockImageStorageService.Object);

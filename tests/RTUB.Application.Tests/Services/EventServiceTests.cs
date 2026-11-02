@@ -47,7 +47,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Mock dependencies for EventService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -61,7 +60,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
     }
 
@@ -677,7 +675,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -700,7 +697,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -721,7 +717,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -739,7 +734,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -758,7 +752,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -776,7 +769,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -798,7 +790,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -816,7 +807,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -840,7 +830,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -858,7 +847,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -882,7 +870,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -900,7 +887,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act & Assert
@@ -922,7 +908,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -940,7 +925,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act
@@ -964,7 +948,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -982,7 +965,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             _fixture.CreateContextFactory());
 
         // Act & Assert

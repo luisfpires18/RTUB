@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
@@ -18,20 +17,17 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public LeaderboardCommentService(
         ILeaderboardCommentRepository leaderboardCommentRepository,
         UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
-        IPushNotificationFactory pushNotificationFactory,
-        IHttpContextAccessor httpContextAccessor)
+        IPushNotificationFactory pushNotificationFactory)
     {
         _leaderboardCommentRepository = leaderboardCommentRepository;
         _userManager = userManager;
         _pushNotificationService = pushNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     /// <summary>
@@ -199,8 +195,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
 
             var authorName = author.Nickname ?? author.UserName ?? "Unknown";
             var targetUserName = targetUser.Nickname ?? targetUser.UserName ?? "Unknown";
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateLeaderboardCommentNotification(authorName, targetUserName, baseUrl);
+            var notification = _pushNotificationFactory.CreateLeaderboardCommentNotification(authorName, targetUserName);
 
             await _pushNotificationService.SendToUserAsync(targetUserId, notification);
         }
@@ -220,8 +215,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
                 return;
 
             var likerName = liker.Nickname ?? liker.UserName ?? "Unknown";
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateLeaderboardCommentLikeNotification(likerName, baseUrl);
+            var notification = _pushNotificationFactory.CreateLeaderboardCommentLikeNotification(likerName);
 
             await _pushNotificationService.SendToUserAsync(commentAuthorId, notification);
         }
@@ -230,15 +224,5 @@ public class LeaderboardCommentService : ILeaderboardCommentService
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
         }
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

@@ -1020,7 +1020,7 @@ public class MeetingsBoardApiTests : IClassFixture<MeetingsApiFactory>
 
         await AreaHttp.Json(await owner.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Ago, title: title)));
 
-        _factory.Push.Verify(p => p.SendToUserAsync(member.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title) && n.Url!.EndsWith("/meetings"))),
+        _factory.Push.Verify(p => p.SendToUserAsync(member.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title) && n.Url!.StartsWith("/meetings?meeting="))),
             Times.Once);
         _factory.Push.Verify(p => p.SendToUserAsync(owner.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Once);
         _factory.Push.Verify(p => p.SendToUserAsync(leitao.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Never,

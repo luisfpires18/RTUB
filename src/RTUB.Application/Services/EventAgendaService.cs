@@ -258,7 +258,7 @@ public sealed class EventAgendaService : IEventAgendaService
             !e.IsPublic));
     }
 
-    public async Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user, string baseUrl)
+    public async Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user)
     {
         if (ManageRefusal<EventSummaryDto>(user) is { } refused)
         {
@@ -279,7 +279,7 @@ public sealed class EventAgendaService : IEventAgendaService
         // members-only event announced this way reaches no visitor.
         try
         {
-            await _push.BroadcastAsync(_pushFactory.CreateEventNotification(created, isReminder: false, baseUrl));
+            await _push.BroadcastAsync(_pushFactory.CreateEventNotification(created, isReminder: false));
         }
         catch (Exception ex)
         {

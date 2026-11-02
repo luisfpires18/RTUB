@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
@@ -21,20 +20,17 @@ public class MeetingService : IMeetingService
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public MeetingService(
         IMeetingRepository meetingRepository,
         IDbContextFactory<ApplicationDbContext> contextFactory,
         IPushNotificationFactory pushNotificationFactory,
-        IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor)
+        IPushNotificationService pushNotificationService)
     {
         _meetingRepository = meetingRepository;
         _contextFactory = contextFactory;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId)
@@ -170,8 +166,7 @@ public class MeetingService : IMeetingService
         // Send push notification to appropriate users based on meeting type
         try
         {
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, isReminder: false, baseUrl);
+            var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, isReminder: false);
 
             // Get users based on meeting type
             var eligibleUserIds = await GetEligibleUsersForMeeting(createdMeeting.Type);
@@ -386,15 +381,5 @@ public class MeetingService : IMeetingService
         return await query
             .Select(u => u.Id)
             .ToListAsync();
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

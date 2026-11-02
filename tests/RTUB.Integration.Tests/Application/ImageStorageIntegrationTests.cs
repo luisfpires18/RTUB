@@ -42,7 +42,6 @@ public class ImageStorageIntegrationTests : IDisposable
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -56,7 +55,6 @@ public class ImageStorageIntegrationTests : IDisposable
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
-            mockHttpContextAccessor.Object,
             factory);
     }
 

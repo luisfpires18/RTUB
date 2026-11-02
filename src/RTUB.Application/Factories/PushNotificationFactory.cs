@@ -31,15 +31,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// </summary>
     /// <param name="event">The event to notify about</param>
     /// <param name="isReminder">True if this is a reminder notification, false for new event notification</param>
-    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder, string baseUrl)
+    public SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder)
     {
         ArgumentNullException.ThrowIfNull(@event);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
         // Build the event URL
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
 
         // Format the date in Portuguese
         var eventDateStr = FormatEventDate(@event.Date);
@@ -80,16 +78,14 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// </summary>
     /// <param name="rehearsal">The rehearsal to notify about</param>
     /// <param name="customBody">Custom message body provided by the user</param>
-    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
         // Build the rehearsal URL
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
 
         // Format the title: "Ensaio - 24/Nov Terça Feira"
         var title = FormatRehearsalTitle(rehearsal.Date);
@@ -109,12 +105,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// Title format: "Ensaio - DD/MMM DayOfWeek", body indicates upcoming rehearsal.
     /// Used by background schedulers (day before and same day).
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         var whenText = rehearsal.Date.Date == Today
@@ -139,13 +134,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// Creates a custom push notification for an event.
     /// Mirrors the rehearsal custom notification pattern but uses the event context.
     /// </summary>
-    public SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody, string baseUrl)
+    public SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
 
         // Use the event name as the title to keep things familiar
         var title = @event.Name;
@@ -160,23 +154,19 @@ public class PushNotificationFactory : IPushNotificationFactory
         };
     }
 
-    /// <summary>
-    /// Builds the event URL from the base URL.
-    /// </summary>
-    private static string BuildEventUrl(string baseUrl)
-    {
-        var trimmedBaseUrl = baseUrl.TrimEnd('/');
-        return $"{trimmedBaseUrl}/events";
-    }
+    // Push links are relative paths to the item itself (task 058): the service worker opens them on its own origin, so
+    // they never depend on the request's Host header, and a tap lands on the event / rehearsal, not on a list.
+    private static string EventUrl(int eventId) => $"/events/{eventId}";
 
-    /// <summary>
-    /// Builds the rehearsal URL from the base URL.
-    /// </summary>
-    private static string BuildRehearsalUrl(string baseUrl)
-    {
-        var trimmedBaseUrl = baseUrl.TrimEnd('/');
-        return $"{trimmedBaseUrl}/rehearsals";
-    }
+    private static string DiscussionUrl(int eventId) => $"/events/{eventId}/discussion";
+
+    private static string RehearsalUrl(int rehearsalId) => $"/rehearsals/{rehearsalId}";
+
+    private const string QuestionsUrl = "/questions";
+
+    // /meetings has no page per meeting: ?meeting= opens that meeting's details there. A meeting not saved yet (a
+    // request's preview, Id 0) opens the list.
+    private static string MeetingUrl(int meetingId) => meetingId > 0 ? $"/meetings?meeting={meetingId}" : "/meetings";
 
     /// <summary>
     /// Formats the rehearsal title in the format "Ensaio - DD/MMM DayOfWeek"
@@ -228,14 +218,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for new discussion posts.
     /// </summary>
-    public SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle, string baseUrl)
+    public SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(authorNickname);
         ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = DiscussionUrl(@event.Id);
 
         return new SendPushNotificationDto
         {
@@ -250,14 +239,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for new discussion comments.
     /// </summary>
-    public SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle, string baseUrl)
+    public SendPushNotificationDto CreateDiscussionCommentNotification(Event @event, string authorNickname, string postTitle)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(authorNickname);
         ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = DiscussionUrl(@event.Id);
 
         return new SendPushNotificationDto
         {
@@ -272,13 +260,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone enrolls in an event.
     /// </summary>
-    public SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
         var eventTypeDisplay = StatusHelper.GetEventTypeDisplay(@event.Type);
 
         return new SendPushNotificationDto
@@ -294,13 +281,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for when a user cancels their event enrollment.
     /// </summary>
-    public SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
         var eventTypeDisplay = StatusHelper.GetEventTypeDisplay(@event.Type);
 
         return new SendPushNotificationDto
@@ -316,13 +302,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone marks that they won't attend an event.
     /// </summary>
-    public SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
         var eventTypeDisplay = StatusHelper.GetEventTypeDisplay(@event.Type);
 
         return new SendPushNotificationDto
@@ -338,12 +323,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// </summary>
-    public SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level, string baseUrl)
+    public SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+        var leaderboardUrl = "/leaderboard";
 
         return new SendPushNotificationDto
         {
@@ -360,14 +344,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// </summary>
     /// <param name="meeting">The meeting to notify about</param>
     /// <param name="isReminder">True if this is a reminder notification, false for new meeting notification</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder, string baseUrl)
+    public SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder)
     {
         ArgumentNullException.ThrowIfNull(meeting);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var meetingUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var meetingUrl = MeetingUrl(meeting.Id);
         var meetingTypeName = FormatMeetingType(meeting.Type);
         var dateStr = meeting.Date.ToString("dd 'de' MMMM 'de' yyyy", PortugueseCulture);
 
@@ -403,13 +385,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a custom push notification for a meeting.
     /// </summary>
-    public SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody, string baseUrl)
+    public SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody)
     {
         ArgumentNullException.ThrowIfNull(meeting);
         ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var meetingUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var meetingUrl = MeetingUrl(meeting.Id);
         var title = $"Reunião - {FormatEventDate(meeting.Date)}";
 
         return new SendPushNotificationDto
@@ -442,12 +423,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for new performance requests.
     /// </summary>
-    public SendPushNotificationDto CreateRequestNotification(Request request, string baseUrl)
+    public SendPushNotificationDto CreateRequestNotification(Request request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var requestUrl = $"{baseUrl.TrimEnd('/')}/requests";
+        var requestUrl = "/requests";
         var dateStr = request.PreferredDate.ToString("dd/MM/yyyy");
 
         return new SendPushNotificationDto
@@ -480,14 +460,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// </summary>
     /// <param name="meetingRequest">The meeting request that was rejected</param>
     /// <param name="isExpired">Whether the request expired due to date</param>
-    /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    public SendPushNotificationDto CreateMeetingRequestRejectedNotification(MeetingRequest meetingRequest, bool isExpired, string baseUrl)
+    public SendPushNotificationDto CreateMeetingRequestRejectedNotification(MeetingRequest meetingRequest, bool isExpired)
     {
         ArgumentNullException.ThrowIfNull(meetingRequest);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var meetingsUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var meetingsUrl = "/meetings";
         var title = "Pedido de reunião rejeitado";
         var body = isExpired
             ? $"O teu pedido \"{meetingRequest.Title}\" expirou porque a data proposta já passou."
@@ -506,13 +484,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone marks attendance for a rehearsal.
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         return new SendPushNotificationDto
@@ -528,13 +505,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when a user cancels their rehearsal attendance.
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         return new SendPushNotificationDto
@@ -550,13 +526,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone marks that they won't attend a rehearsal.
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         return new SendPushNotificationDto
@@ -572,13 +547,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(approverName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         return new SendPushNotificationDto
@@ -594,13 +568,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when admin rejects a user's rehearsal attendance.
     /// </summary>
-    public SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName, string baseUrl)
+    public SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName)
     {
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(rejectorName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var rehearsalUrl = RehearsalUrl(rehearsal.Id);
         var title = FormatRehearsalTitle(rehearsal.Date);
 
         return new SendPushNotificationDto
@@ -616,13 +589,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone comments on a user's leaderboard profile.
     /// </summary>
-    public SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName, string baseUrl)
+    public SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetUserName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+        var leaderboardUrl = "/leaderboard";
 
         return new SendPushNotificationDto
         {
@@ -637,12 +609,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone likes a user's comment.
     /// </summary>
-    public SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName, string baseUrl)
+    public SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(likerName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+        var leaderboardUrl = "/leaderboard";
 
         return new SendPushNotificationDto
         {
@@ -657,13 +628,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone uploads a video to an event.
     /// </summary>
-    public SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName, string baseUrl)
+    public SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(uploaderName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventUrl = BuildEventUrl(baseUrl);
+        var eventUrl = EventUrl(@event.Id);
 
         return new SendPushNotificationDto
         {
@@ -678,13 +648,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when someone uploads a video to a song.
     /// </summary>
-    public SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName, string baseUrl)
+    public SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName)
     {
         ArgumentNullException.ThrowIfNull(song);
         ArgumentException.ThrowIfNullOrWhiteSpace(uploaderName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var musicUrl = $"{baseUrl.TrimEnd('/')}/music";
+        var musicUrl = $"/music/albums/{song.AlbumId}";
 
         return new SendPushNotificationDto
         {
@@ -699,11 +668,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for pending public request reminders (sent to admins daily).
     /// </summary>
-    public SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount, string baseUrl)
+    public SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var requestUrl = $"{baseUrl.TrimEnd('/')}/requests";
+        var requestUrl = "/requests";
         var bodyText = pendingCount == 1
             ? "Existe 1 pedido de atuação pendente a aguardar aprovação."
             : $"Existem {pendingCount} pedidos de atuação pendentes a aguardar aprovação.";
@@ -721,12 +689,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for pending meeting request reminders.
     /// </summary>
-    public SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl)
+    public SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest)
     {
         ArgumentNullException.ThrowIfNull(meetingRequest);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var meetingsUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var meetingsUrl = "/meetings";
         var meetingTypeName = FormatMeetingType(meetingRequest.RequestedMeetingType);
 
         return new SendPushNotificationDto
@@ -742,11 +709,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for pending rehearsal approvals.
     /// </summary>
-    public SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount, string baseUrl)
+    public SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var rehearsalsUrl = $"{baseUrl.TrimEnd('/')}/rehearsals";
+        var rehearsalsUrl = "/rehearsals";
         var bodyText = pendingRehearsalCount == 1
             ? "Existe 1 ensaio passado com presenças pendentes para aprovar."
             : $"Existem {pendingRehearsalCount} ensaios passados com presenças pendentes para aprovar.";
@@ -764,13 +730,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for a new question.
     /// </summary>
-    public SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId, string baseUrl)
+    public SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(questionTitle);
         ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var questionsUrl = BuildQuestionsUrl(baseUrl);
+        var questionsUrl = QuestionsUrl;
 
         return new SendPushNotificationDto
         {
@@ -785,12 +750,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for a question reply from the author.
     /// </summary>
-    public SendPushNotificationDto CreateQuestionReplyNotification(string replyPreview, int replyId, string baseUrl)
+    public SendPushNotificationDto CreateQuestionReplyNotification(string replyPreview, int replyId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(replyPreview);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var questionsUrl = BuildQuestionsUrl(baseUrl);
+        var questionsUrl = QuestionsUrl;
 
         return new SendPushNotificationDto
         {
@@ -805,12 +769,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when the assigned member answers a question.
     /// </summary>
-    public SendPushNotificationDto CreateQuestionAnsweredNotification(string replyPreview, int replyId, string baseUrl)
+    public SendPushNotificationDto CreateQuestionAnsweredNotification(string replyPreview, int replyId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(replyPreview);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var questionsUrl = BuildQuestionsUrl(baseUrl);
+        var questionsUrl = QuestionsUrl;
 
         return new SendPushNotificationDto
         {
@@ -825,13 +788,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for a question reminder.
     /// </summary>
-    public SendPushNotificationDto CreateQuestionReminderNotification(string questionTitle, string authorName, int questionId, string baseUrl)
+    public SendPushNotificationDto CreateQuestionReminderNotification(string questionTitle, string authorName, int questionId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(questionTitle);
         ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var questionsUrl = BuildQuestionsUrl(baseUrl);
+        var questionsUrl = QuestionsUrl;
 
         return new SendPushNotificationDto
         {
@@ -846,11 +808,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for pending questions (background service).
     /// </summary>
-    public SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname, string baseUrl)
+    public SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var questionsUrl = BuildQuestionsUrl(baseUrl);
+        var questionsUrl = QuestionsUrl;
 
         return new SendPushNotificationDto
         {
@@ -862,15 +823,6 @@ public class PushNotificationFactory : IPushNotificationFactory
             Url = questionsUrl,
             Tag = "question-reminder"
         };
-    }
-
-    /// <summary>
-    /// Builds the questions URL from the base URL.
-    /// </summary>
-    private static string BuildQuestionsUrl(string baseUrl)
-    {
-        var trimmedBaseUrl = baseUrl.TrimEnd('/');
-        return $"{trimmedBaseUrl}/questions";
     }
 
     /// <summary>
@@ -888,13 +840,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when new naipe content (video or image) is published.
     /// </summary>
-    public SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, string instrumentTypeName, bool isVideo, string baseUrl)
+    public SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, InstrumentType instrumentType, bool isVideo)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(contentTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(instrumentTypeName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+        var instrumentTypeName = StatusHelper.GetInstrumentDisplay(instrumentType);
 
-        var naipesUrl = $"{baseUrl.TrimEnd('/')}/naipes";
+        var naipesUrl = $"/naipes?instrument={instrumentType}";
         var contentType = isVideo ? "vídeo" : "imagem";
 
         return new SendPushNotificationDto
@@ -910,9 +861,8 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for weekly summary of events, rehearsals, and meetings.
     /// </summary>
-    public SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl)
+    public SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
         var totalCount = eventCount + rehearsalCount + meetingCount;
 
@@ -937,19 +887,19 @@ public class PushNotificationFactory : IPushNotificationFactory
         string url;
         if (eventCount > 0)
         {
-            url = $"{baseUrl.TrimEnd('/')}/events";
+            url = "/events";
         }
         else if (rehearsalCount > 0)
         {
-            url = $"{baseUrl.TrimEnd('/')}/rehearsals";
+            url = "/rehearsals";
         }
         else if (meetingCount > 0)
         {
-            url = $"{baseUrl.TrimEnd('/')}/meetings";
+            url = "/meetings";
         }
         else
         {
-            url = baseUrl.TrimEnd('/');
+            url = "/";
         }
 
         return new SendPushNotificationDto
@@ -967,11 +917,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for calotes (debt) reminder.
     /// </summary>
-    public SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed, string baseUrl)
+    public SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var calotesUrl = $"{baseUrl.TrimEnd('/')}/treasury/calotes";
+        var calotesUrl = "/treasury/calotes";
 
         return new SendPushNotificationDto
         {
@@ -986,13 +935,12 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a reminder push notification for a member to participate in activities.
     /// </summary>
-    public SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl)
+    public SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var eventsUrl = $"{baseUrl.TrimEnd('/')}/events";
+        var eventsUrl = "/events";
 
         return new SendPushNotificationDto
         {
@@ -1007,12 +955,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when a member is reactivated.
     /// </summary>
-    public SendPushNotificationDto CreateMemberReactivatedNotification(string userNickname, string baseUrl)
+    public SendPushNotificationDto CreateMemberReactivatedNotification(string userNickname)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+        var leaderboardUrl = "/leaderboard";
 
         return new SendPushNotificationDto
         {
@@ -1027,12 +974,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification warning a member that retirement is approaching (1 month away).
     /// </summary>
-    public SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname, string baseUrl)
+    public SendPushNotificationDto CreateMemberRetirementWarningNotification(string userNickname)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+        var leaderboardUrl = "/leaderboard";
 
         return new SendPushNotificationDto
         {
@@ -1068,11 +1014,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when a user is tagged in a gallery media item.
     /// </summary>
-    public SendPushNotificationDto CreateGalleryTagNotification(string baseUrl)
+    public SendPushNotificationDto CreateGalleryTagNotification(int mediaId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var galleryUrl = $"{baseUrl.TrimEnd('/')}/gallery";
+        var galleryUrl = $"/gallery?item={mediaId}";
 
         return new SendPushNotificationDto
         {
@@ -1087,14 +1032,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification when a user is @mentioned in a discussion post or comment.
     /// </summary>
-    public SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment, string baseUrl)
+    public SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(mentionerNickname);
         ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var discussionUrl = $"{baseUrl.TrimEnd('/')}/events/{@event.Id}/discussion";
+        var discussionUrl = DiscussionUrl(@event.Id);
         var context = isComment ? $"num comentário sobre: {postTitle}" : $"num post: {postTitle}";
 
         return new SendPushNotificationDto

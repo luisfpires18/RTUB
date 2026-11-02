@@ -11,6 +11,20 @@ badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasske
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
 Real-device passkey check (iPhone, Android, TWA) still open.
 
+**Task 058 = push deep links** (`feat/058/push-deep-links`, not merged). A tapped push opens the item, not a list or
+the home page: `PushNotificationFactory` builds **relative** links to `/events/{id}`, `/events/{id}/discussion`,
+`/rehearsals/{id}`, `/meetings?meeting={id}` (new: opens the details), `/music/albums/{id}`, `/gallery?item={id}`,
+`/naipes?instrument=` (no base URL anywhere: Host-built absolute links failed the worker's same-origin check from
+`www.rtub.pt` / `azurewebsites.net` and opened `/`; also closes the 034 forged-Host push-link finding; the dead
+`GetBaseUrl` / `IHttpContextAccessor` in 11 services went with it). Worker `rtub-v2.12.0` stores the tap's target for
+60 s and `sw-register.js` follows it on load / resume (iOS Home Screen, TWA cold start). Catalogue of every push +
+the designed per-category opt-out (next task, needs a migration): `docs/push-notifications.md`. No schema change.
+Real-device tap check (iPhone Home Screen, Android TWA) open.
+Also in 058: "Novo 1º Lugar" now sends (Mondays, all-time leader vs the last one recorded in the audit log; the dead
+`RankingService.UpdateUserRankingAsync` removed); "Membro Reativado" / "1 mês até reforma" turned on
+(`MemberStatusUpdate:PushNotificationsEnabled=true`) and sent only by the scheduled daily run, never by triggers, the
+Owner sync or a member's first evaluation.
+
 **Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
 perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /
 impressão digital" on `/login`; password login unchanged. Migration `AddUserPasskeys` (additive table
@@ -399,6 +413,8 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by the 058 push audit (`docs/push-notifications.md` → *Does it send?*): "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment / like push failures are swallowed with no log; discussion pushes stop at the event start (UTC compare).
+`AspNetUsers.ExperiencePoints` / `Level` have no writer (their only one, `UpdateUserRankingAsync`, never ran and was removed in 058); the leaderboard computes XP per request. Candidate for the DB cleanup list.
 Raised by 054 (performance audit; the full table is `docs/performance-gate.md` → *Task 054 → Deferred findings*): the hot
 read paths (messaging unread / list / thread query shapes and a `Messages(ConversationId, Id)` index, `/api/members`
 full-entity load + per-keystroke search, leaderboard recompute per request, `/profile` ≈ 14 queries, meetings loaded

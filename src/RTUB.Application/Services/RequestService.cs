@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
@@ -22,20 +21,17 @@ public class RequestService : IRequestService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public RequestService(
         IRequestRepository requestRepository,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor)
+        UserManager<ApplicationUser> userManager)
     {
         _requestRepository = requestRepository;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Request?> GetRequestByIdAsync(int id)
@@ -61,8 +57,7 @@ public class RequestService : IRequestService
         // Send push notification to admins
         try
         {
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateRequestNotification(createdRequest, baseUrl);
+            var notification = _pushNotificationFactory.CreateRequestNotification(createdRequest);
 
             // Get admin user IDs
             var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
@@ -105,15 +100,5 @@ public class RequestService : IRequestService
         var request = await _requestRepository.GetByIdOrThrowAsync(id);
 
         await _requestRepository.DeleteAsync(request);
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

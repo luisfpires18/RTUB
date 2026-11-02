@@ -26,7 +26,7 @@ public interface IRehearsalAdminService
 
     Task<EventResult<RehearsalNoticeAudienceDto>> GetNoticeAudienceAsync(int id, ClaimsPrincipal user);
 
-    Task<EventResult<RehearsalNoticeResultDto>> SendNoticeAsync(int id, RehearsalNoticeInput input, ClaimsPrincipal user, string baseUrl);
+    Task<EventResult<RehearsalNoticeResultDto>> SendNoticeAsync(int id, RehearsalNoticeInput input, ClaimsPrincipal user);
 
     /// <summary>Approves a pending presença once the rehearsal can be approved (the member gets a push, as before).</summary>
     Task<EventResult<bool>> ApproveAsync(int id, int attendanceId, ClaimsPrincipal user);

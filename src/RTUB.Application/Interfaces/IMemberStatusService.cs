@@ -18,6 +18,10 @@ public interface IMemberStatusService
     /// <summary>Reconcile one member (rehearsal attendance / event enrollment triggers).</summary>
     Task<MemberStatusResult> ReconcileMemberStatusAsync(string userId);
 
-    /// <summary>Reconcile every member, active and Reformado alike (startup/daily job, Owner sync). Per-member failures are logged and counted.</summary>
-    Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync();
+    /// <summary>
+    /// Reconcile every member, active and Reformado alike (startup/daily job, Owner sync). Per-member failures are logged
+    /// and counted. Only the scheduled daily job passes <paramref name="notify"/>: the "Membro Reativado" and
+    /// "1 mês até reforma" pushes never come from a manual run, a trigger or a member's first evaluation.
+    /// </summary>
+    Task<MemberStatusReconciliationResult> ReconcileAllMemberStatusesAsync(bool notify = false);
 }

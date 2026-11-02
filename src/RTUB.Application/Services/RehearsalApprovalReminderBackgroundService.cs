@@ -124,8 +124,7 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
             }
 
             var notification = pushNotificationFactory.CreatePendingRehearsalApprovalsReminderNotification(
-                pendingRehearsalCount,
-                "/");
+                pendingRehearsalCount);
 
             await pushNotificationService.SendToUserAsync(userId, notification);
 

@@ -32,8 +32,8 @@ public sealed class MemberStatusServiceTests : IDisposable
 
     public MemberStatusServiceTests()
     {
-        _pushFactory.Setup(f => f.CreateMemberReactivatedNotification(It.IsAny<string>(), It.IsAny<string>())).Returns(new SendPushNotificationDto());
-        _pushFactory.Setup(f => f.CreateMemberRetirementWarningNotification(It.IsAny<string>(), It.IsAny<string>())).Returns(new SendPushNotificationDto());
+        _pushFactory.Setup(f => f.CreateMemberReactivatedNotification(It.IsAny<string>())).Returns(new SendPushNotificationDto());
+        _pushFactory.Setup(f => f.CreateMemberRetirementWarningNotification(It.IsAny<string>())).Returns(new SendPushNotificationDto());
     }
 
     private MemberStatusService Service()
@@ -151,14 +151,15 @@ public sealed class MemberStatusServiceTests : IDisposable
         await RehearsalAsync(id, new DateTime(2026, 8, 5));
         await RehearsalAsync(id, new DateTime(2026, 9, 5));
         await RehearsalAsync(id, new DateTime(2026, 10, 5));
+        await SeenAsync(id, retired: true, progressMonths: 2);
         var service = Service();
 
-        var first = await service.ReconcileAllMemberStatusesAsync();
+        var first = await service.ReconcileAllMemberStatusesAsync(notify: true);
         var updatedAt = (await ProjectionAsync(id)).LastUpdatedAt;
         var runs = new List<MemberStatusReconciliationResult>();
         for (var n = 0; n < 4; n++)
         {
-            runs.Add(await service.ReconcileAllMemberStatusesAsync());
+            runs.Add(await service.ReconcileAllMemberStatusesAsync(notify: true));
         }
 
         first.Activated.Should().Be(1);
@@ -277,11 +278,64 @@ public sealed class MemberStatusServiceTests : IDisposable
     {
         var id = await AddMemberAsync(MemberCategory.Tuno, retired: false);
         await RehearsalAsync(id, new DateTime(2026, 5, 20));
+        await SeenAsync(id, retired: false, progressMonths: 2);
+        var service = Service();
+
+        await service.ReconcileAllMemberStatusesAsync(notify: true);
+        await service.ReconcileAllMemberStatusesAsync(notify: true);
+
+        (await ProjectionAsync(id)).ProgressMonths.Should().Be(1);
+        _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), Times.Once);
+        _push.Verify(p => p.BroadcastAsync(It.IsAny<SendPushNotificationDto>()), Times.Never, "only the member losing the status hears it");
+    }
+
+    // ---------- Pushes come only from the scheduled run (task 058) ----------
+
+    [Fact]
+    public async Task Triggers_AndTheOwnerSync_NeverNotify_EvenWhenTheyReactivate()
+    {
+        var id = await AddMemberAsync(MemberCategory.Tuno, retired: true);
+        await RehearsalAsync(id, new DateTime(2026, 8, 5));
+        await RehearsalAsync(id, new DateTime(2026, 9, 5));
+        await RehearsalAsync(id, new DateTime(2026, 10, 5));
+        await SeenAsync(id, retired: true, progressMonths: 2);
+        var service = Service();
+
+        (await service.ReconcileMemberStatusAsync(id)).IsRetired.Should().BeFalse("a presença approval still reactivates at once");
+        await service.ReconcileAllMemberStatusesAsync();
+        await service.ReconcileAllMemberStatusesAsync(notify: true);
+
+        _push.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task FirstEvaluation_NewMemberOrFirstPopulation_NeverNotifies()
+    {
+        var returning = await AddMemberAsync(MemberCategory.Tuno, retired: true);
+        await RehearsalAsync(returning, new DateTime(2026, 8, 5));
+        await RehearsalAsync(returning, new DateTime(2026, 9, 5));
+        await RehearsalAsync(returning, new DateTime(2026, 10, 5));
+        var lastMonth = await AddMemberAsync(MemberCategory.Tuno, retired: false);
+        await RehearsalAsync(lastMonth, new DateTime(2026, 5, 20));
+
+        var run = await Service().ReconcileAllMemberStatusesAsync(notify: true);
+
+        run.Activated.Should().Be(1);
+        (await ProjectionAsync(lastMonth)).ProgressMonths.Should().Be(1);
+        _push.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RetirementWarning_StillSent_WhenATriggerStoredTheLastMonthEarlierThatDay()
+    {
+        // Threshold 13 Dec 00:00: the countdown became 1 at 13 Oct 00:00, half a day before the run at 12:00.
+        var id = await AddMemberAsync(MemberCategory.Tuno, retired: false);
+        await RehearsalAsync(id, new DateTime(2026, 6, 13));
+        await SeenAsync(id, retired: false, progressMonths: 2);
         var service = Service();
 
         (await service.ReconcileMemberStatusAsync(id)).ProgressMonths.Should().Be(1);
-        await service.ReconcileAllMemberStatusesAsync();
-        await service.ReconcileAllMemberStatusesAsync();
+        await service.ReconcileAllMemberStatusesAsync(notify: true);
 
         _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), Times.Once);
     }
@@ -298,7 +352,7 @@ public sealed class MemberStatusServiceTests : IDisposable
         status.IsRetired.Should().BeFalse();
         status.ProgressMonths.Should().Be(1);
         status.ProgressDescription.Should().Be("1 mês até reforma");
-        _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), Times.Once);
+        _push.VerifyNoOtherCalls(); // a trigger never notifies (task 058)
     }
 
     [Theory]
@@ -346,10 +400,9 @@ public sealed class MemberStatusServiceTests : IDisposable
             await db.SaveChangesAsync();
         }
 
-        var service = Service();
-        (await service.ReconcileMemberStatusAsync(id)).ProgressMonths.Should().Be(1);
-        await service.ReconcileAllMemberStatusesAsync();
+        await Service().ReconcileAllMemberStatusesAsync(notify: true);
 
+        (await ProjectionAsync(id)).ProgressMonths.Should().Be(1);
         _push.Verify(p => p.SendToUserAsync(id, It.IsAny<SendPushNotificationDto>()), warned ? Times.Once() : Times.Never());
     }
 
@@ -538,6 +591,18 @@ public sealed class MemberStatusServiceTests : IDisposable
     {
         await using var db = _db.CreateContext();
         return await db.Users.AsNoTracking().SingleAsync(u => u.Id == id);
+    }
+
+    /// <summary>A member the reconciliation has seen before (a MemberStatus row from yesterday's run).</summary>
+    private async Task SeenAsync(string id, bool retired, int progressMonths)
+    {
+        await using var db = _db.CreateContext();
+        db.MemberStatuses.Add(new MemberStatus
+        {
+            UserId = id, IsRetired = retired, HasAnyActivity = true, ProgressMonths = progressMonths,
+            ProgressTotalMonths = retired ? 3 : 6, LastUpdatedAt = Now.AddDays(-1),
+        });
+        await db.SaveChangesAsync();
     }
 
     private async Task<MemberStatus> ProjectionAsync(string id)

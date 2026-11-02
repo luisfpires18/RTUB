@@ -74,7 +74,7 @@ public static class MemberEndpoints
             ToResult(await admin.SetExpelledAsync(id, false, http.User), _ => Results.NoContent()));
 
         writes.MapPost("/{id}/reminder", async (string id, HttpContext http, IMemberAdminService admin) =>
-            ToResult(await admin.SendReminderAsync(id, $"{http.Request.Scheme}://{http.Request.Host}", http.User), _ => Results.NoContent()));
+            ToResult(await admin.SendReminderAsync(id, http.User), _ => Results.NoContent()));
     }
 
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch

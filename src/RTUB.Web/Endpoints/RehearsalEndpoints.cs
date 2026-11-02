@@ -66,7 +66,7 @@ public static class RehearsalEndpoints
             ToResult(await admin.GetNoticeAudienceAsync(id, http.User)));
 
         writes.MapPost("/{id:int}/notice", async (int id, RehearsalNoticeInput input, HttpContext http, IRehearsalAdminService admin) =>
-                ToResult(await admin.SendNoticeAsync(id, input, http.User, $"{http.Request.Scheme}://{http.Request.Host}")))
+                ToResult(await admin.SendNoticeAsync(id, input, http.User)))
             .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
 
         // Admin/Owner: everyone's presenças (a member removes their own here too).

@@ -1089,7 +1089,7 @@
         "Azure App Settings"
       ],
       "devProd": "any",
-      "committedDefault": "false",
+      "committedDefault": "true",
       "notes": "Committed default."
     },
     {

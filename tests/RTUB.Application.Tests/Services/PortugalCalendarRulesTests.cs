@@ -68,16 +68,16 @@ public class PortugalCalendarRulesTests
     public void PushReminders_SayHojeAndAmanha_ByPortugalsDate()
     {
         var factory = new PushNotificationFactory(SummerAfterMidnight);
-        factory.CreateRehearsalReminderNotification(new Rehearsal { Id = 1, Date = new DateTime(2026, 7, 15) }, "https://rtub.test")
+        factory.CreateRehearsalReminderNotification(new Rehearsal { Id = 1, Date = new DateTime(2026, 7, 15) })
             .Body.Should().Contain("é hoje");
-        factory.CreateRehearsalReminderNotification(new Rehearsal { Id = 2, Date = new DateTime(2026, 7, 16) }, "https://rtub.test")
+        factory.CreateRehearsalReminderNotification(new Rehearsal { Id = 2, Date = new DateTime(2026, 7, 16) })
             .Body.Should().Contain("é amanhã");
 
         var meeting = new Meeting { Id = 3, Date = new DateTime(2026, 7, 15, 21, 0, 0), Type = MeetingType.AssembleiaGeralOrdinaria, Title = "AG" };
-        factory.CreateMeetingNotification(meeting, isReminder: true, "https://rtub.test").Body.Should().Contain("A reunião é hoje");
+        factory.CreateMeetingNotification(meeting, isReminder: true).Body.Should().Contain("A reunião é hoje");
 
         new PushNotificationFactory(WinterBeforeMidnight)
-            .CreateRehearsalReminderNotification(new Rehearsal { Id = 4, Date = new DateTime(2026, 1, 15) }, "https://rtub.test")
+            .CreateRehearsalReminderNotification(new Rehearsal { Id = 4, Date = new DateTime(2026, 1, 15) })
             .Body.Should().Contain("é amanhã");
     }
 

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,7 +24,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<RehearsalAttendanceService> _logger;
 
@@ -34,7 +32,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         IMemberStatusService memberStatusService,
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
-        IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager,
         ILogger<RehearsalAttendanceService> logger,
         TimeProvider? time = null)
@@ -44,7 +41,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         _memberStatusService = memberStatusService;
         _pushNotificationService = pushNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
-        _httpContextAccessor = httpContextAccessor;
         _userManager = userManager;
         _logger = logger;
     }
@@ -283,8 +279,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
 
             var approverName = approver.Nickname ?? approver.UserName ?? "Admin";
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateRehearsalAttendanceApprovalNotification(rehearsal, approverName, baseUrl);
+            var notification = _pushNotificationFactory.CreateRehearsalAttendanceApprovalNotification(rehearsal, approverName);
 
             await _pushNotificationService.SendToUserAsync(attendance.UserId, notification);
         }
@@ -315,8 +310,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
 
             var rejectorName = rejector.Nickname ?? rejector.UserName ?? "Admin";
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateRehearsalAttendanceRejectionNotification(rehearsal, rejectorName, baseUrl);
+            var notification = _pushNotificationFactory.CreateRehearsalAttendanceRejectionNotification(rehearsal, rejectorName);
 
             await _pushNotificationService.SendToUserAsync(attendance.UserId, notification);
         }
@@ -347,15 +341,13 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedAttendance.User.Nickname
                                   ?? detailedAttendance.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateRehearsalAttendanceNotification(
                 detailedAttendance.Rehearsal,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
@@ -400,15 +392,13 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedAttendance.User.Nickname
                                   ?? detailedAttendance.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateRehearsalCancellationNotification(
                 detailedAttendance.Rehearsal,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
@@ -453,15 +443,13 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
             }
 
-            var baseUrl = GetBaseUrl();
             var userDisplayName = detailedAttendance.User.Nickname
                                   ?? detailedAttendance.User.FirstName
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateRehearsalNonAttendanceNotification(
                 detailedAttendance.Rehearsal,
-                userDisplayName,
-                baseUrl);
+                userDisplayName);
 
             var recipientIds = await _attendanceRepository.QueryAsync(q => q
                 .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
@@ -496,15 +484,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return rehearsalDate.Date > PortugalTime.Today(_time);
     }
 
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
-    }
 
     private async Task<MemberCategory?> ResolveUserPrimaryCategoryAsync(string userId)
     {

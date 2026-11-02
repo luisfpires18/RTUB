@@ -26,7 +26,6 @@ public class AdminNotificationSkipTests : IDisposable
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IMemberStatusService> _mockRetirementStatusService;
-    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public AdminNotificationSkipTests()
@@ -40,7 +39,6 @@ public class AdminNotificationSkipTests : IDisposable
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockRetirementStatusService = new Mock<IMemberStatusService>();
-        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _enrollmentService = new EnrollmentService(
@@ -48,7 +46,6 @@ public class AdminNotificationSkipTests : IDisposable
             _mockRetirementStatusService.Object,
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
-            _mockHttpContextAccessor.Object,
             _mockUserManager.Object);
 
         _attendanceService = new RehearsalAttendanceService(
@@ -56,7 +53,6 @@ public class AdminNotificationSkipTests : IDisposable
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             _mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
     }
@@ -112,8 +108,6 @@ public class AdminNotificationSkipTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Setup mock to allow notification calls
-        _mockHttpContextAccessor.Setup(x => x.HttpContext!.Request.Scheme).Returns("https");
-        _mockHttpContextAccessor.Setup(x => x.HttpContext!.Request.Host).Returns(new HostString("test.com"));
 
         // Act - User self-enrolls without skipNotification parameter (default false)
         var newUser = new ApplicationUser
@@ -195,8 +189,6 @@ public class AdminNotificationSkipTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Setup mock to allow notification calls
-        _mockHttpContextAccessor.Setup(x => x.HttpContext!.Request.Scheme).Returns("https");
-        _mockHttpContextAccessor.Setup(x => x.HttpContext!.Request.Host).Returns(new HostString("test.com"));
 
         // Act - User marks their own attendance without skipNotification parameter (default false)
         var newUser = new ApplicationUser

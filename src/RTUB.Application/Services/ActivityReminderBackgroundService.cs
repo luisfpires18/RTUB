@@ -95,8 +95,6 @@ public class ActivityReminderBackgroundService : BackgroundService
 
         try
         {
-            var baseUrl = "/";
-
             // Load non-retired users once
             var activeUsers = await context.Users
                 .AsNoTracking()
@@ -110,9 +108,9 @@ public class ActivityReminderBackgroundService : BackgroundService
                 return;
             }
 
-            await SendEventRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, baseUrl, today, cancellationToken);
-            await SendRehearsalRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, baseUrl, today, cancellationToken);
-            await SendMeetingRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, baseUrl, today, cancellationToken);
+            await SendEventRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, today, cancellationToken);
+            await SendRehearsalRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, today, cancellationToken);
+            await SendMeetingRemindersAsync(context, pushNotificationService, pushNotificationFactory, activeUsers, today, cancellationToken);
 
             _lastRunDate = today;
         }
@@ -127,7 +125,6 @@ public class ActivityReminderBackgroundService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         List<ApplicationUser> activeUsers,
-        string baseUrl,
         DateTime today,
         CancellationToken cancellationToken)
     {
@@ -180,7 +177,7 @@ public class ActivityReminderBackgroundService : BackgroundService
             SendPushNotificationDto notification;
             try
             {
-                notification = pushNotificationFactory.CreateEventNotification(@event, isReminder: true, baseUrl);
+                notification = pushNotificationFactory.CreateEventNotification(@event, isReminder: true);
             }
             catch (ArgumentException ex)
             {
@@ -204,7 +201,6 @@ public class ActivityReminderBackgroundService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         List<ApplicationUser> activeUsers,
-        string baseUrl,
         DateTime today,
         CancellationToken cancellationToken)
     {
@@ -229,7 +225,7 @@ public class ActivityReminderBackgroundService : BackgroundService
             SendPushNotificationDto notification;
             try
             {
-                notification = pushNotificationFactory.CreateRehearsalReminderNotification(rehearsal, baseUrl);
+                notification = pushNotificationFactory.CreateRehearsalReminderNotification(rehearsal);
             }
             catch (ArgumentException ex)
             {
@@ -253,7 +249,6 @@ public class ActivityReminderBackgroundService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         List<ApplicationUser> activeUsers,
-        string baseUrl,
         DateTime today,
         CancellationToken cancellationToken)
     {
@@ -291,7 +286,7 @@ public class ActivityReminderBackgroundService : BackgroundService
             SendPushNotificationDto notification;
             try
             {
-                notification = pushNotificationFactory.CreateMeetingNotification(meeting, isReminder: true, baseUrl);
+                notification = pushNotificationFactory.CreateMeetingNotification(meeting, isReminder: true);
             }
             catch (ArgumentException ex)
             {

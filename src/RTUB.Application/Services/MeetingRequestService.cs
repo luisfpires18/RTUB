@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,7 +20,6 @@ public class MeetingRequestService : IMeetingRequestService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MeetingRequestService> _logger;
 
     public MeetingRequestService(
@@ -29,14 +27,12 @@ public class MeetingRequestService : IMeetingRequestService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor,
         ILogger<MeetingRequestService> logger)
     {
         _meetingRequestRepository = meetingRequestRepository;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -67,8 +63,6 @@ public class MeetingRequestService : IMeetingRequestService
 
         try
         {
-            var baseUrl = GetBaseUrl();
-
             var tempMeeting = new Meeting
             {
                 Id = 0,
@@ -80,7 +74,7 @@ public class MeetingRequestService : IMeetingRequestService
                 OrganizerUserId = request.AuthorUserId
             };
 
-            var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, isReminder: false, baseUrl);
+            var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, isReminder: false);
 
             // 1) Owners (role) - extract IDs immediately to avoid tracking issues
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
@@ -157,7 +151,7 @@ public class MeetingRequestService : IMeetingRequestService
         await _meetingRequestRepository.DeleteAsync(id);
     }
 
-    public async Task<bool> SendReminderNotificationAsync(int id, string baseUrl)
+    public async Task<bool> SendReminderNotificationAsync(int id)
     {
         var request = await _meetingRequestRepository.GetByIdWithAuthorAsync(id);
         if (request == null || request.Status != RequestStatus.Pending)
@@ -165,7 +159,7 @@ public class MeetingRequestService : IMeetingRequestService
 
         try
         {
-            var notification = _pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
+            var notification = _pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request);
 
             // 1) Owners (role) - extract IDs immediately to avoid tracking issues
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
@@ -236,15 +230,6 @@ public class MeetingRequestService : IMeetingRequestService
         }
     }
 
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
-    }
 
     private async Task SendRejectionNotificationAsync(MeetingRequest request, bool isExpired)
     {
@@ -255,8 +240,7 @@ public class MeetingRequestService : IMeetingRequestService
 
         try
         {
-            var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateMeetingRequestRejectedNotification(request, isExpired, baseUrl);
+            var notification = _pushNotificationFactory.CreateMeetingRequestRejectedNotification(request, isExpired);
             await _pushNotificationService.SendToUserAsync(request.AuthorUserId, notification);
         }
         catch (Exception ex)

@@ -24,7 +24,6 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
     private readonly Mock<IMemberStatusService> _mockRetirementStatusService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
-    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public RehearsalAttendanceAuditLogTests(DatabaseFixture fixture)
@@ -39,7 +38,6 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
         _mockRetirementStatusService = new Mock<IMemberStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _attendanceService = new RehearsalAttendanceService(
@@ -47,7 +45,6 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
             _mockRetirementStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
-            _mockHttpContextAccessor.Object,
             _mockUserManager.Object,
             Mock.Of<ILogger<RehearsalAttendanceService>>());
     }

@@ -17,7 +17,7 @@ public interface IOwnerOperationsService
 
     // ---------- /notifications ----------
     Task<OwnerPushRecipients> GetPushRecipientsAsync();
-    Task<EventResult<OwnerPushResult>> SendPushAsync(OwnerPushInput input, ClaimsPrincipal actor, string baseUrl);
+    Task<EventResult<OwnerPushResult>> SendPushAsync(OwnerPushInput input, ClaimsPrincipal actor);
 
     // ---------- /users ----------
     /// <summary><paramref name="staff"/>: only accounts whose role is Owner, Admin or Mod.</summary>

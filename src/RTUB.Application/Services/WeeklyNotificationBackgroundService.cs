@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,7 +16,8 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Background service that automatically sends weekly push notifications on Monday at configured time.
-/// Sends a summary of all events, rehearsals, and meetings for the current week (Monday-Sunday).
+/// Sends a summary of all events, rehearsals, and meetings for the current week (Monday-Sunday), then the
+/// "Novo 1º Lugar no Ranking" push when the all-time leaderboard has a new leader since last week (task 058).
 /// </summary>
 public class WeeklyNotificationBackgroundService : BackgroundService
 {
@@ -153,7 +155,6 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                     .ToHashSet()
                 : new HashSet<string>();
 
-            var baseUrl = "/";
             var sentCount = 0;
 
             foreach (var user in allUsers)
@@ -169,7 +170,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
                     // Create personalized notification with user-specific meeting count
                     var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
-                        eventCount, rehearsalCount, userMeetingCount, baseUrl);
+                        eventCount, rehearsalCount, userMeetingCount);
 
                     await pushNotificationService.SendToUserAsync(user.Id, notification);
                     sentCount++;
@@ -184,6 +185,16 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 "Weekly notifications sent successfully to {SentCount}/{TotalCount} users",
                 sentCount, allUsers.Count);
 
+            try
+            {
+                await NotifyNewLeaderAsync(context, scope.ServiceProvider.GetRequiredService<IRankingService>(),
+                    pushNotificationService, pushNotificationFactory, allUsers, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to check the leaderboard's first place");
+            }
+
             _lastRunDate = today;
         }
         catch (Exception ex)
@@ -191,6 +202,62 @@ public class WeeklyNotificationBackgroundService : BackgroundService
             _logger.LogError(ex, "Error checking for weekly activities");
         }
     }
+
+    public const string LeaderAuditEntityType = "LeaderboardFirstPlace";
+
+    /// <summary>
+    /// "Novo 1º Lugar no Ranking", once a week: the all-time leaderboard's first row (level, then XP, descending; ties
+    /// in the users table's order, as /leaderboard) against the leader recorded last time in the audit log. A new leader
+    /// is broadcast and recorded; the very first run only records (no push for whoever already leads); nobody with XP
+    /// yet means no leader. Internal for the tests.
+    /// </summary>
+    internal async Task NotifyNewLeaderAsync(ApplicationDbContext context, IRankingService ranking,
+        IPushNotificationService push, IPushNotificationFactory factory, List<ApplicationUser> users,
+        CancellationToken cancellationToken)
+    {
+        var progress = await ranking.GetRankProgressBatchAsync(users.Select(u => u.Id), cancellationToken);
+        var leader = users
+            .Select(u => (User: u, Progress: progress.GetValueOrDefault(u.Id)))
+            .Where(x => x.Progress is { CurrentXp: > 0 })
+            .OrderByDescending(x => x.Progress!.CurrentLevel)
+            .ThenByDescending(x => x.Progress!.CurrentXp)
+            .FirstOrDefault();
+        if (leader.User is null)
+        {
+            return;
+        }
+
+        var last = await context.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == LeaderAuditEntityType)
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => a.Changes)
+            .FirstOrDefaultAsync(cancellationToken);
+        var previousLeaderId = last is null ? null : JsonSerializer.Deserialize<LeaderRecord>(last)?.LeaderId;
+        if (previousLeaderId == leader.User.Id)
+        {
+            return;
+        }
+
+        var nickname = leader.User.Nickname ?? leader.User.FirstName ?? "Utilizador";
+        context.AuditLogs.Add(new AuditLog
+        {
+            EntityType = LeaderAuditEntityType,
+            Action = previousLeaderId is null ? "Recorded" : "Changed",
+            UserName = "System",
+            EntityDisplayName = nickname,
+            Timestamp = _time.GetUtcNow().UtcDateTime,
+            Changes = JsonSerializer.Serialize(new LeaderRecord(leader.User.Id, leader.Progress!.CurrentLevel, leader.Progress.CurrentXp)),
+        });
+        await context.SaveChangesAsync(cancellationToken);
+
+        if (previousLeaderId is not null)
+        {
+            await push.BroadcastAsync(factory.CreateLeaderboardFirstPlaceNotification(nickname, leader.Progress.CurrentLevel));
+            _logger.LogInformation("New leaderboard first place: {Nickname} (level {Level})", nickname, leader.Progress.CurrentLevel);
+        }
+    }
+
+    private sealed record LeaderRecord(string LeaderId, int Level, int Xp);
 
     /// <summary>
     /// Gets the count of meetings visible to a specific user based on their role and positions.

@@ -1,12 +1,8 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 
@@ -19,31 +15,16 @@ public class RankingService : IRankingService
 {
     private readonly IRehearsalAttendanceRepository _attendanceRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IOptions<RankingConfiguration> _rankingConfig;
-    private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly IPushNotificationService _pushNotificationService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly ILogger<RankingService> _logger;
 
     public RankingService(
         IRehearsalAttendanceRepository attendanceRepository,
         IEnrollmentRepository enrollmentRepository,
-        UserManager<ApplicationUser> userManager,
-        IOptions<RankingConfiguration> config,
-        IPushNotificationFactory pushNotificationFactory,
-        IPushNotificationService pushNotificationService,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger<RankingService> logger)
+        IOptions<RankingConfiguration> config)
     {
         _attendanceRepository = attendanceRepository;
         _enrollmentRepository = enrollmentRepository;
-        _userManager = userManager;
         _rankingConfig = config;
-        _pushNotificationFactory = pushNotificationFactory;
-        _pushNotificationService = pushNotificationService;
-        _httpContextAccessor = httpContextAccessor;
-        _logger = logger;
     }
 
     public async Task<int> CalculateTotalXpAsync(string userId, CancellationToken cancellationToken = default)
@@ -123,55 +104,6 @@ public class RankingService : IRankingService
     {
         var currentLevelDef = _rankingConfig.Value.Levels.FirstOrDefault(l => l.Level == currentLevel);
         return currentLevelDef?.XpThreshold ?? 0;
-    }
-
-    public async Task UpdateUserRankingAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            return;
-
-        // Query the current first place user asynchronously
-        var currentFirstPlace = await _userManager.Users
-            .OrderByDescending(u => u.ExperiencePoints)
-            .ThenByDescending(u => u.Level)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var totalXp = await CalculateTotalXpAsync(userId, cancellationToken);
-        var level = GetLevelFromXp(totalXp);
-
-        var oldXp = user.ExperiencePoints;
-        var oldLevel = user.Level;
-
-        user.ExperiencePoints = totalXp;
-        user.Level = level;
-
-        await _userManager.UpdateAsync(user);
-
-        // Check if this user has become the new 1st place
-        if (currentFirstPlace != null && currentFirstPlace.Id != userId &&
-            (totalXp > currentFirstPlace.ExperiencePoints ||
-             (totalXp == currentFirstPlace.ExperiencePoints && level > currentFirstPlace.Level)))
-        {
-            // This user has surpassed the previous 1st place
-            try
-            {
-                var baseUrl = GetBaseUrl();
-                var userNickname = user.Nickname ?? user.FirstName ?? "Utilizador";
-                var notification = _pushNotificationFactory.CreateLeaderboardFirstPlaceNotification(
-                    userNickname,
-                    level,
-                    baseUrl);
-
-                // Broadcast to all users
-                await _pushNotificationService.BroadcastAsync(notification);
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't fail the ranking update
-                _logger.LogError(ex, "Failed to send leaderboard first place notification for user {UserId}", userId);
-            }
-        }
     }
 
     public async Task<RankProgressInfo> GetRankProgressAsync(string userId, CancellationToken cancellationToken = default)
@@ -313,15 +245,5 @@ public class RankingService : IRankingService
             ProgressPercentage = Math.Min(100, Math.Max(0, progressPercentage)),
             IsMaxLevel = isMaxLevel
         };
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.pt"; // Fallback
     }
 }

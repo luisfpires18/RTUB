@@ -162,7 +162,7 @@ public class NaipesApiTests : IClassFixture<NaipesApiFactory>
 
         _factory.Media.Verify(m => m.UploadVideoAsync(It.IsAny<Stream>(), "aula.mp4", "video/mp4", "Guitarra"), Times.Once);
         _factory.Push.Verify(p => p.BroadcastAsync(It.Is<SendPushNotificationDto>(n =>
-            n.Title == "Novo vídeo em Guitarra" && n.Body.Contains("Rasgado") && n.Url!.EndsWith("/naipes"))), Times.Once);
+            n.Title == "Novo vídeo em Guitarra" && n.Body.Contains("Rasgado") && n.Url == "/naipes?instrument=Guitarra")), Times.Once);
 
         var image = await AreaHttp.Json(await member.PostAsync("/api/naipes", Upload(Jpeg, "acordes.jpeg", "image/jpeg", "Guitarra", video: false)));
         image.GetProperty("title").GetString().Should().Be("Guitarra_Imagem_1", "an untitled item is named as the old page named it");

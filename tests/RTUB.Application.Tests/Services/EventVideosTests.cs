@@ -43,8 +43,7 @@ public class EventVideosTests
         var contexts = new Contexts(_db);
         var users = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null!, null!, null!, null!, null!, null!, null!, null!);
         var events = new EventService(new EventRepository(contexts), Mock.Of<IImageStorageService>(MockBehavior.Strict), new EnrollmentRepository(contexts),
-            new EventVideoRepository(contexts), _storage.Object, Mock.Of<IPushNotificationFactory>(), _push.Object, users.Object,
-            Mock.Of<IHttpContextAccessor>(), contexts);
+            new EventVideoRepository(contexts), _storage.Object, Mock.Of<IPushNotificationFactory>(), _push.Object, users.Object, contexts);
         _service = new EventAdminService(contexts, events, Mock.Of<IEmailNotificationService>(MockBehavior.Strict), _push.Object,
             Mock.Of<IPushNotificationFactory>(), Mock.Of<IAuditLogService>(), Mock.Of<ITrophyService>(MockBehavior.Strict), NullLogger<EventAdminService>.Instance);
         _agenda = new EventAgendaService(contexts, Mock.Of<IEnrollmentService>(), events, Mock.Of<IPushNotificationFactory>(),

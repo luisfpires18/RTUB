@@ -143,7 +143,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
             try
             {
                 // As before: only the people tagged on upload hear about it (the uploader too, if tagged).
-                await _push.SendToSelectedUsersAsync(tagged, _pushFactory.CreateGalleryTagNotification("/"));
+                await _push.SendToSelectedUsersAsync(tagged, _pushFactory.CreateGalleryTagNotification(media.Id));
             }
             catch (Exception ex)
             {
