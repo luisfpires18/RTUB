@@ -300,7 +300,7 @@ public class PortalRouteTests : IntegrationTestBase
 
         var card = agenda[agenda.IndexOf("function AgendaCard", StringComparison.Ordinal)..agenda.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
         card.Should().NotContain("Quem vai", "who is going lives on the event page only");
-        agenda.Should().Contain("{agenda?.canManage && (").And.Contain("Adicionar atuação")
+        agenda.Should().Contain("{agenda?.canEdit && (").And.Contain("Adicionar atuação")
             .And.Contain("onEdit: () => setEditing(e.id),").And.Contain("onDelete: () => setDeleting(e),")
             .And.Contain("onNotice: e.past || e.cancelled ? undefined", "notices only for upcoming, not cancelled dates (012A)")
             .And.Contain("onCancel: e.past ? undefined", "cancel / reactivate only for upcoming dates (012A)");

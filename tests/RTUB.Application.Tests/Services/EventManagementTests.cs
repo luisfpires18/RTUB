@@ -54,18 +54,35 @@ public class EventManagementTests
 
     [Theory]
     [MemberData(nameof(Refused))]
-    public async Task OnlyAdminOrOwner_MayCreateEditOrDelete(string who, EventResultStatus expected)
+    public async Task OnlyModAndAbove_MayCreateOrEdit_AndOnlyAdminOrOwnerDelete(string who, EventResultStatus expected)
     {
         var user = who switch { "visitor" => Visitor, "member" => Member, _ => Mod };
         var id = AddEvent("Serenata", _future);
 
-        (await _service.CreateEventAsync(Input(), user)).Status.Should().Be(expected);
-        (await _service.UpdateEventAsync(id, Input(name: "Outro nome"), user)).Status.Should().Be(expected);
         (await _service.DeleteEventAsync(id, user)).Status.Should().Be(expected);
-        (await _service.GetEventForEditAsync(id, user)).Status.Should().Be(expected);
+        if (who != "mod")
+        {
+            (await _service.CreateEventAsync(Input(), user)).Status.Should().Be(expected);
+            (await _service.UpdateEventAsync(id, Input(name: "Outro nome"), user)).Status.Should().Be(expected);
+            (await _service.GetEventForEditAsync(id, user)).Status.Should().Be(expected);
+        }
 
         _events.Invocations.Where(i => i.Method.Name != nameof(IEventService.GetEventByIdAsync)).Should().BeEmpty("nothing is written for them");
         _push.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task AMod_CreatesAndEdits_AndGetsTheFormTypes_ButCannotManage()
+    {
+        var id = AddEvent("Serenata", _future);
+
+        (await _service.CreateEventAsync(Input(name: "Do Mod"), Mod)).Status.Should().Be(EventResultStatus.Ok);
+        (await _service.UpdateEventAsync(id, Input(name: "Outro nome"), Mod)).Status.Should().Be(EventResultStatus.Ok);
+        (await _service.GetEventForEditAsync(id, Mod)).Status.Should().Be(EventResultStatus.Ok);
+
+        var agenda = await _service.GetAgendaAsync(Mod);
+        (agenda.CanEdit, agenda.CanManage).Should().Be((true, false));
+        agenda.Types.Should().NotBeNull();
     }
 
     [Fact]

@@ -26,8 +26,9 @@ was first named "Newsletter"; it is the public news feed. Publishing sends nothi
 | | Visitor | Member (any category) | Mod | Admin | Owner |
 | --- | --- | --- | --- | --- | --- |
 | Read published posts | yes | yes | yes | yes | yes |
-| See drafts and authors | no | no | no | yes | yes |
-| Create, edit, publish, unpublish, delete | 401 | 403 | 403 | yes | yes (inherits Admin) |
+| See drafts and authors | no | no | yes (059) | yes | yes |
+| Create, edit, publish, unpublish | 401 | 403 | yes (059) | yes | yes |
+| Delete | 401 | 403 | 403 | yes | yes (inherits Admin) |
 
 - Sorted by `PublishedAt` descending, then id. Publish sets `PublishedAt` to now on a draft (publishing a published post
   changes nothing); unpublish clears it; re-publishing gives a new date, so the post goes back to the top.
@@ -38,11 +39,11 @@ was first named "Newsletter"; it is the public news feed. Publishing sends nothi
 
 | Method | Path | Who | Answer |
 | --- | --- | --- | --- |
-| GET | `/api/news?page=1&pageSize=10` | anyone | `{ drafts, posts, hasMore, canManage }`; `pageSize` clamped to 1-20; `page` < 1 → 400; `drafts` only for Admin/Owner, first page only |
-| POST | `/api/news` | Admin/Owner | `{ title, body, publish }` → 201 + the post |
-| PUT | `/api/news/{id}` | Admin/Owner | `{ title, body }` → the post (state unchanged) |
-| POST | `/api/news/{id}/publish` | Admin/Owner | the post |
-| POST | `/api/news/{id}/unpublish` | Admin/Owner | the post |
+| GET | `/api/news?page=1&pageSize=10` | anyone | `{ drafts, posts, hasMore, canManage, canWrite }`; `pageSize` clamped to 1-20; `page` < 1 → 400; `drafts` only for Mod and above (`canWrite`), first page only |
+| POST | `/api/news` | Mod and above | `{ title, body, publish }` → 201 + the post |
+| PUT | `/api/news/{id}` | Mod and above | `{ title, body }` → the post (state unchanged) |
+| POST | `/api/news/{id}/publish` | Mod and above | the post |
+| POST | `/api/news/{id}/unpublish` | Mod and above | the post |
 | DELETE | `/api/news/{id}` | Admin/Owner | 204 |
 
 A post is `{ id, title, body, publishedAt, authorName }`: `publishedAt` is UTC (null for a draft); `authorName` is the

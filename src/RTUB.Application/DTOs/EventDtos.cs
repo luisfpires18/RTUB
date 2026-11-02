@@ -9,14 +9,16 @@ namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// The whole agenda: upcoming soonest first, past newest first. <c>Types</c> are the event types to
-/// pick from when creating or editing; only for Admin/Owner (null for everyone else).
+/// pick from when creating or editing; only for Mod and above (null for everyone else). <c>CanEdit</c>: Mod and above
+/// (create, edit); <c>CanManage</c>: Admin/Owner (delete, cancel, notices and the rest).
 /// </summary>
 public sealed record EventAgendaDto(
     bool IsMember,
     bool CanManage,
     IReadOnlyList<EventSummaryDto> Upcoming,
     IReadOnlyList<EventSummaryDto> Past,
-    IReadOnlyList<EventTypeOptionDto>? Types = null);
+    IReadOnlyList<EventTypeOptionDto>? Types = null,
+    bool CanEdit = false);
 
 /// <summary>An event type: <c>Value</c> is the EventType name the API takes, <c>Label</c> what people read.</summary>
 public sealed record EventTypeOptionDto(string Value, string Label);

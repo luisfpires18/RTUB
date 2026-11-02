@@ -70,8 +70,13 @@ public class EventAdminServiceTests
         var cancelled = AddEvent("Cancelada", _future, cancelled: true);
         AddUser("a@rtub.test", push: true);
 
-        (await _service.SetImageAsync(id, Upload(Webp), user)).Status.Should().Be(expected);
-        (await _service.RemoveImageAsync(id, user)).Status.Should().Be(expected);
+        // The image belongs to editing the event: a Mod may change it, so only visitors and members are refused here.
+        if (who != "mod")
+        {
+            (await _service.SetImageAsync(id, Upload(Webp), user)).Status.Should().Be(expected);
+            (await _service.RemoveImageAsync(id, user)).Status.Should().Be(expected);
+        }
+
         (await _service.CancelAsync(id, new EventCancelInput("Chuva", true), user, "https://rtub.test")).Status.Should().Be(expected);
         (await _service.ReactivateAsync(cancelled, user)).Status.Should().Be(expected);
         (await _service.GetNoticeAudienceAsync(id, user)).Status.Should().Be(expected);

@@ -264,7 +264,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Cancel_IsTheMembersOwn_AndAdminAndOwnerSeeAndDeleteEveryReservation()
+    public async Task Cancel_IsTheMembersOwn_AndModAdminAndOwnerSeeAndDeleteEveryReservation()
     {
         var tee = await AddAsync($"{Tag()} Casaco", "Roupa", stock: 4, isPublic: false);
         var (alice, _) = await SignInAsync("Member");
@@ -279,12 +279,13 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         var aliceReservation = (await Json(await alice.PostAsJsonAsync($"/api/shop/products/{tee}/reservations", new { hasSizes = false }))).GetProperty("id").GetInt32();
         var bobReservation = (await Json(await bob.PostAsJsonAsync($"/api/shop/products/{tee}/reservations", new { hasSizes = false }))).GetProperty("id").GetInt32();
 
-        (await bob.GetAsync($"/api/shop/products/{tee}/reservations")).StatusCode.Should().Be(HttpStatusCode.Forbidden, "the reservations list was Admin only");
-        (await bob.DeleteAsync($"/api/shop/reservations/{aliceReservation}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await alice.GetAsync($"/api/shop/products/{tee}/reservations")).StatusCode.Should().Be(HttpStatusCode.Forbidden, "a plain member never sees the list");
+        (await alice.DeleteAsync($"/api/shop/reservations/{bobReservation}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Json(bob, $"/api/shop/products/{tee}/reservations")).GetArrayLength().Should().Be(2, "a Mod sees every reservation");
         (await Json(admin, $"/api/shop/products/{tee}/reservations")).GetArrayLength().Should().Be(2);
         (await Json(owner, $"/api/shop/products/{tee}/reservations")).GetRawText().Should().NotContain("userId").And.NotContain("@test.com");
 
-        (await alice.DeleteAsync($"/api/shop/reservations/{aliceReservation}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await bob.DeleteAsync($"/api/shop/reservations/{aliceReservation}")).StatusCode.Should().Be(HttpStatusCode.NoContent, "a Mod deletes anyone's");
         (await alice.DeleteAsync($"/api/shop/reservations/{aliceReservation}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await owner.DeleteAsync($"/api/shop/reservations/{bobReservation}")).StatusCode.Should().Be(HttpStatusCode.NoContent, "the Owner inherits Admin");
         (await Json(admin, $"/api/shop/products/{tee}/reservations")).GetArrayLength().Should().Be(0);
@@ -295,7 +296,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     [InlineData("Mod", true, false)]
     [InlineData("Admin", true, true)]
     [InlineData("Owner", true, true)]
-    public async Task Products_ModAdds_AdminAndOwnerEditAndDelete(string role, bool creates, bool manages)
+    public async Task Products_ModAddsAndEdits_AdminAndOwnerAlsoDelete(string role, bool creates, bool manages)
     {
         var id = await AddAsync($"{Tag()} Papel", "Pin", stock: 1);
         var (client, _) = await SignInAsync(role);
@@ -303,10 +304,11 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
 
         var shop = await Json(client, "/api/shop?q=zzz-none");
         (shop.GetProperty("canCreate").GetBoolean(), shop.GetProperty("canManage").GetBoolean()).Should().Be((creates, manages));
+        shop.GetProperty("canManageReservations").GetBoolean().Should().Be(creates, "reservations follow Mod and above");
         (await client.PostAsJsonAsync("/api/shop/products", Input($"{Tag()} Novo", "Pin"))).StatusCode
             .Should().Be(creates ? HttpStatusCode.Created : HttpStatusCode.Forbidden, role);
         (await client.PutAsJsonAsync($"/api/shop/products/{id}", Input("Renomeado", "Pin"))).StatusCode
-            .Should().Be(manages ? HttpStatusCode.OK : HttpStatusCode.Forbidden, role);
+            .Should().Be(creates ? HttpStatusCode.OK : HttpStatusCode.Forbidden, role);
         (await client.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(manages ? HttpStatusCode.NoContent : HttpStatusCode.Forbidden, role);
     }
 
@@ -483,14 +485,14 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task AMod_GivesTheProductTheyAddItsFirstImage_ButCannotChangeImages()
+    public async Task AMod_SetsAndReplacesProductImages()
     {
         var (mod, _) = await SignInAsync("Mod");
         await WithTokenAsync(mod);
         var id = (await (await mod.PostAsJsonAsync("/api/shop/products", Input($"{Tag()} Pin Mod", "Pin"))).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
         (await mod.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp"))).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await mod.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp"))).StatusCode.Should().Be(HttpStatusCode.OK, "a Mod changes images too (059)");
     }
 
     [Fact]

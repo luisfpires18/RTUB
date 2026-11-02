@@ -89,7 +89,8 @@ told about a members-only event; emails go to members only, as before.
   update are unchanged.
 - **Management:** Admin or Owner (was `IsInRole("Admin")` only) - the React create/edit/delete, image,
   cancel / reactivate and notices, prizes, videos, repertoire and other members' answers, and the remaining
-  `/member/events` tools. Mod and Member get 403 from the API. Contact tracking (`/events/{id}/contacts`): Mod
+  `/member/events` tools. Mod and Member get 403 from the API, except **create / edit / image** (059): Mod and above
+  (`EventsAuthorization.CanEdit`, `canEdit` in the agenda DTO, which also carries the type list); delete stays Admin / Owner. Contact tracking (`/events/{id}/contacts`): Mod
   and above (was Admin or Mod), plus any member whose categories include Leitão (049; read from the database),
   linked from the React event page's member panel since 012E. The agenda shows
   the controls only when the API says `canManage`; the server enforces it on every write. Statistics

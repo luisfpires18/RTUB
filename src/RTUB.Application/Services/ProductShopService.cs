@@ -88,7 +88,8 @@ public sealed class ProductShopService : IProductShopService
             shown,
             Sizes,
             ShopAuthorization.CanCreate(user),
-            ShopAuthorization.CanManage(user)));
+            ShopAuthorization.CanManage(user),
+            ShopAuthorization.CanManageReservations(user)));
     }
 
     public async Task<EventResult<PublicShopDto>> GetPublicAsync(string? fiscalYear, string? search, string? type)
@@ -160,9 +161,14 @@ public sealed class ProductShopService : IProductShopService
 
     public async Task<EventResult<ShopProductDetailDto>> UpdateProductAsync(int id, ShopProductInput input, ClaimsPrincipal user)
     {
-        if (Refusal<ShopProductDetailDto>(user) is { } refused)
+        if (!ShopAuthorization.IsMember(user))
         {
-            return refused;
+            return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        if (!ShopAuthorization.CanCreate(user))
+        {
+            return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.Forbidden);
         }
 
         if (await _products.GetByIdAsync(id) is not { } product)
@@ -208,9 +214,8 @@ public sealed class ProductShopService : IProductShopService
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // Admin and Owner change any image; a Mod only gives the product they are adding its first image (the old
-        // create form had the image; editing was Admin only).
-        if (!ShopAuthorization.CanManage(user) && !(ShopAuthorization.CanCreate(user) && string.IsNullOrEmpty(product.ImageUrl)))
+        // Mod and above change any image (059; a Mod used to give only a new product its first one).
+        if (!ShopAuthorization.CanCreate(user))
         {
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.Forbidden);
         }
@@ -301,7 +306,7 @@ public sealed class ProductShopService : IProductShopService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
-        if (reservation.UserId != me && !ShopAuthorization.CanManage(user))
+        if (reservation.UserId != me && !ShopAuthorization.CanManageReservations(user))
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
         }
@@ -312,9 +317,14 @@ public sealed class ProductShopService : IProductShopService
 
     public async Task<EventResult<IReadOnlyList<ShopReservationDto>>> GetReservationsAsync(int productId, ClaimsPrincipal user)
     {
-        if (Refusal<IReadOnlyList<ShopReservationDto>>(user) is { } refused)
+        if (!ShopAuthorization.IsMember(user))
         {
-            return refused;
+            return EventResult<IReadOnlyList<ShopReservationDto>>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        if (!ShopAuthorization.CanManageReservations(user))
+        {
+            return EventResult<IReadOnlyList<ShopReservationDto>>.Fail(EventResultStatus.Forbidden);
         }
 
         if (await _products.GetByIdAsync(productId) is null)

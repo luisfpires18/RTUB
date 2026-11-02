@@ -40,7 +40,7 @@ in its note.
 | Own presença | upcoming (day not over), not cancelled: Vou / Não vou, "Quero tocar" + instrument (own instruments; a Leitão with none: any), note | same rules, **server-side**; one modal, as the events answer; instrument validated against the offered list; note ≤500 |
 | New "vou" | pending (`Attended = false`) until confirmed | same |
 | Remove own presença | from the list, any time; on a past card while pending | same (`DELETE /attendance`), any time |
-| Manage | `IsInRole("Admin")` in the UI only | **Admin or Owner** (Owner inherits Admin), enforced in `RehearsalAdminService`; Mod has no rehearsal rights (as before) |
+| Manage | `IsInRole("Admin")` in the UI only | **Admin or Owner** (Owner inherits Admin), enforced in `RehearsalAdminService`; since 059 create (one or a range) and edit are **Mod and above** (`RehearsalsAuthorization.CanEdit`, `canEdit` in the agenda and detail DTOs); the rest stays Admin / Owner |
 | Create | one date (duplicate refused) or every Tue/Thu of a range (≤90 days, from today; taken dates skipped) | same; **description and notes typed when creating are now saved** (the old create dropped them) |
 | Edit | location, theme, description, notes (never date or time) | same |
 | Cancel | reason required ≤1000; deletes every presença; no email | same (also allowed on a past rehearsal, as before) |
@@ -59,11 +59,12 @@ Not kept: pagination (a season is ~70 rehearsals) and the approval filter of the
 
 | Endpoint | Who | Notes |
 | --- | --- | --- |
-| `GET /api/rehearsals` | member | `{ canManage, upcoming, past }`; each with `goingCount`, `mine` (`pending`/`approved`/`notGoing`), `pendingCount` (Admin/Owner only). |
+| `GET /api/rehearsals` | member | `{ canManage, canEdit, upcoming, past }`; each with `goingCount`, `mine` (`pending`/`approved`/`notGoing`), `pendingCount` (Admin/Owner only). |
 | `GET /api/rehearsals/{id}` | member | rehearsal, notes, presenças `{ going, leitoes, notGoing }` (row id, person, status, instrument, note, `canApprove`, `canRemove`), instrument counts. No user id, email or phone. |
 | `GET`/`PUT`/`DELETE /api/rehearsals/{id}/attendance` | member | own presença; `PUT { willAttend, instrument, notes }`; 409 past or cancelled; 400 field errors. |
 | `GET /api/rehearsals/stats?from=&to=` | member | statistics. |
-| `POST /api/rehearsals`, `POST /api/rehearsals/range`, `PUT`/`DELETE /api/rehearsals/{id}` | Admin/Owner | `{ date, location, theme, description, notes }`; range `{ from, to, location, theme, description }` → `{ created, skipped }`. |
+| `POST /api/rehearsals`, `POST /api/rehearsals/range`, `PUT /api/rehearsals/{id}` | Mod and above (059) |
+| `DELETE /api/rehearsals/{id}` | Admin/Owner | `{ date, location, theme, description, notes }`; range `{ from, to, location, theme, description }` → `{ created, skipped }`. |
 | `POST /api/rehearsals/{id}/cancel`, `/reactivate` | Admin/Owner | `{ reason }`; 409 when not allowed. |
 | `GET`/`POST /api/rehearsals/{id}/notice` | Admin/Owner | counts; `{ message, onlyLeitoesAndCaloiros }` → `{ sent, failed }`. |
 | `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` | Admin/Owner | approvable only (409 otherwise). |

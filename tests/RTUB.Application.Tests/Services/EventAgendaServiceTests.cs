@@ -371,16 +371,17 @@ public class EventAgendaServiceTests
     // ---------- permissions ----------
 
     [Theory]
-    [InlineData(new string[0], false, false)]
-    [InlineData(new[] { "Member" }, false, false)]
-    [InlineData(new[] { "Mod" }, false, true)]
-    [InlineData(new[] { "Admin" }, true, true)]
-    [InlineData(new[] { "Owner" }, true, true)]
-    public void Roles_Inherit_OwnerAboveAdminAboveMod(string[] roles, bool canManage, bool canTrackContacts)
+    [InlineData(new string[0], false, false, false)]
+    [InlineData(new[] { "Member" }, false, false, false)]
+    [InlineData(new[] { "Mod" }, false, true, true)]
+    [InlineData(new[] { "Admin" }, true, true, true)]
+    [InlineData(new[] { "Owner" }, true, true, true)]
+    public void Roles_Inherit_OwnerAboveAdminAboveMod(string[] roles, bool canManage, bool canTrackContacts, bool canEdit)
     {
         var user = SignedIn(Guid.NewGuid().ToString(), roles);
 
         RTUB.Application.Helpers.EventsAuthorization.CanManage(user).Should().Be(canManage);
+        RTUB.Application.Helpers.EventsAuthorization.CanEdit(user).Should().Be(canEdit);
         RTUB.Application.Helpers.EventsAuthorization.CanTrackContacts(user).Should().Be(canTrackContacts);
         RTUB.Application.Helpers.EventsAuthorization.CanManage(Visitor).Should().BeFalse();
     }

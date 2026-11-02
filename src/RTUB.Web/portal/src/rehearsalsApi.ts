@@ -26,7 +26,7 @@ export type RehearsalSummary = {
   mine: { status: PresenceStatus; instrument: string | null; notes: string | null } | null;
 };
 
-export type RehearsalAgenda = { canManage: boolean; upcoming: RehearsalSummary[]; past: RehearsalSummary[] };
+export type RehearsalAgenda = { canManage: boolean; canEdit: boolean; upcoming: RehearsalSummary[]; past: RehearsalSummary[] };
 
 export type Attendee = {
   id: number;
@@ -46,6 +46,7 @@ export type RehearsalDetail = {
   rehearsal: RehearsalSummary;
   notes: string | null;
   canManage: boolean;
+  canEdit: boolean;
   attendance: { going: Attendee[]; leitoes: Attendee[]; notGoing: Attendee[] };
   instruments: InstrumentCount[];
   otherInstruments: InstrumentCount[];
