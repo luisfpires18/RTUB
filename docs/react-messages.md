@@ -78,6 +78,8 @@ messages someone has read, mute toggle in the chat header, "Nova" to start a cha
 false, "Mensagens anteriores" for older pages. Polls the open chat every 10 s and the list every 30 s while the tab is
 visible; opening a chat marks it read. Entry: the inbox button in the member header (not the menu, task 044).
 
+Avatars (062): only Notificações RTUB wears the app logo; groups show a plain people icon (`ChatFace`), people their photo.
+
 ### "Nova" (fix 060)
 
 The dialog picks members (toggle buttons, `aria-pressed`); two or more ask for "Nome do grupo". Picking stores nothing:
@@ -113,7 +115,7 @@ read state, system / announcement / group / archived / expelled rules, paging, t
   the midnight job and `/users` "Sincronizar estado da Tuna"): GERAL (every non-expelled account), NO ATIVO (not
   Reformado), TUNOS (Tuno, no Tuno Honorário), LEITÕES & CALOIROS; created if missing. Every other group RTUB made
   (`CreatedByUserId = "system"`: VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) is archived, messages
-  kept. Expelled accounts are in none. Members' own groups are untouched; members create their own groups in "Nova" (060).
+  kept. Also run once at every startup (062), so a deploy clears them even with `MemberStatusUpdate:Enabled` off. Expelled accounts are in none. Members' own groups are untouched; members create their own groups in "Nova" (060).
 - Members can create groups (060); no member management (add / leave / rename) in v2 yet.
 - No live push (polling, 10 s for the badge); no pin / archive UI.
 - Push fan-out is inline and sequential: move to a background queue if large groups make sending slow.

@@ -850,7 +850,7 @@ public class MemberAreaRetirementTests
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         var messages = File.ReadAllText(Path.Combine(src, "Messages.tsx"));
-        messages.Should().Contain("/icons/rtub-logo-352.webp", "the logo the portal header uses").And.Contain("c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO", "system and groups wear the portal logo, people their own avatar")
+        messages.Should().Contain("/icons/rtub-logo-352.webp", "the logo the portal header uses").And.Contain("kind === 'system' ? RTUB_LOGO : avatarUrl", "only Notificações RTUB wears the portal logo; groups a chat icon, people their own avatar")
             .And.Contain("system: 0, group: 1, direct: 2", "Sistema RTUB, then groups, then people");
         File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("/icons/rtub-logo-352.webp");
 
