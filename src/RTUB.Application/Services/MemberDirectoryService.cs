@@ -92,6 +92,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             .GroupBy(a => a.UserId)
             .ToDictionary(g => g.Key, g => g.First().Position);
 
+        var recent = _time.GetUtcNow().UtcDateTime.AddDays(-15);
         var leitaoStatus = await LeitaoStatusesAsync(users.Where(u => u.IsLeitao()).Select(u => u.Id).ToList());
 
         // As the old grids: members by nickname; Leitões by number of activities, then the most recent first.
@@ -104,7 +105,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             .OrderByDescending(u => leitaoStatus.GetValueOrDefault(u.Id)?.TotalActivitiesCount ?? 0)
             .ThenByDescending(u => leitaoStatus.GetValueOrDefault(u.Id)?.LastActivityDate ?? DateTime.MinValue)
             .Select(u => Card(u, new[] { Badge(MemberCategory.Leitao) }, null, false, instruments,
-                inactive: leitaoStatus.GetValueOrDefault(u.Id)?.HasActivityInCurrentMonth != true, expelled: u.IsExpelled))
+                inactive: !(leitaoStatus.GetValueOrDefault(u.Id)?.LastActivityDate >= recent), expelled: u.IsExpelled))
             .ToList();
 
         var options = Enum.GetValues<InstrumentType>()

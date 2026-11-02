@@ -21,7 +21,7 @@ Admin/Owner tools). It replaces the Blazor `/members` (directory, "Detalhes do M
     Tuno Honorário), Tuno sub-category (Tuno, Veterano, Tunossauro, Fundador), instrument (primary or secondary), "só
     ativos" (`IsRetired`); Tunos Honorários hidden unless filtered or searched. Members by nickname (30 per page),
     Leitões by activities then last activity (18 per page; greyed when expelled, "Não tem participado" with no
-    activity this month). Cards: photo, Online/Offline (signed in within 1 h), nickname, name, Caloiro/Tuno/Honorário
+    activity in the last 15 days). Cards: photo, Online/Offline (signed in within 1 h), nickname, name, Caloiro/Tuno/Honorário
     badges, the current fiscal year's position, "Sem Cargos", primary instrument.
   - Any member, "Detalhes do Membro": **email, phone, city, birth date + age, degree**, instruments (not for Tunos
     Honorários), Padrinho (not for Fundadores, Honorários, Leitões), "Percurso na Tuna" timeline, "Estado na Tuna"
