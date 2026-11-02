@@ -62,6 +62,15 @@ public class MessagingV2SourceTests
     }
 
     [Fact]
+    public void RetiredPremadeGroups_AreArchivedOnStartup_AndOnlyNotificacoesWearsTheLogo()
+    {
+        // VETERANOS, TUNOSSAUROS... leave the inboxes on deploy, not only at the daily job (062).
+        Read(Web, "Program.cs").Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
+        var page = Read(Portal, "Messages.tsx");
+        page.Should().Contain("kind === 'system' ? RTUB_LOGO : avatarUrl").And.Contain("className=\"chat-face\"");
+    }
+
+    [Fact]
     public void MessagingIsTextOnly_NoAttachmentOrMediaPath()
     {
         var page = Read(Portal, "Messages.tsx");

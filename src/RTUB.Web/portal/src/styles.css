@@ -14261,6 +14261,21 @@ label.owner-person {
   color: var(--muted);
 }
 
+/* /messages: a group's avatar (only Notificações RTUB wears the logo). */
+.chat-face {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--muted);
+}
+
+.chat-face svg {
+  width: 55%;
+  height: 55%;
+}
+
 /* "Nova": the members picked so far (several = a group). */
 .chat-start__person[aria-pressed='true'] {
   background: var(--bg-card);

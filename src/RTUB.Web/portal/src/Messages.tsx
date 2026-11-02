@@ -94,9 +94,16 @@ const problem = (o: Outcome<unknown>, what: string) =>
           ? 'A sessão terminou. Entra outra vez.'
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
-/** "Sistema RTUB" and the groups wear the logo the portal header uses (the server sends the same file since #226 F09). */
+/** Only "Notificações RTUB" wears the app logo (the one the portal header uses); groups a plain chat icon, people their photo. */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
-const chatAvatar = (c: { kind: string; avatarUrl: string }) => (c.kind === 'direct' ? c.avatarUrl : RTUB_LOGO);
+function ChatFace({ kind, avatarUrl, size }: { kind: string; avatarUrl: string; size: number }) {
+  if (kind !== 'group') return <MemberFace avatarUrl={kind === 'system' ? RTUB_LOGO : avatarUrl} size={size} />;
+  return (
+    <span className="chat-face" style={{ width: size, height: size }} aria-hidden="true">
+      <Icon name="people" />
+    </span>
+  );
+}
 
 /** Sistema RTUB first, then the groups, then the people; inside each the server's order (pinned, then latest activity). */
 const TIER: Record<string, number> = { system: 0, group: 1, direct: 2 };
@@ -199,7 +206,7 @@ export default function Messages() {
                       aria-current={c.id === selected ? 'true' : undefined}
                       onClick={() => open(c.id)}
                     >
-                      <MemberFace avatarUrl={chatAvatar(c)} size={44} />
+                      <ChatFace kind={c.kind} avatarUrl={c.avatarUrl} size={44} />
                       <span className="chat-row__main">
                         <span className="chat-row__top">
                           <span className="chat-row__title">{c.title}</span>
@@ -401,7 +408,7 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
           <Icon name="arrowLeft" />
           <span className="sr-only">Voltar às conversas</span>
         </button>
-        <MemberFace avatarUrl={chatAvatar(c)} size={40} />
+        <ChatFace kind={c.kind} avatarUrl={c.avatarUrl} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{c.title}</h2>
           {subtitle && <p className="chat-thread__subtitle">{subtitle}</p>}
@@ -572,7 +579,7 @@ function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () =>
           <Icon name="arrowLeft" />
           <span className="sr-only">Voltar às conversas</span>
         </button>
-        <MemberFace avatarUrl={group ? RTUB_LOGO : draft.people[0].avatarUrl} size={40} />
+        <ChatFace kind={group ? 'group' : 'direct'} avatarUrl={draft.people[0].avatarUrl} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{title}</h2>
           <p className="chat-thread__subtitle">

@@ -171,6 +171,17 @@ public class Program
                         logger.LogError(ex, "Failed to sync positions and roles with the current mandate on startup");
                     }
 
+                    // The premade /messages groups (061): retired ones (VETERANOS, TUNOSSAUROS...) are archived on deploy,
+                    // not only at the daily job, which MemberStatusUpdate:Enabled can switch off. Idempotent; never fails startup.
+                    try
+                    {
+                        await MessagingGroups.SyncAsync(db, DateTime.UtcNow);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to sync the premade message groups on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update
