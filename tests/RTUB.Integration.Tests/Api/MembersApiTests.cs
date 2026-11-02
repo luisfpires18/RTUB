@@ -61,7 +61,15 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         var bravo = body.GetProperty("members")[1];
         bravo.GetProperty("instrument").GetString().Should().Be("Bandolim");
         bravo.GetProperty("badges").EnumerateArray().Select(b => b.GetProperty("label").GetString()).Should().Equal("TUNO");
-        body.GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeTrue("no activity this month");
+        body.GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeTrue("no activity in the last 15 days");
+
+        // Fix 064: the last 15 days, not the calendar month, so a Leitão is not flagged on the 1st.
+        await AttendAsync(leitao.Id, DateTime.Today.AddDays(-20));
+        (await Json(member, $"/api/members?q={tag}"))
+            .GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeTrue("20 days ago is outside the window");
+        await AttendAsync(leitao.Id, DateTime.Today.AddDays(-10));
+        (await Json(member, $"/api/members?q={tag}"))
+            .GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeFalse("10 days ago counts, whatever the month");
         body.GetProperty("canManage").GetBoolean().Should().BeFalse();
 
         Names(await Json(member, $"/api/members?q={tag}&category=Caloiro"), "members").Should().Equal($"{tag} Alfa");
