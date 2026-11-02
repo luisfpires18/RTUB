@@ -90,7 +90,7 @@ public class MemberShellTests
         Read("MemberShell.tsx").Should().Contain("{ href: portal.shop, label: 'Loja', icon: 'bag' }");
         Read("Shop.tsx").Should().Contain("const memberProduct = 'myReservation' in p;")
             .And.Contain("memberProduct && <span className=\"shop-card__actions\">")
-            .And.Contain("memberShop?.canManage && memberProduct")
+            .And.Contain("(memberShop?.canCreate || memberShop?.canManageReservations) && memberProduct")
             .And.Contain("p.availableAllYears && (!memberProduct || memberShop?.canManage)")
             .And.Contain("!memberProduct && p.description");
     }

@@ -34,13 +34,13 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/members` | - | R | R | R | W D (Leitões) | W D (anyone) | [members](members.md) |
 | `/roles` | public mandate | R (RGI) | public | W | W | W | [governance](governance.md) |
 | `/music` | public | R + videos | R | W (no delete) | W D | W D + exclusive | [music](music.md) |
-| `/events` | public agenda | R + enrol self | R | + contacts | W D | W D | [events](events.md) |
-| `/rehearsals` | - | R + own presença | R | as Member | W D | W D | [rehearsals](rehearsals.md) |
+| `/events` | public agenda | R + enrol self | R | + contacts, create / edit | W D | W D | [events](events.md) |
+| `/rehearsals` | - | R + own presença | R | + create / edit | W D | W D | [rehearsals](rehearsals.md) |
 | `/gallery` | public items | R + upload | R | own items | W D all | W D all | [gallery](gallery.md) |
-| `/news` | read published | read | read | read | W D + drafts | W D + drafts | [news](news.md) |
+| `/news` | read published | read | read | W + drafts (no delete) | W D + drafts | W D + drafts | [news](news.md) |
 | `/leaderboard` | - | R + comment | R | as Member | + delete comments | + delete comments | [leaderboard](leaderboard.md) |
 | `/inventory` | - | R | W D | W D | W D | W D | [inventory](inventory.md) |
-| `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions | W D + reservations | W D + reservations | [shop](shop.md) |
+| `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions, reservations | W D + reservations | W D + reservations | [shop](shop.md) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](naipes.md) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](member-area.md) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](owner-tools.md) |

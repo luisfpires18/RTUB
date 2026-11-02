@@ -10,11 +10,11 @@ namespace RTUB.Application.DTOs;
 public sealed record NewsPostDto(int Id, string? Title, string Body, DateTime? PublishedAt, string? AuthorName, bool MembersOnly = false);
 
 /// <summary>
-/// A page of published posts, newest first. <c>Drafts</c> (every draft, newest first) is filled only for Admin/Owner and
-/// only on the first page; it is empty for everyone else. <c>SignedIn</c> (#222): the caller has a session and so sees
+/// A page of published posts, newest first. <c>Drafts</c> (every draft, newest first) is filled only for Mod and above
+/// (<c>CanWrite</c>) and only on the first page; it is empty for everyone else. <c>CanManage</c>: Admin/Owner (publish, delete). <c>SignedIn</c> (#222): the caller has a session and so sees
 /// members-only posts too (the Todas / Públicas / Privadas tabs); it says nothing about whether any exist.
 /// </summary>
-public sealed record NewsFeedDto(IReadOnlyList<NewsPostDto> Drafts, IReadOnlyList<NewsPostDto> Posts, bool HasMore, bool CanManage, bool SignedIn = false);
+public sealed record NewsFeedDto(IReadOnlyList<NewsPostDto> Drafts, IReadOnlyList<NewsPostDto> Posts, bool HasMore, bool CanManage, bool SignedIn = false, bool CanWrite = false);
 
 /// <summary>
 /// Create or edit. <c>Publish</c> is read on create only ("Publicar" vs "Guardar rascunho"). <c>MembersOnly</c> (#222):

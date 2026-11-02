@@ -63,8 +63,7 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
     [Theory]
     [InlineData(null)]
     [InlineData("Member")]
-    [InlineData("Mod")]
-    public async Task VisitorsMembersAndMods_CannotManage(string? role)
+    public async Task VisitorsAndMembers_CannotManage(string? role)
     {
         var id = await AddAsync($"{Tag()} intocável", "Fica igual.", DateTime.UtcNow, null);
         var client = role is null ? Anonymous() : (await SignInAsync(role)).Client;
@@ -85,6 +84,36 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         var feed = await Json(client, "/api/news");
         feed.GetProperty("canManage").GetBoolean().Should().BeFalse();
         feed.GetProperty("drafts").GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AMod_WritesEditsPublishesAndUnpublishes_ButCannotDelete()
+    {
+        var tag = Tag();
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        var published = await AddAsync($"{tag} no ar", "Fica igual.", DateTime.UtcNow, null);
+        var existingDraft = await AddAsync($"{tag} rascunho do admin", "Rascunho.", null, null);
+
+        var created = await mod.PostAsJsonAsync("/api/news", Input($"{tag} do mod", "Texto do mod.", publish: false));
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        var feed = await Json(mod, "/api/news");
+        (feed.GetProperty("canWrite").GetBoolean(), feed.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
+        Tagged(feed.GetProperty("drafts"), tag).Should().HaveCount(2, "a Mod sees every draft");
+
+        (await mod.PutAsJsonAsync($"/api/news/{id}", Input($"{tag} do mod", "Texto corrigido."))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await mod.PutAsJsonAsync($"/api/news/{published}", Input($"{tag} no ar", "Corrigido."))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PublishAsync(mod, id)).Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+        (await mod.PostAsync($"/api/news/{published}/unpublish", null)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PostAsync(published))!.PublishedAt.Should().BeNull();
+
+        var live = await mod.PostAsJsonAsync("/api/news", Input($"{tag} direta", "Publicada pelo Mod.", publish: true));
+        (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.String);
+
+        (await mod.DeleteAsync($"/api/news/{existingDraft}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await PostAsync(existingDraft)).Should().NotBeNull();
     }
 
     [Theory]
