@@ -5,6 +5,7 @@ import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 import { MemberFace } from './MemberDialogs';
+import { ConfirmDialog } from './MusicUi';
 import { loginTo } from './musicApi';
 import { publishUnread, useUnreadProvider } from './unread';
 
@@ -57,6 +58,7 @@ const api = {
   start: (userIds: string[], title: string, body: string) => call<Detail>('POST', '/api/conversations', { userIds, title, body }),
   send: (id: number, body: string, replyToMessageId: number | null) =>
     call<MessageItem>('POST', `/api/conversations/${id}/messages`, { body, replyToMessageId }),
+  remove: (id: number) => call<void>('DELETE', `/api/conversations/${id}`),
   read: (id: number) => call<void>('POST', `/api/conversations/${id}/read`),
   mute: (id: number, muted: boolean) => call<{ muted: boolean }>('POST', `/api/conversations/${id}/${muted ? 'mute' : 'unmute'}`),
   react: (messageId: number, emoji: string) => call<MessageItem>('POST', `/api/messages/${messageId}/reactions`, { emoji }),
@@ -249,7 +251,16 @@ export default function Messages() {
               }}
             />
           ) : selected ? (
-            <Thread key={selected} id={selected} onBack={() => open(undefined)} onChanged={loadList} />
+            <Thread
+              key={selected}
+              id={selected}
+              onBack={() => open(undefined)}
+              onChanged={loadList}
+              onRemoved={() => {
+                loadList();
+                open(undefined);
+              }}
+            />
           ) : (
             <div className="chat-thread chat-thread--empty">
               <Icon name="chat" />
@@ -275,7 +286,9 @@ export default function Messages() {
   );
 }
 
-function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onChanged: () => void }) {
+function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBack: () => void; onChanged: () => void; onRemoved: () => void }) {
+  const [removing, setRemoving] = useState<'ask' | 'busy'>();
+  const [removeError, setRemoveError] = useState<string>();
   const [detail, setDetail] = useState<Detail | 'notfound' | 'signin' | 'failed'>();
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -423,6 +436,12 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
           <Icon name={c.muted ? 'bellSlash' : 'bell'} />
           <span className="sr-only">{c.muted ? 'Ativar o som desta conversa' : 'Silenciar esta conversa'}</span>
         </button>
+        {c.kind === 'direct' && (
+          <button type="button" className="icon-btn icon-btn--danger" onClick={() => setRemoving('ask')} title="Remover conversa">
+            <Icon name="trash" />
+            <span className="sr-only">Remover conversa</span>
+          </button>
+        )}
       </header>
 
       <div
@@ -536,6 +555,31 @@ function Thread({ id, onBack, onChanged }: { id: number; onBack: () => void; onC
         <p className="chat-thread__error" role="alert">
           {error}
         </p>
+      )}
+
+      {removing && (
+        <ConfirmDialog
+          title="Remover conversa"
+          confirmLabel="Remover"
+          busy={removing === 'busy'}
+          error={removeError}
+          onClose={() => {
+            setRemoving(undefined);
+            setRemoveError(undefined);
+          }}
+          onConfirm={async () => {
+            setRemoving('busy');
+            const o = await api.remove(id);
+            if (o.kind === 'ok') return onRemoved();
+            setRemoving('ask');
+            setRemoveError(problem(o, 'remover a conversa'));
+          }}
+        >
+          <p>
+            A conversa com <strong>{c.title}</strong> sai da lista, para ti e para {c.title}. Se voltarem a escrever-se, volta a
+            aparecer com as mensagens antigas.
+          </p>
+        </ConfirmDialog>
       )}
 
       {c.canSend ? (

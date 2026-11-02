@@ -18,7 +18,7 @@ Signed-in members only (a visitor going to `/messages` is sent to sign in). The 
 | Read state | `Message.ReadBy` (`;`-separated user ids) | reused for unread counts and "Vista" |
 | System notices | `IsSystemConversation` ("Notificações RTUB", was "Sistema RTUB"), `Message.IsSystem`, `Message.Link` | read-only; since 061 every push lands here too (`NotificationInbox`, saved as read, "Abrir" opens its link) |
 | Announcement channels | `Conversation.IsAnnouncementOnly` | v1's sender rule kept |
-| "Delete" | v1 archived the conversation for everyone (`IsArchived`) | archived ones stay hidden; no delete in v2 |
+| "Delete" | v1 archived the conversation for everyone (`IsArchived`) | archived ones stay hidden; one-to-one chats can be removed (063) |
 
 Nothing needed a migration (`MigrationChainTests` pins the columns; `Model_HasNoChangesThatAMigrationWouldHaveToCapture`
 pins the model). Not reused: v1's repositories / services / hub (deleted in 027, history in `a121f3f1^`), the group
@@ -38,6 +38,7 @@ part in, or an archived one, is a **404** (its existence is not revealed).
 | GET | `/api/conversations/direct/{userId}` | `{ id }`: my one-to-one chat with that member, `null` if none (or archived) |
 | POST | `/api/conversations` `{ userIds, title?, body }` | starts a conversation **with its first message** (fix 060): one member = the one-to-one chat (an existing one is reused, un-archived); two or more + `title` (1-200) = a new group I create. Nothing is stored before a message |
 | POST | `/api/conversations/{id}/messages` `{ body, replyToMessageId? }` | text 1-2000 after trimming; a reply must quote a message of the same conversation |
+| DELETE | `/api/conversations/{id}` | "Remover conversa" (063): one-to-one chats only (403 for groups and Notificações RTUB); archived for both members as v1 did, messages kept; a new message to the person brings it back |
 | POST | `/api/conversations/{id}/read` | marks everything not sent by me as read by me |
 | POST | `/api/conversations/{id}/mute`, `/unmute` | my mute flag (`ConversationUserSettings`) |
 | POST | `/api/messages/{id}/reactions` `{ emoji }` | sets my reaction (one per message; a new one replaces it) |
