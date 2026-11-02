@@ -11,6 +11,14 @@ badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasske
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
 Real-device passkey check (iPhone, Android, TWA) still open.
 
+**Task 061 = Notificações RTUB + premade groups** (`feat/061/notificacoes-rtub-groups`, not merged). Every push is
+also kept in the recipient's "Notificações RTUB" conversation (renamed from "Sistema RTUB"; `NotificationInbox`, saved
+as read, link kept, push on or off; chat-message and test pushes excluded). The premade /messages groups are synced with
+every reconcile-all (midnight job, `/users` "Sincronizar estado da Tuna"): GERAL, NO ATIVO, TUNOS, LEITÕES & CALOIROS;
+every other system-made group (VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) archived; expelled in
+none. No schema change. The DEV `/api/conversations*` 500 (2026-11-02, Trevor, after the DEV refresh) did not reproduce
+locally on the same code: needs the DEV log line.
+
 **Released to PROD: 2.3.0** (MINOR; PR #237, merge commit; `master` merged back, `dev` on 2.3.1) = task 058.
 
 **Task 058 = push deep links** (`feat/058/push-deep-links`, merged into `dev` and released in 2.3.0). A tapped push opens the item, not a list or
