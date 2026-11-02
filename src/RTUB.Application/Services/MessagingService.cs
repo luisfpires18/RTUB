@@ -324,6 +324,33 @@ public sealed class MessagingService : IMessagingService
         return EventResult<bool>.Ok(true);
     }
 
+    /// <summary>
+    /// "Remover conversa": one-to-one chats only (groups and Notificações RTUB stay). As v1, the chat is archived for both
+    /// members, its messages kept; a new message to the person brings it back (<see cref="StartConversationAsync"/>).
+    /// </summary>
+    public async Task<EventResult<bool>> RemoveDirectAsync(int conversationId, ClaimsPrincipal user)
+    {
+        if (UserId(user) is not { } me)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await FindMineAsync(db, conversationId, me, tracked: true) is not { } conversation)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (conversation.IsGroup || conversation.IsSystemConversation)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.Forbidden);
+        }
+
+        conversation.IsArchived = true;
+        await db.SaveChangesAsync();
+        return EventResult<bool>.Ok(true);
+    }
+
     public async Task<EventResult<ConversationSettings>> SetMutedAsync(int conversationId, bool muted, ClaimsPrincipal user)
     {
         if (UserId(user) is not { } me)

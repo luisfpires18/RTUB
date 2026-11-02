@@ -46,6 +46,10 @@ public static class MessagingEndpoints
         conversationWrites.MapPost("/{id:int}/read", async (int id, HttpContext http, IMessagingService service) =>
             ToResult(await service.MarkReadAsync(id, http.User), _ => Results.NoContent()));
 
+        // One-to-one chats only; archived for both, messages kept (v1's "delete").
+        conversationWrites.MapDelete("/{id:int}", async (int id, HttpContext http, IMessagingService service) =>
+            ToResult(await service.RemoveDirectAsync(id, http.User), _ => Results.NoContent()));
+
         conversationWrites.MapPost("/{id:int}/mute", async (int id, HttpContext http, IMessagingService service) =>
             ToResult(await service.SetMutedAsync(id, true, http.User)));
 
