@@ -16,7 +16,7 @@ Signed-in members only (a visitor going to `/messages` is sent to sign in). The 
 | Reactions | `MessageReactions` (emoji, unique `MessageId + UserId`) | reused; emoji limited to a fixed set |
 | Muting / pinning | `ConversationUserSettings.IsMuted` / `IsPinned` (unique per member + conversation) | mute exposed; pinned conversations still sort first |
 | Read state | `Message.ReadBy` (`;`-separated user ids) | reused for unread counts and "Vista" |
-| System notices | `IsSystemConversation` ("Sistema RTUB"), `Message.IsSystem`, `Message.Link` | shown read-only (their history is kept) |
+| System notices | `IsSystemConversation` ("Notificações RTUB", was "Sistema RTUB"), `Message.IsSystem`, `Message.Link` | read-only; since 061 every push lands here too (`NotificationInbox`, saved as read, "Abrir" opens its link) |
 | Announcement channels | `Conversation.IsAnnouncementOnly` | v1's sender rule kept |
 | "Delete" | v1 archived the conversation for everyone (`IsArchived`) | archived ones stay hidden; no delete in v2 |
 
@@ -101,8 +101,11 @@ read state, system / announcement / group / archived / expelled rules, paging, t
 
 ## Follow-ups
 
-- Group membership is frozen at what v1's auto-sync last wrote before task 027; no group creation or member
-  management in v2 yet. Decide whether to bring back the default groups' sync.
+- (061, resolved) The premade groups are synced again (`MessagingGroups`, with every reconciliation of all members:
+  the midnight job and `/users` "Sincronizar estado da Tuna"): GERAL (every non-expelled account), NO ATIVO (not
+  Reformado), TUNOS (Tuno, no Tuno Honorário), LEITÕES & CALOIROS; created if missing. Every other group RTUB made
+  (`CreatedByUserId = "system"`: VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) is archived, messages
+  kept. Expelled accounts are in none. Members' own groups are untouched; no group creation UI yet.
 - No live push (polling, 10 s for the badge); no pin / archive UI.
 - Push fan-out is inline and sequential: move to a background queue if large groups make sending slow.
 - `/owner/db` can read private messages: decide whether to block the messaging tables there.

@@ -490,6 +490,7 @@ public static class ServiceCollectionExtensions
         // One pooled HttpClient for every push send: WebPushClient otherwise news up its own client (its own handler
         // and connection pool) per request scope and nothing ever disposes it (task 054).
         services.AddHttpClient(PushNotificationService.HttpClientName);
+        services.AddScoped<NotificationInbox>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
 
