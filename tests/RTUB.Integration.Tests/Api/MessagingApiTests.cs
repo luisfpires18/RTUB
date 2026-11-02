@@ -213,6 +213,29 @@ public class MessagingApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
+    public async Task RemovingAChat_IsForOneToOneOnly_HidesItForBoth_AndANewMessageBringsItBack()
+    {
+        var (a, aUser) = await SignInAsync();
+        var (b, bUser) = await SignInAsync();
+        var (stranger, _) = await SignInAsync();
+        var id = await StartAsync(a, bUser.Id);
+
+        (await stranger.DeleteAsync($"/api/conversations/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await a.DeleteAsync($"/api/conversations/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        Ids(await Json(a, "/api/conversations")).Should().NotContain(id);
+        Ids(await Json(b, "/api/conversations")).Should().NotContain(id, "v1's delete: archived for both");
+
+        (await StartAsync(b, aUser.Id, "Voltei")).Should().Be(id, "writing again brings the same chat back");
+        Messages(await Json(a, $"/api/conversations/{id}")).Should().HaveCount(2, "the old messages are kept");
+
+        var group = await SeedAsync(new Conversation { Participants = $"{aUser.Id};{bUser.Id}", IsGroup = true, Title = "NAIPE" });
+        var system = await SeedAsync(new Conversation { Participants = aUser.Id, IsSystemConversation = true, Title = "Notificações RTUB" });
+        (await a.DeleteAsync($"/api/conversations/{group}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await a.DeleteAsync($"/api/conversations/{system}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        Ids(await Json(a, "/api/conversations")).Should().Contain(new[] { group, system });
+    }
+
+    [Fact]
     public async Task Replies_QuoteAMessageOfTheSameConversation()
     {
         var (a, aUser) = await SignInAsync();
