@@ -327,7 +327,8 @@ public sealed class MembersInfoPendingActionSource : IPendingActionSource
         db.Users.AsNoTracking()
             .Where(u => !u.IsExpelled && (u.Categories.Contains(MemberCategory.Leitao) || u.Categories.Contains(MemberCategory.Caloiro)
                                           || u.Categories.Contains(MemberCategory.Tuno)))
-            .Where(u => u.City == null || u.City == "" || u.PhoneNumber == null || u.PhoneNumber == ""
+            // Whitespace-only counts as empty, as MemberInfoRules.Missing (trim() in SQL).
+            .Where(u => u.City == null || u.City.Trim() == "" || u.PhoneNumber == null || u.PhoneNumber.Trim() == ""
                         || (!u.Categories.Contains(MemberCategory.TunoHonorario) && !db.MemberInstruments.Any(i => i.MemberId == u.Id))
                         || (!u.Categories.Contains(MemberCategory.Fundador) && !u.Categories.Contains(MemberCategory.TunoHonorario)
                             && (u.YearLeitao == null || u.MentorId == null || u.MentorId == ""

@@ -611,11 +611,14 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
 
         var info = await mod.GetFromJsonAsync<JsonElement>($"/api/members/{tuno}/info");
         info.GetProperty("lockedDates").GetProperty("leitao").GetBoolean().Should().BeTrue("Owner, or an Admin who is the Magister");
-        (await mod.PutAsJsonAsync($"/api/members/{tuno}/info", new
+        var refused = await mod.PutAsJsonAsync($"/api/members/{tuno}/info", new
         {
             city = "Porto", phoneNumber = "912345678", yearLeitao = 2014, monthLeitao = 10, yearTuno = 2018, monthTuno = 6,
             stamp = info.GetProperty("stamp").GetString(),
-        })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        });
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var message = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").GetProperty("leitao")[0].GetString();
+        message.Should().NotContainAny(["Owner", "Admin", "Mod"], "member-facing text names no system role (PR #277 review)");
     }
 
     [Fact]
@@ -626,10 +629,12 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         var honorario = await AddMemberAsync([MemberCategory.Tuno, MemberCategory.TunoHonorario], city: "Braga", yearTuno: 2020, monthTuno: 5);
         var expelled = await AddMemberAsync([MemberCategory.Leitao], city: null, expelled: true);
         var leitaoComplete = await AddMemberAsync([MemberCategory.Leitao], city: "Braga", yearLeitao: 2026, monthLeitao: 10, instrument: true, mentor: true);
+        var blankCity = await AddMemberAsync([MemberCategory.Leitao], city: "   ", yearLeitao: 2026, monthLeitao: 10, instrument: true, mentor: true);
 
         var keys = await AllKeysAsync(admin, "members", null);
         keys.Should().NotContain([fundador, honorario, expelled, leitaoComplete],
             "nothing missing that applies (no padrinho / Leitão date for Fundador or Honorário, no instrument for Honorário, no Caloiro date for a Leitão), or expelled");
+        keys.Should().Contain(blankCity, "a whitespace-only city is missing, as in the edit form (PR #277 review)");
     }
 
     // ---------- helpers ----------

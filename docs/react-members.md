@@ -170,7 +170,7 @@ the full edit stays Admin / Owner.
 
 - **Allow-list by contract**: `PUT /api/members/{id}/info` (`MemberInfoInput`) has only those fields; anything else in the
   body (name, email, category, role, position, expelled / active status, password) is not bound and changes nothing. A
-  field that does not apply must stay empty (`400`); changing a complete date pair without Owner / Magister is `400`
+  field that does not apply must stay empty (`400`); changing a complete date pair without Owner / an Admin Magister is `400` ("Esta data está fechada: não a podes alterar aqui.": no system role in the text)
   (refused, not silently ignored as the full form does).
 - **Concurrency**: the GET returns the member's `Stamp` (Identity's concurrency stamp); a save with an older one is
   `409` ("Os dados deste membro mudaram entretanto") and nothing is written. Validation errors keep what was typed.

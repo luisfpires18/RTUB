@@ -515,7 +515,8 @@ public sealed class MemberAdminService : IMemberAdminService
             }
             else if (changed && Complete(storedYear, storedMonth) && !canEditDates)
             {
-                errors.TryAdd(key, new[] { "Esta data está completa: só o Owner ou o Magister a altera." });
+                // No system role in member-facing text (UI rule): the lock is explained, not who holds the key.
+                errors.TryAdd(key, new[] { "Esta data está fechada: não a podes alterar aqui." });
             }
         }
 

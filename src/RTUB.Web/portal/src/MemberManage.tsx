@@ -828,6 +828,7 @@ export function MemberInfoDialog({
                 year={form.yearLeitao}
                 month={form.monthLeitao}
                 locked={info.lockedDates.leitao}
+                lockedHint={INFO_LOCKED_HINT}
                 error={errors.leitao}
                 onChange={(yearLeitao, monthLeitao) => set({ yearLeitao, monthLeitao })}
               />
@@ -838,6 +839,7 @@ export function MemberInfoDialog({
                 year={form.yearCaloiro}
                 month={form.monthCaloiro}
                 locked={info.lockedDates.caloiro}
+                lockedHint={INFO_LOCKED_HINT}
                 error={errors.caloiro}
                 onChange={(yearCaloiro, monthCaloiro) => set({ yearCaloiro, monthCaloiro })}
               />
@@ -848,6 +850,7 @@ export function MemberInfoDialog({
                 year={form.yearTuno}
                 month={form.monthTuno}
                 locked={info.lockedDates.tuno}
+                lockedHint={INFO_LOCKED_HINT}
                 error={errors.tuno}
                 onChange={(yearTuno, monthTuno) => set({ yearTuno, monthTuno })}
               />
@@ -870,6 +873,9 @@ export function MemberInfoDialog({
     </Dialog>
   );
 }
+
+/** Task 076 review: the lock explained without naming who may change it (the Magister needs more than the position). */
+const INFO_LOCKED_HINT = 'Data fechada: não a podes alterar aqui.';
 
 const INFO_LABELS: Record<string, string> = {
   city: 'Cidade',
