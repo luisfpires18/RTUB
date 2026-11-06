@@ -317,12 +317,13 @@ public class MeetingsMembersApiTests : IClassFixture<MeetingsApiFactory>
         var direcao = await _kit.MeetingAsync(MeetingType.ReuniaoDirecao, 10);
         var answer = await _kit.ParticipationAsync(direcao, magister.Id, willAttend: true);
 
-        // The Owner sees the assembly but not the Direção meeting: an answer of the second is not reachable through the first.
+        // An answer of the Direção meeting is not reachable through the assembly. Task 075: the Owner sees every type, so it
+        // removes the answer through its own meeting.
         (await owner.Client.DeleteAsync($"/api/meetings/{assembly}/participants/{answer}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await owner.Client.DeleteAsync($"/api/meetings/{direcao}/participants/{answer}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await magister.Client.DeleteAsync($"/api/meetings/{assembly}/participants/{answer}")).StatusCode.Should().Be(HttpStatusCode.NotFound,
             "even your own answer goes through its own meeting");
         (await _kit.StoredParticipationAsync(answer)).Should().NotBeNull();
+        (await owner.Client.DeleteAsync($"/api/meetings/{direcao}/participants/{answer}")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -343,7 +344,7 @@ public class MeetingsMembersApiTests : IClassFixture<MeetingsApiFactory>
     }
 
     [Fact]
-    public async Task TheOwner_CreatesEveryType_ButManagesOnlyTheMeetingsItSees()
+    public async Task TheOwner_CreatesSeesAndManagesEveryType()
     {
         var owner = await _kit.MemberAsync("Owner");
 
@@ -356,25 +357,14 @@ public class MeetingsMembersApiTests : IClassFixture<MeetingsApiFactory>
             response.StatusCode.Should().Be(HttpStatusCode.Created, type);
             var saved = await response.Content.ReadFromJsonAsync<JsonElement>();
             (await _kit.StoredMeetingAsync(saved.GetProperty("id").GetInt32()))!.OrganizerUserId.Should().Be(owner.Id);
-            if (type is Ago or Age)
-            {
-                Can(saved.GetProperty("card"), "manage").Should().BeTrue(type);
-            }
-            else
-            {
-                IsNull(saved, "card").Should().BeTrue("A3: Owner creates a {0} meeting it does not see", type);
-            }
+            Can(saved.GetProperty("card"), "manage").Should().BeTrue("075 (supersedes A3): the Owner sees and manages {0}", type);
         }
 
-        // A3: a CV meeting is not on the Owner's board, so it is not the Owner's to manage either.
+        // Task 075 (supersedes A3): a CV meeting is on the Owner's board and the Owner's to manage.
         var cv = await _kit.MeetingAsync(MeetingType.ConselhoVeteranos, 12);
-        BoardIds(await BoardAsync(owner.Client)).Should().NotContain(cv);
-        (await owner.Client.GetAsync($"/api/meetings/{cv}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await owner.Client.PutAsJsonAsync($"/api/meetings/{cv}", NewMeeting(Cv))).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await owner.Client.DeleteAsync($"/api/meetings/{cv}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await owner.Client.PostAsJsonAsync($"/api/meetings/{cv}/cancel", new { reason = "Sala ocupada", notifyByEmail = false })).StatusCode
-            .Should().Be(HttpStatusCode.NotFound);
-        (await _kit.StoredMeetingAsync(cv))!.IsCancelled.Should().BeFalse();
+        BoardIds(await BoardAsync(owner.Client)).Should().Contain(cv);
+        (await owner.Client.GetAsync($"/api/meetings/{cv}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await owner.Client.PutAsJsonAsync($"/api/meetings/{cv}", NewMeeting(Cv))).StatusCode.Should().Be(HttpStatusCode.OK);
 
         // An assembly it sees: edit, cancel, reactivate, delete.
         var ago = await _kit.MeetingAsync(MeetingType.AssembleiaGeralOrdinaria, 12);
@@ -444,7 +434,7 @@ public class MeetingsPositionsApiTests : IClassFixture<MeetingsApiFactory>
         access.GetProperty("canProposeDirecao").GetBoolean().Should().BeTrue();
         access.GetProperty("canProposeAg").GetBoolean().Should().BeTrue();
         access.GetProperty("canSeeRequests").GetBoolean().Should().BeTrue();
-        access.GetProperty("canCreate").GetBoolean().Should().BeFalse("A6: the Magister does not create meetings");
+        access.GetProperty("canCreate").GetBoolean().Should().BeTrue("075: the Magister presides over the Direção");
         (await magister.Client.GetAsync("/api/meetings/requests")).StatusCode.Should().Be(HttpStatusCode.OK);
 
         foreach (var type in new[] { Cv, Age, Direcao })
@@ -454,7 +444,10 @@ public class MeetingsPositionsApiTests : IClassFixture<MeetingsApiFactory>
 
         (await magister.Client.PostAsJsonAsync("/api/meetings/requests", NewRequest(Ago))).StatusCode.Should().Be(HttpStatusCode.Forbidden,
             "nothing proposes an Assembleia Geral Ordinária");
-        (await magister.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Direcao))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await magister.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Direcao))).StatusCode.Should().Be(HttpStatusCode.Created,
+            "075: the Direção's president registers its meetings");
+        (await magister.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Cv))).StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "another body's type is not offered");
 
         (await magister.Client.GetAsync($"/api/meetings/{direcao}/ata/edit")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await AreaHttp.Json(await magister.Client.PutAsJsonAsync($"/api/meetings/{direcao}/ata", NewAta(assembly: false))))

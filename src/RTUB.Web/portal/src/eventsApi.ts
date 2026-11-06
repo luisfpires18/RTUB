@@ -186,6 +186,8 @@ export type EventDetail = {
   canManagePrizes: boolean;
   /** Mod and above: the link to the Blazor contacts page (012E). */
   canTrackContacts: boolean;
+  /** Task 075: Admin / Owner, or the current Ensaiador / Magister for an upcoming, not cancelled event. */
+  canManageRepertoire: boolean;
   event: EventSummary;
   videos: EventVideo[];
   member: {

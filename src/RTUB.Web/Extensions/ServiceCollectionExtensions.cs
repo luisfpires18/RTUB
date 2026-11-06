@@ -170,6 +170,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPendingActionSource, QuestionsPendingActionSource>();
         services.AddScoped<IPendingActionSource, TreasuryPendingActionSource>();
         services.AddScoped<IPendingActionSource, SecretaryPendingActionSource>();
+        services.AddScoped<IPendingActionSource, MeetingsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, RehearsalApprovalsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, RepertoirePendingActionSource>();
         services.AddScoped<IPendingActionsService, PendingActionsService>();
         services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();

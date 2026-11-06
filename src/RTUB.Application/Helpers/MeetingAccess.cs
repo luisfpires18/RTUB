@@ -16,7 +16,10 @@ namespace RTUB.Application.Helpers;
 /// - A Leitão is refused the whole page, whatever their role (Owner and Admin included).
 /// - Owner is not exempt from what a meeting type shows (CV / Direção) nor from the requests gate (decision A3 / A4).
 /// - Admin alone never writes an ata: the page passed only "Owner" to <c>CanCreateOrEditAta</c> (decision A2).
-/// - Only Owner, the Presidente da Mesa (AG) and the Presidente do CV (CV) create and manage meetings (decision A6).
+/// - Task 075 (#256, owner's matrix): each body's CURRENT president creates and manages that body's meetings - Presidente
+///   da Mesa: AG / AGE; Magister (the Direção's president: there is no separate "Presidente da Direção" position):
+///   Direção; Presidente do CV: CV - and Owner every type. Someone with several presidencies gets the union (no
+///   first-match). Admin alone gives none of this. (Before 075 only Owner, the Mesa and the CV president, Mesa first.)
 /// </summary>
 public sealed class MeetingAccess
 {
@@ -66,59 +69,28 @@ public sealed class MeetingAccess
 
     // ---------- meetings ----------
 
-    /// <summary>"Criar Reunião" (old <c>CanManageMeetings</c>): Owner, Presidente da Mesa, Presidente do CV.</summary>
-    public bool CanCreateMeetings => IsOwner || Has(Position.PresidenteMesaAssembleia) || Has(Position.PresidenteConselhoVeteranos);
+    /// <summary>The position presiding over a meeting type's body (task 075): Mesa for AG / AGE, Magister for Direção, CV president for CV.</summary>
+    public static Position PresidentOf(MeetingType type) => type switch
+    {
+        MeetingType.ConselhoVeteranos => Position.PresidenteConselhoVeteranos,
+        MeetingType.ReuniaoDirecao => Position.Magister,
+        _ => Position.PresidenteMesaAssembleia,
+    };
+
+    /// <summary>"Criar Reunião": Owner, or the current president of at least one body.</summary>
+    public bool CanCreateMeetings => IsOwner || TypeOrder.Any(t => Has(PresidentOf(t)));
 
     /// <summary>
-    /// Edit, delete, cancel, reactivate, email and push one meeting (old <c>CanManageMeeting</c>): Owner any; otherwise the
-    /// Presidente da Mesa only AG / AGE and the Presidente do CV only CV (the Mesa wins if someone holds both).
+    /// Edit, delete, cancel, reactivate, email and push one meeting: Owner any; otherwise the current president of the
+    /// meeting's body (the union for someone presiding over several).
     /// </summary>
-    public bool CanManage(Meeting meeting)
-    {
-        if (IsOwner)
-        {
-            return true;
-        }
+    public bool CanManage(Meeting meeting) => CanCreateType(meeting.Type);
 
-        if (Has(Position.PresidenteMesaAssembleia))
-        {
-            return IsAssembly(meeting.Type);
-        }
+    /// <summary>Create a meeting of <paramref name="type"/>: Owner, or that body's current president.</summary>
+    public bool CanCreateType(MeetingType type) => IsOwner || Has(PresidentOf(type));
 
-        return Has(Position.PresidenteConselhoVeteranos) && meeting.Type == MeetingType.ConselhoVeteranos;
-    }
-
-    /// <summary>The old <c>CanCreateMeetingType</c>, checked in the same order.</summary>
-    public bool CanCreateType(MeetingType type)
-    {
-        if (IsOwner)
-        {
-            return true;
-        }
-
-        if (IsAdmin && User.IsTuno() && type == MeetingType.ReuniaoDirecao)
-        {
-            return true;
-        }
-
-        if (Has(Position.PresidenteMesaAssembleia))
-        {
-            return IsAssembly(type);
-        }
-
-        if (Has(Position.PresidenteConselhoVeteranos))
-        {
-            return type == MeetingType.ConselhoVeteranos;
-        }
-
-        return HoldsDirecaoPosition(User) && type == MeetingType.ReuniaoDirecao;
-    }
-
-    /// <summary>
-    /// The types the create / edit form offers. The form only ever opened for <see cref="CanCreateMeetings"/> (create, edit,
-    /// accept a request), so the broader Direção branch of <see cref="CanCreateType"/> never reached anyone else (decision A6).
-    /// </summary>
-    public IReadOnlyList<MeetingType> FormTypes => CanCreateMeetings ? TypeOrder.Where(CanCreateType).ToList() : Array.Empty<MeetingType>();
+    /// <summary>The types the create / edit form offers: exactly <see cref="CanCreateType"/>.</summary>
+    public IReadOnlyList<MeetingType> FormTypes => TypeOrder.Where(CanCreateType).ToList();
 
     // ---------- proposals (meeting requests) ----------
 

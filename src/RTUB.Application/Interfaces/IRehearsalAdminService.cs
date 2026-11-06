@@ -31,6 +31,9 @@ public interface IRehearsalAdminService
     /// <summary>Approves a pending presença once the rehearsal can be approved (the member gets a push, as before).</summary>
     Task<EventResult<bool>> ApproveAsync(int id, int attendanceId, ClaimsPrincipal user);
 
+    /// <summary>Task 075: refuse a pending presença (recorded as not attended, the member notified); same gate as approval.</summary>
+    Task<EventResult<bool>> RefuseAsync(int id, int attendanceId, ClaimsPrincipal user);
+
     /// <summary>Admin/Owner once the rehearsal can be approved; anyone their own presença.</summary>
     Task<EventResult<bool>> RemoveAttendanceAsync(int id, int attendanceId, ClaimsPrincipal user);
 

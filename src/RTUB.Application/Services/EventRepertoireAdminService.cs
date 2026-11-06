@@ -11,7 +11,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// The old /member/events repertoire modal behind the React event page (React track 012D). Same rules,
-/// now server-side: Admin or Owner only; songs go on one of the event's days (or a day that already has
+/// now server-side: Admin or Owner (075: also the current Ensaiador / Magister for upcoming events); songs go on one of the event's days (or a day that already has
 /// songs), appended after the day's last; a song appears once per event (the database's unique
 /// EventId+SongId index; the old modal only checked the day and failed silently on another day); a day
 /// can be cleared. The song picker shows only what Music would show the caller. No schema change.
@@ -32,7 +32,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<EventRepertoireManageDto>> GetAsync(int id, ClaimsPrincipal user)
     {
-        if (Refusal<EventRepertoireManageDto>(user) is { } refused)
+        if (await RefusalAsync<EventRepertoireManageDto>(id, user) is { } refused)
         {
             return refused;
         }
@@ -43,7 +43,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<IReadOnlyList<EventRepertoireSongDto>>> SearchSongsAsync(int id, string? query, ClaimsPrincipal user)
     {
-        if (Refusal<IReadOnlyList<EventRepertoireSongDto>>(user) is { } refused)
+        if (await RefusalAsync<IReadOnlyList<EventRepertoireSongDto>>(id, user) is { } refused)
         {
             return refused;
         }
@@ -74,7 +74,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<EventRepertoireManageDto>> AddAsync(int id, EventRepertoireAddInput input, ClaimsPrincipal user)
     {
-        if (Refusal<EventRepertoireManageDto>(user) is { } refused)
+        if (await RefusalAsync<EventRepertoireManageDto>(id, user) is { } refused)
         {
             return refused;
         }
@@ -122,7 +122,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<EventRepertoireManageDto>> RemoveAsync(int id, int itemId, ClaimsPrincipal user)
     {
-        if (Refusal<EventRepertoireManageDto>(user) is { } refused)
+        if (await RefusalAsync<EventRepertoireManageDto>(id, user) is { } refused)
         {
             return refused;
         }
@@ -142,7 +142,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<EventRepertoireManageDto>> RemoveDayAsync(int id, string? date, ClaimsPrincipal user)
     {
-        if (Refusal<EventRepertoireManageDto>(user) is { } refused)
+        if (await RefusalAsync<EventRepertoireManageDto>(id, user) is { } refused)
         {
             return refused;
         }
@@ -165,7 +165,7 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
 
     public async Task<EventResult<EventRepertoireManageDto>> ReorderAsync(int id, EventRepertoireOrderInput input, ClaimsPrincipal user)
     {
-        if (Refusal<EventRepertoireManageDto>(user) is { } refused)
+        if (await RefusalAsync<EventRepertoireManageDto>(id, user) is { } refused)
         {
             return refused;
         }
@@ -273,8 +273,36 @@ public sealed class EventRepertoireAdminService : IEventRepertoireAdminService
             .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray())
             .ToLowerInvariant();
 
-    private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
-        : !EventsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
-        : null;
+    /// <summary>
+    /// Admin / Owner: any event. Task 075: the current Ensaiador or Magister (positions read from the database) the
+    /// repertoire of an upcoming, not cancelled event - only the repertoire, no other event management.
+    /// </summary>
+    private async Task<EventResult<T>?> RefusalAsync<T>(int eventId, ClaimsPrincipal user)
+    {
+        if (!EventsAuthorization.IsMember(user))
+        {
+            return EventResult<T>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        return EventsAuthorization.CanManage(user) || await CanPrepareAsync(eventId, user) ? null : EventResult<T>.Fail(EventResultStatus.Forbidden);
+    }
+
+    /// <summary>Task 075: an Ensaiador / Magister and an upcoming (last day today or later, Portugal), not cancelled event.</summary>
+    internal async Task<bool> CanPrepareAsync(int eventId, ClaimsPrincipal user)
+    {
+        if (EventsAuthorization.UserId(user) is not { } me)
+        {
+            return false;
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        var positions = await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync();
+        if (positions?.Any(RehearsalsAuthorization.Approvers.Contains) != true)
+        {
+            return false;
+        }
+
+        var today = RTUB.Core.Helpers.PortugalTime.Today(TimeProvider.System);
+        return await db.Events.AsNoTracking().AnyAsync(e => e.Id == eventId && !e.IsCancelled && (e.EndDate ?? e.Date) >= today);
+    }
 }

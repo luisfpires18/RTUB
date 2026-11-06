@@ -26,7 +26,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | Page | Visitor | Member | Leitão | Mod | Admin | Owner | File |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/documentation` | - | R + upload | blocked | R + upload + manage | R + upload + manage | all | [documentation](documentation.md) |
-| `/meetings` | - | by meeting type | blocked | as Member | as Member (+ add participants) | all | [meetings](meetings.md) |
+| `/meetings` | - | by meeting type; each body's current president: its meetings and atas (075) | blocked | as Member | as Member (+ add participants; no atas) | all types, all atas | [meetings](meetings.md) |
 | `/treasury` | - | R (not Caloiro) | own calotes | R + records | R + records + reports | all | [treasury](treasury.md) |
 | `/logistics` | - | R (members-visible boards + private ones they are invited to) + "As minhas tarefas"; own cards: edit, checklist, move, comment, attach, own reminders | as Member | W D + moderation, all boards | W D + moderation, all boards | W D + moderation, all boards | [logistics](logistics.md) |
 | `/requests` | - | R | blocked | R | R + approve, reject, delete | same as Admin | [requests-questions](requests-questions.md) |
@@ -42,7 +42,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/inventory` | - | R | W D | W D | W D | W D | [inventory](inventory.md) |
 | `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions, reservations | W D + reservations | W D + reservations | [shop](shop.md) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](naipes.md) |
-| `/pending-actions` | sign-in | own actions (active: answer Atuações, Ensaios; past = self-report, rehearsals pending approval; everyone: own Logística cards, own open Questões; 1.º/2.º Tesoureiro: Tesouraria; Secretário: Secretaria — by current position, not role) | yes | as member type | as member type | as member type | [pending-actions](pending-actions.md) |
+| `/pending-actions` | sign-in | own actions (active: answer Atuações, Ensaios; past = self-report, rehearsals pending approval; everyone: own Logística cards, own open Questões; 1.º/2.º Tesoureiro: Tesouraria; Secretário: Secretaria; presidents: Reuniões; Ensaiador / Magister: presenças, repertório — by current position, not role) | yes | as member type | as member type | as member type | [pending-actions](pending-actions.md) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](member-area.md) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](owner-tools.md) |
 

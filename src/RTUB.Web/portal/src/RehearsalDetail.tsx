@@ -320,6 +320,12 @@ function Group({ title, people, rehearsalId, onChanged }: { title: string; peopl
                     Confirmar
                   </button>
                 )}
+                {p.canApprove && (
+                  <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => run(rehearsalsApi.refuse(rehearsalId, p.id))}>
+                    <Icon name="close" />
+                    Recusar
+                  </button>
+                )}
                 {p.canRemove &&
                   (removing === p.id ? (
                     <>

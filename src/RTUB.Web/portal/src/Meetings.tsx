@@ -126,10 +126,17 @@ export default function Meetings() {
     if (!board || typeof board !== 'object') return;
     const url = new URL(location.href);
     const id = Number(url.searchParams.get('meeting'));
-    if (!id) return;
-    const card = [...board.upcoming, ...board.past].find((c) => c.id === id);
-    if (card) setOpen({ kind: 'details', card });
-    url.searchParams.delete('meeting');
+    // Task 075 (from "As minhas ações pendentes"): &ata=1 opens the ata editor when the member may write it, and
+    // ?new={type} the "Nova reunião" form with that type when the member may create it. The server decides again on save.
+    const wantsAta = url.searchParams.get('ata') === '1';
+    const newType = url.searchParams.get('new');
+    if (!id && !newType) return;
+    const card = id ? [...board.upcoming, ...board.past].find((c) => c.id === id) : undefined;
+    if (card) setOpen(wantsAta && card.can.writeAta ? { kind: 'ata', card } : { kind: 'details', card });
+    else if (newType && board.access.canCreate && board.access.meetingTypes.some((t) => t.value === newType)) {
+      setOpen({ kind: 'form', draft: { type: newType, title: '', date: '', location: null, statement: '' } });
+    }
+    for (const key of ['meeting', 'ata', 'new']) url.searchParams.delete(key);
     history.replaceState(null, '', url.pathname + url.search);
   }, [board]);
 

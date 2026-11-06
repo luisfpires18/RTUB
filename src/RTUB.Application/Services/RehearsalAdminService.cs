@@ -297,24 +297,62 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
 
     public async Task<EventResult<bool>> ApproveAsync(int id, int attendanceId, ClaimsPrincipal user)
     {
-        if (await RefusalAsync<bool>(id, user) is { } refused)
+        var (a, refused) = await PendingClaimAsync(id, attendanceId, user);
+        if (a is null)
         {
-            return refused;
+            return refused!;
+        }
+
+        await _attendance.UpdateAttendanceAsync(a.Id, true, a.Instrument, RehearsalsAuthorization.UserId(user));
+        return EventResult<bool>.Ok(true);
+    }
+
+    /// <summary>
+    /// Task 075: "Recusar" a pending presença. Durable, not a deletion (which would let the member's "Fui / Não fui" prompt
+    /// come back): <see cref="IRehearsalAttendanceService.CancelAttendanceAsync"/> records it as not attended
+    /// (<c>WillAttend = false</c>, audited with the presença) and sends the member the "Presença recusada" push.
+    /// </summary>
+    public async Task<EventResult<bool>> RefuseAsync(int id, int attendanceId, ClaimsPrincipal user)
+    {
+        var (a, refused) = await PendingClaimAsync(id, attendanceId, user);
+        if (a is null)
+        {
+            return refused!;
+        }
+
+        await _attendance.CancelAttendanceAsync(a.Id, RehearsalsAuthorization.UserId(user));
+        return EventResult<bool>.Ok(true);
+    }
+
+    /// <summary>
+    /// A presença an approver may decide: the caller is Admin / Owner or the current Ensaiador / Magister; the rehearsal can
+    /// be approved (past, or today from 21:00) and the presença is still pending ("vou" / "fui", not confirmed).
+    /// </summary>
+    private async Task<(RehearsalAttendance? Attendance, EventResult<bool>? Refusal)> PendingClaimAsync(int id, int attendanceId, ClaimsPrincipal user)
+    {
+        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        {
+            return (null, EventResult<bool>.Fail(EventResultStatus.SignInRequired));
+        }
+
+        await using (var db = await _contexts.CreateDbContextAsync())
+        {
+            var positions = await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync();
+            if (!RehearsalsAuthorization.CanApprove(user, positions))
+            {
+                return (null, EventResult<bool>.Fail(EventResultStatus.Forbidden));
+            }
         }
 
         var (r, a) = await AttendanceAsync(id, attendanceId);
         if (a is null)
         {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
+            return (null, EventResult<bool>.Fail(EventResultStatus.NotFound));
         }
 
-        if (!RehearsalAgendaService.IsApprovable(r!, Today) || !a.WillAttend || a.Attended)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.Closed);
-        }
-
-        await _attendance.UpdateAttendanceAsync(a.Id, true, a.Instrument, RehearsalsAuthorization.UserId(user));
-        return EventResult<bool>.Ok(true);
+        return !RehearsalAgendaService.IsApprovable(r!, Today) || !a.WillAttend || a.Attended
+            ? (null, EventResult<bool>.Fail(EventResultStatus.Closed))
+            : (a, null);
     }
 
     public async Task<EventResult<bool>> RemoveAttendanceAsync(int id, int attendanceId, ClaimsPrincipal user)
