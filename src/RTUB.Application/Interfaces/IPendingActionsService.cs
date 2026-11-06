@@ -48,8 +48,12 @@ public sealed record PendingActionMember(
     bool IsRetired,
     DateTime Today,
     int FiscalYearStart,
-    DateTime? JoinedOn = null)
+    DateTime? JoinedOn = null,
+    IReadOnlyList<Position>? Positions = null)
 {
+    /// <summary>The member's current Órgãos Sociais positions (task 074): <c>ApplicationUser.Positions</c>, the mandate in office.</summary>
+    public bool Holds(params Position[] positions) => Positions?.Any(positions.Contains) == true;
+
     /// <summary>The canonical active member: someone the activity rule covers who is not Reformado (docs/member-activity-status.md).</summary>
     public bool IsActive => IsSubjectToActivityRule && !IsRetired;
 

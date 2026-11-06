@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { portal } from './content';
 import { Dialog } from './Dialog';
@@ -13,6 +13,7 @@ import {
   treasuryApi,
   type Activity,
   type History,
+  type ReportEvent,
   type Report,
   type Transaction,
 } from './treasuryApi';
@@ -33,7 +34,9 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
   const [report, setReport] = useState<Report | 'signin' | 'forbidden' | 'failed' | 'missing'>();
   const [message, setMessage] = useState<string>();
   const [balance, setBalance] = useState<'bank' | 'cash'>();
-  const [activityForm, setActivityForm] = useState<{ activity?: Activity }>();
+  const [activityForm, setActivityForm] = useState<{ activity?: Activity; event?: ReportEvent }>();
+  // Task 074: ?activityForEvent={id} (from "As minhas ações pendentes") opens "Nova atividade" for that event, once.
+  const forEvent = useRef(Number(new URLSearchParams(location.search).get('activityForEvent')) || 0);
   const [transactionForm, setTransactionForm] = useState<{ activity: Activity; transaction?: Transaction }>();
   const [deleting, setDeleting] = useState<{ activity?: Activity; transaction?: Transaction }>();
   const [history, setHistory] = useState(false);
@@ -48,6 +51,16 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
   }, [reportId]);
 
   const r = report && typeof report === 'object' ? report : null;
+
+  useEffect(() => {
+    if (!r || !forEvent.current) return;
+    const event = r.canManage && !r.isPublished ? r.events?.find((e) => e.id === forEvent.current) : undefined;
+    forEvent.current = 0;
+    const url = new URL(location.href);
+    url.searchParams.delete('activityForEvent');
+    window.history.replaceState(window.history.state, '', url);
+    if (event) setActivityForm({ event });
+  }, [r]);
 
   useEffect(() => {
     document.title = `${r?.title ?? 'Relatório'} · Tesouraria · RTUB`;
@@ -184,7 +197,16 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
       </section>
 
       {balance && <BalanceDialog report={r} kind={balance} onClose={() => setBalance(undefined)} onSaved={setReport} />}
-      {activityForm && <ActivityDialog reportId={r.id} activity={activityForm.activity} onClose={() => setActivityForm(undefined)} onSaved={setReport} />}
+      {activityForm && (
+        <ActivityDialog
+          reportId={r.id}
+          activity={activityForm.activity}
+          event={activityForm.event}
+          events={r.events ?? []}
+          onClose={() => setActivityForm(undefined)}
+          onSaved={setReport}
+        />
+      )}
       {transactionForm && (
         <TransactionDialog
           activity={transactionForm.activity}
@@ -269,6 +291,7 @@ function ActivityPanel({
         <span className="tr-activity__name">
           {a.isLocked && <Icon name="lock" />}
           <strong>{a.name}</strong>
+          {a.eventName && <span className="tag">{a.eventName}</span>}
         </span>
         <span className="tr-activity__meta">
           <span className="tag">{when(a)}</span>
@@ -428,12 +451,30 @@ function BalanceDialog({ report, kind, onClose, onSaved }: { report: Report; kin
   );
 }
 
-/** "Nova atividade" / "Editar atividade": name, one date or a range, description. */
-function ActivityDialog({ reportId, activity, onClose, onSaved }: { reportId: number; activity?: Activity; onClose: () => void; onSaved: (r: Report) => void }) {
-  const [name, setName] = useState(activity?.name ?? '');
-  const [range, setRange] = useState(!!activity?.endDate);
-  const [start, setStart] = useState(isoDay(activity?.startDate ?? null) || today());
-  const [end, setEnd] = useState(isoDay(activity?.endDate ?? null));
+/**
+ * "Nova atividade" / "Editar atividade": name, one date or a range, description, and (task 074) the event it accounts
+ * for. Opened for an event (from "As minhas ações pendentes"), it starts with the event's name and dates.
+ */
+function ActivityDialog({
+  reportId,
+  activity,
+  event,
+  events,
+  onClose,
+  onSaved,
+}: {
+  reportId: number;
+  activity?: Activity;
+  event?: ReportEvent;
+  events: ReportEvent[];
+  onClose: () => void;
+  onSaved: (r: Report) => void;
+}) {
+  const [name, setName] = useState(activity?.name ?? event?.name ?? '');
+  const [range, setRange] = useState(!!(activity ? activity.endDate : event?.endDate));
+  const [start, setStart] = useState(isoDay(activity?.startDate ?? event?.date ?? null) || today());
+  const [end, setEnd] = useState(isoDay(activity ? activity.endDate : (event?.endDate ?? null)));
+  const [eventId, setEventId] = useState<number | null>(activity ? activity.eventId : (event?.id ?? null));
   const [description, setDescription] = useState(activity?.description ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -442,7 +483,7 @@ function ActivityDialog({ reportId, activity, onClose, onSaved }: { reportId: nu
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const input = { name, startDate: start, endDate: range && end ? end : null, description };
+    const input = { name, startDate: start, endDate: range && end ? end : null, description, eventId };
     const o = activity ? await treasuryApi.updateActivity(activity.id, input) : await treasuryApi.createActivity(reportId, input);
     setBusy(false);
     if (o.kind === 'invalid') return setErrors(o.errors);
@@ -480,6 +521,20 @@ function ActivityDialog({ reportId, activity, onClose, onSaved }: { reportId: nu
             </Field>
           )}
         </div>
+        {events.length > 0 && (
+          <Field id={`${fid}-event`} label="Atuação (opcional)" error={errors.eventId}>
+            <span className="control control--select">
+              <select id={`${fid}-event`} value={eventId ?? ''} onChange={(e) => setEventId(Number(e.target.value) || null)}>
+                <option value="">Nenhuma</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} · {day(ev.date)}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </Field>
+        )}
         <Field id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
           <textarea id={`${fid}-desc`} rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>

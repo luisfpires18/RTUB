@@ -30,6 +30,12 @@ public class Activity : BaseEntity
     /// </summary>
     public bool IsLocked { get; set; }
 
+    /// <summary>
+    /// The event this activity accounts for (task 074, optional): the durable link "As minhas ações pendentes" uses to know
+    /// an event's finances are recorded. Set or cleared on the report page; cleared if the event is deleted.
+    /// </summary>
+    public int? EventId { get; set; }
+
     // Navigation properties
     public virtual Report? Report { get; set; }
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

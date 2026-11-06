@@ -22,3 +22,9 @@ Source: `DocumentationAuthorization` and `DocumentationService`. Page doc: [reac
 - Role and type combine: an Admin who is a Veterano sees Atas CV and manages; a Leitão with any role is blocked
   (only Owner is exempt).
 - A folder the caller cannot see is `404`, never `403`.
+
+## As minhas ações pendentes (074)
+
+The current Secretário (position, not role) gets the Secretaria panel on `/pending-actions`: create the current year's
+missing folders, taken from last year's top-level folders, through `CreateFolderAsync` with its usual permission (Mod,
+Admin, Owner) and name rules; existing folders are never touched. Detail: [pending-actions](pending-actions.md).

@@ -334,6 +334,63 @@ public class PendingActionsServiceTests
         (await Service().RespondAsync(SignedIn(newcomer), new("event.response", Key(september), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound);
     }
 
+    // ---------- Secretaria (074) ----------
+
+    private static DocumentationDto Year(string fiscalYear, params string[] folders) => new(
+        [], fiscalYear, folders.Select(f => new DocumentFolderDto(f, f, [])).ToList(), [], 0, true);
+
+    private Mock<IDocumentationService> Documentation(string[] previous, string[] current)
+    {
+        var docs = new Mock<IDocumentationService>();
+        docs.Setup(d => d.GetAsync("2025-2026", It.IsAny<ClaimsPrincipal>())).ReturnsAsync(EventResult<DocumentationDto>.Ok(Year("2025-2026", previous)));
+        docs.Setup(d => d.GetAsync(null, It.IsAny<ClaimsPrincipal>())).ReturnsAsync(() => EventResult<DocumentationDto>.Ok(Year("2026-2027", current)));
+        docs.Setup(d => d.CreateFolderAsync(It.IsAny<DocumentFolderInput>(), It.IsAny<ClaimsPrincipal>()))
+            .ReturnsAsync((DocumentFolderInput i, ClaimsPrincipal _) => EventResult<DocumentFolderDto>.Ok(new DocumentFolderDto(i.Name!, i.Name!, [])));
+        return docs;
+    }
+
+    [Fact]
+    public async Task Secretary_SeesLastYearsMissingTopLevelFolders_AndCreatesOnlyThose()
+    {
+        var secretary = AddUser([MemberCategory.Tuno], retired: false, positions: [Position.Secretario]);
+        var admin = AddUser([MemberCategory.Tuno], retired: false);
+        AddRole(admin, "Admin");
+        var docs = Documentation(["Atas", "Contas", "Logistics", "Logistics/FITAB", "Regulamentos"], ["contas"]);
+        var service = Service(new SecretaryPendingActionSource(docs.Object));
+
+        var panel = (await service.GetPanelAsync(SignedIn(secretary), "secretary", null, 1)).Value!;
+        var row = panel.Rows.Single();
+        row.Context.Should().Be("Em falta, como em 2025-2026: Atas, Regulamentos", "the board files folder and an existing name (any case) are left out");
+        row.Dismissible.Should().BeTrue();
+        row.Actions[0].Confirm.Should().Contain("Criar 2 pastas em 2026-2027: Atas, Regulamentos");
+        (await service.GetPageAsync(SignedIn(admin))).Value!.Panels.Select(p => p.Key).Should().NotContain("secretary", "a role without the position");
+        (await service.RespondAsync(SignedIn(admin), new("secretary.folders", "", "create", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+
+        (await service.RespondAsync(SignedIn(secretary), new("secretary.folders", "", "create", null, null))).Status.Should().Be(EventResultStatus.Ok);
+
+        docs.Verify(d => d.CreateFolderAsync(It.Is<DocumentFolderInput>(i => i.Name == "Atas"), It.Is<ClaimsPrincipal>(p => p.FindFirst(ClaimTypes.NameIdentifier)!.Value == secretary)));
+        docs.Verify(d => d.CreateFolderAsync(It.Is<DocumentFolderInput>(i => i.Name == "Regulamentos"), It.IsAny<ClaimsPrincipal>()));
+        docs.Verify(d => d.CreateFolderAsync(It.IsAny<DocumentFolderInput>(), It.IsAny<ClaimsPrincipal>()), Times.Exactly(2), "only the missing ones");
+    }
+
+    [Fact]
+    public async Task Secretary_AgoraNao_IsTheirOwnForThisFiscalYear_AndNothingMissingMeansNoRow()
+    {
+        var secretary = AddUser([MemberCategory.Tuno], retired: false, positions: [Position.Secretario]);
+        var complete = Service(SecretarySource(Documentation(["Atas"], ["Atas", "Extra"]).Object));
+        (await complete.GetPanelAsync(SignedIn(secretary), "secretary", null, 1)).Value!.Total.Should().Be(0);
+
+        var service = Service(SecretarySource(Documentation(["Atas"], []).Object));
+        (await service.DismissAsync(SignedIn(secretary), new("secretary.folders", ""))).Status.Should().Be(EventResultStatus.Ok);
+
+        (await service.GetPanelAsync(SignedIn(secretary), "secretary", null, 1)).Value!.Total.Should().Be(0);
+        Dismissals().Should().ContainSingle(d => d.UserId == secretary && d.ActionKind == "secretary.folders" && d.Period == "2026-2027");
+        (await service.RespondAsync(SignedIn(secretary), new("secretary.folders", "", "create", null, null))).Status.Should().Be(EventResultStatus.NotFound,
+            "dismissed: nothing pending");
+    }
+
+    private static SecretaryPendingActionSource SecretarySource(IDocumentationService docs) => new(docs);
+
     // ---------- live permissions ----------
 
     [Fact]
@@ -364,7 +421,8 @@ public class PendingActionsServiceTests
         db.SaveChanges();
     }
 
-    private string AddUser(List<MemberCategory> categories, bool retired, bool expelled = false, (int Year, int Month)? leitao = null)
+    private string AddUser(List<MemberCategory> categories, bool retired, bool expelled = false, (int Year, int Month)? leitao = null,
+        List<Position>? positions = null)
     {
         using var db = _db.CreateContext();
         var id = Guid.NewGuid().ToString();
@@ -372,7 +430,7 @@ public class PendingActionsServiceTests
         {
             Id = id, UserName = id, Email = $"{id}@test.pt", FirstName = "Ana", LastName = "Silva", Nickname = "Ana",
             Categories = categories, IsRetired = retired, IsExpelled = expelled,
-            YearLeitao = leitao?.Year, MonthLeitao = leitao?.Month,
+            YearLeitao = leitao?.Year, MonthLeitao = leitao?.Month, Positions = positions ?? [],
         });
         db.SaveChanges();
         return id;
