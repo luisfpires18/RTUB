@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
@@ -68,7 +69,7 @@ public sealed partial class LogisticsKanbanService
     /// Which of <paramref name="userIds"/> may see <paramref name="board"/> (assignees, mentions, reminder targets, the
     /// responsible member): not expelled, and on a private board either on its access list or Mod / Admin / Owner.
     /// </summary>
-    private static async Task<HashSet<string>> BoardViewersAsync(ApplicationDbContext db, LogisticsBoard board, IReadOnlyCollection<string> userIds,
+    internal static async Task<HashSet<string>> BoardViewersAsync(ApplicationDbContext db, LogisticsBoard board, IReadOnlyCollection<string> userIds,
         IReadOnlyCollection<string>? accessList = null)
     {
         var ids = userIds.Distinct().ToList();
@@ -83,6 +84,8 @@ public sealed partial class LogisticsKanbanService
         var staff = await StaffAsync(db, active);
         return active.Where(u => listed.Contains(u) || staff.Contains(u)).ToHashSet();
     }
+
+    internal static Task<HashSet<string>> StaffIdsAsync(ApplicationDbContext db, List<string> userIds) => StaffAsync(db, userIds);
 
     private static async Task<HashSet<string>> StaffAsync(ApplicationDbContext db, List<string> userIds) =>
         (await db.UserRoles.Where(ur => userIds.Contains(ur.UserId))
@@ -574,6 +577,12 @@ public sealed partial class LogisticsKanbanService
         await db.SaveChangesAsync();
         db.LogisticsCardActivities.Add(new LogisticsCardActivity { CardId = card.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "created", Detail = "Cartão criado" });
         await db.SaveChangesAsync();
+        if (_notifier is not null && card.AssignedToUserId is { } owner)
+        {
+            var me = LogisticsAuthorization.UserId(user);
+            await _notifier.SendAsync(LogisticsNotice.Owner, new LogisticsNotifier.Card(board!.Id, card.Id, card.Title, board.Name), new[] { owner }, me);
+        }
+
         return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, card.Id, user));
     }
 
@@ -925,50 +934,6 @@ public sealed partial class LogisticsKanbanService
             .Take(SearchLimit)
             .Select(x => new LogisticsMemberOptionDto(x.u.Id, x.who.DisplayName, x.who.FullName, x.who.AvatarUrl))
             .ToList());
-    }
-
-    public async Task<EventResult<LogisticsReminderDto>> CreateReminderAsync(int boardId, LogisticsReminderInput input, ClaimsPrincipal user)
-    {
-        // Every member who sees the board, as before (not only managers); the targets must see it too.
-        await using var db = await _contexts.CreateDbContextAsync();
-        var (refused, board) = await SeeBoardAsync<LogisticsReminderDto>(db, boardId, user, writable: true);
-        if (refused is not null)
-        {
-            return refused;
-        }
-
-        var errors = new Dictionary<string, string[]>();
-        if (!await db.LogisticsCards.AnyAsync(c => c.Id == input.CardId && c.List.BoardId == boardId))
-        {
-            errors["cardId"] = new[] { "Selecione um cartão deste quadro." };
-        }
-
-        if (!Enum.TryParse<ReminderFrequency>(input.Frequency, out var frequency) || !Enum.IsDefined(frequency) || int.TryParse(input.Frequency, out _))
-        {
-            errors["frequency"] = new[] { "Frequência inválida." };
-        }
-
-        if (input.NextReminderDate is null)
-        {
-            errors["nextReminderDate"] = new[] { "Indique a primeira data do lembrete." };
-        }
-
-        var userIds = (input.UserIds ?? Array.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u)).Distinct().ToList();
-        if (userIds.Count == 0 || userIds.Count > 100 || (await BoardViewersAsync(db, board!, userIds)).Count != userIds.Count)
-        {
-            errors["userIds"] = new[] { "Pelo menos um utilizador deve ser selecionado" };
-        }
-
-        if (errors.Count > 0)
-        {
-            return new EventResult<LogisticsReminderDto>(EventResultStatus.Invalid, Errors: errors);
-        }
-
-        var reminder = LogisticsCardReminder.Create(input.CardId, frequency, string.Join(",", userIds), input.NextReminderDate!.Value);
-        db.LogisticsCardReminders.Add(reminder);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsReminderDto>.Ok(new LogisticsReminderDto(reminder.Id, reminder.CardId, reminder.Frequency.ToString(),
-            reminder.NextReminderDate, userIds.Count));
     }
 
     // ---------------------------------------------------------------- board files

@@ -34,6 +34,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/shop': lazy(() => import('./Shop')),
   '/documentation': lazy(() => import('./Documentation')),
   '/logistics': lazy(() => import('./Logistics')),
+  '/logistics/tasks': lazy(() => import('./LogisticsTasks')),
   '/treasury': lazy(() => import('./Treasury')),
   '/treasury/calotes': lazy(() => import('./TreasuryCalotes')),
   '/treasury/mbway': lazy(() => import('./TreasuryMbway')),

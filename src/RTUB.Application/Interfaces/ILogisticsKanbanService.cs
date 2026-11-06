@@ -55,7 +55,10 @@ public interface ILogisticsKanbanService
     Task<EventResult<DocumentLinkDto>> GetAttachmentAsync(int cardId, int attachmentId, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> DeleteAttachmentAsync(int cardId, int attachmentId, ClaimsPrincipal user);
 
-    Task<EventResult<LogisticsReminderDto>> CreateReminderAsync(int boardId, LogisticsReminderInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> CreateReminderAsync(int cardId, LogisticsReminderInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> UpdateReminderAsync(int cardId, int reminderId, LogisticsReminderInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> DeleteReminderAsync(int cardId, int reminderId, ClaimsPrincipal user);
+    Task<EventResult<LogisticsMyTasksDto>> GetMyTasksAsync(ClaimsPrincipal user);
 
     Task<EventResult<LogisticsFileDto>> UploadFileAsync(int boardId, LogisticsFileUpload upload, ClaimsPrincipal user);
     Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? fileId, ClaimsPrincipal user);

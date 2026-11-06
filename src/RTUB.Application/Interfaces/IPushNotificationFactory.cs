@@ -342,4 +342,20 @@ public interface IPushNotificationFactory
 
     /// <summary>The /profile test push (#230): fixed text, opens the push section of /profile.</summary>
     SendPushNotificationDto CreatePushTestNotification();
+
+    /// <summary>
+    /// Logística (task 069): assignment, mention or reminder for one card. Card title and board name only - never the
+    /// card's details or a comment's text. Opens the card on its board.
+    /// </summary>
+    SendPushNotificationDto CreateLogisticsNotification(LogisticsNotice kind, int boardId, int cardId, string cardTitle, string boardName,
+        string? actorName = null, DateTime? dueDate = null);
+}
+
+/// <summary>What a Logística push is about (task 069).</summary>
+public enum LogisticsNotice
+{
+    Owner,
+    Collaborator,
+    Mention,
+    Reminder,
 }

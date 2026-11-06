@@ -3,7 +3,8 @@
 Sources: `LogisticsAuthorization` (who is a manager), the board rule `LogisticsKanbanService.CanSeeBoardAsync`
 (`LogisticsKanbanService.Boards.cs`) and the card rule `AccessAsync` (`LogisticsKanbanService.CardWorkspace.cs`). Every
 read and write under a board goes through them. Page doc: [react-logistics](../react-logistics.md). Rules as of task 067
-(issue #248, Logística 3/5); 065 (#246) opened Logística to Leitões, 066 (#247) made the card a workspace.
+(issue #248, Logística 3/5) and 069 (#249, reminders and notifications); 065 (#246) opened Logística to Leitões, 066
+(#247) made the card a workspace.
 
 Four separate things decide what a person may do here; keep them apart:
 
@@ -39,7 +40,9 @@ except restore.
 | --- | --- | --- | --- |
 | Boards list, board, columns, card faces, card details, discussion, history | ✓ | ✓ | ✓ (every board) |
 | Download board files and the card's files / open its links | ✓ | ✓ | ✓ |
-| Create reminders (stored only) | ✓ | ✓ | ✓ |
+| "As minhas tarefas": own cards on boards they see | ✓ | ✓ | ✓ + open cards without a responsible member |
+| Reminders on the card: create, edit, delete | - | for themselves only (personal; another target `403`); edit / delete their own while still a worker | for any board viewers; edit / delete any |
+| See the card's reminders | own only | own only | all |
 | Edit the card's title, details, priority, start, deadline (version-checked, `409` when stale) | - | ✓ | ✓ |
 | Change the status (= move to the first column with that state) | - | ✓ | ✓ |
 | Move the card to another column / position of the board | - | ✓ (own cards) | ✓ |
@@ -69,7 +72,9 @@ Notes:
   attachments and history lines with no author ("Membro removido"), and a board without a responsible member.
 - **Member ids** reach managers only (they change assignments and access); everyone else gets names and avatars.
 - **Attachment and file ids** are checked against the card / board in the URL; a file id is never a storage key.
-- Mention notifications, reminders and "As minhas tarefas" are phase 4 (#249): nothing is sent yet.
+- Pushes (069) follow the same board rule: an owner / collaborator / mention push goes only to members who see the
+  board, never to the member who made the change; a reminder re-checks its recipients when it is sent (expelled,
+  removed from a private board, a personal reminder's member no longer on the card: not sent, and it stops).
 
 Menu: `MemberMenuAccess.Logistics` is true for every signed-in member, so a Leitão's **Gestão** shows **Logística only**
 (`management` and `treasury` stay false for a Leitão; Reuniões, Documentação, Questões, Tesouraria and Pedidos keep their

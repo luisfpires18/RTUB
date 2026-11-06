@@ -3,7 +3,7 @@ import { Loading } from './App';
 import { Icon } from './icons';
 import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
 import { CardWorkspace, deadline } from './LogisticsCard';
-import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
+import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog } from './LogisticsDialogs';
 import { loginTo } from './musicApi';
 
 const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
@@ -18,7 +18,6 @@ type Open =
   | { kind: 'delete-list'; list: List }
   | { kind: 'delete-card'; card: Card }
   | { kind: 'move'; card: Card; listId: number }
-  | { kind: 'reminder' }
   | { kind: 'files' };
 
 /** A small action menu, drawn in fixed position so the board's horizontal scroll never clips it. */
@@ -101,7 +100,7 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
  * by position with a coloured status (TODO red, WIP yellow, DONE green), labels, dates, checklist progress and counts.
  * Search, status, label and "Só os meus" filters stay in a sticky bar. Mod, Admin and Owner manage everything and drag
  * cards between lists (or use "Mover…"); every member (Leitões too, task 065) opens any card to read it, and the members
- * a card is assigned to tick its checklist and change its status there. Every member creates reminders.
+ * a card is assigned to tick its checklist and change its status there. Reminders live on the card (task 069); ?card=<id> opens a card (links and pushes).
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
@@ -110,7 +109,11 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [status, setStatus] = useState<Status | ''>('');
   const [label, setLabel] = useState('');
   const [onlyMine, setOnlyMine] = useState(false);
-  const [open, setOpen] = useState<Open>();
+  // ?card=<id> (task 069): a link or a push opens that card; the address follows the open card, so it can be shared.
+  const [open, setOpen] = useState<Open | undefined>(() => {
+    const id = Number(new URLSearchParams(location.search).get('card'));
+    return Number.isInteger(id) && id > 0 ? { kind: 'card', id } : undefined;
+  });
   const [message, setMessage] = useState<string>();
   const [drag, setDrag] = useState<Drag>();
   const [drop, setDrop] = useState<Drop>();
@@ -142,6 +145,15 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
     load();
   }, [boardId]);
 
+  useEffect(() => {
+    const url = new URL(location.href);
+    const card = open?.kind === 'card' ? String(open.id) : null;
+    if (url.searchParams.get('card') === card) return;
+    if (card) url.searchParams.set('card', card);
+    else url.searchParams.delete('card');
+    history.replaceState(history.state, '', url);
+  }, [open]);
+
   const data = board && typeof board === 'object' ? { ...board, files: files ?? board.files } : null;
 
   useEffect(() => {
@@ -159,7 +171,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           {board === 'signin' ? (
             <>
               <p>A logística é da área de membros.</p>
-              <a className="btn btn--primary btn--sm" href={loginTo(`/logistics/${boardId}`)}>
+              <a className="btn btn--primary btn--sm" href={loginTo(`/logistics/${boardId}${location.search}`)}>
                 <Icon name="login" />
                 Entrar
               </a>
@@ -294,12 +306,10 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               <Icon name="file" />
               Ficheiros{data.files.length > 0 && ` (${data.files.length})`}
             </button>
-            {!archived && (
-              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reminder' })} disabled={total === 0}>
-                <Icon name="bell" />
-                Criar lembrete
-              </button>
-            )}
+            <a className="btn btn--ghost btn--sm" href="/logistics/tasks">
+              <Icon name="check" />
+              As minhas tarefas
+            </a>
             {manage && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'list' })}>
                 <Icon name="plus" />
@@ -593,7 +603,6 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           }}
         />
       )}
-      {open?.kind === 'reminder' && <ReminderDialog board={data} onClose={() => setOpen(undefined)} />}
       {open?.kind === 'files' && <FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={loadFiles} />}
     </section>
   );

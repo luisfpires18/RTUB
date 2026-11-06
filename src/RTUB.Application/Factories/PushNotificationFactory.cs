@@ -156,6 +156,30 @@ public class PushNotificationFactory : IPushNotificationFactory
 
     // Push links are relative paths to the item itself (task 058): the service worker opens them on its own origin, so
     // they never depend on the request's Host header, and a tap lands on the event / rehearsal, not on a list.
+    public SendPushNotificationDto CreateLogisticsNotification(LogisticsNotice kind, int boardId, int cardId, string cardTitle, string boardName,
+        string? actorName = null, DateTime? dueDate = null)
+    {
+        var card = $"«{Cut(cardTitle, 80)}» ({Cut(boardName, 60)})";
+        var (title, body) = kind switch
+        {
+            LogisticsNotice.Owner => ("Logística: tarefa atribuída", $"És o responsável por {card}."),
+            LogisticsNotice.Collaborator => ("Logística: tarefa atribuída", $"Foste adicionado como colaborador em {card}."),
+            LogisticsNotice.Mention => ("Logística: mencionaram-te", $"{actorName ?? "Alguém"} mencionou-te em {card}."),
+            _ => ("Lembrete de Logística", dueDate is { } due ? $"{card} · prazo {due.ToString("dd/MM", PortugueseCulture)}" : card),
+        };
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = body,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = $"/logistics/{boardId}?card={cardId}",
+            Tag = $"logistics-card-{cardId}",
+        };
+    }
+
+    private static string Cut(string text, int max) => text.Length <= max ? text : text[..(max - 1)] + "…";
+
     private static string EventUrl(int eventId) => $"/events/{eventId}";
 
     private static string DiscussionUrl(int eventId) => $"/events/{eventId}/discussion";

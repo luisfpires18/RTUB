@@ -91,7 +91,37 @@ export type CardDetail = {
   archivedAt: string | null;
   /** The card or its board is archived: read-only until a manager restores it. */
   readOnly: boolean;
+  /** Task 069: the reminders the caller sees (managers all; anyone else their own). */
+  reminders: Reminder[];
+  /** May add a reminder: owner, collaborator (for themselves) or manager (for board members). */
+  canRemind: boolean;
 };
+export type Frequency = 'OneTime' | 'Daily' | 'Weekly';
+/** `next` is Portugal wall-clock time ("2026-11-07T10:00:00"). */
+export type Reminder = {
+  id: number;
+  frequency: Frequency;
+  next: string;
+  recipients: Assignee[];
+  personal: boolean;
+  canEdit: boolean;
+  lastSentAt: string | null;
+};
+export type ReminderInput = { frequency: Frequency; nextReminderDate: string; userIds: string[] };
+/** "As minhas tarefas" (task 069); `role` null = an open card without a responsible member (managers only). */
+export type MyTask = {
+  cardId: number;
+  boardId: number;
+  boardName: string;
+  title: string;
+  status: Status;
+  priority: Priority;
+  dueDate: string | null;
+  role: 'owner' | 'collaborator' | null;
+  checklistDone: number;
+  checklistTotal: number;
+};
+export type MyTasks = { tasks: MyTask[]; canManage: boolean };
 export type CardComment = {
   id: number;
   author: Person | null;
@@ -199,8 +229,11 @@ export const logisticsApi = {
   attachment: (id: number, attachmentId: number) => call<{ url: string }>('GET', `/api/logistics/cards/${id}/attachments/${attachmentId}`),
   removeAttachment: (id: number, attachmentId: number) => call<CardDetail>('DELETE', `/api/logistics/cards/${id}/attachments/${attachmentId}`),
 
-  createReminder: (boardId: number, input: { cardId: number; frequency: string; nextReminderDate: string; userIds: string[] }) =>
-    call<unknown>('POST', `/api/logistics/boards/${boardId}/reminders`, input),
+  createReminder: (cardId: number, input: ReminderInput) => call<CardDetail>('POST', `/api/logistics/cards/${cardId}/reminders`, input),
+  updateReminder: (cardId: number, id: number, input: ReminderInput) =>
+    call<CardDetail>('PUT', `/api/logistics/cards/${cardId}/reminders/${id}`, input),
+  removeReminder: (cardId: number, id: number) => call<CardDetail>('DELETE', `/api/logistics/cards/${cardId}/reminders/${id}`),
+  myTasks: () => call<MyTasks>('GET', '/api/logistics/my-tasks'),
   file: (boardId: number, id: string) => call<{ url: string }>('GET', `/api/logistics/boards/${boardId}/files${q({ file: id })}`),
   upload: (boardId: number, file: File) => {
     const form = new FormData();
@@ -218,6 +251,11 @@ export const STATUS: Record<Status, { label: string; name: string }> = {
 };
 
 export const PRIORITY: Record<Priority, string> = { Low: 'Baixa', Normal: 'Normal', High: 'Alta', Urgent: 'Urgente' };
+
+export const FREQUENCY: Record<Frequency, string> = { OneTime: 'Uma vez', Daily: 'Todos os dias', Weekly: 'Todas as semanas' };
+
+/** A card on its board: the board page opens it from ?card= (task 069; pushes link here too). */
+export const cardUrl = (boardId: number, cardId: number) => `/logistics/${boardId}?card=${cardId}`;
 
 export const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'conflict'

@@ -28,11 +28,11 @@ namespace RTUB.Application.Services;
 ///   card's position, so positions could collide);
 /// - board files: one folder per board for the current fiscal year
 ///   (docs/{env}/{year}/Logistics/{board}/, shared by all its cards, as before), ≤ 10 MB, the old file types;
-/// - reminders: any member who sees the board, as before; stored only - nothing in the app sends them (unchanged);
+/// - reminders (task 069): managers for board viewers, workers for themselves; sent by LogisticsReminderDelivery;
 /// - task 065: every member who sees the board (Leitões included) reads the card details; the members a card is
 ///   assigned to ("Atribuir a" or "Membros atribuídos") may tick its checklist items and change its status, nothing
 ///   else, re-checked against the database on every write.
-/// No notifications, no schema change.
+/// Task 069: assignment and mention pushes (<see cref="LogisticsNotifier"/>), sent after the commit.
 /// </summary>
 public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
 {
@@ -54,10 +54,13 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     private readonly AuditContext _audit;
     private readonly ILogger<LogisticsKanbanService> _logger;
     private readonly TimeProvider _time;
+    private readonly LogisticsNotifier? _notifier;
 
     public LogisticsKanbanService(IDbContextFactory<ApplicationDbContext> contexts, IDocumentStorageService storage, IHostEnvironment environment,
-        AuditContext audit, ILogger<LogisticsKanbanService> logger, DocumentTreeCache trees, TimeProvider? time = null)
+        AuditContext audit, ILogger<LogisticsKanbanService> logger, DocumentTreeCache trees, TimeProvider? time = null,
+        LogisticsNotifier? notifier = null)
     {
+        _notifier = notifier;
         _time = time ?? TimeProvider.System;
         _trees = trees;
         _contexts = contexts;
@@ -192,6 +195,11 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
 
             if (owner != card.AssignedToUserId)
             {
+                if (owner is not null)
+                {
+                    access.Notices.Add((LogisticsNotice.Owner, new[] { owner }));
+                }
+
                 Log(db, card.Id, access, "owner", owner is null ? "Responsável removido" : $"Responsável: {await NameAsync(db, owner)}");
             }
 
@@ -272,6 +280,7 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
             }
 
             db.LogisticsCardAssignments.Add(LogisticsCardAssignment.Create(id, input.UserId));
+            access.Notices.Add((LogisticsNotice.Collaborator, new[] { input.UserId }));
             Log(db, id, access, "collaborator", $"Colaborador adicionado: {await NameAsync(db, input.UserId)}");
             return null;
         });
@@ -381,7 +390,24 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await NotifyAsync(db, card, access);
         return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
+    }
+
+    /// <summary>Task 069: the change's pushes, after the commit, never to the member who made it.</summary>
+    private async Task NotifyAsync(ApplicationDbContext db, LogisticsCard card, CardAccess access)
+    {
+        if (_notifier is null || access.Notices.Count == 0)
+        {
+            return;
+        }
+
+        var actor = access.UserId is null ? null : await NameAsync(db, access.UserId);
+        var about = new LogisticsNotifier.Card(access.BoardId, card.Id, card.Title, access.Board.Name);
+        foreach (var (kind, to) in access.Notices)
+        {
+            await _notifier.SendAsync(kind, about, to, access.UserId, actor);
+        }
     }
 
     private static Dictionary<string, string[]> CardErrors(string? title, string? description)

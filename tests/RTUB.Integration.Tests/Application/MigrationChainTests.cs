@@ -222,6 +222,33 @@ public class MigrationChainTests : IDisposable
             .Should().Equal("LogisticsBoards:BoardId:CASCADE", "AspNetUsers:UserId:CASCADE");
     }
 
+    /// <summary>
+    /// Task 069 (AddLogisticsReminderDelivery, additive): a pre-069 reminder keeps its schedule and comes out not yet
+    /// activated (ActivatedAt null), unclaimed, with no creator and not personal - so delivery takes it on once, without
+    /// replaying the past, and only managers may change it.
+    /// </summary>
+    [Fact]
+    public async Task Task069_LegacyReminders_AwaitActivation_AndStayManagers()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync("20261106114520_AddLogisticsBoardAccess");
+        await context.Database.ExecuteSqlRawAsync("""
+            INSERT INTO LogisticsBoards (Name, Description, IsCompleted, CreatedAt, Visibility) VALUES ('FITAB', '', 0, '2026-01-01', 0);
+            INSERT INTO LogisticsLists (Name, BoardId, Position, CreatedAt) VALUES ('Logística', 1, 0, '2026-01-01');
+            INSERT INTO LogisticsCards (Title, Description, ListId, Position, Status, Priority, Version, CreatedAt)
+                VALUES ('Antigo', '', 1, 0, 0, 1, 0, '2026-01-01');
+            INSERT INTO LogisticsCardReminders (CardId, Frequency, TargetUserIds, NextReminderDate, IsActive, CreatedAt)
+                VALUES (1, 1, 'a,b', '2026-02-01 10:00:00', 1, '2026-01-01');
+            """);
+        await context.Database.MigrateAsync();
+
+        (await ScalarsAsync(context, """
+            SELECT Frequency || ':' || TargetUserIds || ':' || NextReminderDate || ':' || IsActive || ':' || IFNULL(ActivatedAt, 'null') || ':'
+                || IFNULL(ClaimedUntil, 'null') || ':' || Attempts || ':' || IFNULL(CreatedByUserId, 'null') || ':' || Personal
+            FROM LogisticsCardReminders;
+            """)).Should().Equal("1:a,b:2026-02-01 10:00:00:1:null:null:0:null:0");
+    }
+
     /// <summary>Task 043: the retired Games / Bets / MyTuno, Labels and Slideshows tables (docs/db-cleanup-inventory.md).</summary>
     private static readonly string[] RetiredTables =
     [

@@ -44,6 +44,7 @@ Full list and notes: the manifest. The ones that matter:
 | `Geocoding__DisabledInTests` | default | `false` (default) | `false` (default) |
 | `DatabaseBackup__Enabled` + `Bucket` (+ optional scoped `AccountId` / `AccessKeyId` / `SecretAccessKey`) | off | **`false`**, nothing else | **`true`**, `Bucket=rtub-db` |
 | `DevelopmentDataReset__*` | opt-in, one run | off (`false` or unset) | **absent** |
+| `LogisticsReminders__Enabled`, `LogisticsReminders__IntervalSeconds` (069) | default (`true`, `60`) | default | default |
 
 Why:
 
@@ -51,6 +52,9 @@ Why:
   treasury resolve `IAmazonS3`; without R2 the app starts and `/health` is 200, but those routes answer 500. A
   non-production environment with R2 credentials and the production bucket name refuses to start.
 - **Email** is needed only for real outgoing mail; without it sends are skipped, startup is unaffected.
+- **Logística reminders** (069) run every minute when `LogisticsReminders__Enabled` is not `false`. They need nothing
+  else: without VAPID keys only the "Notificações RTUB" inbox copy is kept. Set `false` to pause delivery (reminders stay
+  stored; on re-enable, occurrences more than 6 hours late are skipped, not replayed).
 - **Maps need no API key.** The members map uses Leaflet with OpenStreetMap standard tiles
   (`tile.openstreetmap.org`, since 040; CARTO's tiles began requiring a key) in the browser; addresses are
   geocoded server-side by Nominatim (OpenStreetMap), cached in the database. `Geocoding__DisabledInTests=true` only

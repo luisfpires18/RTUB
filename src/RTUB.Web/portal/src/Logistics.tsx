@@ -75,8 +75,14 @@ export default function Logistics() {
           </h1>
           <p className="page__lead">Os quadros de tarefas da tuna: o que falta fazer para cada atuação e para o dia a dia.</p>
         </div>
-        {data?.canManage && (
+        {data && (
           <div className="events-page__actions">
+            <a className="btn btn--ghost btn--sm" href="/logistics/tasks">
+              <Icon name="check" />
+              As minhas tarefas
+            </a>
+            {data.canManage && (
+              <>
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'template' })}>
               <Icon name="listOl" />A partir de modelo
             </button>
@@ -84,6 +90,8 @@ export default function Logistics() {
               <Icon name="plus" />
               Criar quadro
             </button>
+              </>
+            )}
           </div>
         )}
       </header>

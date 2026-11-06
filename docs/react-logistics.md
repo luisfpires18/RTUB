@@ -3,11 +3,14 @@
 `/logistics` (boards) and `/logistics/{id}` (one board, a Kanban) are React (`portal/src/Logistics.tsx`,
 `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`) over `/api/logistics` (`Endpoints/LogisticsEndpoints.cs` →
 `ILogisticsKanbanService`), replacing the Blazor `Pages/Management/Logistics.razor` and `LogisticsBoard.razor` (and
-`wwwroot/js/kanban.js`). DEV only. Migrations: `AddLogisticsCardWorkspace` (066) and `AddLogisticsBoardAccess` (067), both additive (below).
+`wwwroot/js/kanban.js`). DEV only. Migrations: `AddLogisticsCardWorkspace` (066), `AddLogisticsBoardAccess` (067) and
+`AddLogisticsReminderDelivery` (069), all additive (below).
 
 | Route | Owner after 023 |
 | --- | --- |
-| `/logistics`, `/logistics/{id}` | React, signed-in members, Leitões included since 065 (visitors: 302 to `/login?returnUrl=…`) |
+| `/logistics`, `/logistics/{id}` | React, signed-in members, Leitões included since 065 (visitors: 302 to `/login?returnUrl=…`, query kept since 069) |
+| `/logistics/{id}?card={cardId}` | the board with that card open (069; links, pushes); a card or board the member can't see shows "não existe ou não tem acesso" |
+| `/logistics/tasks` | "As minhas tarefas" (069, `LogisticsTasks.tsx`), signed-in members |
 
 Links: the React member menu, Gestão → Logística (`MemberMenuAccess.Logistics`, every member since 065; a Leitão's
 Gestão shows Logística only), and the React `/profile` actions.
@@ -99,6 +102,63 @@ Privado, its event, responsible member (or "Sem responsável"), progress (done /
 own-task counts; managers' ⋯ menu (edit and access, duplicate, finish / reopen, archive / restore, delete); empty states
 offer a template or a blank board.
 
+## Reminders, notifications and "As minhas tarefas" (task 069, issue #249)
+
+**Schema** (`AddLogisticsReminderDelivery`, additive, no table rebuilt): `LogisticsCardReminders.CreatedByUserId`,
+`Personal`, `ActivatedAt`, `ClaimedUntil`, `Attempts`. Pre-069 rows come out not activated, no creator, not personal.
+
+**Who schedules** (on the card, `POST`/`PUT`/`DELETE /cards/{id}/reminders[/{reminderId}]`; full matrix in
+[permissions/logistics](permissions/logistics.md)): the card's owner and collaborators (Leitões too) set reminders for
+themselves only (`Personal`; naming anybody else is `403`); managers for any members who see the board (none =
+themselves). Only the creator of a personal reminder (while still working on the card) or a manager edits or deletes
+it; pre-069 reminders are managers'. Members see their own reminders on the card; managers see all. The old
+board-level `POST /boards/{id}/reminders` and its dialog are gone.
+
+**Time**: `NextReminderDate` is Portugal wall-clock time (Europe/Lisbon). A reminder is due at `PortugalTime.ToUtc` of
+it: 10:00 is 10:00 UTC in winter and 09:00 UTC in summer; a daily / weekly reminder steps in wall-clock days, so it
+stays at 10:00 across both changes. A time skipped in spring (01:00-01:59 on the last Sunday of March) fires at 02:00
+summer time (the instant the clock jumps); a time repeated in autumn fires once, at its first occurrence. The date
+must be in the future when saved.
+
+**Delivery** (`LogisticsReminderDelivery`, run every minute by `LogisticsReminderBackgroundService`;
+`LogisticsReminders:Enabled`, `IntervalSeconds`):
+- Each due occurrence is **claimed** with one atomic `UPDATE … WHERE ClaimedUntil IS NULL OR ClaimedUntil < now` (10
+  minutes), so overlapping runs, a restart or a second instance never send it twice while the claim lasts.
+- Re-checked at send time: the card exists, is not done and not archived, nor is its board (otherwise the reminder
+  **stops**); recipients are the targets who are not expelled and still see the board; a personal reminder only while
+  its member is still the card's owner or a collaborator (or manages Logística). Nobody left: it stops.
+- Sent as a push plus the "Notificações RTUB" inbox copy (task 061): card title, board name and deadline, never the
+  details. Opens `/logistics/{board}?card={id}`.
+- Then: a one-time reminder stops; a daily / weekly one moves to its next occurrence after now (missed ones are
+  skipped, never replayed).
+- **Late**: an occurrence more than 6 hours late (the app was down) is skipped, not sent.
+- **Failure**: an exception while sending keeps the occurrence and retries 2 and then 4 minutes later; the third
+  failure skips it (the next occurrence stays). Failures of single devices (expired subscriptions, push service
+  errors) are the push service's own, as for every push.
+- **Guarantee**: at least once per occurrence, not exactly once. A crash between the send and the save sends the
+  occurrence again when the claim expires (10 minutes). The push service accepting a push does not prove it was shown;
+  members with push off still get the inbox copy.
+
+**Rollout of pre-069 reminders** (saved since 2026-01, never sent): each run first activates rows with no
+`ActivatedAt`, once and idempotently, with nothing sent: a one-time reminder already past **stops**; a daily / weekly
+one moves to its next occurrence after now; a future one is kept and sent when due. The log line
+`Logistics reminders activated: N pre-069 reminder(s); E one-time already past stopped, M recurring moved…` is the
+report. Preview before release: `SELECT Frequency, IsActive, NextReminderDate FROM LogisticsCardReminders WHERE
+ActivatedAt IS NULL` - the local copy of the real database had **0** reminders, so the rollout is a no-op there.
+
+**Pushes on events** (`LogisticsNotifier`, after the change is committed, never to the member who made it): a new
+responsible member (card created or edited by a manager), a new collaborator, an @mention in a new comment (an edit
+never notifies again). One push per event per recipient; the recipients were checked against the board in the same
+transaction. Card title and board name only. No per-category preference exists yet
+([push-notifications](push-notifications.md) → *Designed, not built*): a member who wants none turns push off on this
+device in `/profile`; the inbox copy stays.
+
+**As minhas tarefas** (`GET /api/logistics/my-tasks`, `/logistics/tasks`): every card the caller owns or collaborates
+on, on the boards they see (assignment never grants access: a card on a private board they are off is not listed),
+archived cards and boards left out; managers also get the open cards without a responsible member. Filters (counts
+over that list): Por fazer, Atrasadas, Próximos 7 dias, Bloqueadas, Sem responsável (managers), Feitas. Each row
+opens its card. Links to it: the boards page and every board.
+
 ## The card workspace (task 066, issue #247)
 
 **Schema** (`AddLogisticsCardWorkspace`, additive only, N-1 safe: 2.3.x ignores the new columns and tables):
@@ -179,7 +239,8 @@ send `userId: null` to non-managers).
 | `POST /cards/{id}/attachments` (multipart `file`), `POST /cards/{id}/links`, `GET`/`DELETE /cards/{id}/attachments/{attachmentId}` | the card's files and links; `GET` → `{ url }` |
 | `PUT /cards/{id}/labels`, `/links` | replace the set (managers) |
 | `POST /cards/{id}/assignments`, `DELETE /cards/{id}/assignments/{userId}` | members |
-| `POST /boards/{id}/reminders` | `{ cardId, frequency, nextReminderDate, userIds }` |
+| `POST /cards/{id}/reminders`, `PUT`/`DELETE /cards/{id}/reminders/{reminderId}` | `{ frequency, nextReminderDate, userIds }` (069; answers the card) |
+| `GET /my-tasks` | `{ tasks, canManage }` (069) |
 | `GET`/`POST`/`DELETE /boards/{id}/files` | `?file=` (id; `?name=` still works) → `{ url }`; multipart `file`; `?file=` |
 
 (all under `/api/logistics`). File names lose any path; downloads and deletes accept only names listed in the folder.
@@ -196,18 +257,19 @@ send `userId: null` to non-managers).
 ## Storage and notifications
 
 Board files: the old folder and file types, through `IDocumentStorageService`; tests use `FakeDocumentStorage`.
-Reminders are stored exactly as before and still never sent (unchanged). No email or push anywhere in the module.
+Since 069: reminders are delivered and assignments / mentions push (above). No email anywhere in the module.
 
 ## Follow-ups
 
-- Reminder delivery (a job reading `LogisticsCardReminders`) never existed; decide whether to build or drop it.
+- (069, resolved) Reminder delivery, assignment / mention pushes and "As minhas tarefas".
 - (042, resolved) `ILogistics{Board,List,Card}Service` and their repositories (no page caller) are removed; the board
   folder sanitizer moved unchanged into `LogisticsKanbanService`. `BoardCard` and `kanban.css` went with 037.
 - (065, resolved) Members open card details read-only; assignees tick the checklist and change the status.
 - (066, resolved) Ownership, discussion, history and card attachments.
 - (067, resolved) Private boards and access lists, workflow columns, stable board files, archive, copies and templates.
-  Next: reminder delivery, mention / assignment notifications and "As minhas tarefas" (#249) - they must use the board
-  rule too; list / calendar views (#250).
+  Next: list / calendar views (#250).
+- Rollback across 069: the 2.3.x / 067 app ignores the new reminder columns and never sends; reminders saved after 069
+  stay stored. Nothing to undo.
 - Rollback across 067: the 2.3.x app ignores visibility (a private board is visible to every member again), columns'
   states and archive. Roll back only with that in mind, or restore the pre-migration snapshot.
 - The whole-checklist replace (`PUT /cards/{id}/checklist`) is gone (066): it could overwrite another person's ticks.

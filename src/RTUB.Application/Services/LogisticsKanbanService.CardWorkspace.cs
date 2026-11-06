@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -39,6 +40,9 @@ public sealed partial class LogisticsKanbanService
 
         /// <summary>Owner, collaborator or manager - and still able to see the board: assignment never grants access (067).</summary>
         public bool CanWork => Viewer && (Manager || Owner || Collaborator);
+
+        /// <summary>Pushes the change sends once it is saved (task 069; <see cref="LogisticsNotifier"/>).</summary>
+        public List<(LogisticsNotice Kind, string[] To)> Notices { get; } = new();
     }
 
     private static async Task<CardAccess> AccessAsync(ApplicationDbContext db, LogisticsCard card, ClaimsPrincipal user)
@@ -161,6 +165,8 @@ public sealed partial class LogisticsKanbanService
             {
                 CardId = card.Id, AuthorId = access.UserId, Body = body, MentionsJson = mentions.Count > 0 ? JsonSerializer.Serialize(mentions) : null,
             });
+            // 069: the mentioned members, once, when the comment is posted (an edit never notifies again).
+            access.Notices.Add((LogisticsNotice.Mention, mentions.ToArray()));
             return null;
         });
 
@@ -448,6 +454,7 @@ public sealed partial class LogisticsKanbanService
             .OrderBy(a => a.CreatedAt).ThenBy(a => a.Id).ToListAsync();
         var activity = await db.LogisticsCardActivities.AsNoTracking().Include(a => a.Actor).Where(a => a.CardId == id)
             .OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.Id).Take(ActivityShown).ToListAsync();
+        var (reminders, canRemind) = await RemindersAsync(db, id, access);
 
         return new LogisticsCardDetailDto(
             Face(card, collaborators.Count, access.Owner || access.Collaborator, comments.Count, attachments.Count),
@@ -469,7 +476,9 @@ public sealed partial class LogisticsKanbanService
                 CanDelete: !access.ReadOnly && (access.Manager || (access.CanWork && a.UploadedById is not null && a.UploadedById == access.UserId)))).ToList(),
             activity.Select(a => new LogisticsActivityDto(Person(a.Actor), a.Action, a.Detail, Utc(a.CreatedAt))).ToList(),
             card.ArchivedAt is null ? null : Utc(card.ArchivedAt.Value),
-            access.ReadOnly);
+            access.ReadOnly,
+            reminders,
+            canRemind);
     }
 
     // ---------------------------------------------------------------- small helpers
