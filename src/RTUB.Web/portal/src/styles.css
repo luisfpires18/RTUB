@@ -5067,7 +5067,7 @@ video.tile__media {
 
 .prizes__items li {
   padding: 4px 12px;
-  border: 1px solid rgba(245, 196, 107, 0.35);
+  border: 1px solid var(--line);
   border-radius: 999px;
   color: #f7d79b;
   font-size: 0.8125rem;
@@ -5378,6 +5378,11 @@ video.tile__media {
   font-size: 0.85rem;
 }
 
+.participants-manager__note {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
 /* Lists inside the "Onde estiveste" / "As minhas presenças" dialogs. */
 .my-list {
   display: grid;
@@ -5464,7 +5469,7 @@ video.tile__media {
   gap: 8px;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid rgba(245, 196, 107, 0.35);
+  border: 1px solid var(--line);
   border-radius: 12px;
 }
 
@@ -5503,7 +5508,7 @@ video.tile__media {
   gap: 10px;
   align-items: center;
   padding: 14px 16px;
-  border: 1px solid rgba(245, 196, 107, 0.35);
+  border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--bg);
   color: var(--ink);
