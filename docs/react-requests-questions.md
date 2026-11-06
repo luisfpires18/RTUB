@@ -94,3 +94,9 @@ field); requests carry the requester's own contact details, as the old page did.
   (`request-grid`, `filter-search-container` and `filter-dropdown-container` were also used by Meetings / Naipes; no
   markup user left since 034).
 - A question notification opens `/questions`, not the question itself.
+
+## As minhas ações pendentes (073)
+
+The Questões panel of `/pending-actions` lists the member's own open questions with **Fechar questão** (confirmation,
+then the module's own close) and **Abrir**, which is the new deep link `/questions?question={id}`: the page opens that
+conversation once on load (the API decides access, as before).

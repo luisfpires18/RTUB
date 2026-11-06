@@ -80,3 +80,10 @@ Notes:
 Menu: `MemberMenuAccess.Logistics` is true for every signed-in member, so a Leitão's **Gestão** shows **Logística only**
 (`management` and `treasury` stay false for a Leitão; Reuniões, Documentação, Questões, Tesouraria and Pedidos keep their
 own page / API rules, unchanged).
+
+## As minhas ações pendentes (073)
+
+`/pending-actions` → Logística lists the caller's own open cards (owner or collaborator) on boards they see, through
+`LogisticsKanbanService.WorkableCards` (the "As minhas tarefas" rule), and **Concluir** calls `SetStatusAsync` as the
+caller (roles from the database). Nothing new is allowed: an assignee could already change a card's status. Unowned
+cards are not listed there, even for managers. Detail: [pending-actions](pending-actions.md).

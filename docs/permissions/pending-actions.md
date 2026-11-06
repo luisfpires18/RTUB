@@ -12,10 +12,10 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | --- | --- | --- |
 | Visitor | `/pending-actions` → sign in (`returnUrl` kept); API `401` | - |
 | Expelled / unknown account | API `401` (cannot sign in anyway) | - |
-| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072) |
-| Reformado | yes | none yet (participation is for active members; their own responsibilities come with #254-#257) |
-| Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | none yet |
-| Mod, Admin, Owner | as their member type | as their member type: **a role adds no panel in 071** |
+| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072); Logística, Questões (073) |
+| Reformado | yes | Logística, Questões (their own work; no participation panels) |
+| Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | Logística, Questões |
+| Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel**; on Logística a manager still sees only their own cards (not unowned ones) |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
 reconciliation); the page never computes its own activity status, and being active grants no module permission.
@@ -33,6 +33,20 @@ The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended =
 the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
 `RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
 not cancelled, unanswered).
+
+### Logística and Questões commands (073)
+
+| Request | Answer |
+| --- | --- |
+| Concluir on the caller's own open card on a board they see | `204` (the board's `SetStatusAsync`, same rules as on the board) |
+| Someone else's card, an unassigned / archived / done card, a private board the caller is not on | `404` |
+| A board with no done column | `400`, card unchanged |
+| Fechar questão on the caller's own open question | `204` (`QuestionBoardService.CloseAsync`, author only) |
+| A question the caller did not write (recipient included), closed or deleted | `404` |
+| A command the row does not have (`yes` on a card) | `400` |
+
+Assignment never opens a private board (as on `/logistics`); the module service runs as the caller with their roles from
+the database, so a removed role or assignment is refused at once.
 
 ## Dismissal (`POST /api/pending-actions/dismissals`, antiforgery required)
 

@@ -42,7 +42,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/inventory` | - | R | W D | W D | W D | W D | [inventory](inventory.md) |
 | `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions, reservations | W D + reservations | W D + reservations | [shop](shop.md) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](naipes.md) |
-| `/pending-actions` | sign-in | own actions (active: answer Atuações, Ensaios; past = self-report, rehearsals pending approval) | yes | as member type | as member type | as member type | [pending-actions](pending-actions.md) |
+| `/pending-actions` | sign-in | own actions (active: answer Atuações, Ensaios; past = self-report, rehearsals pending approval; everyone: own Logística cards, own open Questões) | yes | as member type | as member type | as member type | [pending-actions](pending-actions.md) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](member-area.md) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](owner-tools.md) |
 

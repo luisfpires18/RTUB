@@ -1,18 +1,20 @@
 # React: As minhas ações pendentes (`/pending-actions`)
 
-Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
+Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253); Logística and Questões =
+task 073 (issue #254). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
 
 A page of **grouped actions** with the buttons on each row. Not an inbox, notifications feed, chat or one-at-a-time
 wizard, and not a statistics page. Nothing is copied into a generic "actions" table: every panel is a query over its
 module's own data, run on every load; the only thing stored is a member's own dismissal of an optional action.
 
-## Delivered (071, 072) and still to come
+## Delivered (071-073) and still to come
 
 | Panel | Category | State | Rows / buttons |
 | --- | --- | --- | --- |
 | Atuações | participation | **delivered (072)** | unanswered events: Próximas → **Vou / Não vou**; Passadas → **Fui / Não fui**; the title opens `/events/{id}` |
 | Ensaios | participation | **delivered (072)** | unanswered rehearsals: Próximas → **Vou / Não vou**; Passadas → **Fui / Não fui** (a "Fui" stays pending until approved); the title opens `/rehearsals/{id}` |
-| Logística, Questões | tasks | #254 | - |
+| Logística | tasks | **delivered (073)** | the member's own open cards (owner or collaborator) on boards they see: **Concluir** (the board's own status change to its done column) and **Abrir** (`/logistics/{board}?card={id}`) |
+| Questões | tasks | **delivered (073)** | the member's own open questions (the ones they may close): **Fechar questão** (asks first) and **Abrir** (`/questions?question={id}` opens the conversation) |
 | Tesouraria, Secretaria | responsibilities | #255 | - |
 | Reuniões / atas, presenças por aprovar, repertório | responsibilities | #256 | - |
 | Membros (campos em falta) | responsibilities | #257 | - |
@@ -50,7 +52,7 @@ A panel that is not delivered is **not shown** (no empty placeholder pretending 
 | `GET /api/pending-actions` | `{ today, fiscalYear, status: active\|retired\|none, panels: [first page of each panel that applies] }` |
 | `GET /api/pending-actions/panels/{panel}?filter=&page=` | one panel page: `{ key, title, category, filters[{key,label,count}], filter, page, pageSize: 3, total, rows }` |
 | `POST /api/pending-actions/dismissals` `{ kind, sourceKey }` | `204` / `403` required or answer / `404` not pending; antiforgery |
-| `POST /api/pending-actions/responses` `{ kind, sourceKey, answer: yes\|no, instrument?, notes? }` (072) | `204` saved / `404` not pending for the caller now (answered here, in the module or by an Admin; cancelled; outside the window; not active) / `409` a concurrent first answer won / `400` bad answer, instrument not offered, note too long; antiforgery |
+| `POST /api/pending-actions/responses` `{ kind, sourceKey, answer: yes\|no\|done\|close, instrument?, notes? }` (072, 073) | `204` saved / `404` not pending for the caller now (answered here, in the module or by an Admin; cancelled; outside the window; not active) / `409` a concurrent first answer won / `400` bad answer, instrument not offered, note too long; antiforgery |
 
 Rows carry `kind`, `sourceKey`, `title`, `date`, `time`, `context`, `required`, `dismissible`, `href`, `actions[{label,
 href, primary, answer}]`; the page also carries `instruments` / `defaultInstrument` for the answer dialog - no user ids, emails or other people's data. Page size is fixed (3); an out-of-range page answers the last
@@ -107,6 +109,28 @@ the activity id, so another member's row can never be addressed.
 - Module parity: `/events/{id}` shows "Disseste que vais" and "Quem vai"; `/rehearsals/{id}` shows the presença as
   pending, the Admin's approval queue includes it.
 
+## Logística and Questões (073)
+
+Both panels are for **every signed-in member** (Leitões and Reformados included: it is their own work; activity status
+plays no part). Each command re-checks the row is pending for the member, then calls the module's own service **as the
+member, with the roles read from the database** (`PendingActionMember.ToPrincipal()`), so the module's rules decide.
+
+| Panel | Pending when | Command | Module call | Leaves the panel when |
+| --- | --- | --- | --- | --- |
+| Logística | card not archived, not done, on a board the member sees and that is not archived (`LogisticsKanbanService.WorkableCards`, the same rule as "As minhas tarefas"), and the member is its owner or a collaborator | Concluir (`done`) | `ILogisticsKanbanService.SetStatusAsync(id, Done)`: moves the card to the board's done column, history, version | done (here or on the board), unassigned, archived, board archived or made private without them |
+| Questões | the member is the author, not closed, not deleted (`QuestionsAuthorization`: only the author closes; no role overrides) | Fechar questão (`close`), after a confirmation | `IQuestionBoardService.CloseAsync`: the thread and replies are kept | closed (here or on `/questions`), deleted |
+
+- **Order**: Logística by deadline (none last), then id; Questões answered ones first (the member's turn), then latest
+  activity. No sub-filters. Context: board, status, priority (Alta / Urgente), checklist n/m, Responsável / Colaborador;
+  recipient position and whether it is answered.
+- Unowned cards are left out even for Mod / Admin / Owner ("As minhas tarefas" shows them to managers): they are not
+  the member's work.
+- **Not dismissible, no snooze**: a card or an open question is real work. Opening it is not completion; only the
+  module's state removes it. ("Mais tarde" was optional in #254 and is not offered.)
+- A board with no done column answers `400` ("Este quadro não tem uma coluna DONE.", the board's message), and the card stays.
+- Retries: a second Concluir / Fechar finds nothing pending (`404`).
+- `/questions?question={id}` (new) opens that conversation once; the API decides access as before.
+
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 
 | Property | Rule |
@@ -146,4 +170,7 @@ safe: 2.3.x ignores the table. Rolling the app back hides the page and leaves th
 Tests: `tests/RTUB.Application.Tests/Services/PendingActionsServiceTests.cs` (eligibility, fiscal year, paging, clamp,
 dismissal, live roles), `tests/RTUB.Integration.Tests/Api/PendingActionsApiTests.cs` (real host + SQLite, CSRF, landing; 072: answers through
 the real services, module parity, races, stale reads), `RehearsalAttendanceAdminWorkflowTests` (`AddFirstAttendanceAsync`),
-`tests/responsive/responsive_audit.py` scenarios `pending-actions`, `pending-actions-past`, `pending-actions-answer`.
+`tests/responsive/responsive_audit.py` scenarios `pending-actions`, `pending-actions-past`, `pending-actions-dialog`
+(opens the "Fechar questão" confirmation and never confirms: the audit must not write; 073 replaced the 072
+`pending-actions-answer` scenario, which clicked the first primary button and so answered or completed rows on the
+audit database).

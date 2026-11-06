@@ -309,3 +309,10 @@ Since 069: reminders are delivered and assignments / mentions push (above). No e
   states and archive. Roll back only with that in mind, or restore the pre-migration snapshot.
 - The whole-checklist replace (`PUT /cards/{id}/checklist`) is gone (066): it could overwrite another person's ticks.
 - Board files follow the current fiscal year: after 1 September a board shows an empty folder (unchanged).
+
+## As minhas ações pendentes (073)
+
+The Logística panel of `/pending-actions` is the member's own open cards from the same rule as "As minhas tarefas"
+(`WorkableCards`, extracted from `GetMyTasksAsync` with no behaviour change), paged in SQL, with **Concluir** (the board's
+own `SetStatusAsync` to its done column) and **Abrir** (the card deep link). Done there = done on the board and in "As
+minhas tarefas". docs/react-pending-actions.md → Logística and Questões.

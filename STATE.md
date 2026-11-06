@@ -6,7 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 072 = As minhas ações pendentes 2/8** (issue #253; `feat/072/pending-actions-attendance`, not merged). Vou /
+**Task 073 = As minhas ações pendentes 3/8** (issue #254; `feat/073/pending-actions-logistics-questions`, not merged).
+Logística panel (own open cards on boards the member sees, the "As minhas tarefas" rule extracted as `WorkableCards`;
+Concluir = the board's `SetStatusAsync`) and Questões panel (own open questions; Fechar questão = `CloseAsync`, author
+only, confirmed first; `/questions?question={id}` deep link), for every member incl. Reformados. Module services run as
+the member with roles from the database. Not dismissible, no snooze. The responsive audit no longer writes (072's
+`pending-actions-answer` clicked answer buttons). No schema change.
+
+**Task 072 = As minhas ações pendentes 2/8** (issue #253; PR #273 merged into `dev`, not released). Vou /
 Não vou and Fui / Não fui answered in place on Atuações and Ensaios, through `IEnrollmentService` and the new create-only
 `IRehearsalAttendanceService.AddFirstAttendanceAsync` (unique indexes guard races; existing answers never changed).
 Past = current fiscal year from the member's admission month (PastFrom). A past event "Fui" counts at once (same row as

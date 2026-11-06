@@ -24,6 +24,14 @@ const CATEGORIES: { key: Category | 'all'; label: string }[] = [
 // Each module's own note limit (EventAgendaService.MaxNotesLength, RehearsalAgendaService.NotesMax); the server checks it too.
 const NOTES_MAX: Record<string, number> = { 'event.response': 1000, 'rehearsal.response': 500 };
 
+const EMPTY_PANEL: Record<string, string> = {
+  logistics: 'Não tens cartões por concluir.',
+  questions: 'Não tens questões abertas.',
+};
+
+/** What a saved command says (072 answers: the default). */
+const DONE: Record<string, string> = { done: 'Cartão concluído.', close: 'Questão fechada.' };
+
 const EMPTY: Record<string, string> = {
   upcoming: 'Nada por responder nas próximas.',
   past: 'Nada por responder neste ano.',
@@ -175,6 +183,7 @@ function ActionPanel({
 }) {
   const [state, setState] = useState<PanelState>({ panel: initial, busy: false, failed: false, notice: null });
   const [asking, setAsking] = useState<{ row: ActionRow; button: ActionButton } | null>(null);
+  const [confirming, setConfirming] = useState<{ row: ActionRow; button: ActionButton } | null>(null);
   const latest = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const { panel } = state;
@@ -227,21 +236,27 @@ function ActionPanel({
       return Object.values(o.errors)[0] ?? 'Há campos por corrigir.';
     }
     if (o.kind === 'ok' || o.kind === 'notfound' || o.kind === 'conflict' || o.kind === 'closed') {
-      await go(panel.filter, panel.page, o.kind === 'ok' ? 'Resposta guardada.' : 'Esta atividade já tinha resposta ou mudou entretanto.');
+      await go(panel.filter, panel.page, o.kind === 'ok' ? DONE[a.answer] ?? 'Resposta guardada.' : 'Isto já foi tratado ou mudou entretanto.');
       heading.current?.focus({ preventScroll: true });
       return null;
     }
     setState((s) => ({
       ...s,
       busy: false,
-      notice: o.kind === 'signin' ? 'A sessão terminou. Entra de novo para responder.' : 'Não foi possível guardar. Verifica a ligação e tenta de novo.',
+      notice:
+        o.kind === 'signin'
+          ? 'A sessão terminou. Entra de novo para responder.'
+          : o.kind === 'forbidden'
+            ? 'Já não tens permissão para isto.'
+            : 'Não foi possível guardar. Verifica a ligação e tenta de novo.',
     }));
     return null;
   };
 
   // Vou / Fui asks for the instrument only when there is a choice; otherwise it is sent at once with the primary.
   const answer = (row: ActionRow, button: ActionButton) => {
-    if (button.answer === 'yes' && instruments.length > 1) setAsking({ row, button });
+    if (button.confirm) setConfirming({ row, button });
+    else if (button.answer === 'yes' && instruments.length > 1) setAsking({ row, button });
     else respond(row, { answer: button.answer!, instrument: button.answer === 'yes' ? defaultInstrument : null });
   };
 
@@ -287,7 +302,7 @@ function ActionPanel({
         ) : (
           <p className="pa-empty">
             <Icon name="check" />
-            {EMPTY[panel.filter ?? ''] ?? 'Nada por tratar.'}
+            {EMPTY[panel.filter ?? ''] ?? EMPTY_PANEL[panel.key] ?? 'Nada por tratar.'}
           </p>
         )}
       </div>
@@ -322,6 +337,35 @@ function ActionPanel({
           <span className="sr-only">Página seguinte de {panel.title}</span>
         </button>
       </footer>
+
+      {confirming && (
+        <Dialog
+          title={confirming.row.title}
+          onClose={() => setConfirming(null)}
+          footer={
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => setConfirming(null)} disabled={state.busy}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={state.busy}
+                onClick={async () => {
+                  const { row, button } = confirming;
+                  await respond(row, { answer: button.answer! });
+                  setConfirming(null);
+                  requestAnimationFrame(() => heading.current?.focus({ preventScroll: true }));
+                }}
+              >
+                {confirming.button.label}
+              </button>
+            </>
+          }
+        >
+          <p>{confirming.button.confirm}</p>
+        </Dialog>
+      )}
 
       {asking && (
         <AnswerDialog

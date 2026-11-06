@@ -147,16 +147,31 @@ public sealed class PendingActionsService : IPendingActionsService
 
         var kind = input.Kind?.Trim() ?? "";
         var sourceKey = input.SourceKey?.Trim() ?? "";
-        var yes = input.Answer?.Trim() switch { "yes" => true, "no" => false, _ => (bool?)null };
-        if (yes is null)
-        {
-            return EventResult<bool>.Invalid("answer", "Resposta inválida.");
-        }
+        var answer = input.Answer?.Trim() ?? "";
 
         await using var db = await _contexts.CreateDbContextAsync();
         if (await LoadMemberAsync(db, userId) is not { } member)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        // Task 073: commands (Concluir, Fechar questão) go to their own source; the rest are the attendance answers below.
+        if (_sources.Where(s => s.AppliesTo(member)).OfType<IPendingActionCommand>().FirstOrDefault(c => c.Kind == kind) is { } command)
+        {
+            if (!command.Answers.Contains(answer))
+            {
+                return EventResult<bool>.Invalid("answer", "Resposta inválida.");
+            }
+
+            return sourceKey.Length is 0 or > 64
+                ? EventResult<bool>.Fail(EventResultStatus.NotFound)
+                : await command.RunAsync(db, member, sourceKey, answer);
+        }
+
+        var yes = answer switch { "yes" => true, "no" => false, _ => (bool?)null };
+        if (yes is null)
+        {
+            return EventResult<bool>.Invalid("answer", "Resposta inválida.");
         }
 
         var responder = _sources.Where(s => s.AppliesTo(member)).OfType<IPendingActionResponder>().FirstOrDefault(r => r.Kind == kind);

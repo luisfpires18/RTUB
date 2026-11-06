@@ -362,8 +362,10 @@ SCENARIOS: list[Scenario] = [
     Scenario("logistics-tasks", "/logistics/tasks", auth=True),
     Scenario("pending-actions", "/pending-actions", auth=True),
     Scenario("pending-actions-past", "/pending-actions", auth=True, action=pending_past),
-    # 072: Vou opens the instrument dialog only for a member with two or more instruments.
-    Scenario("pending-actions-answer", "/pending-actions", auth=True, action=click_css(".pa-row button.btn--primary"), dialog=True, optional=True),
+    # 073: a page dialog that never writes unless confirmed (the audit only opens it). Optional: needs an open question
+    # of the audit user. Never click an answer button here: Vou / Concluir write at once.
+    Scenario("pending-actions-dialog", "/pending-actions", auth=True,
+             action=click_css('.pa-row button[aria-label^="Fechar questão:"]'), dialog=True, optional=True),
     Scenario("treasury", "/treasury", auth=True),
     Scenario("treasury-calotes", "/treasury/calotes", auth=True),
     Scenario("treasury-calotes-add", "/treasury/calotes", auth=True, action=click("Adicionar calote"), dialog=True),
