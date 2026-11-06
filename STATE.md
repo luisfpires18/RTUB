@@ -6,7 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
-**Task 067 = Logística 3/5** (issue #248; `feat/067/logistics-board-access`, PR open, not merged; completes the first
+**Task 069 = Logística 4/5** (issue #249; `feat/069/logistics-reminders-my-tasks`, PR open, not merged). Card
+reminders delivered (worker every minute; Portugal time, DST-safe; claimed per occurrence; 6 h catch-up; bounded retry;
+at-least-once), pre-069 reminders activated without replay, reminders on the card (members for themselves, managers for
+board viewers), assignment / mention pushes (never the actor), "As minhas tarefas" (`/logistics/tasks`), card deep
+links `?card=` (login keeps the query). Migration `AddLogisticsReminderDelivery` (additive). Next after review: #250.
+(068: role-free UI copy, PR #268 merged.)
+
+**Task 067 = Logística 3/5** (issue #248; PR #267 merged into `dev`, not released; completes the first
 delivery #246-#248). Private boards (access list; inaccessible = 404 everywhere, Documentação too), responsible member
 (no rights), workflow columns (column = status; legacy columns mapped once at startup, mixed ones split), stable board
 files (`logistics/{env}/boards/{id}/files/`, old per-year folders still listed), archive (read-only), duplicate

@@ -19,10 +19,11 @@ namespace RTUB.Integration.Tests.Api;
 /// <summary>
 /// Logística on /api/logistics (React track 023, were the Blazor /logistics and /logistics/{id}) through the real host:
 /// real login, roles, antiforgery and SQLite. Board files go to <see cref="FakeDocumentStorage"/> (in memory, nothing
-/// reaches R2). Logistics sends no email or push; reminders are only stored. Every test makes its own boards, since the
+/// reaches R2). Pushes (069) go through the real push service: without VAPID keys only the inbox copy is kept. Reminder
+/// delivery is driven by the tests (LogisticsApiTests.Reminders.cs). Every test makes its own boards, since the
 /// class shares one database.
 /// </summary>
-public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
+public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
 {
     private readonly DocumentationApiFactory _factory;
 
@@ -44,9 +45,11 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         }
 
         (await anonymous.PostAsJsonAsync($"/api/logistics/lists/{listId}/cards", new { title = "x" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await anonymous.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", new { cardId })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.PostAsJsonAsync($"/api/logistics/cards/{cardId}/reminders", new { frequency = "OneTime" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await anonymous.GetAsync("/api/logistics/my-tasks")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        foreach (var page in new[] { "/logistics", $"/logistics/{boardId}" })
+        // 069: the query comes back after signing in (a card link), and /logistics/tasks is a member page too.
+        foreach (var page in new[] { "/logistics", $"/logistics/{boardId}", $"/logistics/{boardId}?card={cardId}", "/logistics/tasks" })
         {
             var response = await anonymous.GetAsync(page);
             response.StatusCode.Should().Be(HttpStatusCode.Redirect, page);
@@ -387,28 +390,6 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await CardAsync(first))!.ListId.Should().Be(to);
     }
 
-    [Fact]
-    public async Task Reminders_AreOpenToEveryMember_AndOnlyStored()
-    {
-        var (boardId, _, cardId) = await SeedBoardAsync();
-        var (_, _, foreign) = await SeedBoardAsync();
-        var (member, me) = await SignInAsync();
-        await WithTokenAsync(member);
-
-        var errors = await Errors(await member.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders",
-            new { cardId = foreign, frequency = "Hourly", nextReminderDate = (DateTime?)null, userIds = Array.Empty<string>() }));
-        errors.Keys.Should().BeEquivalentTo("cardId", "frequency", "nextReminderDate", "userIds");
-        (await Errors(await member.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", Reminder(cardId, "nobody")))).Keys.Should().Equal("userIds");
-
-        var created = await Json(await member.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", Reminder(cardId, me.Id, "Weekly")));
-        created.GetProperty("frequency").GetString().Should().Be("Weekly");
-        using var scope = _factory.Services.CreateScope();
-        var reminder = await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().LogisticsCardReminders.AsNoTracking()
-            .SingleAsync(r => r.Id == created.GetProperty("id").GetInt32());
-        (reminder.CardId, reminder.TargetUserIds, reminder.IsActive, reminder.LastSentAt).Should().Be((cardId, me.Id, true, (DateTime?)null),
-            "stored only: nothing in the app sends logistics reminders");
-    }
-
     /// <summary>
     /// 067: new board files go to the board's own folder (by id, not in Documentação), so a rename or the 1 September
     /// rollover changes nothing; the pre-067 folder stays listed for every year. Files are addressed by id; ?name= still
@@ -739,7 +720,7 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         }
 
         (await outsider.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "x" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await outsider.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", Reminder(cardId, outsiderUser.Id))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await outsider.PostAsJsonAsync($"/api/logistics/cards/{cardId}/reminders", Remind())).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Assignment never grants access: an assigned outsider still sees nothing, and cannot be added as collaborator.
         (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/assignments", new { userId = outsiderUser.Id }))).Keys.Should().Equal("userId");
@@ -1027,9 +1008,6 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
     // ---------- helpers ----------
 
     private static string Tag() => "lgx" + Guid.NewGuid().ToString("N")[..8];
-
-    private static object Reminder(int cardId, string userId, string frequency = "OneTime") =>
-        new { cardId, frequency, nextReminderDate = DateTime.Today.AddDays(1).AddHours(10), userIds = new[] { userId } };
 
     private static IEnumerable<string?> Names(JsonElement board) =>
         board.GetProperty("lists").EnumerateArray().Select(l => l.GetProperty("name").GetString());

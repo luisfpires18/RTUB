@@ -1750,13 +1750,25 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("CardId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClaimedUntil")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Frequency")
@@ -1770,6 +1782,9 @@ namespace RTUB.Migrations
 
                     b.Property<DateTime>("NextReminderDate")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("Personal")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("TargetUserIds")
                         .IsRequired()

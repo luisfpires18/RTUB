@@ -578,7 +578,7 @@ public class Program
         // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
         // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop is public read-only, while member
         // actions remain service-authorized; React Documentação (track 022):
-        // /documentation; React Logística (track 023): /logistics and /logistics/{id}; members only (the Blazor pages were
+        // /documentation; React Logística (track 023): /logistics, /logistics/{id} and (069) /logistics/tasks; members only (the Blazor pages were
         // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
         // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
@@ -588,7 +588,7 @@ public class Program
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
-                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/{id:int}",
+                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
                      "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
         {
@@ -596,7 +596,8 @@ public class Program
             {
                 if (context.User.Identity?.IsAuthenticated != true)
                 {
-                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
+                    // 069: the query comes back too (/logistics/{id}?card=, /messages?c=); /login keeps local targets only.
+                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path + context.Request.QueryString));
                 }
 
                 context.Response.Headers.CacheControl = "no-cache";

@@ -27,7 +27,9 @@ Every Web Push RTUB sends, grouped by area, with the page a tap opens. Delivery,
 
 Deep links the React pages accept: `/events/{id}`, `/events/{id}/discussion`, `/rehearsals/{id}`,
 `/meetings?meeting={id}` (opens the meeting's details, 058), `/messages?c={id}`, `/gallery?item={id}`,
-`/music/albums/{id}`, `/naipes?instrument={InstrumentType}`, `/treasury/calotes`, `/profile#push`.
+`/music/albums/{id}`, `/naipes?instrument={InstrumentType}`, `/treasury/calotes`, `/profile#push`,
+`/logistics/{boardId}?card={cardId}` (opens the card on its board, 069; a card or board the member can no longer see
+shows "não existe ou não tem acesso" and nothing of the card).
 
 ## Catalogue
 
@@ -116,6 +118,15 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 | `CreateNaipeContentNotification` | naipe video / image (`NaipeService`) | all | "Novo {vídeo/imagem} em {instrument}" | `/naipes?instrument={InstrumentType}` | `naipe-content-{instrument}` |
 | `CreateGalleryTagNotification` | tagged on upload (`GalleryManagementService`) | some (tagged) | "Nova media na Galeria" | `/gallery?item={id}` | `gallery-tag` |
 
+### Logística (task 069)
+Card title and board name only: never the card's details or a comment's text. Never to the member who made the change.
+| Factory method | Trigger | Recipients | Title | Opens | Tag |
+|---|---|---|---|---|---|
+| `CreateLogisticsNotification(Owner)` | a manager makes a member the card's responsible (card created or edited, `LogisticsKanbanService`) | one (new owner) | "Logística: tarefa atribuída" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Collaborator)` | a manager adds a collaborator | one | "Logística: tarefa atribuída" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Mention)` | @mention in a new comment (an edit never notifies again) | some (mentioned) | "Logística: mencionaram-te" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Reminder)` | a due card reminder (`LogisticsReminderDelivery`, every minute) | some (still seeing the board) | "Lembrete de Logística" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+
 ### Tesouraria
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
@@ -181,6 +192,8 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Resumo Semanal | ✅ Sends | Yes (every account) | `WeeklyNotificationBackgroundService`, Mondays |
 | Teste (`/profile`) | ✅ Sends | Yes (own device) | own device, 30 s cooldown |
 | Owner custom (`/notifications`) | ✅ Sends | Yes, if chosen | Owner only |
+| Logística: tarefa atribuída / mencionaram-te (069) | ✅ Sends | Yes, if picked | a manager sets the card's owner or adds a collaborator; a worker @mentions board viewers in a new comment; never the actor |
+| Lembrete de Logística (069) | ✅ Sends | Yes, if targeted | `LogisticsReminderBackgroundService` (every minute, `LogisticsReminders:Enabled`) → `LogisticsReminderDelivery`: due card reminders, recipients re-checked at send time. Rules: `docs/react-logistics.md` → *Reminders and notifications* |
 
 Not checked here: Azure App Settings that may override an `Enabled` flag (run
 `scripts/config/audit-azure-app-settings.ps1`), and delivery on real devices.

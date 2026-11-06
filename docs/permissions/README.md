@@ -28,7 +28,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/documentation` | - | R + upload | blocked | R + upload + manage | R + upload + manage | all | [documentation](documentation.md) |
 | `/meetings` | - | by meeting type | blocked | as Member | as Member (+ add participants) | all | [meetings](meetings.md) |
 | `/treasury` | - | R (not Caloiro) | own calotes | R + records | R + records + reports | all | [treasury](treasury.md) |
-| `/logistics` | - | R (members-visible boards + private ones they are invited to) + reminders; own cards: edit, checklist, move, comment, attach | as Member | W D + moderation, all boards | W D + moderation, all boards | W D + moderation, all boards | [logistics](logistics.md) |
+| `/logistics` | - | R (members-visible boards + private ones they are invited to) + "As minhas tarefas"; own cards: edit, checklist, move, comment, attach, own reminders | as Member | W D + moderation, all boards | W D + moderation, all boards | W D + moderation, all boards | [logistics](logistics.md) |
 | `/requests` | - | R | blocked | R | R + approve, reject, delete | same as Admin | [requests-questions](requests-questions.md) |
 | `/questions` | - | ask + own threads | yes | as Member | as Member | as Member | [requests-questions](requests-questions.md) |
 | `/members` | - | R | R | R | W D (Leitões) | W D (anyone) | [members](members.md) |

@@ -1048,6 +1048,36 @@
       "notes": "Daily run time (committed default)."
     },
     {
+      "name": "LogisticsReminders__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Logística reminder delivery switch (task 069; committed default)."
+    },
+    {
+      "name": "LogisticsReminders__IntervalSeconds",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "60",
+      "notes": "Seconds between Logística reminder runs, at least 30 (task 069; committed default)."
+    },
+    {
       "name": "MemberStatusUpdate__Enabled",
       "group": "scheduler",
       "secret": false,

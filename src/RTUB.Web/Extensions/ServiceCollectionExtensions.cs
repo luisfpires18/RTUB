@@ -150,6 +150,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentationService, DocumentationService>();
         services.AddSingleton<DocumentTreeCache>();
         services.AddScoped<ILogisticsKanbanService, LogisticsKanbanService>();
+        services.AddScoped<LogisticsReminderDelivery>();
+        services.AddScoped<LogisticsNotifier>();
         services.AddScoped<ITreasuryService, TreasuryService>();
         services.AddScoped<ITreasuryRecordsService, TreasuryRecordsService>();
         services.AddScoped<IGalleryTimelineService, GalleryTimelineService>();
@@ -624,6 +626,7 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.WeeklyNotificationOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.CalotesNotificationOptions>(
             configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
+        services.Configure<LogisticsReminderOptions>(configuration.GetSection(LogisticsReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
@@ -926,6 +929,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<WeeklyNotificationBackgroundService>();
         services.AddHostedService<CalotesNotificationBackgroundService>();
         services.AddHostedService<ActivityReminderBackgroundService>();
+        services.AddHostedService<LogisticsReminderBackgroundService>();
 
         return services;
     }

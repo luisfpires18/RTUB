@@ -112,9 +112,16 @@ public static class LogisticsEndpoints
         writes.MapDelete("/cards/{id:int}/attachments/{attachmentId:int}", async (int id, int attachmentId, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.DeleteAttachmentAsync(id, attachmentId, http.User)));
 
-        // Reminders (any member who sees the board) and board files
-        writes.MapPost("/boards/{id:int}/reminders", async (int id, LogisticsReminderInput input, HttpContext http, ILogisticsKanbanService s) =>
+        // 069: a card's reminders (managers for board viewers; owner and collaborators for themselves) and "As minhas tarefas"
+        writes.MapPost("/cards/{id:int}/reminders", async (int id, LogisticsReminderInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.CreateReminderAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPut("/cards/{id:int}/reminders/{reminderId:int}", async (int id, int reminderId, LogisticsReminderInput input, HttpContext http,
+            ILogisticsKanbanService s) => ToResult(await s.UpdateReminderAsync(id, reminderId, input, http.User))).WithMetadata(small);
+        writes.MapDelete("/cards/{id:int}/reminders/{reminderId:int}", async (int id, int reminderId, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DeleteReminderAsync(id, reminderId, http.User)));
+        api.MapGet("/my-tasks", async (HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetMyTasksAsync(http.User)));
+
+        // Board files
         // 067: files by id ("f:name" / "l:year/name"); ?name= still works for older pages.
         api.MapGet("/boards/{id:int}/files", async (int id, string? file, string? name, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.GetFileAsync(id, file ?? name, http.User)));

@@ -133,7 +133,9 @@ public sealed record LogisticsCardDetailDto(
     IReadOnlyList<LogisticsAttachmentDto> Attachments,
     IReadOnlyList<LogisticsActivityDto> Activity,
     DateTime? ArchivedAt = null,
-    bool ReadOnly = false);
+    bool ReadOnly = false,
+    IReadOnlyList<LogisticsReminderDto>? Reminders = null,
+    bool CanRemind = false);
 
 /// <summary>A comment. <c>Mentions</c> = the mentioned members' names; <c>CanEdit</c> (author) and <c>CanDelete</c> (author or manager) for the caller.</summary>
 public sealed record LogisticsCommentDto(int Id, LogisticsPersonDto? Author, string Body, IReadOnlyList<string> Mentions, DateTime CreatedAt,
@@ -189,10 +191,24 @@ public sealed record LogisticsAssignmentInput(string? UserId);
 
 public sealed record LogisticsMemberOptionDto(string Id, string DisplayName, string? FullName, string? AvatarUrl);
 
-/// <summary>"Criar Lembrete": a card of the board, the frequency, the first date (local time) and the members.</summary>
-public sealed record LogisticsReminderInput(int CardId, string? Frequency, DateTime? NextReminderDate, IReadOnlyList<string>? UserIds);
+/// <summary>
+/// A card's reminder (task 069): the frequency, the next date (Portugal wall-clock time) and, from managers only, the
+/// members (board viewers). Anyone else sends none: the reminder is their own.
+/// </summary>
+public sealed record LogisticsReminderInput(string? Frequency, DateTime? NextReminderDate, IReadOnlyList<string>? UserIds);
 
-public sealed record LogisticsReminderDto(int Id, int CardId, string Frequency, DateTime NextReminderDate, int Members);
+/// <summary>A reminder as the caller sees it: <c>Next</c> is Portugal time; <c>Recipients</c> are names (ids to managers only).</summary>
+public sealed record LogisticsReminderDto(int Id, string Frequency, DateTime Next, IReadOnlyList<LogisticsAssigneeDto> Recipients, bool Personal,
+    bool CanEdit, DateTime? LastSentAt);
+
+/// <summary>
+/// "As minhas tarefas" (task 069): one card the caller works on (<c>Role</c> "owner" / "collaborator"), or - managers
+/// only - an open card without a responsible member (<c>Role</c> null). Only boards the caller sees; no archived work.
+/// </summary>
+public sealed record LogisticsMyTaskDto(int CardId, int BoardId, string BoardName, string Title, string Status, string Priority, DateTime? DueDate,
+    string? Role, int ChecklistDone, int ChecklistTotal);
+
+public sealed record LogisticsMyTasksDto(IReadOnlyList<LogisticsMyTaskDto> Tasks, bool CanManage);
 
 /// <summary>A board file. <c>Id</c> (task 067) addresses it ("f:name" in the board's own folder, "l:year/name" in its pre-067 folder of that fiscal <c>Year</c>).</summary>
 public sealed record LogisticsFileDto(string Name, string Extension, long SizeBytes, string Id = "", string? Year = null);
