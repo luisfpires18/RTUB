@@ -21,6 +21,9 @@ const CATEGORIES: { key: Category | 'all'; label: string }[] = [
   { key: 'responsibilities', label: 'Responsabilidades' },
 ];
 
+// Each module's own note limit (EventAgendaService.MaxNotesLength, RehearsalAgendaService.NotesMax); the server checks it too.
+const NOTES_MAX: Record<string, number> = { 'event.response': 1000, 'rehearsal.response': 500 };
+
 const EMPTY: Record<string, string> = {
   upcoming: 'Nada por responder nas próximas.',
   past: 'Nada por responder neste ano.',
@@ -391,7 +394,7 @@ function AnswerDialog({
         </div>
         <div className="form__field">
           <label htmlFor={ids.notes}>Nota (opcional)</label>
-          <textarea id={ids.notes} rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea id={ids.notes} rows={2} maxLength={NOTES_MAX[row.kind] ?? 500} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         {error && (
           <p className="form__error" role="alert">
