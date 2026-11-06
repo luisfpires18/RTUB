@@ -63,7 +63,7 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         var raw = await member.GetStringAsync("/api/pending-actions/panels/events?filter=upcoming&page=1");
 
         page.GetProperty("status").GetString().Should().Be("active");
-        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Equal("events", "rehearsals", "logistics", "questions");
+        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Equal("events", "rehearsals", "logistics", "questions", "gallery");
         raw.Should().NotContain(me.Id).And.NotContain("@test.com");
         var keys = await AllKeysAsync(member, "events", "upcoming");
         keys.Should().Contain(mine.ToString()).And.NotContain(answered.ToString());

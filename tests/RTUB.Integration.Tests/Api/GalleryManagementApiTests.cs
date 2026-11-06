@@ -51,6 +51,40 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
             It.Is<SendPushNotificationDto>(n => n.Url!.StartsWith("/gallery?item="))), Times.Once);
     }
 
+    [Fact]
+    public async Task AnUpload_ForAnEvent_StoresTheLink_AndACancelledOrUnknownEventIsRefused()
+    {
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(member);
+        var (live, cancelled) = (await AddEventAsync(false), await AddEventAsync(true));
+
+        var linked = await member.PostAsync("/api/gallery", WithEvent(Upload("Serenata", "2026-10-03", membersOnly: true), live.ToString()));
+        var refused = await member.PostAsync("/api/gallery", WithEvent(Upload("Serenata", "2026-10-03", membersOnly: true), cancelled.ToString()));
+        var garbage = await member.PostAsync("/api/gallery", WithEvent(Upload("Serenata", "2026-10-03", membersOnly: true), "abc"));
+
+        linked.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await MediaAsync((await linked.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32()))!.EventId.Should().Be(live);
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        garbage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    private static MultipartFormDataContent WithEvent(MultipartFormDataContent form, string eventId)
+    {
+        form.Add(new StringContent(eventId), "eventId");
+        return form;
+    }
+
+    private async Task<int> AddEventAsync(bool cancelled)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var e = Event.Create("Serenata", new DateTime(2026, 10, 3), "Braga", EventType.Atuacao, "");
+        e.IsCancelled = cancelled;
+        db.Events.Add(e);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
     [Theory]
     [InlineData("2023-01-01", 2023, null, null)]
     [InlineData("2023-06-01", 2023, 6, null)]

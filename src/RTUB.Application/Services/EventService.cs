@@ -183,6 +183,12 @@ public class EventService : IEventService
             activity.EventId = null;
         }
 
+        // Task 077: the same for gallery media uploaded for the event (the media stays in the gallery).
+        foreach (var media in await db.GalleryMedia.Where(m => m.EventId == id).ToListAsync(cancellationToken))
+        {
+            media.EventId = null;
+        }
+
         if (await db.Events.FindAsync([id], cancellationToken) is { } tracked)
         {
             db.Events.Remove(tracked);

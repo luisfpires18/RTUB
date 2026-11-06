@@ -2,13 +2,14 @@
 
 Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253); Logística and Questões =
 task 073 (issue #254); Tesouraria and Secretaria = task 074 (issue #255);
-Reuniões, Presenças por aprovar and Repertório = task 075 (issue #256); Membros = task 076 (issue #257). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
+Reuniões, Presenças por aprovar and Repertório = task 075 (issue #256); Membros = task 076 (issue #257); Galeria and
+Novidades = task 077 (issue #258). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
 
 A page of **grouped actions** with the buttons on each row. Not an inbox, notifications feed, chat or one-at-a-time
 wizard, and not a statistics page. Nothing is copied into a generic "actions" table: every panel is a query over its
 module's own data, run on every load; the only thing stored is a member's own dismissal of an optional action.
 
-## Delivered (071-076) and still to come
+## Delivered (071-077) and still to come
 
 | Panel | Category | State | Rows / buttons |
 | --- | --- | --- | --- |
@@ -22,7 +23,8 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Presenças por aprovar | responsibilities | **delivered (075)** | current Ensaiador / Magister: **Aprovar** / **Recusar** (confirmed) each pending presença at an approvable rehearsal of the fiscal year |
 | Repertório | responsibilities | **delivered (075)** | current Ensaiador / Magister: upcoming, not cancelled events with no repertoire: **Preparar repertório** / **Não é necessário** (own dismissal per event) |
 | Membros | responsibilities | **delivered (076)** | system role Mod / Admin / Owner: each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
-| Galeria e novidades | participation | #258 | - |
+| Galeria | participation | **delivered (077)** | active member: each event of the fiscal year that is over, not cancelled and has no photo linked to it → **Adicionar** (`/gallery?upload=1&event={id}&date=&title=`, the gallery upload with the event named) / **Não tenho** (own, this fiscal year) |
+| Novidades | participation | **delivered (077)** | whoever may write news (Mod / Admin / Owner): one weekly **Há novidades para partilhar?** → **Criar novidade** (`/news?new=1`, the composer) / **Agora não** (own, this ISO week) |
 | Push summary | - | #259 (uses `IPendingActionsService.CountPendingAsync`) | - |
 
 A panel that is not delivered is **not shown** (no empty placeholder pretending a module is done).
@@ -200,6 +202,39 @@ JSON is queried with `json_each`). Sorted by name. A row leaves once the field i
 editor is not completion. Not dismissible (a gap is a gap; ask the module to change the rule if a field can never be
 known).
 
+## Galeria and Novidades (077)
+
+### Galeria (active members)
+
+- **Source of truth**: `GalleryMedia.EventId` (new, migration `AddGalleryMediaEventId`), set only by an upload that names
+  the event (`POST /api/gallery` form field `eventId`; the event must exist and not be cancelled, else `400`). Legacy
+  items have no link and are **never matched by title or date**.
+- **Pending when**: the event is not cancelled, starts on or after 1 September of the fiscal year, its last day
+  (`EndDate ?? Date`) is before today (Portugal), and no **image** (`MediaType.Image`) is linked to it. A video does not
+  resolve it (photos and videos are told apart on purpose). Members see every event (`Event.IsPublic` only hides events
+  from visitors, who never reach this page), so nothing is filtered by it. Newest first, paged.
+- **Shared resolution**: a photo uploaded for the event by anyone removes the row for everyone. **Deletion**: deleting
+  that photo (the gallery's own delete) brings the row back, as the query is the state; deleting the event clears
+  `EventId` on its media in the same save (`EventService.DeleteEventAsync`), the media stays in the gallery.
+- **Não tenho**: the member's own dismissal of that event, period = fiscal year. Others still see the row.
+- **Adicionar** opens `/gallery` with the upload dialog prefilled (title = event name, date = event day, "Só para membros"
+  on as always) and a note "Fica associada ao evento…". Cancel stores nothing; the row stays until an image is saved.
+- Reformados and accounts without a category get no Galeria panel (as Atuações / Ensaios); they still upload on `/gallery`.
+- Privacy: the row shows only the event's name, day and place (all members see events); no gallery item, preview or
+  count of photos is shown.
+
+### Novidades (writers)
+
+- **Who**: `NewsAuthorization.CanWrite` with the database's roles (Mod, Admin, Owner). Others: `404`.
+- **Pending when**: no dismissal for this Portugal ISO week (`2026-W45`) and no `NewsPost` with `AuthorId` = the member
+  and `CreatedAt` within Monday 00:00 → next Monday 00:00 Portugal (as UTC). A saved **draft** counts; nothing is
+  published automatically. Another writer's post does not resolve mine (it is a personal prompt).
+- **Criar novidade** opens the composer on `/news?new=1`. The composer now asks for an explicit audience on a new post:
+  **Público** or **Apenas RTUB** (radio, none preselected; saving without a choice is refused in the form). The server
+  rule is unchanged (`MembersOnly` absent = public, edits keep the post's visibility); drafts / publish / delete keep
+  their rights (Mod drafts and publishes, delete stays Admin / Owner).
+- **Agora não**: own, for the week; it comes back next Monday by itself (a new period key). Survives devices (server row).
+
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 
 | Property | Rule |
@@ -213,7 +248,8 @@ known).
 | Account deleted | rows cascade |
 | Audit | not audited (personal, low value), like `LoginEvents` |
 
-The first optional row is the Secretaria's (074); the news prompt (#258) follows.
+Optional rows: Secretaria (074, fiscal year), Registar reunião (075, month), Repertório (075, once per event), Galeria
+(077, fiscal year per event), Novidades (077, ISO week).
 
 ## Login landing
 
@@ -223,6 +259,10 @@ on `/events`. A signed-in active member opening `/login` goes to `/pending-actio
 (`/`) is unchanged.
 
 ## Migration and rollback
+
+**077** `AddGalleryMediaEventId`: additive — `GalleryMedia.EventId` (nullable INTEGER, indexed, **no foreign key**, as
+`Activities.EventId`). N-1 safe: 2.3.x ignores the column and inserts media without it. Rolling back loses only the
+links' use (the Galeria panel); nothing to restore.
 
 **074** `AddEventFinanceClassification`: additive — `Events.HasNoFinances` (INTEGER, default 0) and `Activities.EventId`
 (nullable, indexed, **no foreign key**: SQLite would rebuild `Activities`; precedent `LogisticsBoards.OwnerUserId`, 067).

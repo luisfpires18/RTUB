@@ -71,6 +71,16 @@ export default function News() {
     load();
   }, []);
 
+  // Task 077: /news?new=1 (from /pending-actions → Novidades → Criar novidade) opens the composer for whoever may write.
+  const askedNew = useRef(false);
+  useEffect(() => {
+    if (!feed || askedNew.current) return;
+    askedNew.current = true;
+    if (new URLSearchParams(location.search).get('new') !== '1') return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    if (feed.canWrite) setEditing('new');
+  }, [feed]);
+
   const choose = (t: Tab) => {
     setTab(t);
     load(t);
@@ -269,7 +279,8 @@ function Post({
 function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [body, setBody] = useState(post?.body ?? '');
-  const [membersOnly, setMembersOnly] = useState(post?.membersOnly ?? false);
+  // Task 077: a new post has no audience until the writer picks Público or Apenas RTUB; an edit keeps its own.
+  const [membersOnly, setMembersOnly] = useState<boolean | undefined>(post?.membersOnly);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -277,6 +288,7 @@ function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () =
 
   const save = async (publish: boolean) => {
     if (!body.trim()) return setErrors({ body: 'Escreve o texto da publicação.' });
+    if (membersOnly === undefined) return setErrors({ membersOnly: 'Escolhe quem pode ver: Público ou Apenas RTUB.' });
     setBusy(true);
     setBanner(undefined);
     const input = { title, body, publish, membersOnly };
@@ -353,10 +365,18 @@ function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () =
           </p>
           {error('body')}
         </div>
-        <label className="form__check" htmlFor={`${fid}-private`}>
-          <input id={`${fid}-private`} type="checkbox" checked={membersOnly} onChange={(e) => setMembersOnly(e.target.checked)} />
-          Privado (só membros): quem não tem sessão iniciada não vê esta publicação
-        </label>
+        <fieldset className={field('membersOnly')}>
+          <legend>Quem pode ver</legend>
+          <label className="form__check">
+            <input type="radio" name={`${fid}-audience`} checked={membersOnly === false} onChange={() => setMembersOnly(false)} />
+            Público: qualquer visitante vê esta publicação
+          </label>
+          <label className="form__check">
+            <input type="radio" name={`${fid}-audience`} checked={membersOnly === true} onChange={() => setMembersOnly(true)} />
+            Apenas RTUB: só membros com sessão iniciada
+          </label>
+          {error('membersOnly')}
+        </fieldset>
         {!post && <p className="note">Um rascunho não é visível para os membros até ser publicado.</p>}
       </form>
     </Dialog>

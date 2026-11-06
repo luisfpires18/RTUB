@@ -13,7 +13,9 @@ const MAX_VIDEO = 100 * 1024 * 1024;
 
 type Taggable = { id: string; name: string; fullName: string | null; avatarUrl: string };
 type EditData = { id: number; title: string; type: 'image' | 'video'; url: string | null; date: string; membersOnly: boolean; people: GalleryPerson[] };
-type Form = { title: string; date: string; membersOnly: boolean; people: GalleryPerson[] };
+type Form = { title: string; date: string; membersOnly: boolean; people: GalleryPerson[]; eventId?: number };
+/** Task 077: the event an upload is for (from /pending-actions → Galeria → Adicionar). */
+export type UploadEvent = { id: number; title: string; date: string };
 
 const galleryApi = {
   people: (q: string) => call<Taggable[]>('GET', `/api/gallery/people?q=${encodeURIComponent(q)}`),
@@ -47,6 +49,7 @@ async function upload(file: File, form: Form, onProgress: (share: number) => voi
   body.set('date', form.date);
   body.set('membersOnly', String(form.membersOnly));
   form.people.forEach((p) => body.append('personIds', p.id));
+  if (form.eventId) body.set('eventId', String(form.eventId));
   let token: string;
   try {
     token = await antiforgeryToken(retried);
@@ -174,10 +177,10 @@ function Details({ form, set, errors, idPrefix }: { form: Form; set: (f: Partial
 }
 
 /** Upload one photo or video; the people tagged get a push notification, as before. */
-export function UploadDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+export function UploadDialog({ onClose, onDone, event }: { onClose: () => void; onDone: () => void; event?: UploadEvent }) {
   const [file, setFile] = useState<File>();
   const [preview, setPreview] = useState<string>();
-  const [form, setForm] = useState<Form>({ title: '', date: today(), membersOnly: true, people: [] });
+  const [form, setForm] = useState<Form>({ title: event?.title.slice(0, 200) ?? '', date: event?.date || today(), membersOnly: true, people: [], eventId: event?.id });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<number>();
   const id = useId();
@@ -232,6 +235,12 @@ export function UploadDialog({ onClose, onDone }: { onClose: () => void; onDone:
           <p className="form__hint">Imagens até 10 MB, vídeos até 100 MB.</p>
           {errors.file && <p className="form__error">{errors.file}</p>}
         </div>
+        {event && (
+          <p className="note">
+            <Icon name="calendar" /> Fica associada ao evento «{event.title}». Só uma foto resolve o pedido da galeria; um vídeo não.
+          </p>
+        )}
+        {errors.eventId && <p className="form__error">{errors.eventId}</p>}
         {file && preview && (
           <div className="gallery-manage__preview">
             {file.type.startsWith('video/') ? <video src={preview} controls playsInline preload="metadata" /> : <img src={preview} alt="" />}

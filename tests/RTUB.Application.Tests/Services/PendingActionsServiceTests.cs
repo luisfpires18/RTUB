@@ -407,6 +407,79 @@ public class PendingActionsServiceTests
         (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Equal("mods");
     }
 
+    // ---------- Galeria and Novidades (077) ----------
+
+    [Fact]
+    public async Task Gallery_ListsOverEventsOfTheYearWithoutAPhoto_AVideoDoesNotCount_AnyonesPhotoResolvesForAll()
+    {
+        var me = AddUser([MemberCategory.Tuno], retired: false);
+        var other = AddUser([MemberCategory.Tuno], retired: false);
+        var withVideo = AddEvent("Com vídeo", Today.AddDays(-3));
+        var withPhoto = AddEvent("Com foto", Today.AddDays(-4));
+        var bare = AddEvent("Sem nada", Today.AddDays(-5));
+        AddEvent("Cancelada", Today.AddDays(-6), cancelled: true);
+        AddEvent("Ainda não foi", Today.AddDays(2));
+        AddEvent("Ano passado", new DateTime(2026, 8, 30));
+        AddMedia(other, withPhoto, MediaType.Image);
+        AddMedia(other, withVideo, MediaType.Video);
+        AddMedia(other, null, MediaType.Image); // a legacy item is never matched to an event
+
+        var service = Service(new GalleryPendingActionSource());
+        var panel = (await service.GetPanelAsync(SignedIn(me), "gallery", null, 1)).Value!;
+
+        panel.Rows.Select(r => r.SourceKey).Should().Equal(Key(withVideo), Key(bare));
+        panel.Rows[0].Actions.Single().Href.Should().Be($"/gallery?upload=1&event={withVideo}&date=2026-11-03&title=Com%20v%C3%ADdeo");
+        panel.Rows[0].DismissLabel.Should().Be("Não tenho");
+
+        AddMedia(other, bare, MediaType.Image);
+        (await service.GetPanelAsync(SignedIn(me), "gallery", null, 1)).Value!.Total.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Gallery_NaoTenho_IsPersonal_AndOnlyForActiveMembers()
+    {
+        var me = AddUser([MemberCategory.Tuno], retired: false);
+        var other = AddUser([MemberCategory.Tuno], retired: false);
+        var retired = AddUser([MemberCategory.Tuno], retired: true);
+        var ev = AddEvent("Serenata", Today.AddDays(-2));
+        var service = Service(new GalleryPendingActionSource());
+
+        (await service.DismissAsync(SignedIn(me), new PendingActionDismissInput(GalleryPendingActionSource.KindCode, Key(ev)))).Status
+            .Should().Be(EventResultStatus.Ok);
+
+        (await service.GetPanelAsync(SignedIn(me), "gallery", null, 1)).Value!.Total.Should().Be(0);
+        (await service.GetPanelAsync(SignedIn(other), "gallery", null, 1)).Value!.Total.Should().Be(1);
+        (await service.GetPanelAsync(SignedIn(retired), "gallery", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        Dismissals().Single().Period.Should().Be("2026-2027");
+    }
+
+    [Fact]
+    public async Task News_OnlyForWriters_OnePromptPerWeek_ResolvedByOwnPostThisWeek_DismissedForTheWeek()
+    {
+        var mod = AddUser([MemberCategory.Tuno], retired: false);
+        AddRole(mod, "Mod");
+        var admin = AddUser([MemberCategory.Tuno], retired: false);
+        AddRole(admin, "Admin");
+        var member = AddUser([MemberCategory.Tuno], retired: false);
+        var service = Service(new NewsPendingActionSource());
+
+        (await service.GetPanelAsync(SignedIn(member), "news", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        var row = (await service.GetPanelAsync(SignedIn(mod), "news", null, 1)).Value!.Rows.Single();
+        row.Actions.Single().Href.Should().Be("/news?new=1");
+        row.Required.Should().BeFalse();
+
+        AddNews(mod, new DateTime(2026, 11, 1, 22, 0, 0)); // last Sunday: another week
+        (await service.GetPanelAsync(SignedIn(mod), "news", null, 1)).Value!.Total.Should().Be(1);
+        AddNews(mod, new DateTime(2026, 11, 2, 9, 0, 0)); // a draft this Monday
+        (await service.GetPanelAsync(SignedIn(mod), "news", null, 1)).Value!.Total.Should().Be(0, "a saved draft resolves the week");
+
+        (await service.DismissAsync(SignedIn(admin), new PendingActionDismissInput(NewsPendingActionSource.KindCode, ""))).Status
+            .Should().Be(EventResultStatus.Ok);
+        (await service.GetPanelAsync(SignedIn(admin), "news", null, 1)).Value!.Total.Should().Be(0);
+        Dismissals().Single().Period.Should().Be("2026-W45");
+        NewsPendingActionSource.Week(new DateTime(2027, 1, 1)).Should().Be("2026-W53");
+    }
+
     // ---------- helpers ----------
 
     private static string Key(int id) => id.ToString();
@@ -489,6 +562,20 @@ public class PendingActionsServiceTests
     {
         using var db = _db.CreateContext();
         db.RehearsalAttendances.Add(RehearsalAttendance.Create(rehearsalId, userId));
+        db.SaveChanges();
+    }
+
+    private void AddMedia(string uploader, int? eventId, MediaType type)
+    {
+        using var db = _db.CreateContext();
+        db.GalleryMedia.Add(GalleryMedia.Create(uploader, "Foto", type, "https://example.test/x", 2026, eventId: eventId));
+        db.SaveChanges();
+    }
+
+    private void AddNews(string author, DateTime createdUtc)
+    {
+        using var db = _db.CreateContext();
+        db.NewsPosts.Add(new NewsPost { Body = "Texto", AuthorId = author, CreatedAt = createdUtc });
         db.SaveChanges();
     }
 

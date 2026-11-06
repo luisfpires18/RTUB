@@ -1087,6 +1087,9 @@ namespace RTUB.Migrations
                     b.Property<byte?>("Day")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("EventId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("INTEGER");
 
@@ -1128,6 +1131,8 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventId");
 
                     b.HasIndex("UploaderId")
                         .HasDatabaseName("IX_GalleryMedia_UploaderId");
