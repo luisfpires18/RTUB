@@ -2,13 +2,13 @@
 
 Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253); Logística and Questões =
 task 073 (issue #254); Tesouraria and Secretaria = task 074 (issue #255);
-Reuniões, Presenças por aprovar and Repertório = task 075 (issue #256). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
+Reuniões, Presenças por aprovar and Repertório = task 075 (issue #256); Membros = task 076 (issue #257). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
 
 A page of **grouped actions** with the buttons on each row. Not an inbox, notifications feed, chat or one-at-a-time
 wizard, and not a statistics page. Nothing is copied into a generic "actions" table: every panel is a query over its
 module's own data, run on every load; the only thing stored is a member's own dismissal of an optional action.
 
-## Delivered (071-075) and still to come
+## Delivered (071-076) and still to come
 
 | Panel | Category | State | Rows / buttons |
 | --- | --- | --- | --- |
@@ -21,7 +21,7 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Reuniões | responsibilities | **delivered (075)** | current Presidente da Mesa / Magister / Presidente do CV: **Criar ata** (Obrigatório) for each past meeting of their bodies this fiscal year with no ata saved; optional monthly **Registar reunião** per body (Agora não = this month) |
 | Presenças por aprovar | responsibilities | **delivered (075)** | current Ensaiador / Magister: **Aprovar** / **Recusar** (confirmed) each pending presença at an approvable rehearsal of the fiscal year |
 | Repertório | responsibilities | **delivered (075)** | current Ensaiador / Magister: upcoming, not cancelled events with no repertoire: **Preparar repertório** / **Não é necessário** (own dismissal per event) |
-| Membros (campos em falta) | responsibilities | #257 | - |
+| Membros | responsibilities | **delivered (076)** | system role Mod / Admin / Owner: each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
 | Galeria e novidades | participation | #258 | - |
 | Push summary | - | #259 (uses `IPendingActionsService.CountPendingAsync`) | - |
 
@@ -188,6 +188,17 @@ positions. Matrix and module changes: [permissions/meetings](permissions/meeting
   attended (audited), member notified, so the member's "Fui / Não fui" never comes back for it.
 - Approvable "today from 21:00" is decided in memory for today's rehearsals (SQLite cannot compare `TimeSpan`); the rest
   is SQL.
+
+## Membros (076)
+
+Unlike the position panels, this one follows the **system role** (Mod, Admin, Owner): the people who may use the limited
+member-information edit. Rows: members not expelled with a Leitão / Caloiro / Tuno category and at least one applicable
+field empty (`MemberInfoRules`: Cidade, Contacto, Instrumento, Entrada na Tuna, Passagem a Caloiro / Tuno, Padrinho, by
+category — a Leitão is never asked for Caloiro / Tuno dates, Fundador / Tuno Honorário have no Leitão / Caloiro date or
+padrinho, a Fundador's Tuno date is fixed, an Honorário plays no instrument). Counted and paged in SQL (the category
+JSON is queried with `json_each`). Sorted by name. A row leaves once the field is saved, here or anywhere; opening the
+editor is not completion. Not dismissible (a gap is a gap; ask the module to change the rule if a field can never be
+known).
 
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 

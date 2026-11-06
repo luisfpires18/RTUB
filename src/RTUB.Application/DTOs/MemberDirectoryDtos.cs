@@ -10,13 +10,15 @@ namespace RTUB.Application.DTOs;
 public sealed record MemberDirectoryQuery(string? Search, string? Category, string? SubCategory, string? Instrument, bool ActiveOnly);
 
 /// <summary>Regular members (by nickname) and Leitões (by activity), plus the instrument options. <c>CanManage</c>:
-/// Admin/Owner tools (018); <c>CanDeleteMembers</c>: Owner, who may also delete regular members.</summary>
+/// Admin/Owner tools (018); <c>CanDeleteMembers</c>: Owner, who may also delete regular members; <c>CanEditInfo</c>: the
+/// limited member-information edit (task 076: Mod, Admin, Owner).</summary>
 public sealed record MemberDirectoryDto(
     IReadOnlyList<MemberCardDto> Members,
     IReadOnlyList<MemberCardDto> Leitoes,
     IReadOnlyList<MemberOptionDto> Instruments,
     bool CanManage,
-    bool CanDeleteMembers);
+    bool CanDeleteMembers,
+    bool CanEditInfo = false);
 
 /// <summary>
 /// One card. <c>Badges</c> are display labels ("TUNO", "LEITÃO"); <c>Position</c> the current fiscal year's;

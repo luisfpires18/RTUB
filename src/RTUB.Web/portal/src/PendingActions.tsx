@@ -31,6 +31,7 @@ const EMPTY_PANEL: Record<string, string> = {
   meetings: 'Todas as reuniões passadas têm ata.',
   approvals: 'Nenhuma presença por aprovar.',
   repertoire: 'As próximas atuações têm repertório.',
+  members: 'Nenhum membro com informação em falta.',
 };
 
 /** What a saved command says (072 answers: the default). */
