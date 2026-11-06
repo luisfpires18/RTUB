@@ -350,44 +350,39 @@ public sealed partial class LogisticsKanbanService
         }
     }
 
-    /// <summary>The uploader (while still a viewer) or a manager; the stored file goes after the row.</summary>
+    /// <summary>
+    /// A manager, or the uploader while they still work on the card (owner or collaborator): a former collaborator only
+    /// reads. Checked in the same locked change as the delete (<see cref="ChangeCardAsync"/>), so an assignment removed
+    /// meanwhile refuses it. The stored file goes after the row.
+    /// </summary>
     public async Task<EventResult<LogisticsCardDetailDto>> DeleteAttachmentAsync(int cardId, int attachmentId, ClaimsPrincipal user)
     {
-        var (refused, db, card, access) = await OpenCardAsync<LogisticsCardDetailDto>(cardId, user);
-        if (refused is not null)
+        string? stored = null;
+        var result = await ChangeCardAsync(cardId, user, assignedMayChange: true, async (db, card, access) =>
         {
-            return refused;
-        }
-
-        string? stored;
-        await using (db)
-        {
-            await using var transaction = await db!.Database.BeginTransactionAsync();
-            if (await db.LogisticsCardAttachments.FirstOrDefaultAsync(a => a.Id == attachmentId && a.CardId == cardId) is not { } attachment)
+            if (await db.LogisticsCardAttachments.FirstOrDefaultAsync(a => a.Id == attachmentId && a.CardId == card.Id) is not { } attachment)
             {
                 return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
             }
 
-            if (!access!.Manager && (attachment.UploadedById is null || attachment.UploadedById != access.UserId))
+            if (!access.Manager && (attachment.UploadedById is null || attachment.UploadedById != access.UserId))
             {
                 return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Forbidden);
             }
 
             stored = attachment.StoragePath;
             db.LogisticsCardAttachments.Remove(attachment);
-            Log(db, cardId, access, "attachment", $"Anexo removido: {Cut(attachment.Name)}");
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
+            Log(db, card.Id, access, "attachment", $"Anexo removido: {Cut(attachment.Name)}");
+            return null;
+        });
 
-        if (stored is not null)
+        if (result.Status == EventResultStatus.Ok && stored is not null)
         {
-            _audit.SetUser(user.Identity?.Name, access!.UserId);
+            _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
             await DeleteStoredAsync(new List<string> { stored });
         }
 
-        await using var read = await _contexts.CreateDbContextAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(read, card!.Id, user));
+        return result;
     }
 
     /// <summary>
@@ -456,7 +451,7 @@ public sealed partial class LogisticsKanbanService
             attachments.Select(a => new LogisticsAttachmentDto(a.Id, a.Kind.ToString(), a.Name,
                 a.Kind == CardAttachmentKind.Link && Uri.TryCreate(a.Url, UriKind.Absolute, out var u) ? u.Host : null,
                 a.SizeBytes, a.Kind == CardAttachmentKind.File ? Path.GetExtension(a.Name) : null, Person(a.UploadedBy), Utc(a.CreatedAt),
-                CanDelete: access.Manager || (a.UploadedById is not null && a.UploadedById == access.UserId))).ToList(),
+                CanDelete: access.Manager || (access.CanWork && a.UploadedById is not null && a.UploadedById == access.UserId))).ToList(),
             activity.Select(a => new LogisticsActivityDto(Person(a.Actor), a.Action, a.Detail, Utc(a.CreatedAt))).ToList());
     }
 

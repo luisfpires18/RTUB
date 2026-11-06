@@ -78,8 +78,9 @@ priority, start, deadline, owner, collaborators, checklist items, attachments, l
 Portugal time, newest first, the last 100, folded by default. **Attachments**: files (board file types, ≤ 10 MB, upload
 progress, error + retry) under a stable key `logistics/{env}/cards/{id}/{random}/{name}` - outside the fiscal-year
 Documentação tree, so they never move or show there - and http(s) links; both distinct from the board's files (shown
-folded as "Ficheiros do quadro") and from links to other cards ("Cartões ligados"). Deleting an attachment, a card, a
-list or a board deletes the stored files (best-effort, after the rows).
+folded as "Ficheiros do quadro") and from links to other cards ("Cartões ligados"). An attachment is deleted by a manager or
+by its uploader while still owner or collaborator (re-checked in the locked change; PR #266 review). Deleting an
+attachment, a card, a list or a board deletes the stored files (best-effort, after the rows).
 
 **Layout**: desktop, a two-column dialog (work on the left; status, priority, dates, people, labels, linked cards and
 history on the right); phones, full screen, the quick facts first. The deadline shows as "Faltam N dias" / "Falta 1 dia"

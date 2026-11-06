@@ -636,6 +636,16 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await mod.PutAsJsonAsync($"/api/logistics/comments/{helperComment}", new { body = "mudado" })).StatusCode.Should().Be(HttpStatusCode.Forbidden,
             "moderation deletes; nobody rewrites another author's words");
 
+        // PR #266 review: an uploader who is no longer owner or collaborator only reads; the attachment stays.
+        var helperLink = (await Json(await helper.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = "https://exemplo.pt/plano" })))
+            .GetProperty("attachments").EnumerateArray().Last().GetProperty("id").GetInt32();
+        (await mod.DeleteAsync($"/api/logistics/cards/{cardId}/assignments/{helperUser.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await helper.DeleteAsync($"/api/logistics/cards/{cardId}/attachments/{helperLink}")).StatusCode.Should().Be(HttpStatusCode.Forbidden,
+            "a former collaborator cannot delete what they uploaded");
+        (await Json(helper, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").EnumerateArray()
+            .Single(a => a.GetProperty("id").GetInt32() == helperLink).GetProperty("canDelete").GetBoolean().Should().BeFalse();
+        (await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/assignments", new { userId = helperUser.Id })).StatusCode.Should().Be(HttpStatusCode.OK);
+
         // Identifiers from another card are refused.
         (await viewer.GetAsync($"/api/logistics/cards/{other}/attachments/{file}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await mod.DeleteAsync($"/api/logistics/cards/{other}/attachments/{file}")).StatusCode.Should().Be(HttpStatusCode.NotFound);

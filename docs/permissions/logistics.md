@@ -33,7 +33,7 @@ removed owner or collaborator is refused on the next write.
 | Edit a comment | - | own only, while still a worker | own only |
 | Delete a comment | own only (even after losing the assignment) | own only | **any** (moderation, one history line) |
 | Attach a file or a link | - | ✓ | ✓ |
-| Delete an attachment | own (uploader), while a viewer | own (uploader) | **any** |
+| Delete an attachment | - (not even one they uploaded while assigned) | own (uploader), while still a worker | **any** |
 | Change the owner, add / remove collaborators | - | - (an owner id other than the current one is `403`) | ✓ |
 | Labels, links to other cards, move, delete the card | - | - | ✓ |
 | Boards and lists (create, edit, finish, delete), board files upload / delete | - | - | ✓ |
