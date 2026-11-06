@@ -448,6 +448,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 068 (UI text names no system roles): the server 403 title in `NewsEndpoints.cs` ("Só Admin ou Owner gerem as Novidades.") still names roles; the portal shows its own message instead, so it only reaches API callers. Not in the 068 scope.
 Raised by the 058 push audit (`docs/push-notifications.md` → *Does it send?*): "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment / like push failures are swallowed with no log; discussion pushes stop at the event start (UTC compare).
 `AspNetUsers.ExperiencePoints` / `Level` have no writer (their only one, `UpdateUserRankingAsync`, never ran and was removed in 058); the leaderboard computes XP per request. Candidate for the DB cleanup list.
 Raised by 054 (performance audit; the full table is `docs/performance-gate.md` → *Task 054 → Deferred findings*): the hot

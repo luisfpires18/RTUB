@@ -30,7 +30,7 @@ const today = () => {
 
 const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'forbidden'
-    ? 'Só quem carregou, Admin ou Owner podem alterar esta media.'
+    ? 'Só quem carregou esta media a pode alterar.'
     : o.kind === 'notfound'
       ? 'Esta media já não existe.'
       : o.kind === 'signin'

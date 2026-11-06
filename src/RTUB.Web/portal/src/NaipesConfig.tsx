@@ -15,7 +15,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só um Admin ou o Owner altera os instrumentos dos naipes.'
+      ? 'Não tem permissão para alterar os instrumentos dos naipes.'
       : o.kind === 'notfound'
         ? 'Este instrumento já não existe.'
         : o.kind === 'signin'
@@ -64,7 +64,7 @@ export default function NaipesConfig() {
         </div>
       ) : settings === 'forbidden' ? (
         <div className="notice" role="status">
-          <p>Só um Admin ou o Owner configura os naipes. Os vídeos e as imagens continuam todos na página dos naipes.</p>
+          <p>Não tem permissão para configurar os naipes. Os vídeos e as imagens continuam todos na página dos naipes.</p>
           <a className="btn btn--ghost btn--sm" href={portal.naipes}>
             <Icon name="arrowLeft" />
             Voltar aos naipes
