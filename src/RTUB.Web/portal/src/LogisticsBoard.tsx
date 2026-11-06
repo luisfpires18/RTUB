@@ -98,8 +98,9 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
 /**
  * /logistics/{id} - one board (React track 023; was the Blazor page). Lists side by side in a horizontal scroll, cards
  * by position with a coloured status (TODO red, WIP yellow, DONE green), labels, dates, checklist progress and counts.
- * Search, status and label filters stay in a sticky bar. Mod, Admin and Owner manage everything, drag cards between
- * lists (or use "Mover…") and open card details; every member reads the board and creates reminders.
+ * Search, status, label and "Só os meus" filters stay in a sticky bar. Mod, Admin and Owner manage everything and drag
+ * cards between lists (or use "Mover…"); every member (Leitões too, task 065) opens any card to read it, and the members
+ * a card is assigned to tick its checklist and change its status there. Every member creates reminders.
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
@@ -107,6 +108,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [text, setText] = useState('');
   const [status, setStatus] = useState<Status | ''>('');
   const [label, setLabel] = useState('');
+  const [onlyMine, setOnlyMine] = useState(false);
   const [open, setOpen] = useState<Open>();
   const [message, setMessage] = useState<string>();
   const [drag, setDrag] = useState<Drag>();
@@ -162,7 +164,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               </a>
             </>
           ) : board === 'forbidden' ? (
-            <p>Os quadros de logística ainda não estão disponíveis para Leitões.</p>
+            <p>Não tem acesso a este quadro.</p>
           ) : board === 'missing' ? (
             <p>Este quadro já não existe.</p>
           ) : (
@@ -187,11 +189,13 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   }
 
   const q = text.trim().toLocaleLowerCase('pt');
-  const filtering = q !== '' || status !== '' || label !== '';
+  const filtering = q !== '' || status !== '' || label !== '' || onlyMine;
+  const anyMine = data.lists.some((l) => l.cards.some((c) => c.mine));
   const visible = (cards: Card[]) =>
     cards.filter(
       (c) =>
         (status === '' || c.status === status) &&
+        (!onlyMine || c.mine) &&
         (label === '' || c.labels.some((l) => l.text === label)) &&
         (q === '' || c.title.toLocaleLowerCase('pt').includes(q) || c.description.toLocaleLowerCase('pt').includes(q)),
     );
@@ -305,6 +309,12 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             </button>
           ))}
         </div>
+        {(anyMine || onlyMine) && (
+          <button type="button" className="lx-mine-filter" aria-pressed={onlyMine} onClick={() => setOnlyMine(!onlyMine)}>
+            <Icon name="person" />
+            Só os meus
+          </button>
+        )}
         {data.labels.length > 0 && (
           <label className="control control--select control--sm" htmlFor={ids.label}>
             <span className="sr-only">Etiqueta</span>
@@ -546,13 +556,13 @@ function CardFace({
   const progress = card.checklistTotal ? Math.round((card.checklistDone / card.checklistTotal) * 100) : 0;
   return (
     <article
-      className={`lx-card lx-card--${s}${dragging ? ' lx-card--dragging' : ''}${canManage ? ' lx-card--open' : ''}`}
+      className={`lx-card lx-card--${s} lx-card--open${dragging ? ' lx-card--dragging' : ''}${card.mine ? ' lx-card--mine' : ''}`}
       data-card={card.id}
       draggable={canManage}
       onDragStart={canManage ? onDragStart : undefined}
       onDragEnd={canManage ? onDragEnd : undefined}
       // The whole card opens the details (a native drag cannot start on a button); the title button is the keyboard path.
-      onClick={canManage ? onOpen : undefined}
+      onClick={onOpen}
     >
       <div className="lx-card__top">
         <span className={`lx-status lx-status--${s}`}>{STATUS[card.status].label}</span>
@@ -564,24 +574,21 @@ function CardFace({
             {day(card.dueDate)}
           </span>
         )}
+        {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
         {canManage && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
       </div>
-      {canManage ? (
-        <h3 className="lx-card__title">
-          <button
-            type="button"
-            className="lx-card__button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-          >
-            {card.title}
-          </button>
-        </h3>
-      ) : (
-        <h3 className="lx-card__title">{card.title}</h3>
-      )}
+      <h3 className="lx-card__title">
+        <button
+          type="button"
+          className="lx-card__button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+        >
+          {card.title}
+        </button>
+      </h3>
       {card.description && <p className="lx-card__desc">{card.description}</p>}
       {card.labels.length > 0 && (
         <ul className="lx-labels">

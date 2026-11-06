@@ -4,6 +4,7 @@ import { Dialog } from './Dialog';
 import type { Outcome } from './eventsApi';
 import { Icon } from './icons';
 import {
+  day,
   logisticsApi,
   problem,
   STATUS,
@@ -529,7 +530,231 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
   );
 }
 
-/** "Detalhes do cartão" (Mod, Admin, Owner): every field the old modal edited; each section saves on its own. */
+/**
+ * The card, for a member who does not manage (task 065): everything readable - status, dates, people, details,
+ * checklist, labels, links, the board's files. A member the card is assigned to (`canWork`) also changes the status and
+ * ticks the checklist items, one at a time; everyone else reads. Full screen on phones.
+ */
+function CardView({ board, detail, onClose, onChanged }: { board: Board; detail: CardDetail; onClose: () => void; onChanged: (d: CardDetail) => void }) {
+  const [error, setError] = useState<{ key: string; text: string }>();
+  const [busy, setBusy] = useState<string>();
+  const fid = useId();
+  const card = detail.card;
+  const done = detail.checklist.filter((i) => i.done).length;
+  const listName = board.lists.find((l) => l.id === detail.listId)?.name;
+  const people = [...(detail.assignedTo ? [{ ...detail.assignedTo, lead: true }] : []), ...detail.assignments.map((a) => ({ ...a, lead: false }))];
+  const s = card.status.toLowerCase();
+
+  // Nothing shows as saved until the server answers with the fresh card.
+  const apply = async (o: Promise<Outcome<CardDetail>>, key: string, what: string) => {
+    setError(undefined);
+    setBusy(key);
+    const r = await o;
+    setBusy(undefined);
+    if (r.kind === 'ok') onChanged(r.data);
+    else setError({ key, text: problem(r, what) });
+  };
+
+  const download = async (name: string) => {
+    setError(undefined);
+    const o = await logisticsApi.file(board.id, name);
+    if (o.kind === 'ok') window.open(o.data.url, '_blank', 'noopener');
+    else setError({ key: 'files', text: problem(o, 'abrir o ficheiro') });
+  };
+
+  return (
+    <Dialog
+      title={card.title}
+      size="lg"
+      className="lx-card-modal"
+      onClose={onClose}
+      footer={
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          Fechar
+        </button>
+      }
+    >
+      <div className="lx-detail">
+        <div className="lx-view__head">
+          <span className={`lx-status lx-view__status--${s}`}>{STATUS[card.status].label}</span>
+          {listName && <span className="lx-chip">{listName}</span>}
+          {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
+          {(card.startDate || card.dueDate) && (
+            <span className="lx-card__dates">
+              <Icon name="calendar" />
+              {card.startDate && `Início ${day(card.startDate)}`}
+              {card.startDate && card.dueDate && ' · '}
+              {card.dueDate && `Prazo ${day(card.dueDate)}`}
+            </span>
+          )}
+        </div>
+        <p className={detail.canWork ? 'lx-view__role lx-view__role--work' : 'lx-view__role'}>
+          <Icon name={detail.canWork ? 'checkCircle' : 'eye'} />
+          {detail.canWork
+            ? 'Este cartão está atribuído a si: pode mudar o estado e marcar as tarefas.'
+            : 'Só leitura: o estado e as tarefas mudam-nos quem tem o cartão atribuído, Mod, Admin ou Owner.'}
+        </p>
+
+        {detail.canWork && (
+          <section className="lx-detail__section" aria-labelledby={`${fid}-status`}>
+            <h3 id={`${fid}-status`} className="lx-detail__title">
+              Estado
+            </h3>
+            <div className="lx-segment" role="group" aria-labelledby={`${fid}-status`}>
+              {STATUSES.map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  className={`lx-segment--${st.toLowerCase()}`}
+                  aria-pressed={card.status === st}
+                  disabled={!!busy}
+                  onClick={() => card.status !== st && apply(logisticsApi.setStatus(card.id, st), 'status', 'mudar o estado')}
+                >
+                  {STATUS[st].label}
+                  <small>{STATUS[st].name}</small>
+                </button>
+              ))}
+            </div>
+            {error?.key === 'status' && <Error text={error.text} />}
+          </section>
+        )}
+
+        {card.description && (
+          <section className="lx-detail__section" aria-labelledby={`${fid}-desc`}>
+            <h3 id={`${fid}-desc`} className="lx-detail__title">
+              Detalhes
+            </h3>
+            <p className="lx-view__text">{card.description}</p>
+          </section>
+        )}
+
+        <section className="lx-detail__section" aria-labelledby={`${fid}-check`}>
+          <h3 id={`${fid}-check`} className="lx-detail__title">
+            Checklist {detail.checklist.length > 0 && <small>{done}/{detail.checklist.length}</small>}
+          </h3>
+          {detail.checklist.length === 0 ? (
+            <p className="note">Sem tarefas.</p>
+          ) : (
+            <>
+              <span className="lx-progress__bar lx-progress__bar--wide">
+                <span style={{ width: `${Math.round((done / detail.checklist.length) * 100)}%` }} />
+              </span>
+              <ul className="lx-checklist">
+                {detail.checklist.map((item, i) =>
+                  detail.canWork ? (
+                    <li key={i}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          disabled={!!busy}
+                          onChange={() => apply(logisticsApi.toggleItem(card.id, i, item.task, !item.done), 'items', 'guardar a tarefa')}
+                        />
+                        <span className={item.done ? 'lx-checklist__done' : undefined}>{item.task}</span>
+                      </label>
+                    </li>
+                  ) : (
+                    <li key={i} className="lx-checklist__read">
+                      {item.done ? <Icon name="checkCircle" className="lx-checklist__tick" /> : <span className="lx-checklist__open" aria-hidden="true" />}
+                      <span className={item.done ? 'lx-checklist__done' : undefined}>
+                        {item.task}
+                        <span className="sr-only">{item.done ? ' (feita)' : ' (por fazer)'}</span>
+                      </span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </>
+          )}
+          {error?.key === 'items' && <Error text={error.text} />}
+        </section>
+
+        <section className="lx-detail__section" aria-labelledby={`${fid}-people`}>
+          <h3 id={`${fid}-people`} className="lx-detail__title">
+            Pessoas
+          </h3>
+          {people.length === 0 ? (
+            <p className="note">Ninguém atribuído.</p>
+          ) : (
+            <div className="chips">
+              {people.map((p, i) => (
+                <span key={i} className="chip" title={p.fullName ?? undefined}>
+                  <img src={p.avatarUrl ?? DEFAULT_AVATAR} alt="" width="24" height="24" />
+                  {p.displayName}
+                  {p.lead && <small className="lx-view__lead">responsável</small>}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {card.labels.length > 0 && (
+          <section className="lx-detail__section" aria-labelledby={`${fid}-labels`}>
+            <h3 id={`${fid}-labels`} className="lx-detail__title">
+              Etiquetas
+            </h3>
+            <ul className="lx-labels">
+              {card.labels.map((l: Label, i) => (
+                <li key={`${l.text}-${i}`} className="lx-label">
+                  <span className="lx-label__dot" style={{ background: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : '#6f42c1' }} aria-hidden="true" />
+                  {l.text}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {detail.links.length > 0 && (
+          <section className="lx-detail__section" aria-labelledby={`${fid}-links`}>
+            <h3 id={`${fid}-links`} className="lx-detail__title">
+              Ligações
+            </h3>
+            <ul className="lx-files">
+              {detail.links.map((l, i) => (
+                <li key={`${l.cardId}-${i}`}>
+                  <Icon name="link" />
+                  <span className="lx-files__name">{l.name}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className="lx-detail__section" aria-labelledby={`${fid}-files`}>
+          <h3 id={`${fid}-files`} className="lx-detail__title">
+            Ficheiros do quadro
+          </h3>
+          {board.files.length === 0 ? (
+            <p className="note">Sem ficheiros.</p>
+          ) : (
+            <ul className="lx-files">
+              {board.files.map((f) => (
+                <li key={f.name}>
+                  <Icon name="file" />
+                  <span className="lx-files__name">
+                    {f.name}
+                    <small>
+                      {f.extension.replace('.', '').toUpperCase()} · {size(f.sizeBytes)}
+                    </small>
+                  </span>
+                  <button type="button" className="icon-btn icon-btn--sm" onClick={() => download(f.name)}>
+                    <Icon name="download" />
+                    <span className="sr-only">Descarregar {f.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {error?.key === 'files' && <Error text={error.text} />}
+        </section>
+
+        {card.eventName && <p className="note">Atuação: {card.eventName}</p>}
+      </div>
+    </Dialog>
+  );
+}
+
+/** "Detalhes do cartão" (Mod, Admin, Owner): every field the old modal edited; each section saves on its own. Members get CardView. */
 export function CardDialog({
   board,
   cardId,
@@ -558,7 +783,7 @@ export function CardDialog({
   const take = (d: CardDetail) => {
     setDetail(d);
     setForm({ title: d.card.title, description: d.card.description, startDate: d.card.startDate?.slice(0, 10) ?? '', dueDate: d.card.dueDate?.slice(0, 10) ?? '' });
-    setAssignee(d.assignedTo ? { id: d.assignedTo.userId, name: d.assignedTo.displayName, avatar: d.assignedTo.avatarUrl } : null);
+    setAssignee(d.assignedTo?.userId ? { id: d.assignedTo.userId, name: d.assignedTo.displayName, avatar: d.assignedTo.avatarUrl } : null);
   };
 
   useEffect(() => {
@@ -576,6 +801,19 @@ export function CardDialog({
       </Dialog>
     );
   }
+
+  if (!detail.canManage)
+    return (
+      <CardView
+        board={board}
+        detail={detail}
+        onClose={onClose}
+        onChanged={(d) => {
+          setDetail(d);
+          onChanged();
+        }}
+      />
+    );
 
   const card = detail.card;
 
@@ -627,6 +865,7 @@ export function CardDialog({
     <Dialog
       title="Detalhes do cartão"
       size="lg"
+      className="lx-card-modal"
       onClose={onClose}
       footer={
         <>
@@ -804,7 +1043,7 @@ export function CardDialog({
                   key={a.userId}
                   name={a.displayName}
                   avatar={a.avatarUrl}
-                  onRemove={() => apply(logisticsApi.unassign(card.id, a.userId), 'userId', 'remover o membro')}
+                  onRemove={() => a.userId && apply(logisticsApi.unassign(card.id, a.userId), 'userId', 'remover o membro')}
                   removeLabel={`Remover ${a.displayName}`}
                 />
               ))}
@@ -812,7 +1051,7 @@ export function CardDialog({
           ) : (
             <p className="note">Ninguém atribuído.</p>
           )}
-          <MemberPicker label="Atribuir membro" exclude={detail.assignments.map((a) => a.userId)} onPick={(m) => apply(logisticsApi.assign(card.id, m.id), 'userId', 'atribuir o membro')} />
+          <MemberPicker label="Atribuir membro" exclude={detail.assignments.flatMap((a) => (a.userId ? [a.userId] : []))} onPick={(m) => apply(logisticsApi.assign(card.id, m.id), 'userId', 'atribuir o membro')} />
           <Error text={errors.userId} />
         </section>
 

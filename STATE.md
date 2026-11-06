@@ -6,6 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
+**Task 065 = Logística 1/5** (issue #246 under roadmap #245; `feat/065/logistics-leitao-access`, PR open, not merged).
+Leitões read Logística (boards, card details, files); a Leitão's Gestão shows Logística only (new menu flag `logistics`;
+`logisticsAndTreasury` became `treasury`, values unchanged). Card assignees tick checklist items
+(`POST /api/logistics/cards/{id}/checklist/{index}`) and change status; everything else stays Mod/Admin/Owner. Read-only
+card view, full screen on phones. No schema change. Next: #247 (Logística 2/5) after review. Real-device PWA check open.
+
 **Released to PROD: 2.2.0** (MINOR: features; merge `44abad0c`, tag `v2.2.0`, `/api/version` verified; `master` merged back, `dev` on 2.2.1) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
 badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasskeys` (additive, N-1 safe; the app takes
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).

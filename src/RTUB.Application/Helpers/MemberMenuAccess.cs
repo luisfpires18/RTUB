@@ -11,13 +11,16 @@ namespace RTUB.Application.Helpers;
 ///
 /// - <see cref="Management"/> (Reuniões, Documentação, Questões): the navbar's "Gestão": Admin, Owner or Mod, or any
 ///   member who is not a Leitão.
-/// - <see cref="LogisticsAndTreasury"/> (Logística, Tesouraria): the navbar's rule, Admin, Mod or Tuno, with Owner
-///   inheriting Admin as everywhere else on the React track.
+/// - <see cref="Logistics"/> (Logística, task 065): every signed-in member, Leitões included, as the Logistics API
+///   allows. A Leitão's "Gestão" then shows Logística only: <see cref="Management"/> and <see cref="Treasury"/> are not
+///   widened for it.
+/// - <see cref="Treasury"/> (Tesouraria): the navbar's rule, Admin, Mod or Tuno, with Owner inheriting Admin as
+///   everywhere else on the React track (was <c>LogisticsAndTreasury</c>, shared with Logística, until 065).
 /// - <see cref="Admin"/> (Pedidos): the Admin role.
 /// - <see cref="Owner"/> (Utilizadores, Auditoria, Base de dados, Emails, Notificações): the Owner role, as the five
 ///   pages require (task 035: Emails and Notificações were Admin pages and are Owner only now).
 /// </summary>
-public sealed record MemberMenuAccess(bool Management, bool LogisticsAndTreasury, bool Admin, bool Owner)
+public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Treasury, bool Admin, bool Owner)
 {
     public static MemberMenuAccess For(ClaimsPrincipal principal, ApplicationUser user)
     {
@@ -27,7 +30,8 @@ public sealed record MemberMenuAccess(bool Management, bool LogisticsAndTreasury
 
         return new MemberMenuAccess(
             Management: admin || owner || mod || !user.IsLeitao(),
-            LogisticsAndTreasury: admin || owner || mod || user.IsTuno(),
+            Logistics: true,
+            Treasury: admin || owner || mod || user.IsTuno(),
             Admin: admin,
             Owner: owner);
     }

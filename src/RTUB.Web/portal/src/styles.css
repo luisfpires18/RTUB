@@ -8939,6 +8939,165 @@ video.tile__media {
   text-decoration: line-through;
 }
 
+/* Task 065: the read-only / assigned card view, "Atribuído a si", "Só os meus". */
+.lx-chip--mine {
+  border-color: var(--purple-ink);
+  background: color-mix(in srgb, var(--purple) 28%, transparent);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.lx-card__top .lx-chip--mine {
+  padding: 2px 8px;
+}
+
+.lx-card--mine {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--purple-ink) 45%, transparent);
+}
+
+.lx-mine-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font: 600 0.8125rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-mine-filter[aria-pressed="true"] {
+  border-color: var(--purple-ink);
+  background: color-mix(in srgb, var(--purple) 35%, transparent);
+  color: var(--ink);
+}
+
+.lx-view__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lx-view__head .lx-status {
+  padding: 5px 9px;
+  font-size: 0.75rem;
+}
+
+.lx-view__status--todo {
+  --st: var(--st-todo);
+}
+
+.lx-view__status--inprogress {
+  --st: var(--st-wip);
+}
+
+.lx-view__status--done {
+  --st: var(--st-done);
+}
+
+.lx-view__role {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.lx-view__role .icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.lx-view__role--work {
+  border-color: color-mix(in srgb, var(--st-done) 50%, transparent);
+  color: var(--ink-soft);
+}
+
+.lx-view__role--work .icon {
+  color: var(--st-done);
+}
+
+.lx-view__text {
+  margin: 0;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lx-view__lead {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lx-card-modal .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+}
+
+.lx-card-modal .chip img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* An assignee's checkbox row: the whole row is the touch target. */
+.lx-card-modal .lx-checklist label {
+  min-height: 36px;
+}
+
+.lx-checklist__read {
+  min-height: 44px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.lx-checklist__tick {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--st-done);
+}
+
+.lx-checklist__open {
+  flex: none;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+/* Phones: the card is a full-screen view (close in reach, safe areas kept), not a floating box. */
+@media (max-width: 599px) {
+  .modal.lx-card-modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .lx-card-modal .modal__body {
+    flex: 1;
+    align-content: start;
+  }
+}
+
 .lx-files__name {
   display: grid;
   flex: 1;

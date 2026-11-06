@@ -66,21 +66,119 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
                 "/members/manage", "/member/events", "/member/gallery", "/member/roles", "/hierarchy" });
     }
 
+    /// <summary>Task 065: Leitões read like any member (boards, the board, card details, files); they manage nothing.</summary>
     [Fact]
-    public async Task Leitoes_AreRefused_UnlessTheyManage()
+    public async Task Leitoes_ReadBoardsAndCards_ButManageNothing()
     {
-        var (boardId, _, cardId) = await SeedBoardAsync();
+        var (boardId, listId, cardId) = await SeedBoardAsync();
         var (leitao, me) = await SignInAsync();
         await UpdateUserAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
         await WithTokenAsync(leitao);
-        (await leitao.GetAsync("/api/logistics")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await leitao.GetAsync($"/api/logistics/boards/{boardId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden,
-            "the old board page forgot to send Leitões away; the API does not");
-        (await leitao.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", Reminder(cardId, me.Id))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        var (mod, modUser) = await SignInAsync("Mod");
-        await UpdateUserAsync(modUser.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
-        (await mod.GetAsync($"/api/logistics/boards/{boardId}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var boards = await Json(leitao, "/api/logistics");
+        boards.GetProperty("canManage").GetBoolean().Should().BeFalse();
+        boards.GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().Contain(boardId);
+        (await Json(leitao, $"/api/logistics/boards/{boardId}")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+        (await Json(leitao, $"/api/logistics/boards/{boardId}/file-list")).ValueKind.Should().Be(JsonValueKind.Array);
+        var detail = await Json(leitao, $"/api/logistics/cards/{cardId}");
+        (detail.GetProperty("canManage").GetBoolean(), detail.GetProperty("canWork").GetBoolean()).Should().Be((false, false));
+
+        (await leitao.PostAsJsonAsync("/api/logistics/boards", new { name = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await leitao.PostAsJsonAsync($"/api/logistics/lists/{listId}/cards", new { title = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await leitao.DeleteAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "Done" })).StatusCode.Should().Be(HttpStatusCode.Forbidden,
+            "not assigned: read only");
+
+        // The other Gestão modules keep their own rules: opening Logística to Leitões widens nothing else.
+        (await leitao.GetAsync("/api/documentation")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await leitao.GetAsync("/api/requests")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    /// <summary>
+    /// Task 065: a member the card is assigned to ("Atribuir a" or "Membros atribuídos") ticks checklist items and changes
+    /// the status - nothing else - and loses it when the assignment goes. Forged payloads are refused.
+    /// </summary>
+    [Fact]
+    public async Task Assignees_TickTheChecklistAndChangeTheStatus_OnlyWhileAssigned()
+    {
+        var (boardId, listId, cardId) = await SeedBoardAsync(cards: 2);
+        var other = (await CardIdsAsync(listId)).Single(id => id != cardId);
+        var (_, _, foreign) = await SeedBoardAsync();
+        var checklist = "[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":false},{\"Id\":0,\"Task\":\"Contar\",\"Done\":false}]";
+        foreach (var id in new[] { cardId, other, foreign })
+        {
+            await UpdateCardAsync(id, c => c.SetChecklist(checklist));
+        }
+
+        var (worker, me) = await SignInAsync();
+        await UpdateUserAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
+        await WithTokenAsync(worker);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.LogisticsCardAssignments.Add(LogisticsCardAssignment.Create(cardId, me.Id));
+            await db.SaveChangesAsync();
+        }
+
+        Card(await Json(worker, $"/api/logistics/boards/{boardId}"), cardId).GetProperty("mine").GetBoolean().Should().BeTrue();
+        Card(await Json(worker, $"/api/logistics/boards/{boardId}"), other).GetProperty("mine").GetBoolean().Should().BeFalse();
+        var detail = await Json(worker, $"/api/logistics/cards/{cardId}");
+        (detail.GetProperty("canManage").GetBoolean(), detail.GetProperty("canWork").GetBoolean()).Should().Be((false, true));
+
+        var ticked = await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { task = "Contar", done = true }));
+        ticked.GetProperty("checklist").EnumerateArray().Select(i => i.GetProperty("done").GetBoolean()).Should().Equal(false, true);
+        (await CardAsync(cardId))!.ChecklistJson.Should().Be("[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":false},{\"Id\":0,\"Task\":\"Contar\",\"Done\":true}]",
+            "only Done changes; text, order and the stored shape stay");
+        await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { task = "Contar", done = false }));
+        (await CardAsync(cardId))!.ChecklistJson.Should().Be(checklist, "unticking persists too");
+        (await Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Outra", done = true }))).Keys.Should().Equal("items");
+        (await Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/9", new { task = "Lavar", done = true }))).Keys.Should().Equal("items");
+        (await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "InProgress" })))
+            .GetProperty("card").GetProperty("status").GetString().Should().Be("InProgress");
+        (await CardAsync(cardId))!.Status.Should().Be(CardStatus.InProgress);
+
+        // Assigned is not manager: the whole-checklist replace, edits, labels, links, assignments, moves stay refused.
+        foreach (var (method, path, body) in new (string, string, object?)[]
+        {
+            ("PUT", $"/api/logistics/cards/{cardId}/checklist", new { items = new[] { new { task = "Lavar", done = true } } }),
+            ("PUT", $"/api/logistics/cards/{cardId}", new { title = "x" }),
+            ("PUT", $"/api/logistics/cards/{cardId}/labels", new { labels = Array.Empty<object>() }),
+            ("PUT", $"/api/logistics/cards/{cardId}/links", new { cardIds = Array.Empty<int>() }),
+            ("POST", $"/api/logistics/cards/{cardId}/assignments", new { userId = me.Id }),
+            ("DELETE", $"/api/logistics/cards/{cardId}/assignments/{me.Id}", null),
+            ("POST", $"/api/logistics/cards/{cardId}/move", new { listId, position = 0 }),
+            ("DELETE", $"/api/logistics/cards/{cardId}", null),
+            // Not this member's cards: the other card of the board and a card on another board.
+            ("POST", $"/api/logistics/cards/{other}/checklist/0", new { task = "Lavar", done = true }),
+            ("POST", $"/api/logistics/cards/{other}/status", new { status = "Done" }),
+            ("POST", $"/api/logistics/cards/{foreign}/checklist/0", new { task = "Lavar", done = true }),
+        })
+        {
+            (await worker.SendAsync(new HttpRequestMessage(new HttpMethod(method), path) { Content = body is null ? null : JsonContent.Create(body) }))
+                .StatusCode.Should().Be(HttpStatusCode.Forbidden, $"{method} {path}");
+        }
+
+        (await CardAsync(other))!.ChecklistJson.Should().Be(checklist);
+        (await CardAsync(foreign))!.ChecklistJson.Should().Be(checklist);
+
+        // "Atribuir a" counts as assigned too.
+        await UpdateCardAsync(other, c => c.AssignToUser(me.Id));
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{other}/status", new { status = "Done" })).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // A manager removes the assignment: the next write is refused, the card still reads.
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        (await mod.DeleteAsync($"/api/logistics/cards/{cardId}/assignments/{me.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = true })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "Done" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Json(worker, $"/api/logistics/cards/{cardId}")).GetProperty("canWork").GetBoolean().Should().BeFalse();
+        (await CardAsync(cardId))!.Status.Should().Be(CardStatus.InProgress);
+
+        // Managers keep the tick too, and anonymous callers get nothing.
+        (await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var anonymous = Anonymous();
+        await WithTokenAsync(anonymous);
+        (await anonymous.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = false })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -102,10 +200,16 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         board.GetProperty("canManage").GetBoolean().Should().BeFalse();
         var card = board.GetProperty("lists").EnumerateArray().First().GetProperty("cards").EnumerateArray().Single();
         card.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "title", "description", "status", "labels", "startDate", "dueDate",
-            "eventName", "assignedTo", "assignments", "checklistDone", "checklistTotal", "links");
+            "eventName", "assignedTo", "assignments", "checklistDone", "checklistTotal", "links", "mine");
+        card.GetProperty("mine").GetBoolean().Should().BeFalse("the card is someone else's");
         card.GetProperty("assignedTo").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("displayName", "fullName", "avatarUrl");
 
-        (await member.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden, "members never opened card details");
+        // 065: every member reads the details, without member ids, and is told it may not work on the card.
+        var detailRaw = await member.GetStringAsync($"/api/logistics/cards/{cardId}");
+        detailRaw.Should().NotContain(assignee.Id).And.NotContain(assignee.Email!);
+        var detail = JsonDocument.Parse(detailRaw).RootElement;
+        (detail.GetProperty("canManage").GetBoolean(), detail.GetProperty("canWork").GetBoolean()).Should().Be((false, false));
+        detail.GetProperty("assignedTo").GetProperty("userId").ValueKind.Should().Be(JsonValueKind.Null);
         (await member.GetAsync("/api/logistics/events?q=a")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var refused = new (string Method, string Path, object? Body)[]
         {
@@ -123,6 +227,7 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
             ("POST", $"/api/logistics/cards/{cardId}/move", new { listId, position = 0 }),
             ("PUT", $"/api/logistics/cards/{cardId}/labels", new { labels = Array.Empty<object>() }),
             ("PUT", $"/api/logistics/cards/{cardId}/checklist", new { items = Array.Empty<object>() }),
+            ("POST", $"/api/logistics/cards/{cardId}/checklist/0", new { task = "x", done = true }),
             ("PUT", $"/api/logistics/cards/{cardId}/links", new { cardIds = Array.Empty<int>() }),
             ("POST", $"/api/logistics/cards/{cardId}/assignments", new { userId = me.Id }),
             ("DELETE", $"/api/logistics/cards/{cardId}", null),

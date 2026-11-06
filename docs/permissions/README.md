@@ -28,7 +28,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/documentation` | - | R + upload | blocked | R + upload + manage | R + upload + manage | all | [documentation](documentation.md) |
 | `/meetings` | - | by meeting type | blocked | as Member | as Member (+ add participants) | all | [meetings](meetings.md) |
 | `/treasury` | - | R (not Caloiro) | own calotes | R + records | R + records + reports | all | [treasury](treasury.md) |
-| `/logistics` | - | R + reminders | blocked | W D | W D | W D | [logistics](logistics.md) |
+| `/logistics` | - | R + reminders; assigned cards: tick checklist, status | as Member | W D | W D | W D | [logistics](logistics.md) |
 | `/requests` | - | R | blocked | R | R + approve, reject, delete | same as Admin | [requests-questions](requests-questions.md) |
 | `/questions` | - | ask + own threads | yes | as Member | as Member | as Member | [requests-questions](requests-questions.md) |
 | `/members` | - | R | R | R | W D (Leitões) | W D (anyone) | [members](members.md) |
@@ -47,5 +47,9 @@ type first (a Leitão is blocked from several pages whatever the role).
 
 Leitões also manage `/inventory` (checked by category, not role): keeping the instruments up to date is their job.
 
-The menu groups (Gestão, Logística e Tesouraria, Pedidos, Owner) only decide which *links* show
-(`MemberMenuAccess`); every page and API still enforces its own rule.
+Logística also has a third axis besides role and type: the card **assignment** (task 065, see
+[logistics](logistics.md)).
+
+The menu flags (`management`, `logistics`, `treasury`, `admin`, `owner` in `MemberMenuAccess`) only decide which
+*links* show; every page and API still enforces its own rule. Since 065 `logistics` is its own flag (true for every
+member), so a Leitão's Gestão shows Logística only.

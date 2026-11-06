@@ -22,7 +22,8 @@ public sealed record LogisticsPersonDto(string DisplayName, string? FullName, st
 
 /// <summary>
 /// A card face. <c>Checklist</c> = (done, total); <c>Links</c> = linked cards; <c>AssignedTo</c> = the single
-/// "Atribuir a" member of the creation form; <c>Assignments</c> = how many "Membros atribuídos".
+/// "Atribuir a" member of the creation form; <c>Assignments</c> = how many "Membros atribuídos"; <c>Mine</c> = the
+/// caller is that member or one of them (task 065: "Atribuído a si").
 /// </summary>
 public sealed record LogisticsCardDto(
     int Id,
@@ -37,7 +38,8 @@ public sealed record LogisticsCardDto(
     int Assignments,
     int ChecklistDone,
     int ChecklistTotal,
-    int Links);
+    int Links,
+    bool Mine);
 
 public sealed record LogisticsListDto(int Id, string Name, IReadOnlyList<LogisticsCardDto> Cards);
 
@@ -60,17 +62,23 @@ public sealed record LogisticsChecklistItemDto(string Task, bool Done);
 
 public sealed record LogisticsLinkDto(int? CardId, string Name);
 
-/// <summary>A manager's assignee: the id is needed to remove the assignment.</summary>
-public sealed record LogisticsAssigneeDto(string UserId, string DisplayName, string? FullName, string? AvatarUrl);
+/// <summary>An assignee. The id is needed to remove the assignment, so only managers get it (null for everyone else).</summary>
+public sealed record LogisticsAssigneeDto(string? UserId, string DisplayName, string? FullName, string? AvatarUrl);
 
-/// <summary>The card details (managers): everything the old "Detalhes do Cartão" modal edited.</summary>
+/// <summary>
+/// The card details: everything the old "Detalhes do Cartão" modal edited. Every member who sees the board reads them
+/// (task 065); <c>CanManage</c> = may edit everything, <c>CanWork</c> = may tick the checklist and change the status
+/// (a manager, or a member the card is assigned to).
+/// </summary>
 public sealed record LogisticsCardDetailDto(
     LogisticsCardDto Card,
     int ListId,
     LogisticsAssigneeDto? AssignedTo,
     IReadOnlyList<LogisticsChecklistItemDto> Checklist,
     IReadOnlyList<LogisticsLinkDto> Links,
-    IReadOnlyList<LogisticsAssigneeDto> Assignments);
+    IReadOnlyList<LogisticsAssigneeDto> Assignments,
+    bool CanManage,
+    bool CanWork);
 
 public sealed record LogisticsListInput(string? Name);
 
@@ -88,6 +96,9 @@ public sealed record LogisticsMoveInput(int ListId, int Position);
 public sealed record LogisticsLabelsInput(IReadOnlyList<LogisticsLabelDto>? Labels);
 
 public sealed record LogisticsChecklistInput(IReadOnlyList<LogisticsChecklistItemDto>? Items);
+
+/// <summary>Tick or untick one checklist item (task 065). <c>Task</c> must still be the item's text, so a list a manager just changed is not ticked blind.</summary>
+public sealed record LogisticsChecklistToggleInput(string? Task, bool Done);
 
 public sealed record LogisticsLinksInput(IReadOnlyList<int>? CardIds);
 

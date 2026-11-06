@@ -28,7 +28,10 @@ namespace RTUB.Application.Services;
 ///   card's position, so positions could collide);
 /// - board files: one folder per board for the current fiscal year
 ///   (docs/{env}/{year}/Logistics/{board}/, shared by all its cards, as before), ≤ 10 MB, the old file types;
-/// - reminders: any member who sees the board, as before; stored only - nothing in the app sends them (unchanged).
+/// - reminders: any member who sees the board, as before; stored only - nothing in the app sends them (unchanged);
+/// - task 065: every member who sees the board (Leitões included) reads the card details; the members a card is
+///   assigned to ("Atribuir a" or "Membros atribuídos") may tick its checklist items and change its status, nothing
+///   else, re-checked against the database on every write.
 /// No notifications, no schema change.
 /// </summary>
 public sealed class LogisticsKanbanService : ILogisticsKanbanService
@@ -243,8 +246,12 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         var listIds = lists.Select(l => l.Id).ToList();
         var cards = await db.LogisticsCards.AsNoTracking().Include(c => c.Event).Include(c => c.AssignedToUser)
             .Where(c => listIds.Contains(c.ListId)).ToListAsync();
-        var assignments = await AssignmentCountsAsync(db, cards.Select(c => c.Id).ToList());
-        var faces = cards.ToDictionary(c => c.Id, c => Face(c, assignments.GetValueOrDefault(c.Id)));
+        var cardIds = cards.Select(c => c.Id).ToList();
+        var assignments = await AssignmentCountsAsync(db, cardIds);
+        var me = LogisticsAuthorization.UserId(user);
+        var mine = (await db.LogisticsCardAssignments.AsNoTracking().Where(a => a.UserId == me && cardIds.Contains(a.CardId))
+            .Select(a => a.CardId).ToListAsync()).ToHashSet();
+        var faces = cards.ToDictionary(c => c.Id, c => Face(c, assignments.GetValueOrDefault(c.Id), c.AssignedToUserId == me || mine.Contains(c.Id)));
 
         return EventResult<LogisticsBoardDto>.Ok(new LogisticsBoardDto(
             board.Id, board.Name, board.Description, Event(board.Event), board.IsCompleted,
@@ -394,24 +401,25 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         card.AssignToUser(string.IsNullOrEmpty(input.AssignedToUserId) ? null : input.AssignedToUserId);
         db.LogisticsCards.Add(card);
         await db.SaveChangesAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, card.Id));
+        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, card.Id, user));
     }
 
     public async Task<EventResult<LogisticsCardDetailDto>> GetCardAsync(int id, ClaimsPrincipal user)
     {
-        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: true) is { } refused)
+        // Every member who sees the board reads the details (task 065; they were managers only).
+        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: false) is { } refused)
         {
             return refused;
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
         return await db.LogisticsCards.AnyAsync(c => c.Id == id)
-            ? EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id))
+            ? EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user))
             : EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
     }
 
     public Task<EventResult<LogisticsCardDetailDto>> UpdateCardAsync(int id, LogisticsCardInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, async (db, card) =>
+        ChangeCardAsync(id, user, assignedMayChange: false, async (db, card) =>
         {
             var errors = CardErrors(input.Title, input.Description);
             var start = Day(input.StartDate, "startDate", errors);
@@ -436,8 +444,9 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
             return null;
         });
 
+    // Managers, or a member the card is assigned to (task 065).
     public Task<EventResult<LogisticsCardDetailDto>> SetStatusAsync(int id, LogisticsStatusInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, (db, card) =>
+        ChangeCardAsync(id, user, assignedMayChange: true, (db, card) =>
         {
             if (!Enum.TryParse<CardStatus>(input.Status, out var status) || !Enum.IsDefined(status) || int.TryParse(input.Status, out _))
             {
@@ -481,7 +490,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
     }
 
     public Task<EventResult<LogisticsCardDetailDto>> SetLabelsAsync(int id, LogisticsLabelsInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, (db, card) =>
+        ChangeCardAsync(id, user, assignedMayChange: false, (db, card) =>
         {
             var labels = input.Labels ?? Array.Empty<LogisticsLabelDto>();
             if (labels.Count > 20 || labels.Any(l => string.IsNullOrWhiteSpace(l.Text) || l.Text.Trim().Length > 50 || !Colour.IsMatch(l.Color ?? "")))
@@ -493,8 +502,27 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
             return Task.FromResult<Dictionary<string, string[]>?>(null);
         });
 
+    /// <summary>
+    /// Tick or untick one item (task 065): managers, or a member the card is assigned to. Only <c>Done</c> changes; the
+    /// text, order and count stay. <c>Task</c> must match the item at <paramref name="index"/>, so a checklist a
+    /// manager changed meanwhile is refused instead of ticking another item.
+    /// </summary>
+    public Task<EventResult<LogisticsCardDetailDto>> ToggleChecklistItemAsync(int id, int index, LogisticsChecklistToggleInput input, ClaimsPrincipal user) =>
+        ChangeCardAsync(id, user, assignedMayChange: true, (db, card) =>
+        {
+            var items = Tasks(card.ChecklistJson);
+            if (index < 0 || index >= items.Count || items[index].Task != input.Task)
+            {
+                return Task.FromResult<Dictionary<string, string[]>?>(Error("items", "A lista de tarefas mudou entretanto. Recarregue o cartão."));
+            }
+
+            items[index] = items[index] with { Done = input.Done };
+            card.SetChecklist(JsonSerializer.Serialize(items));
+            return Task.FromResult<Dictionary<string, string[]>?>(null);
+        });
+
     public Task<EventResult<LogisticsCardDetailDto>> SetChecklistAsync(int id, LogisticsChecklistInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, (db, card) =>
+        ChangeCardAsync(id, user, assignedMayChange: false, (db, card) =>
         {
             var items = input.Items ?? Array.Empty<LogisticsChecklistItemDto>();
             if (items.Count > 100 || items.Any(i => string.IsNullOrWhiteSpace(i.Task) || i.Task.Trim().Length > 200))
@@ -507,7 +535,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         });
 
     public Task<EventResult<LogisticsCardDetailDto>> SetLinksAsync(int id, LogisticsLinksInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, async (db, card) =>
+        ChangeCardAsync(id, user, assignedMayChange: false, async (db, card) =>
         {
             var ids = (input.CardIds ?? Array.Empty<int>()).Distinct().ToList();
             var boardId = await db.LogisticsLists.Where(l => l.Id == card.ListId).Select(l => l.BoardId).SingleAsync();
@@ -548,7 +576,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
         db.LogisticsCardAssignments.Add(LogisticsCardAssignment.Create(id, input.UserId));
         await db.SaveChangesAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id));
+        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
     }
 
     public async Task<EventResult<LogisticsCardDetailDto>> RemoveAssignmentAsync(int id, string userId, ClaimsPrincipal user)
@@ -566,7 +594,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
         db.LogisticsCardAssignments.Remove(assignment);
         await db.SaveChangesAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id));
+        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
     }
 
     public async Task<EventResult<bool>> DeleteCardAsync(int id, ClaimsPrincipal user)
@@ -707,7 +735,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
 
     // ---------------------------------------------------------------- helpers
 
-    /// <summary>401 for visitors (or a deleted account), 403 for Leitões and, on management, for non-managers.</summary>
+    /// <summary>401 for visitors (or a deleted account); 403 for expelled accounts and, on management, for non-managers.</summary>
     private async Task<EventResult<T>?> RefusalAsync<T>(ClaimsPrincipal user, bool manage)
     {
         if (LogisticsAuthorization.UserId(user) is not { } id)
@@ -726,18 +754,34 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
             : EventResult<T>.Fail(EventResultStatus.Forbidden);
     }
 
-    private async Task<EventResult<LogisticsCardDetailDto>> ChangeCardAsync(int id, ClaimsPrincipal user,
+    /// <summary>
+    /// One card change. <paramref name="assignedMayChange"/>: a viewer the card is assigned to may make it too (status,
+    /// checklist ticks); the assignment is read from the database on this request, so a removed assignee is refused.
+    ///
+    /// The check, the change and the save are one transaction, and Microsoft.Data.Sqlite begins it as BEGIN IMMEDIATE:
+    /// it takes SQLite's write lock before it reads anything, so the reads see the newest committed rows and no other
+    /// write can land between the check and the save: an assignment removal (or a manager's checklist edit) either
+    /// committed first - and is seen - or waits until this change commits (LogisticsAssignmentRaceTests pins it). Without it, a removal committed after the check still let the former
+    /// assignee's write through, and two assignees ticking at once could lose a tick.
+    /// </summary>
+    private async Task<EventResult<LogisticsCardDetailDto>> ChangeCardAsync(int id, ClaimsPrincipal user, bool assignedMayChange,
         Func<ApplicationDbContext, LogisticsCard, Task<Dictionary<string, string[]>?>> change)
     {
-        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: true) is { } refused)
+        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: !assignedMayChange) is { } refused)
         {
             return refused;
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
         if (await db.LogisticsCards.FindAsync(id) is not { } card)
         {
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (!LogisticsAuthorization.CanManage(user) && !await IsAssignedAsync(db, card, LogisticsAuthorization.UserId(user)))
+        {
+            return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Forbidden);
         }
 
         if (await change(db, card) is { } errors)
@@ -746,8 +790,12 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         }
 
         await db.SaveChangesAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id));
+        await transaction.CommitAsync();
+        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
     }
+
+    private static async Task<bool> IsAssignedAsync(ApplicationDbContext db, LogisticsCard card, string? userId) =>
+        userId is not null && (card.AssignedToUserId == userId || await db.LogisticsCardAssignments.AnyAsync(a => a.CardId == card.Id && a.UserId == userId));
 
     private static async Task<EventResult<LogisticsBoardSummaryDto>?> BoardErrorsAsync(ApplicationDbContext db, LogisticsBoardInput input)
     {
@@ -840,34 +888,40 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         return new LogisticsPersonDto(who.DisplayName, who.FullName, who.AvatarUrl);
     }
 
-    private static LogisticsAssigneeDto Assignee(ApplicationUser u)
+    private static LogisticsAssigneeDto Assignee(ApplicationUser u, bool withId)
     {
         var who = GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl);
-        return new LogisticsAssigneeDto(u.Id, who.DisplayName, who.FullName, who.AvatarUrl);
+        return new LogisticsAssigneeDto(withId ? u.Id : null, who.DisplayName, who.FullName, who.AvatarUrl);
     }
 
-    private static LogisticsCardDto Face(LogisticsCard c, int assignments)
+    private static LogisticsCardDto Face(LogisticsCard c, int assignments, bool mine)
     {
         var checklist = Tasks(c.ChecklistJson);
         var description = c.Description ?? "";
         var marker = description.IndexOf(LegacyFilesMarker, StringComparison.Ordinal);
         return new LogisticsCardDto(c.Id, c.Title, marker < 0 ? description : description[..marker].TrimEnd(), c.Status.ToString(), Labels(c.Labels),
             c.StartDate, c.DueDate, c.Event?.Name, Person(c.AssignedToUser), assignments, checklist.Count(t => t.Done), checklist.Count,
-            Links(c.AttachmentsJson).Count);
+            Links(c.AttachmentsJson).Count, mine);
     }
 
-    private static async Task<LogisticsCardDetailDto> DetailAsync(ApplicationDbContext db, int id)
+    /// <summary>The details for <paramref name="user"/>: member ids only for managers (they change assignments).</summary>
+    private static async Task<LogisticsCardDetailDto> DetailAsync(ApplicationDbContext db, int id, ClaimsPrincipal user)
     {
         var card = await db.LogisticsCards.AsNoTracking().Include(c => c.Event).Include(c => c.AssignedToUser).SingleAsync(c => c.Id == id);
         var assignees = await db.LogisticsCardAssignments.AsNoTracking().Include(a => a.User).Where(a => a.CardId == id).OrderBy(a => a.Id)
             .Select(a => a.User).ToListAsync();
+        var manage = LogisticsAuthorization.CanManage(user);
+        var me = LogisticsAuthorization.UserId(user);
+        var mine = me is not null && (card.AssignedToUserId == me || assignees.Any(a => a.Id == me));
         return new LogisticsCardDetailDto(
-            Face(card, assignees.Count),
+            Face(card, assignees.Count, mine),
             card.ListId,
-            card.AssignedToUser is null ? null : Assignee(card.AssignedToUser),
+            card.AssignedToUser is null ? null : Assignee(card.AssignedToUser, manage),
             Tasks(card.ChecklistJson).Select(t => new LogisticsChecklistItemDto(t.Task, t.Done)).ToList(),
             Links(card.AttachmentsJson).Select(l => new LogisticsLinkDto(l.CardId, l.Name)).ToList(),
-            assignees.Select(Assignee).ToList());
+            assignees.Select(a => Assignee(a, manage)).ToList(),
+            manage,
+            manage || mine);
     }
 
     /// <summary>JSON labels, or the oldest comma-separated text (purple), as the old page read them.</summary>
